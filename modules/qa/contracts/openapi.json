@@ -406,6 +406,16 @@
                 }
               }
             }
+          },
+          "410": {
+            "description": "资源正文已清除或保留期届满；GONE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -835,6 +845,16 @@
           },
           "default": {
             "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "资源正文已清除或保留期届满；GONE",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2861,6 +2881,16 @@
                 }
               }
             }
+          },
+          "410": {
+            "description": "资源正文已清除或保留期届满；GONE",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -3100,6 +3130,27 @@
       },
       "QaQuestionPlan": {
         "$ref": "./types.json#/$defs/QuestionPlan"
+      },
+      "QaEquivalenceDecision": {
+        "$ref": "./types.json#/$defs/EquivalenceDecision"
+      },
+      "ContentPublicationChanged": {
+        "$ref": "../../content/contracts/types.json#/$defs/PublicationChangedPayload"
+      },
+      "ContentPublicationWithdrawn": {
+        "$ref": "../../content/contracts/types.json#/$defs/PublicationWithdrawnPayload"
+      },
+      "KnowledgeIndexRetired": {
+        "$ref": "../../knowledge/contracts/types.json#/$defs/EventIndexRetiredPayload"
+      },
+      "MemoryContextChanged": {
+        "$ref": "../../memory/contracts/types.json#/$defs/EventMemoryContextChangedPayload"
+      },
+      "JobsRequestCancelResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/RequestCancelResult"
+      },
+      "GuardQueueSessionAdmissionResult": {
+        "$ref": "../../traffic-guard/contracts/types.json#/$defs/QueueSessionAdmissionResult"
       }
     }
   },
@@ -3128,6 +3179,13 @@
     "GuardReportQuestionSignalsResult",
     "QaDebugTurn",
     "QaCompaction",
-    "QaQuestionPlan"
+    "QaQuestionPlan",
+    "QaEquivalenceDecision",
+    "ContentPublicationChanged",
+    "ContentPublicationWithdrawn",
+    "KnowledgeIndexRetired",
+    "MemoryContextChanged",
+    "JobsRequestCancelResult",
+    "GuardQueueSessionAdmissionResult"
   ]
 }

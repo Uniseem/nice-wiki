@@ -3797,14 +3797,10 @@
           ],
           "purpose": "保守查询语义缓存",
           "steps": [
-            "0 cacheEnabled=false直接miss/不写cache，问答记录照常保存。",
-            "1a 默认AI同义判断分别memory:resolveContext taskId=qa.cache-match，不复用qa.answer；threshold模式不额外取模型task记忆。",
-            "1 plan.complete/cacheEligible必须true",
-            "2 同space/base canonical范围cosine≥0.8最多3项",
-            "3 默认fast task qa.cache-match判断可直接同义回答，禁止rerank替代",
-            "4 threshold模式用配置阈值及否定实体锚点保护",
-            "miss返回原embedding供knowledge复用。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "cacheEnabled=false或可信计划不完整/未解指代/cacheEligible=false直接miss，原embedding始终返回供检索复用",
+            "读取同site/epoch/scope完整space的active未过期向量；核摘要、同版本缓存与有限非零范数，稳定cosine≥0.8最高3项",
+            "threshold模式要求配置阈值并比较共享NormalizeQuestion提取的数字/实体/否定anchors；默认ai_equivalence独立读取qa.cache-match记忆并真实调用fast结构同义判断，不用rerank",
+            "每个候选交付前调用ValidateCachedAnswer，权威未知整次失败；模型未知/失败不转空miss或自动重试"
           ],
           "errors": [
             {
@@ -3854,6 +3850,36 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "GONE",
+              "httpStatus": 410,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -3863,9 +3889,80 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "memory:resolveContext",
-            "qa.InvokeModel"
+            "qa.BeginRead",
+            "qa.ReadPolicy",
+            "qa.ReadCache",
+            "qa.cosineSimilarity",
+            "qa.NormalizeQuestion",
+            "qa.ResolveTaskMemory",
+            "qa.InvokeModel",
+            "qa.ModelText",
+            "qa.ValidateCachedAnswer",
+            "qa.DecodeResponse"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "qa.cosineSimilarity",
+          "name": "cosineSimilarity",
+          "signature": "func cosineSimilarity(a,b []float64)(float64,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同维有限非零向量缩放后计算cosine，避免平方溢出",
+          "steps": [
+            "按调用者持有的可信上下文和事务执行本域职责",
+            "精确规则见data/workflows和源码注释"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -5083,12 +5180,10 @@
           ],
           "purpose": "原子结束可见答案",
           "steps": [
-            "1 content终态前再validate全部引用",
-            "2 校验cancel及lease",
-            "3 事务assistant message/answerRevision/completed事件",
-            "4 释放guard并发permit",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-            "同一事务登记qa.turn.completed（含answerKind与cacheHit，不含正文）"
+            "原稳定root绑定且有效未取消lease；终态提交前通过content/public-site重新核对全部引用和真实语言href",
+            "同一事务插入assistant消息及真实tokenCount、answerRevision、answerKind、completed终态事件和qa.turn.completed outbox，不改变用户原消息",
+            "保存固定completion input hash（排除lease）；completed重放只读取原消息，异答案/来源/类型/tokenCount拒绝，不重复追加",
+            "提交后幂等释放guard slot；失败保留已完成状态，原结果重放继续释放，不重做模型费用"
           ],
           "errors": [
             {
@@ -5132,6 +5227,42 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "GONE",
+              "httpStatus": 410,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -5141,7 +5272,149 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "content:validatePublications",
+            "qa.BeginRead",
+            "qa.BeginWrite",
+            "qa.ReadTurn",
+            "qa.ReadConversation",
+            "qa.CheckTurnLease",
+            "qa.ValidateCitations",
+            "qa.SaveEvent",
+            "qa.replayCompletedTurn",
+            "qa.releaseTurnPermit",
+            "platform.EnqueueEvent"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "qa.replayCompletedTurn",
+          "name": "replayCompletedTurn",
+          "signature": "func replayCompletedTurn(ctx context.Context,op OperationContext,record qaruntime.TurnRecord,input CompleteTurnInput)(CompleteTurnResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核完成输入hash并读取原assistant消息后补做准入释放",
+          "steps": [
+            "按调用者持有的可信上下文和事务执行本域职责",
+            "精确规则见data/workflows和源码注释"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "qa.BeginRead",
+            "qa.releaseTurnPermit"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "qa.releaseTurnPermit",
+          "name": "releaseTurnPermit",
+          "signature": "func releaseTurnPermit(ctx context.Context,record qaruntime.TurnRecord)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "继承原轮次root，调用guard既有空RequestBody释放原准入",
+          "steps": [
+            "按调用者持有的可信上下文和事务执行本域职责",
+            "精确规则见data/workflows和源码注释"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "qa.FromContext",
+            "qa.ServiceReadContext",
+            "qa.DecodeResponse",
             "traffic-guard:releaseAdmission"
           ],
           "resources": [],
@@ -5194,11 +5467,10 @@
           ],
           "purpose": "取消问答及所有子调用",
           "steps": [
-            "1 owner校验",
-            "2 写cancel标记",
-            "3 MG cancelInference与jobs取消",
-            "4 发布cancelled并释放guard slot但MG费用依其证据",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "owner校验，按原输入幂等回执；未终态时在事务内写cancelRequested及唯一cancelled事件，终态保持原结果",
+            "提交后按原轮次root/subject/epoch调用jobs取消及平台Gateway取消全部持久invocation IDs，不认为取消可免账单",
+            "按原session scope/root调用guard queue mode=cancel仅删排队引用，随后ReleaseAdmission释放原slot",
+            "幂等回放仍补做取消依赖与释放；下游未知失败不报告清理完成，不重复终态事件"
           ],
           "errors": [
             {
@@ -5242,6 +5514,48 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "GONE",
+              "httpStatus": 410,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -5251,12 +5565,86 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "model-gateway:cancelInference",
-            "jobs:cancelJob",
-            "traffic-guard:releaseAdmission"
+            "qa.BeginWrite",
+            "qa.ReadTurn",
+            "qa.ReplayReceipt",
+            "qa.SaveReceipt",
+            "qa.SaveEvent",
+            "qa.cancelTurnDependencies"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "qa.cancelTurnDependencies",
+          "name": "cancelTurnDependencies",
+          "signature": "func cancelTurnDependencies(ctx context.Context,record qaruntime.TurnRecord)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按原root幂等取消任务和模型，清排队后释放并发占位",
+          "steps": [
+            "按调用者持有的可信上下文和事务执行本域职责",
+            "精确规则见data/workflows和源码注释"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "qa.FromContext",
+            "qa.ServiceReadContext",
+            "qa.DecodeResponse",
+            "qa.releaseTurnPermit",
+            "jobs:cancelJob",
+            "model-gateway:cancelInference",
+            "traffic-guard:queueSessionAdmission"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5956,11 +6344,10 @@
           ],
           "purpose": "失效受版本变化影响缓存",
           "steps": [
-            "1 inbox按eventId去重并检查epoch",
-            "2 引用变化/撤回/删除使全部受影响cache含精选stale；memory变化仅匹配curated=false和旧memoryVersionHash，curated=true豁免；回答生成模型变化不自动失效",
-            "3 active→stale仅作用于上述筛选集；TTL仅普通cache；无引用答案在任一新发布时失效",
-            "4 删除失效向量可命中索引，保留审核历史与账单引用",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "接收原EventEnvelope，核epoch；按登记的content发布/撤回、index退役、memory变更schema解析真实来源",
+            "发布/撤回失效对应文档引用与无引用公开集合答案；index退役只失效受影响文档；memory事件仅处理qa.answer，按实际cache语言读取当前memory hash",
+            "在同事务ClaimInbox；重复/旧事件不再变更。仅active缓存转stale、版本递增、删除可命中向量、写qa.cache.invalidated outbox",
+            "memory只使curated=false且旧hash不等当前值的缓存失效，curated豁免；保留审核和账单引用；回答模型变化不触发本函数"
           ],
           "errors": [
             {
@@ -6004,6 +6391,42 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "GONE",
+              "httpStatus": 410,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -6013,10 +6436,15 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "platform.ClaimInbox",
+            "qa.FromContext",
+            "qa.DecodeResponse",
+            "qa.BeginRead",
+            "qa.BeginWrite",
             "qa.ReadCache",
             "qa.SaveCache",
-            "qa.EmitCacheInvalidated"
+            "qa.EmitCacheInvalidated",
+            "qa.ResolveTaskMemory",
+            "platform.ClaimInbox"
           ],
           "resources": [],
           "contract": "binding"
@@ -7083,11 +7511,10 @@
           ],
           "purpose": "删除自有对话数据",
           "steps": [
-            "1 owner校验",
-            "2 取消活动turn",
-            "3 删除消息/summary/反馈正文",
-            "4 保留无正文审计与MG账单引用",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "先核owner及原输入回执，逐轮调用CancelTurn并完成下游清理；不在本域SQL事务持锁期间调用外部",
+            "重新核owner及无活动轮次，原子清除messages/summary/feedback/流正文/压缩/currentPage/plan与permit token",
+            "轮次记redacted并保留无正文状态、root及MG账单引用；所有正文读取对已清除轮次返回GONE",
+            "写删除回执，同键重放不再次清理；清理期间新活动轮次阻止删除"
           ],
           "errors": [
             {
@@ -7131,6 +7558,48 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "GONE",
+              "httpStatus": 410,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -7140,7 +7609,12 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "model-gateway:cancelInference"
+            "qa.BeginWrite",
+            "qa.ReadConversation",
+            "qa.ReplayReceipt",
+            "qa.SaveReceipt",
+            "qa.CancelTurn",
+            "qa.RedactConversation"
           ],
           "resources": [],
           "contract": "binding"
@@ -7483,11 +7957,9 @@
           ],
           "purpose": "清理到期记录",
           "steps": [
-            "1 会话30天且无活动turn",
-            "2 debug7天",
-            "3 SSE24小时且终态",
-            "4 跳过审核cache和费用引用",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "按权威持久expires_at清理已到期且无活动turn的会话，每类最多input.limit；清除正文与派生内容并保留无正文费用审计",
+            "诊断按expires_ns删除隔离表和事件；普通SSE只删终态且terminal_ns超过24小时，最多input.limit条",
+            "不删除精选/普通cache审核记录或模型费用引用；全部变更在本域写窗口事务内提交"
           ],
           "errors": [
             {
@@ -7531,11 +8003,113 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "GONE",
+              "httpStatus": 410,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "httpStatus": 422,
+              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
+              "retryable": false
             }
           ],
           "sideEffects": [
             "删除本服务过期个人数据"
           ],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "qa.BeginWrite",
+            "qa.RedactConversation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "qa.RedactConversation",
+          "name": "RedactConversation",
+          "signature": "func RedactConversation(tx *Transaction,id,state string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "清除会话正文及派生上下文，保留无正文状态和模型账单引用",
+          "steps": [
+            "按调用者持有的可信上下文和事务执行本域职责",
+            "精确规则见data/workflows和源码注释"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
@@ -10155,7 +10729,9 @@
             "qa.ProposeCacheEntry",
             "qa.ListTurnRecords",
             "qa.ReadTurnRecord",
-            "qa.ReadDebugTurn"
+            "qa.ReadDebugTurn",
+            "qa.CancelTurn",
+            "qa.DeleteConversation"
           ],
           "resources": [],
           "contract": "reference"

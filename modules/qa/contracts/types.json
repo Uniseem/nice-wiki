@@ -1876,13 +1876,32 @@
         "leaseId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "租约"
+        },
+        "answerKind": {
+          "type": "string",
+          "enum": [
+            "answered",
+            "no_evidence",
+            "clarification",
+            "out_of_scope",
+            "cached"
+          ],
+          "description": "执行链确定的真实答案类型，不根据是否有引用猜测"
+        },
+        "tokenCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "真实模型tokenizer/usage确定的完整答案token数，不以字符数代替"
         }
       },
       "required": [
         "turnId",
         "answer",
         "citations",
-        "leaseId"
+        "leaseId",
+        "answerKind",
+        "tokenCount"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2154,29 +2173,14 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "eventId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "失效事件"
-        },
-        "documentId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "文档范围"
-        },
-        "memoryVersionHash": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "旧记忆版本"
-        },
-        "policyVersion": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991,
-          "description": "旧策略版本"
+        "event": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
+          "description": "jobs订阅传入的原事件信封，不自行伪造生产方/修订"
         }
       },
       "required": [
-        "eventId"
-      ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+        "event"
+      ]
     },
     "InvalidateCacheResult": {
       "type": "object",
@@ -4297,6 +4301,19 @@
         "risk",
         "currentPageDependent",
         "privateContextDependent"
+      ]
+    },
+    "EquivalenceDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "equivalent": {
+          "type": "boolean",
+          "description": "两个完整问题可以直接使用同一公开答案；未知为false"
+        }
+      },
+      "required": [
+        "equivalent"
       ]
     }
   }
