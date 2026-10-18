@@ -71,3 +71,15 @@ EstimateLanguagePlan先核当前语言管理权限，再以本域纯服务身份
 术语以 NFC/去首尾空白、规范源/目标BCP47及scope+documentId+sourceTerm建立唯一活动身份。软删不删除历史身份和版本；全站 glossaryGeneration 持久单调，删除最后词条后不回退为0。分页游标绑定源/目标/epoch/首屏代数，变化返回版本冲突。解析以document范围优先global、同范围冲突失败关闭、原词长者优先。任一改动与代数/outbox同事务，只令相关目标机翻manifest stale，protected/human文本保持，仅置review；不自动重译或发生费用。未登记源语言的旧manifest按目标语言保守失效。
 
 memory异步批准命令的人工授权发生在memory批准入口：命令通过memory服务断言携带持久的approvedBy/approvalRevision/proposalHash，受同站/同根/同代绑定保护。本域只接受该来源，不接受浏览器或其他服务自称批准；不依赖原用户10秒委托或要求已过期会话重新批准。术语执行仍核对本域当前代次、维护屏障、expectedGlossaryGeneration及term版本/唯一身份；代数或术语冲突持久记rejected并发布终态，成功记applied及原结果代数。proposalId终身幂等；相同ID但批准人/修订/hash/完整词条/expected代数/根/站/epoch不同均拒绝，不因七天普通回执过期而重做。批准人之后撤销会话不撤销已持久批准事实；新的未批准操作仍由即时权限阻止。
+
+## R1 第二组算法边界（2026-10-18）
+
+人工编辑经当前单元version CAS，正文对象/manifest/索引/七天原回执同事务激活，origin=human/protected=true，单元及任务humanGeneration递增；已排队/运行的旧批次本域状态superseded，使后续提交无法覆盖。显式切换保护也递增人工代数，但不改正文、不发起重译。
+
+受控模型片段使用 `<iN>`/`</iN>` 与 `<vN/>` 编号边界，URL/代码/公式原值保留在源树；目标编号标签数量和顺序须逐字相同，不接受其他HTML。ValidateTranslationOutput还要求完整唯一unitId，固定sourceLanguage与目标不同且≥20字符时拒绝原样回传。源文本缺失则该AI分支不可用。提示仅带本批文本/IDs、整篇已脱敏受控上下文、前批/相邻译文、节标题及本批实际出现术语；不会把原始sourceTree当上下文直接发模型。人工保护块不能加入机翻批次。
+
+翻译记忆按实际Unicode字符数与该语言阈值（默认20），精确sourceHash/sourceText/目标语言、normal状态、当前术语代数和权威对象命中；只把目标文本/hash放入新候选，保留新blockId/发布来源。增量计划把人工/保护内容单列，源变时只提出review，不覆盖其文本；未变源和有效TM复用，其余列待译。
+
+降级输入显式记录contextReduced/terminologyRetried，输出nextStage：长度只缩上下文一次；format/unchanged从batch对半到halves逐块再single原文回退；术语提醒只重试一次，仍不符进入review、不改回原文。每个真正新attempt仍须经MG独立预留，纯规划函数不调用模型。词形合规当前只认可已指定译法的NFC/Unicode大小写等价；无明确登记的词形不猜测，走既有一次提醒及review。
+
+界面字典仅以实际安装的interface_sources为固定来源，未安装时只有该能力明确不可用，不生成示例目录。插值为`{name}`且名称/出现次数必须与来源一致，拒未知key、重复key和HTML。人工值CAS后human/protected，catalogGeneration递增并发送完整合并字典hash事件。读取按key合并当前目标与builtin来源；旧sourceHash不匹配的目标值按合同回退builtin，来源未安装时不能凭knownGeneration伪造notModified。

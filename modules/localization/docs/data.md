@@ -143,3 +143,9 @@
 listLanguages明确includeDisabled默认false，public-site纯服务仅该只读范围。接口/后台仍按台账未完成，不能据页面进程ready推断语言启用。
 
 R1新增 `003_glossary_catalog.sql`：glossary.deleted及活动scope唯一索引、domain_versions全站术语/界面代数；approved_proposals补siteId/rootOperationId/结果代数，保证跨重试的批准事实绑定。interface_sources为既有固定界面字典来源的本域私有持久表，尚未接入界面写链时不声称已有可用字典。迁移001/002不修改。
+
+R1第二组只追加 `004_translation_objects.sql`：translation_units 主键改为(translation_id,unit_id)，同一稳定源块可存在于多个语言/译文；既有记录必须能经真实manifest证明文档归属，缺少归属时NOT NULL约束令整个迁移失败，绝不丢行或补造来源。manifest补file_ref，正文仍是权威文件。
+
+译文对象位于 `active/objects/<规范语言>/<documentId>/<generation>.json`，schemaVersion=1，固定translation元数据、完整原sourceTree及有序units；文件中的unit.fileRef为零引用，激活后的真实聚合ObjectRef由manifest给出。sourceTree规范SHA256必须等于不可变发布引用contentHash，unit目标文本另核targetHash。SQL独立保存任务、状态、人工保护与代数；读取时文本取权威文件，状态/保护取已提交元数据，不以词库失效后的旧文件状态恢复ready。SourceText为兼容可选字段，服务新写入始终提供；旧缺来源的AI/插值分支失败关闭，不拿targetText冒充原文。
+
+control journal只追加记录对象代数预留（object.generation/done，载荷仅语言/文档ID/整数）；每次原子安装前fsync预留，失败事务的代数不会重用。对象先temp/fsync/rename，并同步所有新父目录到active，然后SQL CAS激活manifest。提交失败只留不可见孤儿；已付费结果的旧文件不覆盖，下一次使用更高预留代数。启动恢复只重建最高预留代数，不激活孤儿、不重放模型。

@@ -197,8 +197,193 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "localization.All"
+            "localization.All",
+            "localization.recoverJournal"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.recoverJournal",
+          "name": "recoverJournal",
+          "signature": "func (s *Store) recoverJournal() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 recoverJournal；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.Generation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.Root",
+          "name": "Root",
+          "signature": "func(s *Store)Root()string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 Root；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.ReserveObjectGeneration"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ReserveObjectGeneration",
+          "name": "ReserveObjectGeneration",
+          "signature": "func(s *Store)ReserveObjectGeneration(key string,minimum int)(int,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 ReserveObjectGeneration；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -1258,114 +1443,7 @@
       "path": "modules/localization/internal/translation/incremental.go",
       "kind": "handwritten",
       "purpose": "增量选择待翻译单元所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "localization.PlanIncrementalTranslation",
-          "name": "PlanIncrementalTranslation",
-          "signature": "func PlanIncrementalTranslation(ctx context.Context, op OperationContext, input PlanIncrementalTranslationInput) (PlanIncrementalTranslationResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "PlanIncrementalTranslationInput",
-              "description": "封闭业务输入；逐字段见types $defs/PlanIncrementalTranslationInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "PlanIncrementalTranslationResult",
-              "description": "成功结果；逐字段见types $defs/PlanIncrementalTranslationResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "增量选择待翻译单元",
-          "steps": [
-            "1 源hash没变复用",
-            "2 changed/new块先同源hash且≥20字translation memory匹配",
-            "3 human/protected源变不覆盖只review",
-            "4 未复用块按1000预计输出token均衡顺序分批。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "写plan与stale人工提示不覆盖译文"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
+      "functions": []
     },
     {
       "path": "modules/localization/internal/glossary/resolve.go",
@@ -1381,41 +1459,9 @@
         {
           "id": "localization.BuildTranslationPrompt",
           "name": "BuildTranslationPrompt",
-          "signature": "func BuildTranslationPrompt(ctx context.Context, op OperationContext, input BuildTranslationPromptInput) (BuildTranslationPromptResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "BuildTranslationPromptInput",
-              "description": "封闭业务输入；逐字段见types $defs/BuildTranslationPromptInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "BuildTranslationPromptResult",
-              "description": "成功结果；逐字段见types $defs/BuildTranslationPromptResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func BuildTranslationPrompt(ctx context.Context,op OperationContext,input BuildTranslationPromptInput)(BuildTranslationPromptResult,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "构造有界翻译请求",
           "steps": [
             "1 同文档按顺序批默认1000预计输出tokens，各批尽量均衡且优先标题边界",
@@ -1473,7 +1519,9 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [],
-          "resources": [],
+          "resources": [
+            "2026-10-18内部算法实际字段已同步types.json；见workflows第二组，旧缺来源/重试状态不得猜测。"
+          ],
           "contract": "reference"
         }
       ]
@@ -1695,41 +1743,9 @@
         {
           "id": "localization.ValidateTranslationOutput",
           "name": "ValidateTranslationOutput",
-          "signature": "func ValidateTranslationOutput(ctx context.Context, op OperationContext, input ValidateTranslationOutputInput) (ValidateTranslationOutputResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ValidateTranslationOutputInput",
-              "description": "封闭业务输入；逐字段见types $defs/ValidateTranslationOutputInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ValidateTranslationOutputResult",
-              "description": "成功结果；逐字段见types $defs/ValidateTranslationOutputResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func ValidateTranslationOutput(ctx context.Context,op OperationContext,input ValidateTranslationOutputInput)(ValidateTranslationOutputResult,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "校验模型输出格式保护",
           "steps": [
             "1 blockId齐全唯一且没有未知ID",
@@ -1792,6 +1808,70 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.CheckInlineTokens"
+          ],
+          "resources": [
+            "2026-10-18内部算法实际字段已同步types.json；见workflows第二组，旧缺来源/重试状态不得猜测。"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.CheckInlineTokens",
+          "name": "CheckInlineTokens",
+          "signature": "func CheckInlineTokens(source,target string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 CheckInlineTokens；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -2302,221 +2382,13 @@
       "path": "modules/localization/internal/human/edit.go",
       "kind": "handwritten",
       "purpose": "人工编辑并自动保护所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "localization.EditTranslationUnit",
-          "name": "EditTranslationUnit",
-          "signature": "func EditTranslationUnit(ctx context.Context, op OperationContext, input EditTranslationUnitInput) (EditTranslationUnitResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "EditTranslationUnitInput",
-              "description": "封闭业务输入；逐字段见types $defs/EditTranslationUnitInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "EditTranslationUnitResult",
-              "description": "成功结果；逐字段见types $defs/EditTranslationUnitResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "人工编辑并自动保护",
-          "steps": [
-            "1 权限和插值校验",
-            "2 单元CAS",
-            "3 origin=human protected=true humanGeneration++",
-            "4 取消旧待写批次",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "写人工内容与generation事件"
-          ],
-          "authorization": "权限 localization.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
+      "functions": []
     },
     {
       "path": "modules/localization/internal/human/protection.go",
       "kind": "handwritten",
       "purpose": "显式启停人工保护所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "localization.SetUnitProtection",
-          "name": "SetUnitProtection",
-          "signature": "func SetUnitProtection(ctx context.Context, op OperationContext, input SetUnitProtectionInput) (SetUnitProtectionResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "SetUnitProtectionInput",
-              "description": "封闭业务输入；逐字段见types $defs/SetUnitProtectionInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "SetUnitProtectionResult",
-              "description": "成功结果；逐字段见types $defs/SetUnitProtectionResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "显式启停人工保护",
-          "steps": [
-            "1 只能人工授权",
-            "2 CAS单元",
-            "3 humanGeneration++",
-            "4 不自动重翻或覆盖现有文本",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "写保护和审核日志"
-          ],
-          "authorization": "权限 localization.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
+      "functions": []
     },
     {
       "path": "modules/localization/internal/translation/cancel.go",
@@ -3577,41 +3449,9 @@
         {
           "id": "localization.ValidateInterfaceCatalog",
           "name": "ValidateInterfaceCatalog",
-          "signature": "func ValidateInterfaceCatalog(ctx context.Context, op OperationContext, input ValidateInterfaceCatalogInput) (ValidateInterfaceCatalogResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ValidateInterfaceCatalogInput",
-              "description": "封闭业务输入；逐字段见types $defs/ValidateInterfaceCatalogInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ValidateInterfaceCatalogResult",
-              "description": "成功结果；逐字段见types $defs/ValidateInterfaceCatalogResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func ValidateInterfaceCatalog(ctx context.Context,op OperationContext,input ValidateInterfaceCatalogInput)(ValidateInterfaceCatalogResult,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "校验界面字符串契约",
           "steps": [
             "1 key必须在固定源catalog",
@@ -3674,7 +3514,196 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.ReadData",
+            "localization.ValidateInSnapshot"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.SourceCatalog",
+          "name": "SourceCatalog",
+          "signature": "func SourceCatalog(ctx context.Context,tx *sql.Tx)(map[string]gen.InterfaceString,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 SourceCatalog；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.StorageError",
+            "localization.CheckString"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.CheckString",
+          "name": "CheckString",
+          "signature": "func CheckString(value gen.InterfaceString,source gen.InterfaceString)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 CheckString；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ValidateInSnapshot",
+          "name": "ValidateInSnapshot",
+          "signature": "func ValidateInSnapshot(ctx context.Context,tx *sql.Tx,strings []gen.InterfaceString)(string,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 ValidateInSnapshot；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.SourceCatalog",
+            "localization.CheckString"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -3787,7 +3816,15 @@
           "authorization": "权限 localization.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "localization.Mutate",
+            "localization.RequireAdministrator",
+            "localization.EmitReference",
+            "localization.StorageError",
+            "localization.ValidateInSnapshot",
+            "localization.EnabledLanguage",
+            "localization.ReadMerged"
+          ],
           "resources": [],
           "contract": "binding"
         }
@@ -4094,9 +4131,143 @@
           "authorization": "权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "localization.Generation",
+            "localization.ReadData",
+            "localization.StorageError",
+            "localization.SourceCatalog",
+            "localization.EnabledLanguage",
+            "localization.ReadMerged"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "localization.EnabledLanguage",
+          "name": "EnabledLanguage",
+          "signature": "func EnabledLanguage(ctx context.Context,tx *sql.Tx,tag string)(string,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 EnabledLanguage；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.NormalizeLanguageTag",
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ReadMerged",
+          "name": "ReadMerged",
+          "signature": "func ReadMerged(ctx context.Context,tx *sql.Tx,op OperationContext,target string)([]gen.InterfaceString,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 ReadMerged；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.StorageError",
+            "localization.SourceCatalog",
+            "localization.CheckString"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4955,7 +5126,8 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "jobs:publishEvent",
-            "platform.RunRelay"
+            "platform.RunRelay",
+            "localization.PublishBatch"
           ],
           "resources": [],
           "contract": "binding"
@@ -5718,41 +5890,9 @@
         {
           "id": "localization.ReuseTranslationMemory",
           "name": "ReuseTranslationMemory",
-          "signature": "func ReuseTranslationMemory(ctx context.Context, op OperationContext, input ReuseTranslationMemoryInput) (ReuseTranslationMemoryResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ReuseTranslationMemoryInput",
-              "description": "封闭业务输入；逐字段见types $defs/ReuseTranslationMemoryInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ReuseTranslationMemoryResult",
-              "description": "成功结果；逐字段见types $defs/ReuseTranslationMemoryResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func ReuseTranslationMemory(ctx context.Context,op OperationContext,input ReuseTranslationMemoryInput)(ReuseTranslationMemoryResult,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "精确翻译记忆复用",
           "steps": [
             "1 字符数≥20配置阈值",
@@ -5809,7 +5949,75 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "localization.ReadData",
+            "localization.ReuseInSnapshot"
+          ],
+          "resources": [
+            "2026-10-18内部算法实际字段已同步types.json；见workflows第二组，旧缺来源/重试状态不得猜测。"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ReuseInSnapshot",
+          "name": "ReuseInSnapshot",
+          "signature": "func ReuseInSnapshot(ctx context.Context,tx *sql.Tx,op OperationContext,input ReuseTranslationMemoryInput)(ReuseTranslationMemoryResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 ReuseInSnapshot；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.StorageError",
+            "localization.ReadObject"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -6054,41 +6262,9 @@
         {
           "id": "localization.PlanTranslationFallback",
           "name": "PlanTranslationFallback",
-          "signature": "func PlanTranslationFallback(ctx context.Context, op OperationContext, input PlanTranslationFallbackInput) (PlanTranslationFallbackResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "PlanTranslationFallbackInput",
-              "description": "封闭业务输入；逐字段见types $defs/PlanTranslationFallbackInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "PlanTranslationFallbackResult",
-              "description": "成功结果；逐字段见types $defs/PlanTranslationFallbackResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func PlanTranslationFallback(ctx context.Context,op OperationContext,input PlanTranslationFallbackInput)(PlanTranslationFallbackResult,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "逐级翻译失败降级",
           "steps": [
             "1 format/unchanged批对半",
@@ -6154,7 +6330,9 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [],
-          "resources": [],
+          "resources": [
+            "2026-10-18内部算法实际字段已同步types.json；见workflows第二组，旧缺来源/重试状态不得猜测。"
+          ],
           "contract": "reference"
         }
       ]
@@ -6167,41 +6345,9 @@
         {
           "id": "localization.CheckTerminologyCompliance",
           "name": "CheckTerminologyCompliance",
-          "signature": "func CheckTerminologyCompliance(ctx context.Context, op OperationContext, input CheckTerminologyComplianceInput) (CheckTerminologyComplianceResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "CheckTerminologyComplianceInput",
-              "description": "封闭业务输入；逐字段见types $defs/CheckTerminologyComplianceInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "CheckTerminologyComplianceResult",
-              "description": "成功结果；逐字段见types $defs/CheckTerminologyComplianceResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func CheckTerminologyCompliance(ctx context.Context,op OperationContext,input CheckTerminologyComplianceInput)(CheckTerminologyComplianceResult,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "检查规定译法符合度",
           "steps": [
             "1 只检查源出现terms",
@@ -6486,7 +6632,10 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "localization.ReadData",
+            "localization.StorageError"
+          ],
           "resources": [],
           "contract": "binding"
         }
@@ -6814,7 +6963,11 @@
             "platform.ReadRuntime",
             "platform.NewSiteConfigClient",
             "platform.NewRequestValidator",
-            "localization.NewGlossaryHandlers"
+            "localization.NewGlossaryHandlers",
+            "localization.NewTranslationHandlers",
+            "localization.NewInterfaceHandlers",
+            "localization.NewCacheTranslationHandlers",
+            "localization.ConfigureExecutionAdapters"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -7306,53 +7459,9 @@
         {
           "id": "localization.InvokeModel",
           "name": "InvokeModel",
-          "signature": "func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInput) (InvokeModelResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信操作上下文",
-              "constraints": [
-                "服务边界构建，禁止浏览器自造",
-                "dataEpoch等于site-config当前active epoch"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "InvokeModelInput",
-              "description": "输入",
-              "constraints": [
-                "必须通过对应schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "InvokeModelResult",
-              "description": "结果",
-              "constraints": [
-                "无error时有效"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时result无效，返回标准Problem",
-              "constraints": [
-                "只使用登记错误码",
-                "detail不含正文、密钥或IP"
-              ]
-            }
-          ],
+          "signature": "func InvokeModel(ctx context.Context,op OperationContext,input InvokeModelInput)(InvokeModelResult,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "经模型网关执行一次调用并读取到终态",
           "steps": [
             "以可信op（rootOperationId、costClass，问答类附已消费的准入许可）调用model-gateway:createInference，幂等键=本域操作ID+步骤名；同键重放返回原调用，不重复收费",
@@ -7396,8 +7505,129 @@
             "model-gateway:createInference",
             "model-gateway:resumeInference",
             "model-gateway:cancelInference",
-            "platform.InvokeModel"
+            "platform.InvokeModel",
+            "localization.PublishBatch"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ConfigureExecutionAdapters",
+          "name": "ConfigureExecutionAdapters",
+          "signature": "func ConfigureExecutionAdapters(gateway platform.GatewayClient,publisher platform.EventPublisher)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 ConfigureExecutionAdapters；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.PublishBatch",
+          "name": "PublishBatch",
+          "signature": "func PublishBatch(ctx context.Context,limit int)(platform.RelayBatchResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 PublishBatch；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -8139,6 +8369,807 @@
       "path": "modules/localization/migrations/003_glossary_catalog.sql",
       "kind": "handwritten",
       "purpose": "术语软删、持久代数、固定字典来源及批准命令绑定的只追加迁移。",
+      "functions": []
+    },
+    {
+      "path": "modules/localization/internal/translation/plan.go",
+      "kind": "handwritten",
+      "purpose": "本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。",
+      "functions": [
+        {
+          "id": "localization.PlanIncrementalTranslation",
+          "name": "PlanIncrementalTranslation",
+          "signature": "func PlanIncrementalTranslation(ctx context.Context,op OperationContext,input PlanIncrementalTranslationInput)(PlanIncrementalTranslationResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "增量选择待翻译单元",
+          "steps": [
+            "1 源hash没变复用",
+            "2 changed/new块先同源hash且≥20字translation memory匹配",
+            "3 human/protected源变不覆盖只review",
+            "4 未复用块按1000预计输出token均衡顺序分批。",
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+          ],
+          "errors": [
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写plan与stale人工提示不覆盖译文"
+          ],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.ReadData",
+            "localization.ReadObject",
+            "localization.ReuseInSnapshot"
+          ],
+          "resources": [
+            "2026-10-18内部算法实际字段已同步types.json；见workflows第二组，旧缺来源/重试状态不得猜测。"
+          ],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/translation/store.go",
+      "kind": "handwritten",
+      "purpose": "本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。",
+      "functions": [
+        {
+          "id": "localization.objectPath",
+          "name": "objectPath",
+          "signature": "func objectPath(root string,t gen.Translation)(string,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 objectPath；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.NormalizeLanguageTag",
+            "localization.Generation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ReadObject",
+          "name": "ReadObject",
+          "signature": "func ReadObject(ctx context.Context,tx *sql.Tx,op OperationContext,id string)(TranslationObject,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 ReadObject；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.Generation",
+            "localization.StorageError",
+            "localization.objectPath",
+            "localization.Root"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.WriteObject",
+          "name": "WriteObject",
+          "signature": "func WriteObject(ctx context.Context,tx *sql.Tx,op OperationContext,object TranslationObject,previousGeneration int)(TranslationObject,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 WriteObject；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.Generation",
+            "localization.StorageError",
+            "localization.objectPath",
+            "localization.Root",
+            "localization.ReserveObjectGeneration"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/translation/edit.go",
+      "kind": "handwritten",
+      "purpose": "本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。",
+      "functions": [
+        {
+          "id": "localization.EditTranslationUnit",
+          "name": "EditTranslationUnit",
+          "signature": "func EditTranslationUnit(ctx context.Context, op OperationContext, input EditTranslationUnitInput) (EditTranslationUnitResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "EditTranslationUnitInput",
+              "description": "封闭业务输入；逐字段见types $defs/EditTranslationUnitInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "EditTranslationUnitResult",
+              "description": "成功结果；逐字段见types $defs/EditTranslationUnitResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "人工编辑并自动保护",
+          "steps": [
+            "1 权限和插值校验",
+            "2 单元CAS",
+            "3 origin=human protected=true humanGeneration++",
+            "4 取消旧待写批次",
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+          ],
+          "errors": [
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写人工内容与generation事件"
+          ],
+          "authorization": "权限 localization.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.Generation",
+            "localization.Mutate",
+            "localization.RequireAdministrator",
+            "localization.StorageError",
+            "localization.ReadObject",
+            "localization.WriteObject",
+            "localization.CheckInlineTokens"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "localization.SetUnitProtection",
+          "name": "SetUnitProtection",
+          "signature": "func SetUnitProtection(ctx context.Context, op OperationContext, input SetUnitProtectionInput) (SetUnitProtectionResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "SetUnitProtectionInput",
+              "description": "封闭业务输入；逐字段见types $defs/SetUnitProtectionInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SetUnitProtectionResult",
+              "description": "成功结果；逐字段见types $defs/SetUnitProtectionResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "显式启停人工保护",
+          "steps": [
+            "1 只能人工授权",
+            "2 CAS单元",
+            "3 humanGeneration++",
+            "4 不自动重翻或覆盖现有文本",
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+          ],
+          "errors": [
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写保护和审核日志"
+          ],
+          "authorization": "权限 localization.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.Generation",
+            "localization.Mutate",
+            "localization.RequireAdministrator",
+            "localization.StorageError",
+            "localization.ReadObject",
+            "localization.WriteObject"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/translation/http.go",
+      "kind": "handwritten",
+      "purpose": "本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。",
+      "functions": [
+        {
+          "id": "localization.NewTranslationHandlers",
+          "name": "NewTranslationHandlers",
+          "signature": "func NewTranslationHandlers()map[string]http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 NewTranslationHandlers；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.EditTranslationUnit",
+            "localization.SetUnitProtection",
+            "localization.JSONHandler"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/interface/http.go",
+      "kind": "handwritten",
+      "purpose": "本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。",
+      "functions": [
+        {
+          "id": "localization.NewInterfaceHandlers",
+          "name": "NewInterfaceHandlers",
+          "signature": "func NewInterfaceHandlers()map[string]http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 NewInterfaceHandlers；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.PutInterfaceString",
+            "localization.ReadInterfaceCatalog",
+            "localization.JSONHandler"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/cache-answer/http.go",
+      "kind": "handwritten",
+      "purpose": "本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。",
+      "functions": [
+        {
+          "id": "localization.NewCacheTranslationHandlers",
+          "name": "NewCacheTranslationHandlers",
+          "signature": "func NewCacheTranslationHandlers()map[string]http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 NewCacheTranslationHandlers；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.ReadCacheAnswerTranslation",
+            "localization.JSONHandler"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/language/protocol.go",
+      "kind": "handwritten",
+      "purpose": "本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。",
+      "functions": [
+        {
+          "id": "localization.JSONHandler",
+          "name": "JSONHandler",
+          "signature": "func JSONHandler[I,R any](execute func(context.Context,OperationContext,I)(R,error),bind ...func(*I,*http.Request)error)http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 JSONHandler；精确输入输出以实际Go签名为准。",
+          "steps": [
+            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/migrations/004_translation_objects.sql",
+      "kind": "handwritten",
+      "purpose": "译文归属证明、复合身份及权威对象manifest的只追加迁移。",
       "functions": []
     }
   ],

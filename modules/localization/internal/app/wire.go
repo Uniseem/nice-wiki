@@ -8,14 +8,20 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+ "net/http"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
+ "nice-wiki/libs/platform/modelclient"
+ "nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/localization/internal/gen"
 	"nice-wiki/modules/localization/internal/language"
  "nice-wiki/modules/localization/internal/glossary"
+ "nice-wiki/modules/localization/internal/translation"
+ interfacecatalog "nice-wiki/modules/localization/internal/interface"
+ cacheanswer "nice-wiki/modules/localization/internal/cache-answer"
 	localizationruntime "nice-wiki/modules/localization/internal/runtime"
 	"nice-wiki/modules/localization/internal/transport"
 )
@@ -85,13 +91,18 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		localizationruntime.ClearLanguageGateway()
 		_ = store.Close()
 	}()
-	spec, err := gen.GetSwagger()
+	validators:=modelclient.GatewayResponseValidators{}
+ for _,name:=range []string{"CreateInvocationResult","CancelInvocationResult","StreamEvent"}{validator,validationErr:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),name);if validationErr!=nil{return nil,validationErr};validators[name]=validator}
+ gateway,gatewayErr:=modelclient.NewGatewayClient(gen.NewModelGatewayClient(config.Dependencies["model-gateway"],ModuleSlug,key),validators);if gatewayErr!=nil{return nil,gatewayErr}
+ publisher:=outbox.NewEventPublisher(gen.NewJobsClient(config.Dependencies["jobs"],ModuleSlug,key))
+ if err=localizationruntime.ConfigureExecutionAdapters(gateway,publisher);err!=nil{return nil,err}
+ spec, err := gen.GetSwagger()
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
 	}
 	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
 	handlers:=language.NewLanguageHandlers()
- for id,handler:=range glossary.NewGlossaryHandlers(){handlers[id]=handler}
+ for _,additional:=range []map[string]http.Handler{glossary.NewGlossaryHandlers(),translation.NewTranslationHandlers(),interfacecatalog.NewInterfaceHandlers(),cacheanswer.NewCacheTranslationHandlers()}{for id,handler:=range additional{handlers[id]=handler}}
  _, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -108,6 +119,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"setLanguageEnabled": {"portal"},
 			"listLanguages":      {"portal", "public-site"},
  "putGlossaryTerm":{"portal"},"deleteGlossaryTerm":{"portal"},"listGlossary":{"portal"},"rollbackAutomaticGlossaryBatch":{"portal"},"applyApprovedGlossaryProposal":{"memory"},
+ "editTranslationUnit":{"portal"},"setUnitProtection":{"portal"},"putInterfaceString":{"portal"},"readInterfaceCatalog":{"portal","public-site"},"readCacheAnswerTranslation":{"qa"},
 		},
 	}, handlers)
 	if err != nil {

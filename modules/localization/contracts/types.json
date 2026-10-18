@@ -150,6 +150,12 @@
         "fileRef": {
           "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
           "description": "权威译文对象"
+        },
+        "sourceText": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 65536,
+          "description": "本源片段的受控模型文本，供对齐/插值/术语校验；服务始终写出，兼容旧消费者为可选"
         }
       },
       "required": [
@@ -1025,11 +1031,19 @@
           },
           "maxItems": 256,
           "description": "新源片段"
+        },
+        "minimumCharacters": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 20,
+          "description": "取本语言当前已配置TM阈值"
         }
       },
       "required": [
         "translationId",
-        "units"
+        "units",
+        "minimumCharacters"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -1063,6 +1077,14 @@
           "maxItems": 256,
           "uniqueItems": true,
           "description": "人工保护"
+        },
+        "reviewUnitIds": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "description": "源变化的人工/保护单元；只规划review，不写正文"
         }
       },
       "required": [
@@ -1148,7 +1170,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
-          "description": "整篇原文"
+          "description": "来自源切分器的整篇受控模型文本；URL/code/公式值已以编号标签隔离，不传原始树JSON"
         },
         "previousTranslations": {
           "type": "array",
@@ -1304,11 +1326,18 @@
           },
           "maxItems": 256,
           "description": "返回候选"
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "固定原文语言，不从目标语言或模型猜测"
         }
       },
       "required": [
         "sourceUnits",
-        "translatedUnits"
+        "translatedUnits",
+        "sourceLanguage"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2639,13 +2668,18 @@
           "maximum": 9007199254740991,
           "description": "默认20",
           "default": 20
+        },
+        "candidate": {
+          "$ref": "#/$defs/TranslationUnit",
+          "description": "新源块模板；复用只替换targetText/targetHash，不继承旧ID/源/保护元数据"
         }
       },
       "required": [
         "sourceHash",
         "sourceText",
         "targetLanguage",
-        "minimumCharacters"
+        "minimumCharacters",
+        "candidate"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2811,6 +2845,16 @@
             "single"
           ],
           "description": "当前阶段"
+        },
+        "contextReduced": {
+          "type": "boolean",
+          "default": false,
+          "description": "同一批该有限重试是否已执行；后续调用必须保留此状态"
+        },
+        "terminologyRetried": {
+          "type": "boolean",
+          "default": false,
+          "description": "同一批该有限重试是否已执行；后续调用必须保留此状态"
         }
       },
       "required": [
@@ -2849,6 +2893,23 @@
           "maxItems": 256,
           "uniqueItems": true,
           "description": "最终保留原文"
+        },
+        "nextStage": {
+          "type": "string",
+          "enum": [
+            "batch",
+            "halves",
+            "single"
+          ],
+          "description": "下一分组的明确阶段，保证降级次数有界"
+        },
+        "reviewUnitIds": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "description": "术语提醒已重试仍不符合的审阅项；不退回原文"
         }
       },
       "required": [
@@ -3765,11 +3826,16 @@
         "stream": {
           "type": "boolean",
           "description": "true时逐条把delta交给调用方回调"
+        },
+        "idempotencyKey": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "本域原操作+固定步骤/独立批准attempt的幂等键"
         }
       },
       "required": [
         "request",
-        "stream"
+        "stream",
+        "idempotencyKey"
       ]
     },
     "InvokeModelResult": {
