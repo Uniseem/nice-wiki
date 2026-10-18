@@ -2,7 +2,7 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "de3c0a79d07b51035b49b903f811ec56f97672c06fcff21f7ed16c53b87dc880",
+  "contractSha256": "678458d1fd8c6be660635bfb0e2f5a36ff75afa96e23a0394884f40a27c83240",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "MG源码冻结，根接续完整scope/保护HTTP/应用装配",
   "branch": "codex/finish-20261018-gateway-final",
@@ -13,12 +13,12 @@
     {
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/provider.go",
@@ -33,12 +33,12 @@
     {
       "path": "modules/model-gateway/internal/security/credential.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/model.go",
@@ -53,52 +53,52 @@
     {
       "path": "modules/model-gateway/internal/catalog/profile.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/routing/route.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/billing/quote.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/create.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/billing/reservation.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/dispatch.go",
@@ -193,12 +193,12 @@
     {
       "path": "modules/model-gateway/internal/concurrency/lease.go",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/events/outbox.go",
@@ -213,22 +213,22 @@
     {
       "path": "modules/model-gateway/internal/admin/read.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/admin/usage.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/protection/protocol.go",
@@ -243,12 +243,12 @@
     {
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/ui/src/views/EditView.vue",
@@ -273,32 +273,32 @@
     {
       "path": "modules/model-gateway/internal/catalog/refresh.go",
       "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/admin/probe.go",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/fallback.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/provider/anthropic.go",
@@ -373,12 +373,12 @@
     {
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
@@ -583,12 +583,12 @@
     {
       "path": "modules/model-gateway/internal/runtime/invocation.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/http.go",
@@ -613,12 +613,12 @@
     {
       "path": "modules/model-gateway/internal/security/headers.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/migrations/007_provider_dispatch.sql",
@@ -663,12 +663,12 @@
     {
       "path": "modules/model-gateway/internal/invocation/execute.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/finish.go",
@@ -723,12 +723,12 @@
     {
       "path": "modules/model-gateway/internal/runtime/retirement.go",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/runtime/relay.go",
@@ -773,12 +773,12 @@
     {
       "path": "modules/model-gateway/internal/invocation/lookup.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/migrations/011_invocation_lookup.sql",
@@ -803,12 +803,12 @@
     {
       "path": "modules/model-gateway/internal/admin/statistics.go",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/migrations/012_usage_statistics.sql",
@@ -823,122 +823,122 @@
     {
       "path": "modules/model-gateway/internal/catalog/bundled/catalog.go",
       "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/bundled/models.dev.json",
       "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/bundled/source.json",
       "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/bundled/LICENSE",
       "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/probe.go",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/migrations/013_admin_probe.sql",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/runtime/restore_projection.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/migrations/014_snapshot_authority.sql",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/migrations/015_snapshot_watermark.sql",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/migrations/016_usage_observations.sql",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/model-gateway/internal/admin/observations.go",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批源码/数据已交付，待统一GitLab CI；完整HTTP保护与应用装配由根接续"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     }
   ],
   "functions": [
@@ -951,18 +951,18 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "完整启动/公共scope与保护HTTP装配由根接续，源码尚未完整；不计ready"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.OpenDatabase",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.CurrentStore",
@@ -999,17 +999,6 @@
     },
     {
       "id": "model-gateway.Store.Close",
-      "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
-    },
-    {
-      "id": "model-gateway.runMigrations",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
       "state": "blocked",
       "implementationCommit": null,
@@ -1089,23 +1078,23 @@
       "id": "model-gateway.RotateCredential",
       "path": "modules/model-gateway/internal/security/credential.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.writeCredential",
       "path": "modules/model-gateway/internal/security/credential.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.loadCredentialMasterKey",
@@ -1298,34 +1287,34 @@
       "id": "model-gateway.SelectCandidates",
       "path": "modules/model-gateway/internal/catalog/profile.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.readRouteCandidate",
       "path": "modules/model-gateway/internal/catalog/profile.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ResolveRoute",
       "path": "modules/model-gateway/internal/routing/route.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.QuoteCost",
@@ -1342,12 +1331,12 @@
       "id": "model-gateway.ReadPriceSnapshot",
       "path": "modules/model-gateway/internal/billing/quote.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.SaveManualPrice",
@@ -1408,12 +1397,12 @@
       "id": "model-gateway.CreateInvocation",
       "path": "modules/model-gateway/internal/invocation/create.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ReserveCost",
@@ -1451,12 +1440,12 @@
     {
       "id": "model-gateway.CheckFeeBudgets",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署",
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "modules/model-gateway/internal/billing/reservation.go"
     },
     {
@@ -1474,12 +1463,12 @@
       "id": "model-gateway.ExecuteInvocation",
       "path": "modules/model-gateway/internal/invocation/execute.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.BuildProviderRequest",
@@ -1683,12 +1672,12 @@
       "id": "model-gateway.AcquireProviderSlot",
       "path": "modules/model-gateway/internal/concurrency/lease.go",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ReleaseProviderSlot",
@@ -1782,23 +1771,23 @@
       "id": "model-gateway.PutFeeBudgetPolicy",
       "path": "modules/model-gateway/internal/admin/read.go",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ReadAdminCatalog",
       "path": "modules/model-gateway/internal/admin/read.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.requireCatalogReader",
@@ -1847,12 +1836,12 @@
     {
       "id": "model-gateway.readCatalogProviders",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署",
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1880,12 +1869,12 @@
     {
       "id": "model-gateway.readFeePolicy",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署",
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1913,12 +1902,12 @@
     {
       "id": "model-gateway.NewAdminHandlers",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署",
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1980,12 +1969,12 @@
       "id": "model-gateway.readLedgerEntries",
       "path": "modules/model-gateway/internal/admin/usage.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.readLedgerPage",
@@ -2002,12 +1991,12 @@
       "id": "model-gateway.readRootMetadata",
       "path": "modules/model-gateway/internal/admin/usage.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.sumLedgerMoney",
@@ -2222,34 +2211,34 @@
       "id": "model-gateway.RefreshModelCatalog",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
       "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.CreateConnectionProbe",
       "path": "modules/model-gateway/internal/admin/probe.go",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.CreateFallbackAttempt",
       "path": "modules/model-gateway/internal/invocation/fallback.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.MapAnthropicRequest",
@@ -2337,7 +2326,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "完整启动/公共scope与保护HTTP装配由根接续，源码尚未完整；不计ready"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.Serve",
@@ -2639,12 +2628,12 @@
     {
       "id": "model-gateway.OpenAttemptHeaders",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署",
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "modules/model-gateway/internal/security/headers.go"
     },
     {
@@ -3124,12 +3113,12 @@
       "id": "model-gateway.DestroyRetiredSecrets",
       "path": "modules/model-gateway/internal/runtime/retirement.go",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.RelayOutbox",
@@ -3476,12 +3465,12 @@
       "id": "model-gateway.ApplyCatalogSnapshot",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
       "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.DownloadModelCatalog",
@@ -3542,34 +3531,34 @@
       "id": "model-gateway.SaveCatalogPrice",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
       "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.LookupInvocation",
       "path": "modules/model-gateway/internal/invocation/lookup.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.RequireInvocationLookupTracking",
       "path": "modules/model-gateway/internal/invocation/lookup.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ReadInvocationSnapshot",
@@ -3597,12 +3586,12 @@
       "id": "model-gateway.readInvocationRecord",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ReadSnapshotArchive",
@@ -3630,12 +3619,12 @@
       "id": "model-gateway.ReadUsageStatisticsPage",
       "path": "modules/model-gateway/internal/admin/statistics.go",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.readStatisticsLineage",
@@ -3674,298 +3663,298 @@
       "id": "model-gateway.AcceptPreparedInvocation",
       "path": "modules/model-gateway/internal/invocation/create.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ReadCatalogSource",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
       "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ReadLatestProbes",
       "path": "modules/model-gateway/internal/admin/probe.go",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.FeeProbeLimit",
       "path": "modules/model-gateway/internal/admin/probe.go",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ReadSnapshot",
       "path": "modules/model-gateway/internal/catalog/bundled/catalog.go",
       "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.CreateProbeInvocation",
       "path": "modules/model-gateway/internal/invocation/probe.go",
       "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.Store.SetDataEpoch",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ReadPriceSnapshotInTransaction",
       "path": "modules/model-gateway/internal/billing/quote.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.IsRestoredEpoch",
       "path": "modules/model-gateway/internal/runtime/restore_projection.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.IsRedactedMaterial",
       "path": "modules/model-gateway/internal/runtime/restore_projection.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.CheckProviderMaterial",
       "path": "modules/model-gateway/internal/runtime/restore_projection.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.GatewaySnapshotConfig",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.GatewayWatermark",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.CaptureGatewaySnapshot",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.GatewaySnapshotInventory",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.OpenGatewaySnapshotDB",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.GatewaySnapshotFile",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.RedactGatewaySnapshot",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.GatewayStageBudget",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.MigrateGatewayStage",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ValidateGatewayStage",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ValidateGatewayDatabase",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.SelectCandidatesInTransaction",
       "path": "modules/model-gateway/internal/catalog/profile.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ResolveTaskRoute",
       "path": "modules/model-gateway/internal/routing/route.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.NewRouteHandlers",
       "path": "modules/model-gateway/internal/routing/route.go",
       "state": "blocked",
-      "implementationCommit": "82e456d0743a1fb51a2ee4a9e03ae2c035953647",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.ReadUsageObservation",
       "path": "modules/model-gateway/internal/admin/observations.go",
       "state": "blocked",
-      "implementationCommit": "6171abd06979aa8de7ac4f44cf4274a74551a216",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "model-gateway.Store.runMigrations",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
       "state": "blocked",
-      "implementationCommit": "a8f2b766a6ef82352b4fd21d0101ebc9ffdddf66",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     }
   ],
   "rule": "本批完整独立函数通过pipeline101；Create/Lookup/tracking首次来源、完整启动及保护、probe额度/目录数据许可仍按逐项台账阻塞，不计业务验收。",

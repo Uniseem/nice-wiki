@@ -1845,8 +1845,8 @@
           ],
           "purpose": "取得权威账本投影输入",
           "steps": [
-            "service调用gateway.queryUsage固定watermark分页100",
-            "只读取安全账项不读取prompt/token"
+            "按model-gateway:readUsageStatisticsPage固定watermark/throughRevision共享changes与observations顺序分页；完整pageHash与源范围核验后仅在完整上界收齐才激活隔离投影。",
+            "此消费者源码尚未实现，保持planned；不得把posted账项或未收齐分页当全站费用，unknown/held不补0。"
           ],
           "errors": [
             {
@@ -1874,7 +1874,7 @@
           "concurrency": "每页2.5s，总任务deadline60s；继续cursor不重建模型请求",
           "idempotency": "watermark/cursor可重试",
           "dependencies": [
-            "model-gateway:queryUsage"
+            "model-gateway:readUsageStatisticsPage"
           ],
           "resources": [],
           "contract": "reference"
