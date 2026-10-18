@@ -1209,6 +1209,11 @@
       "purpose": "analytics本轮实际源码、配置或独立界面文件"
     },
     {
+      "path": "modules/analytics/internal/gateway_client.go",
+      "kind": "source",
+      "purpose": "取得权威账本投影输入；同文件职责限本域以下登记函数"
+    },
+    {
       "path": "modules/analytics/internal/gen/clients.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
@@ -1274,9 +1279,29 @@
       "purpose": "analytics本轮实际源码、配置或独立界面文件"
     },
     {
+      "path": "modules/analytics/internal/usage_events.go",
+      "kind": "source",
+      "purpose": "费用事件原引用解析与权威页绑定；不接受事件金额或修订为账项真相"
+    },
+    {
+      "path": "modules/analytics/internal/usage_gateway_types.go",
+      "kind": "source",
+      "purpose": "model-gateway V2安全统计页、完整范围和可信注入窄接口的本域无损类型；HTTP机器来源仍引用生产方types"
+    },
+    {
+      "path": "modules/analytics/internal/usage_models.go",
+      "kind": "source",
+      "purpose": "model-gateway V2费用账项、观察和投影输入的单一本域无损事实模型"
+    },
+    {
       "path": "modules/analytics/internal/usage_queries.go",
       "kind": "implementation",
       "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/usage_store.go",
+      "kind": "source",
+      "purpose": "更新派生费用行；同文件职责限本域以下登记函数"
     },
     {
       "path": "modules/analytics/internal/worker.go",
@@ -1307,6 +1332,11 @@
       "path": "modules/analytics/migrations/0005_export_journal.sql",
       "kind": "implementation",
       "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/migrations/0006_usage_statistics_v2.sql",
+      "kind": "source",
+      "purpose": "连续V6完整费用事实、账项/观察当前投影；不改写V1旧费用表"
     },
     {
       "path": "modules/analytics/migrations/schema.go",
