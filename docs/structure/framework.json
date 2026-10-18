@@ -4789,6 +4789,11 @@
       "purpose": "编排频率/挑战/并发；同文件职责限本域以下登记函数"
     },
     {
+      "path": "modules/traffic-guard/internal/admission_consumption.go",
+      "kind": "handwritten",
+      "purpose": "QA绑定准入使用权；同文件职责限本域以下登记函数"
+    },
+    {
       "path": "modules/traffic-guard/internal/app/wire.go",
       "kind": "handwritten",
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
@@ -4844,6 +4849,21 @@
       "purpose": "风控本轮实际持久化与管理接口源码"
     },
     {
+      "path": "modules/traffic-guard/internal/http_verify.go",
+      "kind": "handwritten",
+      "purpose": "QA在线确认准入租约；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/traffic-guard/internal/permit_sign.go",
+      "kind": "handwritten",
+      "purpose": "签名准入凭证；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/traffic-guard/internal/permit_store.go",
+      "kind": "handwritten",
+      "purpose": "创建持久并发租约；同文件职责限本域以下登记函数"
+    },
+    {
       "path": "modules/traffic-guard/internal/policy.go",
       "kind": "handwritten",
       "purpose": "校验风控参数；同文件职责限本域以下登记函数"
@@ -4882,6 +4902,11 @@
       "path": "modules/traffic-guard/internal/signals.go",
       "kind": "handwritten",
       "purpose": "风控本轮实际持久化与管理接口源码"
+    },
+    {
+      "path": "modules/traffic-guard/internal/subject.go",
+      "kind": "handwritten",
+      "purpose": "只在内存选择可信来源；同文件职责限本域以下登记函数"
     },
     {
       "path": "modules/traffic-guard/internal/sweeper.go",
