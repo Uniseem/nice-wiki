@@ -1,3 +1,11 @@
+# 2026-10-18 继续全部剩余代码：首批检查通过
+
+用户新授权继续三个子代理，目标完成全部剩余代码，及时GitLab检查后普通双推；此前75%停止仅为历史。GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。
+
+本域本批17项完整源码按精确交付清单verified，partial/完整启动保持原阻塞，accepted=0。未本机/SSH编译、未新增测试/样例/临时业务程序、未真实接口模型或部署。后续代码继续独占worktree实施，不因本次交付自动停止。
+
+以下为历史记录。
+
 # R1收尾：保护目录首批（2026-10-18）
 
 源码88cef9718165e87d431e36b327f23cb207792388，基线770ea1c。4个既有业务函数（ListBackups、ReadBackup、ReadMirrorStatus、VerifyObjectHash）和13个实际参考支持已写，均blocked待统一GitLab CI。active/control独立SQLite迁移及目录查询已接真实受信HTTP；游标签名复用platform，目录不存在真实NOT_FOUND，不伪造备份成功。原启动入口仍因journal/备份恢复/快照协议未齐blocked，accepted=0。
