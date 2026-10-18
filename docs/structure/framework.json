@@ -209,6 +209,11 @@
       "purpose": "用户批准项目固定版本原始许可文本"
     },
     {
+      "path": "docs/licenses/models-dev-MIT.txt",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "docs/licenses/tiktoken-go-tokenizer-v0.7.0.LICENSE",
       "kind": "documentation",
       "purpose": "用户批准项目固定版本原始许可文本"
@@ -1499,6 +1504,11 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/content/internal/history_service.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "modules/content/internal/metadata_service.go",
       "kind": "source",
       "purpose": "元数据编辑CAS与完整原回执；发布路径和分享图依赖未齐失败关闭"
@@ -1512,6 +1522,11 @@
       "path": "modules/content/internal/path_service.go",
       "kind": "source",
       "purpose": "基于可信完整树规划真实曾发布旧路径"
+    },
+    {
+      "path": "modules/content/internal/public_route_reader.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/content/internal/publication_metadata.go",
@@ -2334,6 +2349,11 @@
       "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
     },
     {
+      "path": "modules/jobs/internal/app/owner_recovery.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "modules/jobs/internal/app/wire.go",
       "kind": "handwritten",
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
@@ -2859,6 +2879,11 @@
       "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
+      "path": "modules/knowledge/internal/model/fee-proof.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "modules/knowledge/internal/model/journal.go",
       "kind": "implementation",
       "purpose": "knowledge本轮实际源码、配置或独立界面文件"
@@ -2867,6 +2892,11 @@
       "path": "modules/knowledge/internal/model/provenance.go",
       "kind": "implementation",
       "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/model/recovery.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/knowledge/internal/model/tokenize.go",
@@ -3032,6 +3062,11 @@
       "path": "modules/knowledge/migrations/010_model_dispatch_proof.sql",
       "kind": "implementation",
       "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/migrations/011_background_model_requests.sql",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/knowledge/migrations/migrations.go",
@@ -3714,6 +3749,11 @@
       "purpose": "验证SVG/场景/附件/视频安全交付"
     },
     {
+      "path": "modules/media/internal/range_service.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "modules/media/internal/reader_lease.go",
       "kind": "handwritten",
       "purpose": "与删除互斥的真实有限读者租约"
@@ -3747,6 +3787,11 @@
       "path": "modules/media/internal/upload_completion.go",
       "kind": "source",
       "purpose": "完成hash/MIME验证后发布ready资源"
+    },
+    {
+      "path": "modules/media/internal/upload_maintenance.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/media/internal/upload_service.go",
@@ -3802,6 +3847,11 @@
       "path": "modules/media/migrations/0008_asset_listing.sql",
       "kind": "migration",
       "purpose": "资源与对象变更的独立单调列表水位和稳定分页索引"
+    },
+    {
+      "path": "modules/media/migrations/0009_upload_expiration.sql",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/media/migrations/migrations.go",
@@ -4274,6 +4324,11 @@
       "purpose": "model-gateway依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
     },
     {
+      "path": "modules/model-gateway/internal/admin/probe.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "modules/model-gateway/internal/admin/read.go",
       "kind": "source",
       "purpose": "真实管理配置快照读取与费用策略持久化/原回执/当前授权"
@@ -4317,6 +4372,26 @@
       "path": "modules/model-gateway/internal/billing/usage.go",
       "kind": "handwritten",
       "purpose": "接受供应方用量证据所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/bundled/LICENSE",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/bundled/catalog.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/bundled/models.dev.json",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/bundled/source.json",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/model-gateway/internal/catalog/model.go",
@@ -4412,6 +4487,11 @@
       "path": "modules/model-gateway/internal/invocation/lookup.go",
       "kind": "source",
       "purpose": "原模型调用只读键查询及不可变来源追踪"
+    },
+    {
+      "path": "modules/model-gateway/internal/invocation/probe.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/model-gateway/internal/invocation/read.go",
@@ -4572,6 +4652,11 @@
       "path": "modules/model-gateway/migrations/012_usage_statistics.sql",
       "kind": "implementation",
       "purpose": "模型网关真实已入账变更的固定水位只读统计页"
+    },
+    {
+      "path": "modules/model-gateway/migrations/013_admin_probe.sql",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/model-gateway/migrations/migrations.go",

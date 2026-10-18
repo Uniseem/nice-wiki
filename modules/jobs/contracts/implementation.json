@@ -456,7 +456,7 @@
         {
           "id": "jobs.InstallStore",
           "name": "InstallStore",
-          "signature": "func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker)",
+          "signature": "func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker, siteID string)",
           "inputs": [
             {
               "name": "store",
@@ -486,7 +486,7 @@
           "outputs": [],
           "purpose": "安装本域Store及可信runtime/control屏障读取钩子",
           "steps": [
-            "安装本域Store及可信runtime/control屏障读取钩子"
+            "只安装已从site-config严格响应取得的真实siteID及真实runtime/recovery/identity客户端，不从scheduler actor或任务旧行推当前站点。"
           ],
           "errors": [],
           "sideEffects": [
@@ -729,7 +729,8 @@
           "idempotency": "显式延迟属于去重材料，原成功不重新分配时刻",
           "dependencies": [
             "jobs.CreateJob",
-            "jobs.writeEventResponse"
+            "jobs.writeEventResponse",
+            "jobs.ReadJob"
           ],
           "resources": [],
           "contract": "reference"
@@ -2973,15 +2974,15 @@
           "sideEffects": [],
           "authorization": {
             "permission": "job.manage",
-            "rule": "job.manage入口粗能力；终点按持久任务类型登记的managementPermission实时核权，不用用户自报owner/type"
+            "rule": "管理员按持久owner/type当前功能权限；纯服务只准actor.kind=service、subjectId=callerService=持久owner，真实启动siteID与actor.siteId、当前epoch一致且owner/type登记。服务读取不替代管理权限，不读取他域或跨站任务。"
           },
           "concurrency": "SQLite快照读",
           "idempotency": "GET幂等",
           "dependencies": [
             "identity:checkAuthorization",
-            "jobs.authorizeJobManagement",
             "jobs.beginLeaseOperation",
-            "jobs.readJobRecord"
+            "jobs.readJobRecord",
+            "jobs.authorizeJobRead"
           ],
           "resources": [],
           "contract": "binding"
@@ -3184,6 +3185,30 @@
           "concurrency": "短SQL，网络核权不持事务/锁",
           "idempotency": "遵循入口原回执或签名游标规则",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.authorizeJobRead",
+          "name": "authorizeJobRead",
+          "signature": "func authorizeJobRead(ctx context.Context, op OperationContext, jobID string) (jobRecord,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域纯服务只读任务归属，管理访问继续当前授权",
+          "steps": [
+            "纯服务从当前真实Store.siteID核站点并按持久owner/type/epoch核本人所属及登记配对。",
+            "管理员完整复用authorizeJobManagement，未知身份与配置不作默认允许。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "信任严格入口已验证上下文；不新增通用身份/schema/截止校验",
+          "concurrency": "沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定",
+          "idempotency": "显式延迟属于去重材料，原成功不重新分配时刻",
+          "dependencies": [
+            "jobs.currentStore",
+            "jobs.authorizeJobManagement",
+            "jobs.jobManagementPermission"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -6766,7 +6791,11 @@
             "jobs.NewLeaseHandlers",
             "platform.NewSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
-            "platform.SnapshotManager.WriteWindow"
+            "platform.SnapshotManager.WriteWindow",
+            "jobs.ReadQueueSiteID",
+            "jobs.NewOwnerRecoveryChecker",
+            "site-config:readSiteConfig",
+            "knowledge:readJobRecovery"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -8925,6 +8954,58 @@
         }
       ],
       "kind": "handwritten"
+    },
+    {
+      "path": "modules/jobs/internal/app/owner_recovery.go",
+      "kind": "handwritten",
+      "purpose": "只读当前真实站点身份",
+      "functions": [
+        {
+          "id": "jobs.ReadQueueSiteID",
+          "name": "ReadQueueSiteID",
+          "signature": "func ReadQueueSiteID(ctx context.Context, client *gen.SiteConfigClient, epoch string, validate func(json.RawMessage)error)(string,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只读当前真实站点身份",
+          "steps": [
+            "调用site-config:readSiteConfig，消费严格生产方响应，只取真实config.siteId；启动未初始化或不可用失败。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "信任严格入口已验证上下文；不新增通用身份/schema/截止校验",
+          "concurrency": "沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定",
+          "idempotency": "显式延迟属于去重材料，原成功不重新分配时刻",
+          "dependencies": [
+            "site-config:readSiteConfig"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.NewOwnerRecoveryChecker",
+          "name": "NewOwnerRecoveryChecker",
+          "signature": "func NewOwnerRecoveryChecker(config platform.ServiceConfig,key platform.SigningKey,siteID string)(jobs.OwnerRecoveryChecker,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "将真实原任务恢复请求送本域已登记owner只读接口",
+          "steps": [
+            "当前实际只有knowledge:readJobRecovery；未登记的owner返回依赖不可用并保留orphan，不能凭进程存活或错误判断可重试。",
+            "发起新的5秒纯读取op，actor jobs绑定启动权威siteID、输入原root/epoch；不继承scheduler的system站点、不发Create/Cancel或续费许可。",
+            "结果严格按生产方OwnerRecoveryResult解码并保持实际完整paidResultRefs，检查scope/结果引用，不猜unknown为safeToRetry。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "信任严格入口已验证上下文；不新增通用身份/schema/截止校验",
+          "concurrency": "沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定",
+          "idempotency": "显式延迟属于去重材料，原成功不重新分配时刻",
+          "dependencies": [
+            "knowledge:readJobRecovery",
+            "platform.NewPayloadValidator"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     }
   ],
   "jobTypes": [],

@@ -1150,7 +1150,8 @@
             "14个真实域SnapshotRef按owner排序，backupId/同sourceEpoch/同barrierId及schema/watermark/containsSecrets与已认证域manifest逐一精确一致。",
             "构建BackupManifestV1，记录14份域清单hash及完整来源绑定引用；等价重复目标去重，原域tar原数组不改。",
             "仅以实际domain objects及content publications验证目标；真实缺失失败，不能以快照存在/unknown空清单替代引用证明。",
-            "顶层JSON及实际全局权威引用索引均≤2MiB，域清单≤16MiB；超限BUDGET_EXCEEDED且不产生ready，不截断。"
+            "顶层JSON及实际全局权威引用索引均≤2MiB，域清单≤16MiB；超限BUDGET_EXCEEDED且不产生ready，不截断。",
+            "新V2须14域V2完整库存；typed asset由media五字段版本权威、invocation由MG原调用/根/源epoch权威逐字段闭包，旧V1缺库存不补空；原canonical字节/原费用epoch不改。"
           ],
           "errors": [
             {
@@ -1295,7 +1296,8 @@
           "outputs": [],
           "purpose": "真实域证据/全局绑定清单的本域参考支持：bindDomainEvidence",
           "steps": [
-            "使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。"
+            "使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。",
+            "新V2须14域V2完整库存；typed asset由media五字段版本权威、invocation由MG原调用/根/源epoch权威逐字段闭包，旧V1缺库存不补空；原canonical字节/原费用epoch不改。"
           ],
           "errors": [
             {
@@ -1323,7 +1325,9 @@
           "authorization": "内部固定的完整快照/恢复校验链；纯算法不重查调用方身份。",
           "concurrency": "输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。",
           "idempotency": "相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。",
-          "dependencies": [],
+          "dependencies": [
+            "data-protection.DomainSnapshotManifest.MarshalJSON"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -1335,7 +1339,8 @@
           "outputs": [],
           "purpose": "真实域证据/全局绑定清单的本域参考支持：validateManifestEvidence",
           "steps": [
-            "使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。"
+            "使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。",
+            "新V2须14域V2完整库存；typed asset由media五字段版本权威、invocation由MG原调用/根/源epoch权威逐字段闭包，旧V1缺库存不补空；原canonical字节/原费用epoch不改。"
           ],
           "errors": [
             {
@@ -1378,7 +1383,8 @@
           "outputs": [],
           "purpose": "真实域证据/全局绑定清单的本域参考支持：resolveReferenceTargets",
           "steps": [
-            "使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。"
+            "使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。",
+            "新V2须14域V2完整库存；typed asset由media五字段版本权威、invocation由MG原调用/根/源epoch权威逐字段闭包，旧V1缺库存不补空；原canonical字节/原费用epoch不改。"
           ],
           "errors": [
             {
@@ -1448,6 +1454,60 @@
           "idempotency": "相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。",
           "dependencies": [],
           "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.DomainSnapshotManifest.MarshalJSON",
+          "name": "DomainSnapshotManifest.MarshalJSON",
+          "signature": "func (manifest DomainSnapshotManifest) MarshalJSON() ([]byte,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按版本保留真实canonical域清单编码",
+          "steps": [
+            "V1保原字段与编码，任何新类型库存拒绝；V2显式写完整assets/invocations，包括已知空数组，不省略必填证明。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "MISSING_DOMAIN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "MIXED_EPOCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "真实证据或格式/引用索引预算不满足。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "真实证据或格式/引用索引预算不满足。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "真实证据或格式/引用索引预算不满足。"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "内部"
+          },
+          "concurrency": "纯函数，不嵌secret/materialized token",
+          "idempotency": "同snapshot清单同hash",
+          "dependencies": [],
+          "resources": [
+            "根contracts/modules.json"
+          ],
           "contract": "reference"
         }
       ]

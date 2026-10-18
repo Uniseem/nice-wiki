@@ -77,7 +77,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	defer store.Close()
+ defer store.Close()
+ siteValidator,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),"QueueSiteConfigResult");if err!=nil{return nil,err}
+ siteID,err:=ReadQueueSiteID(ctx,gen.NewSiteConfigClient(config.Dependencies["site-config"],ModuleSlug,key),view.DataEpoch,siteValidator);if err!=nil{return nil,err}
+ recovery,err:=NewOwnerRecoveryChecker(config,key,siteID);if err!=nil{return nil,err}
+ jobs.InstallStore(store,func(work context.Context)(jobs.LeaseRuntimeView,error){current,err:=lifecycle.ReadRuntime(work,runtimeAuthority);return jobs.LeaseRuntimeView{Runtime:current},err},identity,recovery,siteID)
+
 	handlers := jobs.NewManagementHandlers(key)
 	for id, handler := range jobs.NewLeaseHandlers() {
 		handlers[id] = handler
@@ -105,6 +110,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			scheduleOwners = append(scheduleOwners, definition.Owner)
 		}
 	}
+	readJobCallers := append([]string{"portal"}, queueCallers...)
 	createScheduleCallers := append([]string{"portal"}, scheduleOwners...)
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
@@ -117,6 +123,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"createJob": queueCallers,
 			"claimJob":  queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
 			"listJobs":       {"portal"},
+ "readJob": readJobCallers,
 			"listDeliveries": {"portal"},
 			"retryJob":       {"portal"},
 			"streamProgress": {"portal"},
@@ -126,6 +133,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		ServiceActorCallers: map[string][]string{
 			"createJob": queueCallers,
+ "readJob": queueCallers,
 			"claimJob":  queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
 			"createSchedule": scheduleOwners,
 		},

@@ -50,6 +50,7 @@ type CreateJobResult = gen.CreateJobResult
 type Store struct {
 	db              *sql.DB
 	mu              sync.RWMutex
+	siteID          string
 	closed          bool
 	leaseRuntime    LeaseRuntimeProvider
 	identity        *gen.IdentityClient
@@ -67,7 +68,8 @@ var activeQueue struct {
 
 // InstallStore 将启动阶段打开的本域存储安装为当前任务入口使用的存储。
 // 装配完整 handler 前不会调用 CreateJob，因此不会用空存储伪造服务就绪。
-func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker) {
+func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker, siteID string) {
+	store.siteID = siteID
 	store.recovery = recovery
 	store.identity = identity
 	store.leaseRuntime = runtime
@@ -318,6 +320,9 @@ func hashCreateJobInput(in CreateJobInput) (platform.Hash, []byte, error) {
 // NewQueueHandlers只做已通过统一边界的请求绑定，不以本组映射冒充完整服务。
 func NewQueueHandlers() map[string]http.Handler {
 	return map[string]http.Handler{
+ "readJob": http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+ op,_:=platform.OperationContextFrom(r.Context());result,err:=ReadJob(r.Context(),op,ReadJobInput{JobID:r.PathValue("jobId"),Actor:op.Actor,DataEpoch:op.DataEpoch});writeEventResponse(w,op.RequestID,result,err,http.StatusOK)
+ }),
 		"createJob": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			var input gen.CreateJobRequestBody

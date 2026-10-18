@@ -2285,11 +2285,12 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "limit",
-              "minLength": 0,
-              "maxLength": 2048
-            }
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "历史分页上限，缺省20。"
           },
           {
             "in": "query",
@@ -2298,17 +2299,6 @@
             "schema": {
               "type": "string",
               "description": "签名不透明游标",
-              "minLength": 0,
-              "maxLength": 2048
-            }
-          },
-          {
-            "in": "query",
-            "name": "assetId",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "description": "assetId",
               "minLength": 0,
               "maxLength": 2048
             }

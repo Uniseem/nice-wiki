@@ -89,42 +89,8 @@
       "description": "公共健康DTO"
     },
     "AssetVersionRef": {
-      "type": "object",
-      "description": "完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖",
-      "additionalProperties": false,
-      "properties": {
-        "assetId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "逻辑资源ID"
-        },
-        "version": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "不可变对象版本"
-        },
-        "sha256": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "Hash"
-        },
-        "mediaType": {
-          "type": "string",
-          "description": "嗅探确认MIME",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "byteSize": {
-          "type": "integer",
-          "description": "字节数",
-          "minimum": 0,
-          "maximum": 2147483648
-        }
-      },
-      "required": [
-        "assetId",
-        "version",
-        "sha256",
-        "mediaType",
-        "byteSize"
-      ]
+      "$ref": "../../../contracts/common.schema.json#/$defs/AssetVersionRef",
+      "description": "完整五字段不可变版本引用，唯一来源common；既有JSON不变。"
     },
     "ImageVariant": {
       "type": "object",

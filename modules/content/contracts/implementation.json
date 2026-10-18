@@ -6041,9 +6041,8 @@
           ],
           "purpose": "查看署名发布/git版本历史",
           "steps": [
-            "publish功能权限",
-            "读取本域history + data git镜像回执，不读取DP目录",
-            "显示执行发布账号的署名与时间，即使账号deleted仍保留"
+            "当前content.publish授权，按真实site/epoch/doc读取同一SQL快照中发布署名历史和镜像回执，不读取data-protection磁盘。",
+            "游标仅绑定稳定账号/会话/授权修订与固定文档/limit；真实reference_scan_state水位改变需从头，保留删除账号原名、原发布时间及镜像状态。"
           ],
           "errors": [
             {
@@ -6066,7 +6065,14 @@
           "authorization": "content.publish",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": [],
+          "dependencies": [
+            "content.treeRuntimeFromContext",
+            "content.authorizeTree",
+            "content.beginTreeRead",
+            "content.readPublicationSnapshot",
+            "platform.SignCursor",
+            "platform.VerifyCursor"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -6126,9 +6132,8 @@
           ],
           "purpose": "按稳定块ID对比历史版本",
           "steps": [
-            "publish权限读两个COMMITTED文件",
-            "按blockId比较hash与前序父位置",
-            "区分文本/属性变化和移动，不将ID变化误配历史"
+            "当前content.publish授权；leftRevisionId/rightRevisionId指历史PublishedRevisionRef.publishedRevisionId，按同站文档publication_snapshots映射真实COMMITTED draft revision/hash，读精确文件。",
+            "按稳定blockId比完整HashBlock及父/容器/前序同级块位置，分别给新增/删除/内容属性改变/移动，不按文字或数组序号猜ID对应。"
           ],
           "errors": [
             {
@@ -6152,8 +6157,12 @@
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "确定性",
           "dependencies": [
+            "content.treeRuntimeFromContext",
+            "content.authorizeTree",
+            "content.beginTreeRead",
             "content.ReadRevisionBody",
-            "content.HashBlock"
+            "content.readHistoricalBody",
+            "content.historyBlockMap"
           ],
           "resources": [],
           "contract": "binding"
@@ -6273,6 +6282,50 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "content.readHistoricalBody",
+          "name": "readHistoricalBody",
+          "signature": "func readHistoricalBody(ctx context.Context,op OperationContext,runtime TreeRuntime,documentID,publishedID string)(DocumentBody,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按历史发布映射读取真实COMMITTED正文",
+          "steps": [
+            "按历史发布映射读取真实COMMITTED正文"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "调用者已持有可信树快照",
+          "concurrency": "纯计算",
+          "idempotency": "确定性",
+          "dependencies": [
+            "content.beginTreeRead",
+            "content.ReadRevisionBody"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "content.historyBlockMap",
+          "name": "historyBlockMap",
+          "signature": "func historyBlockMap(body DocumentBody)(map[string]historyBlock,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "稳定块hash及精确前序位置",
+          "steps": [
+            "稳定块hash及精确前序位置"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "调用者已持有可信树快照",
+          "concurrency": "纯计算",
+          "idempotency": "确定性",
+          "dependencies": [
+            "content.bodyJSONValue",
+            "content.HashBlock"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -7707,7 +7760,10 @@
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
           "dependencies": [
-            "content.ValidatePublications"
+            "content.treeRuntimeFromContext",
+            "content.beginTreeRead",
+            "content.readTreeSnapshot",
+            "content.readPublicRouteSnapshot"
           ],
           "resources": [],
           "contract": "binding"
@@ -7788,10 +7844,38 @@
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
           "dependencies": [
-            "content.ValidatePublications"
+            "content.treeRuntimeFromContext",
+            "content.beginTreeRead",
+            "content.readTreeSnapshot",
+            "content.readPublicRouteSnapshot"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "content.readPublicRouteSnapshot",
+          "name": "readPublicRouteSnapshot",
+          "signature": "func readPublicRouteSnapshot(ctx context.Context, tx *sql.Tx, op OperationContext, runtime TreeRuntime) (ReadPublicTreeResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在同一真实SQL快照计算公开前序树与完整路径",
+          "steps": [
+            "读取完整可信树，保留所有祖先slug但仅输出已发布标题；按稳定树前序计算最近公开父节点。",
+            "逐个当前发布引用由同事务validatePublicationRef核可见/精确，缺路径或损坏拒绝整个树。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "调用者已持有可信树快照",
+          "concurrency": "纯计算",
+          "idempotency": "确定性",
+          "dependencies": [
+            "content.readTreeSnapshot",
+            "content.canonicalDocumentPaths",
+            "content.validatePublicationRef",
+            "content.treePreorder"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -9473,7 +9557,11 @@
             "content.WithdrawDocument",
             "content.ValidatePublications",
             "content.ReadPublishedRevision",
-            "platform.NewServiceHandler"
+            "platform.NewServiceHandler",
+            "content.ReadPublicTree",
+            "content.ResolvePublicPath",
+            "content.ReadRevisionHistory",
+            "content.DiffRevisions"
           ],
           "resources": [],
           "contract": "reference"

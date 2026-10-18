@@ -4090,7 +4090,11 @@
           "const": "nice-wiki.backup"
         },
         "schemaVersion": {
-          "const": 1
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ]
         },
         "backupId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
@@ -4136,7 +4140,7 @@
         "domains",
         "references"
       ],
-      "description": "canonical JSON≤2MiB轻量全局清单；域按owner字典顺序，引用按完整canonical值排序；全对象引用索引亦≤2MiB，超限失败不截断。"
+      "description": "保留历史类型名以兼容生成消费者；新清单格式schemaVersion2含typed资产/调用引用，1仅按原编码只读，不假定新库存为空。"
     },
     "SnapshotArchiveReadInput": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",

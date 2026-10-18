@@ -1306,9 +1306,9 @@
           ],
           "purpose": "仅回收过期未完成临时字节",
           "steps": [
-            "只扫描receiving expiry，明确不扫描ready assets",
-            "锁upload标expired/释放reservation",
-            "删除服务生成tmp路径并journal；complete已ready不删除"
+            "只扫描当前epoch真实过期receiving及已持久prepared临时删除意图；与chunk/complete持同一Store.mu互斥，ready/blocked/其他状态拒绝。",
+            "expired会话与upload_expirations.prepared同事务提交，释放未完成配额；随后仅用os.Root清服务生成uploads/<uploadId>.part并fsync uploads，最后记removed，重启按原意图续清。",
+            "不扫描或删除ready资产，不替旧blob/付费决定造完成，未知文件类型失败关闭。"
           ],
           "errors": [
             {
@@ -1323,7 +1323,13 @@
           "authorization": "service:media maintenance",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "expired去重",
-          "dependencies": [],
+          "dependencies": [
+            "media.currentBlobStore",
+            "media.readUploadRow",
+            "media.writeUploadRow",
+            "media.openMediaRoot",
+            "media.syncDirectory"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -8410,6 +8416,12 @@
         }
       ],
       "kind": "handwritten"
+    },
+    {
+      "path": "modules/media/migrations/0009_upload_expiration.sql",
+      "kind": "migration",
+      "purpose": "仅已过期未完成上传删除意图与续清，不触碰ready资产",
+      "functions": []
     }
   ],
   "jobTypes": [

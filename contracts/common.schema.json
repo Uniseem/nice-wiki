@@ -1614,6 +1614,44 @@
             "kind",
             "publication"
           ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "asset"
+              ]
+            },
+            "asset": {
+              "$ref": "#/$defs/AssetVersionRef"
+            }
+          },
+          "required": [
+            "kind",
+            "asset"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "invocation"
+              ]
+            },
+            "invocation": {
+              "$ref": "#/$defs/SnapshotInvocationRef"
+            }
+          },
+          "required": [
+            "kind",
+            "invocation"
+          ]
         }
       ]
     },
@@ -1630,7 +1668,8 @@
         "schemaVersion": {
           "type": "integer",
           "enum": [
-            1
+            1,
+            2
           ]
         },
         "owner": {
@@ -1687,6 +1726,22 @@
           "items": {
             "$ref": "#/$defs/DomainSnapshotReference"
           }
+        },
+        "assets": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/AssetVersionRef"
+          },
+          "description": "V2必填，只有本域真实已知为空可给[]；V1不存在，不推为空。"
+        },
+        "invocations": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/SnapshotInvocationRef"
+          },
+          "description": "V2必填，只有本域真实已知为空可给[]；V1不存在，不推为空。"
         }
       },
       "required": [
@@ -1705,7 +1760,45 @@
         "publications",
         "references"
       ],
-      "description": "版本1未压缩tar的首entry manifest.json，canonical JSON≤16MiB，后续仅files/<path>声明普通文件；完整归档≤20GiB/100000文件。安全截点回调必须穷尽权威对象与跨域引用，未知不能写空列表冒充。精确sourceEpoch保留，staging迁移回调才建立targetDataEpoch。"
+      "description": "版本1未压缩tar的首entry manifest.json，canonical JSON≤16MiB，后续仅files/<path>声明普通文件；完整归档≤20GiB/100000文件。安全截点回调必须穷尽权威对象与跨域引用，未知不能写空列表冒充。精确sourceEpoch保留，staging迁移回调才建立targetDataEpoch。 新产出schemaVersion=2，必填assets/invocations真实库存；资产仅media声明、调用仅model-gateway声明。V1按原编码只读，缺新版库存不能证明资产/付费引用闭包或默补空清单；经真实拥有者清单核对才可显式V2迁移。",
+      "oneOf": [
+        {
+          "properties": {
+            "schemaVersion": {
+              "enum": [
+                1
+              ]
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "assets"
+                ]
+              },
+              {
+                "required": [
+                  "invocations"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "schemaVersion": {
+              "enum": [
+                2
+              ]
+            }
+          },
+          "required": [
+            "assets",
+            "invocations"
+          ]
+        }
+      ]
     },
     "OwnerRecoveryRequest": {
       "type": "object",
@@ -1831,6 +1924,65 @@
         "byteSize"
       ],
       "description": "已完成域归档的受控读取；owner/版本1/tar媒体类型来自本域固定装配，禁止任意URL或磁盘路径。"
+    },
+    "AssetVersionRef": {
+      "type": "object",
+      "description": "完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "逻辑资源ID"
+        },
+        "version": {
+          "$ref": "#/$defs/Revision",
+          "description": "不可变对象版本"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Hash",
+          "description": "Hash"
+        },
+        "mediaType": {
+          "type": "string",
+          "description": "嗅探确认MIME",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "byteSize": {
+          "type": "integer",
+          "description": "字节数",
+          "minimum": 0,
+          "maximum": 2147483648
+        }
+      },
+      "required": [
+        "assetId",
+        "version",
+        "sha256",
+        "mediaType",
+        "byteSize"
+      ]
+    },
+    "SnapshotInvocationRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "模型网关已持久的调用归属身份；文件hash覆盖原模型/结果/费用证据，引用不是虚构ObjectRef或重付许可。",
+      "properties": {
+        "invocationId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "rootOperationId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "invocationId",
+        "rootOperationId",
+        "dataEpoch"
+      ]
     }
   }
 }

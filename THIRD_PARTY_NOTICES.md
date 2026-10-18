@@ -24,3 +24,7 @@ OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设�
 本仓保留新批准依赖的固定原许可全文：[tokenizer MIT](docs/licenses/tiktoken-go-tokenizer-v0.7.0.LICENSE)、[PDF BSD三条款](docs/licenses/ledongthuc-pdf-6c8c28e0e8a0.LICENSE)。随二进制分发本声明和这些原许可，不以链接替代应保留文本。
 
 - github.com/oschwald/maxminddb-golang v1.13.1（ISC，ADR0005/D51已确认）：analytics只读取可信部署提供的本地MaxMind数据库，不下载数据库、不发送原始地址；固定来源 https://github.com/oschwald/maxminddb-golang/tree/v1.13.1 ，许可原文 https://github.com/oschwald/maxminddb-golang/blob/v1.13.1/LICENSE 。仅Go模块依赖，不复制源码；数据库内容不属于该库许可，仍由部署方自行提供合法数据。go.sum由GitLab Go工具生成。
+
+## models.dev 公开模型目录数据
+
+用户于2026-10-18明确批准仅引入MIT公开目录JSON，未复制业务代码。来源[models.dev API](https://models.dev/api.json)，固定内容版本`sha256:80a19a3c78de1a7b0eb0a72e13e44df21180f0681d6cdf1dbd4c4c345fae3fb6`，原始5806411字节，取回时间2026-10-18T07:44:00.690256Z。API数据版本以实际内容hash固定，不声称某开发分支commit生成该数据。版权Copyright (c) 2025 models.dev，许可MIT，原文见[登记许可](docs/licenses/models-dev-MIT.txt)及内置目录LICENSE，source.json保留来源与ETag。

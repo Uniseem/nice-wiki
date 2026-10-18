@@ -12,13 +12,13 @@
   "files": [
     {
       "path": "modules/portal/internal/route_registry.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/portal/internal/request_validation.go",
@@ -52,13 +52,13 @@
     },
     {
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "in_progress",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "本轮内部认证适配已完成并通过VPS；完整ProxyRequest仍缺准入与审计。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/portal/internal/bootstrap_service.go",
@@ -202,23 +202,23 @@
     },
     {
       "path": "modules/portal/internal/app/wire.go",
-      "state": "in_progress",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "本轮修复装配假成功；完整应用handler、Ready权威与Serve恢复watcher尚未完成，函数台账保持blocked。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/portal/internal/transport/server.go",
-      "state": "in_progress",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "本轮修复装配假成功；完整应用handler、Ready权威与Serve恢复watcher尚未完成，函数台账保持blocked。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/portal/go.mod",
@@ -395,24 +395,24 @@
     {
       "id": "portal.CompileRouteRegistry",
       "path": "modules/portal/internal/route_registry.go",
-      "state": "implemented",
-      "implementationCommit": "282051b7e92b39f601136a4972c3ed25732d5ce3",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.ResolveRoute",
       "path": "modules/portal/internal/route_registry.go",
-      "state": "implemented",
-      "implementationCommit": "282051b7e92b39f601136a4972c3ed25732d5ce3",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.ValidateEnvelope",
@@ -494,46 +494,46 @@
     {
       "id": "portal.ForwardRequest",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
-      "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
-      },
-      "blocker": null
-    },
-    {
-      "id": "portal.StreamResponse",
-      "path": "modules/portal/internal/proxy_stream.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
-      "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
-      },
-      "blocker": null
-    },
-    {
-      "id": "portal.MapUpstreamFailure",
-      "path": "modules/portal/internal/proxy_stream.go",
-      "state": "implemented",
-      "implementationCommit": "282051b7e92b39f601136a4972c3ed25732d5ce3",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "portal.StreamResponse",
+      "path": "modules/portal/internal/proxy_stream.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "portal.MapUpstreamFailure",
+      "path": "modules/portal/internal/proxy_stream.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.ProxyRequest",
       "path": "modules/portal/internal/proxy_stream.go",
       "state": "blocked",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "可信匿名统计入口装配待GitLab；完整Portal仍未齐"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.LoadBootstrap",
@@ -902,56 +902,56 @@
       "id": "portal.BuildApplication",
       "path": "modules/portal/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "公共委托加载/可信来源新装配代码已写，待后续Portal集成GitLab；完整服务未齐"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.Serve",
       "path": "modules/portal/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
-      "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
-      },
-      "blocker": "已有HTTP监听和生命周期框架；完整binding仍缺运行状态watcher、恢复阶段退出重启与进程ctx取消收口。"
-    },
-    {
-      "id": "portal.Shutdown",
-      "path": "modules/portal/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
-      "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
-      },
-      "blocker": null
-    },
-    {
-      "id": "portal.Health",
-      "path": "modules/portal/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "282051b7e92b39f601136a4972c3ed25732d5ce3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "portal.Shutdown",
+      "path": "modules/portal/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "portal.Health",
+      "path": "modules/portal/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.Ready",
       "path": "modules/portal/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "本域bootstrap/偏好/SSE/readiness/屏障真实handler覆盖及初始化/恢复就绪权威尚未完成；明确拒绝构造应用，不返回占位成功。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.mountModuleUI",
@@ -978,123 +978,123 @@
     {
       "id": "portal.authenticationOperation",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.prepareAuthenticationRequest",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.adaptAuthenticationResponse",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.decodeAuthenticationJSON",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.authenticationCookies",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.authenticationProblem",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.isCurrentSessionRevocation",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.adaptSessionRevocation",
       "path": "modules/portal/internal/proxy_stream.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.NewApplication",
       "path": "modules/portal/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "可信匿名统计入口装配待GitLab；完整Portal仍未齐"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.registerLocalRoutes",
       "path": "modules/portal/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.proxyHandler",
       "path": "modules/portal/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.prepareTrustedBeacon",
@@ -1105,7 +1105,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "可信匿名统计入口与实际站点身份装配待GitLab"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "portal.readSiteIdentity",
@@ -1116,7 +1116,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "可信匿名统计入口与实际站点身份装配待GitLab"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     }
   ],
   "rule": "EmitAccessAudit 源码为 d2d2d8d393f1c5118671293ab29ebdd26c71316b，状态 blocked，verification.state 为 not_run，不记 implemented、verified 或 accepted。appendAudit 请求体与 RedactedAuditRequest、RequestOutcome 没有已写明的一一映射。accepted 为 0。未执行业务验收或部署。合同未改。",

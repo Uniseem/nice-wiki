@@ -2,7 +2,7 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "e5aa132276e187ac069a3f7facb362dc02f722c6115241f02eb175ce9b97dd18",
+  "contractSha256": "fdbf1d8f4de25a403692774414078b73d23a8896b42d0e7e526c743c4b7af73e",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "content第四轮发布快照（pipeline 42 已记 verified；分享图仍 503）",
   "branch": "codex/content-20261017-r4",
@@ -222,13 +222,13 @@
     },
     {
       "path": "modules/content/internal/history_service.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/content/internal/preview_service.go",
@@ -292,13 +292,13 @@
     },
     {
       "path": "modules/content/internal/public_route_reader.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/content/web/src/editor/editor-runtime.ts",
@@ -432,13 +432,13 @@
     },
     {
       "path": "modules/content/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/content/go.mod",
@@ -771,7 +771,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/document_service.go"
     },
     {
       "id": "content.contentServiceContext",
@@ -781,7 +782,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/document_service.go"
     },
     {
       "id": "content.readDraftSiteConfig",
@@ -791,7 +793,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/document_service.go"
     },
     {
       "id": "content.planDocumentCreation",
@@ -801,7 +804,8 @@
         "state": "passed",
         "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/document_service.go"
     },
     {
       "id": "content.readCreationTree",
@@ -811,7 +815,8 @@
         "state": "passed",
         "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/document_service.go"
     },
     {
       "id": "content.fractionalDocumentOrder",
@@ -821,7 +826,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/document_service.go"
     },
     {
       "id": "content.validateCreateTransaction",
@@ -831,7 +837,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/document_service.go"
     },
     {
       "id": "content.ReadDocumentTree",
@@ -1182,7 +1189,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.planDraftSave",
@@ -1192,7 +1200,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.executeDraftCommit",
@@ -1202,7 +1211,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.draftMediaReferences",
@@ -1212,7 +1222,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.draftPinSource",
@@ -1222,7 +1233,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.acquireDraftPin",
@@ -1232,7 +1244,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.confirmDraftPin",
@@ -1242,7 +1255,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.replaySavedDraft",
@@ -1252,7 +1266,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.abortDraftOperation",
@@ -1262,7 +1277,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.releaseDraftPin",
@@ -1272,7 +1288,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.isolateAbortedDraft",
@@ -1282,7 +1299,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.ValidateBlockTree",
@@ -1666,7 +1684,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_repository.go"
     },
     {
       "id": "content.draftCommitStoreFromContext",
@@ -1676,7 +1695,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_repository.go"
     },
     {
       "id": "content.validateDraftCommitInput",
@@ -1686,7 +1706,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_repository.go"
     },
     {
       "id": "content.validateDraftCommitStore",
@@ -1696,7 +1717,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_repository.go"
     },
     {
       "id": "content.verifyPreparedRevisionFile",
@@ -1706,7 +1728,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_repository.go"
     },
     {
       "id": "content.checkDraftCommitIOContext",
@@ -1716,7 +1739,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_repository.go"
     },
     {
       "id": "content.draftCommitDigest",
@@ -1726,7 +1750,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_repository.go"
     },
     {
       "id": "content.sameIdentifierPointer",
@@ -1736,7 +1761,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_repository.go"
     },
     {
       "id": "content.normalizeDraftCommitError",
@@ -1746,7 +1772,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_repository.go"
     },
     {
       "id": "content.ReadRevisionBody",
@@ -1899,7 +1926,8 @@
         "state": "passed",
         "evidence": "2026-10-17根统一自部署GitLab CI pipeline 12，候选fccc3750bd8310ac0c9de5e092f6aceda0158fde：生成/格式及重复生成成功；三个实际同时编译分片覆盖14个Go模块-mod=readonly build/vet/gofmt与完整make check通过（878文件/1435函数/379HTTP/2328类型）。根精确回传格式/生成物，未手改gen。pipeline 11生成/格式完成但content-media因漏登记jobs:publishEvent导致JobsClient被裁剪真实失败；修契约来源后完整重跑通过。仅证明编译和设计结构，未新增或运行测试/样例、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；未本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/publication_repository.go"
     },
     {
       "id": "content.ValidatePublications",
@@ -1959,24 +1987,24 @@
     {
       "id": "content.ReadRevisionHistory",
       "path": "modules/content/internal/history_service.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.DiffRevisions",
       "path": "modules/content/internal/history_service.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.RollbackPublishedRevision",
@@ -2113,24 +2141,24 @@
     {
       "id": "content.ReadPublicTree",
       "path": "modules/content/internal/public_route_reader.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.ResolvePublicPath",
       "path": "modules/content/internal/public_route_reader.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.createEditorSession",
@@ -2300,46 +2328,46 @@
     {
       "id": "content.Serve",
       "path": "modules/content/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "已实现单监听、ctx取消和HTTP错误映射；Go构建未运行"
+        "evidence": null
       },
-      "blocker": "Go工具链验证环境不可用"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.Shutdown",
       "path": "modules/content/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "已实现draining、HTTP安全关闭、超时错误与sync.Once；Go构建未运行"
+        "evidence": null
       },
-      "blocker": "Go工具链验证环境不可用"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.Health",
       "path": "modules/content/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "仅读取本地生命周期并返回脱敏HealthStatus；Go构建未运行"
+        "evidence": null
       },
-      "blocker": "Go工具链验证环境不可用"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.Ready",
       "path": "modules/content/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "e8ccf5ea4f662d02a197e9c9b6823fff71cbab45",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "已实现控制区/journal/业务依赖/epoch/runtime门禁字段；Go构建未运行"
+        "evidence": null
       },
-      "blocker": "Go工具链验证环境不可用；业务依赖未实现时保持不可就绪"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.mountModuleUI",
@@ -2673,7 +2701,7 @@
     },
     {
       "id": "content.AcquireEditLock",
-      "path": "modules/content/internal/edit_lock_service.go",
+      "path": "modules/content/internal/edit_lock_operations.go",
       "state": "verified",
       "implementationCommit": "86d5fec5fcd973bc3ee50a8f7fb329e4fcedd74f",
       "verification": {
@@ -2684,7 +2712,7 @@
     },
     {
       "id": "content.RenewEditLock",
-      "path": "modules/content/internal/edit_lock_service.go",
+      "path": "modules/content/internal/edit_lock_operations.go",
       "state": "verified",
       "implementationCommit": "86d5fec5fcd973bc3ee50a8f7fb329e4fcedd74f",
       "verification": {
@@ -2695,7 +2723,7 @@
     },
     {
       "id": "content.ReleaseEditLock",
-      "path": "modules/content/internal/edit_lock_service.go",
+      "path": "modules/content/internal/edit_lock_operations.go",
       "state": "verified",
       "implementationCommit": "86d5fec5fcd973bc3ee50a8f7fb329e4fcedd74f",
       "verification": {
@@ -2706,7 +2734,7 @@
     },
     {
       "id": "content.ForceReleaseEditLock",
-      "path": "modules/content/internal/edit_lock_service.go",
+      "path": "modules/content/internal/edit_lock_operations.go",
       "state": "verified",
       "implementationCommit": "86d5fec5fcd973bc3ee50a8f7fb329e4fcedd74f",
       "verification": {
@@ -2717,7 +2745,7 @@
     },
     {
       "id": "content.ExpireIdleLocks",
-      "path": "modules/content/internal/edit_lock_service.go",
+      "path": "modules/content/internal/edit_lock_operations.go",
       "state": "verified",
       "implementationCommit": "86d5fec5fcd973bc3ee50a8f7fb329e4fcedd74f",
       "verification": {
@@ -2734,7 +2762,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/edit_lock_operations.go"
     },
     {
       "id": "content.editLockRuntimeFromContext",
@@ -2744,7 +2773,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/edit_lock_operations.go"
     },
     {
       "id": "content.authorizeEditLock",
@@ -2754,7 +2784,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/edit_lock_operations.go"
     },
     {
       "id": "content.executeEditLock",
@@ -2764,7 +2795,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/edit_lock_operations.go"
     },
     {
       "id": "content.planEditLock",
@@ -2774,7 +2806,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/edit_lock_operations.go"
     },
     {
       "id": "content.resolvePendingEditLock",
@@ -2784,7 +2817,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/edit_lock_operations.go"
     },
     {
       "id": "content.readEditLockReceipt",
@@ -2794,7 +2828,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/edit_lock_operations.go"
     },
     {
       "id": "content.commitEditLock",
@@ -2804,7 +2839,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/edit_lock_operations.go"
     },
     {
       "id": "content.enqueueEditLockChange",
@@ -2814,7 +2850,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/edit_lock_operations.go"
     },
     {
       "id": "content.expireEditLocks",
@@ -2824,7 +2861,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：本轮冻结候选make docs/gen、14模块-mod=readonly build/vet/gofmt与完整make check通过（871文件/1313函数/379操作/2296类型）。根精确回传7份格式/生成文档；根与模型代理交叉审查同doc候选/真实原回执/未知Commit pending/15与17分钟/guard无阻断。只证明编译与设计结构，未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP业务验收、真实模型、服务/镜像/部署。本域未本机Go/gofmt/生成/编译/测试；实际暂存内容/身份/说明隐私扫描通过。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/edit_lock_operations.go"
     },
     {
       "id": "content.WithDraftRuntime",
@@ -2834,7 +2872,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.draftRuntimeFromContext",
@@ -2844,7 +2883,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.readDraftOperation",
@@ -2854,7 +2894,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.prepareDraftOperation",
@@ -2864,7 +2905,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.draftRequestDigest",
@@ -2874,7 +2916,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.RevisionSiteID",
@@ -2884,7 +2927,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.BeginDraftCommit",
@@ -2894,7 +2938,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.FindReceipt",
@@ -2904,7 +2949,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.ValidateFence",
@@ -2914,7 +2960,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.validateDraftTransaction",
@@ -2924,7 +2971,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.Commit",
@@ -2934,7 +2982,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.commitStableIDs",
@@ -2944,7 +2993,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.releaseDraftTransaction",
@@ -2954,7 +3004,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.Rollback",
@@ -2964,7 +3015,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.validateDraftOperationPlan",
@@ -2974,7 +3026,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.sameJournalIdentity",
@@ -2984,7 +3037,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_files.go"
     },
     {
       "id": "content.moveBodyToQuarantine",
@@ -2994,7 +3048,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_files.go"
     },
     {
       "id": "content.syncDirectory",
@@ -3004,7 +3059,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_files.go"
     },
     {
       "id": "content.revisionBodyPath",
@@ -3014,7 +3070,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/revision_files.go"
     },
     {
       "id": "content.checkPendingDraftSave",
@@ -3024,7 +3081,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.finishDraftSaveFailure",
@@ -3034,7 +3092,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_service.go"
     },
     {
       "id": "content.readDraftOperationFrom",
@@ -3044,7 +3103,8 @@
         "state": "passed",
         "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
       },
-      "blocker": null
+      "blocker": null,
+      "path": "modules/content/internal/draft_commit_store.go"
     },
     {
       "id": "content.NewReferenceRuntime",
@@ -3148,13 +3208,13 @@
     {
       "id": "content.RegisterReferenceRoutes",
       "path": "modules/content/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "91f6f0d3246e50281f81f138f3fedcbf70b6e17b",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根统一自部署GitLab CI pipeline 23，候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复生成job112及三个实际并行编译分片job113/114/115全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check；根精确回传本域22变更路径。pipeline21 content-media因Revision与int64比较不匹配真实失败，显式转换最小修正；pipeline22取消，不计通过。只证明编译与结构检查，未新增/运行测试、样例、SQL/HTTP验收、真实接口/模型、业务worker、镜像或部署；未本机/SSH编译或自行push。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.NewTreeRuntime",
@@ -3302,13 +3362,13 @@
     {
       "id": "content.RegisterTreeRoutes",
       "path": "modules/content/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "327f70e0da5080aa9a36fe0316cbf58e5d4c699e",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17根自部署GitLab CI pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148及三同时编译分片149/150/151全部success，覆盖14模块-mod=readonly build/vet/gofmt和完整make check，最终生成补丁0。根精确回传本域21路径（含pipeline31格式/生成）。pipeline30取消；pipeline31 Go全部通过但整体check缺两项类型登记失败，不计完整通过；修登记后32全过。只证明编译及结构检查，无新增测试/fixture/mock/样例/临时业务程序、SQL/HTTP验收、模型/业务worker/服务/镜像/部署；未本机或SSH Go，未自行push。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.readMetadataReceipt",
@@ -3555,13 +3615,13 @@
     {
       "id": "content.RegisterPublicationRoutes",
       "path": "modules/content/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "content.ReadSnapshotArchive",
@@ -3573,6 +3633,39 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "content.readHistoricalBody",
+      "path": "modules/content/internal/history_service.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "content.historyBlockMap",
+      "path": "modules/content/internal/history_service.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "content.readPublicRouteSnapshot",
+      "path": "modules/content/internal/public_route_reader.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     }
   ],
   "rule": "第四轮发布快照按源码 67f35e4857ee66970b3ff6b84184d7e9eb92c447 记 implemented。非空引用的 confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不记 verified。空引用不造 pin。分享图变更、完整启动、回收站、历史回滚和预览仍未完成，accepted 为 0。不自行 push。"

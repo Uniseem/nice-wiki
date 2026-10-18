@@ -692,8 +692,8 @@
     "/v1/jobs/{jobId}": {
       "get": {
         "operationId": "readJob",
-        "summary": "读取管理任务状态",
-        "description": "状态/引用/安全错误码",
+        "summary": "读取当前管理授权或本域所属任务状态",
+        "description": "管理员仍核当前功能管理权限；纯服务仅可读取当前真实站点、当前epoch、持久owner/type为本服务的任务，不开放列表或他域任务。",
         "x-handler": "jobs.ReadJob",
         "x-permission": "job.manage",
         "x-data-epoch-required": true,
@@ -2743,6 +2743,18 @@
         "name": "X-Admission-Permit",
         "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
+    },
+    "schemas": {
+      "QueueSiteConfigResult": {
+        "$ref": "../../site-config/contracts/types.json#/$defs/ReadSiteConfigResult"
+      },
+      "KnowledgeOwnerRecoveryResult": {
+        "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryResult"
+      }
     }
-  }
+  },
+  "x-runtime-payload-schemas": [
+    "QueueSiteConfigResult",
+    "KnowledgeOwnerRecoveryResult"
+  ]
 }

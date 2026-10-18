@@ -36,12 +36,21 @@ type DomainSnapshotObject struct {
 	Reference platform.ObjectRef `json:"reference"`
 	Path      string             `json:"path"`
 }
+type SnapshotInvocationRef struct {
+ InvocationID string `json:"invocationId"`
+ RootOperationID string `json:"rootOperationId"`
+ DataEpoch string `json:"dataEpoch"`
+}
 type DomainSnapshotReference struct {
+ Asset *platform.AssetVersionRef `json:"asset,omitempty"`
+ Invocation *SnapshotInvocationRef `json:"invocation,omitempty"`
 	Kind        string                `json:"kind"`
 	Object      *platform.ObjectRef   `json:"object,omitempty"`
 	Publication *PublishedRevisionRef `json:"publication,omitempty"`
 }
 type DomainSnapshotManifest struct {
+ Assets []platform.AssetVersionRef `json:"assets"`
+ Invocations []SnapshotInvocationRef `json:"invocations"`
 	Format            string                    `json:"format"`
 	SchemaVersion     int                       `json:"schemaVersion"`
 	Owner             string                    `json:"owner"`
@@ -130,10 +139,12 @@ func bindDomainEvidence(backupID, epoch, barrierID string, snapshots []SnapshotR
 		if snapshot.DataEpoch != epoch || domain.SourceEpoch != epoch {
 			return nil, nil, platform.NewError(platform.CodeVersionMismatch, false, "备份混合数据代次")
 		}
-		if domain.Format != "nice-wiki.domain-snapshot" || domain.SchemaVersion != 1 || domain.BackupID != backupID || domain.BarrierID != barrierID || domain.SnapshotID != snapshot.SnapshotID || domain.DataSchemaVersion != snapshot.DataSchemaVersion || domain.RevisionWatermark != snapshot.RevisionWatermark || domain.ContainsSecrets != snapshot.ContainsSecrets {
+		if domain.Format != "nice-wiki.domain-snapshot" || (domain.SchemaVersion != 1 && domain.SchemaVersion != 2) || domain.BackupID != backupID || domain.BarrierID != barrierID || domain.SnapshotID != snapshot.SnapshotID || domain.DataSchemaVersion != snapshot.DataSchemaVersion || domain.RevisionWatermark != snapshot.RevisionWatermark || domain.ContainsSecrets != snapshot.ContainsSecrets {
 			return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "快照引用与已认证域清单不一致")
 		}
-		if domain.Files == nil || domain.Objects == nil || domain.Publications == nil || domain.References == nil {
+		if domain.SchemaVersion==2&&(domain.Assets==nil||domain.Invocations==nil){return nil,nil,platform.NewError(platform.CodeIntegrityError,false,"V2域资产或调用完整库存未知")}
+  if domain.SchemaVersion==1&&(len(domain.Assets)>0||len(domain.Invocations)>0){return nil,nil,platform.NewError(platform.CodeUnsupportedSchema,false,"V1不能混入新类型库存")}
+  if domain.Files == nil || domain.Objects == nil || domain.Publications == nil || domain.References == nil {
 			return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "域权威枚举未知，不可用空值冒充无引用")
 		}
 		raw, err := platform.CanonicalJSON(domain)
@@ -173,6 +184,8 @@ func bindDomainEvidence(backupID, epoch, barrierID string, snapshots []SnapshotR
 
 // validateManifestEvidence 以真实权威对象和发布修订查闭包，不以快照存在替代对象存在。
 func validateManifestEvidence(manifest BackupManifestV1, domains []DomainSnapshotManifest) (ValidateCrossDomainRefsResult, error) {
+ if manifest.SchemaVersion==2 {for _,domain:=range domains{if domain.SchemaVersion!=2{return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeUnsupportedSchema,false,"V2备份缺少拥有者新版完整库存，不能默补空")}}} else if manifest.SchemaVersion==1 {for _,bound:=range manifest.References{if bound.Reference.Kind!="object"&&bound.Reference.Kind!="publication"{return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeUnsupportedSchema,false,"历史V1备份混入新版引用")}}} else{return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeUnsupportedSchema,false,"备份清单版本不支持")}
+
 	snapshots := make([]SnapshotRef, 0, len(manifest.Domains))
 	for _, domain := range manifest.Domains {
 		snapshots = append(snapshots, domain.Snapshot)
@@ -197,6 +210,7 @@ func resolveReferenceTargets(domains []DomainSnapshotManifest, references []Back
 	objectDefinitions := map[string]string{}
 	publications := map[string]bool{}
 	publicationIdentities := map[string]string{}
+ assets:=map[string]string{};assetIdentities:=map[string]string{};invocations:=map[string]bool{};invocationIdentities:=map[string]string{}
 	budget := len(referenceRaw)
 	for _, domain := range domains {
 		for _, object := range domain.Objects {
@@ -239,6 +253,20 @@ func resolveReferenceTargets(domains []DomainSnapshotManifest, references []Back
 				publications[key] = true
 			}
 		}
+  if domain.Owner!="media"&&len(domain.Assets)>0{return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeIntegrityError,false,"资产库存只能由媒体域声明")}
+  for _,asset:=range domain.Assets{
+   raw,_:=platform.CanonicalJSON(asset);key,_:=platform.CanonicalJSON(struct{ID string;Version int64}{asset.AssetID,asset.Version})
+   if previous,ok:=assetIdentities[string(key)];ok&&previous!=string(raw){return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeIntegrityError,false,"同一资产版本声明不同原始字节")}
+   if asset.AssetID==""||asset.Version<1||!platform.ValidHash(asset.SHA256)||asset.ByteSize<0{return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeIntegrityError,false,"资产库存身份或原字节不完整")}
+   assetIdentities[string(key)]=string(raw);if _,ok:=assets[string(raw)];!ok{budget+=len(raw);assets[string(raw)]=string(raw)}
+  }
+  if domain.Owner!="model-gateway"&&len(domain.Invocations)>0{return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeIntegrityError,false,"调用库存只能由模型网关声明")}
+  for _,invocation:=range domain.Invocations{
+   if !platform.ValidIdentifier(invocation.InvocationID)||!platform.ValidIdentifier(invocation.RootOperationID)||invocation.DataEpoch!=domain.SourceEpoch{return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeIntegrityError,false,"调用库存原根或代次不完整")}
+   raw,_:=platform.CanonicalJSON(invocation)
+   if previous,ok:=invocationIdentities[invocation.InvocationID];ok&&previous!=string(raw){return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeIntegrityError,false,"同一原调用归属声明矛盾")};invocationIdentities[invocation.InvocationID]=string(raw)
+   if !invocations[string(raw)]{budget+=len(raw);invocations[string(raw)]=true}
+  }
 		if budget > maxBackupManifestBytes {
 			return ValidateCrossDomainRefsResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "实际权威对象及引用索引超过2MiB预算")
 		}
@@ -249,17 +277,24 @@ func resolveReferenceTargets(domains []DomainSnapshotManifest, references []Back
 		found := false
 		switch reference.Kind {
 		case "object":
-			if reference.Object == nil || reference.Publication != nil {
+			if reference.Object == nil || reference.Publication != nil || reference.Asset!=nil || reference.Invocation!=nil {
 				return ValidateCrossDomainRefsResult{}, platform.NewError(platform.CodeIntegrityError, false, "对象引用分支不完整")
 			}
 			raw, _ := platform.CanonicalJSON(*reference.Object)
 			_, found = objectDefinitions[string(raw)]
 		case "publication":
-			if reference.Publication == nil || reference.Object != nil {
+			if reference.Publication == nil || reference.Object != nil || reference.Asset!=nil || reference.Invocation!=nil {
 				return ValidateCrossDomainRefsResult{}, platform.NewError(platform.CodeIntegrityError, false, "发布引用分支不完整")
 			}
 			raw, _ := platform.CanonicalJSON(*reference.Publication)
 			found = publications[string(raw)]
+  case "asset":
+   if reference.Asset==nil||reference.Object!=nil||reference.Publication!=nil||reference.Invocation!=nil{return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeIntegrityError,false,"资产引用分支不完整")}
+   raw,_:=platform.CanonicalJSON(*reference.Asset);_,found=assets[string(raw)]
+  case "invocation":
+   if reference.Invocation==nil||reference.Object!=nil||reference.Publication!=nil||reference.Asset!=nil{return ValidateCrossDomainRefsResult{},platform.NewError(platform.CodeIntegrityError,false,"调用引用分支不完整")}
+   raw,_:=platform.CanonicalJSON(*reference.Invocation);found=invocations[string(raw)]
+
 		default:
 			return ValidateCrossDomainRefsResult{}, platform.NewError(platform.CodeIntegrityError, false, "跨域引用类型未知")
 		}
@@ -275,11 +310,12 @@ func resolveReferenceTargets(domains []DomainSnapshotManifest, references []Back
 }
 
 func BuildManifest(ctx context.Context, op OperationContext, in BuildManifestInput) (BuildManifestResult, error) {
+ for _,domain:=range in.DomainManifests{if domain.SchemaVersion!=2{return BuildManifestResult{},platform.NewError(platform.CodeUnsupportedSchema,false,"新备份必须取得每个拥有者V2完整库存")}}
 	domains, references, err := bindDomainEvidence(in.BackupId, in.SourceEpoch, in.BarrierId, in.Snapshots, in.DomainManifests)
 	if err != nil {
 		return BuildManifestResult{}, err
 	}
-	manifest := BackupManifestV1{Format: "nice-wiki.backup", SchemaVersion: 1, BackupID: in.BackupId, SourceEpoch: in.SourceEpoch, BarrierID: in.BarrierId, CreatedAt: in.CreatedAt, KeyID: in.KeyId, Domains: domains, References: references}
+	manifest := BackupManifestV1{Format: "nice-wiki.backup", SchemaVersion: 2, BackupID: in.BackupId, SourceEpoch: in.SourceEpoch, BarrierID: in.BarrierId, CreatedAt: in.CreatedAt, KeyID: in.KeyId, Domains: domains, References: references}
 	validation, err := resolveReferenceTargets(in.DomainManifests, references)
 	if err != nil {
 		return BuildManifestResult{}, err
@@ -306,7 +342,7 @@ func decodeBackupManifest(store *Store, raw string) (BackupManifestV1, error) {
 		return BackupManifestV1{}, platform.NewError(platform.CodeBudgetExceeded, false, "备份清单超过2MiB预算")
 	}
 	if validate(json.RawMessage(raw)) != nil {
-		return BackupManifestV1{}, platform.NewError(platform.CodeIntegrityError, false, "备份清单不符合版本1严格格式")
+		return BackupManifestV1{}, platform.NewError(platform.CodeIntegrityError, false, "备份清单不符合登记版本严格格式")
 	}
 	var manifest BackupManifestV1
 	if json.Unmarshal([]byte(raw), &manifest) != nil {
@@ -329,4 +365,13 @@ func ValidateCrossDomainRefs(ctx context.Context, op OperationContext, in Valida
 		return ValidateCrossDomainRefsResult{}, err
 	}
 	return validateManifestEvidence(manifest, in.DomainManifests)
+}
+
+// MarshalJSON保留V1历史原编码；新V2即使真实空库存也必须显式写[]。
+func (manifest DomainSnapshotManifest) MarshalJSON()([]byte,error){
+ type plain DomainSnapshotManifest
+ raw,err:=json.Marshal(plain(manifest));if err!=nil{return nil,err}
+ if manifest.SchemaVersion!=1{return raw,nil}
+ if len(manifest.Assets)>0||len(manifest.Invocations)>0{return nil,platform.NewError(platform.CodeUnsupportedSchema,false,"V1域清单混入新类型库存")}
+ var value map[string]json.RawMessage;if err=json.Unmarshal(raw,&value);err!=nil{return nil,err};delete(value,"assets");delete(value,"invocations");return json.Marshal(value)
 }

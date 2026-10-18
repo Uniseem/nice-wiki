@@ -533,12 +533,12 @@
     {
       "path": "modules/localization/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码已交付，待统一GitLab CI；完整服务仍未齐"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/localization/internal/transport/server.go",
@@ -1584,12 +1584,12 @@
       "id": "localization.BuildApplication",
       "path": "modules/localization/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "原键只读观察与完整文本消费者接线待本批GitLab；完整启动仍待快照与后台装配。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "localization.Serve",

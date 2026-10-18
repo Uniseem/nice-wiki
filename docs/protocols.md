@@ -113,3 +113,5 @@ RunWorkerLoopWithResult基于真实jobs领取与终局确认累计，原RunWorke
 ModelOutput兼容完整chat/vision/translation文本，text显式空串表示已证明空输出，缺字段不是空；生产方UTF8字节上限64KiB。向量/重排/文本结果互斥，当前快照只读完整winning来源，不将旧partial delta改称完整。
 
 归档读取操作标记x-internal-only，portal静态浏览器路由生成排除该操作；其仍要求data-protection服务及superadmin委托，不用service权限隐藏掉委托。
+
+域归档清单新产出schemaVersion=2：assets以media完整五字段版本引用为权威，invocations以网关持久invocationId/rootOperationId/dataEpoch为权威，跨域仅typed引用，不猜ObjectRef版本或资产对象ID。V2两库存必填，未知拒绝，文件清单完整hash仍覆盖原DB/费用/结果证据；V1保原canonical编码只读，没有新版库存时不能声称新类型闭包。顶层备份新schemaVersion=2，历史类型名BackupManifestV1只为生成兼容；历史V1显式读取，不自动补空或重写原付费epoch。

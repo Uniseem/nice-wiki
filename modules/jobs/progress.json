@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "c0dced6ff6e3f503c471a5f104f0e0ab37e9d9fab00a37ddb43ebe5da45d0dbe",
+  "contractSha256": "fa9a8e57defef3766cb51659f14139ba5babb62e07281bbcf52283ff0828ddcd",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "定时调度（pipeline 42 已记 verified；完整启动仍 blocked）",
   "branch": "codex/jobs-20261017-r4",
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
-      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/jobs/internal/leases.go",
@@ -82,13 +82,13 @@
     },
     {
       "path": "modules/jobs/internal/query.go",
-      "state": "verified",
-      "implementationCommit": "acd903533d11f0d9debe8f0c5186c51ed669e9da",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15集成会话protocol第三次VPS合成快照：make docs/gen、14个现有Go模块readonly build/vet/gofmt及完整make check全部通过（858文件/1105函数/379操作/2253类型），包含本域管理Go和0006迁移，排除首页消费者HomeWIP；生成/格式产物已回传。仅源码/格式/结构检查，未执行SQL业务验证、测试、真实接口/模型或服务。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/jobs/internal/progress.go",
@@ -293,12 +293,12 @@
     {
       "path": "modules/jobs/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "定时HTTP已绑定真实createSchedule、listSchedules、updateSchedule，调用方策略已设；未绑定handler仍使工厂失败关闭，存储安装、control和后台循环未齐，不宣称可启动。本轮未跑编译与CI。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/jobs/internal/transport/server.go",
@@ -589,6 +589,16 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/jobs/internal/app/owner_recovery.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     }
   ],
   "functions": [
@@ -606,24 +616,24 @@
     {
       "id": "jobs.CreateJob",
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
-      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.FailJob",
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
-      "implementationCommit": "167aec4ad22f427d8ec36a3d49cf63055789d692",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.ClaimJob",
@@ -760,13 +770,13 @@
     {
       "id": "jobs.ReadJob",
       "path": "modules/jobs/internal/query.go",
-      "state": "verified",
-      "implementationCommit": "167aec4ad22f427d8ec36a3d49cf63055789d692",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.AppendProgress",
@@ -1058,12 +1068,12 @@
       "id": "jobs.BuildApplication",
       "path": "modules/jobs/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "d7a03b2540a178e9d086277b697fbf6fbb6e5f77",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "定时HTTP已绑定真实createSchedule、listSchedules、updateSchedule，调用方策略已设；未绑定handler仍使工厂失败关闭，存储安装、control和后台循环未齐，不宣称可启动。本轮未跑编译与CI。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.Serve",
@@ -1155,13 +1165,13 @@
     },
     {
       "id": "jobs.InstallStore",
-      "state": "verified",
-      "implementationCommit": "7566a0c3a1273697b6a67c55aa6bdbeea8359503",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "modules/jobs/internal/queue.go"
     },
     {
@@ -1354,23 +1364,23 @@
     {
       "id": "jobs.authorizeJobManagement",
       "path": "modules/jobs/internal/query.go",
-      "state": "verified",
-      "implementationCommit": "acd903533d11f0d9debe8f0c5186c51ed669e9da",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15集成会话protocol第三次VPS合成快照：make docs/gen、14个现有Go模块readonly build/vet/gofmt及完整make check全部通过（858文件/1105函数/379操作/2253类型），包含本域管理Go和0006迁移，排除首页消费者HomeWIP；生成/格式产物已回传。仅源码/格式/结构检查，未执行SQL业务验证、测试、真实接口/模型或服务。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.authorizePermission",
-      "state": "verified",
-      "implementationCommit": "8d7030fb5e8c4ccdf68c619d7b07a4fa08239e01",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "modules/jobs/internal/query.go"
     },
     {
@@ -1574,13 +1584,13 @@
     {
       "id": "jobs.jobManagementPermission",
       "path": "modules/jobs/internal/query.go",
-      "state": "verified",
-      "implementationCommit": "acd903533d11f0d9debe8f0c5186c51ed669e9da",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15集成会话protocol第三次VPS合成快照：make docs/gen、14个现有Go模块readonly build/vet/gofmt及完整make check全部通过（858文件/1105函数/379操作/2253类型），包含本域管理Go和0006迁移，排除首页消费者HomeWIP；生成/格式产物已回传。仅源码/格式/结构检查，未执行SQL业务验证、测试、真实接口/模型或服务。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.WithManagementKey",
@@ -1728,35 +1738,35 @@
     {
       "id": "jobs.OpenDatabase",
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
-      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.runMigrations",
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
-      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.Store.Close",
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
-      "implementationCommit": "d607dbb6d344a5abd0b81535cc9603d2a6b6f19d",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16最终实际集成树6c44451：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check通过（861文件/1182函数/379操作/2269类型），生成回传零变化。jobs→content→model-gateway→media分别合入后的实际树均单独检查，曾中断的正文实际树检查已重跑通过，不沿用中断结论。权限、作用域、原回执、CAS、文件持久边界/恢复与只读候选规则经交叉人工复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.progressStream.Next",
@@ -1816,35 +1826,35 @@
     {
       "id": "jobs.createJob",
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
-      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.hashCreateJobInput",
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
-      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.NewQueueHandlers",
       "path": "modules/jobs/internal/queue.go",
-      "state": "verified",
-      "implementationCommit": "7a4f55b5be024deb11b9df821db0c9f7ccaaea62",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "jobs.NewLeaseHandlers",
@@ -1867,6 +1877,39 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "jobs.authorizeJobRead",
+      "path": "modules/jobs/internal/query.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "jobs.ReadQueueSiteID",
+      "path": "modules/jobs/internal/app/owner_recovery.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "jobs.NewOwnerRecoveryChecker",
+      "path": "modules/jobs/internal/app/owner_recovery.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     }
   ],
   "rule": "2026-10-17定时调度：ValidateCron、NextFireAt、CreateSchedule、UpdateSchedule、ListSchedules、TickSchedules、lastDueTick、NewScheduleHandlers记implemented，未编译不记verified，accepted未推进。SaveSchedule仍planned。BuildApplication与main仍blocked。未写明的步长、周字段编号、日周组合和名称宏按非法表达式失败关闭。未跑GitLab CI，不push。更早轮次记录保留在STATUS与handoff。"
