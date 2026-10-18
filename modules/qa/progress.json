@@ -2,23 +2,23 @@
   "version": 1,
   "module": "qa",
   "phase": "implementation",
-  "contractSha256": "ff571ac266f56816b246dd120b77ee4821bb97cc0dc7cb524751bdb96dc62dd4",
+  "contractSha256": "826cf1f87b4e84b858ab495e21efa779cba025204d5122f26d1b30e272bd2bc7",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "qa缓存准入（pipeline 48 已编译；指代规则未写明，仍 blocked）",
-  "branch": "codex/qa-20261017-r5",
-  "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
-  "deliveryCommit": "7ef0cfb4f1e695a82dcecb5e84e1b0825a7c62fe",
+  "assignedSession": "R1-QA持久会话缓存及SSE首批",
+  "branch": "codex/qa-20261018-bulk",
+  "baseCommit": "82179b907d25a546e9f470a1fb9cf1584ab45088",
+  "deliveryCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "本文件尚有未实现登记函数：qa.LoadRuntime；已写函数另按逐项台账待GitLab"
     },
     {
       "path": "modules/qa/internal/config/policy.go",
@@ -32,23 +32,23 @@
     },
     {
       "path": "modules/qa/internal/conversation/create.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/conversation/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/turn/start.go",
@@ -62,23 +62,23 @@
     },
     {
       "path": "modules/qa/internal/admission/permit.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
-      "path": "modules/qa/internal/turn/normalize.go",
-      "state": "implemented",
-      "implementationCommit": "4f4d11a4a6f44f2bd69def6d9a8ee7701a97eb6d",
+      "path": "modules/qa/internal/normalize/question.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": "当前环境无Go/gofmt，未能执行格式化与编译；根结构清单登记由集成会话负责"
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/turn/context.go",
@@ -92,13 +92,13 @@
     },
     {
       "path": "modules/qa/internal/cache/exact.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/cache/semantic.go",
@@ -112,13 +112,13 @@
     },
     {
       "path": "modules/qa/internal/cache/validate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/answer/retrieve.go",
@@ -162,23 +162,23 @@
     },
     {
       "path": "modules/qa/internal/stream/store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/stream/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/turn/complete.go",
@@ -202,23 +202,23 @@
     },
     {
       "path": "modules/qa/internal/feedback/feedback.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/cache/curation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "本文件尚有未实现登记函数：qa.ApproveCacheEntry；已写函数另按逐项台账待GitLab"
     },
     {
       "path": "modules/qa/internal/cache/embedding.go",
@@ -232,23 +232,23 @@
     },
     {
       "path": "modules/qa/internal/cache/invalidate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "本文件尚有未实现登记函数：qa.InvalidateCache；已写函数另按逐项台账待GitLab"
     },
     {
       "path": "modules/qa/internal/admin/cache.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/cache/translation.go",
@@ -393,12 +393,12 @@
     {
       "path": "modules/qa/internal/cache/eligibility.go",
       "state": "blocked",
-      "implementationCommit": "7ef0cfb4f1e695a82dcecb5e84e1b0825a7c62fe",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": "指代残留没有可执行规则，文件不返回 eligible=true。pipeline 48 已编译该包，函数仍 blocked。"
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/cache/query-embedding.go",
@@ -442,13 +442,13 @@
     },
     {
       "path": "modules/qa/internal/admin/calibration.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/runtime/worker.go",
@@ -472,13 +472,13 @@
     },
     {
       "path": "modules/qa/migrations/001_initial.sql",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/cmd/qa/main.go",
@@ -502,13 +502,13 @@
     },
     {
       "path": "modules/qa/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "本文件尚有未实现登记函数：qa.Serve,qa.Shutdown,qa.Health,qa.Ready；已写函数另按逐项台账待GitLab"
     },
     {
       "path": "modules/qa/go.mod",
@@ -632,13 +632,13 @@
     },
     {
       "path": "modules/qa/internal/runtime/model_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     },
     {
       "path": "modules/qa/internal/turn/execute.go",
@@ -702,13 +702,13 @@
     },
     {
       "path": "modules/qa/internal/admin/policy.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已提交，仅git diff --check通过；等待根GitLab统一生成、格式、编译/vet/make check"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成及编译检查"
     }
   ],
   "functions": [
@@ -724,6 +724,259 @@
       "blocker": null
     },
     {
+      "id": "qa.NewRuntime",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.WithRuntime",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.FromContext",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.DecodeResponse",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.StorageError",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.RequireAdmin",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.Transaction.Close",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.Transaction.Commit",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.BeginRead",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.BeginWrite",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.beginTransaction",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ReplayReceipt",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.SaveReceipt",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ReadPolicy",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ReadConversation",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ReadTurn",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.IsTerminal",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.CheckTurnLease",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.SaveTurn",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ServiceReadContext",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ReadPublishedDocument",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ValidateCitations",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.PublicationFingerprint",
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
       "id": "qa.PutQaPolicy",
       "path": "modules/qa/internal/config/policy.go",
       "state": "planned",
@@ -737,24 +990,24 @@
     {
       "id": "qa.CreateConversation",
       "path": "modules/qa/internal/conversation/create.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.GetConversation",
       "path": "modules/qa/internal/conversation/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.StartTurn",
@@ -770,24 +1023,101 @@
     {
       "id": "qa.ValidateAdmission",
       "path": "modules/qa/internal/admission/permit.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.NormalizeQuestion",
-      "path": "modules/qa/internal/turn/normalize.go",
-      "state": "implemented",
-      "implementationCommit": "4f4d11a4a6f44f2bd69def6d9a8ee7701a97eb6d",
+      "path": "modules/qa/internal/normalize/question.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": "当前环境无Go/gofmt，未能编译或格式化；业务验收未执行"
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.validInputText",
+      "path": "modules/qa/internal/normalize/question.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.normalizeWhitespace",
+      "path": "modules/qa/internal/normalize/question.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.foldNaturalCase",
+      "path": "modules/qa/internal/normalize/question.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.isProtectedToken",
+      "path": "modules/qa/internal/normalize/question.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.hasSignificantUppercase",
+      "path": "modules/qa/internal/normalize/question.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.extractAnchors",
+      "path": "modules/qa/internal/normalize/question.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.isAnchorToken",
+      "path": "modules/qa/internal/normalize/question.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.ResolveTurnContext",
@@ -803,13 +1133,68 @@
     {
       "id": "qa.LookupExactCache",
       "path": "modules/qa/internal/cache/exact.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ScopeHash",
+      "path": "modules/qa/internal/cache/exact.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ReadCache",
+      "path": "modules/qa/internal/cache/exact.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.SaveCache",
+      "path": "modules/qa/internal/cache/exact.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.InsertCache",
+      "path": "modules/qa/internal/cache/exact.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.EmitCacheChanged",
+      "path": "modules/qa/internal/cache/exact.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.LookupSemanticCache",
@@ -825,13 +1210,13 @@
     {
       "id": "qa.ValidateCachedAnswer",
       "path": "modules/qa/internal/cache/validate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.RetrieveEvidence",
@@ -880,24 +1265,35 @@
     {
       "id": "qa.AppendAnswerEvent",
       "path": "modules/qa/internal/stream/store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.SaveEvent",
+      "path": "modules/qa/internal/stream/store.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.ResumeAnswerStream",
       "path": "modules/qa/internal/stream/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.CompleteTurn",
@@ -924,24 +1320,24 @@
     {
       "id": "qa.RecordFeedback",
       "path": "modules/qa/internal/feedback/feedback.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.ProposeCacheEntry",
       "path": "modules/qa/internal/cache/curation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.ApproveCacheEntry",
@@ -957,13 +1353,13 @@
     {
       "id": "qa.DisableCacheEntry",
       "path": "modules/qa/internal/cache/curation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.BuildCacheEmbedding",
@@ -988,15 +1384,26 @@
       "blocker": null
     },
     {
-      "id": "qa.ListCacheEntries",
-      "path": "modules/qa/internal/admin/cache.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "id": "qa.EmitCacheInvalidated",
+      "path": "modules/qa/internal/cache/invalidate.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ListCacheEntries",
+      "path": "modules/qa/internal/admin/cache.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.TranslateCacheEntry",
@@ -1211,12 +1618,23 @@
       "id": "qa.EvaluateCacheEligibility",
       "path": "modules/qa/internal/cache/eligibility.go",
       "state": "blocked",
-      "implementationCommit": "7ef0cfb4f1e695a82dcecb5e84e1b0825a7c62fe",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": "独立问题是否残留这/它或未命名第二步来源没有可执行规则。函数只按 plan.complete、privateContextDependent、currentPageDependent、classification=out_of_scope 和 plan.cacheEligible 拒绝共享，不扫描问题文本，不返回 eligible=true。pipeline 48 已编译该包，仍不记 verified。"
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.ineligible",
+      "path": "modules/qa/internal/cache/eligibility.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.AcquireQueryEmbedding",
@@ -1265,13 +1683,13 @@
     {
       "id": "qa.ReadCacheCalibration",
       "path": "modules/qa/internal/admin/calibration.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.RunWorker",
@@ -1351,6 +1769,61 @@
       "blocker": null
     },
     {
+      "id": "qa.NewOperationHandlers",
+      "path": "modules/qa/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.jsonOperation",
+      "path": "modules/qa/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.operationContext",
+      "path": "modules/qa/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.writeResult",
+      "path": "modules/qa/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
+      "id": "qa.serveAnswerStream",
+      "path": "modules/qa/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
+      },
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
+    },
+    {
       "id": "qa.mountModuleUI",
       "path": "modules/qa/ui/src/main.ts",
       "state": "planned",
@@ -1375,13 +1848,13 @@
     {
       "id": "qa.InvokeModel",
       "path": "modules/qa/internal/runtime/model_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.ExecuteTurn",
@@ -1419,24 +1892,25 @@
     {
       "id": "qa.ReadQaPolicy",
       "path": "modules/qa/internal/admin/policy.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check"
     },
     {
       "id": "qa.ReadPublicCapability",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fea42043fea9c83681573a1f8ba770ec019a26b9",
       "verification": {
         "state": "not_run",
-        "evidence": "第四轮首页所需生产方只读协议；仅契约，业务未实现。"
+        "evidence": "真实源码及合同已提交，未执行本机Go；等待根集中GitLab生成与编译，不提前记implemented/verified"
       },
-      "blocker": null
+      "blocker": "代码就绪，待GitLab生成、readonly build/vet/gofmt及完整make check",
+      "path": "modules/qa/internal/admin/policy.go"
     }
   ],
-  "rule": "2026-10-17缓存准入：EvaluateCacheEligibility与eligibility.go因指代残留规则未写明保持blocked，不返回eligible=true。未跑GitLab CI，不记verified。NormalizeQuestion仍为implemented且verification为not_run。其余函数与文件保持原状态。accepted为0。"
+  "rule": "首批真实函数及必要助手已编写并全部blocked待GitLab；NormalizeQuestion共享迁移后重新编译，Eligibility按可信Planner字段解设计阻塞；未完成完整服务/轮次执行和其余后台职责"
 }

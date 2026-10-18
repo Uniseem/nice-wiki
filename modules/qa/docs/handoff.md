@@ -1,3 +1,103 @@
+# 2026-10-18 QA 第一批交接
+
+源码 `fea42043fea9c83681573a1f8ba770ec019a26b9`；分支 `codex/qa-20261018-bulk`；基线 `82179b907d25a546e9f470a1fb9cf1584ab45088`。根公共 GONE/410 的 `fc22dda` 作为基线 cherry-pick 为 `28614ed`，不要当成本域代码再次合入。独占修改仅 `modules/qa/`。
+
+## 代码就绪，待 GitLab
+
+17 个原有业务函数（其中 NormalizeQuestion 是共享迁移并按ADR0006移除通用纯函数取消检查；其余16项新增/解阻）：
+
+- `qa.CreateConversation`
+- `qa.GetConversation`
+- `qa.ValidateAdmission`
+- `qa.NormalizeQuestion`
+- `qa.AppendAnswerEvent`
+- `qa.ResumeAnswerStream`
+- `qa.LookupExactCache`
+- `qa.ValidateCachedAnswer`
+- `qa.ProposeCacheEntry`
+- `qa.DisableCacheEntry`
+- `qa.RecordFeedback`
+- `qa.ReadQaPolicy`
+- `qa.ReadPublicCapability`
+- `qa.ListCacheEntries`
+- `qa.ReadCacheCalibration`
+- `qa.EvaluateCacheEligibility`
+- `qa.InvokeModel`
+
+43 个实际助手（全部已登记实际签名与调用边）：
+
+- `qa.NewRuntime`
+- `qa.WithRuntime`
+- `qa.FromContext`
+- `qa.DecodeResponse`
+- `qa.StorageError`
+- `qa.RequireAdmin`
+- `qa.Transaction.Close`
+- `qa.Transaction.Commit`
+- `qa.BeginRead`
+- `qa.BeginWrite`
+- `qa.beginTransaction`
+- `qa.ReplayReceipt`
+- `qa.SaveReceipt`
+- `qa.ReadPolicy`
+- `qa.ReadConversation`
+- `qa.ReadTurn`
+- `qa.IsTerminal`
+- `qa.CheckTurnLease`
+- `qa.SaveTurn`
+- `qa.ServiceReadContext`
+- `qa.ReadPublishedDocument`
+- `qa.ValidateCitations`
+- `qa.PublicationFingerprint`
+- `qa.validInputText`
+- `qa.normalizeWhitespace`
+- `qa.foldNaturalCase`
+- `qa.isProtectedToken`
+- `qa.hasSignificantUppercase`
+- `qa.extractAnchors`
+- `qa.isAnchorToken`
+- `qa.ScopeHash`
+- `qa.ReadCache`
+- `qa.SaveCache`
+- `qa.InsertCache`
+- `qa.EmitCacheChanged`
+- `qa.SaveEvent`
+- `qa.EmitCacheInvalidated`
+- `qa.ineligible`
+- `qa.NewOperationHandlers`
+- `qa.jsonOperation`
+- `qa.operationContext`
+- `qa.writeResult`
+- `qa.serveAnswerStream`
+
+共60项统一blocked待集中GitLab；不记implemented/verified，不代表服务可运行。部分文件尚含planned函数，其文件整体职责继续blocked。完整轮次/模型执行、缓存批准/自动/语义/翻译、压缩和恢复仍未完成。
+
+## 关键事实
+
+- 私有事务核本站与代次，写入使用平台安全窗口；同主体/函数/键七天原回执保留，同键异输入冲突，原结果校验摘要。策略、轮次和缓存的持久JSON边界使用生成schema；无原始SQL错误、IP或凭据日志。
+- 会话创建在线验证并消费guard原完整签名许可，精确绑定action/request/subject/epoch/audience；重放先查原回执。GetConversation只按owner读取，签名ordinal分页；过期GONE/410。
+- AppendAnswerEvent严格UTF8/16KiB、有效租约、非终态事件，事件与服务端序号同事务。模型来源的内部sourceStep/sourceSequence幂等；异内容拒绝。终态必须另由终态用例同时提交。ResumeAnswerStream仅读持久事件，24小时后410；HTTP回放15秒不占序号心跳、5分钟连接上限，断线不重跑模型。
+- 精确cache要求完整问题，优先精选，普通cache必须匹配可信调用链固定的当前qa.answer记忆hash。每次交付经content精确发布/完整正文/块hash及public-site当前语言href权威验证；空引用答案保存并重取整个公开发布引用集合摘要，不靠迟到事件放行。
+- 精选候选只来自具有持久上下文和当前引用的completed问答；管理员明确输入清理后的基准语言公开问答，pending不命中，不自动复制私人原文、不自动翻译。反馈精确匹配答案修订，负反馈使来源普通cache stale并移除向量，不自动撤销精选，事件只含ID/评分/版本/状态。
+- Planner参考合同追加resolvedReferences，默认缺失false。前置提示规则写入workflows：只有可信模型对实际历史/已核当前页明确完成独立问题及全部指代才可true；仍依赖动态页面/私人上下文或needs_clarification拒绝共享。PlanQuestion本体仍planned，公共入口不接受该字段。
+- 模型仅平台NewGatewayClient/InvokeModel；本批真实校验器从生成PayloadValidationSpec建立，不在本机生成。ModelRuntime许可只能按当前可信轮次装配，不能在服务启动塞静态单访客许可。
+
+## 结构及生成
+
+`internal/turn/normalize.go` 已移动为 `internal/normalize/question.go`，纯算法被cache和未来turn共用，避免导入环；根framework需要同步该唯一变更。其余实际文件均为既有未来路径。implementation共109函数，包含43个必要助手，非空壳增量。新增SourceStep/SourceSequence是内部参考DTO，不是公共输入能力。
+
+OpenAPI补三入口GONE/410、流Last-Event-ID与5分钟基础设施截止，保留生产方及私有JSON运行schema引用闭包。根CI须先make gen/docs，得到新gen.PayloadValidationSpec、public-site/content新增读取客户端，再编译。没有手改生成文件或go.sum，没有新库依赖。
+
+## 检查与下一项
+
+本地仅JSON解析/台账同步、Git身份审阅和git diff --check通过；未运行Go/gofmt/gen/build/vet/make check、测试、真实接口、模型或服务；不push。用户已要求及时检查和推送，根统一GitLab执行。
+
+下一项继续本域第二批：缓存批准/自动保存、真实查询嵌入与上下文/模型消费者、记录读取、轮次终态和压缩提交；每批完成即源码加台账提交交根CI，不等待整个QA或75%才检查。
+
+---
+
+以下为旧历史交接；指代设计缺口已经本次根裁定补齐，不再沿用永远拒绝的旧规则。
+
 # 2026-10-17 缓存准入交接
 
 - 分支：`codex/qa-20261017-r5`
