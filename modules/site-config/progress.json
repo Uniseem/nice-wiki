@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "18f676f9fc306728ad9440a8fb45a72800c0bf9c89fb24fe9ac0945347b6ba36",
+  "contractSha256": "2d98f59ee9848eb3b55ae59b0bb4b23b09da6b108f9e1c4d18ab2d2c37ebf5ec",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18持续收尾：第三批GitLab检查通过，业务验收未执行",
   "branch": "codex/site-config-20261017-r4",
@@ -447,6 +447,16 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/site-config/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     }
@@ -1450,6 +1460,17 @@
       "verification": {
         "state": "passed",
         "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.ReadSnapshotArchive",
+      "path": "modules/site-config/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     }

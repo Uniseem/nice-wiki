@@ -2,7 +2,7 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "ff3fb8e8db1ecf36e27ba72e152e2a5742ddffbec94fcce162cec73d2531f9ef",
+  "contractSha256": "cbc69e6b00733db57a0dab6296c5bf9d84189fb26b976c5289483b722792089d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "超管重置文件（pipeline 42 已记 verified；5秒监视未接入）",
   "branch": "codex/identity-20261017-r4",
@@ -367,6 +367,16 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/identity/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     }
@@ -1535,6 +1545,17 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15 第四轮本人偏好与公共目录/portal消费者冻结快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（856文件/1049函数/374操作/2222类型），生成/格式回传0冲突。已人工核对当前本人站点/会话、受限会话拒绝、固定默认、原完整成功先于CAS和新目标页核权、每新成功偏好版本加1、公共目录权威与无账号/认证事件副作用。该快照不包含仍在写的site-config/jobs第四轮改动，不声称其已验证。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅表示现阶段检查，不是行为验收。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "identity.ReadSnapshotArchive",
+      "path": "modules/identity/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     }

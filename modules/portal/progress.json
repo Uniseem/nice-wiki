@@ -2,7 +2,7 @@
   "version": 1,
   "module": "portal",
   "phase": "implementation",
-  "contractSha256": "266b16e4220d82ce11d36e634ef58bf877f53f6f4ab481403f63b936da1c35d3",
+  "contractSha256": "058b1289d91cd2b8dd4e46b1b4cdf7a2775134134351aaa64c1bbaa4a90b84a9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "portal EmitAccessAudit 因 appendAudit 请求体映射缺失保持 blocked",
   "branch": "codex/portal-20261017-r6",
@@ -533,7 +533,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "新增可信网络预算范围转发，预算key/完整准入装配仍未齐，待GitLab编译"
+      "blocker": "公共委托加载/可信来源新装配代码已写，待后续Portal集成GitLab；完整服务未齐"
     },
     {
       "id": "portal.LoadBootstrap",
@@ -904,10 +904,10 @@
       "state": "blocked",
       "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "本域bootstrap/偏好/SSE/readiness/屏障真实handler覆盖及初始化/恢复就绪权威尚未完成；明确拒绝构造应用，不返回占位成功。"
+      "blocker": "公共委托加载/可信来源新装配代码已写，待后续Portal集成GitLab；完整服务未齐"
     },
     {
       "id": "portal.Serve",

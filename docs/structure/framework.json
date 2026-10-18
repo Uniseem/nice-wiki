@@ -829,6 +829,31 @@
       "purpose": "进程模板实现"
     },
     {
+      "path": "libs/platform/lifecycle/snapshot_archive.go",
+      "kind": "source",
+      "purpose": "公共真实快照、屏障与完整暂存恢复证明"
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "kind": "source",
+      "purpose": "公共真实快照、屏障与完整暂存恢复证明"
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_io.go",
+      "kind": "source",
+      "purpose": "公共真实快照、屏障与完整暂存恢复证明"
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_manager.go",
+      "kind": "source",
+      "purpose": "公共真实快照、屏障与完整暂存恢复证明"
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_types.go",
+      "kind": "source",
+      "purpose": "公共真实快照、屏障与完整暂存恢复证明"
+    },
+    {
       "path": "libs/platform/lifecycle/task_group.go",
       "kind": "handwritten",
       "purpose": "受监督本进程任务去重、固定原截止与关闭排空"

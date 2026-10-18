@@ -5211,6 +5211,14 @@
         "proofHash"
       ],
       "description": "只有真实fresh owner activation或认证restore回调可建立，本次纯读lookup不生产/写入marker。"
+    },
+    "SnapshotArchiveReadInput": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",
+      "description": "本域已完成归档精确引用"
+    },
+    "SnapshotArchiveReadResult": {
+      "x-internal": true,
+      "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
     }
   }
 }

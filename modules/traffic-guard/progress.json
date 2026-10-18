@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "66ac8caad806ce5a13d86d6e31612cc14a3efb8cd20fc171028e0adb2b58a3b1",
+  "contractSha256": "a19b2d0dde8465332649a3f84009a5ef581edec8b98b9f161e5c57dbd912d68f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "风控三批源码交付冻结，由根统一GitLab与双推",
   "branch": "codex/traffic-guard-20261018-bulk",
@@ -569,6 +569,16 @@
         "evidence": "源码待CI；完整装配仍失败关闭。"
       },
       "blocker": "新只追加迁移待统一GitLab编译。"
+    },
+    {
+      "path": "modules/traffic-guard/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "functions": [
@@ -1570,6 +1580,17 @@
       "verification": {
         "state": "passed",
         "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "traffic-guard.ReadSnapshotArchive",
+      "path": "modules/traffic-guard/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     }

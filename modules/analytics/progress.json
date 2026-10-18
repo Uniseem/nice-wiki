@@ -2,7 +2,7 @@
   "version": 1,
   "module": "analytics",
   "phase": "implementation",
-  "contractSha256": "b5e05b8e8437567bc3b2f7b2901e4ebbe4f7ed82685043d76f796db8a5a4fdb7",
+  "contractSha256": "daced0066d386b4ecfb08d17a97399f903f69ef5bd675965de1152120e0a9095",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "analytics-20261017-r6（BucketLatency、CheckPrivacyFields 由 pipeline 53 记 verified）",
   "branch": "codex/analytics-20261017-r6",
@@ -522,6 +522,16 @@
     },
     {
       "path": "modules/analytics/web/src/gen/api.gen.ts",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/analytics/internal/snapshot_archive.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -1085,6 +1095,17 @@
     {
       "id": "analytics.RunWorker",
       "path": "modules/analytics/internal/worker.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "analytics.ReadSnapshotArchive",
+      "path": "modules/analytics/internal/snapshot_archive.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

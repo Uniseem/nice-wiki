@@ -4001,6 +4001,14 @@
       "type": "object",
       "x-internal": true,
       "description": "本域生成的精确发布来源HTTP客户端*gen.ContentClient"
+    },
+    "SnapshotArchiveReadInput": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",
+      "description": "本域已完成归档精确引用"
+    },
+    "SnapshotArchiveReadResult": {
+      "x-internal": true,
+      "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
     }
   }
 }

@@ -1148,7 +1148,8 @@
             "platform.PrivateNetworkScopes",
             "portal.authenticationOperation",
             "portal.prepareAuthenticationRequest",
-            "platform.PrivateBudgetNetworkScopes"
+            "platform.PrivateBudgetNetworkScopes",
+            "platform.ResolveVisitorAddress"
           ],
           "resources": [],
           "contract": "binding"
@@ -3832,7 +3833,8 @@
             "platform.NewSiteConfigClient",
             "platform.NewRequestValidator",
             "portal.NewApplication",
-            "platform.NormalizePublicURL"
+            "platform.NormalizePublicURL",
+            "platform.LoadPortalDelegation"
           ],
           "resources": [
             "本域implementation全部x-handler",

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "47cc8f3759519fce7d0f3293f097dc9924a97c657c769a721d933e5724bc23ce",
+  "contractSha256": "ac4b949595801bd29aee0b85b7f2deb3335c3400255e11944edaa16880e604ec",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "PutUploadChunk 准备决定先于水位截尾（pipeline 53 记 verified）",
   "branch": "codex/media-20261017-r6",
@@ -557,6 +557,16 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-17第二轮自部署GitLab pipeline23候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式/重复gen job112与三个同时分片113/114/115全部success，14个Go模块-mod=readonly build/vet/gofmt及完整make check通过；精确本域18路径格式/生成快照已由根回传。p21整体失败，content先编译失败且media未完整执行；p22取消；不沿用两者或上轮证据。本域保持源码冻结后提交a44a13a1ab65fc19c86e032d757e570195909e22，通过只读交叉复审与静态范围/隐私核对；未新增测试/fixture/mock/样例/临时业务程序，无本机/SSH编译，无实际接口、SQL行为验收、模型、worker/删除或应用镜像/部署。verified只代表R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/media/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     }
@@ -2544,6 +2554,17 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-17第三轮GitLab pipeline32=ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成148、三同时分片149/150/151全部success，14模块readonly build/vet/gofmt与完整make check通过，最终生成补丁0；根精确回传本域19路径（含p31格式/生成）。p30取消，p31Go分片全通过但整体check缺两个类型，不作完整依据。真实源码b439c516fcf58d7df32d6227dc6df18ceb0871ce；回传后未改Go/HTTP/schema行为，仅根批准订正Drawing首step来源文案，保留CI原生成文档待实际集成CI重新make docs。交审发现公共适配器多发领域Input字段，根修正为jobs HTTP RequestBody后核对通过；manifest18闭包/六Result/paid refs无其余阻塞。旧六schema被prune仅静态发现非行为验收。无本机/SSH Go/gen/check、测试或样例、SQL/HTTP业务执行、模型、worker/删除、启动或部署；verified仅表示R1既有检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "media.ReadSnapshotArchive",
+      "path": "modules/media/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     }

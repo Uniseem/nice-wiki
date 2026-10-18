@@ -2,7 +2,7 @@
   "version": 1,
   "module": "knowledge",
   "phase": "implementation",
-  "contractSha256": "0b2b0c6942cdd6cfa5bbffc87d17b1940747d6cb8b0a56c2f5445bd541b9d21f",
+  "contractSha256": "2fdf47f1a81af0d635fde4a7b4adf2a34a478ea9835c0fbcd3ca1c15c156ae5d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
   "branch": "codex/knowledge-20261018-bulk",
@@ -662,6 +662,16 @@
     },
     {
       "path": "modules/knowledge/internal/source/tokenize.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/knowledge/internal/snapshot_archive.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -1731,6 +1741,17 @@
     {
       "id": "knowledge.TokenizeSource",
       "path": "modules/knowledge/internal/source/tokenize.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "knowledge.ReadSnapshotArchive",
+      "path": "modules/knowledge/internal/snapshot_archive.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {

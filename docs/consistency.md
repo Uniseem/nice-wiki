@@ -31,3 +31,5 @@ data git只是允许数据的版本镜像，源历史在各域持久保存；镜
 任务领取、完成和失败写回同时绑定owner、worker、持久fence与dataEpoch；队列持久保留rootOperationId，worker从所属域权威任务读取原主体、预算和期限，不能用启动上下文或重试生成新付费根。执行结果携完整可空ObjectRef与paidResultRefs，取消同样保留已付费结果。过期执行权先隔离为orphan并提升fence，只有owner持久确认completed或safeToRetry后才能复用结果或重排；未知结果不能凭进程健康重试。
 
 取消意图以持久cancel_requested为准，失败、重排、领取、心跳均保留；只有owner明确确认安全取消才终局cancelled。已取消任务的不明确失败进入orphan，保留已付费结果并由owner核实，不自动重跑。owner已落盘成功与取消竞争时保留成功结果。
+
+恢复隔离保留原输入、原付费结果、原来源与未决费用证据；撤销旧epoch job/fence/event/outbox的活动资格，不做通用epoch改写或重新派发。拥有者必须按已验证来源登记只读投影/新代免费通知，未知跨域闭包保持Ready失败关闭。目标schema在staged迁移并形成完整目标树指纹，切换只接受同一restore/barrier/target/stage证明。

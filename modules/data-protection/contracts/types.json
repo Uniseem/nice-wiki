@@ -4136,6 +4136,14 @@
         "references"
       ],
       "description": "canonical JSON≤2MiB轻量全局清单；域按owner字典顺序，引用按完整canonical值排序；全对象引用索引亦≤2MiB，超限失败不截断。"
+    },
+    "SnapshotArchiveReadInput": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",
+      "description": "本域已完成归档精确引用"
+    },
+    "SnapshotArchiveReadResult": {
+      "x-internal": true,
+      "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
     }
   }
 }

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "qa",
   "phase": "implementation",
-  "contractSha256": "50205a6a072361624ed115ddc65b4f2708f4eb8ec037bec93ad4d0547ef85cfc",
+  "contractSha256": "f8463166f7aa4fa1afab2dab3e5b3badc4c984a035c5263d65e438447b78aae7",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-QA语义缓存及轮次终态第三批",
   "branch": "codex/qa-20261018-bulk",
@@ -707,6 +707,16 @@
       "verification": {
         "state": "passed",
         "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/qa/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     }
@@ -2020,6 +2030,17 @@
       },
       "blocker": null,
       "path": "modules/qa/internal/admin/policy.go"
+    },
+    {
+      "id": "qa.ReadSnapshotArchive",
+      "path": "modules/qa/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "rule": "累计35个原有业务函数与53个必要助手共88项代码就绪，全部blocked待GitLab。完整轮次生产/执行、生成回答及后台装配仍planned；译缓存版本权威缺口另列设计blocked。"

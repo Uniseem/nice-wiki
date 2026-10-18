@@ -1394,13 +1394,16 @@
     "ModelOutput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "模型结构化完成结果；仅StreamEvent.completed出现，文本仍走delta；不混用向量空间。",
+      "description": "模型完整结果：embedding/rerank结构结果或chat/vision/translation完整UTF8文本；completed事件或严格当前快照承载，不以delta片段冒充完整。",
       "properties": {
         "capability": {
           "type": "string",
           "enum": [
             "embedding",
-            "rerank"
+            "rerank",
+            "chat",
+            "vision",
+            "translation"
           ]
         },
         "embeddingSpace": {
@@ -1427,6 +1430,11 @@
           "items": {
             "$ref": "#/$defs/Identifier"
           }
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 65536,
+          "description": "真实完整文本；生产方UTF8字节总数另限64KiB。显式空串是已证明空输出，字段缺失不是空结果。"
         }
       },
       "required": [
@@ -1442,7 +1450,21 @@
           "required": [
             "embeddingSpace",
             "vectors"
-          ]
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "candidateIds"
+                ]
+              }
+            ]
+          }
         },
         {
           "properties": {
@@ -1452,7 +1474,59 @@
           },
           "required": [
             "candidateIds"
-          ]
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "embeddingSpace"
+                ]
+              },
+              {
+                "required": [
+                  "vectors"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "capability": {
+              "enum": [
+                "chat",
+                "vision",
+                "translation"
+              ]
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "embeddingSpace"
+                ]
+              },
+              {
+                "required": [
+                  "vectors"
+                ]
+              },
+              {
+                "required": [
+                  "candidateIds"
+                ]
+              }
+            ]
+          }
         }
       ]
     },
@@ -1733,6 +1807,29 @@
         "paidResultRefs"
       ],
       "description": "owner以精确inputRef/root/epoch/fence/attempt匹配原持久事实；不能证明安全则pending/unknown。completed只交原结果，safeToRetry必须能复用原hash/checkpoint/付费结果且无未决派发费用；未知绝不作0或重算。"
+    },
+    "SnapshotArchiveReadInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshotId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 21474836480
+        }
+      },
+      "required": [
+        "snapshotId",
+        "sha256",
+        "byteSize"
+      ],
+      "description": "已完成域归档的受控读取；owner/版本1/tar媒体类型来自本域固定装配，禁止任意URL或磁盘路径。"
     }
   }
 }

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "84ffb4739a5433ad38e1f225343e001a7547f7dbe341d0ccd58aff8f65f402ec",
+  "contractSha256": "18667270a99a0e55a22370f0107e5ebf8ca0014b8ea7c4a4017caaeda9599902",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "定时调度（pipeline 42 已记 verified；完整启动仍 blocked）",
   "branch": "codex/jobs-20261017-r4",
@@ -577,6 +577,16 @@
       "verification": {
         "state": "not_run",
         "evidence": "2026-10-17定时调度源码已提交。本轮只运行make docs（python渲染），未跑go、gofmt、make build、make gen、make check或GitLab CI，不记verified，accepted未推进。"
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/jobs/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     }
@@ -1846,6 +1856,17 @@
         "evidence": null
       },
       "blocker": "真实worker六租约HTTP接线待GitLab"
+    },
+    {
+      "id": "jobs.ReadSnapshotArchive",
+      "path": "modules/jobs/internal/snapshot_archive.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
     }
   ],
   "rule": "2026-10-17定时调度：ValidateCron、NextFireAt、CreateSchedule、UpdateSchedule、ListSchedules、TickSchedules、lastDueTick、NewScheduleHandlers记implemented，未编译不记verified，accepted未推进。SaveSchedule仍planned。BuildApplication与main仍blocked。未写明的步长、周字段编号、日周组合和名称宏按非法表达式失败关闭。未跑GitLab CI，不push。更早轮次记录保留在STATUS与handoff。"
