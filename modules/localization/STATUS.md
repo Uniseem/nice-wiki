@@ -1,3 +1,5 @@
+人工保护窄修源码0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640：不可恢复编号模板与source-only分支均失败关闭，旧权威对象保留；ReadTranslation仍真正blocked，不新增ready计数，待统一GitLab CI。
+
 # 第三组源拆分与只读链（2026-10-18，待GitLab CI）
 
 源码35cc93176576b42cbbf3a737bef39758586399db：四个原有函数新代码就绪（SplitTranslationUnits、FetchTranslationSource、ReadTranslationUnits、ListTranslationProgress），同时复核提示/校验/TM/保护继承等旧代码，新增18个实际参考辅助。累计30个既有业务/已改项与52个新增参考辅助，均待GitLab CI，accepted为0。

@@ -2,12 +2,12 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "91f4684bc74327594b0c30f3e201f6651c3c26deb5c8318eb4e11913273b26f1",
+  "contractSha256": "fbeea12f085c7fc1ed1ce68ba548f206dbc4850e4818e7e20354656397089f70",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-15（Codex，集中并行实现）",
   "branch": "codex/localization-20261018-bulk",
   "baseCommit": "f1d4ce0628470eda7b253993366669759dd01cdc",
-  "deliveryCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+  "deliveryCommit": "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640",
   "deployment": "not_started",
   "files": [
     {
@@ -183,7 +183,7 @@
     {
       "path": "modules/localization/internal/translation/read.go",
       "state": "blocked",
-      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "implementationCommit": "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1093,12 +1093,12 @@
       "id": "localization.ReadTranslation",
       "path": "modules/localization/internal/translation/read.go",
       "state": "blocked",
-      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "implementationCommit": "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "真实设计/实现阻塞：人工保护table的父/行分组发生变化时尚缺安全旧译投影，明确失败关闭；不计完整完成。其余新body/hash/水位读链待CI。"
+      "blocker": "真实设计/实现阻塞：人工保护table父/行分组改变、当前slot无法恢复或保护块source-only均失败关闭，安全旧译投影未齐；不计完整完成。其余body/hash/水位读链待统一GitLab CI。"
     },
     {
       "id": "localization.ListTranslationProgress",
@@ -2228,7 +2228,8 @@
     "sourceCommits": [
       "21c6a196c990d323c73429b769a38895beca7a93",
       "5e90f43d6876833467610314722150fc678fe7e6",
-      "35cc93176576b42cbbf3a737bef39758586399db"
+      "35cc93176576b42cbbf3a737bef39758586399db",
+      "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640"
     ],
     "existingBusinessFunctions": [
       "localization.NormalizeLanguageTag",
@@ -2455,6 +2456,18 @@
           "localization.ReadTranslationUnits",
           "localization.ListTranslationProgress"
         ]
+      },
+      {
+        "sourceCommit": "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640",
+        "readyFunctions": [],
+        "newReferenceHelpers": [],
+        "changedFunctions": [
+          "localization.ReadTranslation"
+        ],
+        "designBlocked": [
+          "localization.ReadTranslation"
+        ],
+        "note": "补齐人工旧译模板无法恢复/source-only的失败关闭；不增加就绪函数计数。"
       }
     ]
   }
