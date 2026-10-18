@@ -12,6 +12,7 @@ import (
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/data-protection/internal/gen"
+ protection "nice-wiki/modules/data-protection/internal"
 	"nice-wiki/modules/data-protection/internal/transport"
 )
 
@@ -62,8 +63,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	application, err := transport.NewApplication(config, anchors, runtimeAuthority, clients)
+ catalog,err:=protection.OpenCatalog(ctx,config.DataRoot,view.DataEpoch,key);if err!=nil{return nil,err}
+ clients.Catalog=catalog;protection.InstallCatalog(catalog)
+ application, err := transport.NewApplication(config, anchors, runtimeAuthority, clients)
 	if err != nil {
+  _ = catalog.Close()
 		return nil, err
 	}
 	return application, nil

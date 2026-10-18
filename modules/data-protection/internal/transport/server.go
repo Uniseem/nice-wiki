@@ -10,12 +10,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+ "strconv"
+ "encoding/json"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/data-protection/internal/gen"
+ protection "nice-wiki/modules/data-protection/internal"
 )
 
 const (
@@ -33,6 +36,7 @@ const (
 
 // Dependencies 只保存生成客户端已经提供的生产方。没有客户端的域保持等待。
 type Dependencies struct {
+ Catalog *protection.Store
 	Identity   *gen.IdentityClient
 	Jobs       *gen.JobsClient
 	Content    *gen.ContentClient
@@ -101,10 +105,6 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
 	}
-	validate, err := apivalidate.NewRequestValidator(spec)
-	if err != nil {
-		return nil, err
-	}
 	application := &Application{
 		config:              config,
 		anchors:             anchors,
@@ -123,9 +123,16 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 			writeProblem(w, r, platform.NewError(platform.CodeValidation, false, "请求不符合接口规格"))
 		},
 	})
-	application.httpServer = &http.Server{
+ handlers:=map[string]http.Handler{};callers:=map[string][]string{};services:=map[string][]string{};maintenance:=map[string]bool{}
+ for _,item:=range spec.Paths.Map(){for _,operation:=range item.Operations(){id:=operation.OperationID;handlers[id]=routed;if id!="health"&&id!="ready"{callers[id]=[]string{"portal"}}}}
+ for _,id:=range []string{"acquireBarrier","releaseBarrier","exportSnapshot","stageSnapshot","discardSnapshot"}{callers[id]=[]string{"data-protection"};services[id]=[]string{"data-protection"};maintenance[id]=true}
+ callers["serveRestoreArchive"]=[]string{"identity","site-config","jobs","content","media","public-site","model-gateway","knowledge","qa","localization","memory","traffic-guard","analytics","data-protection"};services["serveRestoreArchive"]=callers["serveRestoreArchive"];maintenance["serveRestoreArchive"]=true
+ for _,id:=range []string{"readRestoreProgress","continueRestore","abortRestore","cleanupRestore","readBackup","listBackups","readMirrorStatus","readProtectionSettings"}{maintenance[id]=true}
+ opened:="";if clients.Catalog!=nil{opened=clients.Catalog.Epoch}
+ protected,err:=apivalidate.NewServiceHandler(spec,platform.ServiceBoundaryConfig{Self:moduleName,Anchors:anchors,Runtime:func(ctx context.Context)(platform.RuntimeView,error){return lifecycle.ReadRuntime(ctx,runtime)},OpenedDataEpoch:opened,AllowedCallers:callers,ServiceActorCallers:services,MaintenanceOperations:maintenance,Authorize:apivalidate.NewIdentityAuthorizer(clients.Identity)},handlers);if err!=nil{return nil,err}
+ application.httpServer = &http.Server{
 		Addr:              config.Listen,
-		Handler:           validate(routed),
+		Handler:           protected,
 		ReadHeaderTimeout: 5 * time.Second,
 		MaxHeaderBytes:    64 << 10,
 	}
@@ -194,6 +201,7 @@ func Shutdown(ctx context.Context, app *Application) error {
 			app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭HTTP服务失败")
 			return
 		}
+  if app.dependencies.Catalog!=nil{if err:=app.dependencies.Catalog.Close();err!=nil{app.shutdownErr=err;return}}
 		if app.database != nil {
 			if err := app.database.Close(); err != nil {
 				app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭本域数据库失败")
@@ -282,15 +290,16 @@ func (s *server) Ready(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) ListBackups(w http.ResponseWriter, r *http.Request, _ gen.ListBackupsParams) {
-	writeUnavailable(w, r)
+ op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信操作上下文"));return};limit:=20;if raw:=r.URL.Query().Get("limit");raw!=""{limit,_=strconv.Atoi(raw)}
+ result,err:=protection.ListBackups(r.Context(),op,protection.ListBackupsInput{Cursor:r.URL.Query().Get("cursor"),Limit:limit,Actor:op.Actor});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) CreateBackup(w http.ResponseWriter, r *http.Request, _ gen.CreateBackupParams) {
 	writeUnavailable(w, r)
 }
 
-func (s *server) ReadBackup(w http.ResponseWriter, r *http.Request, _ string, _ gen.ReadBackupParams) {
-	writeUnavailable(w, r)
+func (s *server) ReadBackup(w http.ResponseWriter, r *http.Request, id string, _ gen.ReadBackupParams) {
+ op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信操作上下文"));return};result,err:=protection.ReadBackup(r.Context(),op,protection.ReadBackupInput{BackupId:id,Actor:op.Actor});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) StreamPortableBackup(w http.ResponseWriter, r *http.Request, _ string, _ gen.StreamPortableBackupParams) {
@@ -326,7 +335,7 @@ func (s *server) BuildMirror(w http.ResponseWriter, r *http.Request, _ gen.Build
 }
 
 func (s *server) ReadMirrorStatus(w http.ResponseWriter, r *http.Request) {
-	writeUnavailable(w, r)
+ op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信操作上下文"));return};result,err:=protection.ReadMirrorStatus(r.Context(),op,protection.ReadMirrorStatusInput{Actor:op.Actor});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) SyncMirror(w http.ResponseWriter, r *http.Request, _ string, _ gen.SyncMirrorParams) {

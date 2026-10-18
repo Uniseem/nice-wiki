@@ -1414,7 +1414,7 @@
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 500,
+          "maximum": 100,
           "description": "limit 非负 int64；不用浮点数",
           "default": 20
         },
@@ -2461,7 +2461,7 @@
       "properties": {
         "mirrorId": {
           "type": "string",
-          "description": "mirrorId；UTF-8；不得为 null",
+          "description": "可选精确镜像ID；未提供时读取真实最新记录，无记录NOT_FOUND，不伪造idle",
           "maxLength": 128,
           "minLength": 1
         },
@@ -2471,7 +2471,6 @@
         }
       },
       "required": [
-        "mirrorId",
         "actor"
       ]
     },

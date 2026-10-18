@@ -1072,7 +1072,11 @@
           },
           "concurrency": "读取64KiB块，禁止加载整个archive",
           "idempotency": "同bytes同hash",
-          "dependencies": [],
+          "dependencies": [
+            "data-protection.Catalog",
+            "data-protection.PrivateObjectPath",
+            "data-protection.storageError"
+          ],
           "resources": [
             "本域对象存储"
           ],
@@ -1359,10 +1363,9 @@
           ],
           "purpose": "分页备份目录",
           "steps": [
-            "check backup.manage",
-            "limit20 max100",
-            "按createdAt/id游标",
-            "显示状态/完整性摘要"
+            "后台管理员种类约束；功能权限只由平台入口即时核一次。",
+            "limit默认20最大100；固定目录revision及createdAt/id倒序keyset分页。",
+            "游标复用serviceauth签名，绑定稳定站点/subject/session及权限修订/epoch/limit，10分钟过期；目录revision变化STALE_RESULT，不混页。"
           ],
           "errors": [
             {
@@ -1378,6 +1381,12 @@
               "httpStatus": 400,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "retryable": false,
+              "condition": "签名游标过期/绑定或目录revision变化"
             }
           ],
           "sideEffects": [],
@@ -1388,7 +1397,11 @@
           "concurrency": "只读catalog",
           "idempotency": "GET幂等",
           "dependencies": [
-            "identity:checkAuthorization"
+            "data-protection.Catalog",
+            "data-protection.requireAdministrator",
+            "data-protection.storageError",
+            "platform.SignCursor",
+            "platform.VerifyCursor"
           ],
           "resources": [],
           "contract": "binding"
@@ -1461,7 +1474,9 @@
           "concurrency": "只读已持久catalog，不宣称failed可恢复",
           "idempotency": "GET幂等",
           "dependencies": [
-            "identity:checkAuthorization"
+            "data-protection.Catalog",
+            "data-protection.requireAdministrator",
+            "data-protection.storageError"
           ],
           "resources": [],
           "contract": "binding"
@@ -1508,7 +1523,8 @@
           "steps": [
             "checkbackup.manage",
             "安全状态和无凭证URL",
-            "未知push状态标needs-reconcile"
+            "未知push状态标needs-reconcile",
+            "未指定mirrorId读真实最新记录；没有记录NOT_FOUND，syncing只报needs-reconcile不推定远程成功。"
           ],
           "errors": [
             {
@@ -1534,7 +1550,9 @@
           "concurrency": "只读本域catalog，不能声称远端最新",
           "idempotency": "GET幂等",
           "dependencies": [
-            "identity:checkAuthorization"
+            "data-protection.Catalog",
+            "data-protection.requireAdministrator",
+            "data-protection.storageError"
           ],
           "resources": [],
           "contract": "binding"
@@ -5148,7 +5166,8 @@
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
-            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
+            "打开真实active目录库与control决定库，事务应用各自版本1迁移并装配已实现目录读取；其余路由保持具体不可用，完整就绪仍blocked。"
           ],
           "errors": [
             {
@@ -5187,7 +5206,10 @@
             "data-protection.RunWorker",
             "platform.ApplyRestoreSwap",
             "platform.ReadRuntime",
-            "platform.NewRequestValidator"
+            "platform.NewRequestValidator",
+            "data-protection.OpenCatalog",
+            "data-protection.InstallCatalog",
+            "data-protection.NewApplication"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -5449,6 +5471,92 @@
             "site-config.readRuntimeState（site-config本域自身读取）"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "data-protection.NewApplication",
+          "name": "NewApplication",
+          "signature": "func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtime platform.SiteConfigClient, clients Dependencies) (*Application, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实际修改的本域HTTP装配支持；域逻辑调用对应合同函数。",
+          "steps": [
+            "生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "平台NewServiceHandler固定caller白名单及即时identity授权，内部使用可信op。",
+          "concurrency": "上下文传给本域IO；不发起隐式备份或模型。",
+          "idempotency": "只读目录固定快照；不制造历史或成功状态。",
+          "dependencies": [
+            "data-protection.server.ListBackups",
+            "data-protection.server.ReadBackup",
+            "data-protection.server.ReadMirrorStatus"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.server.ListBackups",
+          "name": "ListBackups",
+          "signature": "func (s *server) ListBackups(w http.ResponseWriter, r *http.Request, params gen.ListBackupsParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实际修改的本域HTTP装配支持；域逻辑调用对应合同函数。",
+          "steps": [
+            "生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "平台NewServiceHandler固定caller白名单及即时identity授权，内部使用可信op。",
+          "concurrency": "上下文传给本域IO；不发起隐式备份或模型。",
+          "idempotency": "只读目录固定快照；不制造历史或成功状态。",
+          "dependencies": [
+            "data-protection.ListBackups"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.server.ReadBackup",
+          "name": "ReadBackup",
+          "signature": "func (s *server) ReadBackup(w http.ResponseWriter, r *http.Request, id string, params gen.ReadBackupParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实际修改的本域HTTP装配支持；域逻辑调用对应合同函数。",
+          "steps": [
+            "生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "平台NewServiceHandler固定caller白名单及即时identity授权，内部使用可信op。",
+          "concurrency": "上下文传给本域IO；不发起隐式备份或模型。",
+          "idempotency": "只读目录固定快照；不制造历史或成功状态。",
+          "dependencies": [
+            "data-protection.ReadBackup"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.server.ReadMirrorStatus",
+          "name": "ReadMirrorStatus",
+          "signature": "func (s *server) ReadMirrorStatus(w http.ResponseWriter, r *http.Request)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实际修改的本域HTTP装配支持；域逻辑调用对应合同函数。",
+          "steps": [
+            "生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "平台NewServiceHandler固定caller白名单及即时identity授权，内部使用可信op。",
+          "concurrency": "上下文传给本域IO；不发起隐式备份或模型。",
+          "idempotency": "只读目录固定快照；不制造历史或成功状态。",
+          "dependencies": [
+            "data-protection.ReadMirrorStatus"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5684,6 +5792,459 @@
       "path": "modules/data-protection/web/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/data-protection/internal/store.go",
+      "kind": "handwritten",
+      "purpose": "本域active目录及control决定库，隔离路径与事务迁移。",
+      "functions": [
+        {
+          "id": "data-protection.OpenCatalog",
+          "name": "OpenCatalog",
+          "signature": "func OpenCatalog(ctx context.Context, root, epoch string, key platform.SigningKey) (*Store, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域私有持久目录与路径支持：OpenCatalog",
+          "steps": [
+            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "dependencies": [
+            "data-protection.openDatabase",
+            "data-protection.applyMigration",
+            "data-protection.Store.Close",
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.openDatabase",
+          "name": "openDatabase",
+          "signature": "func openDatabase(ctx context.Context, path string) (*sql.DB, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域私有持久目录与路径支持：openDatabase",
+          "steps": [
+            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.applyMigration",
+          "name": "applyMigration",
+          "signature": "func applyMigration(ctx context.Context, db *sql.DB, name string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域私有持久目录与路径支持：applyMigration",
+          "steps": [
+            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.Store.Close",
+          "name": "Close",
+          "signature": "func (s *Store) Close() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域私有持久目录与路径支持：Store.Close",
+          "steps": [
+            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.InstallCatalog",
+          "name": "InstallCatalog",
+          "signature": "func InstallCatalog(s *Store)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域私有持久目录与路径支持：InstallCatalog",
+          "steps": [
+            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.Catalog",
+          "name": "Catalog",
+          "signature": "func Catalog(op OperationContext) (*Store, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域私有持久目录与路径支持：Catalog",
+          "steps": [
+            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.storageError",
+          "name": "storageError",
+          "signature": "func storageError(err error) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域私有持久目录与路径支持：storageError",
+          "steps": [
+            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.requireAdministrator",
+          "name": "requireAdministrator",
+          "signature": "func requireAdministrator(op OperationContext) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域私有持久目录与路径支持：requireAdministrator",
+          "steps": [
+            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.PrivateObjectPath",
+          "name": "PrivateObjectPath",
+          "signature": "func PrivateObjectPath(store *Store, path string) (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域私有持久目录与路径支持：PrivateObjectPath",
+          "steps": [
+            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/data-protection/migrations/0002_control.sql",
+      "kind": "migration",
+      "purpose": "永不随active替换的屏障、恢复决定、回执及journal表",
+      "functions": []
+    },
+    {
+      "path": "modules/data-protection/migrations/embed.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域active/control迁移",
       "functions": []
     }
   ],
