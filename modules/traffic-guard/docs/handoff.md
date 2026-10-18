@@ -90,3 +90,5 @@
 - `traffic-guard.NewGuardHandlers`
 
 消费核验窄修e61d899：VerifyAdmissionHTTP成功响应增加必需admissionId；无token路径也须consumed_request_id=原QA根，未消费行失败关闭。同步types/implementation，仍blocked待CI。
+
+动作/释放窄修2e3074d：qa.ask/qa.followup统一qa次数桶类别，单次问题root不因追问换桶；qa.conversation不签许可。Release核原owner/site/epoch/root，终止/过期/已撤销均已无并发占用，幂等released=true。仍待CI。

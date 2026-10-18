@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "c26d71aded1ddb0af1b3dc194da053fac7ba7c65aeaef95c3d828aa9560ff403",
+  "contractSha256": "7f490ec81c93611e25469280b877913e9856d430be8e46e3ed0f042dec7d5b0e",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "traffic-guard第二批准入许可已交，继续挑战与事件闭环",
   "branch": "codex/traffic-guard-20261018-bulk",
@@ -641,7 +641,7 @@
       "id": "traffic-guard.ClassifyAction",
       "path": "modules/traffic-guard/internal/classification.go",
       "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "implementationCommit": "2e3074d",
       "verification": {
         "state": "not_run",
         "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
@@ -685,7 +685,7 @@
       "id": "traffic-guard.ConsumeBuckets",
       "path": "modules/traffic-guard/internal/bucket_store.go",
       "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "implementationCommit": "2e3074d",
       "verification": {
         "state": "not_run",
         "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
@@ -718,7 +718,7 @@
       "id": "traffic-guard.ReleasePermit",
       "path": "modules/traffic-guard/internal/permit_store.go",
       "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "implementationCommit": "2e3074d",
       "verification": {
         "state": "not_run",
         "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
