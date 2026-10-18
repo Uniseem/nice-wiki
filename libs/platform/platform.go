@@ -527,6 +527,7 @@ type EmbeddingSpace struct {
 }
 
 type ModelOutput struct {
+ Text *string `json:"text,omitempty"`
 	Capability     string          `json:"capability"`
 	EmbeddingSpace *EmbeddingSpace `json:"embeddingSpace,omitempty"`
 	Vectors        [][]float64     `json:"vectors,omitempty"`
