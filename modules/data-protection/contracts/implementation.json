@@ -1780,7 +1780,7 @@
         {
           "id": "data-protection.ConfigureKeyring",
           "name": "ConfigureKeyring",
-          "signature": "func ConfigureKeyring(store *Store,masterKeyRef string)error",
+          "signature": "func ConfigureKeyring(store *Store, masterKeyRef string)error",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：ConfigureKeyring",
@@ -1829,7 +1829,7 @@
         {
           "id": "data-protection.readKEKFile",
           "name": "readKEKFile",
-          "signature": "func readKEKFile(path string)([]byte,error)",
+          "signature": "func readKEKFile(path string)([]byte, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：readKEKFile",
@@ -1878,7 +1878,7 @@
         {
           "id": "data-protection.configuredKEK",
           "name": "configuredKEK",
-          "signature": "func configuredKEK(store *Store,id string)([]byte,error)",
+          "signature": "func configuredKEK(store *Store, id string)([]byte, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：configuredKEK",
@@ -1927,7 +1927,7 @@
         {
           "id": "data-protection.aesGCM",
           "name": "aesGCM",
-          "signature": "func aesGCM(key []byte)(cipher.AEAD,error)",
+          "signature": "func aesGCM(key []byte)(cipher.AEAD, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：aesGCM",
@@ -1972,7 +1972,7 @@
         {
           "id": "data-protection.cryptoNonce",
           "name": "cryptoNonce",
-          "signature": "func cryptoNonce(prefix []byte,sequence uint32)[]byte",
+          "signature": "func cryptoNonce(prefix []byte, sequence uint32)[]byte",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：cryptoNonce",
@@ -1991,7 +1991,7 @@
         {
           "id": "data-protection.frameHeader",
           "name": "frameHeader",
-          "signature": "func frameHeader(kind byte,sequence,length uint32)[]byte",
+          "signature": "func frameHeader(kind byte, sequence, length uint32)[]byte",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：frameHeader",
@@ -2010,7 +2010,7 @@
         {
           "id": "data-protection.frameAAD",
           "name": "frameAAD",
-          "signature": "func frameAAD(headerHash []byte,frame []byte)[]byte",
+          "signature": "func frameAAD(headerHash []byte, frame []byte)[]byte",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：frameAAD",
@@ -2048,7 +2048,7 @@
         {
           "id": "data-protection.writeCryptoFrame",
           "name": "writeCryptoFrame",
-          "signature": "func writeCryptoFrame(output io.Writer,aead cipher.AEAD,prefix,headerHash []byte,kind byte,sequence uint32,plain []byte)error",
+          "signature": "func writeCryptoFrame(output io.Writer, aead cipher.AEAD, prefix, headerHash []byte, kind byte, sequence uint32, plain []byte)error",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：writeCryptoFrame",
@@ -2100,7 +2100,7 @@
         {
           "id": "data-protection.syncObjectDirectory",
           "name": "syncObjectDirectory",
-          "signature": "func syncObjectDirectory(path,root string)error",
+          "signature": "func syncObjectDirectory(path, root string)error",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：syncObjectDirectory",
@@ -2149,7 +2149,7 @@
         {
           "id": "data-protection.writeCryptoJournal",
           "name": "writeCryptoJournal",
-          "signature": "func writeCryptoJournal(ctx context.Context,store *Store,id,kind,state string,receipt any)error",
+          "signature": "func writeCryptoJournal(ctx context.Context, store *Store, id, kind, state string, receipt any)error",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：writeCryptoJournal",
@@ -2198,7 +2198,7 @@
         {
           "id": "data-protection.activateEncryptedObject",
           "name": "activateEncryptedObject",
-          "signature": "func activateEncryptedObject(ctx context.Context,op OperationContext,store *Store,journalID string,receipt cryptoReceipt)error",
+          "signature": "func activateEncryptedObject(ctx context.Context, op OperationContext, store *Store, journalID string, receipt cryptoReceipt)error",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：activateEncryptedObject",
@@ -2249,7 +2249,7 @@
         {
           "id": "data-protection.readCryptoHeader",
           "name": "readCryptoHeader",
-          "signature": "func readCryptoHeader(input io.Reader)(CryptoHeaderV1,[]byte,error)",
+          "signature": "func readCryptoHeader(input io.Reader)(CryptoHeaderV1, []byte, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：readCryptoHeader",
@@ -2296,7 +2296,7 @@
         {
           "id": "data-protection.decryptCryptoFrames",
           "name": "decryptCryptoFrames",
-          "signature": "func decryptCryptoFrames(ctx context.Context,input io.Reader,output io.Writer,aead cipher.AEAD,header CryptoHeaderV1,raw []byte)error",
+          "signature": "func decryptCryptoFrames(ctx context.Context, input io.Reader, output io.Writer, aead cipher.AEAD, header CryptoHeaderV1, raw []byte)error",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：decryptCryptoFrames",
@@ -2347,7 +2347,7 @@
         {
           "id": "data-protection.activateDecryptedObject",
           "name": "activateDecryptedObject",
-          "signature": "func activateDecryptedObject(ctx context.Context,op OperationContext,store *Store,id string,receipt decryptReceipt)(DecryptForValidationResult,error)",
+          "signature": "func activateDecryptedObject(ctx context.Context, op OperationContext, store *Store, id string, receipt decryptReceipt)(DecryptForValidationResult, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：activateDecryptedObject",

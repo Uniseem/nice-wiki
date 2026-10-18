@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "implementation",
-  "contractSha256": "99a219791f2dafe69eeac351b3f558f578d7c1dbdec77c03a22274912ba521c8",
+  "contractSha256": "1a8461d12a58167a7266488710f14761c2dac9b12c56c27a2dc4f5a26b31a092",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1收尾并行：数据保护独占",
   "branch": "codex/finish-20261018-protection",

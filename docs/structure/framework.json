@@ -1464,6 +1464,11 @@
       "purpose": "data-protection分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/data-protection/docs/crypto-format.md",
+      "kind": "documentation",
+      "purpose": "真实分片加密格式或GitLab工具生成前端依赖锁"
+    },
+    {
       "path": "modules/data-protection/docs/data.md",
       "kind": "documentation",
       "purpose": "data-protection分级规格/实现约束/文档索引"
@@ -1514,6 +1519,26 @@
       "purpose": "本域依赖装配和完整 HTTP 路由绑定；不共享存储"
     },
     {
+      "path": "modules/data-protection/internal/backup.go",
+      "kind": "handwritten",
+      "purpose": "建立备份操作；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/internal/backup_validation.go",
+      "kind": "handwritten",
+      "purpose": "备份入口校验；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/internal/crypto.go",
+      "kind": "handwritten",
+      "purpose": "加密备份对象；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/internal/download.go",
+      "kind": "handwritten",
+      "purpose": "下载私有备份授权；同文件职责限本域以下登记函数"
+    },
+    {
       "path": "modules/data-protection/internal/gen/clients.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
@@ -1529,14 +1554,39 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/data-protection/internal/git_config.go",
+      "kind": "handwritten",
+      "purpose": "设置远程同步目标；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/internal/git_validation.go",
+      "kind": "handwritten",
+      "purpose": "校验远程传输参数；同文件职责限本域以下登记函数"
+    },
+    {
       "path": "modules/data-protection/internal/integrity.go",
       "kind": "handwritten",
       "purpose": "校验文件完整性；同文件职责限本域以下登记函数"
     },
     {
+      "path": "modules/data-protection/internal/journal.go",
+      "kind": "handwritten",
+      "purpose": "恢复自身文件和决策操作；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/internal/manifest.go",
+      "kind": "handwritten",
+      "purpose": "构建统一备份manifest；同文件职责限本域以下登记函数"
+    },
+    {
       "path": "modules/data-protection/internal/queries.go",
       "kind": "handwritten",
       "purpose": "分页备份目录；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/internal/settings.go",
+      "kind": "handwritten",
+      "purpose": "安全只读设置，未配置不伪造事实。"
     },
     {
       "path": "modules/data-protection/internal/store.go",
@@ -1559,6 +1609,26 @@
       "purpose": "永不随active替换的屏障、恢复决定、回执及journal表"
     },
     {
+      "path": "modules/data-protection/migrations/0003_vault_catalog.sql",
+      "kind": "migration",
+      "purpose": "control V2真实vault目录及备份原批准事实。"
+    },
+    {
+      "path": "modules/data-protection/migrations/0004_vault_layout.sql",
+      "kind": "migration",
+      "purpose": "active V2仅在旧表全空后移除旧控制表。"
+    },
+    {
+      "path": "modules/data-protection/migrations/0005_backup_intent.sql",
+      "kind": "migration",
+      "purpose": "control V3不可变备份任务输入及jobs原回执；不是第二队列。"
+    },
+    {
+      "path": "modules/data-protection/migrations/0006_download_grants.sql",
+      "kind": "migration",
+      "purpose": "control V4下载授权hash、安全claim及单用状态，不导出快照。"
+    },
+    {
       "path": "modules/data-protection/migrations/embed.go",
       "kind": "handwritten",
       "purpose": "内嵌本域active/control迁移"
@@ -1569,9 +1639,54 @@
       "purpose": "data-protection逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/data-protection/web/index.html",
+      "kind": "config",
+      "purpose": "该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret"
+    },
+    {
+      "path": "modules/data-protection/web/package.json",
+      "kind": "config",
+      "purpose": "该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务"
+    },
+    {
+      "path": "modules/data-protection/web/pnpm-lock.yaml",
+      "kind": "generated",
+      "purpose": "真实分片加密格式或GitLab工具生成前端依赖锁"
+    },
+    {
+      "path": "modules/data-protection/web/src/BackupPanel.vue",
+      "kind": "ui",
+      "purpose": "Vue3模块交互：RequestBackup；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/web/src/GitSyncPanel.vue",
+      "kind": "ui",
+      "purpose": "Vue3模块交互：RequestMirrorSync；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/web/src/RestoreWizard.vue",
+      "kind": "ui",
+      "purpose": "Vue3模块交互：ApproveFullRestore；同文件职责限本域以下登记函数"
+    },
+    {
       "path": "modules/data-protection/web/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/data-protection/web/src/main.ts",
+      "kind": "ui",
+      "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务"
+    },
+    {
+      "path": "modules/data-protection/web/tsconfig.json",
+      "kind": "config",
+      "purpose": "严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像"
+    },
+    {
+      "path": "modules/data-protection/web/vite.config.ts",
+      "kind": "config",
+      "purpose": "该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token"
     },
     {
       "path": "modules/identity/AGENTS.md",
