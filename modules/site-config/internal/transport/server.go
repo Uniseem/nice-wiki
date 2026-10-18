@@ -275,7 +275,7 @@ func serviceCallers() map[string][]string {
 		"readRuntimeState": runtime, "transitionRuntimeState": {"data-protection"}, "registerActivation": stateful,
 		"readSiteConfig":           {"portal", "public-site", "content", "media", "localization", "identity", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs", "data-protection"},
 		"readConfigObject":         {"portal", "public-site", "data-protection"},
-		"readInitializationStatus": {"portal", "identity", "site-config"}, "resumeInitialization": {"portal", "site-config"},
+		"readInitializationStatus": {"portal", "identity", "site-config", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs", "data-protection", "content", "media", "localization", "public-site"}, "resumeInitialization": {"portal", "site-config"},
 		"readPublicHome": {"portal", "public-site"}, "listResourceReferences": {"media"}, "readHomeReferenceDecision": {"media"},
 	}
 	for _, id := range []string{"initializeSite", "abortInitialization", "updateSiteConfig", "updateHome", "updateBranding", "updateFooter", "updateBanner", "readConfigHistory", "restoreConfigRevision"} {

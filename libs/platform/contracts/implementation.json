@@ -2939,20 +2939,7 @@
           ],
           "purpose": "任务领取循环的通用实现",
           "steps": [
-            "每次领取先读当前runtime，维护或空epoch暂停；以owner纯服务system建立30秒或更早父截止、独立op/root和当前epoch，清原用户proof；领取不访问本站业务对象，领取后由域factory读取真实站点/任务授权",
-            "jobs:claimJob只领取登记类型；维护期间暂停",
-            "jobs:startJob后调用执行函数；每10秒jobs:heartbeatJob续租、上报进度并读取取消",
-            "写回前jobs:checkLease；成功jobs:completeJob，失败jobs:failJob",
-            "lease过期立即停止写入，不重放已派发模型调用",
-            "写回前CheckLease同时传jobId、workerId与fencingToken，防止同owner的其他worker借用租约",
-            "Complete/Fail携带workerId、完整可空结果引用与paidResultRefs；executor错误不得忽略；用户取消与失去租约分开，取消仍可在有效租约内确认并保存已付费结果",
-            "WorkerConfig.operationContext从本域权威任务读取获准主体/预算/截止；核operationId/rootOperationId/dataEpoch与领取结果一致，任务入口一次设置ctx期限，不借启动上下文生成新付费根操作",
-            "每次start/heartbeat/check/complete/fail使用独立子OperationID，同一请求传输重试保同ID；executor仍用原业务操作；取消信号不能覆盖owner已成功结果，也不能代替owner明确安全取消确认",
-            "runtime必须装配，权威读取失败或维护均暂停领取；不得将未知状态视为允许",
-            "向executor传完整ObjectRef、JobID、WorkerID与fence；进程内CheckLease回调在不可逆决定前锁外串行读取HeartbeatJob当前取消/安全点及有效期，再核CheckLease；取消/未知/过期均失败关闭",
-            "领取后即建立独立本地租约到期定时器；start/续租/检查RPC截止不超过已知租约。续租回执只在旧租约仍有效且新截止有效时更新定时器，续租与不可逆前检查共用串行通道，拒绝旧回执覆盖新截止；领域仍负责短事务CAS和持久恢复决定",
-            "executor返回后占用同一控制互斥排空在途心跳，显式核本地租约仍有效；最终check/complete/fail均用当前本地expiry截止，不提前取消抢占leaseLost原因；只有原业务已持久成功才能报告成功",
-            "start成功后先真实Heartbeat并调用可选OnLeaseRenewed；以后每次权威续租成功更新本域镜像，回调失败取消执行。同worker/fence/epoch本地CAS，不在域内另造心跳或递归CheckLease。"
+            "兼容旧签名，委托RunWorkerLoopWithResult并返回真实错误，不复制循环机制。"
           ],
           "errors": [
             {
@@ -2971,22 +2958,7 @@
           "concurrency": "并发≤maxConcurrency",
           "idempotency": "jobs按jobId与fence去重",
           "dependencies": [
-            "jobs:claimJob",
-            "jobs:startJob",
-            "jobs:heartbeatJob",
-            "jobs:checkLease",
-            "jobs:completeJob",
-            "jobs:failJob",
-            "platform.workerControlContext",
-            "platform.newExecutionLease",
-            "platform.executionLeaseContext",
-            "platform.renewExecutionLease",
-            "platform.ClaimJob",
-            "platform.StartJob",
-            "platform.HeartbeatJob",
-            "platform.CheckLease",
-            "platform.CompleteJob",
-            "platform.FailJob"
+            "platform.RunWorkerLoopWithResult"
           ],
           "resources": [],
           "contract": "binding"
@@ -3318,6 +3290,103 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "platform.RunWorkerLoopWithResult",
+          "name": "RunWorkerLoopWithResult",
+          "signature": "func RunWorkerLoopWithResult(ctx context.Context, client WorkerJobsClient, config WorkerConfig, executors JobExecutorRegistry) (WorkerRunResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程生命周期",
+              "constraints": [
+                "取消即退出"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "WorkerJobsClient",
+              "description": "jobs客户端",
+              "constraints": [
+                "带服务断言"
+              ]
+            },
+            {
+              "name": "config",
+              "type": "WorkerConfig",
+              "description": "本域jobTypes与并发",
+              "constraints": [
+                "来自implementation.json"
+              ]
+            },
+            {
+              "name": "executors",
+              "type": "JobExecutorRegistry",
+              "description": "jobType→执行函数",
+              "constraints": [
+                "与jobTypes一致"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "WorkerRunResult",
+              "description": "真实累计统计，出错时保留已确认事实",
+              "constraints": "不得据此假定所有claimed都已终结"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "返回真实领取及jobs已确认终局累计的公共worker循环",
+          "steps": [
+            "配置验证及共享owner worker流程保持原权限、epoch、fence和租约；永久配置拒绝返回真实错误并停止同组worker。",
+            "Claim真实成功累计claimed；CompleteJob成功回执才completed；FailJob成功回执后仅明确CANCELLED计cancelled，其余failed，任何未确认终局不计。",
+            "正常ctx退出等待所有worker及其heartbeat goroutine排空后返完整累计；不包装伪客户端、不造0统计或新任务。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "HTTP调用jobs租约接口"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "并发≤maxConcurrency",
+          "idempotency": "jobs按jobId与fence去重",
+          "dependencies": [
+            "jobs:claimJob",
+            "jobs:startJob",
+            "jobs:heartbeatJob",
+            "jobs:checkLease",
+            "jobs:completeJob",
+            "jobs:failJob",
+            "platform.workerControlContext",
+            "platform.newExecutionLease",
+            "platform.executionLeaseContext",
+            "platform.renewExecutionLease",
+            "platform.ClaimJob",
+            "platform.StartJob",
+            "platform.HeartbeatJob",
+            "platform.CheckLease",
+            "platform.CompleteJob",
+            "platform.FailJob"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -3477,7 +3546,8 @@
             "portal可配置delegationKeyRef绝对引用，与服务断言私钥区分；NW_DELEGATION_KEY_REF覆盖文件",
             "读取trustedProxyCIDRs及逗号分隔NW_TRUSTED_PROXY_CIDRS；空值清空信任；最多32条规范IP网段，拒绝host位或IPv4映射CIDR；默认不信任任何代理",
             "读取可选masterKeyRef与NW_MASTER_KEY_REF覆盖；非空必须绝对路径，仅传递引用，不打开密钥；免费读取不强制主密钥可用",
-            "GitCredentialRefs只data-protection可信配置，最多64个Identifier到规范绝对私有路径；加载不读取秘密，业务HTTP只接受已配ID。"
+            "GitCredentialRefs只data-protection可信配置，最多64个Identifier到规范绝对私有路径；加载不读取秘密，业务HTTP只接受已配ID。",
+            "ReportingTimeZone只analytics可信部署允许非空并按IANA校验，未配不默认UTC；标准tzdata随程序保留，不依赖部署机本地时区。"
           ],
           "errors": [
             {

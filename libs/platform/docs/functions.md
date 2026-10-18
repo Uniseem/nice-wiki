@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 115 个函数：约束 20 个，参考 95 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 117 个函数：约束 20 个，参考 97 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -4441,4 +4441,69 @@ func EnterParserSandbox() error
 - 授权：平台受信装配；不读业务秘密，不授予业务权限
 - 并发：父进程ctx与60秒取最早，输出超16MiB立即杀子进程；子进程CPU硬上限30秒，数据段512MiB、GOMEMLIMIT384MiB。
 - 幂等：不写业务数据，不重算模型或费用。
+- 依赖：无
+
+## platform.LoadServiceIdentity
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/identity.go`
+- 作用：只读可信部署服务身份描述文件，1MiB预算、严格单个JSON、未知字段拒绝；不读模型或业务配置。
+
+```go
+func LoadServiceIdentity(config ServiceConfig) (TrustAnchors, SigningKey, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读可信部署服务身份描述文件，1MiB预算、严格单个JSON、未知字段拒绝；不读模型或业务配置。
+2. 复用serviceauth.LoadSigningKey验证私钥，核本Module/KeyID登记公钥精确匹配，错误不带私有路径或材料。
+
+**错误**
+
+- `VALIDATION`：配置不合法（不可重试）
+
+- 副作用：读取可信服务身份描述，私钥加载仅现有平台缓存
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动时调用一次
+- 幂等：纯函数
+- 依赖：`platform.readIdentityConfig`、`platform.LoadSigningKey`
+
+## platform.readIdentityConfig
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/identity.go`
+- 作用：有界读取并严格解码单个身份JSON描述，不记录文件路径或内容。
+
+```go
+func readIdentityConfig(ref string, target any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界读取并严格解码单个身份JSON描述，不记录文件路径或内容。
+
+**错误**
+
+- `VALIDATION`：配置不合法（不可重试）
+
+- 副作用：读取可信服务身份描述，私钥加载仅现有平台缓存
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动时调用一次
+- 幂等：纯函数
 - 依赖：无

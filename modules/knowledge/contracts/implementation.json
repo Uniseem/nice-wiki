@@ -7622,7 +7622,8 @@
             "jobs:checkLease",
             "knowledge.ExecuteBuild",
             "knowledge.ExecuteExtraction",
-            "platform.RunWorkerLoop"
+            "platform.RunWorkerLoop",
+            "platform.RunWorkerLoopWithResult"
           ],
           "resources": [],
           "contract": "binding"

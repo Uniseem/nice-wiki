@@ -41,7 +41,7 @@ manifest决定所有域同一个sourceEpoch与backupId，portal无业务数据�
 - 执行函数：`data-protection.ExecuteBackup`
 - 触发：CreateBackup与ScheduleLocalBackup登记的每日定时
 
-1. 读取备份记录与发起方授权（手动=backup.manage，secret另需superadmin，定时=超管保存的定时设置）；AcquireMaintenance进入备份维护并让全部域屏障safe
+1. 读取持久批准：普通手动backup.manage，includeSecrets另需superadmin；定时仅已保存范围。核approvedBy/permissionRevision/includeSecrets/root/site/sourceEpoch/inputHash及当前epoch/jobs fence，不复用短期portal proof；AcquireMaintenance并等全部域safe。
 2. CollectSnapshots逐域导出；FinalizeBackup校验、加密并置ready
 3. ReleaseMaintenance释放屏障退出维护；成功后PruneBackups按保留策略清理
 4. 任一域失败整体failed并释放维护，不产生部分可恢复包

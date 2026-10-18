@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "0baceef3384fbae2cea494f120097f937b367f56d4f24c6d9dfb8475d8347388",
+  "contractSha256": "01b1c0bda7f005cc332d6347b4848d1bd4793bbacba43d878049a8bb1bb86353",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
   "branch": "codex/integration-20261017-r3",
@@ -404,13 +404,13 @@
     {
       "id": "platform.RunWorkerLoop",
       "path": "libs/platform/worker/loop.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "真实worker统计/排空或报表时区新代码待GitLab"
     },
     {
       "id": "platform.InvokeModel",
@@ -426,13 +426,13 @@
     {
       "id": "platform.LoadServiceConfig",
       "path": "libs/platform/lifecycle/config.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "123f699f162abaee206e99fe00c3e07e89050538",
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline86（770b93c；生成391、Go三分片392/393/394、前端395）全部成功，预算未知金额修正与可信Git凭据索引已通过16模块readonly build/vet/gofmt、已有普通go test、完整make check和前端类型/构建；精确31561字节生成物回传到123f699f162abaee206e99fe00c3e07e89050538。普通测试无测试文件，不是业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "真实worker统计/排空或报表时区新代码待GitLab"
     },
     {
       "id": "platform.ReadRuntime",
@@ -1550,6 +1550,17 @@
         "evidence": null
       },
       "blocker": "服务身份统一加载待GitLab编译及域启动装配"
+    },
+    {
+      "id": "platform.RunWorkerLoopWithResult",
+      "path": "libs/platform/worker/loop.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "真实worker统计/排空新代码待GitLab"
     }
   ],
   "rule": "公共机制已通过自部署GitLab当前源码/生成/编译/结构检查；完整服务、业务验收和部署按各域未完成项保留。"

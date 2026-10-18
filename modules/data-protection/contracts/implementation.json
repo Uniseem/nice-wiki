@@ -7201,7 +7201,10 @@
             "data-protection.server.ListBackups",
             "data-protection.server.ReadBackup",
             "data-protection.server.ReadMirrorStatus",
-            "data-protection.server.ReadProtectionSettings"
+            "data-protection.server.ReadProtectionSettings",
+            "data-protection.server.ConfigureRemote",
+            "data-protection.server.CreateBackup",
+            "data-protection.server.AuthorizeBackupDownload"
           ],
           "resources": [],
           "contract": "reference"
@@ -8321,6 +8324,12 @@
       "path": "modules/data-protection/migrations/0006_download_grants.sql",
       "kind": "migration",
       "purpose": "control V4下载授权hash、安全claim及单用状态，不导出快照。",
+      "functions": []
+    },
+    {
+      "path": "modules/data-protection/docs/crypto-format.md",
+      "kind": "documentation",
+      "purpose": "分片AEAD加密帧与控制journal真实持久格式",
       "functions": []
     }
   ],

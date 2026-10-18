@@ -2,7 +2,7 @@
   "version": 1,
   "module": "knowledge",
   "phase": "implementation",
-  "contractSha256": "53ef0daf9b0da0ecb221a6ee9008b75fd8dde1f42dcee20b7540753c06de8893",
+  "contractSha256": "0b2b0c6942cdd6cfa5bbffc87d17b1940747d6cb8b0a56c2f5445bd541b9d21f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
   "branch": "codex/knowledge-20261018-bulk",

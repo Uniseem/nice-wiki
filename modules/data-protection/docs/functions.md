@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 80 个函数：约束 42 个，参考 38 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 121 个函数：约束 42 个，参考 79 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -33,23 +33,25 @@ func ValidateBackupRequest(ctx context.Context, op OperationContext, in Validate
 
 **步骤**
 
-1. check backup.manage
-2. includeSecrets=false默认，true需superadmin明确选择
-3. 读取runtime正常epoch且无restore
-4. 容量预检
-5. 外部加密key可用，secret仅拥有者受控加密export
+1. HTTP已核backup.manage；内部核管理员和请求/当前runtime/store同epoch，必须running无restore/maintenance。
+2. includeSecrets额外即时identity核superadmin；本机唯一可信KEK真实可读且指纹一致，隔离目录可信。
+3. 返回valid基础通过与capacityVerified=false；不以未知=0宣称空间足够。完整14域真实manifest之后，收集/封存路径按真实staging/密文/便携总预算和free bytes核容量并维持每次有界写配额。
 
 **错误**
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VALIDATION` / HTTP 400：SECRETS_NOT_EXPORTABLE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `LOCKED` / HTTP 409：LOCKED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VERSION_MISMATCH`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `INTEGRITY_ERROR`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `BUDGET_EXCEEDED`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `CONFLICT`：真实前置条件、原输入/回执或预算不满足。（不可重试）
 
 - 副作用：无
 - 授权：permission：backup.manage；rule：backup.manage
 - 并发：只读runtime与容量
 - 幂等：同请求同结果
-- 依赖：`identity:checkAuthorization`、`site-config:readRuntimeState`
+- 依赖：`data-protection.Catalog`、`data-protection.requireAdministrator`、`data-protection.configuredKEK`、`identity:checkAuthorization`、`site-config:readRuntimeState`
 
 ## data-protection.CreateBackup
 
@@ -78,21 +80,25 @@ func CreateBackup(ctx context.Context, op OperationContext, in CreateBackupInput
 
 **步骤**
 
-1. 校验
-2. 事务建requested run/outbox
-3. 提交jobs task只含backupId
-4. job失败保留run可继续
+1. 已存在同主体operationId先核原输入hash，同输入返回原jobs回执或重交同dedupe原意图；异输入CONFLICT，不扩大原批准。
+2. 新请求ValidateBackupRequest核基础及secret额外权限；control事务写真实原批准快照、requested备份、canonical {backupId}不可变字节及ObjectRef、vault revision和requested outbox。
+3. 事务后清过期portal proof，以本域纯服务上下文和原root/site/epoch提交唯一jobs任务，仅引用真实持久输入。
+4. 严格校验jobs真实回执后持久；网络/依赖失败保留原意图，无第二任务队列、不伪AcceptedJob。返回真实202任务；后续尚未执行不得置ready。
 
 **错误**
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `CONFLICT` / HTTP 409：BACKUP_CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VERSION_MISMATCH`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `LOCKED`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `INTEGRITY_ERROR`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `BUDGET_EXCEEDED`：真实前置条件、原输入/回执或预算不满足。（不可重试）
 
 - 副作用：写run/outbox
 - 授权：permission：backup.manage；rule：backup.manage
 - 并发：site级备份/恢复互斥；不阻止正常读直到maintenance建立
-- 幂等：operationId/inputHash幂等
-- 依赖：`data-protection.ValidateBackupRequest`、`jobs:createJob`
+- 幂等：subject/operationId唯一原输入hash；backupId作为jobs dedupe；原输入与审批已提交后重试不复用portal proof。
+- 依赖：`data-protection.ValidateBackupRequest`、`data-protection.enqueueBackupState`、`data-protection.submitBackupJob`、`data-protection.Catalog`、`data-protection.storageError`、`jobs:createJob`
 
 ## data-protection.CollectSnapshots
 
@@ -208,7 +214,7 @@ func ExecuteBackup(ctx context.Context, op OperationContext, input JobExecutionI
 
 **步骤**
 
-1. 读取备份记录与发起方授权（手动=superadmin，定时=超管保存的定时设置）；AcquireMaintenance进入备份维护并让全部域屏障safe
+1. 读取持久批准：普通手动backup.manage，includeSecrets另需superadmin；定时仅已保存范围。核approvedBy/permissionRevision/includeSecrets/root/site/sourceEpoch/inputHash及当前epoch/jobs fence，不复用短期portal proof；AcquireMaintenance并等全部域safe。
 2. CollectSnapshots逐域导出；FinalizeBackup校验、加密并置ready
 3. ReleaseMaintenance释放屏障退出维护；成功后PruneBackups按保留策略清理
 4. 任一域失败整体failed并释放维护，不产生部分可恢复包
@@ -223,6 +229,81 @@ func ExecuteBackup(ctx context.Context, op OperationContext, input JobExecutionI
 - 并发：全站同时只一个备份或恢复
 - 幂等：按backupId唯一；失败可续
 - 依赖：`data-protection.AcquireMaintenance`、`data-protection.CollectSnapshots`、`data-protection.FinalizeBackup`、`data-protection.ReleaseMaintenance`、`data-protection.PruneBackups`
+
+## data-protection.enqueueBackupState
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/backup.go`
+- 作用：备份持久意图支持：enqueueBackupState
+
+```go
+func enqueueBackupState(ctx context.Context, tx *sql.Tx, backupID, epoch, state, manifestHash string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同control事务增vault_meta修订并写outbox；requested无manifestHash不伪造，ready实际要求真实hash，溢出拒绝。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：BACKUP_CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VERSION_MISMATCH`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `LOCKED`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `INTEGRITY_ERROR`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `BUDGET_EXCEEDED`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+
+- 副作用：写run/outbox
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：site级备份/恢复互斥；不阻止正常读直到maintenance建立
+- 幂等：subject/operationId唯一原输入hash；backupId作为jobs dedupe；原输入与审批已提交后重试不复用portal proof。
+- 依赖：`data-protection.storageError`
+
+## data-protection.submitBackupJob
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/backup.go`
+- 作用：备份持久意图支持：submitBackupJob
+
+```go
+func submitBackupJob(ctx context.Context, op OperationContext, store *Store, id string) (CreateBackupResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 从持久原输入字节及ObjectRef核真实hash/长度与backup绑定；已存jobs回执重复返回。
+2. 纯服务提交原root/site/epoch任务，清portal proof；严格runtime schema校验真实jobs回执后持久，不拥有任务领取/重试循环。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：BACKUP_CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VERSION_MISMATCH`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `LOCKED`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `INTEGRITY_ERROR`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+- `BUDGET_EXCEEDED`：真实前置条件、原输入/回执或预算不满足。（不可重试）
+
+- 副作用：写run/outbox
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：site级备份/恢复互斥；不阻止正常读直到maintenance建立
+- 幂等：subject/operationId唯一原输入hash；backupId作为jobs dedupe；原输入与审批已提交后重试不复用portal proof。
+- 依赖：`data-protection.storageError`
 
 ## data-protection.AcquireMaintenance
 
@@ -424,21 +505,210 @@ func BuildManifest(ctx context.Context, op OperationContext, in BuildManifestInp
 
 **步骤**
 
-1. 按owner字典排序
-2. 校验每必需域恰一次/同epoch
-3. 记录schema、水位、hash、依赖ref清单和外部keyId
+1. 14个真实域SnapshotRef按owner排序，backupId/同sourceEpoch/同barrierId及schema/watermark/containsSecrets与已认证域manifest逐一精确一致。
+2. 构建BackupManifestV1，记录14份域清单hash及完整来源绑定引用；等价重复目标去重，原域tar原数组不改。
+3. 仅以实际domain objects及content publications验证目标；真实缺失失败，不能以快照存在/unknown空清单替代引用证明。
+4. 顶层JSON及实际全局权威引用索引均≤2MiB，域清单≤16MiB；超限BUDGET_EXCEEDED且不产生ready，不截断。
 
 **错误**
 
 - `VALIDATION` / HTTP 400：MISSING_DOMAIN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VERSION_MISMATCH` / HTTP 409：MIXED_EPOCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `INTEGRITY_ERROR`：真实证据或格式/引用索引预算不满足。（不可重试）
+- `BUDGET_EXCEEDED`：真实证据或格式/引用索引预算不满足。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实证据或格式/引用索引预算不满足。（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：内部
 - 并发：纯函数，不嵌secret/materialized token
 - 幂等：同snapshot清单同hash
-- 依赖：无
+- 依赖：`data-protection.bindDomainEvidence`、`data-protection.resolveReferenceTargets`
 - 其他依赖说明：根contracts/modules.json
+
+## data-protection.ValidateCrossDomainRefs
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/manifest.go`
+- 作用：备份跨域引用一致性
+
+```go
+func ValidateCrossDomainRefs(ctx context.Context, op OperationContext, in ValidateCrossDomainRefsInput) (ValidateCrossDomainRefsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
+| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
+| `in` | `ValidateCrossDomainRefsInput` | 备份跨域引用一致性；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ValidateCrossDomainRefsResult` | 备份跨域引用一致性成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
+| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+
+**步骤**
+
+1. 输入另外提供与SnapshotRef全hash/EOF认证过的14份DomainSnapshotManifest，不把占位快照当完整对象枚举。
+2. 严格schema/canonical解析顶层轻量清单；重建owner有序清单hash与来源绑定引用，任何删项/改绑定/混barrier或epoch失败。
+3. 对象只由自身owner、发布修订只由content声明权威；同对象版本或同发布完整身份不得声明不同摘要。目标必须精确匹配全部ref字段，历史publication的epoch等也必须真实相同，不补造新epoch别名。
+4. 悬挂引用返回valid=false及安全issues，所有ready/restore调用方必须拒绝；结构错误、unknown分支/owner、索引/报告预算超限直接error。
+
+**错误**
+
+- `INTEGRITY_ERROR` / HTTP 422：DANGLING_REFERENCE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VERSION_MISMATCH` / HTTP 409：MIXED_EPOCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `BUDGET_EXCEEDED`：真实证据或格式/引用索引预算不满足。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实证据或格式/引用索引预算不满足。（不可重试）
+
+- 副作用：隔离校验报告
+- 授权：permission：service；rule：service备份/恢复worker
+- 并发：只读离线snapshot引用索引，不查旧live世界补全缺失
+- 幂等：manifestHash幂等
+- 依赖：`data-protection.Catalog`、`data-protection.decodeBackupManifest`、`data-protection.validateManifestEvidence`
+
+## data-protection.bindDomainEvidence
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/manifest.go`
+- 作用：真实域证据/全局绑定清单的本域参考支持：bindDomainEvidence
+
+```go
+func bindDomainEvidence(backupID, epoch, barrierID string, snapshots []SnapshotRef, domains []DomainSnapshotManifest) ([]BackupDomainV1, []BackupReferenceV1, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。
+
+**错误**
+
+- `INTEGRITY_ERROR`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `VERSION_MISMATCH`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+
+- 副作用：无
+- 授权：内部固定的完整快照/恢复校验链；纯算法不重查调用方身份。
+- 并发：输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。
+- 幂等：相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。
+- 依赖：无
+
+## data-protection.validateManifestEvidence
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/manifest.go`
+- 作用：真实域证据/全局绑定清单的本域参考支持：validateManifestEvidence
+
+```go
+func validateManifestEvidence(manifest BackupManifestV1, domains []DomainSnapshotManifest) (ValidateCrossDomainRefsResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。
+
+**错误**
+
+- `INTEGRITY_ERROR`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `VERSION_MISMATCH`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+
+- 副作用：无
+- 授权：内部固定的完整快照/恢复校验链；纯算法不重查调用方身份。
+- 并发：输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。
+- 幂等：相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。
+- 依赖：`data-protection.bindDomainEvidence`、`data-protection.resolveReferenceTargets`
+
+## data-protection.resolveReferenceTargets
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/manifest.go`
+- 作用：真实域证据/全局绑定清单的本域参考支持：resolveReferenceTargets
+
+```go
+func resolveReferenceTargets(domains []DomainSnapshotManifest, references []BackupReferenceV1) (ValidateCrossDomainRefsResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。
+
+**错误**
+
+- `INTEGRITY_ERROR`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `VERSION_MISMATCH`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+
+- 副作用：无
+- 授权：内部固定的完整快照/恢复校验链；纯算法不重查调用方身份。
+- 并发：输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。
+- 幂等：相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。
+- 依赖：无
+
+## data-protection.decodeBackupManifest
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/manifest.go`
+- 作用：真实域证据/全局绑定清单的本域参考支持：decodeBackupManifest
+
+```go
+func decodeBackupManifest(store *Store, raw string) (BackupManifestV1, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。
+
+**错误**
+
+- `INTEGRITY_ERROR`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `VERSION_MISMATCH`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：结构、绑定、实际目标或预算不符时失败关闭。（不可重试）
+
+- 副作用：无
+- 授权：内部固定的完整快照/恢复校验链；纯算法不重查调用方身份。
+- 并发：输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。
+- 幂等：相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。
+- 依赖：无
 
 ## data-protection.VerifyObjectHash
 
@@ -470,11 +740,16 @@ func VerifyObjectHash(ctx context.Context, op OperationContext, in VerifyObjectH
 1. 拒路径出隔离根/符号链接
 2. 流式SHA256和size比对
 3. hash常量时间比较
+4. 明文≤20GiB、密文允许额外1MiB封装预算，先核有界长度再流式读取，避免expectedBytes+1溢出。
 
 **错误**
 
 - `INTEGRITY_ERROR` / HTTP 422：INTEGRITY_ERROR：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VALIDATION` / HTTP 400：INVALID_PATH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `BUDGET_EXCEEDED`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `CONFLICT`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `VERSION_MISMATCH`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `INTERNAL`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：内部
@@ -482,47 +757,6 @@ func VerifyObjectHash(ctx context.Context, op OperationContext, in VerifyObjectH
 - 幂等：同bytes同hash
 - 依赖：`data-protection.Catalog`、`data-protection.PrivateObjectPath`、`data-protection.storageError`
 - 其他依赖说明：本域对象存储
-
-## data-protection.ValidateCrossDomainRefs
-
-- 级别：参考
-- 文件：`modules/data-protection/internal/integrity.go`
-- 作用：备份跨域引用一致性
-
-```go
-func ValidateCrossDomainRefs(ctx context.Context, op OperationContext, in ValidateCrossDomainRefsInput) (ValidateCrossDomainRefsResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `ValidateCrossDomainRefsInput` | 备份跨域引用一致性；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ValidateCrossDomainRefsResult` | 备份跨域引用一致性成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 解密各域归档manifest后校验content→media refs/derived published refs/gateway paid result refs
-2. 所有引用在同manifest存在或明确外部非secret指纹
-
-**错误**
-
-- `INTEGRITY_ERROR` / HTTP 422：DANGLING_REFERENCE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `VERSION_MISMATCH` / HTTP 409：MIXED_EPOCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：隔离校验报告
-- 授权：permission：service；rule：service备份/恢复worker
-- 并发：只读离线snapshot引用索引，不查旧live世界补全缺失
-- 幂等：manifestHash幂等
-- 依赖：无
 
 ## data-protection.EncryptBackupObject
 
@@ -551,21 +785,27 @@ func EncryptBackupObject(ctx context.Context, op OperationContext, in EncryptBac
 
 **步骤**
 
-1. 外部KEK封装随机DEK
-2. 每对象随机nonce
-3. AES256GCM AAD backupId/owner/hash/schema
-4. 封装DEK只在私有加密header
+1. 已配可信keyring核keyId，原输入摘要含sourceHash/sourceBytes/schema及snapshot或manifest角色；同backup/owner/role/keyId原操作异摘要CONFLICT，已完成返回真实原引用。
+2. 按CryptoHeaderV1及crypto-format.md生成每对象随机32-byte DEK、随机nonce前缀；本地32-byte KEK仅包装DEK。
+3. 1MiB流式AES256GCM数据帧，AAD绑定header摘要及帧头，连续唯一nonce；完整源hash/长度与输入相符。
+4. 必须写唯一44-byte终帧，空源亦有；prepared原输入摘要→temp fsync及完整引用→rename/目录fsync→object-installed→control索引→complete与原回执，control不随active替换。
+5. snapshot owner只接受14个真实有状态域；manifest角色仅data-protection。未安装失败尝试丢弃自己的temp并换新objectId/DEK，已完整密文只复用，不覆盖。
 
 **错误**
 
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `INTERNAL` / HTTP 500：ENCRYPTION_FAILED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `INTEGRITY_ERROR`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `CONFLICT`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `VERSION_MISMATCH`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `VALIDATION`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
 
 - 副作用：写加密对象，不记录密钥
 - 授权：permission：service；rule：service backup加密角色
 - 并发：每对象nonce唯一；失败删未完成ciphertext
 - 幂等：完成objectHash复用原密文，不重用nonce重加密
-- 依赖：无
+- 依赖：`data-protection.Catalog`、`data-protection.configuredKEK`、`data-protection.aesGCM`、`data-protection.PrivateObjectPath`、`data-protection.writeCryptoJournal`、`data-protection.wrapAAD`、`data-protection.writeCryptoFrame`、`data-protection.cryptoNonce`、`data-protection.syncObjectDirectory`、`data-protection.activateEncryptedObject`、`data-protection.VerifyObjectHash`、`data-protection.storageError`
 - 其他依赖说明：外部密钥提供器
 
 ## data-protection.DecryptForValidation
@@ -595,23 +835,552 @@ func DecryptForValidation(ctx context.Context, op OperationContext, in DecryptFo
 
 **步骤**
 
-1. 本域at-rest密文用外部KEK透明解密
-2. 用户上传便携ZIP已包含选定原始对象无需源key
-3. 逐对象SHA256/schema/ZIP路径检查后写私有隔离目录
-4. 失败清临时明文
-5. 目标重新使用自身at-rest key
+1. 按真实encryptedRef查询本域不可变对象索引，hash/size/归属精确一致；keyId只查启动可信keyring，不接任意key路径。
+2. 严格canonical CryptoHeaderV1与逐帧GCM认证；1MiB有界读取，连续序号/长度、终帧计数/源hash及完整EOF全部一致。
+3. 明文只写本域restore/<restoreId>/decrypted隔离temp；任意错key/tag/缺片/乱序/截断/尾随删除temp，不交付路径。
+4. 全部认证完成且密文整体hash与ref相同后fsync/rename/目录fsync交付隔离路径，不把临时半结果冒充已验证。
+5. 原输入摘要绑定restoreId/encryptedRef/keyId，同作用域异输入CONFLICT；prepared→verified-temp仅在完整AEAD/终帧/EOF和全密文hash通过后写，complete保留真实原路径/源hash回执。
 
 **错误**
 
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `INTEGRITY_ERROR` / HTTP 422：INTEGRITY_ERROR：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `BUDGET_EXCEEDED`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `CONFLICT`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `VERSION_MISMATCH`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `VALIDATION`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `INTERNAL`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
 
 - 副作用：写隔离明文，不进git/日志
 - 授权：permission：service；rule：service恢复角色+superadmin
 - 并发：每restore独占目录，path验证
 - 幂等：同restore/objectHash复用已校验stage
-- 依赖：`data-protection.ValidatePortableArchive`
+- 依赖：`data-protection.Catalog`、`data-protection.PrivateObjectPath`、`data-protection.configuredKEK`、`data-protection.aesGCM`、`data-protection.readCryptoHeader`、`data-protection.wrapAAD`、`data-protection.decryptCryptoFrames`、`data-protection.writeCryptoJournal`、`data-protection.syncObjectDirectory`、`data-protection.activateDecryptedObject`、`data-protection.storageError`
 - 其他依赖说明：本实例外部at-rest key提供器
+
+## data-protection.ConfigureKeyring
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：ConfigureKeyring
+
+```go
+func ConfigureKeyring(store *Store, masterKeyRef string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：`data-protection.readKEKFile`
+
+## data-protection.readKEKFile
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：readKEKFile
+
+```go
+func readKEKFile(path string)([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：`data-protection.storageError`
+
+## data-protection.configuredKEK
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：configuredKEK
+
+```go
+func configuredKEK(store *Store, id string)([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：`data-protection.readKEKFile`
+
+## data-protection.aesGCM
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：aesGCM
+
+```go
+func aesGCM(key []byte)(cipher.AEAD, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：无
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：无
+
+## data-protection.cryptoNonce
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：cryptoNonce
+
+```go
+func cryptoNonce(prefix []byte, sequence uint32)[]byte
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：无
+
+## data-protection.frameHeader
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：frameHeader
+
+```go
+func frameHeader(kind byte, sequence, length uint32)[]byte
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：无
+
+## data-protection.frameAAD
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：frameAAD
+
+```go
+func frameAAD(headerHash []byte, frame []byte)[]byte
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：无
+
+## data-protection.wrapAAD
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：wrapAAD
+
+```go
+func wrapAAD(meta CryptoMetaV1)[]byte
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：无
+
+## data-protection.writeCryptoFrame
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：writeCryptoFrame
+
+```go
+func writeCryptoFrame(output io.Writer, aead cipher.AEAD, prefix, headerHash []byte, kind byte, sequence uint32, plain []byte)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：`data-protection.cryptoNonce`、`data-protection.frameHeader`、`data-protection.frameAAD`、`data-protection.storageError`
+
+## data-protection.syncObjectDirectory
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：syncObjectDirectory
+
+```go
+func syncObjectDirectory(path, root string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：`data-protection.storageError`
+
+## data-protection.writeCryptoJournal
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：writeCryptoJournal
+
+```go
+func writeCryptoJournal(ctx context.Context, store *Store, id, kind, state string, receipt any)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：`data-protection.storageError`
+
+## data-protection.activateEncryptedObject
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：activateEncryptedObject
+
+```go
+func activateEncryptedObject(ctx context.Context, op OperationContext, store *Store, journalID string, receipt cryptoReceipt)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整密文及目录已fsync后，真实索引与原journal complete同一control事务提交，不覆盖对象。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：`data-protection.writeCryptoJournal`、`data-protection.VerifyObjectHash`、`data-protection.storageError`
+
+## data-protection.readCryptoHeader
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：readCryptoHeader
+
+```go
+func readCryptoHeader(input io.Reader)(CryptoHeaderV1, []byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：无
+
+## data-protection.decryptCryptoFrames
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：decryptCryptoFrames
+
+```go
+func decryptCryptoFrames(ctx context.Context, input io.Reader, output io.Writer, aead cipher.AEAD, header CryptoHeaderV1, raw []byte)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：`data-protection.cryptoNonce`、`data-protection.frameAAD`、`data-protection.storageError`
+
+## data-protection.activateDecryptedObject
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/crypto.go`
+- 作用：分片AEAD与真实journal的本域参考支持：activateDecryptedObject
+
+```go
+func activateDecryptedObject(ctx context.Context, op OperationContext, store *Store, id string, receipt decryptReceipt)(DecryptForValidationResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。
+
+**错误**
+
+- `INTEGRITY_ERROR`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `INTERNAL`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `VALIDATION`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+- `BUDGET_EXCEEDED`：本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。（不可重试）
+
+- 副作用：只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。
+- 授权：调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。
+- 并发：CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。
+- 幂等：按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。
+- 依赖：`data-protection.syncObjectDirectory`、`data-protection.writeCryptoJournal`、`data-protection.VerifyObjectHash`、`data-protection.storageError`
 
 ## data-protection.ListBackups
 
@@ -686,6 +1455,7 @@ func ReadBackup(ctx context.Context, op OperationContext, in ReadBackupInput) (R
 1. check backup.manage
 2. 只返回安全manifest/keyId指纹和报告
 3. 不返回wrappedDEK/secret
+4. 非空安全manifest必须通过版本1严格schema/canonical，ready缺清单失败，wrappedDEK等未知字段不得透传。
 
 **错误**
 
@@ -696,7 +1466,7 @@ func ReadBackup(ctx context.Context, op OperationContext, in ReadBackupInput) (R
 - 授权：permission：backup.manage；rule：backup.manage
 - 并发：只读已持久catalog，不宣称failed可恢复
 - 幂等：GET幂等
-- 依赖：`data-protection.Catalog`、`data-protection.requireAdministrator`、`data-protection.storageError`
+- 依赖：`data-protection.Catalog`、`data-protection.requireAdministrator`、`data-protection.storageError`、`data-protection.decodeBackupManifest`
 
 ## data-protection.ReadMirrorStatus
 
@@ -729,6 +1499,7 @@ func ReadMirrorStatus(ctx context.Context, op OperationContext, in ReadMirrorSta
 2. 安全状态和无凭证URL
 3. 未知push状态标needs-reconcile
 4. 未指定mirrorId读真实最新记录；没有记录NOT_FOUND，syncing只报needs-reconcile不推定远程成功。
+5. 兼容可选mirrorId返回真实目录ID，浏览器显式sync精确绑定，不从commit反推。
 
 **错误**
 
@@ -740,46 +1511,6 @@ func ReadMirrorStatus(ctx context.Context, op OperationContext, in ReadMirrorSta
 - 并发：只读本域catalog，不能声称远端最新
 - 幂等：GET幂等
 - 依赖：`data-protection.Catalog`、`data-protection.requireAdministrator`、`data-protection.storageError`
-
-## data-protection.ReadProtectionSettings
-
-- 级别：约束
-- 文件：`modules/data-protection/internal/queries.go`
-- 作用：读取备份与镜像设置
-
-```go
-func ReadProtectionSettings(ctx context.Context, op OperationContext, input ReadProtectionSettingsInput) (ReadProtectionSettingsResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
-| `input` | `ReadProtectionSettingsInput` | 输入 | 必须通过对应schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ReadProtectionSettingsResult` | 结果 | 无error时有效 |
-| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
-
-**步骤**
-
-1. backup.manage
-2. 返回定时备份设置、保留份数、是否包含密钥与远程仓库地址（不含凭据）
-
-**错误**
-
-- `FORBIDDEN`：权限不足（不可重试）
-
-- 副作用：无
-- 授权：permission：backup.manage；rule：后台管理员
-- 并发：只读快照
-- 幂等：只读
-- 依赖：无
 
 ## data-protection.AuthorizeBackupDownload
 
@@ -808,21 +1539,25 @@ func AuthorizeBackupDownload(ctx context.Context, op OperationContext, in Author
 
 **步骤**
 
-1. 重验已有backup.manage，含secret包核原superadmin
-2. 仅ready
-3. 后台一键操作透明得到120s单用途stream token
-4. 下载源端透明解密封存对象输出portableZIP，不要求用户密码或客户端密钥，不新增审批
+1. HTTP即时superadmin；内部管理员；仅ready，清单backup/sourceEpoch/hash与目录一致。
+2. 平台SignCursor固定scope data-protection.download.v1，120秒；绑定nonce/backup/manifest/epoch/expiry与稳定主体会话权限摘要，payload至多1024字节。
+3. control仅存token hash及安全claims/原输入；同操作只复用未消费未过期的同输入token。
+4. 后续真实流在普通当前授权及epoch门禁之后核token和DB hash，并在开始前CAS单用消费；流链尚未完成。
 
 **错误**
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `LOCKED` / HTTP 409：BACKUP_NOT_READY：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT`：真实目录、原输入或签名不满足。（不可重试）
+- `INTEGRITY_ERROR`：真实目录、原输入或签名不满足。（不可重试）
+- `NOT_FOUND`：真实目录、原输入或签名不满足。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实目录、原输入或签名不满足。（不可重试）
 
 - 副作用：写token hash
-- 授权：permission：superadmin；rule：backup.manage；含secret包需superadmin原授权上下文
+- 授权：permission：superadmin；rule：既定HTTP即时superadmin；token不替代普通当前权限。
 - 并发：token原文禁止日志/快照/git；消费CAS
 - 幂等：operationId幂等复用未消费token
-- 依赖：`identity:checkAuthorization`、`data-protection.StreamPortableBackup`
+- 依赖：`data-protection.Catalog`、`data-protection.requireAdministrator`、`data-protection.decodeBackupManifest`、`data-protection.storageError`
 
 ## data-protection.ValidateRestore
 
@@ -1451,20 +2186,27 @@ func RecoverProtectionJournal(ctx context.Context, op OperationContext, in Recov
 
 **步骤**
 
-1. 扫manifest temp/journal
-2. ready缺文件降failed
-3. 切换决定尚未全域完成时保持maintenance并继续等待各域回执，不默许正常启动
+1. 读取control真实journal；prepared没有完整引用仅清本操作temp，完整已fsync引用则验证文件hash/长度再补安装/active索引/complete，不重做业务或假造成功。
+2. 解密verified-temp凭已持久认证事实核plaintext hash/长度后续接rename；其他未认证temp删除并标needs-retry，不能当已校验明文交付。
+3. ready备份须有14个真实owner对象及密文manifest；任一文件/hash缺失，真实降failed、目录revision与安全outbox同事务，不删除原对象。
+4. 存在未完成全域切换决定或未知journal/state时requiresMaintenance=true；不能根据本域记录推定外域已safe或已换入。
+5. controlReady区分真实可续接决定与未知/缺失事实：未知kind/state或已认证文件丢失时false；不能因为maintenance=true就伪报本域安全控制就绪。
 
 **错误**
 
 - `INTEGRITY_ERROR` / HTTP 422：JOURNAL_CORRUPT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `BUDGET_EXCEEDED`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `CONFLICT`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `VERSION_MISMATCH`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `VALIDATION`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
+- `INTERNAL`：本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。（不可重试）
 
 - 副作用：修复自身catalog/清temp/恢复维护
 - 授权：permission：service；rule：service启动
 - 并发：启动readiness必须在恢复审计完成后；源历史不修改
 - 幂等：journalOpId去重
-- 依赖：`data-protection.ReadRestoreProgress`、`site-config:readRuntimeState`
+- 依赖：`data-protection.Catalog`、`data-protection.VerifyObjectHash`、`data-protection.activateEncryptedObject`、`data-protection.activateDecryptedObject`、`data-protection.syncObjectDirectory`、`data-protection.writeCryptoJournal`、`data-protection.storageError`、`platform.EnqueueEvent`
 
 ## data-protection.ValidateMirrorProjection
 
@@ -1670,23 +2412,24 @@ func ConfigureRemote(ctx context.Context, op OperationContext, in ConfigureRemot
 
 **步骤**
 
-1. checkbackup.manage
-2. 仅https/ssh白名单无URL凭证
-3. branch refs/heads/<安全名>
-4. credentialRef外部
-5. CAS配置
+1. HTTP边界即时backup.manage且内部管理员种类，调用ValidateRemote；credentialRef空表示无凭据，非空仅选可信部署GitCredentialRefs的ID，禁止请求任意路径。
+2. 同私有事务按expectedRevision做CAS，未配置revision=0，修订溢出预算错误。
+3. 按主体/operationId保存原输入摘要与真实结果；重复同输入返回原revision，异输入CONFLICT。
+4. 只保存安全URL/branch、凭据ID和真实批准人；不读凭据、不访问网络、不触发Git同步。
 
 **错误**
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VALIDATION` / HTTP 400：INVALID_REMOTE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `CONFLICT` / HTTP 409：REMOTE_CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `INTEGRITY_ERROR`：本域真实回执或修订预算不满足。（不可重试）
+- `BUDGET_EXCEEDED`：本域真实回执或修订预算不满足。（不可重试）
 
 - 副作用：写无secret remote_config
 - 授权：permission：backup.manage；rule：backup.manage
 - 并发：revisionCAS；首次remote未设置时sync409
-- 幂等：operationId/inputHash幂等
-- 依赖：`identity:checkAuthorization`
+- 幂等：同主体/operationId原摘要与回执；CAS写与回执同事务。
+- 依赖：`data-protection.requireAdministrator`、`data-protection.Catalog`、`data-protection.ValidateRemote`、`data-protection.storageError`
 
 ## data-protection.ValidateRemote
 
@@ -1715,20 +2458,20 @@ func ValidateRemote(ctx context.Context, op OperationContext, in ValidateRemoteI
 
 **步骤**
 
-1. 拒file/ext/git协议、本地路径、shell参数注入
-2. host管理员allowlist
-3. 禁止URLuser/password/query
-4. branch拒..及特殊字符
+1. 仅接受https/ssh标准端口、无userinfo/query/fragment/转义/控制字符的ASCII绝对仓库URL；拒本地/file/ext/git及选项式路径。
+2. 主机精确匹配可信部署AllowedGitHosts，默认空拒绝；不从请求/dependencies建立白名单，不执行DNS或网络。
+3. 完整分支refs/heads/<安全段>，ASCII字母数字点下划线连字符；拒空段、前导点/连字符、..及.lock后缀。
 
 **错误**
 
 - `VALIDATION` / HTTP 400：INVALID_REMOTE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN`：远程主机未在可信部署白名单。（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：内部
 - 并发：纯函数；执行Git参数数组而非shell拼接
 - 幂等：同remote同结果
-- 依赖：无
+- 依赖：`data-protection.Catalog`
 - 其他依赖说明：站点出口配置
 
 ## data-protection.SyncMirror
@@ -1985,7 +2728,7 @@ func EnterBarrier(ctx context.Context, op OperationContext, request BarrierReque
 - `DEADLINE_EXCEEDED` / HTTP 504：BARRIER_TIMEOUT：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写本域barrier
-- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）
 - 并发：controller元数据journal与快照冻结区分；不递归自己对象
 - 幂等：barrierId幂等
 - 依赖：无
@@ -2027,7 +2770,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierI
 - `LOCKED` / HTTP 409：RESTORE_INCOMPLETE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写barrier
-- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）
 - 并发：不会解除commit-decided恢复锁
 - 幂等：barrierId幂等
 - 依赖：`site-config:readRuntimeState`
@@ -2069,7 +2812,7 @@ func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotEx
 - `INTERNAL` / HTTP 500：SNAPSHOT_IO：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：写本域snapshot对象
-- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）
 - 并发：备份不无限嵌套；本轮操作journal保留控制面外部恢复锚
 - 幂等：backupId/barrierId幂等
 - 依赖：无
@@ -2117,7 +2860,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
 
 - 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
-- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
 - 依赖：`data-protection.ServeRestoreArchive`、`site-config:readRuntimeState`
@@ -2160,7 +2903,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
 
 - 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
-- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`
@@ -2191,10 +2934,150 @@ function RequestBackup(input: RequestBackupInput, signal: AbortSignal): Promise<
 
 **步骤**
 
-1. 展示全域水位和失败域
-2. 仅ready允许申请下载，不允许半份快照被标成功
-3. 处理401重新登录、403清空敏感界面
-4. 按operationId重试不重复提交
+1. 显式提交includeSecrets，secret选项只向有superadmin能力者展示；稳定operationId在同输入失败重试保留。
+2. 目录按真实游标分批读取，各备份真实ReadBackup显示state/域水位/问题；旧游标失效要求刷新。
+3. 只有ready且超管才申请单用途下载令牌，固定请求头消费；Response到浏览器WritableStream有界保存，不用Blob吞完整包，不支持浏览器明确不可用。
+4. 401/403清敏感状态，取消不更新卸载组件；不把503/错误呈现为空成功。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.failBackup
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/BackupPanel.vue`
+- 作用：本域页面参考支持：failBackup
+
+```ts
+function failBackup(problem: unknown): void
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.loadBackups
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/BackupPanel.vue`
+- 作用：本域页面参考支持：loadBackups
+
+```ts
+function loadBackups(more: boolean): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.submitBackup
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/BackupPanel.vue`
+- 作用：本域页面参考支持：submitBackup
+
+```ts
+function submitBackup(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.downloadBackup
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/BackupPanel.vue`
+- 作用：本域页面参考支持：downloadBackup
+
+```ts
+function downloadBackup(backup: Backup): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
 
 **错误**
 
@@ -2235,10 +3118,10 @@ function ApproveFullRestore(input: ApproveFullRestoreInput, signal: AbortSignal)
 
 **步骤**
 
-1. 先展示完整校验结果及维护影响
-2. 明确批准仅该backup/target后提交restore，不支持选部分域
-3. 提交后进入进度页：恢复期间后台会话会失效，进度页凭只读令牌刷新，完成后提示用备份中的账号重新登录
-4. 按operationId重试不重复提交
+1. 对精确backupId+新targetEpoch先全域validate，显示完整issue与维护/会话失效影响；只在valid=true且用户明确批准后提交。
+2. 稳定operationId保留同输入失败重试，批准不支持部分域。
+3. 进度token及expiry只留内存，经X-Restore-Progress-Token；轮询遇终态/blocked/失败停止，不入URL/storage/log。
+4. 身份换入后令牌可读进度，完成提示备份账号重新登录；控制取消/整体换回仍等公共独立grant，不把只读token当写许可。
 
 **错误**
 
@@ -2248,6 +3131,146 @@ function ApproveFullRestore(input: ApproveFullRestoreInput, signal: AbortSignal)
 
 - 副作用：更新组件本地状态；仅明确提交动作调用已授权API
 - 授权：permission：superadmin；rule：superadmin
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.failRestore
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/RestoreWizard.vue`
+- 作用：本域页面参考支持：failRestore
+
+```ts
+function failRestore(problem: unknown): void
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.validateRestore
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/RestoreWizard.vue`
+- 作用：本域页面参考支持：validateRestore
+
+```ts
+function validateRestore(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.refreshRestoreProgress
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/RestoreWizard.vue`
+- 作用：本域页面参考支持：refreshRestoreProgress
+
+```ts
+function refreshRestoreProgress(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.submitRestore
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/RestoreWizard.vue`
+- 作用：本域页面参考支持：submitRestore
+
+```ts
+function submitRestore(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
 - 并发：组件AbortController取消旧请求；同组件同动作单飞
 - 幂等：mutation稳定operationId/query只读重复安全
 - 依赖：无
@@ -2279,10 +3302,184 @@ function RequestMirrorSync(input: RequestMirrorSyncInput, signal: AbortSignal): 
 
 **步骤**
 
-1. 展示无secret remote/branch/local commit后显式触发sync
-2. 分叉提示冲突无force选项
-3. 处理401重新登录、403清空敏感界面
-4. 按operationId重试不重复提交
+1. 展示实际已保存无secret remote/branch以及真实local commit/remote head，显式同步精确mirrorId/expectedRemoteHead。
+2. 操作稳定幂等key，同输入失败重试保留；409提示刷新核对，无force路径。
+3. 配置CAS单独保存，不自动同步；401/403清敏感状态，取消不更新卸载组件。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.failMirror
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/GitSyncPanel.vue`
+- 作用：本域页面参考支持：failMirror
+
+```ts
+function failMirror(problem: unknown): void
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.loadMirrorSettings
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/GitSyncPanel.vue`
+- 作用：本域页面参考支持：loadMirrorSettings
+
+```ts
+function loadMirrorSettings(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.saveRemote
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/GitSyncPanel.vue`
+- 作用：本域页面参考支持：saveRemote
+
+```ts
+function saveRemote(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.buildMirror
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/GitSyncPanel.vue`
+- 作用：本域页面参考支持：buildMirror
+
+```ts
+function buildMirror(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：backup.manage；rule：backup.manage
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：data-protection OpenAPI HTTP/JSON/SSE
+
+## data-protection.submitSync
+
+- 级别：参考
+- 文件：`modules/data-protection/web/src/GitSyncPanel.vue`
+- 作用：本域页面参考支持：submitSync
+
+```ts
+function submitSync(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。
 
 **错误**
 
@@ -2630,6 +3827,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 打开真实active目录库与control决定库，事务应用各自版本1迁移并装配已实现目录读取；其余路由保持具体不可用，完整就绪仍blocked。
+8. 真实调用RecoverProtectionJournal，把journalRecovered与requiresMaintenance事实传入应用；不丢弃未决维护要求，不在完整业务缺失时开放Ready。
 
 **错误**
 
@@ -2641,7 +3839,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`data-protection.RecoverProtectionJournal`、`data-protection.PublishProtectionEvents`、`data-protection.ConsumeEvents`、`data-protection.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`data-protection.OpenCatalog`、`data-protection.InstallCatalog`、`data-protection.NewApplication`
+- 依赖：`site-config:registerActivation`、`data-protection.RecoverProtectionJournal`、`data-protection.PublishProtectionEvents`、`data-protection.ConsumeEvents`、`data-protection.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`data-protection.OpenCatalog`、`data-protection.InstallCatalog`、`data-protection.NewApplication`、`data-protection.ConfigureKeyring`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## data-protection.Serve
@@ -2797,6 +3995,7 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 2. 已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威
 3. 维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
 4. 未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现
+5. 未决journal要求维护而runtime不在维护时拒绝；controlReady=false即使维护中亦拒绝，不将未知安全点报就绪。
 
 **错误**
 
@@ -2830,6 +4029,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 **步骤**
 
 1. 生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。
+2. 接收真实恢复结果及当前active epoch；未知控制journal时恢复控制Ready仍失败关闭，不丢弃requiresMaintenance。
 
 **错误**
 
@@ -2839,7 +4039,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 - 授权：平台NewServiceHandler固定caller白名单及即时identity授权，内部使用可信op。
 - 并发：上下文传给本域IO；不发起隐式备份或模型。
 - 幂等：只读目录固定快照；不制造历史或成功状态。
-- 依赖：`data-protection.server.ListBackups`、`data-protection.server.ReadBackup`、`data-protection.server.ReadMirrorStatus`
+- 依赖：`data-protection.server.ListBackups`、`data-protection.server.ReadBackup`、`data-protection.server.ReadMirrorStatus`、`data-protection.server.ReadProtectionSettings`
 
 ## data-protection.server.ListBackups
 
@@ -2937,6 +4137,134 @@ func (s *server) ReadMirrorStatus(w http.ResponseWriter, r *http.Request)
 - 幂等：只读目录固定快照；不制造历史或成功状态。
 - 依赖：`data-protection.ReadMirrorStatus`
 
+## data-protection.server.ReadProtectionSettings
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/transport/server.go`
+- 作用：将已核后台请求转换为安全配置读取
+
+```go
+func (s *server) ReadProtectionSettings(w http.ResponseWriter, r *http.Request)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 从平台可信op调用安全DTO读取，未配置字段省略，响应no-store。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：平台边界即时backup.manage，只允许portal用户委托。
+- 并发：本域只读短快照，不发模型或远程Git。
+- 幂等：纯目录投影可重读，无配置时不构造虚假策略。
+- 依赖：`data-protection.ReadProtectionSettings`
+
+## data-protection.server.ConfigureRemote
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/transport/server.go`
+- 作用：受信远程配置HTTP转换
+
+```go
+func (s *server) ConfigureRemote(w http.ResponseWriter, r *http.Request, params gen.ConfigureRemoteParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成入口已严格校验请求；可信op注入actor，调用真实CAS业务并输出安全JSON。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：平台边界即时backup.manage，只允许portal用户委托。
+- 并发：本域只读短快照，不发模型或远程Git。
+- 幂等：纯目录投影可重读，无配置时不构造虚假策略。
+- 依赖：`data-protection.ConfigureRemote`
+
+## data-protection.server.CreateBackup
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/transport/server.go`
+- 作用：可信备份创建HTTP转换
+
+```go
+func (s *server) CreateBackup(w http.ResponseWriter, r *http.Request, params gen.CreateBackupParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成入口已严格校验请求；可信op注入actor/epoch，调用持久备份意图并仅返回真实jobs的202结果。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：平台边界即时backup.manage，只允许portal用户委托。
+- 并发：本域只读短快照，不发模型或远程Git。
+- 幂等：纯目录投影可重读，无配置时不构造虚假策略。
+- 依赖：`data-protection.CreateBackup`
+
+## data-protection.server.AuthorizeBackupDownload
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/transport/server.go`
+- 作用：下载授权HTTP转换
+
+```go
+func (s *server) AuthorizeBackupDownload(w http.ResponseWriter, r *http.Request, id string, params gen.AuthorizeBackupDownloadParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成边界即时核superadmin；可信op及路径调用真实授权，no-store输出，不记录token。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：平台边界即时backup.manage，只允许portal用户委托。
+- 并发：本域只读短快照，不发模型或远程Git。
+- 幂等：纯目录投影可重读，无配置时不构造虚假策略。
+- 依赖：`data-protection.AuthorizeBackupDownload`
+
 ## data-protection.mountModuleUI
 
 - 级别：约束
@@ -2960,9 +4288,9 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 
 **步骤**
 
-1. 校验rootElement与bootstrap module/capabilities；按本域已登记Vue页面导入模块路由，createApp挂载，不注册别域业务组件
-2. 只装配同源HTTP/JSON/SSE客户端和已有权限清理/语言逻辑，复用identity/qa会话，缺AI能力保持关闭提示
-3. 同DOM重复mount先复用既有实例；unmount停止AbortController/SSE/listeners，不能清服务端业务记录
+1. 校验真实HTMLElement/module/buildRevision/capabilities及注入apiClient；同DOM/buildRevision复用，变更先unmount。
+2. createApp只挂本域既定备份/恢复/镜像三个组件，经公共apiClient请求同源接口；UI无服务凭据。
+3. nice-wiki:unmount或Vue卸载取消全部本域请求和轮询；不清服务端记录。
 
 **错误**
 
@@ -2972,7 +4300,7 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 - 授权：permission：anonymous；rule：只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限
 - 并发：同DOM一个Vue实例，AbortController取消旧请求
 - 幂等：同DOM/buildRevision重复挂载复用实例
-- 依赖：无
+- 依赖：`data-protection.RequestBackup`、`data-protection.ApproveFullRestore`、`data-protection.RequestMirrorSync`
 - 其他依赖说明：本域已登记UI页面函数
 
 ## data-protection.RunWorker
@@ -3037,7 +4365,9 @@ func OpenCatalog(ctx context.Context, root, epoch string, key platform.SigningKe
 
 **步骤**
 
-1. 只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。
+1. 旧active/objects非空或旧active控制表非空维护拒绝，不静默遗漏历史。
+2. control保存backup_runs/backup_objects/stored_objects/vault_meta，active只安全设置及镜像；vault独立不随恢复替换。
+3. 目录fsync到dataRoot，双库FULL同步；vault只接受真实索引或原journal所属文件，未知文件拒绝且不删除。
 
 **错误**
 
@@ -3050,8 +4380,8 @@ func OpenCatalog(ctx context.Context, root, epoch string, key platform.SigningKe
 - 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
 - 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
 - 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
-- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
-- 依赖：`data-protection.openDatabase`、`data-protection.applyMigration`、`data-protection.Store.Close`、`data-protection.storageError`
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
+- 依赖：`data-protection.openDatabase`、`data-protection.applyMigration`、`data-protection.Store.Close`、`data-protection.storageError`、`data-protection.syncObjectDirectory`、`data-protection.rejectLegacyVault`、`data-protection.rejectLegacyControllerRows`、`data-protection.verifyVaultInventory`
 
 ## data-protection.openDatabase
 
@@ -3086,7 +4416,7 @@ func openDatabase(ctx context.Context, path string) (*sql.DB, error)
 - 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
 - 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
 - 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
-- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
 - 依赖：`data-protection.storageError`
 
 ## data-protection.applyMigration
@@ -3096,7 +4426,7 @@ func openDatabase(ctx context.Context, path string) (*sql.DB, error)
 - 作用：本域私有持久目录与路径支持：applyMigration
 
 ```go
-func applyMigration(ctx context.Context, db *sql.DB, name string) error
+func applyMigration(ctx context.Context, db *sql.DB, name string, target, maxVersion int) error
 ```
 
 **输入**
@@ -3122,7 +4452,7 @@ func applyMigration(ctx context.Context, db *sql.DB, name string) error
 - 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
 - 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
 - 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
-- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
 - 依赖：`data-protection.storageError`
 
 ## data-protection.Store.Close
@@ -3158,7 +4488,7 @@ func (s *Store) Close() error
 - 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
 - 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
 - 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
-- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
 - 依赖：`data-protection.storageError`
 
 ## data-protection.InstallCatalog
@@ -3194,7 +4524,7 @@ func InstallCatalog(s *Store)
 - 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
 - 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
 - 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
-- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
 - 依赖：无
 
 ## data-protection.Catalog
@@ -3230,7 +4560,7 @@ func Catalog(op OperationContext) (*Store, error)
 - 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
 - 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
 - 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
-- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
 - 依赖：无
 
 ## data-protection.storageError
@@ -3266,7 +4596,7 @@ func storageError(err error) error
 - 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
 - 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
 - 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
-- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
 - 依赖：无
 
 ## data-protection.requireAdministrator
@@ -3302,7 +4632,7 @@ func requireAdministrator(op OperationContext) error
 - 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
 - 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
 - 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
-- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
 - 依赖：无
 
 ## data-protection.PrivateObjectPath
@@ -3338,5 +4668,157 @@ func PrivateObjectPath(store *Store, path string) (string, error)
 - 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
 - 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
 - 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
-- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
 - 依赖：无
+
+## data-protection.rejectLegacyVault
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：独立vault布局支持：rejectLegacyVault
+
+```go
+func rejectLegacyVault(root string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 旧active/objects非空维护拒绝，不覆盖未知历史。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `LOCKED`：未知旧历史须先明确验证迁移。（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
+- 依赖：`data-protection.storageError`
+
+## data-protection.rejectLegacyControllerRows
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：独立vault布局支持：rejectLegacyControllerRows
+
+```go
+func rejectLegacyControllerRows(ctx context.Context, db *sql.DB) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 迁移前旧active三张控制表必须全空，否则维护拒绝。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `LOCKED`：未知旧历史须先明确验证迁移。（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
+- 依赖：`data-protection.storageError`
+
+## data-protection.verifyVaultInventory
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：独立vault布局支持：verifyVaultInventory
+
+```go
+func verifyVaultInventory(ctx context.Context, store *Store) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只接受真实索引路径或原加密journal所属对象及temp；未知文件拒绝且不删除。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `LOCKED`：未知旧历史须先明确验证迁移。（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。
+- 依赖：`data-protection.storageError`
+
+## data-protection.ReadProtectionSettings
+
+- 级别：约束
+- 文件：`modules/data-protection/internal/settings.go`
+- 作用：读取备份与镜像设置
+
+```go
+func ReadProtectionSettings(ctx context.Context, op OperationContext, input ReadProtectionSettingsInput) (ReadProtectionSettingsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `ReadProtectionSettingsInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadProtectionSettingsResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 平台已核backup.manage，内部只核管理员主体种类。
+2. 在同一私有快照读取实际schedule与remote；未配置字段省略，不填当前读取人的AuthContext。
+3. 安全DTO仅timezone/保留数/includeSecrets/scheduleId/revision与无凭据URL/branch/revision；不返回actor/credentialRef/secret，不隐式创建计划。
+
+**错误**
+
+- `FORBIDDEN`：权限不足（不可重试）
+
+- 副作用：无
+- 授权：permission：backup.manage；rule：后台管理员
+- 并发：只读快照
+- 幂等：只读
+- 依赖：`data-protection.Catalog`、`data-protection.requireAdministrator`、`data-protection.storageError`

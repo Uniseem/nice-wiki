@@ -526,6 +526,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        BackupManifestV1: components["schemas"]["types_BackupManifestV1"];
+        DomainSnapshotManifest: components["schemas"]["common.schema_DomainSnapshotManifest"];
+        JobsCreateJobResult: components["schemas"]["CreateJobResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /** @description 已持久登记的异步任务引用，不代表任务执行成功 */
@@ -644,6 +647,10 @@ export interface components {
             restoreId: string;
             /** @description 公共 AcceptedJob 合同，遵守其字段和空值规则 */
             job: components["schemas"]["AcceptedJob"];
+            /** @description 新服务实际必写，只读绑定本restoreId；仅内存保存，不进URL、存储或日志。 */
+            progressToken?: string;
+            /** @description 只读进度令牌绝对过期时刻；新服务实际必写。 */
+            progressExpiresAt?: components["schemas"]["Timestamp"];
         };
         /** @description 202恢复；完整备份指定targetEpoch，不允许部分域恢复；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         CreateRestoreRequestBody: {
@@ -958,37 +965,17 @@ export interface components {
             commitHash: string;
             /** @description remoteHead；UTF-8；不得为 null */
             remoteHead: string;
+            /** @description 实际镜像记录ID，供显式同步精确绑定；未配置仍NOT_FOUND。 */
+            mirrorId?: components["schemas"]["Identifier"];
         };
-        /** @description 经identity验证的单站授权上下文；浏览器不能直接构造可信grants */
-        AuthContext: {
-            /** @description 经验证的主体ID */
-            subjectId: components["schemas"]["Identifier"];
-            /**
-             * @description 主体类别或状态类别，按枚举处理
-             * @enum {unknown}
-             */
-            kind: "admin" | "visitor" | "service";
-            /** @description 单站身份，与授权上下文一致 */
-            siteId: components["schemas"]["Identifier"];
-            /** @description 经验证会话ID，已撤销会话拒绝 */
-            sessionId?: components["schemas"]["Identifier"];
-            /** @description 权威权限版本；撤销变化必须同步验证 */
-            permissionRevision: components["schemas"]["Revision"];
-            /** @description 明确技术权限集合，映射旧10项功能 */
-            grants: string[];
-            /** @description 凭证/租约到期UTC时刻；到期拒绝，不自动续命 */
-            expiresAt: components["schemas"]["Timestamp"];
-            /** @description identity当前会话单调版本；admin会话委托必须携带且大于0，撤销/轮换后旧版本拒绝 */
-            sessionRevision?: components["schemas"]["Revision"];
-        };
-        /** @description 每日本地备份输入；未标可选字段均必填，空集合用[]，不传null */
-        ScheduleLocalBackupInput: {
-            /** @description timezone；UTF-8；不得为 null */
+        /** @description 保存后安全只读策略，批准身份在私有记录，不返回AuthContext或凭据。 */
+        ProtectionScheduleSettings: {
             timezone: string;
-            /** @description keepCount 非负 int64；不用浮点数 */
+            /** @default 20 */
             keepCount: number;
-            /** @description 公共 AuthContext 合同，遵守其字段和空值规则 */
-            actor: components["schemas"]["AuthContext"];
+            includeSecrets: boolean;
+            scheduleId: components["schemas"]["Identifier"];
+            revision: components["schemas"]["Revision"];
         };
         /** @description 远程仓库设置（不含凭据） */
         RemoteSettings: {
@@ -998,15 +985,98 @@ export interface components {
             branch: string;
             /** @description expectedRevision 非负 int64；不用浮点数 */
             expectedRevision: components["schemas"]["Revision"];
-            /** @description 公共 AuthContext 合同，遵守其字段和空值规则 */
-            actor: components["schemas"]["AuthContext"];
         };
         /** @description 读取备份与镜像设置的结果；不含密钥 */
         ReadProtectionSettingsResult: {
-            /** @description 当前定时备份设置 */
-            schedule: components["schemas"]["ScheduleLocalBackupInput"];
+            /** @description 仅实际已保存定时策略时返回；未配置省略，不伪造actor或空schedule */
+            schedule?: components["schemas"]["ProtectionScheduleSettings"];
             /** @description 远程仓库（不含凭据） */
-            remote: components["schemas"]["RemoteSettings"];
+            remote?: components["schemas"]["RemoteSettings"];
+        };
+        /** @description 精确绑定源tar SnapshotRef及其首manifest.json的canonical摘要。 */
+        BackupDomainV1: {
+            snapshot: components["schemas"]["SnapshotRef"];
+            manifestHash: components["schemas"]["Hash"];
+        };
+        /** @description 不可变发布修订引用；document/revision/contentHash/schema/dataEpoch共同验证 */
+        PublishedRevisionRef: {
+            /** @description 稳定文档ID */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 不可变发布修订ID */
+            publishedRevisionId: components["schemas"]["Identifier"];
+            /** @description 单调非负修订号 */
+            revision: components["schemas"]["Revision"];
+            /** @description 规范正文SHA256 */
+            contentHash: components["schemas"]["Hash"];
+            /** @description 内容格式正整数版本，变化必须迁移 */
+            schemaVersion: number;
+            /** @description 当前业务数据代次 */
+            dataEpoch: components["schemas"]["Identifier"];
+        };
+        DomainSnapshotReference: {
+            /** @enum {string} */
+            kind: "object";
+            object: components["schemas"]["ObjectRef"];
+        } | {
+            /** @enum {string} */
+            kind: "publication";
+            publication: components["schemas"]["PublishedRevisionRef"];
+        };
+        /** @description 完整跨域引用与真实来源domain manifest绑定；相同来源相同目标仅做等价去重，完整域数组保留在原tar。 */
+        BackupReferenceV1: {
+            sourceOwner: string;
+            sourceManifestHash: components["schemas"]["Hash"];
+            reference: components["schemas"]["DomainSnapshotReference"];
+        };
+        /** @description canonical JSON≤2MiB轻量全局清单；域按owner字典顺序，引用按完整canonical值排序；全对象引用索引亦≤2MiB，超限失败不截断。 */
+        types_BackupManifestV1: {
+            /** @constant */
+            format: "nice-wiki.backup";
+            /** @constant */
+            schemaVersion: 1;
+            backupId: components["schemas"]["Identifier"];
+            sourceEpoch: components["schemas"]["Identifier"];
+            barrierId: components["schemas"]["Identifier"];
+            createdAt: components["schemas"]["Timestamp"];
+            /** @description 创建实例KEK来源指纹，非密钥；移植导入后本机实际解密key由私有backup_runs.key_id及cipher header提供，不要求源KEK */
+            keyId: string;
+            domains: components["schemas"]["BackupDomainV1"][];
+            references: components["schemas"]["BackupReferenceV1"][];
+        };
+        DomainSnapshotFile: {
+            /** @description active内正斜线相对普通文件路径；平台拒绝链接、绝对路径、空段和点段 */
+            path: string;
+            sha256: components["schemas"]["Hash"];
+            byteSize: number;
+        };
+        DomainSnapshotObject: {
+            reference: components["schemas"]["ObjectRef"];
+            /** @description 必须对应同manifest.files项及其hash/byteSize */
+            path: string;
+        };
+        /** @description 版本1未压缩tar的首entry manifest.json，canonical JSON≤16MiB，后续仅files/<path>声明普通文件；完整归档≤20GiB/100000文件。安全截点回调必须穷尽权威对象与跨域引用，未知不能写空列表冒充。精确sourceEpoch保留，staging迁移回调才建立targetDataEpoch。 */
+        "common.schema_DomainSnapshotManifest": {
+            /** @enum {string} */
+            format: "nice-wiki.domain-snapshot";
+            /** @enum {integer} */
+            schemaVersion: 1;
+            owner: string;
+            backupId: components["schemas"]["Identifier"];
+            barrierId: components["schemas"]["Identifier"];
+            snapshotId: components["schemas"]["Identifier"];
+            sourceEpoch: components["schemas"]["Identifier"];
+            dataSchemaVersion: number;
+            revisionWatermark: components["schemas"]["Revision"];
+            containsSecrets: boolean;
+            files: components["schemas"]["DomainSnapshotFile"][];
+            objects: components["schemas"]["DomainSnapshotObject"][];
+            publications: components["schemas"]["PublishedRevisionRef"][];
+            references: components["schemas"]["DomainSnapshotReference"][];
+        };
+        /** @description 持久提交任务成功结果；失败不返回半成功结果 */
+        CreateJobResult: {
+            /** @description 公共 AcceptedJob 合同，遵守其字段和空值规则 */
+            job: components["schemas"]["AcceptedJob"];
         };
     };
     responses: never;
@@ -1767,6 +1837,8 @@ export interface operations {
             header?: {
                 /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
                 "X-Request-Id"?: components["schemas"]["Identifier"];
+                /** @description AuthorizeBackupDownload签发的单用途令牌；流入口实际要求，兼容字段只通过请求头，不进URL。 */
+                "X-Backup-Download-Token"?: string;
             };
             path: {
                 /** @description 路径值由HTTP绑定器填入函数Input，正文不得声明冲突值 */
@@ -2291,6 +2363,15 @@ export interface operations {
             };
             /** @description FORBIDDEN：权限不足 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；可信配置不可读时失败关闭 */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
