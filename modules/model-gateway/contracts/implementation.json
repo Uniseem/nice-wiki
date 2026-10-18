@@ -2913,6 +2913,86 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "model-gateway.ReadInputBudgetModel",
+          "name": "ReadInputBudgetModel",
+          "signature": "func ReadInputBudgetModel(ctx context.Context, op OperationContext, modelID string) (Model, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "ReadInputBudgetModel受控原生PDF输入，付费前核原能力与完整窗口，不猜实际token。",
+          "steps": [
+            "受控原生PDF输入，付费前核原能力与完整窗口，不猜实际token。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只在已核原owner/site/epoch/root/costClass的内部执行链或可信启动装配，不取得新权限。"
+          },
+          "concurrency": "按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。",
+          "idempotency": "沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。",
+          "dependencies": [
+            "model-gateway.CurrentStore",
+            "model-gateway.beginAvailabilitySnapshot"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4676,7 +4756,8 @@
             "model-gateway.SaveInvocationEvent",
             "model-gateway.SelectCandidates",
             "model-gateway.StartAcceptedInvocation",
-            "model-gateway.ValidateInvocationPayload"
+            "model-gateway.ValidateInvocationPayload",
+            "model-gateway.ValidateInputModel"
           ],
           "resources": [],
           "contract": "binding"
@@ -4910,7 +4991,9 @@
           },
           "concurrency": "按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。",
           "idempotency": "沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。",
-          "dependencies": [],
+          "dependencies": [
+            "model-gateway.MediaPartAsset"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -4990,6 +5073,83 @@
           "dependencies": [
             "model-gateway.ExecutionStorageError"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.ValidateInputModel",
+          "name": "ValidateInputModel",
+          "signature": "func ValidateInputModel(input CreateInvocationInput, model gen.Model, adapter string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "ValidateInputModel受控原生PDF输入，付费前核原能力与完整窗口，不猜实际token。",
+          "steps": [
+            "受控原生PDF输入，付费前核原能力与完整窗口，不猜实际token。PDF另须file+vision，adapter仅openai_chat/anthropic_messages/gemini；每主/备候选预留/派发都核。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只在已核原owner/site/epoch/root/costClass的内部执行链或可信启动装配，不取得新权限。"
+          },
+          "concurrency": "按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。",
+          "idempotency": "沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -5675,7 +5835,8 @@
             "model-gateway.SaveAttemptRecord",
             "model-gateway.SaveInvocationRecord",
             "model-gateway.SendProviderRequest",
-            "model-gateway.ValidateEmbeddingSpace"
+            "model-gateway.ValidateEmbeddingSpace",
+            "model-gateway.ValidateInputModel"
           ],
           "resources": [],
           "contract": "reference"
@@ -7663,9 +7824,7 @@
           ],
           "purpose": "保守估算请求预算",
           "steps": [
-            "仅localization纯服务经生成严格HTTP校验，使用现有无内置tokenizer的明确fallback版本utf8-half-message32-six-fifths-v1；不查秘密或调用供应方。",
-            "累计texts、每条message.content及text parts的UTF8字节；message.content额外遵守64KiB字节上限，图片无确认算法返回DEPENDENCY_UNAVAILABLE且不伪造文本预算。",
-            "base=ceil(累计UTF8bytes/2)+32*消息条数，inputTokens=ceil(base*6/5)，完全整数计算；返回估算器版本，不落正文或估算结果。"
+            "受控原生PDF输入，付费前核原能力与完整窗口，不猜实际token。fixed-model-input-window-v1仅当前epoch模型上界，结算仍取真实usage。"
           ],
           "errors": [
             {
@@ -7742,7 +7901,9 @@
           },
           "concurrency": "纯函数；ctx只保持统一签名，无IO、锁或取消检查。",
           "idempotency": "同文本/消息给同估算；不存正文或结果。",
-          "dependencies": [],
+          "dependencies": [
+            "model-gateway.ReadInputBudgetModel"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -15695,8 +15856,8 @@
           "outputs": [],
           "purpose": "ProviderContent的真实本域材料处理",
           "steps": [
-            "按可信调用者固定的原provider/version/epoch材料处理",
-            "精确加密、引用、内容边界见data/workflows与源码注释"
+            "text/image/file互斥，原生PDF仅application/pdf，受media原版本/hash读取。",
+            "OpenAI Chat: file/file_data PDF data URI; Anthropic: document/base64 application/pdf; Gemini: inlineData application/pdf.不调供应方Files API，不取外部URL。"
           ],
           "errors": [
             {
@@ -15762,7 +15923,8 @@
           "concurrency": "同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。",
           "idempotency": "只读真实状态与固定原价目，无费用写入。",
           "dependencies": [
-            "model-gateway.ImageKey"
+            "model-gateway.ImageKey",
+            "model-gateway.MediaPartAsset"
           ],
           "resources": [],
           "contract": "reference"
@@ -20783,7 +20945,8 @@
           "dependencies": [
             "model-gateway.CheckLanguageSuggestionApproval",
             "model-gateway.EstimateTokens",
-            "model-gateway.ModelEmbeddingSpace"
+            "model-gateway.ModelEmbeddingSpace",
+            "model-gateway.ValidateInputModel"
           ],
           "resources": [],
           "contract": "reference"
@@ -21879,7 +22042,8 @@
           "outputs": [],
           "purpose": "AuthorizeImages的实际本域生产职责",
           "steps": [
-            "media原site授权元数据必须ready，ref的asset/hash/type/size全等，固定当时version；未固定资源不接受为可付费输入。"
+            "media原site授权元数据必须ready，ref的asset/hash/type/size全等，固定当时version；未固定资源不接受为可付费输入。",
+            "受控原生PDF输入，付费前核原能力与完整窗口，不猜实际token。MIME/hash/size和%PDF-头一致，不把DOCX伪装PDF/image。"
           ],
           "errors": [
             {
@@ -21948,6 +22112,7 @@
             "media:readAsset",
             "model-gateway.ExecutionDependencies",
             "model-gateway.ImageKey",
+            "model-gateway.MediaPartAsset",
             "model-gateway.ServiceProviderContext"
           ],
           "resources": [],
@@ -21961,7 +22126,8 @@
           "outputs": [],
           "purpose": "LoadImages的实际本域生产职责",
           "steps": [
-            "仅原accepted授权version经media readAssetBytes取字节，累计24MiB内联预算；字节size/MIME/hash全等，不任意URL/重定向。"
+            "仅原accepted授权version经media readAssetBytes取字节，累计24MiB内联预算；字节size/MIME/hash全等，不任意URL/重定向。",
+            "受控原生PDF输入，付费前核原能力与完整窗口，不猜实际token。MIME/hash/size和%PDF-头一致，不把DOCX伪装PDF/image。"
           ],
           "errors": [
             {
@@ -22030,6 +22196,7 @@
             "media:readAssetBytes",
             "model-gateway.ExecutionDependencies",
             "model-gateway.ImageKey",
+            "model-gateway.MediaPartAsset",
             "model-gateway.ReadImageBytes",
             "model-gateway.ServiceProviderContext"
           ],
@@ -22044,7 +22211,85 @@
           "outputs": [],
           "purpose": "ReadImageBytes的实际本域生产职责",
           "steps": [
-            "有界读取完整原asset字节核MIME/size/hash并始终Close响应；不能把截断字节交模型。"
+            "有界读取完整原asset字节核MIME/size/hash并始终Close响应；不能把截断字节交模型。",
+            "受控原生PDF输入，付费前核原能力与完整窗口，不猜实际token。MIME/hash/size和%PDF-头一致，不把DOCX伪装PDF/image。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只在已核原owner/site/epoch/root/costClass的内部执行链或可信启动装配，不取得新权限。"
+          },
+          "concurrency": "按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。",
+          "idempotency": "沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.MediaPartAsset",
+          "name": "MediaPartAsset",
+          "signature": "func MediaPartAsset(part gen.GatewayPart) (gen.AssetRef, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "MediaPartAsset受控原生PDF输入，付费前核原能力与完整窗口，不猜实际token。",
+          "steps": [
+            "受控原生PDF输入，付费前核原能力与完整窗口，不猜实际token。"
           ],
           "errors": [
             {

@@ -149,7 +149,7 @@
           },
           "maxItems": 256,
           "uniqueItems": false,
-          "description": "chat vision structured reasoning embedding rerank translation能力集合"
+          "description": "chat vision structured reasoning embedding rerank translation能力集合；file必须同时vision和完整输入窗口。"
         },
         "dimension": {
           "type": "integer",
@@ -611,7 +611,7 @@
             "$ref": "#/$defs/GatewayPart"
           },
           "maxItems": 256,
-          "description": "可选视觉输入片段"
+          "description": "text/image/file互斥；非文本仅vision用户消息，file仅application/pdf。"
         }
       },
       "required": [
@@ -733,7 +733,8 @@
           "type": "string",
           "enum": [
             "text",
-            "image"
+            "image",
+            "file"
           ],
           "description": "输入片段"
         },
@@ -746,6 +747,10 @@
         "image": {
           "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
           "description": "图像引用仅image必要"
+        },
+        "file": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
+          "description": "原生PDF资源引用"
         }
       },
       "required": [
@@ -764,8 +769,17 @@
             }
           },
           "not": {
-            "required": [
-              "image"
+            "anyOf": [
+              {
+                "required": [
+                  "image"
+                ]
+              },
+              {
+                "required": [
+                  "file"
+                ]
+              }
             ]
           }
         },
@@ -780,8 +794,42 @@
             }
           },
           "not": {
-            "required": [
-              "text"
+            "anyOf": [
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "file"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "kind",
+            "file"
+          ],
+          "properties": {
+            "kind": {
+              "const": "file"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "image"
+                ]
+              }
             ]
           }
         }
@@ -2344,7 +2392,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
-          "description": "估算算法"
+          "description": "文本回退或fixed-model-input-window-v1保守窗口上界，非实际token数。"
         }
       },
       "required": [
@@ -3146,7 +3194,7 @@
             "contentEncoding": "base64",
             "description": "受media版本化字节读取并核完整AssetRef/hash后提供的图像内容"
           },
-          "description": "仅内部内存材料，key是完整AssetRef规范JSON摘要，不是URL/本机路径"
+          "description": "内部受控image/PDF字节，key为完整AssetRef摘要。"
         },
         "stream": {
           "type": "boolean",
@@ -3213,7 +3261,7 @@
             "contentEncoding": "base64",
             "description": "受media版本化字节读取并核完整AssetRef/hash后提供的图像内容"
           },
-          "description": "仅内部内存材料，key是完整AssetRef规范JSON摘要，不是URL/本机路径"
+          "description": "内部受控image/PDF字节，key为完整AssetRef摘要。"
         },
         "stream": {
           "type": "boolean",

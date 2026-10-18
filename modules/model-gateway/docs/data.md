@@ -324,3 +324,12 @@ localization.suggest只允许background及languageSuggestionApprovalId；以MG�
 schema009只追加credential_retirements原版本/epoch/销毁时刻审计和header墓碑时刻。完整应用显式开启tracking前、任何legacy缺execution证据均不销毁。非active主凭据无未释放route/attempt引用才原子审计后删材料，版本不可复用；header还要无active映射，清密文保留FK墓碑。outer succeeded但held/unknown不释放引用。
 
 UI只使用公共非序列化ModuleAPIClient，不读取HttpOnly凭据或持久化secret。secretHeaders缺失保留、明确空列表清空；tokenizer选择显式精确版本。美元字符串以BigInt转整数微额，未知不显示0；CAS冲突保留输入不自动覆盖。pnpm lock仅CI真实生成，不手写。
+
+
+## 原生PDF输入
+
+GatewayPart可选file:AssetRef与text/image严格互斥，调用仍vision，仅用户消息。模型显式file+vision及完整输入窗口；协议仅OpenAI Chat、Anthropic Messages、Gemini。受media原授权version/hash/MIME/size读取并核PDF头，只支持application/pdf；DOCX等unsupported，不伪装image。媒体仍累计24MiB，编码体32MiB，不用供应方Files API。
+
+每主/备用付费预留与派发前核能力，完整MaxInputTokens窗口保守预留，不猜PDF页token；EstimateTokens非文本fixed-model-input-window-v1只给保守上界；缺真实usage仍unknown/held。
+
+协议依据：[OpenAI](https://developers.openai.com/api/docs/guides/file-inputs)、[Anthropic](https://platform.claude.com/docs/en/build-with-claude/pdf-support)、[Gemini](https://ai.google.dev/gemini-api/docs/document-processing)。仅读公开官方文档，未复制SDK、未真实模型调用。
