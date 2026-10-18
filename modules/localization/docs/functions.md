@@ -4183,7 +4183,7 @@ func readInterfacePlan(ctx context.Context, op OperationContext, tx *sql.Tx, tar
 
 **步骤**
 
-1. 校验固定源目录并按key排序
+1. 必须调用既有SourceCatalog校验固定界面源目录；未安装时DEPENDENCY_UNAVAILABLE，不把未知目录当作空集合或零费用。按key排序固定真实源。
 2. 读取当前目标字典，仅选择非protected缺项或源hash变化项
 3. 返回源hash、代数和完整待估文本
 
@@ -4192,6 +4192,7 @@ func readInterfacePlan(ctx context.Context, op OperationContext, tx *sql.Tx, tar
 - `VALIDATION`：按本函数私有边界失败关闭（不可重试）
 - `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
 - `INTERNAL`：本域私有IO失败（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：固定界面源目录尚未安装，拒绝形成零缺项估价。（不可重试）
 
 - 副作用：无
 - 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。

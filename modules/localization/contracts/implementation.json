@@ -8614,7 +8614,7 @@
           ],
           "purpose": "统计固定界面源相对目标字典的缺项。",
           "steps": [
-            "校验固定源目录并按key排序",
+            "必须调用既有SourceCatalog校验固定界面源目录；未安装时DEPENDENCY_UNAVAILABLE，不把未知目录当作空集合或零费用。按key排序固定真实源。",
             "读取当前目标字典，仅选择非protected缺项或源hash变化项",
             "返回源hash、代数和完整待估文本"
           ],
@@ -8633,6 +8633,11 @@
               "code": "INTERNAL",
               "retryable": false,
               "when": "本域私有IO失败"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "固定界面源目录尚未安装，拒绝形成零缺项估价。"
             }
           ],
           "sideEffects": [],

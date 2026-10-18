@@ -675,6 +675,11 @@ export interface components {
         ContentValidatePublicationsResult: components["schemas"]["ValidatePublicationsResult"];
         GetInvocationResult: components["schemas"]["types_GetInvocationResult"];
         LookupInvocationResult: components["schemas"]["types_LookupInvocationResult"];
+        GatewayResolveTaskRouteResult: components["schemas"]["ResolveRouteResult"];
+        GatewayQuoteCostResult: components["schemas"]["QuoteCostResult"];
+        GatewayEstimateTokensResult: components["schemas"]["EstimateTokensResult"];
+        ContentReadPublicTreeResult: components["schemas"]["ReadPublicTreeResult"];
+        JobsCreateJobResult: components["schemas"]["CreateJobResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
@@ -2246,6 +2251,156 @@ export interface components {
             output?: components["schemas"]["ModelOutput"];
         };
         types_LookupInvocationResult: components["schemas"]["types_GetInvocationResult"];
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Profile: {
+            /** @description 档位ID */
+            profileId: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+            /** @description 该档位配置面向的费用类别；不覆盖可信op.costClass */
+            costClass: components["schemas"]["CostClass"];
+            /**
+             * @description 五档
+             * @enum {string}
+             */
+            tier: "fast" | "accurate" | "vision" | "embedding" | "rerank";
+            /** @description 第一为主其余有序备用 */
+            orderedModelIds: components["schemas"]["Identifier"][];
+            /** @description 本请求最大费用，0表示不限；不能释放或覆盖旧unknown held */
+            maximumCost: components["schemas"]["Money"];
+            /** @description 并发上限 */
+            concurrency: number;
+            /** @description site+UTC日+profile独立预算，0不限；profile已绑定costClass，background不占QA额度 */
+            dailyLimitCost: components["schemas"]["Money"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        TaskAssignment: {
+            /** @description 根唯一任务目录ID */
+            taskId: string;
+            /**
+             * @description 根唯一AI任务目录登记的默认档位；不能用输入改写目录
+             * @enum {string}
+             */
+            tier: "fast" | "accurate" | "vision" | "embedding" | "rerank";
+            /** @description 单任务覆盖模型 */
+            overrideModelId?: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+        };
+        /** @description 免费配置快照，不过滤供应方或解密凭据。 */
+        ResolveProfileResult: {
+            /** @description 真实生效档位原始快照，费用字段仅配置声明，不作额度准入 */
+            profile: components["schemas"]["Profile"];
+            /** @description 同快照真实任务赋值及版本 */
+            assignment: components["schemas"]["TaskAssignment"];
+            /** @description 先覆盖再回退的有序唯一引用，不改原始profile */
+            orderedModelIds: components["schemas"]["Identifier"][];
+            /** @description 有效目录能力；无override的rerank回退转fast/chat */
+            requiredCapabilities: string[];
+            /** @description 是否采用真实fast档位承载回退 */
+            fallback: boolean;
+        };
+        /** @description models.dev显式源身份，不是本站渠道ID；不从URL/名称推断。 */
+        ModelCatalogRef: {
+            providerId: string;
+            modelId: string;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Model: {
+            /** @description 网关模型ID */
+            modelId: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+            /** @description 供应方ID */
+            providerId: components["schemas"]["Identifier"];
+            /** @description 不可变供应方模型版本 */
+            providerModelVersion: string;
+            /** @description chat vision structured reasoning embedding rerank translation能力集合；file必须同时vision和完整输入窗口。 */
+            capabilities: string[];
+            /** @description 嵌入维度chat为0 */
+            dimension: number;
+            /**
+             * @description 预处理版本，显式默认none；不得默示归一化，算法改变必须新版本/模型ID/space
+             * @default none
+             */
+            preprocessorVersion: string;
+            /** @description 输入上限 */
+            maxInputTokens: number;
+            /** @description 输出上限 */
+            maxOutputTokens: number;
+            /**
+             * @description 模型目录来源
+             * @enum {string}
+             */
+            catalogOrigin: "bundled" | "remote" | "manual";
+            /** @description 手动覆盖目录 */
+            manualOverride: boolean;
+            /** @description 是否显示并可分配 */
+            enabled: boolean;
+            /** @description remote/bundled更新精确来源绑定，缺失旧行保留，manualOverride优先。 */
+            catalogRef?: components["schemas"]["ModelCatalogRef"];
+        };
+        types_EmbeddingSpace: components["schemas"]["EmbeddingSpace"];
+        /** @description 免费路线候选；未获取持久派发引用，不表示凭据可解密。 */
+        RouteCandidate: {
+            /** @description 同代启用模型安全元数据 */
+            model: components["schemas"]["Model"];
+            /** @description 同快照供应方配置版本 */
+            providerVersion: number;
+            /** @description active凭据版本，仅元数据引用 */
+            credentialVersion: number;
+            /** @description 生产方既有不透明完整Model规范快照hash，消费者不可自行推导 */
+            modelSnapshotHash: components["schemas"]["Hash"];
+            /** @description embedding实际五字段空间；非embedding省略 */
+            embeddingSpace?: components["schemas"]["types_EmbeddingSpace"];
+        };
+        /** @description 本地元数据eligible候选，不表示在线、费用或派发准入。 */
+        ResolveRouteResult: {
+            /** @description 与候选同一SQL快照的解析结果 */
+            resolved: components["schemas"]["ResolveProfileResult"];
+            /** @description 先完整过滤再保序取16项 */
+            candidates: components["schemas"]["RouteCandidate"][];
+            /** @description epoch/完整解析配置/全eligible候选冻结版本的规范hash；返回候选仍按保序最多16，配置资格变化接受事务严格检测 */
+            routeVersion: components["schemas"]["Hash"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        EstimateTokensResult: {
+            /** @description 保守token */
+            inputTokens: number;
+            /** @description 文本回退或fixed-model-input-window-v1保守窗口上界，非实际token数。 */
+            estimatorVersion: string;
+        };
+        /** @description 仅已发布公共导航节点，无drafthead */
+        PublicTreeNode: {
+            /** @description doc */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 根null */
+            parentId: components["schemas"]["Identifier"] | null;
+            /** @description 基准标题，localization按ID翻译 */
+            title: string;
+            /** @description 英文共用slug */
+            pathSegment: string;
+            /** @description 树顺序 */
+            orderKey: string;
+            /** @description PublishedRevisionRef */
+            reference: components["schemas"]["PublishedRevisionRef"];
+            /** @description 可见水位 */
+            visibilityRevision: components["schemas"]["Revision"];
+            /** @description content同一treeRevision快照计算的完整规范URL路径；各段已编码，不含语言/basePath/query/fragment；不可由消费方用缺失祖先拼接；恰好一个起始/，禁止空白/控制符/反斜杠/query/fragment，分段无点跳转，百分号只用于各段规范编码 */
+            canonicalPath: string;
+        };
+        /** @description 公开导航读取已发布文档树的结果 */
+        ReadPublicTreeResult: {
+            /** @description 已发布前序树 */
+            nodes: components["schemas"]["PublicTreeNode"][];
+            /** @description 树水位 */
+            treeRevision: components["schemas"]["Revision"];
+        };
+        /** @description 持久提交任务成功结果；失败不返回半成功结果 */
+        CreateJobResult: {
+            /** @description 公共 AcceptedJob 合同，遵守其字段和空值规则 */
+            job: components["schemas"]["AcceptedJob"];
+        };
     };
     responses: never;
     parameters: never;
@@ -4428,6 +4583,24 @@ export interface operations {
             };
             /** @description CONFLICT：已批准 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：公开树、模型路由、价目或jobs不可用；持久意图保留，可安全重试 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEADLINE_EXCEEDED：原批准OperationContext截止已过；不得用新请求延长 */
+            504: {
                 headers: {
                     [name: string]: unknown;
                 };

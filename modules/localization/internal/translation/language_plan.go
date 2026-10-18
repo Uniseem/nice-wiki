@@ -234,7 +234,8 @@ func EstimateLanguagePlan(ctx context.Context, op OperationContext, input Estima
 		return EstimateLanguagePlanResult{}, platform.NewError(platform.CodeInternal, false, "语言计划快照编码失败")
 	}
 	quoteHash := platform.HashBytes(snapshotRaw)
-	expiresAt := platform.Timestamp(time.Now().UTC().Add(languagePlanTTL).Format(time.RFC3339Nano))
+	expiresTime := time.Now().UTC().Add(languagePlanTTL)
+	expiresAt := platform.Timestamp(expiresTime.Format(time.RFC3339Nano))
 	result := EstimateLanguagePlanResult{
 		PlanId:            gen.TypesIdentifier(platform.NewIdentifier()),
 		DocumentCount:     checkedInt(snapshot.DocumentCount),
@@ -242,7 +243,7 @@ func EstimateLanguagePlan(ctx context.Context, op OperationContext, input Estima
 		InterfaceKeyCount: checkedInt(snapshot.InterfaceKeyCount),
 		Quote:             snapshot.Quote,
 		QuoteHash:         gen.Hash(quoteHash),
-		ExpiresAt:         gen.Timestamp(expiresAt),
+		ExpiresAt:         expiresTime,
 	}
 	err = saveLanguagePlan(ctx, op, snapshot, snapshotRaw, quoteHash, expiresAt, &result)
 	return result, err
@@ -423,17 +424,9 @@ func estimateDocumentPlan(ctx context.Context, op OperationContext, target strin
 
 func readInterfacePlan(ctx context.Context, op OperationContext, tx *sql.Tx, target string) (interfacePlanData, error) {
 	var result interfacePlanData
-	var sourceCount int
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM interface_sources`).Scan(&sourceCount); err != nil {
-		return result, language.StorageError(err)
-	}
-	source := map[string]gen.InterfaceString{}
-	if sourceCount > 0 {
-		var err error
-		source, err = interfacecatalog.SourceCatalog(ctx, tx)
-		if err != nil {
-			return result, err
-		}
+	source, err := interfacecatalog.SourceCatalog(ctx, tx)
+	if err != nil {
+		return result, err
 	}
 	keys := make([]string, 0, len(source))
 	for key := range source {
@@ -1016,5 +1009,5 @@ func planJobType(kind string) string {
 }
 
 func planJobIdempotencyKey(planID, kind, documentID string) string {
-	return "lp." + platform.HashBytes([]byte(planID+"\x00"+kind+"\x00"+documentID))[:63]
+	return "lp." + platform.HashBytes([]byte(planID + "\x00" + kind + "\x00" + documentID))[:63]
 }

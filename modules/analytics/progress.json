@@ -2,7 +2,7 @@
   "version": 1,
   "module": "analytics",
   "phase": "implementation",
-  "contractSha256": "3b7531432987db2d63d777da77d8683a9a8588d0607038117d423fd9d9219bb4",
+  "contractSha256": "7a22593a3e9b5307a885ab8666adf5e6b813556d645aaade187c7774a68b43a5",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "单轮 analytics 费用 V2 安全统计消费小闭环；未 push。",
   "branch": "codex/analytics-20261018-r9",

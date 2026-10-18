@@ -1946,7 +1946,7 @@
           "steps": [
             "从可信WithUsageGateway读取生成端口；未装配失败关闭。固定SiteID/DataEpoch须与可信op和输入一致，op必须为analytics纯服务；不创建或续用用户证明。",
             "从原afterRevision起点，以limit=100调用model-gateway:readUsageStatisticsPage；首请求watermark=0时采用首响应上界，之后每页固定该watermark与原afterRevision，仅续原nextCursor。总调用60s、单页2.5s，context继续传给HTTP。 累计每页原始HTTP JSON字节数，完整范围最多32MiB，单页最多2MiB；超限返回BUDGET_EXCEEDED并丢弃全部页，不截断或返回部分范围。",
-            "readUsageGatewayPage先对完整原JSON仅删pageHash后CanonicalJSON作SHA256核原摘要，再以生成的自部署OpenAPI x-runtime-payload-schemas回调一次校验生产方V2 schema；严格解码拒未知字段/额外JSON，并核本地模型canonical与完整原页一致，不转换原时间或补字段。",
+            "readUsageGatewayPage在HTTP响应边界先用生成的OpenAPI x-runtime-payload-schemas回调一次校验生产方V2 schema，再对完整原JSON仅删pageHash后CanonicalJSON作SHA256核原摘要；严格解码拒未知字段/额外JSON，并核本地模型canonical与完整原页一致，不转换原时间或补字段。",
             "validateUsageGatewayPage核schemaVersion=2、两数组非null且合计不超100、feeCoverage=posted-and-inflight及completeFeeCoverage=true；跨页watermark固定、throughRevision单调不越界，两类事实按changeRevision共享时间线，不重复、不倒退、不漏分页进度。",
             "原账项独立ledgerRevision、原owner/site/sourceDataEpoch/root/op/class/provider/model/金额状态/原时间/captureKind和全部观察事实无损保留。unknown不补0，原sourceDataEpoch不改当前代次；网关已认证恢复投影的历史来源代次允许保留。",
             "保留每页原hash/游标和完整changes/observations；仅nextCursor为空且throughRevision等于watermark才返回完整范围。游标重复、schema/hash/epoch/上界/网络错误均返回零值，无投影写入和部分激活；afterRevision非零只表示增量范围完整，不能冒完整全站基线。"
@@ -2447,9 +2447,9 @@
           "purpose": "消费安全审计和费用事件",
           "steps": [
             "仅接受model-gateway invocation.settled/invocation.reconciled v1；核事件/载荷dataEpoch、subject=invocationId、settled entryId及reconciled proofKind原引用，事件actualCost不作为账项真相。",
-            "FetchUsagePage从原起点收齐固定V2上界并核每页pageHash、完整来源闭包与32MiB总预算；settled必须找到同entry原事实，not_charged必须找到同attempt原观察，引用/来源epoch不符或未收齐均不确认。",
+            "FetchUsagePage从原起点收齐固定V2上界并核每页pageHash、完整来源闭包与32MiB总预算；未收齐不得进入投影，不确认。",
             "beginWrite后以inbox.ClaimInboxBeforeWrite作为首项写入，同eventId+payloadHash幂等；同ID异hash严格隔离，低修订跳过，旧dataEpoch拒绝。",
-            "Claim成功后在同一事务调用ProjectUsageTx持久完整changes/observations与真实watermark，更新V2事件水位后提交；提交成功才返回accepted=true，由analytics.ConsumeEvents确认。失败返回错误等待重投，不公开半页或猜金额。"
+            "Claim成功后在同一事务核事件所引账项或not_charged原attempt存在且来源一致，再调用ProjectUsageTx持久完整changes/observations与真实watermark，更新V2事件水位后提交；提交成功才返回accepted=true，由analytics.ConsumeEvents确认。引用不符或失败返回错误等待重投，不公开半页或猜金额。"
           ],
           "errors": [
             {

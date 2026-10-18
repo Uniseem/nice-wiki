@@ -2,7 +2,7 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "93fd98f68b46bfe243e858c58bb2e87010ed3112b8ccbc293897fe11e06bc05d",
+  "contractSha256": "ef87e3826504afbb80645153c513507a86afcd297d13522a6a094a44095049f6",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18 localization 免费估价与明确批准：源码候选 blocked 待 GitLab",
   "branch": "codex/localization-20261018-r9",
