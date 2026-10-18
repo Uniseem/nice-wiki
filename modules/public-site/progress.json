@@ -2,12 +2,12 @@
   "version": 1,
   "module": "public-site",
   "phase": "implementation",
-  "contractSha256": "8290cb801bd06127a8811c324f825e9b86d843ddb0f65373a1e56386624090a8",
+  "contractSha256": "cf2a795c2f8e887c74a55558821685c937309a61b9edde3f5ec22ba0066ca2e8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "public-site.BuildTOC（pipeline 53 记 verified；BuildApplication 仍 blocked）",
-  "branch": "codex/public-site-20261017-r6",
-  "baseCommit": "9a10eff89c91095670f7d336e84e7a010348adc6",
-  "deliveryCommit": "7cb0bb9562bc7e332e120eaaed44268a38df3b5a",
+  "assignedSession": "public-site集中公开导航/渲染/索引源码批次；继续本域后续入口",
+  "branch": "codex/public-site-20261018-bulk",
+  "baseCommit": "acc9bbcc1fe0cfbeae91d3c2835b09cea5cbe9bd",
+  "deliveryCommit": "32ab806",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/public-site/internal/locale.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/authority.go",
@@ -52,13 +52,13 @@
     },
     {
       "path": "modules/public-site/internal/sanitize.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/toc.go",
@@ -73,12 +73,12 @@
     {
       "path": "modules/public-site/internal/links.go",
       "state": "blocked",
-      "implementationCommit": "24ff6942329d68e0ff81d7f71d59e9b7e499c228",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": "ResolvePublishedLink 已由 pipeline 48 记 verified。RewriteInternalLinks 仍未实现，整文件保持 blocked。"
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": "同文件的 RewriteInternalLinks 仍未实现，整文件不能记 implemented。"
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/media_client.go",
@@ -92,23 +92,23 @@
     },
     {
       "path": "modules/public-site/internal/navigation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/breadcrumbs.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/seo.go",
@@ -122,43 +122,43 @@
     },
     {
       "path": "modules/public-site/internal/hreflang.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/metadata.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/html.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/cache_key.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/cache_store.go",
@@ -212,13 +212,13 @@
     },
     {
       "path": "modules/public-site/internal/http_navigation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/http_markdown.go",
@@ -232,53 +232,53 @@
     },
     {
       "path": "modules/public-site/internal/http_robots.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/llms.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/http_llms.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/sitemap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/http_sitemap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/preview.go",
@@ -382,73 +382,73 @@
     },
     {
       "path": "modules/public-site/internal/http_root.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/tiptap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/tiptap_html.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/tiptap_markdown.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/hero.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/announcement.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/navigation_neighbors.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/http_errors.go",
@@ -482,23 +482,23 @@
     },
     {
       "path": "modules/public-site/internal/http_llms_root.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/internal/http_language_sitemap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与编译检查。"
     },
     {
       "path": "modules/public-site/config/defaults.json",
@@ -736,13 +736,13 @@
     {
       "id": "public-site.SelectLocale",
       "path": "modules/public-site/internal/locale.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.CheckPublication",
@@ -769,13 +769,13 @@
     {
       "id": "public-site.SanitizeHTML",
       "path": "modules/public-site/internal/sanitize.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.BuildTOC",
@@ -791,13 +791,13 @@
     {
       "id": "public-site.RewriteInternalLinks",
       "path": "modules/public-site/internal/links.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.ResolvePublicMedia",
@@ -813,24 +813,24 @@
     {
       "id": "public-site.BuildNavigation",
       "path": "modules/public-site/internal/navigation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.BuildBreadcrumbs",
       "path": "modules/public-site/internal/breadcrumbs.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.BuildCanonical",
@@ -846,46 +846,46 @@
     {
       "id": "public-site.BuildHreflang",
       "path": "modules/public-site/internal/hreflang.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.BuildSEOMetadata",
       "path": "modules/public-site/internal/metadata.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.ComposeHTML",
       "path": "modules/public-site/internal/html.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.BuildCacheKey",
       "path": "modules/public-site/internal/cache_key.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.ReadRenderCache",
@@ -956,13 +956,13 @@
     {
       "id": "public-site.HandleNavigation",
       "path": "modules/public-site/internal/http_navigation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.HandleMarkdown",
@@ -978,35 +978,35 @@
     {
       "id": "public-site.HandleRobots",
       "path": "modules/public-site/internal/http_robots.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.BuildLLMsIndex",
       "path": "modules/public-site/internal/llms.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.HandleLLMsIndex",
       "path": "modules/public-site/internal/http_llms.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.HandleLLMsFull",
@@ -1022,35 +1022,35 @@
     {
       "id": "public-site.BuildSitemapEntries",
       "path": "modules/public-site/internal/sitemap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.HandleSitemapIndex",
       "path": "modules/public-site/internal/http_sitemap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.HandleSitemapShard",
       "path": "modules/public-site/internal/http_sitemap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.IssuePreviewToken",
@@ -1198,79 +1198,79 @@
     {
       "id": "public-site.HandleRootRedirect",
       "path": "modules/public-site/internal/http_root.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.ParseTiptapDocument",
       "path": "modules/public-site/internal/tiptap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.RenderTiptapHTML",
       "path": "modules/public-site/internal/tiptap_html.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.RenderTiptapMarkdown",
       "path": "modules/public-site/internal/tiptap_markdown.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.RenderHero",
       "path": "modules/public-site/internal/hero.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.RenderAnnouncement",
       "path": "modules/public-site/internal/announcement.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.BuildPreviousNext",
       "path": "modules/public-site/internal/navigation_neighbors.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.RenderNotFound",
@@ -1308,24 +1308,24 @@
     {
       "id": "public-site.HandleLLMsRoot",
       "path": "modules/public-site/internal/http_llms_root.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.HandleLanguageSitemap",
       "path": "modules/public-site/internal/http_language_sitemap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "32ab806",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.main",
@@ -1436,7 +1436,172 @@
         "evidence": "2026-10-17第二轮根统一自部署GitLab CI pipeline 48，候选24ff6942329d68e0ff81d7f71d59e9b7e499c228：生成/格式/重复生成job212补丁0字节，三个并行编译分片job213/214/215全部success，覆盖本次新增的 data-protection 与 public-site 以及既有 Go 模块的 -mod=readonly build/vet/gofmt，foundation 分片运行完整 make check。pipeline 47 在 a50f4c4315f40c36b21ea45b7026236513ed0c80 编译通过，生成补丁 10300 字节已回传为父提交。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
       },
       "blocker": null
+    },
+    {
+      "id": "public-site.safeLink",
+      "path": "modules/public-site/internal/sanitize.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.navigationOrder",
+      "path": "modules/public-site/internal/navigation.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.readIndexingPolicy",
+      "path": "modules/public-site/internal/http_robots.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.markdownLabel",
+      "path": "modules/public-site/internal/llms.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.xmlText",
+      "path": "modules/public-site/internal/http_sitemap.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.sitemapIndexXML",
+      "path": "modules/public-site/internal/http_sitemap.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.sitemapURLSetXML",
+      "path": "modules/public-site/internal/http_sitemap.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.attrString",
+      "path": "modules/public-site/internal/tiptap.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.attrInt",
+      "path": "modules/public-site/internal/tiptap.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.nodeText",
+      "path": "modules/public-site/internal/tiptap.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.assetFrom",
+      "path": "modules/public-site/internal/tiptap.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.markdownEscape",
+      "path": "modules/public-site/internal/tiptap_markdown.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.markdownDestination",
+      "path": "modules/public-site/internal/tiptap_markdown.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.codeFence",
+      "path": "modules/public-site/internal/tiptap_markdown.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.markHref",
+      "path": "modules/public-site/internal/tiptap_markdown.go",
+      "state": "blocked",
+      "implementationCommit": "32ab806",
+      "verification": {
+        "state": "not_run",
+        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     }
   ],
-  "rule": "本轮只补首页公开链接解析producer契约，业务函数/文件及生成产物仍planned；无Go实现/编译、行为验收或部署，不把根14既有模块通过当本域可运行。"
+  "rule": "先集中源码再统一GitLab检查与双推；未编译不提前记implemented/verified；accepted为零。"
 }

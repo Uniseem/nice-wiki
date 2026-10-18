@@ -1,10 +1,9 @@
 # 公开交付当前进度
 
-更新：2026-10-17。`BuildTOC` 已实现，尚未跑 GitLab CI。accepted 为 0。未做业务验收，未部署。
+更新：2026-10-18。用户授权先集中源码至全仓75%，再统一GitLab检查与双推。基线acc9bbc，独占分支codex/public-site-20261018-bulk，源码32ab806。
 
-- `main`、`ResolvePublishedLink`、`BuildCanonical`、`Serve`、`Shutdown`、`Health`、`Ready` 记 verified。`BuildCanonical` 只拼接调用方传入的 `publicBaseURL` 与规范路径。
-- `BuildTOC` 记 implemented，verification 为 not_run。H1 不进目录；H2–H4 按原顺序保留全文，锚点使用稳定 blockId。maxDepth 不是 4，或级别不是 1–4，返回 `INVALID_TOC_DEPTH`。重复 blockId 返回 `INTEGRITY_ERROR`。
-- `BuildApplication` 在缺登记操作、journal、schema 迁移或 activation 回执时失败关闭，不返回可运行应用，保持 blocked。`RewriteInternalLinks` 仍未实现，链接文件保持 blocked。
-- 依赖未知为 503。水位变化使用公共错误表 `STALE_RESULT`/409。
+本批交付既有主要函数和必要参考助手，均blocked（待统一GitLab生成与编译）；未提前记implemented/verified。既有未改verified保留，accepted为0，未验收或部署。精确清单见docs/handoff.md。
 
-下一项：实现 `public-site.BuildBreadcrumbs`（`modules/public-site/internal/breadcrumbs.go`）。先读合同步骤、错误码和 types.json。不要改 `BuildApplication`，不要让它返回可运行应用。
+语言选择、权威导航/邻文、SEO/hreflang、净化、缓存键、hero/公告、公开索引、Tiptap生产方schema及双渲染已有源码。BuildApplication仍失败关闭。复杂译文映射仍partial，不计完整装配。
+
+chroma v2.20.0为ADR0005既有MIT项目；require已登记，go.sum由根CI通过go命令生成。PayloadValidationSpec等待最终make gen。
