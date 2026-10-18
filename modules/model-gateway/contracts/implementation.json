@@ -4757,10 +4757,10 @@
             "model-gateway.ReplayExecutionReceipt",
             "model-gateway.SaveExecutionReceipt",
             "model-gateway.SaveInvocationEvent",
-            "model-gateway.SelectCandidates",
             "model-gateway.StartAcceptedInvocation",
             "model-gateway.ValidateInvocationPayload",
-            "model-gateway.ValidateInputModel"
+            "model-gateway.ValidateInputModel",
+            "model-gateway.ResolveRoute"
           ],
           "resources": [],
           "contract": "binding"
@@ -5311,155 +5311,6 @@
             "model-gateway.ReadReservation",
             "model-gateway.SaveAttemptRecord",
             "model-gateway.SaveInvocationRecord",
-            "model-gateway.SaveExecutionReceipt",
-            "model-gateway.ExecutionTransaction.Close",
-            "model-gateway.ExecutionTransaction.Commit"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "model-gateway.ExtendReservation",
-          "name": "ExtendReservation",
-          "signature": "func ExtendReservation(ctx context.Context, op OperationContext, input ExtendReservationInput) (ExtendReservationResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ExtendReservationInput",
-              "description": "封闭业务输入；逐字段见types $defs/ExtendReservationInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ExtendReservationResult",
-              "description": "成功结果；逐字段见types $defs/ExtendReservationResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "预留额不足时扩展",
-          "steps": [
-            "只允许当前attempt已知价held且未取消，核expectedVersion",
-            "相同短写事务重核档位请求/日及QA额外范围额度，增加held与maximum且版本递增",
-            "同输入回执不重复扩大；旧未知尝试不能转移到新根或扩大其他attempt"
-          ],
-          "errors": [
-            {
-              "code": "BUDGET_EXCEEDED",
-              "httpStatus": 429,
-              "meaning": "MG费用预留触及金额额度，新派发拒绝。",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "幂等键不同请求、状态迁移或唯一约束冲突，返回原状态证据。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "GONE",
-              "httpStatus": 410,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "只增加额度占用；失败不得继续超额输出"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "model-gateway.BeginExecution",
-            "model-gateway.ReplayExecutionReceipt",
-            "model-gateway.ReadReservation",
-            "model-gateway.ReadInvocationRecord",
-            "model-gateway.CheckFeeBudgets",
             "model-gateway.SaveExecutionReceipt",
             "model-gateway.ExecutionTransaction.Close",
             "model-gateway.ExecutionTransaction.Commit"
@@ -10408,157 +10259,6 @@
             "model-gateway.PutFeeBudgetPolicy",
             "model-gateway.GetPriceBook"
           ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/model-gateway/internal/security/redact.go",
-      "kind": "handwritten",
-      "purpose": "生成最小运行日志所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "model-gateway.RedactLog",
-          "name": "RedactLog",
-          "signature": "func RedactLog(ctx context.Context, op OperationContext, input RedactLogInput) (RedactLogResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "RedactLogInput",
-              "description": "封闭业务输入；逐字段见types $defs/RedactLogInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "RedactLogResult",
-              "description": "成功结果；逐字段见types $defs/RedactLogResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "生成最小运行日志",
-          "steps": [
-            "仅允许invocationId/rootOperationId/state/code/durationMs/providerId/modelId，其余字段直接删除",
-            "ID用公共Identifier、状态/公共错误码白名单、非负durationMs检查，重复或非法安全字段失败",
-            "不返回secret/header/prompt/content或任意供应方错误正文"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "GONE",
-              "httpStatus": 410,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "BUDGET_EXCEEDED",
-              "httpStatus": 429,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "本函数权威、费用、持久证据或状态约束不满足，失败关闭并保留原收费事实。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -16717,7 +16417,8 @@
             "model-gateway.BuildApplication",
             "model-gateway.Serve",
             "model-gateway.Shutdown",
-            "platform.RunService"
+            "platform.RunService",
+            "model-gateway.NewRuntimeClient"
           ],
           "resources": [],
           "contract": "binding"
@@ -16834,7 +16535,10 @@
             "model-gateway.newRuntimeClient",
             "model-gateway.validateConfig",
             "model-gateway.NewCatalogRefreshHandlers",
-            "model-gateway.ReadInitializationState"
+            "model-gateway.ReadInitializationState",
+            "model-gateway.RefreshModelCatalog",
+            "model-gateway.Application.ConfigureBusiness",
+            "model-gateway.Application.BackgroundTasks"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -22522,7 +22226,8 @@
           "idempotency": "沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。",
           "dependencies": [
             "model-gateway.ConsumeProviderFrame",
-            "model-gateway.ParseRerankResponse"
+            "model-gateway.ParseRerankResponse",
+            "model-gateway.providerIdleReader.Read"
           ],
           "resources": [],
           "contract": "reference"
@@ -23194,7 +22899,8 @@
             "model-gateway.CurrentStore",
             "model-gateway.ExecutionDependencies",
             "platform.NewEventPublisher",
-            "platform.RunRelayBatch"
+            "platform.RunRelayBatch",
+            "jobs:publishEvent"
           ],
           "resources": [],
           "contract": "reference"

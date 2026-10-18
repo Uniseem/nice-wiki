@@ -3884,11 +3884,6 @@
       "purpose": "本域主密钥及供应方固定路线的安全映射，不访问其他域私有表。"
     },
     {
-      "path": "modules/model-gateway/internal/security/redact.go",
-      "kind": "handwritten",
-      "purpose": "生成最小运行日志所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
-    },
-    {
       "path": "modules/model-gateway/internal/stream/store.go",
       "kind": "handwritten",
       "purpose": "持久保存流序列所属未来实现文件；Go包，禁止直接访问其他域私有存储。"

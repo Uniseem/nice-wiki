@@ -1,3 +1,7 @@
+# 网关集成修正待GitLab
+
+pipeline99前端四套及content编译通过；模型Go因转发依赖未登记缺生成JobsClient，完整检查缺9处依赖映射。现补真实转发/任务入口及动态Body reader依赖，Create通过既有ResolveRoute；删除确无真实调用的2个参考助手ExtendReservation/RedactLog，不新增无意义调用。尚待重跑，完整服务与业务验收未齐。
+
 # 原完整结果只读窄修
 
 源码2b4c261：GetInvocationResult可选output，仅原resultAttemptId对应持久完整有效evidence与record.Output摘要全等才返回；不以费用状态猜，不造SSE/模型调用。winner缺证据Integrity，不伪404诱发重算。MarkUnknown不回退已终态结果，引用释放还查未解决price_unknown账单及未reconciled用量冲突，未知费用不退休原密钥。3旧函数重新blocked待CI，无新函数/迁移。

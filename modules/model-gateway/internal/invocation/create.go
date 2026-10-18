@@ -8,6 +8,7 @@ import (
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/catalog"
+	"nice-wiki/modules/model-gateway/internal/routing"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	"nice-wiki/modules/model-gateway/internal/provider"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
@@ -87,7 +88,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 	} else if input.AdmissionPermit != nil {
 		return result, platform.NewError(platform.CodeForbidden, false, "后台费用不能冒用QA访客准入")
 	}
-	route, err := catalog.SelectCandidates(ctx, op, catalog.ResolveRouteInput{TaskId: input.TaskId, CostClass: op.CostClass})
+	route, err := routing.ResolveRoute(ctx, op, routing.ResolveRouteInput{TaskId: input.TaskId, CostClass: op.CostClass})
 	if err != nil {
 		return result, err
 	}
