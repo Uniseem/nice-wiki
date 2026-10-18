@@ -192,7 +192,93 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "memory.All",
+            "memory.Control",
+            "memory.OpenStore"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.OpenStore",
+          "name": "OpenStore",
+          "signature": "func OpenStore(ctx context.Context, dataDirectory string, dataEpoch platform.Identifier) (*Store, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 OpenStore；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.All",
             "memory.Control"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.validateEntries",
+          "name": "validateEntries",
+          "signature": "func validateEntries(ctx context.Context,s *Store,siteID platform.Identifier)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 validateEntries；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.ReadEntryObject"
           ],
           "resources": [],
           "contract": "reference"
@@ -207,41 +293,9 @@
         {
           "id": "memory.ValidateEntry",
           "name": "ValidateEntry",
-          "signature": "func ValidateEntry(ctx context.Context, op OperationContext, input ValidateEntryInput) (ValidateEntryResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ValidateEntryInput",
-              "description": "封闭业务输入；逐字段见types $defs/ValidateEntryInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ValidateEntryResult",
-              "description": "成功结果；逐字段见types $defs/ValidateEntryResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func ValidateEntry(e gen.MemoryEntry)(gen.MemoryEntry,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "验证记忆内容与预算",
           "steps": [
             "1 NFC/LF/frontmatter合法，正文≤entry.maximumBytes默认1536",
@@ -298,6 +352,50 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "memory.NormalizeLineEndings"
+          ],
+          "resources": [
+            "参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ContainsPrivateMaterial",
+          "name": "ContainsPrivateMaterial",
+          "signature": "func ContainsPrivateMaterial(text string)bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ContainsPrivateMaterial；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -414,7 +512,11 @@
           "dependencies": [
             "identity:checkAuthorization",
             "memory.ValidateEntry",
-            "memory.ValidateProjectedBudgets"
+            "memory.ValidateProjectedBudgets",
+            "memory.PersistVersion",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DBError"
           ],
           "resources": [],
           "contract": "binding"
@@ -523,7 +625,11 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "memory.ValidateEntry",
-            "memory.ValidateProjectedBudgets"
+            "memory.ValidateProjectedBudgets",
+            "memory.PersistVersion",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.ReadEntryObject"
           ],
           "resources": [],
           "contract": "binding"
@@ -630,7 +736,12 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.PersistVersion",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.ReadEntryObject"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -738,10 +849,61 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "memory.ValidateEntry",
-            "memory.ValidateProjectedBudgets"
+            "memory.ValidateProjectedBudgets",
+            "memory.PersistVersion",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.ReadEntryObject"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "memory.PersistVersion",
+          "name": "PersistVersion",
+          "signature": "func PersistVersion(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx,op OperationContext,e gen.MemoryEntry,previous *int)(gen.MemoryEntry,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 PersistVersion；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.ValidateEntry",
+            "memory.ValidateProjectedBudgets",
+            "memory.EmitContextChanged",
+            "memory.SaveEntryObject",
+            "memory.InsertEntryVersion",
+            "memory.Emit"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -846,7 +1008,11 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.ReadSnapshot",
+            "memory.RequireManager",
+            "memory.ReadEntryObject"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -944,9 +1110,55 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.sameFilter",
+            "memory.ReadSnapshot",
+            "memory.RequireManager",
+            "memory.DBError",
+            "memory.ReadEntryObject"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "memory.sameFilter",
+          "name": "sameFilter",
+          "signature": "func sameFilter(a,b *string)bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 sameFilter；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1049,7 +1261,12 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.ReadSnapshot",
+            "memory.RequireManager",
+            "memory.DBError",
+            "memory.ReadEntryObject"
+          ],
           "resources": [],
           "contract": "binding"
         }
@@ -1169,7 +1386,14 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "memory.ValidateProjectedBudgets"
+            "memory.ValidateProjectedBudgets",
+            "memory.EmitContextChanged",
+            "memory.advance",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DBError",
+            "memory.ValidateTask",
+            "memory.ReadEntryObject"
           ],
           "resources": [],
           "contract": "binding"
@@ -1276,9 +1500,57 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.EmitContextChanged",
+            "memory.advance",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DBError"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "memory.advance",
+          "name": "advance",
+          "signature": "func advance(ctx context.Context,tx *sql.Tx)(int,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 advance；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1390,7 +1662,15 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "memory.ValidateProjectedBudgets"
+            "memory.ValidateProjectedBudgets",
+            "memory.ReadTaskBudget",
+            "memory.EmitContextChanged",
+            "memory.ReadMappings",
+            "memory.advance",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DBError",
+            "memory.ValidateTask"
           ],
           "resources": [],
           "contract": "binding"
@@ -1496,7 +1776,13 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.ReadMappings",
+            "memory.ReadSnapshot",
+            "memory.RequireManager",
+            "memory.DBError",
+            "memory.ValidateTask"
+          ],
           "resources": [],
           "contract": "binding"
         }
@@ -1610,7 +1896,13 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "memory.ValidateProjectedBudgets"
+            "memory.ValidateProjectedBudgets",
+            "memory.ReadTaskBudget",
+            "memory.EmitContextChanged",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DBError",
+            "memory.ValidateTask"
           ],
           "resources": [],
           "contract": "binding"
@@ -1618,41 +1910,9 @@
         {
           "id": "memory.ReadTaskBudget",
           "name": "ReadTaskBudget",
-          "signature": "func ReadTaskBudget(ctx context.Context, op OperationContext, input ReadTaskBudgetInput) (ReadTaskBudgetResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ReadTaskBudgetInput",
-              "description": "封闭业务输入；逐字段见types $defs/ReadTaskBudgetInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ReadTaskBudgetResult",
-              "description": "成功结果；逐字段见types $defs/ReadTaskBudgetResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func ReadTaskBudget(ctx context.Context,q memoryruntime.Queryer,site,task string)(gen.TaskBudget,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "读取注入预算",
           "steps": [
             "1 验证taskId",
@@ -1709,8 +1969,12 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [
+            "参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。"
+          ],
           "contract": "reference"
         },
         {
@@ -1783,7 +2047,9 @@
           "concurrency": "只读快照",
           "idempotency": "只读",
           "dependencies": [
-            "memory.ReadTaskBudget"
+            "memory.ReadTaskBudget",
+            "memory.ReadSnapshot",
+            "memory.RequireManager"
           ],
           "resources": [],
           "contract": "binding"
@@ -1798,41 +2064,9 @@
         {
           "id": "memory.SelectContextEntries",
           "name": "SelectContextEntries",
-          "signature": "func SelectContextEntries(ctx context.Context, op OperationContext, input SelectContextEntriesInput) (SelectContextEntriesResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "SelectContextEntriesInput",
-              "description": "封闭业务输入；逐字段见types $defs/SelectContextEntriesInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "SelectContextEntriesResult",
-              "description": "成功结果；逐字段见types $defs/SelectContextEntriesResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func SelectContextEntries(entries []gen.MemoryEntry,mappings []gen.TaskMapping,task,language string)SelectContextEntriesResult",
+          "inputs": [],
+          "outputs": [],
           "purpose": "按范围确定注入候选",
           "steps": [
             "1 固定mappingRevision读取enabled",
@@ -1896,13 +2130,15 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [],
-          "resources": [],
+          "resources": [
+            "参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。"
+          ],
           "contract": "reference"
         },
         {
           "id": "memory.ApplyContextBudget",
           "name": "ApplyContextBudget",
-          "signature": "func ApplyContextBudget(ctx context.Context, op OperationContext, input ApplyContextBudgetInput) (ApplyContextBudgetResult, error)",
+          "signature": "func ApplyContextBudget(ctx context.Context,op OperationContext,input ApplyContextBudgetInput)(ApplyContextBudgetResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -1993,7 +2229,51 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.RenderText"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ReadMappings",
+          "name": "ReadMappings",
+          "signature": "func ReadMappings(ctx context.Context,q memoryruntime.Queryer,site string)([]gen.TaskMapping,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ReadMappings；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -2007,7 +2287,7 @@
         {
           "id": "memory.RenderContext",
           "name": "RenderContext",
-          "signature": "func RenderContext(ctx context.Context, op OperationContext, input RenderContextInput) (RenderContextResult, error)",
+          "signature": "func RenderContext(ctx context.Context,op OperationContext,input RenderContextInput)(RenderContextResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -2104,7 +2384,52 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.ApplyContextBudget",
+            "memory.RenderText"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.RenderText",
+          "name": "RenderText",
+          "signature": "func RenderText(entries []gen.MemoryEntry)string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 RenderText；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.Write"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -2221,10 +2546,56 @@
             "memory.SelectContextEntries",
             "memory.ReadTaskBudget",
             "memory.ApplyContextBudget",
-            "memory.RenderContext"
+            "memory.RenderContext",
+            "memory.ReadMappings",
+            "memory.allowedCaller",
+            "memory.ReadSnapshot",
+            "memory.DBError",
+            "memory.ReadAllEntries",
+            "memory.SaveContextManifest"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "memory.allowedCaller",
+          "name": "allowedCaller",
+          "signature": "func allowedCaller(caller,task string)bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 allowedCaller；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2327,7 +2698,11 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.ReadSnapshot",
+            "memory.RequireManager",
+            "memory.DBError"
+          ],
           "resources": [],
           "contract": "binding"
         }
@@ -2380,6 +2755,7 @@
           "steps": [
             "1 仅memory.manage即可使用已配置助手，不要求model.manage/superadmin且不修改渠道/档位/任务模型分配",
             "2 根memory.assistant映射读取已配置accurate模型，未配置明确禁调用；固定entry versions/memoryGeneration",
+            "2a 按可信admin-probe读取readProfiles，以TaskAssignment.tier匹配唯一且已配置模型列表的实际profileId，不以tier伪造ID；清原portal proof，以memory服务身份保留root/site/epoch免费读取。",
             "3 输入≤16384bytes，readonly只建议人工直接编辑",
             "4 可信admin-probe根任务排队，统一MG执行及计费",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
@@ -2437,7 +2813,16 @@
           "dependencies": [
             "identity:checkAuthorization",
             "jobs:createJob",
-            "model-gateway:readTaskAssignments"
+            "model-gateway:readTaskAssignments",
+            "model-gateway:readProfiles",
+            "memory.BuildAssistantPrompt",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DBError",
+            "memory.ReadEntryObject",
+            "memory.SelectAssistantProfile",
+            "memory.SaveAssistantInput",
+            "memory.ReplayReceipt"
           ],
           "resources": [],
           "contract": "binding"
@@ -2452,7 +2837,7 @@
         {
           "id": "memory.BuildAssistantPrompt",
           "name": "BuildAssistantPrompt",
-          "signature": "func BuildAssistantPrompt(ctx context.Context, op OperationContext, input BuildAssistantPromptInput) (BuildAssistantPromptResult, error)",
+          "signature": "func BuildAssistantPrompt(ctx context.Context,op OperationContext,input BuildAssistantPromptInput)(BuildAssistantPromptResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -2594,6 +2979,7 @@
           ],
           "purpose": "通过MG产生候选提议",
           "steps": [
+            "0 必须受信job绑定runId/inputRef SHA256/rootOperationId/dataEpoch/jobId；模型前及提交前锁外CheckLease，租约未知失败关闭；同op+assistant步骤复用MG持久结果不重新收费。",
             "1 lease/cancel检查",
             "2 根memory.assistant accurate档max1500output token，可信admin-probe根",
             "3 严格解析new/update/delete/noop候选和readonly规则",
@@ -2654,10 +3040,55 @@
             "memory.InvokeModel",
             "memory.BuildAssistantPrompt",
             "memory.ValidateProposal",
-            "memory.CommitAssistantProposals"
+            "memory.CommitAssistantProposals",
+            "memory.CheckJobBinding",
+            "memory.ValidateForeign",
+            "memory.CurrentAssistantState"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "memory.CheckJobBinding",
+          "name": "CheckJobBinding",
+          "signature": "func CheckJobBinding(ctx context.Context,op OperationContext,runID string,job platform.JobExecutionInput)(memoryruntime.AssistantInputRecord,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 CheckJobBinding；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.AssistantInput"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2669,7 +3100,7 @@
         {
           "id": "memory.ValidateProposal",
           "name": "ValidateProposal",
-          "signature": "func ValidateProposal(ctx context.Context, op OperationContext, input ValidateProposalInput) (ValidateProposalResult, error)",
+          "signature": "func ValidateProposal(ctx context.Context,op OperationContext,input ValidateProposalInput)(ValidateProposalResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -2709,6 +3140,7 @@
             "1 kind对应字段required且其他字段禁止",
             "2 entry_update/archive必须目标及旧version",
             "3 glossary必须目标语言/术语/旧glossaryGeneration",
+            "3a glossary额外强制sourceLanguage，非glossary禁止；payloadHash为移除payloadHash后完整pending候选及sourceGeneration的canonical JSON SHA256。",
             "4 无批准人允许pending",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
@@ -2766,7 +3198,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.ContainsPrivateMaterial"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -2817,6 +3251,7 @@
           ],
           "purpose": "提交候选防旧覆盖",
           "steps": [
+            "0 同RunAssistant受信JobExecutionInput绑定且提交前锁外CheckLease；原子判断运行取消、输入代数及全部目标版本。",
             "1 当前memoryGeneration一致",
             "2 每提议目标expectedVersion仍一致",
             "3 不一致run superseded",
@@ -2873,7 +3308,12 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.CheckJobBinding",
+            "memory.Write",
+            "memory.DBError",
+            "memory.ReadEntryObject"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -2978,7 +3418,11 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.ReadSnapshot",
+            "memory.RequireManager",
+            "memory.DBError"
+          ],
           "resources": [],
           "contract": "binding"
         }
@@ -3095,7 +3539,13 @@
             "identity:checkAuthorization",
             "memory.ValidateProposal",
             "memory.ApplyEntryProposal",
-            "memory.EnqueueGlossaryCommand"
+            "memory.EnqueueGlossaryCommand",
+            "memory.ReadProposal",
+            "memory.SaveProposal",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DBError",
+            "memory.Emit"
           ],
           "resources": [],
           "contract": "binding"
@@ -3202,9 +3652,97 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DBError"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "memory.ReadProposal",
+          "name": "ReadProposal",
+          "signature": "func ReadProposal(ctx context.Context,q memoryruntime.Queryer,site,id string)(gen.MemoryProposal,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ReadProposal；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.SaveProposal",
+          "name": "SaveProposal",
+          "signature": "func SaveProposal(ctx context.Context,tx *sql.Tx,op OperationContext,p gen.MemoryProposal)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 SaveProposal；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3216,45 +3754,14 @@
         {
           "id": "memory.ApplyEntryProposal",
           "name": "ApplyEntryProposal",
-          "signature": "func ApplyEntryProposal(ctx context.Context, op OperationContext, input ApplyEntryProposalInput) (ApplyEntryProposalResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ApplyEntryProposalInput",
-              "description": "封闭业务输入；逐字段见types $defs/ApplyEntryProposalInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ApplyEntryProposalResult",
-              "description": "成功结果；逐字段见types $defs/ApplyEntryProposalResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func ApplyEntryProposal(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx,op OperationContext,p gen.MemoryProposal,expected int)(ApplyEntryProposalResult,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "应用批准的记忆内容",
           "steps": [
             "1 必须已人工批准且hash一致",
             "2 readonly=true的助手候选禁止应用仅建议直接人工编辑",
+            "2a entry_create默认description=proposedTitle、maximumBytes=1536、priority=100、tags=[]、readonly=false、source=assistant、autoUpdateEnabled=false，新entryId在批准事务生成；entry_update保留其余元数据。",
             "3 CAS旧entry version并投影全部映射任务预算",
             "4 原子权威Markdown新对象+manifest与revision索引提交，proposal applied及context.changed同事务。",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
@@ -3316,9 +3823,15 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "memory.ValidateProjectedBudgets"
+            "memory.ValidateProjectedBudgets",
+            "memory.PersistVersion",
+            "memory.SaveProposal",
+            "memory.ReadEntryObject",
+            "memory.Emit"
           ],
-          "resources": [],
+          "resources": [
+            "参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。"
+          ],
           "contract": "reference"
         }
       ]
@@ -3331,44 +3844,13 @@
         {
           "id": "memory.EnqueueGlossaryCommand",
           "name": "EnqueueGlossaryCommand",
-          "signature": "func EnqueueGlossaryCommand(ctx context.Context, op OperationContext, input EnqueueGlossaryCommandInput) (EnqueueGlossaryCommandResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "EnqueueGlossaryCommandInput",
-              "description": "封闭业务输入；逐字段见types $defs/EnqueueGlossaryCommandInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "EnqueueGlossaryCommandResult",
-              "description": "成功结果；逐字段见types $defs/EnqueueGlossaryCommandResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func EnqueueGlossaryCommand(ctx context.Context,tx *sql.Tx,op OperationContext,p gen.MemoryProposal)(EnqueueGlossaryCommandResult,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "产生已批准术语命令",
           "steps": [
             "1 校验kind=glossary及admin approval",
+            "1a glossary强制sourceLanguage；全局人工术语使用新termId/version0/source=manual/scope=global/generation=expectedGlossaryGeneration，禁止猜测源语言。",
             "2 规范ApprovedGlossaryProposal含批准修订/hash",
             "3 唯一proposalId command",
             "4 applying与outbox同事务",
@@ -3430,8 +3912,13 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
+          "dependencies": [
+            "memory.SaveProposal",
+            "memory.DBError"
+          ],
+          "resources": [
+            "参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。"
+          ],
           "contract": "reference"
         }
       ]
@@ -3769,10 +4256,56 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "model-gateway:cancelInference",
-            "jobs:cancelJob"
+            "jobs:cancelJob",
+            "memory.CancelRunTransaction",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DispatchAssistantCancellations"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "memory.CancelRunTransaction",
+          "name": "CancelRunTransaction",
+          "signature": "func CancelRunTransaction(ctx context.Context,tx *sql.Tx,op OperationContext,runID string)(gen.AssistantRun,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 CancelRunTransaction；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3784,7 +4317,7 @@
         {
           "id": "memory.RecoverAssistantLeases",
           "name": "RecoverAssistantLeases",
-          "signature": "func RecoverAssistantLeases(ctx context.Context, op OperationContext, input RecoverAssistantLeasesInput) (RecoverAssistantLeasesResult, error)",
+          "signature": "func RecoverAssistantLeases(ctx context.Context,op OperationContext,input RecoverAssistantLeasesInput)(RecoverAssistantLeasesResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -3879,7 +4412,11 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "model-gateway:readInference",
-            "jobs:createJob"
+            "jobs:createJob",
+            "memory.Write",
+            "memory.DBError",
+            "memory.DispatchAssistantInputs",
+            "memory.DispatchAssistantCancellations"
           ],
           "resources": [],
           "contract": "reference"
@@ -3989,7 +4526,8 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "jobs:publishEvent",
-            "platform.RunRelay"
+            "platform.RunRelay",
+            "memory.RelayBatch"
           ],
           "resources": [],
           "contract": "binding"
@@ -4859,41 +5397,9 @@
         {
           "id": "memory.ValidateProjectedBudgets",
           "name": "ValidateProjectedBudgets",
-          "signature": "func ValidateProjectedBudgets(ctx context.Context, op OperationContext, input ValidateProjectedBudgetsInput) (ValidateProjectedBudgetsResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ValidateProjectedBudgetsInput",
-              "description": "封闭业务输入；逐字段见types $defs/ValidateProjectedBudgetsInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ValidateProjectedBudgetsResult",
-              "description": "成功结果；逐字段见types $defs/ValidateProjectedBudgetsResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
+          "signature": "func ValidateProjectedBudgets(ctx context.Context,s *memoryruntime.Store,q memoryruntime.Queryer,site string,entry *gen.MemoryEntry,mapping *gen.TaskMapping,budget *gen.TaskBudget)(ValidateProjectedBudgetsResult,error)",
+          "inputs": [],
+          "outputs": [],
           "purpose": "保存前完整投影注入预算",
           "steps": [
             "1 读固定entry/mapping snapshot",
@@ -4956,7 +5462,99 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "memory.ReadTaskBudget",
+            "memory.SelectContextEntries",
+            "memory.joinTaskIDs",
+            "memory.RenderText",
+            "memory.ReadMappings",
+            "memory.ReadAllEntries"
+          ],
+          "resources": [
+            "参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.joinTaskIDs",
+          "name": "joinTaskIDs",
+          "signature": "func joinTaskIDs(ids []string)string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 joinTaskIDs；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.EmitContextChanged",
+          "name": "EmitContextChanged",
+          "signature": "func EmitContextChanged(ctx context.Context,tx *sql.Tx,op OperationContext,tasks []string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 EmitContextChanged；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError",
+            "memory.Emit"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -5185,7 +5783,13 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.readConversation",
+            "memory.ContainsPrivateMaterial",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DBError"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -5283,7 +5887,12 @@
           "authorization": "权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "memory.readConversation",
+            "memory.ReadSnapshot",
+            "memory.RequireManager",
+            "memory.DBError"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -5384,10 +5993,58 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "model-gateway:cancelInference"
+            "model-gateway:cancelInference",
+            "memory.CancelRunTransaction",
+            "memory.readConversation",
+            "memory.Write",
+            "memory.RequireManager",
+            "memory.DBError",
+            "memory.DispatchAssistantCancellations"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "memory.readConversation",
+          "name": "readConversation",
+          "signature": "func readConversation(ctx context.Context,q memoryruntime.Queryer,site,id string)(string,int,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 readConversation；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5751,7 +6408,13 @@
             "platform.ApplyRestoreSwap",
             "platform.ReadRuntime",
             "platform.NewSiteConfigClient",
-            "platform.NewRequestValidator"
+            "platform.NewRequestValidator",
+            "memory.NewApplication",
+            "memory.ConfigureWrites",
+            "memory.ConfigurePublisher",
+            "memory.ConfigureGateway",
+            "memory.ConfigureAssistantClients",
+            "memory.ConfigureValidators"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -6013,6 +6676,48 @@
             "site-config.readRuntimeState（site-config本域自身读取）"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "memory.NewApplication",
+          "name": "NewApplication",
+          "signature": "func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, openedEpoch platform.Identifier, authorize func(context.Context,platform.OperationContext,string,string)error) (*Application,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 NewApplication；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.operationHandlers"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -6243,7 +6948,7 @@
         {
           "id": "memory.InvokeModel",
           "name": "InvokeModel",
-          "signature": "func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInput) (InvokeModelResult, error)",
+          "signature": "func InvokeModel(ctx context.Context,op OperationContext,input InvokeModelInput)(InvokeModelResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -6335,6 +7040,46 @@
             "model-gateway:cancelInference",
             "platform.InvokeModel"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ConfigureGateway",
+          "name": "ConfigureGateway",
+          "signature": "func ConfigureGateway(client platform.GatewayClient)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ConfigureGateway；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -6448,6 +7193,1466 @@
       "path": "modules/memory/ui/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/memory/internal/runtime/business.go",
+      "kind": "handwritten",
+      "purpose": "本域实际业务实现与受信装配辅助；仅访问本域私有数据。",
+      "functions": [
+        {
+          "id": "memory.ConfigureWrites",
+          "name": "ConfigureWrites",
+          "signature": "func ConfigureWrites(window platform.WriteWindowConfig) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ConfigureWrites；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ReadSnapshot",
+          "name": "ReadSnapshot",
+          "signature": "func ReadSnapshot(ctx context.Context, fn func(*Store,*sql.Tx) error) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ReadSnapshot；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.Write",
+          "name": "Write",
+          "signature": "func Write(ctx context.Context,op platform.OperationContext,functionID,key string,input,result any,fn func(*Store,*sql.Tx) error) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 Write；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.RequireManager",
+          "name": "RequireManager",
+          "signature": "func RequireManager(op platform.OperationContext) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 RequireManager；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.DBError",
+          "name": "DBError",
+          "signature": "func DBError(err error) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 DBError；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ValidateTask",
+          "name": "ValidateTask",
+          "signature": "func ValidateTask(task string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ValidateTask；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ReadEntryObject",
+          "name": "ReadEntryObject",
+          "signature": "func (s *Store) ReadEntryObject(ctx context.Context,q Queryer,siteID,id string,version *int)(gen.MemoryEntry,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ReadEntryObject；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError",
+            "memory.decodeEntry"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.decodeEntry",
+          "name": "decodeEntry",
+          "signature": "func decodeEntry(raw []byte)(gen.MemoryEntry,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 decodeEntry；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.SaveEntryObject",
+          "name": "SaveEntryObject",
+          "signature": "func (s *Store) SaveEntryObject(ctx context.Context,q Queryer,site string,entry gen.MemoryEntry)(gen.MemoryEntry,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 SaveEntryObject；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.Write",
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.InsertEntryVersion",
+          "name": "InsertEntryVersion",
+          "signature": "func InsertEntryVersion(ctx context.Context,tx *sql.Tx,op platform.OperationContext,e gen.MemoryEntry,previous *int)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 InsertEntryVersion；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.Emit",
+          "name": "Emit",
+          "signature": "func Emit(tx *sql.Tx,op platform.OperationContext,eventType,subject string,revision int,payload any)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 Emit；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ReadAllEntries",
+          "name": "ReadAllEntries",
+          "signature": "func (s *Store) ReadAllEntries(ctx context.Context,q Queryer,site string)([]gen.MemoryEntry,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ReadAllEntries；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError",
+            "memory.ReadEntryObject"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.NormalizeLineEndings",
+          "name": "NormalizeLineEndings",
+          "signature": "func NormalizeLineEndings(s string)string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 NormalizeLineEndings；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.SaveContextManifest",
+          "name": "SaveContextManifest",
+          "signature": "func SaveContextManifest(ctx context.Context,op platform.OperationContext,id,task,language string,revision int,versionHash,bodyHash string,size int,manifest any)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 SaveContextManifest；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ConfigurePublisher",
+          "name": "ConfigurePublisher",
+          "signature": "func ConfigurePublisher(publisher platform.EventPublisher)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ConfigurePublisher；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.RelayBatch",
+          "name": "RelayBatch",
+          "signature": "func RelayBatch(ctx context.Context,limit int)(platform.RelayBatchResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 RelayBatch；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "kind": "handwritten",
+      "purpose": "本域实际业务实现与受信装配辅助；仅访问本域私有数据。",
+      "functions": [
+        {
+          "id": "memory.ConfigureAssistantClients",
+          "name": "ConfigureAssistantClients",
+          "signature": "func ConfigureAssistantClients(jobs *gen.JobsClient,gateway *gen.ModelGatewayClient)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ConfigureAssistantClients；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.SelectAssistantProfile",
+          "name": "SelectAssistantProfile",
+          "signature": "func SelectAssistantProfile(ctx context.Context,op OperationContext)(string,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 SelectAssistantProfile；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.ValidateForeign"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.SaveAssistantInput",
+          "name": "SaveAssistantInput",
+          "signature": "func SaveAssistantInput(ctx context.Context,tx *sql.Tx,op OperationContext,snapshot AssistantSnapshot)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 SaveAssistantInput；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ReadAssistantInput",
+          "name": "ReadAssistantInput",
+          "signature": "func ReadAssistantInput(ctx context.Context,q Queryer,runID string)(AssistantInputRecord,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ReadAssistantInput；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.DispatchAssistantInputs",
+          "name": "DispatchAssistantInputs",
+          "signature": "func DispatchAssistantInputs(ctx context.Context,limit int)(int,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 DispatchAssistantInputs；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.Write",
+            "memory.DBError",
+            "memory.ReadAssistantInput",
+            "memory.ValidateForeign"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.AssistantInput",
+          "name": "AssistantInput",
+          "signature": "func AssistantInput(ctx context.Context,id string)(AssistantInputRecord,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 AssistantInput；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.ReadAssistantInput"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ReplayReceipt",
+          "name": "ReplayReceipt",
+          "signature": "func ReplayReceipt(ctx context.Context,op OperationContext,functionID,key string,input,result any)(bool,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ReplayReceipt；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ValidateForeign",
+          "name": "ValidateForeign",
+          "signature": "func ValidateForeign(name string,raw json.RawMessage)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ValidateForeign；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ConfigureValidators",
+          "name": "ConfigureValidators",
+          "signature": "func ConfigureValidators(validators map[string]func(json.RawMessage)error)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 ConfigureValidators；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.CurrentAssistantState",
+          "name": "CurrentAssistantState",
+          "signature": "func CurrentAssistantState(ctx context.Context,site,run string)(string,int,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 CurrentAssistantState；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.DBError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.DispatchAssistantCancellations",
+          "name": "DispatchAssistantCancellations",
+          "signature": "func DispatchAssistantCancellations(ctx context.Context,limit int)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 DispatchAssistantCancellations；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.Write",
+            "memory.DBError",
+            "memory.ReadAssistantInput",
+            "memory.ValidateForeign"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/memory/internal/transport/business.go",
+      "kind": "handwritten",
+      "purpose": "本域实际业务实现与受信装配辅助；仅访问本域私有数据。",
+      "functions": [
+        {
+          "id": "memory.operationHandlers",
+          "name": "operationHandlers",
+          "signature": "func(a *Application)operationHandlers()map[string]http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 operationHandlers；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.Health",
+            "memory.Ready",
+            "memory.jsonOperation",
+            "memory.respond",
+            "memory.matchPath",
+            "memory.optionalString",
+            "memory.optionalInt",
+            "memory.queryLimit",
+            "memory.CreateEntry",
+            "memory.UpdateEntry",
+            "memory.ArchiveEntry",
+            "memory.RestoreEntry",
+            "memory.ReadEntry",
+            "memory.ListEntries",
+            "memory.ListEntryRevisions",
+            "memory.PutMapping",
+            "memory.RemoveMapping",
+            "memory.ReorderMappings",
+            "memory.ListMappings",
+            "memory.PutTaskBudget",
+            "memory.ListTaskBudgets",
+            "memory.ResolveContext",
+            "memory.ReadContextManifest",
+            "memory.CreateAssistantRun",
+            "memory.ReadAssistantRun",
+            "memory.ApproveProposal",
+            "memory.RejectProposal",
+            "memory.CancelAssistantRun",
+            "memory.AppendAssistantMessage",
+            "memory.ReadAssistantConversation",
+            "memory.DeleteAssistantConversation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.jsonOperation",
+          "name": "jsonOperation",
+          "signature": "func jsonOperation[I,R any](fn func(context.Context,platform.OperationContext,I)(R,error),status int,bind ...func(*I,*http.Request)error)http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 jsonOperation；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [
+            "memory.respond"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.respond",
+          "name": "respond",
+          "signature": "func respond(w http.ResponseWriter,r *http.Request,result any,err error,status int)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 respond；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.matchPath",
+          "name": "matchPath",
+          "signature": "func matchPath(body,path string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 matchPath；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.optionalString",
+          "name": "optionalString",
+          "signature": "func optionalString(r *http.Request,name string)*string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 optionalString；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.optionalInt",
+          "name": "optionalInt",
+          "signature": "func optionalInt(r *http.Request,name string)*int",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 optionalInt；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.queryLimit",
+          "name": "queryLimit",
+          "signature": "func queryLimit(r *http.Request)int",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考级辅助 queryLimit；精确参数与返回见签名，调用边界随所属用例固定。",
+          "steps": [
+            "按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "登记的边界不合法"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": true,
+              "when": "受信运行依赖未装配"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "持久摘要或引用不一致"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。",
+          "concurrency": "复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。",
+          "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/memory/migrations/002_business.sql",
+      "kind": "handwritten",
+      "purpose": "业务回执、提交manifest、派生清单及助手固定输入的只追加迁移。",
       "functions": []
     }
   ],

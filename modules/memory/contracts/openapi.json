@@ -3466,6 +3466,42 @@
         "name": "X-Admission-Permit",
         "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
+    },
+    "schemas": {
+      "CreateInvocationResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/CreateInvocationResult"
+      },
+      "CancelInvocationResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/CancelInvocationResult"
+      },
+      "StreamEvent": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
+      },
+      "ReadTaskAssignmentsResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/ReadTaskAssignmentsResult"
+      },
+      "ReadProfilesResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/ReadProfilesResult"
+      },
+      "JobsCreateJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CreateJobResult"
+      },
+      "JobsRequestCancelResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/RequestCancelResult"
+      },
+      "AssistantModelOutput": {
+        "$ref": "./types.json#/$defs/AssistantModelOutput"
+      }
     }
-  }
+  },
+  "x-runtime-payload-schemas": [
+    "CreateInvocationResult",
+    "CancelInvocationResult",
+    "StreamEvent",
+    "ReadTaskAssignmentsResult",
+    "ReadProfilesResult",
+    "JobsCreateJobResult",
+    "JobsRequestCancelResult",
+    "AssistantModelOutput"
+  ]
 }

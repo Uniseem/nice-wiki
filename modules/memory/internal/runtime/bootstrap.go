@@ -23,6 +23,7 @@ import (
 	"nice-wiki/libs/platform/inbox"
 	"nice-wiki/libs/platform/outbox"
 	memorymigrations "nice-wiki/modules/memory/migrations"
+ "nice-wiki/modules/memory/internal/gen"
 )
 
 const (
@@ -62,7 +63,14 @@ type Store struct {
 
 	journal   *os.File
 	journalMu sync.Mutex
-	closeOnce sync.Once
+	writeMu sync.Mutex
+ window platform.WriteWindowConfig
+ gateway platform.GatewayClient
+ publisher platform.EventPublisher
+ jobs *gen.JobsClient
+ gatewayRaw *gen.ModelGatewayClient
+ validators map[string]func(json.RawMessage)error
+ closeOnce sync.Once
 	closeErr  error
 }
 
@@ -148,13 +156,16 @@ func OpenStore(ctx context.Context, dataDirectory string, dataEpoch platform.Ide
 	if err := contextError(ctx); err != nil {
 		return nil, err
 	}
-	for _, directory := range []string{"active", "control", "restore", "objects"} {
+	for _, directory := range []string{"active", "control", "restore", "active/objects"} {
 		if err := os.MkdirAll(filepath.Join(dataDirectory, directory), 0o700); err != nil {
 			return nil, platform.NewError(platform.CodeInternal, false, "建立私有数据目录失败")
 		}
 	}
 
-	store := &Store{objectsRoot: filepath.Join(dataDirectory, "objects"), dataEpoch: dataEpoch}
+	legacy,legacyErr:=os.ReadDir(filepath.Join(dataDirectory,"objects"))
+ if legacyErr==nil&&len(legacy)>0{return nil,platform.NewError(platform.CodeIntegrityError,false,"旧根对象目录非空，需显式迁移后启动")}
+ if legacyErr!=nil&&!errors.Is(legacyErr,os.ErrNotExist){return nil,platform.NewError(platform.CodeIntegrityError,false,"旧根对象目录不可核对")}
+ store := &Store{objectsRoot: filepath.Join(dataDirectory, "active", "objects"), dataEpoch: dataEpoch}
 	closeOnError := func(err error) (*Store, error) {
 		_ = store.Close()
 		return nil, err
@@ -394,36 +405,11 @@ func (s *Store) recoverJournal() error {
 	return nil
 }
 
-func validateEntries(ctx context.Context, s *Store, siteID platform.Identifier) error {
-	rows, err := s.db.QueryContext(ctx, `SELECT entry_id, version, file_ref, body_hash FROM memory_entries WHERE site_id = ? ORDER BY entry_id, version`, siteID)
-	if err != nil {
-		return mapDatabaseError(err, "读取记忆条目索引失败")
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var entryID, fileRefJSON, bodyHash string
-		var version int64
-		if err := rows.Scan(&entryID, &version, &fileRefJSON, &bodyHash); err != nil {
-			return platform.NewError(platform.CodeIntegrityError, false, "记忆条目索引损坏")
-		}
-		if err := contextError(ctx); err != nil {
-			return err
-		}
-		if !platform.ValidIdentifier(entryID) || version < 0 || !platform.ValidHash(bodyHash) {
-			return platform.NewError(platform.CodeIntegrityError, false, "记忆条目索引字段不合法")
-		}
-		var ref platform.ObjectRef
-		if err := json.Unmarshal([]byte(fileRefJSON), &ref); err != nil || ref.Owner != serviceID || !platform.ValidIdentifier(ref.ObjectID) || !platform.ValidHash(ref.SHA256) || ref.Version != version || ref.ByteSize < 1 {
-			return platform.NewError(platform.CodeIntegrityError, false, "记忆正文对象引用不合法")
-		}
-		if err := verifyObjectFile(s.objectsRoot, entryID, version, ref); err != nil {
-			return err
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return platform.NewError(platform.CodeIntegrityError, false, "记忆条目索引读取失败")
-	}
-	return nil
+func validateEntries(ctx context.Context,s *Store,siteID platform.Identifier)error{
+ rows,err:=s.db.QueryContext(ctx,`SELECT site_id,entry_id,version FROM memory_entries ORDER BY site_id,entry_id,version`);if err!=nil{return mapDatabaseError(err,"读取记忆条目索引失败")}
+ type revision struct{site,id string;version int};revisions:=[]revision{}
+ for rows.Next(){var r revision;if err=rows.Scan(&r.site,&r.id,&r.version);err!=nil{rows.Close();return mapDatabaseError(err,"读取记忆条目索引失败")};revisions=append(revisions,r)};err=rows.Err();rows.Close();if err!=nil{return mapDatabaseError(err,"读取记忆条目索引失败")}
+ for _,r:=range revisions{if _,err=s.ReadEntryObject(ctx,s.db,r.site,r.id,&r.version);err!=nil{return err}};return nil
 }
 
 func verifyObjectFile(objectsRoot, entryID string, version int64, ref platform.ObjectRef) error {
@@ -477,7 +463,7 @@ func readObjectPrefix(path string, size int64) ([]byte, error) {
 func validateMappings(ctx context.Context, s *Store, siteID platform.Identifier) error {
 	rows, err := s.db.QueryContext(ctx, `SELECT mapping_id, task_id, entry_id, order_value, enabled, language, revision,
 		EXISTS (SELECT 1 FROM entry_current WHERE site_id = task_mappings.site_id AND entry_id = task_mappings.entry_id) AS entry_exists
-		FROM task_mappings WHERE site_id = ?`, siteID)
+		FROM task_mappings`)
 	if err != nil {
 		return mapDatabaseError(err, "读取任务映射失败")
 	}
@@ -503,7 +489,7 @@ func validateMappings(ctx context.Context, s *Store, siteID platform.Identifier)
 }
 
 func validateBudgets(ctx context.Context, s *Store, siteID platform.Identifier) error {
-	rows, err := s.db.QueryContext(ctx, `SELECT task_id, maximum_bytes, maximum_entries, revision FROM task_budgets WHERE site_id = ?`, siteID)
+	rows, err := s.db.QueryContext(ctx, `SELECT task_id, maximum_bytes, maximum_entries, revision FROM task_budgets`)
 	if err != nil {
 		return mapDatabaseError(err, "读取任务预算失败")
 	}
@@ -528,7 +514,7 @@ func validateBudgets(ctx context.Context, s *Store, siteID platform.Identifier) 
 }
 
 func validateApprovedCommands(ctx context.Context, s *Store, siteID platform.Identifier) error {
-	rows, err := s.db.QueryContext(ctx, `SELECT command_id, proposal_id, payload_hash, state FROM proposal_commands WHERE site_id = ?`, siteID)
+	rows, err := s.db.QueryContext(ctx, `SELECT command_id, proposal_id, payload_hash, state FROM proposal_commands`)
 	if err != nil {
 		return mapDatabaseError(err, "读取批准命令失败")
 	}

@@ -132,3 +132,15 @@
 | createdAt | 是 | `{"$ref":"../../../contracts/common.schema.json#/$defs/Timestamp"}` | 时间 |
 
 恢复特殊数据：屏障停止条目编辑、批准和command dispatch，保留revision history、proposalHash、批准人及未确认批准命令；导入pending command不能重新批准，先按proposalId/hash等持久回执，不重复创建术语。
+
+## R1 确定性编码与布局（2026-10-18）
+
+本域正文位于 `active/objects/<entryId>/<version>.md`，随 active 目录整体恢复。原根 `objects` 目录非空时拒绝启动，必须先显式迁移，不能静默忽略旧对象。schemaVersion=1 的 Markdown 为 `---\n`、一行 canonical JSON header、`\n---\n`、规范正文；header 严格包含 schemaVersion=1 和完整 entry 元数据，其中 body 为空且 fileRef 为零引用（真实对象引用由提交 manifest 给出）。只接受严格 UTF-8 和规范重编码完全相等的 header，拒重复/未知字段。正文 NFC、LF；bodyHash 只覆盖正文，ObjectRef.sha256 覆盖完整文件。禁止 `.`/`..` 路径标识。当前无部署数据，因此不自动兼容或猜测旧文件编码。
+
+对象先 temp/write/fsync/rename，再 fsync 目录；SQL 事务一起提交 entry_commits、entry_current、索引、不可变修订、代数和平台 outbox。提交前失败的未激活对象可留下孤儿，下一次同版本写入仅在确认该版本没有提交索引后替换孤儿；已提交版本永不覆盖。SQL entry_commits/current 是激活 manifest，未引用文件不会自行激活。
+
+新增私有辅助表：memory_receipts（按 site/actor/function/keyHash/epoch 保存七天原结果）；entry_commits（已提交不可变对象与旧指针）；assistant_inputs（固定原始操作、正文版本、实际 profileId、请求 hash、任务回执和持久取消）。proposal_commands 保存完整批准命令，不包含供应方凭证。助手模型候选只含业务字段；proposalId/hash/批准身份由本域建立。
+
+ValidateEntry 对凭证实施确定性拒绝：私钥 PEM、API key/access token/client secret/password/密码/密钥赋值、常见 sk-/AKIA/GitHub token 形态、明确的内部客户机密标记。该规则不能判断任意企业机密，人工录入仍须把正文视为公开并确认来源。
+
+助手新建条目经人工批准后，description=proposedTitle，maximumBytes=1536、priority=100、tags=[]、readonly=false、source=assistant、autoUpdateEnabled=false；更新保留其余元数据。术语候选强制声明 sourceLanguage，批准只创建 global/manual 新术语；未声明源语言的旧候选不能批准。

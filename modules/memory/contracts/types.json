@@ -280,6 +280,40 @@
           "minimum": 0,
           "maximum": 9007199254740991,
           "description": "UTF8字节"
+        },
+        "budgetRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "固定预算追溯；schema1新增的兼容字段"
+        },
+        "maximumBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "固定预算追溯；schema1新增的兼容字段"
+        },
+        "maximumEntries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "固定预算追溯；schema1新增的兼容字段"
+        },
+        "entryLanguages": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "string"
+          },
+          "description": "与entryIds等长的实际语言回退及正文摘要"
+        },
+        "entryBodyHashes": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "string"
+          },
+          "description": "与entryIds等长的实际语言回退及正文摘要"
         }
       },
       "required": [
@@ -449,6 +483,12 @@
           "minimum": 0,
           "maximum": 9007199254740991,
           "description": "批准修订"
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "glossary提议必须声明原文语言；非术语提议禁止"
         }
       },
       "required": [
@@ -1466,13 +1506,17 @@
           "minimum": 0,
           "maximum": 9007199254740991,
           "description": "修订"
+        },
+        "budget": {
+          "$ref": "#/$defs/TaskBudget"
         }
       },
       "required": [
         "entries",
         "taskId",
         "language",
-        "mappingRevision"
+        "mappingRevision",
+        "budget"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -1482,7 +1526,7 @@
       "properties": {
         "text": {
           "type": "string",
-          "minLength": 1,
+          "minLength": 0,
           "maxLength": 65536,
           "description": "有边界注入正文"
         },
@@ -1711,12 +1755,53 @@
         "leaseId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "租约"
+        },
+        "job": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-internal": true,
+          "description": "仅由平台任务执行上下文装配JobExecutionInput；CheckLease为进程函数引用，不参与JSON序列化。",
+          "properties": {
+            "jobId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "workerId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "jobType": {
+              "type": "string"
+            },
+            "inputRef": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef"
+            },
+            "fencingToken": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "attempt": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "dataEpoch": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          },
+          "required": [
+            "jobId",
+            "workerId",
+            "jobType",
+            "inputRef",
+            "fencingToken",
+            "attempt",
+            "dataEpoch"
+          ]
         }
       },
       "required": [
         "runId",
         "messages",
-        "leaseId"
+        "leaseId",
+        "job"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -1808,13 +1893,58 @@
         "leaseId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "租约"
+        },
+        "job": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-internal": true,
+          "description": "仅由平台任务执行上下文装配JobExecutionInput；CheckLease为进程函数引用，不参与JSON序列化。",
+          "properties": {
+            "jobId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "workerId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "jobType": {
+              "type": "string"
+            },
+            "inputRef": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef"
+            },
+            "fencingToken": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "attempt": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "dataEpoch": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          },
+          "required": [
+            "jobId",
+            "workerId",
+            "jobType",
+            "inputRef",
+            "fencingToken",
+            "attempt",
+            "dataEpoch"
+          ]
+        },
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已完成MG调用；输入在调用前失效时省略"
         }
       },
       "required": [
         "runId",
         "proposals",
         "expectedSourceGeneration",
-        "leaseId"
+        "leaseId",
+        "job"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -3361,6 +3491,97 @@
       "required": [
         "budgets"
       ]
+    },
+    "AssistantModelOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "proposals": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "entry_create",
+                  "entry_update",
+                  "entry_archive",
+                  "glossary"
+                ],
+                "description": "类型"
+              },
+              "entryId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "目标条目"
+              },
+              "expectedEntryVersion": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "输入版本"
+              },
+              "proposedTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536,
+                "description": "拟标题"
+              },
+              "proposedBody": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536,
+                "description": "拟正文"
+              },
+              "proposedLanguage": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536,
+                "description": "拟语言"
+              },
+              "sourceTerm": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536,
+                "description": "术语原文"
+              },
+              "targetTerm": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536,
+                "description": "术语译文"
+              },
+              "targetLanguage": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536,
+                "description": "术语目标"
+              },
+              "expectedGlossaryGeneration": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "术语输入版本"
+              },
+              "sourceLanguage": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536,
+                "description": "glossary提议必须声明原文语言；非术语提议禁止"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      },
+      "required": [
+        "proposals"
+      ],
+      "description": "模型仅输出业务候选；ID/hash/批准身份由本域建立，类型分支由ValidateProposal严格核验。"
     }
   }
 }

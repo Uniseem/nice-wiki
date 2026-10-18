@@ -54,3 +54,15 @@
 | `memory.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
 | `memory.RunWorker` | 启动后持续 | 主动领取本域持久任务 |
 <!-- flows:end -->
+
+## R1 上下文确定性规则（2026-10-18）
+
+映射只读 deleted=0；移除软删除并禁用，同 task/entry/language 的唯一索引只覆盖未删除行。全量排序包含该任务全部未删除映射（含禁用项），无重复无缺项，order=索引×10；一事务递增各映射 revision 和全局 mappingRevision。
+
+一次只读 SQLite 快照固定 current 条目、映射、全局修订和有效预算。目标语言匹配优先，und 回退；条目语言须等于映射语言或 und。相同 entry 去重后按 priority 降序、order 升序、entryId 升序。rendererVersion 为 memory-context-v1：每条依次输出 `<memory-entry `、canonical JSON 对象（entryId/version/title/description）、`>\n`、正文、`\n</memory-entry>\n`，空条目集合输出空字符串。全部完整字节及条目数不得超预算，不截断、不省略。
+
+manifest 记录有序 IDs/versions/实际语言/bodyHash、任务与目标语言、mappingRevision、rendererVersion、有效预算值与 budgetRevision、完整渲染 bodyHash/byteSize。移除 snapshotId/versionHash 后作 canonical JSON SHA256 得到 versionHash，snapshotId=`ctx-`+versionHash；相同输入得到相同版本。预算/语言/bodyHash 新追溯字段在 HTTP 中为兼容可选字段，生产方始终写出。resolve 后独立持久保存只含引用的派生清单，不改变业务代数；管理读取不返回正文。
+
+写入预检使用完全相同选择器和渲染器，投影受影响任务全部已出现语言及 und；候选条目、映射和预算在提交前整体替换，任何语言超预算拒绝保存，错误只列 taskId。
+
+助手创建先免费读取根任务分配，再以可信 admin-probe 费用类读取同 tier 唯一真实 profileId；不把 tier 当 profileId。清原 portal proof，用 memory 纯服务身份保留 site/root/epoch 读取配置。人工请求与全部选中正文总计最多16384字节，最多32条。事务先保存 queued 及不可变输入，恢复循环只用原去重键投递 jobs，不发起模型。执行器必须验证 JobExecutionInput 的 job/root/ref hash/epoch 绑定并在模型前及提交前锁外 CheckLease；模型幂等步骤固定为原 operationId+assistant，失去租约不会另建收费尝试。取消意图先持久化，jobs/MG 取消失败保留待投递；批准项不回滚，pending 候选转 rejected。

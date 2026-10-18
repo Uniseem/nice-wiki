@@ -13,6 +13,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+ "nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/memory/internal/gen"
 )
@@ -44,22 +45,26 @@ type Application struct {
 
 // NewApplication 组装匿名控制路由。当前业务 handler 尚未实现，
 // BuildApplication 会在调用该构造器前按合同返回 DEPENDENCY_UNAVAILABLE。
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, openedEpoch platform.Identifier) *Application {
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, openedEpoch platform.Identifier, authorize func(context.Context,platform.OperationContext,string,string)error) (*Application,error) {
 	application := &Application{
 		config:      config,
 		anchors:     anchors,
 		runtime:     runtimeAuthority,
 		openedEpoch: openedEpoch,
 	}
-	mux := http.NewServeMux()
-	application.registerHealthRoutes(mux)
+ spec,err:=gen.GetSwagger();if err!=nil{return nil,platform.NewError(platform.CodeIntegrityError,false,"记忆 HTTP 规格不可读取")}
+ callers:=map[string][]string{}
+ for id:=range application.operationHandlers(){callers[id]=[]string{"portal"}}
+ callers["resolveContext"]=[]string{"qa","knowledge","localization","memory","content"}
+ handler,err:=apivalidate.NewServiceHandler(spec,platform.ServiceBoundaryConfig{Self:moduleName,Anchors:anchors,OpenedDataEpoch:openedEpoch,Runtime:runtimeAuthority.ReadRuntimeState,AllowedCallers:callers,Authorize:authorize},application.operationHandlers())
+ if err!=nil{return nil,err}
 	application.httpServer = &http.Server{
 		Addr:              config.Listen,
-		Handler:           mux,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		MaxHeaderBytes:    64 << 10,
 	}
-	return application
+	return application,nil
 }
 
 // Serve 运行独立HTTP服务；进程模板在收到信号或恢复切换时调用

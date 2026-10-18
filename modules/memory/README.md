@@ -2,7 +2,7 @@
 
 维护人工可审计记忆条目、任务映射、语言范围、版本化注入预算和只产生提议的记忆助手；批准后才应用记忆或术语变更。
 
-阶段：design。所有业务源文件仅在未来文件manifest登记，本阶段不实现、不运行测试/真实模型、不推送。
+阶段：R1 实施中。人工条目、映射、预算、上下文与助手部分链路已有源码；本轮尚待统一 GitLab CI，完整启动、行为验收和部署未完成。
 
 - [requirements](docs/requirements.md)
 - [architecture](docs/architecture.md)
