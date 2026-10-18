@@ -663,3 +663,26 @@ func normalizeLinkError(ctx context.Context, err error) error {
 	}
 	return dependency("公开链接权威不可用")
 }
+
+// InternalLinkTarget 是从正文 mark 提取的稳定文档与可选块目标。
+type InternalLinkTarget struct { DocumentID string `json:"documentId"`; BlockID *string `json:"blockId"` }
+type RewriteInternalLinksInput struct { Links []InternalLinkTarget; Locale string; DataEpoch string }
+type RewriteInternalLinksResult struct { Rewritten map[string]string; Unavailable []string }
+
+// RewriteInternalLinks 依据同次公开树解析 ID 链接；缺失目标只返回不可用标识。
+func RewriteInternalLinks(ctx context.Context,op platform.OperationContext,in RewriteInternalLinksInput)(RewriteInternalLinksResult,error){
+ navigation,err:=BuildNavigation(ctx,op,BuildNavigationInput{in.Locale,in.DataEpoch,10000});if err!=nil{return RewriteInternalLinksResult{},err}
+ directory,err:=directoryFrom(ctx);if err!=nil{return RewriteInternalLinksResult{},err}
+ nodes:=make(map[string]NavigationNode,len(navigation.Tree));for _,node:=range navigation.Tree{nodes[node.DocumentID]=node}
+ result:=RewriteInternalLinksResult{Rewritten:map[string]string{},Unavailable:[]string{}}
+ for _,target:=range in.Links {
+ block:="";if target.BlockID!=nil{block=*target.BlockID};key:=target.DocumentID+"#"+block
+ node,ok:=nodes[target.DocumentID];if !ok{result.Unavailable=append(result.Unavailable,key);continue}
+ if block!=""{missing,err:=anchorMissing(ctx,directory.Content,node.Publication,block);if err!=nil{return RewriteInternalLinksResult{},err};if missing{result.Unavailable=append(result.Unavailable,key);continue}}
+ href:=node.CanonicalPath;if block!=""{href+="#"+url.PathEscape(block)};result.Rewritten[key]=href
+ }
+ // 精确比较每个引用，防止仅树顺序未变时复用已被替换的发布修订。
+ again,err:=BuildNavigation(ctx,op,BuildNavigationInput{in.Locale,in.DataEpoch,10000});if err!=nil{return RewriteInternalLinksResult{},err}
+ first,_:=json.Marshal(navigation);second,_:=json.Marshal(again);if !bytes.Equal(first,second){return RewriteInternalLinksResult{},stale()}
+ return result,nil
+}

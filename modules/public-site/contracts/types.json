@@ -165,8 +165,7 @@
       "description": "media提供的已授权公开资源",
       "properties": {
         "asset": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
-          "description": "公共 AssetRef 合同，遵守其字段和空值规则"
+          "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
         },
         "url": {
           "type": "string",
@@ -684,176 +683,12 @@
       ]
     },
     "TiptapDocument": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "content发布权威Tiptap JSON的渲染只读结构，生产方content schema优先",
-      "properties": {
-        "schemaVersion": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "content拥有的块格式版本，公开渲染必须支持"
-        },
-        "type": {
-          "const": "doc",
-          "description": "Tiptap顶级doc"
-        },
-        "content": {
-          "type": "array",
-          "maxItems": 10000,
-          "items": {
-            "$ref": "#/$defs/TiptapNode"
-          },
-          "description": "顶层块，稳定blockId"
-        }
-      },
-      "required": [
-        "schemaVersion",
-        "type",
-        "content"
-      ]
+      "$ref": "../../content/contracts/types.json#/$defs/DocumentBody",
+      "description": "沿用content唯一正文schema；本域只读保留所有节点、marks与属性，不再维护有损投影。"
     },
     "TiptapNode": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "公开渲染所需Tiptap投影；传输从content生产方合同归一化，不修改源JSON",
-      "properties": {
-        "type": {
-          "enum": [
-            "paragraph",
-            "heading",
-            "blockquote",
-            "horizontalRule",
-            "bulletList",
-            "orderedList",
-            "taskList",
-            "listItem",
-            "taskItem",
-            "callout",
-            "table",
-            "tableRow",
-            "tableCell",
-            "tableHeader",
-            "codeBlock",
-            "mathInline",
-            "mathBlock",
-            "image",
-            "attachment",
-            "drawing",
-            "columns",
-            "column",
-            "video",
-            "text",
-            "hardBreak"
-          ],
-          "description": "首版节点白名单"
-        },
-        "attrs": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "按节点类型绑定属性，content提供的规范schema为准；非适用字段空值规则使用空字符串/0/false/[]",
-          "properties": {
-            "blockId": {
-              "type": "string",
-              "description": "blockId；UTF-8；不得为 null",
-              "maxLength": 128,
-              "minLength": 1
-            },
-            "level": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 4,
-              "description": "非heading用0"
-            },
-            "resourceId": {
-              "type": "string",
-              "description": "resourceId；UTF-8；不得为 null",
-              "maxLength": 128,
-              "minLength": 1
-            },
-            "language": {
-              "type": "string",
-              "description": "language；UTF-8；不得为 null",
-              "maxLength": 8192
-            },
-            "href": {
-              "type": "string",
-              "description": "href；UTF-8；不得为 null",
-              "maxLength": 8192
-            },
-            "calloutKind": {
-              "enum": [
-                "none",
-                "info",
-                "tip",
-                "warning",
-                "danger"
-              ],
-              "description": "callout的类型，否则none"
-            },
-            "checked": {
-              "type": "boolean",
-              "description": "checked 的明确真假结果，不可 null"
-            },
-            "columnWidths": {
-              "type": "array",
-              "maxItems": 4,
-              "items": {
-                "type": "number",
-                "exclusiveMinimum": 0,
-                "maximum": 1
-              },
-              "description": "columns2..4项sum=1，否则空"
-            }
-          },
-          "required": [
-            "blockId",
-            "level",
-            "resourceId",
-            "language",
-            "href",
-            "calloutKind",
-            "checked",
-            "columnWidths"
-          ]
-        },
-        "text": {
-          "type": "string",
-          "description": "text；UTF-8；不得为 null",
-          "maxLength": 2097152
-        },
-        "content": {
-          "type": "array",
-          "maxItems": 10000,
-          "items": {
-            "$ref": "#/$defs/TiptapNode"
-          },
-          "description": "子节点；叶为空数组"
-        },
-        "marks": {
-          "type": "array",
-          "maxItems": 16,
-          "items": {
-            "enum": [
-              "bold",
-              "italic",
-              "underline",
-              "strike",
-              "code",
-              "highlight",
-              "link",
-              "math-inline"
-            ]
-          },
-          "description": "行内mark白名单"
-        }
-      },
-      "required": [
-        "type",
-        "attrs",
-        "text",
-        "content",
-        "marks"
-      ]
+      "$ref": "../../content/contracts/types.json#/$defs/Block",
+      "description": "沿用content权威块联合体，行内类型仍由生产方引用闭包拥有。"
     },
     "ResolveRouteInput": {
       "type": "object",
@@ -1285,9 +1120,27 @@
         "links": {
           "type": "array",
           "items": {
-            "type": "string",
-            "description": "item；UTF-8；不得为 null",
-            "maxLength": 8192
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "documentId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+              },
+              "blockId": {
+                "anyOf": [
+                  {
+                    "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentId",
+              "blockId"
+            ]
           },
           "maxItems": 10000,
           "description": "有序列表；空列表表示没有可用项"
@@ -1316,14 +1169,12 @@
       "description": "解析跨文档链接成功结果；失败不返回半成功结果",
       "properties": {
         "rewritten": {
-          "type": "array",
-          "items": {
+          "type": "object",
+          "additionalProperties": {
             "type": "string",
-            "description": "item；UTF-8；不得为 null",
             "maxLength": 8192
           },
-          "maxItems": 10000,
-          "description": "有序列表；空列表表示没有可用项"
+          "description": "键为documentId#blockId，值为已核验同源URL；未公开目标不返回路径。"
         },
         "unavailable": {
           "type": "array",
@@ -1462,11 +1313,17 @@
           },
           "maxItems": 10000,
           "description": "有序列表；空列表表示没有可用项"
+        },
+        "homeURL": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "当前语言及publicBaseURL basePath的规范首页链接，由调用方明确提供，不从裁剪树猜测。"
         }
       },
       "required": [
         "documentId",
-        "tree"
+        "tree",
+        "homeURL"
       ]
     },
     "BuildBreadcrumbsResult": {
@@ -1637,7 +1494,7 @@
         "metaHTML": {
           "type": "string",
           "description": "metaHTML；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 2097152
         }
       },
       "required": [
@@ -1681,6 +1538,57 @@
           "type": "string",
           "description": "metadata；UTF-8；不得为 null",
           "maxLength": 2097152
+        },
+        "locale": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "documentId": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "breadcrumbs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Breadcrumb"
+          },
+          "maxItems": 10000
+        },
+        "previous": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Breadcrumb"
+          },
+          "maxItems": 1
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Breadcrumb"
+          },
+          "maxItems": 1
+        },
+        "announcement": {
+          "type": "string",
+          "maxLength": 2097152
+        },
+        "footer": {
+          "type": "string",
+          "maxLength": 2097152
+        },
+        "untranslated": {
+          "type": "boolean"
+        },
+        "aiEnabled": {
+          "type": "boolean"
+        },
+        "askURL": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "markdownURL": {
+          "type": "string",
+          "maxLength": 8192
         }
       },
       "required": [
@@ -1688,7 +1596,18 @@
         "title",
         "toc",
         "navigation",
-        "metadata"
+        "metadata",
+        "locale",
+        "documentId",
+        "breadcrumbs",
+        "previous",
+        "next",
+        "announcement",
+        "footer",
+        "untranslated",
+        "aiEnabled",
+        "askURL",
+        "markdownURL"
       ]
     },
     "ComposeHTMLResult": {
@@ -2433,7 +2352,7 @@
         "xml": {
           "type": "string",
           "description": "xml；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 8388608
         }
       },
       "required": [
@@ -2484,7 +2403,7 @@
         "xml": {
           "type": "string",
           "description": "xml；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 8388608
         }
       },
       "required": [
@@ -3002,9 +2921,7 @@
         "mediaRefs": {
           "type": "array",
           "items": {
-            "type": "string",
-            "description": "item；UTF-8；不得为 null",
-            "maxLength": 8192
+            "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
           },
           "maxItems": 10000,
           "description": "有序列表；空列表表示没有可用项"
@@ -3040,12 +2957,21 @@
           },
           "maxItems": 10000,
           "description": "有序列表；空列表表示没有可用项"
+        },
+        "links": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "description": "由RewriteInternalLinks同次公开权威读取生成，键为documentId#blockId；未知目标没有键。"
         }
       },
       "required": [
         "document",
         "locale",
-        "assets"
+        "assets",
+        "links"
       ]
     },
     "RenderTiptapHTMLResult": {
@@ -3092,12 +3018,21 @@
           },
           "maxItems": 10000,
           "description": "有序列表；空列表表示没有可用项"
+        },
+        "links": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "description": "由RewriteInternalLinks同次公开权威读取生成，键为documentId#blockId；未知目标没有键。"
         }
       },
       "required": [
         "document",
         "locale",
-        "assets"
+        "assets",
+        "links"
       ]
     },
     "RenderTiptapMarkdownResult": {
@@ -3170,6 +3105,16 @@
           },
           "maxItems": 10000,
           "description": "有序列表；空列表表示没有可用项"
+        },
+        "backgroundText": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "来自site-config当前公开首页投影。"
+        },
+        "textColor": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "来自site-config当前公开首页投影。"
         }
       },
       "required": [
@@ -3180,7 +3125,9 @@
         "posterURL",
         "overlayPercent",
         "buttonLabels",
-        "buttonURLs"
+        "buttonURLs",
+        "backgroundText",
+        "textColor"
       ]
     },
     "RenderHeroResult": {
@@ -3523,7 +3470,7 @@
         "xml": {
           "type": "string",
           "description": "xml；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 8388608
         }
       },
       "required": [
@@ -4004,6 +3951,9 @@
           ]
         }
       ]
+    },
+    "AssetVersionRef": {
+      "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef"
     }
   }
 }

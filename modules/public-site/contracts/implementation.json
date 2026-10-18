@@ -549,6 +549,30 @@
           },
           "concurrency": "纯函数，无共享 DOM",
           "idempotency": "同 html/config 同结果",
+          "dependencies": [
+            "public-site.safeLink"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.safeLink",
+          "name": "safeLink",
+          "signature": "func safeLink(raw string) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "静态输出协议与同源根路径白名单",
+          "steps": [
+            "静态输出协议与同源根路径白名单"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -679,9 +703,9 @@
           ],
           "purpose": "解析跨文档链接",
           "steps": [
-            "批量询问 content 公开路由",
-            "仅输出可公开目标",
-            "缺失语言保留文档链接但显示不可用提示"
+            "输入为稳定documentId与可空blockId目标；按同次权威公开导航解析，未知目标不输出路径",
+            "非空blockId读取精确发布正文核hash/schema与锚点",
+            "最终再次读取并逐引用比较公开导航；变化返回STALE_RESULT，输出映射键documentId#blockId"
           ],
           "errors": [
             {
@@ -707,7 +731,8 @@
           "concurrency": "每批 100 目标，4 并发，总 deadline 2500ms",
           "idempotency": "读取无副作用",
           "dependencies": [
-            "content:resolvePublicPath"
+            "public-site.BuildNavigation",
+            "public-site.anchorMissing"
           ],
           "resources": [],
           "contract": "reference"
@@ -956,9 +981,10 @@
           ],
           "purpose": "构建可访问公开导航树",
           "steps": [
-            "content 提供权威可公开树",
-            "按 stable sortKey 排序",
-            "过滤被撤回/权限限制节点后折叠空组"
+            "读取当前安全站点配置、启用语言与content权威公开树；停用语言拒绝",
+            "只对同epoch公开树节点按sortKey稳定DFS排序，使用content完整canonicalPath，不从缺失祖先拼路径",
+            "按100项精确PublishedRevisionRef批量核验visible/matchesCurrent及visibilityRevision",
+            "返回前重读配置、语言与treeRevision水位，变化返回STALE_RESULT；未知依赖返回503"
           ],
           "errors": [
             {
@@ -986,8 +1012,33 @@
           "concurrency": "投影修订 CAS，不覆盖新修订",
           "idempotency": "以 epoch/locale/sourceRevision 去重",
           "dependencies": [
-            "content:readPublicTree"
+            "content:readPublicTree",
+            "content:validatePublications",
+            "site-config:readSiteConfig",
+            "localization:listLanguages"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.navigationOrder",
+          "name": "navigationOrder",
+          "signature": "func navigationOrder(nodes []NavigationNode) ([]NavigationNode, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "对已公开节点作稳定DFS并拒绝重复、缺父与环",
+          "steps": [
+            "对已公开节点作稳定DFS并拒绝重复、缺父与环"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -1018,7 +1069,7 @@
             {
               "name": "in",
               "type": "BuildBreadcrumbsInput",
-              "description": "生成面包屑；字段见本域types.json对应$defs",
+              "description": "公开树与当前语言homeURL；字段见types.json",
               "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
             }
           ],
@@ -1038,24 +1089,21 @@
           ],
           "purpose": "生成面包屑",
           "steps": [
-            "定位节点父链",
-            "检测环",
-            "输出首页及祖先规范链接"
+            "定位公开树父链并检测重复与环；未知目标拒绝",
+            "使用调用方明确的homeURL输出首页与原始规范链接，不从树节点猜语言首页"
           ],
           "errors": [
             {
-              "code": "VALIDATION",
-              "condition": "NAV_CYCLE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 400,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "code": "INTEGRITY_ERROR",
+              "condition": "公开树重复/缺父/环",
+              "httpStatus": 422,
+              "retryable": false
             },
             {
-              "code": "VALIDATION",
-              "condition": "NODE_NOT_LISTED：在步骤中的对应校验或依赖失败",
-              "httpStatus": 400,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "code": "NOT_FOUND",
+              "condition": "目标节点不存在",
+              "httpStatus": 404,
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -1195,10 +1243,9 @@
           ],
           "purpose": "输出已有公开语言版本",
           "steps": [
-            "content验证当前公开版本",
-            "每语言canonical",
-            "x-default固定指向站点根/",
-            "翻译未完成仍可旧译/原文回退展示，不能把语言停用版本列入"
+            "读取当前公开精确ref、配置与启用语言",
+            "为每启用语言输出规范URL，缺译仍保留该语言URL；x-default指向站点basePath根",
+            "返回前重核路径、精确publication和配置/语言/tree水位，不用事件或缓存授权"
           ],
           "errors": [
             {
@@ -1217,7 +1264,12 @@
           "concurrency": "同请求批量权威查询",
           "idempotency": "只读，撤回语言不保留旧 alternate",
           "dependencies": [
-            "localization:listLanguages"
+            "content:readPublicTree",
+            "content:validatePublications",
+            "content:resolvePublicPath",
+            "site-config:readSiteConfig",
+            "localization:listLanguages",
+            "public-site.BuildCanonical"
           ],
           "resources": [],
           "contract": "reference"
@@ -1341,11 +1393,10 @@
           ],
           "purpose": "构成完整响应文档",
           "steps": [
-            "输出Go完整三栏HTML：顶栏AI/语言/主题，左侧当前分支展开树，正文与右侧TOC",
-            "手机将树/TOC放抽屉",
-            "文末上一篇/下一篇按树顺序",
-            "页脚版权/链接/ICP/默认源代码链接",
-            "挂Vue问答浮窗和语言建议，正文无JS仍完整且不折叠"
+            "输出完整Go三栏HTML、当前文档父分支展开导航、正文和右侧TOC；正文标题不折叠",
+            "手机文档树与TOC使用按钮展开抽屉，正文无JavaScript仍完整",
+            "输出面包屑、文末上下篇及页脚源代码链接；AI未配置显示条件",
+            "增强主题切换、复制Markdown与平台点击加载，问答岛标记复用qa同会话；不在服务器代浏览器重复统计"
           ],
           "errors": [
             {
@@ -1364,7 +1415,7 @@
           "concurrency": "模板启动时编译；每请求独立缓冲",
           "idempotency": "同输入与 themeRevision 同输出结构",
           "dependencies": [
-            "site-config:readConfigObject"
+            "public-site.navigationOrder"
           ],
           "resources": [],
           "contract": "reference"
@@ -2021,9 +2072,8 @@
           ],
           "purpose": "公开导航 HTTP",
           "steps": [
-            "权威取得可公开树",
-            "构建过滤树",
-            "按修订生成 etag，304 同样权威查验"
+            "读取当前权威导航并最终核验每个精确发布引用",
+            "按公开树序列及水位生成SHA-256 ETag，HTTP绑定只在本函数成功之后处理If-None-Match"
           ],
           "errors": [
             {
@@ -2190,11 +2240,9 @@
           ],
           "purpose": "机器人规则",
           "steps": [
-            "读公开索引策略",
-            "明确Allow主流AI爬虫（GPTBot/ChatGPT-User/ClaudeBot/PerplexityBot）",
-            "拒preview/admin私有接口",
-            "列每语言sitemap总索引",
-            "不能把功能性cookie变成统计同意弹窗"
+            "读取SiteConfig.indexingEnabled作为站点统一索引策略",
+            "启用时明确Allow GPTBot/ChatGPT-User/ClaudeBot/PerplexityBot，并禁止basePath下admin和v1私有路径；停用时全部Disallow",
+            "输出总sitemap及每启用语言sitemap，不产生统计cookie；返回前核配置/语言水位"
           ],
           "errors": [
             {
@@ -2213,10 +2261,36 @@
           "concurrency": "配置不可达返回 503 禁止旧配置承诺",
           "idempotency": "GET 幂等",
           "dependencies": [
-            "site-config:readConfigObject"
+            "site-config:readSiteConfig",
+            "localization:listLanguages",
+            "public-site.readIndexingPolicy"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "public-site.readIndexingPolicy",
+          "name": "readIndexingPolicy",
+          "signature": "func readIndexingPolicy(ctx context.Context) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取site-config当前站点统一索引开关",
+          "steps": [
+            "读取site-config当前站点统一索引开关"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [
+            "site-config:readSiteConfig"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2265,9 +2339,9 @@
           ],
           "purpose": "生成模型可读公开索引",
           "steps": [
-            "权威枚举公开文档",
-            "按导航序输出标题/摘要/Markdown 地址",
-            "不出现草稿元数据"
+            "权威枚举并携精确publishedRevisionId读公开SEO摘要",
+            "按导航稳定DFS输出标题、摘要和.md链接，输出超过maxBytes拒绝",
+            "最终重读并比较每个公开引用与树水位，不出现草稿元数据"
           ],
           "errors": [
             {
@@ -2295,8 +2369,32 @@
           "concurrency": "每项在输出前批量 authority 校验",
           "idempotency": "同公开修订集合可复用缓存",
           "dependencies": [
-            "content:readPublicTree"
+            "public-site.BuildNavigation",
+            "content:readPublishedRevision",
+            "public-site.markdownLabel"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.markdownLabel",
+          "name": "markdownLabel",
+          "signature": "func markdownLabel(value string) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "Markdown链接标签转义",
+          "steps": [
+            "Markdown链接标签转义"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -2347,9 +2445,9 @@
           ],
           "purpose": "llms.txt HTTP",
           "steps": [
-            "读取公开 AI 索引开关",
-            "生成已授权索引",
-            "禁用时 404"
+            "读取SiteConfig.indexingEnabled；停用时404",
+            "生成同次已授权公开索引",
+            "发送前再次读取索引开关，停用时404"
           ],
           "errors": [
             {
@@ -2375,8 +2473,8 @@
           "concurrency": "权威批量校验不使用过期索引安全结论",
           "idempotency": "GET 幂等",
           "dependencies": [
-            "public-site.BuildLLMsIndex",
-            "site-config:readConfigObject"
+            "public-site.readIndexingPolicy",
+            "public-site.BuildLLMsIndex"
           ],
           "resources": [],
           "contract": "binding"
@@ -2504,9 +2602,9 @@
           ],
           "purpose": "生成规范 sitemap 项",
           "steps": [
-            "content 列公开可索引页面",
-            "按 canonicalURL 字典排序",
-            "lastmod 采用实际发布修订时间"
+            "权威枚举当前公开导航，携精确publishedRevisionId读发布元数据",
+            "lastmod仅使用lastPublishedAt，不使用缓存时间；canonical URL采用可信publicBaseURL及完整公开路径",
+            "最终重读并比较整份公开树和配置水位，再按loc字典排序"
           ],
           "errors": [
             {
@@ -2525,7 +2623,9 @@
           "concurrency": "最终批量 authority 校验",
           "idempotency": "同公开集合同分片边界",
           "dependencies": [
-            "content:readPublicTree"
+            "public-site.BuildNavigation",
+            "site-config:readSiteConfig",
+            "content:readPublishedRevision"
           ],
           "resources": [],
           "contract": "reference"
@@ -2577,9 +2677,9 @@
           ],
           "purpose": "sitemap 索引 HTTP",
           "steps": [
-            "获取有公开内容语言",
-            "每 10000 URL 固定分片",
-            "只输出当前 epoch 分片地址"
+            "读取启用语言并生成当前公开条目集",
+            "每10000项固定分片，只为存在公开内容的语言输出当前epoch分片地址",
+            "返回前核配置与语言水位，XML输出点转义"
           ],
           "errors": [
             {
@@ -2600,7 +2700,10 @@
           "concurrency": "不使用已撤回分片清单",
           "idempotency": "GET 幂等",
           "dependencies": [
-            "public-site.BuildSitemapEntries"
+            "public-site.BuildSitemapEntries",
+            "site-config:readSiteConfig",
+            "localization:listLanguages",
+            "public-site.sitemapIndexXML"
           ],
           "resources": [],
           "contract": "binding"
@@ -2645,9 +2748,8 @@
           ],
           "purpose": "单分片 sitemap",
           "steps": [
-            "验证非负 shard",
-            "生成当前稳定条目集合",
-            "越界 404 并 XML 转义输出"
+            "拒绝负shard，读取当前稳定并最终权威校验的公开条目",
+            "每10000项切片，越界404；XML输出点转义"
           ],
           "errors": [
             {
@@ -2673,10 +2775,81 @@
           "concurrency": "每响应权威校验所含条目",
           "idempotency": "GET 幂等",
           "dependencies": [
-            "public-site.BuildSitemapEntries"
+            "public-site.BuildSitemapEntries",
+            "public-site.sitemapURLSetXML"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "public-site.xmlText",
+          "name": "xmlText",
+          "signature": "func xmlText(value string) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "XML文本转义",
+          "steps": [
+            "XML文本转义"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.sitemapIndexXML",
+          "name": "sitemapIndexXML",
+          "signature": "func sitemapIndexXML(locations []string) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "输出sitemapindex",
+          "steps": [
+            "输出sitemapindex"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [
+            "public-site.xmlText"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.sitemapURLSetXML",
+          "name": "sitemapURLSetXML",
+          "signature": "func sitemapURLSetXML(entries []SitemapEntry) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "输出规范urlset",
+          "steps": [
+            "输出规范urlset"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [
+            "public-site.xmlText"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3832,10 +4005,9 @@
           ],
           "purpose": "根语言选择HTTP",
           "steps": [
-            "仅/按cookie→Accept-Language地区映射→基准语言",
-            "返回302",
-            "Vary Accept-Language/Cookie，缓存no-store",
-            "带前缀不调用"
+            "仅根路径读取当前启用语言与基准语言，按cookie→Accept-Language→基准选择",
+            "返回302及当前basePath下语言首页；Vary为Accept-Language, Cookie；Cache-Control为no-store",
+            "返回前重核配置和启用语言水位；带前缀页不调用"
           ],
           "errors": [
             {
@@ -3856,8 +4028,9 @@
           "concurrency": "只读配置",
           "idempotency": "GET幂等",
           "dependencies": [
-            "public-site.SelectLocale",
-            "site-config:readConfigObject"
+            "site-config:readSiteConfig",
+            "localization:listLanguages",
+            "public-site.SelectLocale"
           ],
           "resources": [],
           "contract": "binding"
@@ -3909,10 +4082,9 @@
           ],
           "purpose": "校验权威Tiptap渲染输入",
           "steps": [
-            "schemaVersion逐级已迁移",
-            "类型枚举白名单/深度64/稳定blockId唯一",
-            "拒未知节点而不默丢",
-            "收集H2-H4与媒体refs"
+            "在正文输入边界使用gen.PayloadValidationSpec中PublishedDocumentBody生产方自包含schema严格校验一次",
+            "拒绝超出maxBytes、层级64、重复blockId/columnId/cellId及嵌套columns",
+            "原样保留生产方节点与marks；收集标题和完整AssetVersionRef，不做有损归一化"
           ],
           "errors": [
             {
@@ -3937,10 +4109,103 @@
           },
           "concurrency": "纯函数",
           "idempotency": "同JSON/hash同结果",
-          "dependencies": [],
+          "dependencies": [
+            "platform.NewPayloadValidator",
+            "public-site.attrString",
+            "public-site.attrInt",
+            "public-site.nodeText"
+          ],
           "resources": [
             "content.types.TiptapDocument"
           ],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.attrString",
+          "name": "attrString",
+          "signature": "func attrString(attrs map[string]any, key string) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取生产方已校验的字符串属性",
+          "steps": [
+            "读取生产方已校验的字符串属性"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.attrInt",
+          "name": "attrInt",
+          "signature": "func attrInt(attrs map[string]any, key string) int",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取生产方已校验的整数属性",
+          "steps": [
+            "读取生产方已校验的整数属性"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.nodeText",
+          "name": "nodeText",
+          "signature": "func nodeText(node TiptapNode) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "保持次序提取节点已有文字",
+          "steps": [
+            "保持次序提取节点已有文字"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.assetFrom",
+          "name": "assetFrom",
+          "signature": "func assetFrom(value any) (AssetVersionRef, bool)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "提取已校验完整资源引用",
+          "steps": [
+            "提取已校验完整资源引用"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [],
+          "resources": [],
           "contract": "reference"
         }
       ]
@@ -3990,12 +4255,11 @@
           ],
           "purpose": "按节点输出完整HTML",
           "steps": [
-            "段落/引用/分割线/列表/任务/表格/四类callout转义渲染",
-            "chroma高亮代码",
-            "公式仅源码占位/按需KaTeX",
-            "图片srcset lazy与人工alt优先",
-            "附件下载卡片/画板亮暗SVG/columns2..4窄屏竖排/上传video或平台封面点击",
-            "inline格式安全渲染"
+            "按生产方节点与marks转义渲染段落、标题、引用、分割、列表、任务、表格、callout与多栏",
+            "chroma v2.20.0高亮代码；公式只输出LaTeX源码标记containsMath",
+            "资源只输出media manifest明确授权URL；未知资源固定占位，图片lazy/srcset、附件下载、画板亮暗SVG",
+            "上传视频使用controls/playsinline及封面；平台只本地封面并在点击后加载拥有者快照的embedURL，页面不预取第三方播放器",
+            "内部ID链接仅使用同次RewriteInternalLinks映射，未知节点或mark拒绝，不静默丢弃"
           ],
           "errors": [
             {
@@ -4021,8 +4285,12 @@
           "concurrency": "纯函数，危险href拒绝，平台iframe仅白名单",
           "idempotency": "同document/assets/renderer版本同输出",
           "dependencies": [
-            "public-site.ParseTiptapDocument",
-            "public-site.SanitizeHTML"
+            "public-site.markHref",
+            "public-site.attrString",
+            "public-site.attrInt",
+            "public-site.nodeText",
+            "public-site.assetFrom",
+            "public-site.safeLink"
           ],
           "resources": [
             "media公开元数据"
@@ -4076,13 +4344,10 @@
           ],
           "purpose": "Tiptap输出AI可读Markdown",
           "steps": [
-            "按块顺序输出段落/列表/表格/代码/LaTeX",
-            "callout保留类型",
-            "多栏依序",
-            "附件下载链接",
-            "画板和视频输出图片链接+文本描述",
-            "内部ID转换同语言URL+blockId",
-            "不临时生成描述"
+            "按生产方块顺序输出段落、标题、嵌套列表、表格、代码、LaTeX与callout类型；多栏依序输出",
+            "正文和链接转义，代码围栏大于原文最长连续反引号，保留原文",
+            "资源只使用明确授权manifest；画板/视频用图片及已有说明，不临时生成描述",
+            "内部ID链接使用同次RewriteInternalLinks映射；未知节点或mark失败，不静默丢弃"
           ],
           "errors": [
             {
@@ -4108,11 +4373,105 @@
           "concurrency": "纯函数",
           "idempotency": "同revision同Markdown",
           "dependencies": [
-            "public-site.RewriteInternalLinks"
+            "public-site.markHref",
+            "public-site.markdownEscape",
+            "public-site.markdownDestination",
+            "public-site.codeFence",
+            "public-site.assetFrom"
           ],
           "resources": [
             "media公开元数据"
           ],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.markdownEscape",
+          "name": "markdownEscape",
+          "signature": "func markdownEscape(value string) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "转义Markdown正文",
+          "steps": [
+            "转义Markdown正文"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.markdownDestination",
+          "name": "markdownDestination",
+          "signature": "func markdownDestination(value string) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "编码Markdown目标分隔符",
+          "steps": [
+            "编码Markdown目标分隔符"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.codeFence",
+          "name": "codeFence",
+          "signature": "func codeFence(value, character string) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "选择不与源代码冲突的围栏",
+          "steps": [
+            "选择不与源代码冲突的围栏"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "public-site.markHref",
+          "name": "markHref",
+          "signature": "func markHref(mark TiptapMark, links map[string]string) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "外链协议过滤及已核验ID映射读取",
+          "steps": [
+            "外链协议过滤及已核验ID映射读取"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [
+            "public-site.safeLink"
+          ],
+          "resources": [],
           "contract": "reference"
         }
       ]
@@ -4167,7 +4526,8 @@
             "遮罩0..100",
             "纯色/图/动图/video选择",
             "video reduced-motion封面与图片preload",
-            "不添加第二屏内容"
+            "不添加第二屏内容",
+            "背景装饰文字、文字主题来自明确输入，不把空字符串改成默认；默认值由site-config生产方确定"
           ],
           "errors": [
             {
@@ -4185,7 +4545,9 @@
           },
           "concurrency": "纯渲染",
           "idempotency": "同public config revision同输出",
-          "dependencies": [],
+          "dependencies": [
+            "public-site.safeLink"
+          ],
           "resources": [
             "site-config公开首页配置"
           ],
@@ -4262,7 +4624,7 @@
           "concurrency": "配置revision绑定rendercache",
           "idempotency": "同公告/时间窗口同结果",
           "dependencies": [
-            "site-config:readConfigObject"
+            "public-site.safeLink"
           ],
           "resources": [],
           "contract": "reference"
@@ -4314,18 +4676,21 @@
           ],
           "purpose": "文末相邻文档",
           "steps": [
-            "按权威树DFS稳定顺序",
-            "排除非published节点",
-            "输出前后最多一个",
-            "缺相邻为空数组"
+            "只接受已由content公开门禁过滤的树",
+            "按sortKey稳定DFS顺序返回前后各至多一项；无邻居为空数组，目标不存在返回NOT_FOUND"
           ],
           "errors": [
             {
               "code": "INTEGRITY_ERROR",
-              "condition": "INTEGRITY_ERROR：在步骤中的对应校验或依赖失败",
+              "condition": "公开树重复/缺父/环",
               "httpStatus": 422,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "condition": "目标节点不存在",
+              "httpStatus": 404,
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -4336,7 +4701,7 @@
           "concurrency": "纯函数",
           "idempotency": "同tree修订同neighbors",
           "dependencies": [
-            "public-site.BuildNavigation"
+            "public-site.navigationOrder"
           ],
           "resources": [],
           "contract": "reference"
@@ -4626,10 +4991,9 @@
           ],
           "purpose": "根llms语言索引",
           "steps": [
-            "读取启用语言",
-            "列/<locale>/llms.txt与llms-full链接",
-            "不混合多语言正文",
-            "停用语言不输出"
+            "读取当前启用语言，逐语言列出llms.txt和llms-full.txt",
+            "使用可信publicBaseURL，不混合正文，不输出停用语言",
+            "返回前重核配置与语言水位"
           ],
           "errors": [
             {
@@ -4648,7 +5012,8 @@
           "concurrency": "公开配置revision一致",
           "idempotency": "GET幂等",
           "dependencies": [
-            "site-config:readConfigObject"
+            "site-config:readSiteConfig",
+            "localization:listLanguages"
           ],
           "resources": [],
           "contract": "binding"
@@ -4700,9 +5065,9 @@
           ],
           "purpose": "每语言sitemap",
           "steps": [
-            "读取该语言公开规范URL集合",
-            "≤10000输出urlset，更多输出该语言分片index",
-            "最终权威校验，撤回不保留旧URL"
+            "读取当前语言规范URL并最终权威校验",
+            "不超过10000项返回urlset；更多返回仅该语言的固定分片index",
+            "撤回不保留旧URL，XML输出点转义"
           ],
           "errors": [
             {
@@ -4721,7 +5086,10 @@
           "concurrency": "同公开修订集合稳定分片",
           "idempotency": "GET幂等",
           "dependencies": [
-            "public-site.BuildSitemapEntries"
+            "public-site.BuildSitemapEntries",
+            "public-site.sitemapURLSetXML",
+            "public-site.sitemapIndexXML",
+            "site-config:readSiteConfig"
           ],
           "resources": [],
           "contract": "binding"

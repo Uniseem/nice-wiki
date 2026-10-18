@@ -3,6 +3,7 @@ module nice-wiki/modules/public-site
 go 1.25.0
 
 require (
+	github.com/alecthomas/chroma/v2 v2.20.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/oapi-codegen/runtime v1.1.2
 	nice-wiki/libs/platform v0.0.0

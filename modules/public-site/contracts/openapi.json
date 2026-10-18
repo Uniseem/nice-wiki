@@ -1588,6 +1588,14 @@
         "name": "X-Admission-Permit",
         "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
+    },
+    "schemas": {
+      "PublishedDocumentBody": {
+        "$ref": "../../content/contracts/types.json#/$defs/DocumentBody"
+      }
     }
-  }
+  },
+  "x-runtime-payload-schemas": [
+    "PublishedDocumentBody"
+  ]
 }
