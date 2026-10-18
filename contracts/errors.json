@@ -5,6 +5,7 @@
     "UNAUTHENTICATED",
     "FORBIDDEN",
     "NOT_FOUND",
+    "GONE",
     "CONFLICT",
     "VERSION_MISMATCH",
     "LOCKED",
@@ -36,6 +37,7 @@
     "DEPENDENCY_UNAVAILABLE": 503,
     "STALE_RESULT": 409,
     "INTEGRITY_ERROR": 422,
-    "INTERNAL": 500
+    "INTERNAL": 500,
+    "GONE": 410
   }
 }

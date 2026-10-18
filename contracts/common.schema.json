@@ -175,6 +175,7 @@
         "UNAUTHENTICATED",
         "FORBIDDEN",
         "NOT_FOUND",
+        "GONE",
         "CONFLICT",
         "VERSION_MISMATCH",
         "LOCKED",
