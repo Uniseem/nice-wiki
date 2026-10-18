@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "a19b2d0dde8465332649a3f84009a5ef581edec8b98b9f161e5c57dbd912d68f",
+  "contractSha256": "537d24408c9bbacee3600eaeee843c8d55fd20f78f54a3a9037839734e258558",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "风控三批源码交付冻结，由根统一GitLab与双推",
   "branch": "codex/traffic-guard-20261018-bulk",

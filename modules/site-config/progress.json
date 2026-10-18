@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "2d98f59ee9848eb3b55ae59b0bb4b23b09da6b108f9e1c4d18ab2d2c37ebf5ec",
+  "contractSha256": "1e9485cab9b624392c906764b2fd48801e9e1d7c8cdb8dfd835be6c607504581",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18持续收尾：第三批GitLab检查通过，业务验收未执行",
   "branch": "codex/site-config-20261017-r4",

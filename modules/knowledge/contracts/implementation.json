@@ -9333,7 +9333,8 @@
           "resources": [],
           "contract": "binding"
         }
-      ]
+      ],
+      "kind": "handwritten"
     }
   ],
   "jobHandlers": {

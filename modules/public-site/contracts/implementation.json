@@ -6092,7 +6092,8 @@
           "resources": [],
           "contract": "binding"
         }
-      ]
+      ],
+      "kind": "handwritten"
     }
   ],
   "jobTypes": [

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "cbc69e6b00733db57a0dab6296c5bf9d84189fb26b976c5289483b722792089d",
+  "contractSha256": "6bc979e804cc52180003b654f4360966ab889a85b19a5415d084c243f1fcf4f9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "超管重置文件（pipeline 42 已记 verified；5秒监视未接入）",
   "branch": "codex/identity-20261017-r4",

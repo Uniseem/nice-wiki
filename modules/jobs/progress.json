@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "18667270a99a0e55a22370f0107e5ebf8ca0014b8ea7c4a4017caaeda9599902",
+  "contractSha256": "00baf60a655bdbd4c4cac0382ce6c418076e3a5c153b0579931753ab9f7387a6",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "定时调度（pipeline 42 已记 verified；完整启动仍 blocked）",
   "branch": "codex/jobs-20261017-r4",
