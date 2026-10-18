@@ -249,7 +249,7 @@
         },
         "maximumCost": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Money",
-          "description": "每请求费用上限；Money.currency=USD且micros非负整数"
+          "description": "本请求最大费用，0表示不限；不能释放或覆盖旧unknown held"
         },
         "concurrency": {
           "type": "integer",
@@ -259,7 +259,7 @@
         },
         "dailyLimitCost": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Money",
-          "description": "日消费额度；Money.currency=USD且micros非负整数"
+          "description": "site+UTC日+profile独立预算，0不限；profile已绑定costClass，background不占QA额度"
         }
       },
       "required": [
@@ -1784,6 +1784,10 @@
             "unknown"
           ],
           "description": "接收证据"
+        },
+        "usageRecorded": {
+          "type": "boolean",
+          "description": "已有完整真实用量持久证据；未记录不能把已接受调用当免费失败"
         }
       },
       "required": [
@@ -1791,7 +1795,8 @@
         "providerCode",
         "bytesSent",
         "responseStarted",
-        "acceptanceProof"
+        "acceptanceProof",
+        "usageRecorded"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -1962,6 +1967,10 @@
           "maxLength": 64,
           "description": "规范使用量hash",
           "pattern": "^[0-9a-f]{64}$"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "独立计费尝试，避免晚到用量归给后继模型"
         }
       },
       "required": [
@@ -1969,7 +1978,8 @@
         "providerRequestId",
         "inputTokens",
         "outputTokens",
-        "usageHash"
+        "usageHash",
+        "attemptId"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2108,16 +2118,30 @@
           "description": "最终金额；Money.currency=USD且micros非负整数"
         },
         "proofHash": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 65536,
-          "description": "证据摘要"
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "当前超管明确人工证明摘要，不能据网络超时虚构未收费"
         },
         "idempotencyKey": {
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
           "description": "幂等键"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "仅唯一待对账尝试时可省略"
+        },
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "原用量未知/冲突时charged证明必须显式给真实值，与另一token字段同时提供"
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "原用量未知/冲突时charged证明必须显式给真实值，与另一token字段同时提供"
         }
       },
       "required": [

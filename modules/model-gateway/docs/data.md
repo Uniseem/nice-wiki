@@ -277,3 +277,15 @@ QueryUsage的portal管理员即时核model.manage；AI owner纯服务要求整�
 账本时间合法性由SQLite内建strftime对前19位加0秒规范化往返，精确小数独立核1..9位，非法时间元数据view/部分索引保证坏行不能被窗口隐去；不手写日历，也不把读预算变成业务总量上限。依据为[SQLite日期函数](https://www.sqlite.org/lang_datefunc.html)及[官方往返说明](https://sqlite.org/forum/info/ae8081b04cef606c85a4ccd63903a104de1210ac3608808825b9c817809dcf46)，并只读核固定依赖SQLite3.53.4源码路径，未运行SQL或临时程序。窗内charge_unknown须有实际held或未知金额账单证明，否则503而非零占用。HTTP整数limit保持与入口ParseInt基数0相同语义。
 
 同root全部reservation先核held/settled/released合同三态，非法状态422而非过滤成空；合法settled/released不聚合，不套held金额字段规则，仅held参与当前预留校验和汇总。
+
+## 费用执行首批（schemaVersion 6）
+
+006只追加，不修改001—005，不给旧调用猜填归属、request或attempt。invocation_json与hash保存安全状态，request/原OperationContext/固定route/profile/已核FeeScopeBinding留本域私有库；调用读取核owner/site/epoch及非管理调用原root/costClass，不返回正文。invocation_attempts固定每尝试模型、渠道版本、凭据版本、独立价目及token预算；credential_references保留真实派发引用，不能因表暂空回收旧密文。
+
+maximumCost=0与日额度0同义不限；profile日预算按site+UTC日+profile，其costClass由档位固定。QA另有站点每日、已启用的会话/网络小时费用预算，network倍率使用真实策略；background只占自己profile。fee_commitments是本域持久预算投影：已结算按UTC桶，所有尚held（包括旧日未知）继续占同scope，不跨日或凭超时释放。未知价amount=NULL并保留unknown计数，按原合同允许调用且显示不能完整纳入金额限额，不能当零价。
+
+用量摘要固定SHA256(CanonicalJSON({providerRequestId,inputTokens,outputTokens,reportedCost?}))，按provider/request唯一；同attempt同hash返回原结果，冲突持久隔离后交人工证明，不覆盖原证据。结算优先供应方真实金额，其次该attempt固定价目按输入/输出费各向上取整；两者未知保留price_unknown，金额字段省略。实际金额即使超过held也如实记账，未来预算据实拒绝，不能丢掉已产生账单。
+
+每attempt账单携带自己的price_snapshot_json；只读对旧行COALESCE原invocation价目，不更改历史。人工对账仅当前超管明示proofHash：兼容可选attemptId，唯一候选才可省略；缺真实usage时charged必须显式提供inputTokens/outputTokens和原providerRequestId，不能伪0。更正追加新不可变entry并指向supersedes_entry_id；not_charged只追加ledger_voids证明审计而不造usage或零token账单。QueryUsage的聚合/有效条目排除已替代或明确否定旧entry，GetLedger保留原审计。原root/owner/渠道/价目/币种不得迁移到新尝试。
+
+新增ExecutionTransaction仅装配平台NewWriteContext；写入同时要求site-config权威epoch/写窗口及本地所有未释放屏障允许。幂等执行回执和付费结果持久保留，不因HTTP断线、超时或跨日重算。流序号从1开始，0是初读排他游标；delta只接受完整UTF8且≤16KiB，accepted/终态与状态同事务。SSE复用平台心跳/背压，5分钟连接上限，重连只读持久事件，缺保留区GONE/410。

@@ -96,8 +96,10 @@ GetLedger只portal当前model.manage，时间窗正且最多90天，签名cursor
 
 QueryUsage的portal管理员即时核model.manage；AI owner纯服务要求整个root持久归属均同caller/site/epoch，多owner403，无root404。held只汇总调用created_at在窗内且当前held的预留，settled按ledger.created_at窗；同一当前SQL快照，不是历史余额。组内任一未知省略完整相应总额，未知调用ID完整排序；空且全已知的组可为0，不能用部分和代表全额。big.Int聚合后核安全整数，超过256记录/未知ID或可表示范围失败不截断。
 
-本轮不实施Reserve/Create/Extend。background日预算作用域与maximumCost=0含义、QA已消费签名Permit验证须先明确，不能用请求scope或伪调用绕开；不产生accepted/held、真实收费或模型派发。
+第三轮只读历史中未实施Reserve/Create/Extend，彼时费用作用域和签名缺口尚未收口；现本轮规则及源码状态以文末费用执行首批为准。
 
 账本时间合法性由SQLite内建strftime对前19位加0秒规范化往返，精确小数独立核1..9位，非法时间元数据view/部分索引保证坏行不能被窗口隐去；不手写日历，也不把读预算变成业务总量上限。依据为[SQLite日期函数](https://www.sqlite.org/lang_datefunc.html)及[官方往返说明](https://sqlite.org/forum/info/ae8081b04cef606c85a4ccd63903a104de1210ac3608808825b9c817809dcf46)，并只读核固定依赖SQLite3.53.4源码路径，未运行SQL或临时程序。窗内charge_unknown须有实际held或未知金额账单证明，否则503而非零占用。HTTP整数limit保持与入口ParseInt基数0相同语义。
 
 同root全部reservation先核held/settled/released合同三态，非法状态422而非过滤成空；合法settled/released不聚合，不套held金额字段规则，仅held参与当前预留校验和汇总。
+
+本轮费用首批已编写Reserve/Extend/RecordUsage/Settle/Unknown/Reconcile及调用安全读取/持久SSE、失败分类、日志白名单；全部待GitLab，完整Create/Execute/Dispatch、供应方网络适配、凭据引用回收及启动仍未完成。首批配置足够时消费者真实读写，不把暂缺原生产入口伪装成完整已上线费用链。root统一补公共snapshot/barrier与tokenizeText，本域不争用公共文件或tokenizer专用所有权。

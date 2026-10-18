@@ -1244,7 +1244,7 @@
         "summary": "重连读取原流",
         "x-handler": "model-gateway.ResumeStream",
         "x-permission": "service",
-        "x-timeout-ms": 5000,
+        "x-timeout-ms": 300000,
         "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
         "parameters": [
           {
@@ -1290,6 +1290,17 @@
               "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
             },
             "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]+$",
+              "maxLength": 16
+            },
+            "description": "排他持久序号，与afterSequence取较大值；0为初次重读"
           }
         ],
         "responses": {
@@ -1366,6 +1377,16 @@
           },
           "default": {
             "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "持久模型事件所需区已超过保留期；GONE",
             "content": {
               "application/problem+json": {
                 "schema": {

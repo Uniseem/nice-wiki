@@ -45,6 +45,7 @@ type Store struct {
 	catalogVersion int64
 	mu             sync.RWMutex
 	closed         bool
+ execution ExecutionOptions
 }
 
 var activeStore struct {

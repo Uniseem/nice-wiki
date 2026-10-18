@@ -16,6 +16,7 @@ import (
 	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
+ "nice-wiki/modules/model-gateway/internal/invocation"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/security"
 	"nice-wiki/modules/model-gateway/internal/tokens"
@@ -83,6 +84,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 	}
 	handlers := catalog.NewTaskAvailabilityHandlers(authorize)
+ for operationID,handler:=range invocation.NewExecutionHandlers(){handlers[operationID]=handler}
 	ledgerHandlers, err := admin.NewLedgerHandlers(key)
 	if err != nil {
 		return nil, err
@@ -116,9 +118,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		OpenedDataEpoch:     runtimeView.DataEpoch,
 		Authorize:           authorize,
-		ServiceActorCallers: map[string][]string{"queryUsage": assignmentCallers[1:]},
+		ServiceActorCallers: map[string][]string{"queryUsage": assignmentCallers[1:],"readModels":assignmentCallers[1:],"readProfiles":assignmentCallers[1:],"readInference":assignmentCallers[1:],"resumeInference":assignmentCallers[1:]},
 		AllowedCallers: map[string][]string{
 			"getLedger":            {"portal"},
+ "readInference":assignmentCallers,
+ "resumeInference":assignmentCallers,
+ "reconcileCharge":{"portal"},
 			"queryUsage":           assignmentCallers,
 			"readTaskAvailability": {"qa"},
 			"getPriceBook":         {"portal"},

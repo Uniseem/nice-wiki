@@ -127,7 +127,7 @@ func readLedgerMetadata(ctx context.Context, op OperationContext, runtime ledger
 
 // readLedgerEntries 所有SQL片段由本域构造，业务筛选值只通过参数传入。
 func readLedgerEntries(ctx context.Context, op OperationContext, tx *sql.Tx, runtime ledgerReadRuntime, condition string, args []any, limit int) ([]gen.LedgerEntry, error) {
-	query := `SELECT l.entry_id,l.invocation_id,l.provider_request_id,l.actual_micro_usd,l.input_tokens,l.output_tokens,l.status,l.created_at,l.attempt_id,l.pricing_known,i.owner_service,i.site_id,i.data_epoch,i.root_operation_id,i.cost_class,i.state,i.created_at,i.price_snapshot_json FROM ledger_entries l LEFT JOIN invocations i ON i.invocation_id=l.invocation_id WHERE ` + condition + ` ORDER BY ` + ledgerTimeKey + `,l.entry_id LIMIT ?`
+	query := `SELECT l.entry_id,l.invocation_id,l.provider_request_id,l.actual_micro_usd,l.input_tokens,l.output_tokens,l.status,l.created_at,l.attempt_id,l.pricing_known,i.owner_service,i.site_id,i.data_epoch,i.root_operation_id,i.cost_class,i.state,i.created_at,COALESCE(l.price_snapshot_json,i.price_snapshot_json) FROM ledger_entries l LEFT JOIN invocations i ON i.invocation_id=l.invocation_id WHERE ` + condition + ` ORDER BY ` + ledgerTimeKey + `,l.entry_id LIMIT ?`
 	args = append(args, limit)
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -350,7 +350,7 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 			}
 		}
 	}
-	entries, err := readLedgerEntries(ctx, op, tx, runtime, `i.root_operation_id=? AND `+ledgerTimeKey+`>=? AND `+ledgerTimeKey+`<?`, []any{input.RootOperationId, input.From.UTC().Format(ledgerTimeLayout), input.Until.UTC().Format(ledgerTimeLayout)}, 257)
+	entries, err := readLedgerEntries(ctx, op, tx, runtime, `i.root_operation_id=? AND NOT EXISTS(SELECT 1 FROM ledger_entries n WHERE n.supersedes_entry_id=l.entry_id) AND NOT EXISTS(SELECT 1 FROM ledger_voids v WHERE v.entry_id=l.entry_id) AND `+ledgerTimeKey+`>=? AND `+ledgerTimeKey+`<?`, []any{input.RootOperationId, input.From.UTC().Format(ledgerTimeLayout), input.Until.UTC().Format(ledgerTimeLayout)}, 257)
 	if err != nil {
 		return QueryUsageResult{}, err
 	}
