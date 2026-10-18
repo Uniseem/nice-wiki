@@ -1,3 +1,11 @@
+# 2026-10-18第三批源码检查通过
+
+自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。
+
+本域本批完整函数72项通过源码检查。完整服务、快照/恢复、业务验收按逐项台账继续未完成；不把部分装配记完整。未本机/SSH编译、未新增测试、未真实模型或部署。
+
+以下为历史记录。
+
 下载授权源码 48783b4bcf2da0df1e6d3964e5b0755829b5d226，合同 5b01ccb152896bcc3b057dba338137780a83e349：新增AuthorizeBackupDownload及HTTP助手，累计19既有业务/界面+54助手待统一GitLab CI；control V4下载hash/claim，未执行真实迁移/下载。完整便携流尚未齐。按根安排暂停本域新增，转独立公共快照草稿，不计本域ready。
 
 备份入口源码 525e43bdd8a80f323db9bf204f2ea09917cf1f57：ValidateBackupRequest/CreateBackup与3实际助手就绪，累计18既有业务/界面+53助手待统一GitLab CI。control V3持久原批准、不可变任务输入、requested/outbox和真实jobs回执，提交失败保留意图而不伪成功。完整备份执行/归档/恢复链与启动仍未齐。

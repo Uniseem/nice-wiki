@@ -659,6 +659,11 @@
       "purpose": "第二批网关/公共机制源码检查与推送记录"
     },
     {
+      "path": "docs/push-log/2026-10-18-0005.md",
+      "kind": "documentation",
+      "purpose": "第三批数据保护及公共机制源码检查与双推记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"

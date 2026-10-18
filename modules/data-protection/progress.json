@@ -4,21 +4,21 @@
   "phase": "implementation",
   "contractSha256": "62f558b115383e57e37622a4ca309131a8d29aabe00ccae47906e4be33f86a5f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1收尾并行：数据保护独占",
+  "assignedSession": "2026-10-18持续收尾：第三批GitLab检查通过，业务验收未执行",
   "branch": "codex/finish-20261018-protection",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "48783b4bcf2da0df1e6d3964e5b0755829b5d226",
+  "deliveryCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/data-protection/internal/backup_validation.go",
-      "state": "blocked",
-      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本批实际改动待统一GitLab CI"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/backup.go",
@@ -52,53 +52,53 @@
     },
     {
       "path": "modules/data-protection/internal/manifest.go",
-      "state": "blocked",
-      "implementationCommit": "1ce78c9cc5c9327a1eb5888e1cdf8842840be048",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "代码就绪待统一GitLab CI；依赖root common DomainSnapshotManifest schema833及gen"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/integrity.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本批源码/精确格式已交付，待统一GitLab CI；完整服务仍未齐"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "V2真实布局就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/queries.go",
-      "state": "blocked",
-      "implementationCommit": "48783b4bcf2da0df1e6d3964e5b0755829b5d226",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "下载授权本批待统一GitLab CI"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/download.go",
-      "state": "blocked",
-      "implementationCommit": "48783b4bcf2da0df1e6d3964e5b0755829b5d226",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "下载授权本批待统一GitLab CI"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/restore_validation.go",
@@ -162,13 +162,13 @@
     },
     {
       "path": "modules/data-protection/internal/journal.go",
-      "state": "blocked",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "V2真实布局就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/mirror_validation.go",
@@ -202,23 +202,23 @@
     },
     {
       "path": "modules/data-protection/internal/git_config.go",
-      "state": "blocked",
-      "implementationCommit": "4fc21593670b7171e56d40b874324441c72bdb75",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "远程配置闭环改动待统一GitLab CI"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/git_validation.go",
-      "state": "blocked",
-      "implementationCommit": "4fc21593670b7171e56d40b874324441c72bdb75",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "远程配置闭环改动待统一GitLab CI"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/git_remote.go",
@@ -292,33 +292,33 @@
     },
     {
       "path": "modules/data-protection/web/src/BackupPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/backup_schedule.go",
@@ -532,13 +532,13 @@
     },
     {
       "path": "modules/data-protection/web/src/main.ts",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/internal/worker.go",
@@ -593,12 +593,12 @@
     {
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "48783b4bcf2da0df1e6d3964e5b0755829b5d226",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "下载授权本批待统一GitLab CI"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/migrations/0002_control.sql",
@@ -632,13 +632,13 @@
     },
     {
       "path": "modules/data-protection/internal/settings.go",
-      "state": "blocked",
-      "implementationCommit": "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "真实可选安全设置读取就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/migrations/0003_vault_catalog.sql",
@@ -685,24 +685,24 @@
     {
       "id": "data-protection.ValidateBackupRequest",
       "path": "modules/data-protection/internal/backup_validation.go",
-      "state": "blocked",
-      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
+      "blocker": null
     },
     {
       "id": "data-protection.CreateBackup",
       "path": "modules/data-protection/internal/backup.go",
-      "state": "blocked",
-      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
+      "blocker": null
     },
     {
       "id": "data-protection.CollectSnapshots",
@@ -784,112 +784,112 @@
     {
       "id": "data-protection.BuildManifest",
       "path": "modules/data-protection/internal/manifest.go",
-      "state": "blocked",
-      "implementationCommit": "1ce78c9cc5c9327a1eb5888e1cdf8842840be048",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "轻量真实域证据/全引用闭包代码就绪，待统一GitLab CI；不代表真实备份恢复验收"
+      "blocker": null
     },
     {
       "id": "data-protection.VerifyObjectHash",
       "path": "modules/data-protection/internal/integrity.go",
       "state": "verified",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.ValidateCrossDomainRefs",
       "path": "modules/data-protection/internal/manifest.go",
-      "state": "blocked",
-      "implementationCommit": "1ce78c9cc5c9327a1eb5888e1cdf8842840be048",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "轻量真实域证据/全引用闭包代码就绪，待统一GitLab CI；不代表真实备份恢复验收"
+      "blocker": null
     },
     {
       "id": "data-protection.EncryptBackupObject",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": null
     },
     {
       "id": "data-protection.DecryptForValidation",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": null
     },
     {
       "id": "data-protection.ListBackups",
       "path": "modules/data-protection/internal/queries.go",
       "state": "verified",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": null
     },
     {
       "id": "data-protection.ReadBackup",
       "path": "modules/data-protection/internal/queries.go",
       "state": "verified",
-      "implementationCommit": "48783b4bcf2da0df1e6d3964e5b0755829b5d226",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "下载授权及实际改动待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.ReadMirrorStatus",
       "path": "modules/data-protection/internal/queries.go",
       "state": "verified",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "UI及精确镜像ID代码就绪，待统一GitLab CI；公共portal端口装配另核"
+      "blocker": null
     },
     {
       "id": "data-protection.ReadProtectionSettings",
       "path": "modules/data-protection/internal/settings.go",
-      "state": "blocked",
-      "implementationCommit": "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "真实可选安全设置读取代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.AuthorizeBackupDownload",
       "path": "modules/data-protection/internal/download.go",
-      "state": "blocked",
-      "implementationCommit": "48783b4bcf2da0df1e6d3964e5b0755829b5d226",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "下载授权及实际改动待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.ValidateRestore",
@@ -1048,13 +1048,13 @@
     {
       "id": "data-protection.RecoverProtectionJournal",
       "path": "modules/data-protection/internal/journal.go",
-      "state": "blocked",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": null
     },
     {
       "id": "data-protection.ValidateMirrorProjection",
@@ -1103,24 +1103,24 @@
     {
       "id": "data-protection.ConfigureRemote",
       "path": "modules/data-protection/internal/git_config.go",
-      "state": "blocked",
-      "implementationCommit": "4fc21593670b7171e56d40b874324441c72bdb75",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "远程校验及CAS链代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.ValidateRemote",
       "path": "modules/data-protection/internal/git_validation.go",
-      "state": "blocked",
-      "implementationCommit": "4fc21593670b7171e56d40b874324441c72bdb75",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "远程校验及CAS链代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.SyncMirror",
@@ -1235,35 +1235,35 @@
     {
       "id": "data-protection.RequestBackup",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "UI及精确镜像ID代码就绪，待统一GitLab CI；公共portal端口装配另核"
+      "blocker": null
     },
     {
       "id": "data-protection.ApproveFullRestore",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "UI及精确镜像ID代码就绪，待统一GitLab CI；公共portal端口装配另核"
+      "blocker": null
     },
     {
       "id": "data-protection.RequestMirrorSync",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "UI及精确镜像ID代码就绪，待统一GitLab CI；公共portal端口装配另核"
+      "blocker": null
     },
     {
       "id": "data-protection.ScheduleLocalBackup",
@@ -1400,13 +1400,13 @@
     {
       "id": "data-protection.mountModuleUI",
       "path": "modules/data-protection/web/src/main.ts",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "UI及精确镜像ID代码就绪，待统一GitLab CI；公共portal端口装配另核"
+      "blocker": null
     },
     {
       "id": "data-protection.RunWorker",
@@ -1434,10 +1434,10 @@
       "id": "data-protection.server.ListBackups",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "0881c49c085bbbfc643e43998e9fd673608ef534",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
       "blocker": null
     },
@@ -1445,10 +1445,10 @@
       "id": "data-protection.server.ReadBackup",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "0881c49c085bbbfc643e43998e9fd673608ef534",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
       "blocker": null
     },
@@ -1456,10 +1456,10 @@
       "id": "data-protection.server.ReadMirrorStatus",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "0881c49c085bbbfc643e43998e9fd673608ef534",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
       "blocker": null
     },
@@ -1467,43 +1467,43 @@
       "id": "data-protection.OpenCatalog",
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "48783b4bcf2da0df1e6d3964e5b0755829b5d226",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "下载授权及实际改动待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.openDatabase",
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.applyMigration",
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": null
     },
     {
       "id": "data-protection.Store.Close",
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "0881c49c085bbbfc643e43998e9fd673608ef534",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
       "blocker": null
     },
@@ -1511,10 +1511,10 @@
       "id": "data-protection.InstallCatalog",
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "0881c49c085bbbfc643e43998e9fd673608ef534",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
       "blocker": null
     },
@@ -1522,10 +1522,10 @@
       "id": "data-protection.Catalog",
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "0881c49c085bbbfc643e43998e9fd673608ef534",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
       "blocker": null
     },
@@ -1533,10 +1533,10 @@
       "id": "data-protection.storageError",
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "0881c49c085bbbfc643e43998e9fd673608ef534",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
       "blocker": null
     },
@@ -1544,10 +1544,10 @@
       "id": "data-protection.requireAdministrator",
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "0881c49c085bbbfc643e43998e9fd673608ef534",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
       "blocker": null
     },
@@ -1555,466 +1555,466 @@
       "id": "data-protection.PrivateObjectPath",
       "path": "modules/data-protection/internal/store.go",
       "state": "verified",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": null
     },
     {
       "id": "data-protection.ConfigureKeyring",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.readKEKFile",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.configuredKEK",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.aesGCM",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.cryptoNonce",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.frameHeader",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.frameAAD",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.wrapAAD",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.writeCryptoFrame",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.syncObjectDirectory",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.writeCryptoJournal",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.activateEncryptedObject",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": null
     },
     {
       "id": "data-protection.readCryptoHeader",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.decryptCryptoFrames",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.activateDecryptedObject",
       "path": "modules/data-protection/internal/crypto.go",
-      "state": "blocked",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": null
     },
     {
       "id": "data-protection.server.ReadProtectionSettings",
       "path": "modules/data-protection/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "真实设置HTTP转换就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.bindDomainEvidence",
       "path": "modules/data-protection/internal/manifest.go",
-      "state": "blocked",
-      "implementationCommit": "1ce78c9cc5c9327a1eb5888e1cdf8842840be048",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "轻量真实域证据/全引用闭包代码就绪，待统一GitLab CI；不代表真实备份恢复验收"
+      "blocker": null
     },
     {
       "id": "data-protection.validateManifestEvidence",
       "path": "modules/data-protection/internal/manifest.go",
-      "state": "blocked",
-      "implementationCommit": "1ce78c9cc5c9327a1eb5888e1cdf8842840be048",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "轻量真实域证据/全引用闭包代码就绪，待统一GitLab CI；不代表真实备份恢复验收"
+      "blocker": null
     },
     {
       "id": "data-protection.resolveReferenceTargets",
       "path": "modules/data-protection/internal/manifest.go",
-      "state": "blocked",
-      "implementationCommit": "1ce78c9cc5c9327a1eb5888e1cdf8842840be048",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "轻量真实域证据/全引用闭包代码就绪，待统一GitLab CI；不代表真实备份恢复验收"
+      "blocker": null
     },
     {
       "id": "data-protection.decodeBackupManifest",
       "path": "modules/data-protection/internal/manifest.go",
-      "state": "blocked",
-      "implementationCommit": "1ce78c9cc5c9327a1eb5888e1cdf8842840be048",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "轻量真实域证据/全引用闭包代码就绪，待统一GitLab CI；不代表真实备份恢复验收"
+      "blocker": null
     },
     {
       "id": "data-protection.rejectLegacyVault",
       "path": "modules/data-protection/internal/store.go",
-      "state": "blocked",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": null
     },
     {
       "id": "data-protection.rejectLegacyControllerRows",
       "path": "modules/data-protection/internal/store.go",
-      "state": "blocked",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": null
     },
     {
       "id": "data-protection.verifyVaultInventory",
       "path": "modules/data-protection/internal/store.go",
-      "state": "blocked",
-      "implementationCommit": "5b60328a703a35a6a4dff73965c24c2123364acc",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "独立control/vault布局就绪，待统一GitLab CI；未做真实备份恢复"
+      "blocker": null
     },
     {
       "id": "data-protection.server.ConfigureRemote",
       "path": "modules/data-protection/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "4fc21593670b7171e56d40b874324441c72bdb75",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "远程配置HTTP转换待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.failBackup",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.loadBackups",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.submitBackup",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.downloadBackup",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.failRestore",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.validateRestore",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.refreshRestoreProgress",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.submitRestore",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.failMirror",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.loadMirrorSettings",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.saveRemote",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.buildMirror",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.submitSync",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
-      "state": "blocked",
-      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+      "blocker": null
     },
     {
       "id": "data-protection.enqueueBackupState",
       "path": "modules/data-protection/internal/backup.go",
-      "state": "blocked",
-      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
+      "blocker": null
     },
     {
       "id": "data-protection.submitBackupJob",
       "path": "modules/data-protection/internal/backup.go",
-      "state": "blocked",
-      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "控制请求费用类别与可信时区收口待GitLab复检"
+      "blocker": null
     },
     {
       "id": "data-protection.server.CreateBackup",
       "path": "modules/data-protection/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "525e43bdd8a80f323db9bf204f2ea09917cf1f57",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
+      "blocker": null
     },
     {
       "id": "data-protection.server.AuthorizeBackupDownload",
       "path": "modules/data-protection/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "48783b4bcf2da0df1e6d3964e5b0755829b5d226",
+      "state": "verified",
+      "implementationCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": "下载授权及实际改动待统一GitLab CI"
+      "blocker": null
     }
   ],
-  "rule": "累计19既有业务/界面与54实际参考支持待统一GitLab CI；完整归档/备份执行/恢复/镜像链尚未齐。",
+  "rule": "readyAwaitingCI中已实现的业务与参考函数通过pipeline95；NewApplication完整业务装配与六个服务入口仍未齐，不计完成。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "88cef9718165e87d431e36b327f23cb207792388",
@@ -2263,6 +2263,13 @@
         ],
         "notes": "120秒固定purpose签名载荷；只存hash/安全claims；未消费未过期同操作复用，不绕过当前superadmin。真实便携流与单用CAS尚待接完整链。"
       }
-    ]
+    ],
+    "verification": {
+      "state": "passed",
+      "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。",
+      "excludedPartialFunctions": [
+        "data-protection.NewApplication"
+      ]
+    }
   }
 }
