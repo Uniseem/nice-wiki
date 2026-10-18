@@ -5,6 +5,8 @@
 - 源码候选：`98c02a0666572f9ec011eea0040fe4e947aa6853`
 - ready IDs（仅源码候选，GitLab前保持 blocked）：`localization.EstimateLanguagePlan`、`localization.ApproveLanguagePlan`
 
+合同完整性已补齐：`language_plan.go` 的20个private helper、runtime六项计划适配、`ReadPublicTree`、`LanguageForTag` 与 `WriteData` 共29个新增参考函数均进入 `implementation.json` 和逐项 blocked 台账；实际 private structs 及客户端/事务类型进入 `contracts/types.json`。模块合同当前为95文件、184类型、162函数，依赖图从两个HTTP入口及 `BuildApplication` 可达这些 helper。未以空 inputs/outputs 隐藏这些真实类型。
+
 已实现免费估价和明确批准的函数本体。估价读取公开树、逐篇发布正文、翻译记忆和界面缺项；调用 `resolveTaskRoute`、`estimateTokens`、`quoteCost`，不调用模型、不预留或扣减额度。计划固定公开树/文档revision、术语与界面代数、document/UI routeVersion、模型与价目快照、quoteHash和24小时expiresAt。
 
 批准时重新核对公开树与全部任务revision，免费重查route与quoteCost；routeVersion不包含价目，因此任何PriceSnapshot或报价变化都会使计划失败。首次批准把完整OperationContext及原root/主体/epoch/deadline持久冻结；后续重试只沿原scope和未延长截止。任务意图以稳定ObjectRef、完整input hash和`planId + input hash` dedupeKey保存，所有jobs持久接受后才CAS批准并启用自动翻译。失败保留pending意图，不返回假成功。

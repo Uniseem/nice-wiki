@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 133 个函数：约束 48 个，参考 85 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 162 个函数：约束 48 个，参考 114 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -447,6 +447,49 @@ func ListLanguages(ctx context.Context, op OperationContext, input ListLanguages
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：无
+
+## localization.LanguageForTag
+
+- 级别：参考
+- 文件：`modules/localization/internal/language/read.go`
+- 作用：在同一快照按规范BCP47查找语言配置。
+
+```go
+func LanguageForTag(ctx context.Context, tx Tx, op OperationContext, tag string) (Language, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `tag` | `string` | 目标语言 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `Language` | 语言配置 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 规范解析输入
+2. 比较所有当前代次配置且拒绝别名重复
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.NormalizeLanguageTag`
 
 ## localization.acceptStoredTag
 
@@ -3342,7 +3385,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`localization.LoadRuntime`、`localization.RecoverTranslationLeases`、`localization.PublishOutbox`、`localization.ConsumeEvents`、`localization.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`localization.NewGlossaryHandlers`、`localization.NewTranslationHandlers`、`localization.NewInterfaceHandlers`、`localization.NewCacheTranslationHandlers`、`localization.ConfigureExecutionAdapters`、`localization.ConfigureSourceClient`、`localization.NewPreferenceHandlers`、`localization.NewSuggestionPolicyHandlers`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`model-gateway:readInference`、`model-gateway:lookupInference`
+- 依赖：`site-config:registerActivation`、`localization.LoadRuntime`、`localization.RecoverTranslationLeases`、`localization.PublishOutbox`、`localization.ConsumeEvents`、`localization.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`localization.NewGlossaryHandlers`、`localization.NewTranslationHandlers`、`localization.NewInterfaceHandlers`、`localization.NewCacheTranslationHandlers`、`localization.ConfigureExecutionAdapters`、`localization.ConfigureSourceClient`、`localization.NewPreferenceHandlers`、`localization.NewSuggestionPolicyHandlers`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`model-gateway:readInference`、`model-gateway:lookupInference`、`localization.ConfigurePlanAdapters`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## localization.Serve
@@ -3709,6 +3752,259 @@ func PublishBatch(ctx context.Context,limit int)(platform.RelayBatchResult,error
 - 幂等：本域原回执、代数或不可变引用；不自动创建收费重算。
 - 依赖：无
 
+## localization.ConfigurePlanAdapters
+
+- 级别：参考
+- 文件：`modules/localization/internal/runtime/model_client.go`
+- 作用：装配免费路由、token、报价与任务提交端口。
+
+```go
+func ConfigurePlanAdapters(gateway *ModelGatewayClient, jobs *JobsClient, validators PlanValidators) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `gateway` | `ModelGatewayClient` | MG客户端 | 按实际Go签名与所属调用链边界使用 |
+| `jobs` | `JobsClient` | jobs客户端 | 按实际Go签名与所属调用链边界使用 |
+| `validators` | `PlanValidators` | 严格响应校验器 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 要求客户端与四类严格响应校验器齐全
+2. 只保存端口，不发起网络调用
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.validatePlanPayload
+
+- 级别：参考
+- 文件：`modules/localization/internal/runtime/model_client.go`
+- 作用：对计划依赖响应执行生产方strict schema校验。
+
+```go
+func validatePlanPayload(name string, raw RawMessage) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `name` | `string` | 登记响应名 | 按实际Go签名与所属调用链边界使用 |
+| `raw` | `RawMessage` | 原始JSON | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 校验器必须已装配
+2. 未知名称失败关闭
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.ResolvePlanTaskRoute
+
+- 级别：参考
+- 文件：`modules/localization/internal/runtime/model_client.go`
+- 作用：免费读取当前eligible主候选。
+
+```go
+func ResolvePlanTaskRoute(ctx context.Context, op OperationContext, taskID string) (PlanTaskRoute, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `taskID` | `string` | AI任务ID | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `PlanTaskRoute` | 主候选快照 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 使用localization纯服务scope
+2. 核对task/costClass/profile/routeVersion及主模型快照
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.SourceOperation`
+
+## localization.EstimatePlanTextTokens
+
+- 级别：参考
+- 文件：`modules/localization/internal/runtime/model_client.go`
+- 作用：按接口上限分批调用免费token估算。
+
+```go
+func EstimatePlanTextTokens(ctx context.Context, op OperationContext, modelID string, texts []string) (int64, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `modelID` | `string` | 模型 | 按实际Go签名与所属调用链边界使用 |
+| `texts` | `[]string` | 完整待估文本 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `int64` | 保守token总数 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 每片至多4096字符且不截断
+2. 每批至多256片并累加严格响应
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.SourceOperation`、`localization.validatePlanPayload`
+
+## localization.QuotePlanCost
+
+- 级别：参考
+- 文件：`modules/localization/internal/runtime/model_client.go`
+- 作用：读取固定价目计算保守费用。
+
+```go
+func QuotePlanCost(ctx context.Context, op OperationContext, modelID string, inputTokens, maximumOutputTokens int64) (LanguagePlanQuote, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `modelID` | `string` | 模型 | 按实际Go签名与所属调用链边界使用 |
+| `inputTokens` | `int64` | 输入token | 按实际Go签名与所属调用链边界使用 |
+| `maximumOutputTokens` | `int64` | 输出上限 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `LanguagePlanQuote` | 真实免费报价 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 按纯服务scope调用quoteCost
+2. 缺价保留unknown，不写额度/账本
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.SourceOperation`、`localization.validatePlanPayload`
+
+## localization.CreatePlanJob
+
+- 级别：参考
+- 文件：`modules/localization/internal/runtime/model_client.go`
+- 作用：沿原scope提交并严格校验一条jobs任务。
+
+```go
+func CreatePlanJob(ctx context.Context, op OperationContext, input any, idempotencyKey string) (AcceptedJob, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `input` | `any` | 已持久任务请求 | 按实际Go签名与所属调用链边界使用 |
+| `idempotencyKey` | `string` | jobs幂等键 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `AcceptedJob` | 持久接受回执 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 请求体为owner/type/inputRef/dedupeKey/dataEpoch
+2. 严格核对queued回执与operationId
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.SourceOperation`、`localization.validatePlanPayload`
+
 ## localization.EstimateLanguagePlan
 
 - 级别：约束
@@ -3753,7 +4049,7 @@ func EstimateLanguagePlan(ctx context.Context, op OperationContext, input Estima
 - 授权：permission：localization.languages；rule：语言管理员
 - 并发：同语言同时一个有效计划，新估价替换旧计划
 - 幂等：同语言与源集合重复估价返回同一计划
-- 依赖：`localization.NormalizeLanguageTag`、`content:readPublicTree`、`content:readPublishedRevision`、`localization.SplitTranslationUnits`、`localization.ReuseTranslationMemory`、`model-gateway:resolveTaskRoute`、`model-gateway:quoteCost`、`model-gateway:estimateTokens`
+- 依赖：`localization.RequireAdministrator`、`localization.NormalizeLanguageTag`、`localization.ReadData`、`localization.LanguageForTag`、`localization.readInterfacePlan`、`localization.ResolvePlanTaskRoute`、`localization.ReadPublicTree`、`localization.estimateDocumentPlan`、`localization.EstimatePlanTextTokens`、`localization.conservativeOutputTokens`、`localization.QuotePlanCost`、`localization.combineLanguagePlanQuotes`、`localization.planRouteFromRuntime`、`localization.checkedInt`、`localization.saveLanguagePlan`、`content:readPublicTree`、`content:readPublishedRevision`、`localization.SplitTranslationUnits`、`localization.ReuseTranslationMemory`、`model-gateway:resolveTaskRoute`、`model-gateway:quoteCost`、`model-gateway:estimateTokens`
 
 ## localization.ApproveLanguagePlan
 
@@ -3802,7 +4098,841 @@ func ApproveLanguagePlan(ctx context.Context, op OperationContext, input Approve
 - 授权：permission：localization.languages；rule：语言管理员显式批准费用
 - 并发：计划CAS pending→approved
 - 幂等：同planId重复批准返回原结果
-- 依赖：`localization.EnableLanguageForPlan`、`model-gateway:resolveTaskRoute`、`model-gateway:quoteCost`、`jobs:createJob`
+- 依赖：`localization.RequireAdministrator`、`localization.checkLanguagePlanForApproval`、`localization.selectApprovalOperation`、`localization.checkLanguagePlanRevisions`、`localization.ensureLanguagePlanJobs`、`localization.loadLanguagePlanJobs`、`localization.CreatePlanJob`、`localization.planJobType`、`localization.planJobIdempotencyKey`、`localization.Mutate`、`localization.loadLanguagePlan`、`localization.sameApprovalOperation`、`localization.EnableLanguageForPlan`、`model-gateway:resolveTaskRoute`、`model-gateway:quoteCost`、`jobs:createJob`
+
+## localization.estimateDocumentPlan
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：统计单篇文档免费估价。
+
+```go
+func estimateDocumentPlan(ctx context.Context, op OperationContext, target string, document PublicTreeDocument, modelID string, minimumCharacters int) (languagePlanDocument, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `target` | `string` | 目标语言 | 按实际Go签名与所属调用链边界使用 |
+| `document` | `PublicTreeDocument` | 公开文档引用 | 按实际Go签名与所属调用链边界使用 |
+| `modelID` | `string` | 主模型 | 按实际Go签名与所属调用链边界使用 |
+| `minimumCharacters` | `int` | TM最小字符数 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `languagePlanDocument` | 文档估价摘要 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 读取精确发布正文并拆分单元
+2. 复用翻译记忆后仅统计真实新译文本
+3. 完整分批调用网关免费token估算
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.FetchPublishedSnapshot`、`localization.NormalizeLanguageTag`、`localization.SplitTranslationUnits`、`localization.ReadData`、`localization.ReuseInSnapshot`、`localization.EstimatePlanTextTokens`
+
+## localization.readInterfacePlan
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：统计固定界面源相对目标字典的缺项。
+
+```go
+func readInterfacePlan(ctx context.Context, tx Tx, op OperationContext, target string) (interfacePlanData, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `target` | `string` | 目标语言 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `interfacePlanData` | 界面缺项摘要 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 校验固定源目录并按key排序
+2. 读取当前目标字典，仅选择非protected缺项或源hash变化项
+3. 返回源hash、代数和完整待估文本
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.StorageError`、`localization.SourceCatalog`
+
+## localization.conservativeOutputTokens
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：计算不溢出的保守输出token上限。
+
+```go
+func conservativeOutputTokens(count, perBatch int64) (int64, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `count` | `int64` | 任务数量 | 按实际Go签名与所属调用链边界使用 |
+| `perBatch` | `int64` | 每批输出上限 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `int64` | 保守输出上限 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 数量乘以每批上限，0保持0，超int64失败
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.combineLanguagePlanQuotes
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：合并文档与界面任务的同一价目快照。
+
+```go
+func combineLanguagePlanQuotes(documentQuote, interfaceQuote LanguagePlanQuote) (LanguagePlanQuote, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `documentQuote` | `LanguagePlanQuote` | 文档报价 | 按实际Go签名与所属调用链边界使用 |
+| `interfaceQuote` | `LanguagePlanQuote` | 界面报价 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `LanguagePlanQuote` | 合并报价 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 两边PriceSnapshot必须完全一致
+2. 已知价求和；任一未知价保留price_unknown
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.planRouteFromRuntime
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：转换主候选为持久计划路由。
+
+```go
+func planRouteFromRuntime(route PlanTaskRoute) languagePlanRoute
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `route` | `PlanTaskRoute` | 运行时主候选 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `languagePlanRoute` | 持久路由 | 成功返回值必须与实际持久快照一致 |
+
+**步骤**
+
+1. 逐字段复制，不筛选或推断候选
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.checkedInt
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：把已核非负int64转换为平台int。
+
+```go
+func checkedInt(value int64) int
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `value` | `int64` | 非负计数 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `int` | 平台整数 | 成功返回值必须与实际持久快照一致 |
+
+**步骤**
+
+1. 值必须在当前平台int范围
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.saveLanguagePlan
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：持久保存新计划或复用同快照未过期计划。
+
+```go
+func saveLanguagePlan(ctx context.Context, op OperationContext, snapshot languagePlanSnapshot, snapshotRaw []byte, quoteHash Hash, expiresAt Timestamp, result *EstimateLanguagePlanResult) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `snapshot` | `languagePlanSnapshot` | 固定快照 | 按实际Go签名与所属调用链边界使用 |
+| `snapshotRaw` | `bytes` | 规范JSON字节 | 按实际Go签名与所属调用链边界使用 |
+| `quoteHash` | `Hash` | 批准hash | 按实际Go签名与所属调用链边界使用 |
+| `expiresAt` | `Timestamp` | 原过期时刻 | 按实际Go签名与所属调用链边界使用 |
+| `result` | `EstimateLanguagePlanResult` | 公开结果 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 同语言、源集合和hash未过期时返回原计划
+2. 未开始批准的新旧pending计划替换
+3. 计划与逐文档revision快照同事务写入
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.WriteData`、`localization.readPlanResult`、`localization.StorageError`
+
+## localization.readPlanResult
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：读取既有计划原估价结果。
+
+```go
+func readPlanResult(ctx context.Context, tx Tx, planID string, result *EstimateLanguagePlanResult) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
+| `planID` | `string` | 计划 | 按实际Go签名与所属调用链边界使用 |
+| `result` | `EstimateLanguagePlanResult` | 输出 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 严格解析已保存result_json
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.StorageError`
+
+## localization.checkLanguagePlanForApproval
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：在批准前核计划hash、期限和本域revision。
+
+```go
+func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, input ApproveLanguagePlanInput) (storedLanguagePlan, ApproveLanguagePlanResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `input` | `ApproveLanguagePlanInput` | 批准输入 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `plan` | `storedLanguagePlan` | 持久计划 | 成功返回值必须与实际持久快照一致 |
+| `approved` | `ApproveLanguagePlanResult` | 原批准结果或零值 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 计划必须属于当前站点和代次
+2. hash、语言、期限、语言配置、术语/界面代数必须一致
+3. 已批准返回原结果
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.loadLanguagePlan`、`localization.NormalizeLanguageTag`、`localization.LanguageForTag`、`localization.readInterfacePlan`、`localization.StorageError`
+
+## localization.selectApprovalOperation
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：冻结并选择首次或重试批准scope。
+
+```go
+func selectApprovalOperation(ctx context.Context, current OperationContext, plan storedLanguagePlan) (OperationContext, Context, CancelFunc, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `current` | `OperationContext` | 当前已核请求 | 按实际Go签名与所属调用链边界使用 |
+| `plan` | `storedLanguagePlan` | 持久计划 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `operation` | `OperationContext` | 原批准scope | 成功返回值必须与实际持久快照一致 |
+| `workCtx` | `Context` | 受原截止约束上下文 | 成功返回值必须与实际持久快照一致 |
+| `cancel` | `CancelFunc` | 取消函数 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 首次使用当前普通管理员scope
+2. 已开始必须由原主体沿原root/epoch/deadline重放
+3. 原截止已过失败关闭
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.checkLanguagePlanRevisions
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：批准前免费重核公开树、路由与价目revision。
+
+```go
+func checkLanguagePlanRevisions(ctx context.Context, op OperationContext, plan storedLanguagePlan) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `plan` | `storedLanguagePlan` | 持久计划 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 公开树和全部文档引用必须一致
+2. document/ui routeVersion与主模型快照必须一致
+3. quoteCost必须产生完全相同的PriceSnapshot和总价
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.ReadPublicTree`、`localization.ResolvePlanTaskRoute`、`localization.QuotePlanCost`、`localization.combineLanguagePlanQuotes`、`localization.samePlanDocuments`、`localization.samePlanRoute`
+
+## localization.loadLanguagePlan
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：读取并校验语言计划、scope与批准回执。
+
+```go
+func loadLanguagePlan(ctx context.Context, tx Tx, op OperationContext, planID string) (storedLanguagePlan, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `planID` | `string` | 计划 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `storedLanguagePlan` | 完整持久计划 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 严格解析snapshot/result/approved JSON
+2. 校验snapshot hash、quote hash、root/actor/deadline和站点代次
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.StorageError`
+
+## localization.ensureLanguagePlanJobs
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：首次冻结原批准scope并持久全部jobs任务意图。
+
+```go
+func ensureLanguagePlanJobs(ctx context.Context, op OperationContext, plan *storedLanguagePlan) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `plan` | `storedLanguagePlan` | 计划 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 首次批准原子保存operation_json/root/actor/deadline与started时间
+2. 每篇需翻译文档生成一个document意图并总生成一个ui意图
+3. 重试只加载原意图，不换ObjectRef或输入
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.WriteData`、`localization.loadLanguagePlan`、`localization.ensureLanguagePlanJob`、`localization.StorageError`
+
+## localization.ensureLanguagePlanJob
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：生成或复用单条不可变jobs任务意图。
+
+```go
+func ensureLanguagePlanJob(ctx context.Context, tx Tx, op OperationContext, plan storedLanguagePlan, kind, documentID string, document *PublishedRevisionRef) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `plan` | `storedLanguagePlan` | 计划 | 按实际Go签名与所属调用链边界使用 |
+| `kind` | `string` | document/ui | 按实际Go签名与所属调用链边界使用 |
+| `documentID` | `string` | 文档ID | 按实际Go签名与所属调用链边界使用 |
+| `document` | `PublishedRevisionRef` | 文档源 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 任务输入固定planId、quoteHash、原expiresAt、route与价目快照
+2. dedupeKey绑定planId和完整输入hash
+3. 同计划重试必须复用原ObjectRef
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.StorageError`
+
+## localization.loadLanguagePlanJobs
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：按稳定顺序读取计划任务意图和真实jobs回执。
+
+```go
+func loadLanguagePlanJobs(ctx context.Context, op OperationContext, planID string) ([]storedLanguagePlanJob, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `planID` | `string` | 计划 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `storedLanguagePlanJob` | 持久任务意图集合 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. document先于ui并按documentId排序
+2. 核ObjectRef、input hash与完整JSON
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.ReadData`、`localization.StorageError`
+
+## localization.samePlanDocuments
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：比较公开树水位与完整文档引用集合。
+
+```go
+func samePlanDocuments(snapshot languagePlanSnapshot, tree PublicTreeSnapshot) bool
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `snapshot` | `languagePlanSnapshot` | 估价快照 | 按实际Go签名与所属调用链边界使用 |
+| `tree` | `PublicTreeSnapshot` | 当前公开树 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `bool` | 是否完全一致 | 成功返回值必须与实际持久快照一致 |
+
+**步骤**
+
+1. treeRevision必须一致
+2. 按documentId排序后每个PublishedRevisionRef逐项相等
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.samePlanRoute
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：比较完整持久路由字段。
+
+```go
+func samePlanRoute(expected, current languagePlanRoute) bool
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `expected` | `languagePlanRoute` | 原路由 | 按实际Go签名与所属调用链边界使用 |
+| `current` | `languagePlanRoute` | 当前路由 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `bool` | 是否完全一致 | 成功返回值必须与实际持久快照一致 |
+
+**步骤**
+
+1. 逐字段相等
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.sameApprovalOperation
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：比较完整原批准OperationContext。
+
+```go
+func sameApprovalOperation(expected, current OperationContext) bool
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `expected` | `OperationContext` | 冻结scope | 按实际Go签名与所属调用链边界使用 |
+| `current` | `OperationContext` | 待比较scope | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `bool` | 规范JSON是否相同 | 成功返回值必须与实际持久快照一致 |
+
+**步骤**
+
+1. 规范JSON逐字相同
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.planJobType
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：映射计划任务类型。
+
+```go
+func planJobType(kind string) string
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `kind` | `string` | document/ui | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `string` | jobs任务类型 | 成功返回值必须与实际持久快照一致 |
+
+**步骤**
+
+1. document→localization.document，其他→localization.ui
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
+
+## localization.planJobIdempotencyKey
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：生成计划内稳定jobs幂等键。
+
+```go
+func planJobIdempotencyKey(planID, kind, documentID string) string
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `planID` | `string` | 计划 | 按实际Go签名与所属调用链边界使用 |
+| `kind` | `string` | 任务类型 | 按实际Go签名与所属调用链边界使用 |
+| `documentID` | `string` | 文档ID | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `string` | jobs幂等键 | 成功返回值必须与实际持久快照一致 |
+
+**步骤**
+
+1. 对planId/kind/documentId规范分隔取SHA-256并截取稳定前缀
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：无
 
 ## localization.ReadData
 
@@ -3997,6 +5127,47 @@ func StorageError(err error)error
 - 授权：功能权限由平台入口建立，内部仅落实本函数人工主体与命令来源特有规则。
 - 并发：固定调用方事务/快照；失败回滚。
 - 幂等：沿用所属用例原回执或不可变输入，不创建独立付费操作。
+- 依赖：无
+
+## localization.WriteData
+
+- 级别：参考
+- 文件：`modules/localization/internal/language/transaction.go`
+- 作用：在本域代次和已释放屏障下执行内部写事务。
+
+```go
+func WriteData(ctx context.Context, op OperationContext, write TxWriter) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `write` | `TxWriter` | 事务写回调 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 打开语言事务并核屏障
+2. 回调成功后提交，失败整体回滚
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
 - 依赖：无
 
 ## localization.NewGlossaryHandlers
@@ -5317,6 +6488,47 @@ func CursorKey()(platform.SigningKey,error)
 - 并发：固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。
 - 幂等：确定性源模板或只读版本投影，不创建独立收费操作。
 - 依赖：无
+
+## localization.ReadPublicTree
+
+- 级别：参考
+- 文件：`modules/localization/internal/runtime/source_client.go`
+- 作用：读取content公开树并固定完整文档引用集合。
+
+```go
+func ReadPublicTree(ctx context.Context, op OperationContext) (PublicTreeSnapshot, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `PublicTreeSnapshot` | 公开树快照 | 成功返回值必须与实际持久快照一致 |
+| `error` | `error` | 失败时结果无效 | 使用登记公共错误码 |
+
+**步骤**
+
+1. 纯服务调用并校验生产方schema
+2. treeRevision非负、documentId唯一且引用同代
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
+- 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
+- 依赖：`localization.SourceOperation`、`localization.ValidateSourcePayload`
 
 ## localization.StableSlotKey
 
