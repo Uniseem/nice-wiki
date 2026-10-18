@@ -297,3 +297,8 @@ MG原五字段spaceId保持原有有序json.Marshal结构SHA256，不改成Canon
 额外头禁止Host/Content-Length/Transfer-Encoding/Cookie/Authorization/主协议key、代理/转发/压缩/幂等控制头；拒非法header name、CRLF/NUL及重复名称，不输出秘密值。原attempt固定旧refs，省略更新不读旧密文，显式清空也不删除在途引用的密文。并发按固定provider/profile的数量小于配置规则，0表示无可领取槽位；每租约30秒且不超过原deadline，执行器每10秒续租，不以槽释放推免费账单。
 
 供应方映射参考官方协议说明，独立实现且未复制外部源码：[Anthropic Messages](https://docs.anthropic.com/en/api/messages)、[Gemini generateContent](https://ai.google.dev/api/generate-content)、[OpenAI Chat Completions](https://platform.openai.com/docs/api-reference/chat/create)。系统文本不丢text parts，图像只用经media授权/hash核对的固定资源字节，禁止任意URL。rerank只接受显式有限评分/原index，稳定排序并将未返回项原序排末，不伪造缺失分数。
+
+
+### 有限额度与未知金额
+
+`CheckFeeBudgets`在每次预留（包括未知价格）及扩大预留的同一短写事务内执行。单请求额度合计原调用全部held/settled尝试；档位UTC日以及QA全站日、真实许可会话/网络小时范围均按各自限额核对。适用额度大于0时，本次最大金额未知或范围内存在NULL未知金额都以BUDGET_EXCEEDED拒绝新增，不能当0。所有适用额度明确0不限时才允许未知金额；旧日held保留原scope且不因超时释放。
