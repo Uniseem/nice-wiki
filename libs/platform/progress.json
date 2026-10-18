@@ -7,7 +7,7 @@
   "assignedSession": "公共快照/恢复与原模型调用只读观察",
   "branch": "codex/finish-20261018-snapshot",
   "baseCommit": "599cc7b8b9eaf879866b1eb603b1430ea7c333c1",
-  "deliveryCommit": "dcba0de",
+  "deliveryCommit": "dcba0de9a28c8d1a3d0755776f26619f54a24a41",
   "deployment": "not_started",
   "files": [
     {
@@ -103,7 +103,7 @@
     {
       "path": "libs/platform/modelclient/invoke.go",
       "state": "blocked",
-      "implementationCommit": "dcba0de",
+      "implementationCommit": "dcba0de9a28c8d1a3d0755776f26619f54a24a41",
       "verification": {
         "state": "not_run",
         "evidence": "仅INVOCATION_NOT_ACCEPTED精确码是原键未接受证明，源码就绪待Root生产方/common统一GitLab。"
@@ -173,7 +173,7 @@
     {
       "path": "libs/platform/platform.go",
       "state": "blocked",
-      "implementationCommit": "dcba0de",
+      "implementationCommit": "dcba0de9a28c8d1a3d0755776f26619f54a24a41",
       "verification": {
         "state": "not_run",
         "evidence": "仅INVOCATION_NOT_ACCEPTED精确码是原键未接受证明，源码就绪待Root生产方/common统一GitLab。"
@@ -466,7 +466,7 @@
       "id": "platform.InvokeModel",
       "path": "libs/platform/modelclient/invoke.go",
       "state": "blocked",
-      "implementationCommit": "dcba0de",
+      "implementationCommit": "dcba0de9a28c8d1a3d0755776f26619f54a24a41",
       "verification": {
         "state": "not_run",
         "evidence": "仅INVOCATION_NOT_ACCEPTED精确码是原键未接受证明，源码就绪待Root生产方/common统一GitLab。"
