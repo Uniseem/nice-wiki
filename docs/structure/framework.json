@@ -3524,6 +3524,26 @@
       "purpose": "真实不可变价目读取与整数免费报价"
     },
     {
+      "path": "modules/model-gateway/internal/billing/reconcile.go",
+      "kind": "handwritten",
+      "purpose": "保留不确定收费责任所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/billing/reservation.go",
+      "kind": "handwritten",
+      "purpose": "原子扣占额度所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/billing/settlement.go",
+      "kind": "handwritten",
+      "purpose": "结算已知费用所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/billing/usage.go",
+      "kind": "handwritten",
+      "purpose": "接受供应方用量证据所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
       "path": "modules/model-gateway/internal/catalog/model.go",
       "kind": "handwritten",
       "purpose": "模型目录字段与纯规则校验"
@@ -3544,6 +3564,11 @@
       "purpose": "超管维护单任务模型覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
+      "path": "modules/model-gateway/internal/concurrency/lease.go",
+      "kind": "handwritten",
+      "purpose": "限制供应方并发所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
       "path": "modules/model-gateway/internal/gen/clients.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
@@ -3559,6 +3584,36 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/model-gateway/internal/invocation/http.go",
+      "kind": "handwritten",
+      "purpose": "本域真实执行链私有事务及HTTP适配；不读取其他域私有表。"
+    },
+    {
+      "path": "modules/model-gateway/internal/invocation/read.go",
+      "kind": "handwritten",
+      "purpose": "读取调用状态所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/provider/adapter.go",
+      "kind": "handwritten",
+      "purpose": "映射统一调用到供应方协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/provider/anthropic.go",
+      "kind": "handwritten",
+      "purpose": "映射Anthropic消息协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/provider/gemini.go",
+      "kind": "handwritten",
+      "purpose": "映射Gemini协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/provider/rerank.go",
+      "kind": "handwritten",
+      "purpose": "解析rerank协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
       "path": "modules/model-gateway/internal/routing/route.go",
       "kind": "source",
       "purpose": "同一次只读快照的任务路线入口"
@@ -3569,9 +3624,29 @@
       "purpose": "模型网关私有存储、CAS与启动恢复"
     },
     {
+      "path": "modules/model-gateway/internal/runtime/invocation.go",
+      "kind": "handwritten",
+      "purpose": "本域真实执行链私有事务及HTTP适配；不读取其他域私有表。"
+    },
+    {
       "path": "modules/model-gateway/internal/security/credential.go",
       "kind": "source",
       "purpose": "凭据AES-GCM密文、敏感输入HMAC原回执与active版本CAS；旧引用生命周期回收尚未交付"
+    },
+    {
+      "path": "modules/model-gateway/internal/security/headers.go",
+      "kind": "handwritten",
+      "purpose": "本域主密钥及供应方固定路线的安全映射，不访问其他域私有表。"
+    },
+    {
+      "path": "modules/model-gateway/internal/security/redact.go",
+      "kind": "handwritten",
+      "purpose": "生成最小运行日志所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/stream/store.go",
+      "kind": "handwritten",
+      "purpose": "持久保存流序列所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
       "path": "modules/model-gateway/internal/tokens/budget.go",
@@ -3607,6 +3682,16 @@
       "path": "modules/model-gateway/migrations/005_ledger_reads.sql",
       "kind": "migration",
       "purpose": "只追加nullable调用归属、精确时间索引及账本读取水位，不回填旧行"
+    },
+    {
+      "path": "modules/model-gateway/migrations/006_execution.sql",
+      "kind": "handwritten",
+      "purpose": "schemaVersion6追加真实attempt/预留投影/原输入回执/凭据引用/人工证明；旧行不猜填。"
+    },
+    {
+      "path": "modules/model-gateway/migrations/007_provider_dispatch.sql",
+      "kind": "handwritten",
+      "purpose": "schemaVersion7追加固定路线凭据引用、加密额外头及安全结果hash；不猜填旧引用。"
     },
     {
       "path": "modules/model-gateway/migrations/migrations.go",

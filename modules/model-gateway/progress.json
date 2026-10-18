@@ -2,7 +2,7 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "88a062a8cc72f830d815bde8decd72a10d1e259b2d795f2e685f9b05c6de1787",
+  "contractSha256": "2c6c67a07ddae10839f176cd3cc9363b3b4056aef4e8a0d9f72716be2e3cc85c",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1模型网关费用执行及完整启动收尾",
   "branch": "codex/finish-20261018-gateway",
