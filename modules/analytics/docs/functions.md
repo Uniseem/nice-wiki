@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 53 个函数：约束 31 个，参考 22 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 138 个函数：约束 33 个，参考 105 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -33,12 +33,9 @@ func ValidateBeacon(ctx context.Context, op OperationContext, in ValidateBeaconI
 
 **步骤**
 
-1. body2048 allowlist
-2. page-view首次加载sendBeacon一次，navigation-click独立
-3. 来源仅解析合法域名，不含path/query
-4. 延迟0..60000
-5. 已知crawler由服务端UA内存过滤
-6. 没有统计cookie
+1. 原2048字节由公共入口一次控制，不把重编码大小冒充原大小；结构数值范围由严格schema校验。
+2. 事件仅page-view/navigation-click；来源仅合法ASCII域名，不含路径、端口、查询、IP或凭据。
+3. 已知crawler由服务端内存过滤，无统计cookie。
 
 **错误**
 
@@ -90,50 +87,6 @@ func BucketLatency(ctx context.Context, op OperationContext, in BucketLatencyInp
 - 幂等：同ms同bucket
 - 依赖：无
 
-## analytics.HashDayToken
-
-- 级别：参考
-- 文件：`modules/analytics/internal/privacy.go`
-- 作用：IP+User-Agent+当日随机盐访客匿名hash
-
-```go
-func HashDayToken(ctx context.Context, op OperationContext, in HashDayTokenInput) (HashDayTokenResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `HashDayTokenInput` | IP+User-Agent+当日随机盐访客匿名hash；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `HashDayTokenResult` | IP+User-Agent+当日随机盐访客匿名hash成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 只信可信proxy解析peer
-2. User-Agent仅内存规范化
-3. HMAC每日随机独立salt/IP/UA/site
-4. 只存daily hash，不存原IP/UA
-5. 日盐每天更换第二天无法关联
-
-**错误**
-
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：PRIVACY_KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：无
-- 授权：permission：anonymous；rule：anonymous ingress内部
-- 并发：salt每日轮换；不跨日关联
-- 幂等：same day/token同hash
-- 依赖：无
-- 其他依赖说明：本地secret日盐容器，入口可信peer中间件
-
 ## analytics.RedactAuditMetadata
 
 - 级别：参考
@@ -161,9 +114,9 @@ func RedactAuditMetadata(ctx context.Context, op OperationContext, in RedactAudi
 
 **步骤**
 
-1. 按action白名单仅字段revision/fromState/toState/count
-2. 未知字段直接拒绝而非保留
-3. 不截取正文摘要
+1. 动作必须固定registry登记；metadata≤2048字节、严格UTF8 JSON对象。
+2. 仅revision/count非负int64和登记状态fromState/toState，拒重复/未知/null/浮点/尾随内容，不取原文摘要。
+3. canonical UTF8安全编码；未知或错误返回零SafeMetadata，不输出输入内容。
 
 **错误**
 
@@ -173,7 +126,7 @@ func RedactAuditMetadata(ctx context.Context, op OperationContext, in RedactAudi
 - 授权：permission：service；rule：service内部
 - 并发：纯函数，≤4096bytes
 - 幂等：同metadata白名单同结果
-- 依赖：无
+- 依赖：`analytics.auditStateAllowed`
 - 其他依赖说明：审计动作登记表
 
 ## analytics.CheckPrivacyFields
@@ -217,6 +170,39 @@ func CheckPrivacyFields(ctx context.Context, op OperationContext, in CheckPrivac
 - 幂等：同names同result
 - 依赖：无
 
+## analytics.auditStateAllowed
+
+- 级别：参考
+- 文件：`modules/analytics/internal/privacy.go`
+- 作用：审计/持久参考支持：auditStateAllowed
+
+```go
+func auditStateAllowed(state string) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅承认机器合同AuditMetadataV1登记的状态闭集，不接受原文。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_AUDIT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：service鉴权生产者
+- 并发：纯函数，不通过日志修复非法payload
+- 幂等：同audit同结果
+- 依赖：无
+- 其他依赖说明：根contracts/errors.json
+
 ## analytics.IngestBeacon
 
 - 级别：约束
@@ -244,14 +230,11 @@ func IngestBeacon(ctx context.Context, op OperationContext, in IngestBeaconInput
 
 **步骤**
 
-1. JS sendBeacon每page加载一次
-2. 验证字段
-3. 内存filter已知UA crawler
-4. trusted peer+UA日盐hash
-5. 本地GeoIP国家
-6. 来源仅domain
-7. 队列满记漏数后204
-8. 原IP/UA不持久不log
+1. 浏览器公共路由由portal转POST /v1/internal/beacons；固定portal纯服务身份签全部正文，直接analytics公共入口缺可信元数据失败关闭。
+2. 原公开正文入口2048字节，内部正文4096字节；严格结构边界一次验证；正文dataEpoch必须等于可信op。
+3. ValidateBeacon仅核业务事件/来源域语义；每site当前分钟3000、有界队列4096，超限只计漏数回204。
+4. 已知crawler只内存过滤；同一可信ReportingTimeZone日盐hash/离线国家/时延桶后只保允许字段。
+5. 不读代理头，不持久原IP/UA；GeoIP缺库未知ZZ；队列满不暴露排队结果。
 
 **错误**
 
@@ -262,7 +245,7 @@ func IngestBeacon(ctx context.Context, op OperationContext, in IngestBeaconInput
 - 授权：permission：anonymous；rule：anonymous
 - 并发：4096队列；每site3000/min入口限制；不影响页面返回
 - 幂等：beaconId去重在flush落盘
-- 依赖：`analytics.ValidateBeacon`、`analytics.HashDayToken`、`analytics.ClassifyCrawler`、`analytics.LookupCountry`、`analytics.BucketLatency`、`analytics.CheckPrivacyFields`
+- 依赖：`analytics.ValidateBeacon`、`analytics.HashDayToken`、`analytics.ClassifyCrawler`、`analytics.LookupCountry`、`analytics.BucketLatency`
 
 ## analytics.FlushBeacons
 
@@ -291,10 +274,9 @@ func FlushBeacons(ctx context.Context, op OperationContext, in FlushBeaconsInput
 
 **步骤**
 
-1. 每5秒取≤500
-2. 事务insert ignore beaconId
-3. 每条只保留分桶允许字段
-4. 失败保留队列最多5秒然后漏数计数
+1. 单flush互斥，每批最多500，insert ignore真实beaconId；只对实际新增行计Persisted。
+2. 新增行影响的UTC小时与可信本地日各自更新beacon_period_watermarks，不用全局beacons修订使历史桶失效。
+3. 漏数即使空队列也同事务持久；事务失败条目最多内存保留5秒，超期计漏数；不记录payload。
 
 **错误**
 
@@ -305,7 +287,7 @@ func FlushBeacons(ctx context.Context, op OperationContext, in FlushBeaconsInput
 - 授权：permission：service；rule：service worker
 - 并发：单flush worker lease；不记录丢弃payload
 - 幂等：beaconId唯一幂等
-- 依赖：无
+- 依赖：`analytics.advanceWatermark`、`analytics.beginWrite`
 - 其他依赖说明：私有SQLite
 
 ## analytics.AggregateHourly
@@ -335,9 +317,10 @@ func AggregateHourly(ctx context.Context, op OperationContext, in AggregateHourl
 
 **步骤**
 
-1. 选择hour范围当前inbox
-2. 按document/locale group count并dayHash去重
-3. 事务替换该hour派生聚合及watermark
+1. 可信本域worker注入JobExecutionInput与不可变SourceWatermark，HTTP不得自报。
+2. 锁外CheckLease，事务内当前epoch/同job/worker/fence/attempt/expiry；当前period来源必须等原输入，改变则STALE_RESULT，新输入另计划。
+3. 完整已封闭UTC小时按document/locale count与dailyHash distinct，时延分桶；同事务替换桶/真实水位/outbox/原结果，提交前再核镜像截止。
+4. 超过原明细30天且缺原聚合失败关闭，保留历史真实聚合不重建0。
 
 **错误**
 
@@ -348,7 +331,7 @@ func AggregateHourly(ctx context.Context, op OperationContext, in AggregateHourl
 - 授权：permission：service；rule：service worker
 - 并发：关闭小时后保留24h允许补到；事务replace不会累计重复
 - 幂等：hour/sourceWatermark幂等
-- 依赖：无
+- 依赖：`analytics.checkAggregateLease`、`analytics.verifyAggregateLease`、`analytics.readAggregate`、`analytics.saveAggregate`、`analytics.enqueueAggregate`
 - 其他依赖说明：私有SQLite
 
 ## analytics.AggregateDaily
@@ -378,11 +361,10 @@ func AggregateDaily(ctx context.Context, op OperationContext, in AggregateDailyI
 
 **步骤**
 
-1. 按站点IANA时区日边界
-2. 明细同dailyvisitorHash distinct得UV
-3. group views/UV/热门文档语言/sourceDomain/country/语言分布
-4. AI Markdown crawler计数独立不混真人
-5. 日汇总长期保存
+1. 唯一可信ReportingTimeZone必须非空且等任务timezone，DST以AddDate日历日完整封闭边界。
+2. 可信worker注入真实执行与不可变来源水位；锁外CheckLease/事务内fence及来源CAS，迟到变化新输入不改旧输入。
+3. document/locale总UV在所有维度间distinct；source/country维度另表，不SUM维度UV；维度最多100000否则事务失败。
+4. 完整替换日总量/维度与原结果/outbox/真实修订；提交前核租约镜像；原明细已过保留而缺原结果不可重建0。
 
 **错误**
 
@@ -393,7 +375,106 @@ func AggregateDaily(ctx context.Context, op OperationContext, in AggregateDailyI
 - 授权：permission：service；rule：service worker
 - 并发：日分界与DST用IANA时区固定配置revision
 - 幂等：day/timezone/sourceWatermark幂等
-- 依赖：`analytics.AggregateHourly`
+- 依赖：`analytics.checkAggregateLease`、`analytics.verifyAggregateLease`、`analytics.readAggregate`、`analytics.saveAggregate`、`analytics.enqueueAggregate`
+
+## analytics.enqueueAggregate
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregation.go`
+- 作用：统计任务参考支持：enqueueAggregate
+
+```go
+func enqueueAggregate(tx *sql.Tx, op OperationContext, revision int64, day, kind string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 与聚合同事务写平台outbox，真实修订；事件只经jobs。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`platform.EnqueueEvent`
+- 其他依赖说明：私有SQLite
+
+## analytics.readAggregate
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregation.go`
+- 作用：统计任务参考支持：readAggregate
+
+```go
+func readAggregate(ctx context.Context, tx *sql.Tx, kind, key string, expected int64, out any) (bool, int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取对应period来源水位，必须等不可变输入；同已聚合水位返回真实原结果，较新来源要求新任务。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：无
+- 其他依赖说明：私有SQLite
+
+## analytics.saveAggregate
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregation.go`
+- 作用：统计任务参考支持：saveAggregate
+
+```go
+func saveAggregate(ctx context.Context, tx *sql.Tx, kind, key string, source int64, result any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 与聚合替换/outbox同事务持久来源水位和真实结果。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：无
+- 其他依赖说明：私有SQLite
 
 ## analytics.ValidateDateRange
 
@@ -422,10 +503,8 @@ func ValidateDateRange(ctx context.Context, op OperationContext, in ValidateDate
 
 **步骤**
 
-1. RFC3339含zone
-2. from<to
-3. 最大366日
-4. 按[begin,end)且默认7日
+1. RFC3339含zone转UTC，左闭右开from<to；省略终点使用当前时间，省略起点用终点前7日。
+2. MaxDays=0表示366；显式只能1..366，范围超过拒绝，不做整数溢出或静默截断。
 
 **错误**
 
@@ -436,6 +515,38 @@ func ValidateDateRange(ctx context.Context, op OperationContext, in ValidateDate
 - 并发：纯函数
 - 幂等：同range同结果
 - 依赖：无
+
+## analytics.pageInterval
+
+- 级别：参考
+- 文件：`modules/analytics/internal/query_validation.go`
+- 作用：本域参考支持：pageInterval
+
+```go
+func pageInterval(ctx context.Context, op OperationContext, rt *Runtime, in QueryPageStatisticsInput) (time.Time, time.Time, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. UTC完整小时或唯一可信部署报表时区完整日历桶，默认7日；日模式按AddDate处理DST，未知时区不可用。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：`analytics.ValidateDateRange`
 
 ## analytics.QueryPageStatistics
 
@@ -464,10 +575,10 @@ func QueryPageStatistics(ctx context.Context, op OperationContext, in QueryPageS
 
 **步骤**
 
-1. check stats.read
-2. validate range
-3. 只读派生小时/日聚合
-4. 附漏数与去重访次解释
+1. 生成边界一次核stats.read，内部只取受信本域runtime。
+2. 读取真实SQLite一致快照及已聚合pages水位/真实漏数；hour只完整UTC小时，day只唯一部署报表时区日历桶，缺配置不可用。
+3. 默认最近7完整日/168完整UTC小时；显式边界必须对齐，day最多366日历日支持DST；输出实际fromUTC/toUTC/granularity。
+4. 日报UV从独立总表读取，不求和source/country维度distinct；上限10000行超预算错误，不截断。
 
 **错误**
 
@@ -478,7 +589,7 @@ func QueryPageStatistics(ctx context.Context, op OperationContext, in QueryPageS
 - 授权：permission：stats.read；rule：stats.read
 - 并发：SQLite快照读，最多1000聚合行分页
 - 幂等：GET幂等
-- 依赖：`identity:checkAuthorization`、`analytics.ValidateDateRange`
+- 依赖：`analytics.runtimeFrom`、`analytics.pageInterval`、`analytics.readPageSnapshot`
 
 ## analytics.QueryAudits
 
@@ -507,9 +618,10 @@ func QueryAudits(ctx context.Context, op OperationContext, in QueryAuditsInput) 
 
 **步骤**
 
-1. 验audit.read
-2. 签名cursor绑定filters/epoch
-3. limit20 max100按seq稳定分页
+1. 生成边界一次核audit.read；limit默认20最大100。
+2. 复用平台SignCursor/VerifyCursor固定scope，绑定稳定subject/session及修订/site/epoch/action/limit，不绑每次proof expiry。
+3. 首次固定真实seq上界与保留锚；按seq升序keyset，不混入后来追加。锚变化、过期或身份筛选变化STALE_RESULT，不跳过被删页。
+4. 可选from/to必须同现，规范UTC固定区间纳入游标绑定与SQL筛选；不每页用当前时刻重算默认日期。
 
 **错误**
 
@@ -520,7 +632,7 @@ func QueryAudits(ctx context.Context, op OperationContext, in QueryAuditsInput) 
 - 授权：permission：audit.read；rule：audit.read
 - 并发：快照读；不跨域查原正文
 - 幂等：GET幂等
-- 依赖：`identity:checkAuthorization`
+- 依赖：`analytics.runtimeFrom`、`analytics.storageError`、`analytics.ValidateDateRange`
 
 ## analytics.ReadAudit
 
@@ -549,9 +661,10 @@ func ReadAudit(ctx context.Context, op OperationContext, in ReadAuditInput) (Rea
 
 **步骤**
 
-1. 验audit.read
-2. 读取safe字段
-3. 计算本条与prev链接一致性，异常标false而不悄悄修复
+1. 生成边界一次核audit.read；同一真实快照读当前安全记录及最近前驱或保留链锚。
+2. V1链hash使用UTF8前hash十六进制串拼canonical payload，排除自身hash/previousHash，内部metadata参与hash但不作为原文返回。
+3. hash格式损坏INTEGRITY_ERROR；合法格式的hash或前驱不符返回chainValid=false，不修复。
+4. 读取真实hash_schema_version及来源事实；先按原始存储payload核链，再只输出严格安全metadata，异常省略并chainValid=false。
 
 **错误**
 
@@ -562,50 +675,39 @@ func ReadAudit(ctx context.Context, op OperationContext, in ReadAuditInput) (Rea
 - 授权：permission：audit.read；rule：audit.read
 - 并发：只读
 - 幂等：GET幂等
-- 依赖：`analytics.ComputeAuditHash`、`identity:checkAuthorization`
+- 依赖：`analytics.runtimeFrom`、`analytics.ComputeAuditHash`
 
-## analytics.QueryUsageStatistics
+## analytics.readPageSnapshot
 
-- 级别：约束
+- 级别：参考
 - 文件：`modules/analytics/internal/queries.go`
-- 作用：费用汇总查询
+- 作用：本域参考支持：readPageSnapshot
 
 ```go
-func QueryUsageStatistics(ctx context.Context, op OperationContext, in QueryUsageStatisticsInput) (QueryUsageStatisticsResult, error)
+func readPageSnapshot(ctx context.Context, tx *sql.Tx, op OperationContext, in QueryPageStatisticsInput, begin, end time.Time, location *time.Location) (QueryPageStatisticsResult, error)
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `QueryUsageStatisticsInput` | 费用汇总查询；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `QueryUsageStatisticsResult` | 费用汇总查询成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+无
 
 **步骤**
 
-1. 验stats.read
-2. range/class校验
-3. 读取派生汇总与最后对账水位
-4. 显示可能有事件延迟
+1. 同快照读取真实已聚合水位/漏数与完整小时或日总表，10000行预算，空集合只来自真实库。
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：无
-- 授权：permission：stats.read；rule：stats.read
-- 并发：只读快照，不作允许模型调用的实时决策
-- 幂等：GET幂等
-- 依赖：`identity:checkAuthorization`
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：无
 
 ## analytics.ValidateAudit
 
@@ -634,10 +736,9 @@ func ValidateAudit(ctx context.Context, op OperationContext, in ValidateAuditInp
 
 **步骤**
 
-1. action/resultCode注册枚举
-2. 资源只接受不透明ID/修订
-3. 拒body/message/IP/token
-4. 时间允许±5min
+1. 只接受固定动作/生产者归属，origin仅由已核HTTP或EventEnvelope提供的内部字段，不改op.CallerService。
+2. 实时模式原主体必须等于当前可信主体且发生时间±5min；历史允许过去原事实，不允许未来超过5min。
+3. 不透明audit/resource/actor引用、成功OK或兼容SUCCESS/公共错误码；不接任意message。
 
 **错误**
 
@@ -677,9 +778,9 @@ func ComputeAuditHash(ctx context.Context, op OperationContext, in ComputeAuditH
 
 **步骤**
 
-1. JSON字段规范排序
-2. SHA256(previousHash||canonicalJSON)
-3. 排除链外本地传输时间
+1. V1固定payload字段auditId/actorId/action/resourceId/resultCode/occurredAt及内部safeMetadata字段metadata（空亦保留）；排除链自身hash和previousHash。
+2. SHA256(UTF8(previousHash十六进制串)||canonicalJSON(payload))；纯函数，不含本地链外接收时间。
+3. V2额外完整涵盖schemaVersion/siteId/producer/actorKind/sourceOperationId/originEpoch；版本超过2失败，不改V1原链。
 
 **错误**
 
@@ -718,9 +819,10 @@ func AppendAudit(ctx context.Context, op OperationContext, in AppendAuditInput) 
 
 **步骤**
 
-1. 服务生产者鉴权
-2. 校验/redact
-3. 事务锁链尾并insert唯一auditId/prevHash/hash
+1. 固定action→producer只允许已验证原owner；历史actorKind/occurredAt/sourceOperationId三字段同现，必须纯服务SubjectID==CallerService，原actorId显式提供。
+2. 旧无三字段分支仍actorId==当前可信主体；部分组合拒绝，不复用过期portal proof，不拿服务主体假冒原用户。
+3. 严格元数据白名单，V2 canonical涵盖原producer/site/epoch/actorKind/sourceOperation/time与结果；HTTP旧SUCCESS标准化OK，V1旧hash只读不改。
+4. 共享appendTrustedAudit在业务事务追加唯一auditId/prevHash/hash；同原事实回原结果，异原事实CONFLICT。生产者异步只能原事务outbox→jobs→消费，不改成直连旁路。
 
 **错误**
 
@@ -731,7 +833,74 @@ func AppendAudit(ctx context.Context, op OperationContext, in AppendAuditInput) 
 - 授权：permission：service；rule：service指定action生产者
 - 并发：单链append事务，禁止更新原审计
 - 幂等：auditId+payloadHash幂等
-- 依赖：`analytics.ValidateAudit`、`analytics.RedactAuditMetadata`、`analytics.ComputeAuditHash`
+- 依赖：`analytics.runtimeFrom`、`analytics.normalizeAuditFact`、`analytics.appendTrustedAudit`
+
+## analytics.appendTrustedAudit
+
+- 级别：参考
+- 文件：`modules/analytics/internal/audit_store.go`
+- 作用：审计/持久参考支持：appendTrustedAudit
+
+```go
+func appendTrustedAudit(ctx context.Context, op OperationContext, fact trustedAuditFact, envelope *platform.EventEnvelope) (AppendAuditResult, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同事务平台ClaimInbox与追加原事实；已处理信封不重新插入被保留期清掉的旧记录。
+2. 唯一auditId原摘要不同CONFLICT；链尾和保留锚、hash与全来源事实同事务；固定原事实重放只返回旧真实结果。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_AUDIT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：service鉴权生产者
+- 并发：纯函数，不通过日志修复非法payload
+- 幂等：同audit同结果
+- 依赖：`analytics.beginWrite`、`analytics.ComputeAuditHash`、`analytics.advanceWatermark`、`analytics.insertAuditRecord`
+- 其他依赖说明：根contracts/errors.json
+
+## analytics.insertAuditRecord
+
+- 级别：参考
+- 文件：`modules/analytics/internal/audit_store.go`
+- 作用：私有导出/保留期支持：insertAuditRecord
+
+```go
+func insertAuditRecord(work context.Context, op OperationContext, tx *sql.Tx, record AuditRecord, historical bool, envelope *platform.EventEnvelope, digest string) (AppendAuditResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 已认证安全审计事实接真实尾hash/锚，写V2原来源事实；允许调用方与保留期锚/删除同事务。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.ComputeAuditHash`
+- 其他依赖说明：本域私有SQLite/exports对象
 
 ## analytics.ValidateUsageEvent
 
@@ -888,8 +1057,8 @@ func FetchUsagePage(ctx context.Context, op OperationContext, in FetchUsagePageI
 
 **步骤**
 
-1. service调用gateway.queryUsage固定watermark分页100
-2. 只读取安全账项不读取prompt/token
+1. 按model-gateway:readUsageStatisticsPage固定watermark/throughRevision共享changes与observations顺序分页；完整pageHash与源范围核验后仅在完整上界收齐才激活隔离投影。
+2. 此消费者源码尚未实现，保持planned；不得把posted账项或未收齐分页当全站费用，unknown/held不补0。
 
 **错误**
 
@@ -900,7 +1069,7 @@ func FetchUsagePage(ctx context.Context, op OperationContext, in FetchUsagePageI
 - 授权：permission：service；rule：service analytics
 - 并发：每页2.5s，总任务deadline60s；继续cursor不重建模型请求
 - 幂等：watermark/cursor可重试
-- 依赖：`model-gateway:queryUsage`
+- 依赖：`model-gateway:readUsageStatisticsPage`
 
 ## analytics.ReconcileUsage
 
@@ -988,51 +1157,6 @@ func ConsumeAnalyticsEvent(ctx context.Context, op OperationContext, in ConsumeA
 - 幂等：eventId/revision/hash幂等
 - 依赖：`model-gateway:queryUsage`、`analytics.ProjectUsage`、`platform.ClaimInbox`
 
-## analytics.ConsumeEvents
-
-- 级别：约束
-- 文件：`modules/analytics/internal/event_handler.go`
-- 作用：从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认
-
-```go
-func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEventsInput) (ConsumeEventsResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 本域后台worker以服务身份构建的操作上下文，含当前dataEpoch | callerService为本域；dataEpoch等于site-config当前active epoch |
-| `input` | `ConsumeEventsInput` | 订阅循环参数 | 必须通过公共schema；consumerId等于本域slug |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ConsumeEventsResult` | 循环退出时的累计计数 | 无error时有效 |
-| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
-
-**步骤**
-
-1. 进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连
-2. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未换入该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
-3. 按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入
-4. 处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放
-5. 屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件
-
-**错误**
-
-- `DEPENDENCY_UNAVAILABLE`：jobs订阅或确认不可用；重连后续传（可重试）
-- `VALIDATION`：事件信封或载荷不符合登记schema；隔离并确认（不可重试）
-- `INTEGRITY_ERROR`：同eventId异payloadHash；隔离报警（不可重试）
-
-- 副作用：HTTP长连接jobs:subscribeEvents；调用本域登记的事件处理函数；HTTP调用jobs:acknowledgeEvent
-- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
-- 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
-- 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`analytics.ConsumeAnalyticsEvent`、`analytics.ProjectQaTurn`、`platform.RunConsumer`
-
 ## analytics.ProjectQaTurn
 
 - 级别：约束
@@ -1060,9 +1184,10 @@ func ProjectQaTurn(ctx context.Context, op OperationContext, input EventDelivery
 
 **步骤**
 
-1. inbox按eventId+payloadHash去重
-2. qa.turn.completed按日期/语言累加问答量、缓存命中与answerKind（answered/no_evidence/clarification/out_of_scope）；qa.turn.failed累加失败数与错误码
-3. 只保存ID、计数与分类，不保存问题正文或访客标识
+1. 生产方严格schema边界已验证；只qa v1，epoch/subject==turnId，completed.answerRevision==envelope.revision。
+2. inbox与turn来源修订同事务：重复不写，低修订跳过，同修订不同完整来源hash冲突；更高修订先撤旧分类再应用新事实。
+3. 日界线唯一可信ReportingTimeZone；失败payload无language时内部locale空仅表示未提供，不假造用户语言。
+4. 只保存turnId、分类、时间与计数，未答引用opaque；不保存问题正文/访客身份。
 
 **错误**
 
@@ -1074,48 +1199,38 @@ func ProjectQaTurn(ctx context.Context, op OperationContext, input EventDelivery
 - 幂等：eventId去重
 - 依赖：`platform.ClaimInbox`
 
-## analytics.CreateExport
+## analytics.applyQaCounts
 
-- 级别：约束
-- 文件：`modules/analytics/internal/export.go`
-- 作用：受权限保护统计导出
+- 级别：参考
+- 文件：`modules/analytics/internal/event_handler.go`
+- 作用：问答统计参考支持：applyQaCounts
 
 ```go
-func CreateExport(ctx context.Context, op OperationContext, in CreateExportInput) (CreateExportResult, error)
+func applyQaCounts(ctx context.Context, tx *sql.Tx, epoch string, fact qaTurnProjection, delta int64) error
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `CreateExportInput` | 受权限保护统计导出；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `CreateExportResult` | 受权限保护统计导出成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+无
 
 **步骤**
 
-1. 根据kind查stats.read/audit.read
-2. 按固定watermark查询≤100000行
-3. CSV公式危险前缀加单引号
-4. 生成私有引用24h
+1. 按真实旧/新来源分类撤旧计数或增新；撤旧必须存在正计数，否则完整性失败。
 
 **错误**
 
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `VALIDATION` / HTTP 400：EXPORT_LIMIT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
-- 副作用：写私有导出文件/run
-- 授权：permission：stats.read；rule：stats.read或audit.read
-- 并发：内存最多1000行块写；文件temp fsync rename再DB记录
-- 幂等：operationId/filterHash/actor幂等
-- 依赖：`analytics.QueryPageStatistics`、`analytics.QueryAudits`、`analytics.QueryUsageStatistics`、`analytics.ValidateCSVCell`、`analytics.CheckPrivacyFields`
+- 副作用：无
+- 授权：permission：service；rule：仅已验证入口/consumer调用，不接受客户端自报来源。
+- 并发：本域同事务
+- 幂等：原事件来源事实绑定
+- 依赖：无
+- 其他依赖说明：本域私有SQLite
 
 ## analytics.ValidateCSVCell
 
@@ -1144,9 +1259,7 @@ func ValidateCSVCell(ctx context.Context, op OperationContext, in ValidateCSVCel
 
 **步骤**
 
-1. 首字符=+@-制表符则加单引号
-2. 双引号倍写
-3. 换行逗号引号用quote包裹
+1. 首字符=+@-或tab/CR/LF加单引号；含逗号/引号/换行按CSV双引号包裹并转义，不接受客户端自定义列。
 
 **错误**
 
@@ -1185,11 +1298,9 @@ func PurgeBeacons(ctx context.Context, op OperationContext, in PurgeBeaconsInput
 
 **步骤**
 
-1. 默认30天明细已按日汇总后删除
-2. 保留只含日hash的明细仍不可跨天识别人
-3. 每日随机salt替换且旧salt24h删除
-4. 日聚合长期保留
-5. 未聚合异常记漏数后删除
+1. 有界500条，仅真实30天前明细；page-view若小时/日派生来源水位未完整匹配，删前真实漏数+1不双计。
+2. 同事务删原明细/真实漏数/保留水位；不推进period水位使长期聚合失效，不清真实长期日汇总。
+3. 旧日期随机盐新日首次hash前/每分钟独立擦除control，不将原IP/UA或盐进快照。
 
 **错误**
 
@@ -1229,9 +1340,9 @@ func PurgeAuditHistory(ctx context.Context, op OperationContext, in PurgeAuditHi
 
 **步骤**
 
-1. retention默认180最少30
-2. 创建删除前链锚hash
-3. 删过期记录并追加retention审计
+1. 默认180最少30，固定analytics纯服务策略或当前system.manage；只删除逐条核payload/hash/previousHash的最老连续过期前缀最多10000，乱序晚到旧事实可更久保留。
+2. 同事务写真实最后删除seq/hash锚、删该前缀并追加V2 analytics.retention安全count审计；不按时间删链中间或重算旧hash。
+3. 主体/函数/操作原回执幂等，零删除仍记录真实操作事实；原事件inbox保留避免旧事实重新插入。
 
 **错误**
 
@@ -1242,49 +1353,40 @@ func PurgeAuditHistory(ctx context.Context, op OperationContext, in PurgeAuditHi
 - 授权：permission：system.manage；rule：system.manage或固定service策略
 - 并发：维护事务锁链，不打断链验证
 - 幂等：cutoff/anchor幂等
-- 依赖：`analytics.AppendAudit`
+- 依赖：`analytics.insertAuditRecord`、`analytics.ComputeAuditHash`、`analytics.readReceipt`、`analytics.saveReceipt`、`analytics.beginWrite`
 
-## analytics.PurgeExports
+## analytics.PruneDaySalts
 
 - 级别：参考
 - 文件：`modules/analytics/internal/retention.go`
-- 作用：清理导出临时对象
+- 作用：私有导出/保留期支持：PruneDaySalts
 
 ```go
-func PurgeExports(ctx context.Context, op OperationContext, in PurgeExportsInput) (PurgeExportsResult, error)
+func PruneDaySalts(ctx context.Context, rt *Runtime, now time.Time) error
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `PurgeExportsInput` | 清理导出临时对象；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `PurgeExportsResult` | 清理导出临时对象成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+无
 
 **步骤**
 
-1. 选择expiresAt≤now已ready
-2. 删除文件后markexpired
-3. 遗留文件扫描按引用回收
+1. 按可信计数当前日，擦除旧日期独立control盐/内存key，目录fsync；新日首次hash前和每分钟运行，不进快照。
 
 **错误**
 
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
-- 副作用：删导出文件/状态
-- 授权：permission：service；rule：service worker
-- 并发：文件/DB非单事务，重启扫描可重复补偿
-- 幂等：exportId幂等
-- 依赖：无
-- 其他依赖说明：私有对象目录
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.syncDirectory`
+- 其他依赖说明：本域私有SQLite/exports对象
 
 ## analytics.PublishAggregateEvents
 
@@ -1313,9 +1415,8 @@ func PublishAggregateEvents(ctx context.Context, op OperationContext, in Publish
 
 **步骤**
 
-1. ≤100固定eventId
-2. 向jobs.publishEvent
-3. 成功mark delivered，失败有限退避但不重复聚合
+1. 实际本域outbox用平台RunRelayBatch；只装配批次/真实runtime与private写窗口，领取/重试/隔离不复制。
+2. 返回真实Relayed数量，失败不冒接收成功。
 
 **错误**
 
@@ -1325,7 +1426,7 @@ func PublishAggregateEvents(ctx context.Context, op OperationContext, in Publish
 - 授权：permission：service；rule：service
 - 并发：30s发送租约，至少一次
 - 幂等：eventId固定
-- 依赖：`jobs:publishEvent`、`platform.RunRelay`
+- 依赖：`jobs:publishEvent`、`platform.RunRelayBatch`
 
 ## analytics.EnterBarrier
 
@@ -1544,35 +1645,60 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.Discard`
 
-## analytics.LoadStatistics
+## analytics.clearOverview
 
 - 级别：参考
 - 文件：`modules/analytics/web/src/OverviewPanel.vue`
-- 作用：Vue3模块交互：LoadStatistics
+- 作用：统计UI实际支持：clearOverview
 
 ```ts
-function LoadStatistics(input: LoadStatisticsInput, signal: AbortSignal): Promise<LoadStatisticsResult>
+function clearOverview(): void
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `LoadStatisticsInput` | Vue3模块交互：LoadStatistics；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `LoadStatisticsResult` | Vue3模块交互：LoadStatistics成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+无
 
 **步骤**
 
-1. 并发读取访问和费用派生统计，展示漏数/watermark/对账时间，不显示实时可花余额
-2. 处理401重新登录、403清空敏感界面
-3. 按operationId重试不重复提交
+1. 组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。
+
+**错误**
+
+- 无
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：stats.read；rule：菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.createAnalyticsClient`、`analytics.problemText`、`analytics.utcInput`
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.loadOverview
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/OverviewPanel.vue`
+- 作用：统计UI实际支持：loadOverview
+
+```ts
+function loadOverview(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。
 
 **错误**
 
@@ -1580,42 +1706,137 @@ function LoadStatistics(input: LoadStatisticsInput, signal: AbortSignal): Promis
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：stats.read；rule：stats.read
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
-- 其他依赖说明：analytics OpenAPI HTTP/JSON/SSE
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：stats.read；rule：菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.createAnalyticsClient`、`analytics.problemText`、`analytics.utcInput`
+- 其他依赖说明：portal注入同源ModuleAPIClient
 
-## analytics.LoadAuditPage
+## analytics.exportOverviewCSV
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/OverviewPanel.vue`
+- 作用：统计UI实际支持：exportOverviewCSV
+
+```ts
+function exportOverviewCSV(kind: 'pages' | 'usage'): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：stats.read；rule：菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.createAnalyticsClient`、`analytics.problemText`、`analytics.utcInput`
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.downloadOverviewCSV
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/OverviewPanel.vue`
+- 作用：统计UI实际支持：downloadOverviewCSV
+
+```ts
+function downloadOverviewCSV(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：stats.read；rule：菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.createAnalyticsClient`、`analytics.problemText`、`analytics.utcInput`
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.clearAudit
 
 - 级别：参考
 - 文件：`modules/analytics/web/src/AuditExplorer.vue`
-- 作用：Vue3模块交互：LoadAuditPage
+- 作用：统计UI实际支持：clearAudit
 
 ```ts
-function LoadAuditPage(input: LoadAuditPageInput, signal: AbortSignal): Promise<LoadAuditPageResult>
+function clearAudit(): void
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `LoadAuditPageInput` | Vue3模块交互：LoadAuditPage；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `LoadAuditPageResult` | Vue3模块交互：LoadAuditPage成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+无
 
 **步骤**
 
-1. 按允许action/日期查询安全审计，403清除已加载列表，游标换epoch重置
-2. 处理401重新登录、403清空敏感界面
-3. 按operationId重试不重复提交
+1. 组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。
+
+**错误**
+
+- 无
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：audit.read；rule：界面只显示能力；实际审计读/导出由服务即时audit.read核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.createAnalyticsClient`、`analytics.problemText`、`analytics.utcInput`
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.loadAudit
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/AuditExplorer.vue`
+- 作用：统计UI实际支持：loadAudit
+
+```ts
+function loadAudit(next?: boolean): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。
 
 **错误**
 
@@ -1623,12 +1844,117 @@ function LoadAuditPage(input: LoadAuditPageInput, signal: AbortSignal): Promise<
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：audit.read；rule：audit.read
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
-- 其他依赖说明：analytics OpenAPI HTTP/JSON/SSE
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：audit.read；rule：界面只显示能力；实际审计读/导出由服务即时audit.read核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.createAnalyticsClient`、`analytics.problemText`、`analytics.utcInput`
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.readAuditDetail
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/AuditExplorer.vue`
+- 作用：统计UI实际支持：readAuditDetail
+
+```ts
+function readAuditDetail(id: string): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：audit.read；rule：界面只显示能力；实际审计读/导出由服务即时audit.read核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.createAnalyticsClient`、`analytics.problemText`、`analytics.utcInput`
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.exportAuditCSV
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/AuditExplorer.vue`
+- 作用：统计UI实际支持：exportAuditCSV
+
+```ts
+function exportAuditCSV(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：audit.read；rule：界面只显示能力；实际审计读/导出由服务即时audit.read核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.createAnalyticsClient`、`analytics.problemText`、`analytics.utcInput`
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.downloadAuditCSV
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/AuditExplorer.vue`
+- 作用：统计UI实际支持：downloadAuditCSV
+
+```ts
+function downloadAuditCSV(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：audit.read；rule：界面只显示能力；实际审计读/导出由服务即时audit.read核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.createAnalyticsClient`、`analytics.problemText`、`analytics.utcInput`
+- 其他依赖说明：portal注入同源ModuleAPIClient
 
 ## analytics.DownloadAuthorizedExport
 
@@ -1656,9 +1982,9 @@ function DownloadAuthorizedExport(input: DownloadAuthorizedExportInput, signal: 
 
 **步骤**
 
-1. 重新校验导出权限并下载私有CSV，24小时过期要求重建，同actor绑定
-2. 处理401重新登录、403清空敏感界面
-3. 按operationId重试不重复提交
+1. kind取本次create真实回执或当前明确输入，不默认pages；按固定当前权限路由请求受控CSV。
+2. responseType stream逐片最多32MiB，长度不符失败，不用无界blob；完整读完后交浏览器下载，不声称用户最终保存完成。
+3. 401/403清数据，过期要求显式新建，卸载取消读取，URL交浏览器后及时revoke。
 
 **错误**
 
@@ -1672,6 +1998,361 @@ function DownloadAuthorizedExport(input: DownloadAuthorizedExportInput, signal: 
 - 幂等：mutation稳定operationId/query只读重复安全
 - 依赖：无
 - 其他依赖说明：analytics OpenAPI HTTP/JSON/SSE
+
+## analytics.LoadStatistics
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/client.ts`
+- 作用：Vue3模块交互：LoadStatistics
+
+```ts
+function LoadStatistics(input: LoadStatisticsInput, signal: AbortSignal): Promise<LoadStatisticsResult>
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `input` | `LoadStatisticsInput` | Vue3模块交互：LoadStatistics；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `LoadStatisticsResult` | Vue3模块交互：LoadStatistics成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
+| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+
+**步骤**
+
+1. 同源端口并发读访问和费用投影；访问失败返回错误，费用独立不可用用明确usageProblem，不以空/0冒费用成功。
+2. 显示真实漏数/page水位/usage水位/最后完整对账，不显示实时可花余额；分桶访次累加不称独立访客。
+3. 401/403清已加载敏感数据，旧请求/卸载取消，不自动重试写动作。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：stats.read；rule：stats.read
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：`analytics.isAccessFailure`、`analytics.problemCode`
+- 其他依赖说明：analytics OpenAPI HTTP/JSON/SSE
+
+## analytics.LoadAuditPage
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/client.ts`
+- 作用：Vue3模块交互：LoadAuditPage
+
+```ts
+function LoadAuditPage(input: LoadAuditPageInput, signal: AbortSignal): Promise<LoadAuditPageResult>
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `input` | `LoadAuditPageInput` | Vue3模块交互：LoadAuditPage；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `LoadAuditPageResult` | Vue3模块交互：LoadAuditPage成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
+| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+
+**步骤**
+
+1. 按允许action及完整from/to日期对查询；page≤100，游标绑定真实身份/权限/epoch/过滤，stale重载。
+2. 401/403清列表和详情，链校验真实展示；原文只安全字段文本，不渲染HTML。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
+- 授权：permission：audit.read；rule：audit.read
+- 并发：组件AbortController取消旧请求；同组件同动作单飞
+- 幂等：mutation稳定operationId/query只读重复安全
+- 依赖：无
+- 其他依赖说明：analytics OpenAPI HTTP/JSON/SSE
+
+## analytics.problemCode
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/client.ts`
+- 作用：统计UI实际支持：problemCode
+
+```ts
+function problemCode(error: unknown): string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只抽取安全公共错误code，不把原错误详情/输入输出到界面。
+
+**错误**
+
+- 无
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：service；rule：本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：无
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.isAccessFailure
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/client.ts`
+- 作用：统计UI实际支持：isAccessFailure
+
+```ts
+function isAccessFailure(error: unknown): boolean
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 识别401/403权限失效以清组件已加载数据。
+
+**错误**
+
+- 无
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：service；rule：本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.problemCode`
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.problemText
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/client.ts`
+- 作用：统计UI实际支持：problemText
+
+```ts
+function problemText(error: unknown): string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定中文安全错误说明，保留stale/过期/预算语义。
+
+**错误**
+
+- 无
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：service；rule：本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.problemCode`
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.moneyText
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/client.ts`
+- 作用：统计UI实际支持：moneyText
+
+```ts
+function moneyText(micros: number): string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. USD整数micros以BigInt拆6位小数，不当实时预算。
+
+**错误**
+
+- 无
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：service；rule：本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：无
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.utcInput
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/client.ts`
+- 作用：统计UI实际支持：utcInput
+
+```ts
+function utcInput(value: string): string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 明确UTC分钟输入，拒日期自动归一化，发送规范RFC3339。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：service；rule：本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：无
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.createAnalyticsClient
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/client.ts`
+- 作用：统计UI实际支持：createAnalyticsClient
+
+```ts
+function createAnalyticsClient(api: ModuleAPIClient): AnalyticsClient
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 每挂载实例闭包保存同源端口与真实导出kind，不保存凭据或默认未知kind。
+
+**错误**
+
+- 无
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：service；rule：本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：`analytics.LoadStatistics`、`analytics.LoadAuditPage`、`analytics.FetchAuditRecord`、`analytics.RequestExport`、`analytics.DownloadAuthorizedExport`
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.FetchAuditRecord
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/client.ts`
+- 作用：统计UI实际支持：FetchAuditRecord
+
+```ts
+function FetchAuditRecord(id: string, signal: AbortSignal): Promise<AuditResult>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读真实安全审计详情与链校验，不导入别域业务数据。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：stats.read；rule：菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：无
+- 其他依赖说明：portal注入同源ModuleAPIClient
+
+## analytics.RequestExport
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/client.ts`
+- 作用：统计UI实际支持：RequestExport
+
+```ts
+function RequestExport(input: { kind: ExportKind; from: string; to: string; operationId: string }, signal: AbortSignal): Promise<ExportResult>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 选择固定stats/audit当前权限路由，原operationId未知响应续接；kind只取原回执。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：stats.read；rule：菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：无
+- 其他依赖说明：portal注入同源ModuleAPIClient
 
 ## analytics.ClassifyCrawler
 
@@ -1756,8 +2437,40 @@ func LookupCountry(ctx context.Context, op OperationContext, in LookupCountryInp
 - 授权：permission：anonymous；rule：anonymous ingress内部
 - 并发：本地read-onlyDB，启动读version
 - 幂等：同DB版本/IP同结果
-- 依赖：无
+- 依赖：`analytics.trustedPeer`
 - 其他依赖说明：离线GeoIP数据库
+
+## analytics.trustedPeer
+
+- 级别：参考
+- 文件：`modules/analytics/internal/geoip.go`
+- 作用：匿名统计参考支持：trustedPeer
+
+```go
+func trustedPeer(peer string) (netip.Addr, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅标准netip.ParseAddr，拒端口及zone；Unmap用于HMAC/离线查询统一表示。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：由已验证本域入口调用；不接受客户端自报信任状态。
+- 并发：本域锁/事务与可信窗口
+- 幂等：同实际输入保持原事实
+- 依赖：无
 
 ## analytics.RecordCrawlerAccess
 
@@ -1786,11 +2499,9 @@ func RecordCrawlerAccess(ctx context.Context, op OperationContext, in RecordCraw
 
 **步骤**
 
-1. public-site service身份
-2. family登记
-3. 成功.md请求按文档语言family日计数
-4. 不传IP/UA/prompt
-5. 与浏览器PV/UV表分离
+1. 固定public-site纯服务身份，family必须登记；成功2xx Markdown读取才计数。
+2. 按可信ReportingTimeZone文档/语言/family日计数，与真人PV/UV分离；空时区不可用。
+3. subject/function/operation复合幂等，同原输入原回执，异原输入CONFLICT；计数/回执/真实水位同事务。
 
 **错误**
 
@@ -1801,8 +2512,72 @@ func RecordCrawlerAccess(ctx context.Context, op OperationContext, in RecordCraw
 - 授权：permission：service；rule：service public-site
 - 并发：事务按crawlerBeaconId去重
 - 幂等：crawlerBeaconId幂等
-- 依赖：无
+- 依赖：`analytics.readReceipt`、`analytics.saveReceipt`、`analytics.advanceWatermark`
 - 其他依赖说明：public-site Markdown完成响应
+
+## analytics.readReceipt
+
+- 级别：参考
+- 文件：`modules/analytics/internal/crawler_store.go`
+- 作用：匿名统计参考支持：readReceipt
+
+```go
+func readReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, function, digest string, out any) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. subject/function/operation精确绑定原请求哈希/epoch，返回原持久结果。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：由已验证本域入口调用；不接受客户端自报信任状态。
+- 并发：本域锁/事务与可信窗口
+- 幂等：同实际输入保持原事实
+- 依赖：`analytics.storageError`
+
+## analytics.saveReceipt
+
+- 级别：参考
+- 文件：`modules/analytics/internal/crawler_store.go`
+- 作用：匿名统计参考支持：saveReceipt
+
+```go
+func saveReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, function, digest string, result any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 与计数同事务持久原回执，不以外部副作用猜结果。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：由已验证本域入口调用；不接受客户端自报信任状态。
+- 并发：本域锁/事务与可信窗口
+- 幂等：同实际输入保持原事实
+- 依赖：`analytics.storageError`
 
 ## analytics.QueryContentGaps
 
@@ -1831,10 +2606,10 @@ func QueryContentGaps(ctx context.Context, op OperationContext, in QueryContentG
 
 **步骤**
 
-1. 校验stats.read
-2. 热门文档按语言读取页面统计
-3. 问答量、缓存命中率与无答案比率读取本域ProjectQaTurn投影；问题正文仍只在qa权限页面查看
-4. 显示统计水位与事件延迟说明
+1. 入口stats.read已验证；额外即时identity qa.manage核权，ID跳转正文仍在qa资源权限页面。
+2. 只完整可信日历日与DST边界；同快照热门文档按实际daily总表汇总，访次为各日去重累加不是跨日独立访客。
+3. 同快照返回真实completed/failed/cache/unanswered分子分母及page/qa水位与最近投影时间，0样本不伪报比率。
+4. 无答案只opaque引用，超过10000/计数整数预算失败不截断；来源延迟用不同水位明确。
 
 **错误**
 
@@ -1845,7 +2620,7 @@ func QueryContentGaps(ctx context.Context, op OperationContext, in QueryContentG
 - 授权：permission：qa.manage；rule：stats.read+qa.manage资源范围
 - 并发：两源固定watermark附更新时间
 - 幂等：GET幂等
-- 依赖：`analytics.QueryPageStatistics`
+- 依赖：`analytics.pageInterval`、`analytics.readPageSnapshot`、`identity:checkAuthorization`
 
 ## analytics.main
 
@@ -1880,7 +2655,7 @@ func main()
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
-- 依赖：`analytics.BuildApplication`、`analytics.Serve`、`analytics.Shutdown`、`platform.RunService`
+- 依赖：`analytics.BuildApplication`、`analytics.Serve`、`analytics.Shutdown`、`platform.RunService`、`analytics.NewRuntimeClient`
 
 ## analytics.BuildApplication
 
@@ -1914,7 +2689,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数，并以服务身份经jobs:createSchedule幂等登记本域系统默认schedule；维护期间暂停业务循环
-7. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
+7. 复用公共LoadServiceIdentity；纯服务严格消费readSiteConfig真实siteId，按epoch打开私有库。ReportingTimeZone只取受信部署，空不假设UTC。只读路由真实接通，其他能力未齐Ready仍失败关闭。
 
 **错误**
 
@@ -1926,8 +2701,72 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`analytics.server.ReadSnapshotArchive`
+- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`site-config:readSiteConfig`、`platform.LoadServiceIdentity`、`analytics.OpenStore`、`analytics.readSiteIdentity`、`analytics.NewApplication`、`analytics.BindReportingTimeZone`、`analytics.RunPageBackground`、`analytics.SchedulePageAggregates`、`jobs:createJob`、`analytics.BackgroundOperation`、`analytics.RecoverExports`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`analytics.server.ReadSnapshotArchive`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
+
+## analytics.NewRuntimeClient
+
+- 级别：参考
+- 文件：`modules/analytics/internal/app/wire.go`
+- 作用：本域参考支持：NewRuntimeClient
+
+```go
+func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用公共身份加载及运行权威客户端，不复制密钥/信任锚解析。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：`platform.LoadServiceIdentity`
+
+## analytics.readSiteIdentity
+
+- 级别：参考
+- 文件：`modules/analytics/internal/app/wire.go`
+- 作用：本域参考支持：readSiteIdentity
+
+```go
+func readSiteIdentity(ctx context.Context, client *gen.SiteConfigClient, epoch string, validate func(json.RawMessage) error) (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 纯服务消费生产方严格ReadSiteConfigResult完整schema，仅取真实siteId，不造默认身份。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：`site-config:readSiteConfig`
 
 ## analytics.Serve
 
@@ -1968,7 +2807,7 @@ func Serve(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：只有一Serve调用；每请求取消独立，worker只本域
 - 幂等：重复Serve返回CONFLICT语义，不开第二监听
-- 依赖：`analytics.BuildApplication`、`analytics.Shutdown`、`platform.WatchRuntime`、`platform.BuildOperationContext`、`platform.WriteProblem`
+- 依赖：`analytics.BuildApplication`、`analytics.Shutdown`、`platform.WatchRuntime`、`platform.BuildOperationContext`、`platform.WriteProblem`、`analytics.RunPageBackground`
 - 其他依赖说明：本域OpenAPI路由
 
 ## analytics.Shutdown
@@ -2010,7 +2849,7 @@ func Shutdown(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：sync.Once启动drain；其他调用等待同一次结果
 - 幂等：重复Shutdown返回同一次关闭结果；已closed成功
-- 依赖：无
+- 依赖：`analytics.DrainBeacons`
 - 其他依赖说明：本域barrier安全点函数；本域journal/outbox flush
 
 ## analytics.Health
@@ -2094,6 +2933,498 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 依赖：无
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
 
+## analytics.NewApplication
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：本域参考支持：NewApplication
+
+```go
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtime platform.SiteConfigClient, storage *analytics.Runtime, identity *gen.IdentityClient) (*Application, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整生成路由通过公共严格服务边界核签名/委托/权限/epoch；控制只DP、crawler只public-site，未实现路由明确不可用。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：无
+
+## analytics.server.QueryAudits
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：受信HTTP转换：QueryAudits
+
+```go
+func (s *server) QueryAudits(w http.ResponseWriter, r *http.Request, params gen.QueryAuditsParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成边界已严格校验；只用可信op绑定actor/epoch与本域句柄，输出实际JSON，no-store。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VALIDATION` / HTTP 400：INVALID_CURSOR：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：audit.read；rule：audit.read
+- 并发：快照读；不跨域查原正文
+- 幂等：GET幂等
+- 依赖：`analytics.QueryAudits`
+
+## analytics.server.ReadAudit
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：受信HTTP转换：ReadAudit
+
+```go
+func (s *server) ReadAudit(w http.ResponseWriter, r *http.Request, auditID string, params gen.ReadAuditParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成边界已严格校验；只用可信op绑定actor/epoch与本域句柄，输出实际JSON，no-store。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `NOT_FOUND` / HTTP 404：AUDIT_NOT_FOUND：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：audit.read；rule：audit.read
+- 并发：只读
+- 幂等：GET幂等
+- 依赖：`analytics.ReadAudit`
+
+## analytics.server.QueryPageStatistics
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：受信HTTP转换：QueryPageStatistics
+
+```go
+func (s *server) QueryPageStatistics(w http.ResponseWriter, r *http.Request, params gen.QueryPageStatisticsParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成边界已严格校验；只用可信op绑定actor/epoch与本域句柄，输出实际JSON，no-store。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：stats.read；rule：stats.read
+- 并发：SQLite快照读，最多1000聚合行分页
+- 幂等：GET幂等
+- 依赖：`analytics.QueryPageStatistics`
+
+## analytics.server.AppendAudit
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：固定来源审计HTTP转换
+
+```go
+func (s *server) AppendAudit(w http.ResponseWriter, r *http.Request, params gen.AppendAuditParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成边界已严格校验；只用可信op绑定actor/epoch与本域句柄，输出实际JSON，no-store。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `NOT_FOUND` / HTTP 404：AUDIT_NOT_FOUND：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：audit.read；rule：audit.read
+- 并发：只读
+- 幂等：GET幂等
+- 依赖：`analytics.AppendAudit`
+
+## analytics.server.IngestTrustedBeacon
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：匿名统计参考支持：server.IngestTrustedBeacon
+
+```go
+func (s *server) IngestTrustedBeacon(w http.ResponseWriter, r *http.Request, params gen.IngestTrustedBeaconParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定portal纯服务边界已鉴权签完整正文；不读XFF/UA头；调用内部IngestBeacon后统一204。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：由已验证本域入口调用；不接受客户端自报信任状态。
+- 并发：本域锁/事务与可信窗口
+- 幂等：同实际输入保持原事实
+- 依赖：`analytics.IngestBeacon`
+
+## analytics.server.RecordCrawlerAccess
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：匿名统计参考支持：server.RecordCrawlerAccess
+
+```go
+func (s *server) RecordCrawlerAccess(w http.ResponseWriter, r *http.Request, params gen.RecordCrawlerAccessParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格入口解析实际公开交付爬虫计数，调用本域持久链并输出真实结果。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：由已验证本域入口调用；不接受客户端自报信任状态。
+- 并发：本域锁/事务与可信窗口
+- 幂等：同实际输入保持原事实
+- 依赖：`analytics.RecordCrawlerAccess`
+
+## analytics.server.QueryContentGaps
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：问答统计参考支持：server.QueryContentGaps
+
+```go
+func (s *server) QueryContentGaps(w http.ResponseWriter, r *http.Request, params gen.QueryContentGapsParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格边界已建stats权限，实际缺口查询额外核qa权限，输出真实安全统计与opaque引用。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：仅已验证入口/consumer调用，不接受客户端自报来源。
+- 并发：本域同事务
+- 幂等：原事件来源事实绑定
+- 依赖：`analytics.QueryContentGaps`
+- 其他依赖说明：本域私有SQLite
+
+## analytics.server.QueryUsageStatistics
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：私有导出/保留期支持：server.QueryUsageStatistics
+
+```go
+func (s *server) QueryUsageStatistics(w http.ResponseWriter, r *http.Request, params gen.QueryUsageStatisticsParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格stats.read入口调用已有费用投影查询，返回真实投影水位/对账时间，非实时余额。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.QueryUsageStatistics`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.server.CreateExport
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：私有导出/保留期支持：server.CreateExport
+
+```go
+func (s *server) CreateExport(w http.ResponseWriter, r *http.Request, params gen.CreateExportParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定stats.read入口只pages/usage。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.server.createExport`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.server.CreateAuditExport
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：私有导出/保留期支持：server.CreateAuditExport
+
+```go
+func (s *server) CreateAuditExport(w http.ResponseWriter, r *http.Request, params gen.CreateAuditExportParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定audit.read入口只audits，不增加额外用户流程。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.server.createExport`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.server.createExport
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：私有导出/保留期支持：server.createExport
+
+```go
+func (s *server) createExport(w http.ResponseWriter, r *http.Request, audits bool)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 路由决定允许kind，严格输入与当前委托；调用真实原操作journal生成CSV并输出原结果。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.CreateExport`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.server.DownloadStatisticsExport
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：私有导出/保留期支持：server.DownloadStatisticsExport
+
+```go
+func (s *server) DownloadStatisticsExport(w http.ResponseWriter, r *http.Request, exportID string, params gen.DownloadStatisticsExportParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定stats.read下载，仅pages/usage。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.server.downloadExport`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.server.DownloadAuditExport
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：私有导出/保留期支持：server.DownloadAuditExport
+
+```go
+func (s *server) DownloadAuditExport(w http.ResponseWriter, r *http.Request, exportID string, params gen.DownloadAuditExportParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定audit.read下载，仅audits。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.server.downloadExport`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.server.downloadExport
+
+- 级别：参考
+- 文件：`modules/analytics/internal/transport/server.go`
+- 作用：私有导出/保留期支持：server.downloadExport
+
+```go
+func (s *server) downloadExport(w http.ResponseWriter, r *http.Request, id string, audits bool)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实kind匹配固定当前权限路由，OpenExport核原主体/epoch/expiry/hash；no-store/nosniff/固定安全文件名受控流。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.ExportKind`、`analytics.OpenExport`
+- 其他依赖说明：本域私有SQLite/exports对象
+
 ## analytics.server.ReadSnapshotArchive
 
 - 级别：参考
@@ -2161,8 +3492,41 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 - 授权：permission：anonymous；rule：只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限
 - 并发：同DOM一个Vue实例，AbortController取消旧请求
 - 幂等：同DOM/buildRevision重复挂载复用实例
-- 依赖：无
+- 依赖：`analytics.createAnalyticsClient`、`analytics.loadOverview`、`analytics.loadAudit`、`analytics.unmountAnalytics`
 - 其他依赖说明：本域已登记UI页面函数
+
+## analytics.unmountAnalytics
+
+- 级别：参考
+- 文件：`modules/analytics/web/src/main.ts`
+- 作用：统计UI实际支持：unmountAnalytics
+
+```ts
+function unmountAnalytics(): void
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 统一nice-wiki:unmount取消所有控制器/监听并卸载Vue，清本域挂载实例；不清服务端事实。
+
+**错误**
+
+- 无
+
+- 副作用：仅组件内存或明确下载动作
+- 授权：permission：stats.read；rule：菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。
+- 并发：组件AbortController取消旧请求，卸载停止监听和下载读取
+- 幂等：读取重复安全，导出原operationId重试
+- 依赖：无
+- 其他依赖说明：portal注入同源ModuleAPIClient
 
 ## analytics.RunWorker
 
@@ -2191,10 +3555,9 @@ func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) 
 
 **步骤**
 
-1. 进程启动后循环调用jobs:claimJob，只领取本域implementation.json jobTypes登记的类型；维护或屏障非released时暂停领取
-2. 领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested
-3. 执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束
-4. lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账
+1. 仅装配本域登记jobTypes与platform.RunWorkerLoopWithResult；hour/day真实不可变输入执行，费用聚合/对账尚缺完整权威协议仍失败关闭，整体不得记完整ready。
+2. OperationContext精确取原业务输入/operation/root；OnLeaseRenewed真实续租写镜像，OnCancellationObserved撤同fence。
+3. completed/failed仅公共jobs完成/失败/取消真实成功回执计数，未知写回不计。
 
 **错误**
 
@@ -2204,7 +3567,1445 @@ func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) 
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个领取循环，并发不超过maxConcurrency；同一任务只由持有有效fence者写回
 - 幂等：jobs按jobId与fence去重；执行函数自身按输入引用幂等
-- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`analytics.AggregateHourly`、`analytics.AggregateDaily`、`analytics.AggregateUsage`、`analytics.ReconcileUsage`、`platform.RunWorkerLoop`
+- 依赖：`analytics.aggregateJobOperation`、`analytics.recordAggregateLease`、`analytics.cancelAggregateLease`、`analytics.executePageAggregate`、`platform.RunWorkerLoopWithResult`、`analytics.AggregateHourly`、`analytics.AggregateDaily`、`analytics.AggregateUsage`、`analytics.ReconcileUsage`
+
+## analytics.WithRuntime
+
+- 级别：参考
+- 文件：`modules/analytics/internal/store.go`
+- 作用：本域参考支持：WithRuntime
+
+```go
+func WithRuntime(ctx context.Context, runtime *Runtime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只在可信调用链注入本域句柄，不从HTTP反序列化。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：无
+
+## analytics.OpenStore
+
+- 级别：参考
+- 文件：`modules/analytics/internal/store.go`
+- 作用：本域参考支持：OpenStore
+
+```go
+func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.SigningKey) (*Runtime, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 本域私有路径平台校验，逐级fsync；SQLite WAL/FULL/FK/busy3000，单连接短事务V1迁移。
+2. 未知高版本或非空未版本化库拒绝；绑定真实siteId/epoch，不自己生成站点。inbox/outbox复用平台。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：`analytics.syncDirectory`、`analytics.storageError`
+
+## analytics.Runtime.Close
+
+- 级别：参考
+- 文件：`modules/analytics/internal/store.go`
+- 作用：本域参考支持：Runtime.Close
+
+```go
+func (rt *Runtime) Close() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 关闭一次数据库并清内存日盐，不修改权威业务记录。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：`analytics.storageError`
+
+## analytics.runtimeFrom
+
+- 级别：参考
+- 文件：`modules/analytics/internal/store.go`
+- 作用：本域参考支持：runtimeFrom
+
+```go
+func runtimeFrom(ctx context.Context, op OperationContext) (*Runtime, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 取可信注入句柄并检查已打开site/epoch，缺失或旧代失败。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：无
+
+## analytics.storageError
+
+- 级别：参考
+- 文件：`modules/analytics/internal/store.go`
+- 作用：本域参考支持：storageError
+
+```go
+func storageError(err error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用平台IO错误归一化，不输出私有路径。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：无
+
+## analytics.syncDirectory
+
+- 级别：参考
+- 文件：`modules/analytics/internal/store.go`
+- 作用：本域参考支持：syncDirectory
+
+```go
+func syncDirectory(path, root string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 逐级目录fsync至可信dataRoot。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
+- 并发：纯函数
+- 幂等：同range同结果
+- 依赖：`analytics.storageError`
+
+## analytics.beginWrite
+
+- 级别：参考
+- 文件：`modules/analytics/internal/store.go`
+- 作用：审计/持久参考支持：beginWrite
+
+```go
+func beginWrite(ctx context.Context, op OperationContext) (context.Context, *Runtime, *sql.Tx, context.CancelFunc, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用platform.NewWriteContext与本域site/epoch，缺窗口失败；不在本域再建屏障。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_AUDIT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：service鉴权生产者
+- 并发：纯函数，不通过日志修复非法payload
+- 幂等：同audit同结果
+- 依赖：`analytics.runtimeFrom`、`analytics.storageError`
+- 其他依赖说明：根contracts/errors.json
+
+## analytics.advanceWatermark
+
+- 级别：参考
+- 文件：`modules/analytics/internal/store.go`
+- 作用：审计/持久参考支持：advanceWatermark
+
+```go
+func advanceWatermark(ctx context.Context, tx *sql.Tx, source string) (int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同业务事务前进真实全局修订和对应来源水位，int64上限失败。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_AUDIT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：service鉴权生产者
+- 并发：纯函数，不通过日志修复非法payload
+- 幂等：同audit同结果
+- 依赖：`analytics.storageError`
+- 其他依赖说明：根contracts/errors.json
+
+## analytics.normalizeAuditFact
+
+- 级别：参考
+- 文件：`modules/analytics/internal/audit_events.go`
+- 作用：审计/持久参考支持：normalizeAuditFact
+
+```go
+func normalizeAuditFact(ctx context.Context, op OperationContext, origin string, payload AuditRecordedPayload, historical bool) (AuditRecord, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 共用字段/来源/元数据校验，规范原时间和旧成功别名，不伪actor/epoch。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_AUDIT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：service鉴权生产者
+- 并发：纯函数，不通过日志修复非法payload
+- 幂等：同audit同结果
+- 依赖：`analytics.ValidateAudit`、`analytics.RedactAuditMetadata`
+- 其他依赖说明：根contracts/errors.json
+
+## analytics.ConsumeAuditEvent
+
+- 级别：约束
+- 文件：`modules/analytics/internal/audit_events.go`
+- 作用：消费原生产者已提交审计事实
+
+```go
+func ConsumeAuditEvent(ctx context.Context, op OperationContext, input EventDelivery) (EventHandled, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `EventDelivery` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `EventHandled` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 公共订阅边界一次校验AuditRecordedPayload；Envelope类型为producer.audit-recorded/v1、subjectId=auditId、revision=1。
+2. 核payload site/epoch与可信本域一致；origin显式取已验证envelope.Producer，不重写op.CallerService。
+3. 共用normalizeAuditFact/appendTrustedAudit，ClaimInbox与追加同事务；失败不确认，重复只applied=false。
+
+**错误**
+
+- `VERSION_MISMATCH`：旧代事件（不可重试）
+
+- 副作用：写问答日计数
+- 授权：permission：service；rule：仅由本域ConsumeEvents调用
+- 并发：日计数行CAS
+- 幂等：eventId去重
+- 依赖：`analytics.runtimeFrom`、`analytics.normalizeAuditFact`、`analytics.appendTrustedAudit`
+
+## analytics.HashDayToken
+
+- 级别：参考
+- 文件：`modules/analytics/internal/beacon_privacy.go`
+- 作用：IP+User-Agent+当日随机盐访客匿名hash
+
+```go
+func HashDayToken(ctx context.Context, op OperationContext, in HashDayTokenInput) (HashDayTokenResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
+| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
+| `in` | `HashDayTokenInput` | IP+User-Agent+当日随机盐访客匿名hash；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `HashDayTokenResult` | IP+User-Agent+当日随机盐访客匿名hash成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
+| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+
+**步骤**
+
+1. 可信portal签名正文交付规范IP，不读XFF；日界线只取可信ReportingTimeZone，空配置不可用。
+2. 当前代次固定时区；HMAC SHA256每日独立32字节随机盐与canonical[siteId,dataEpoch,day,IP,规范UA]；UA只内存小写折叠空白。
+3. control/visitor-YYYY-MM-DD.key为0600固定32字节盐，写fsync和目录fsync；残缺旧盐拒绝，不重造；快照不包含control。
+4. 内存跨日清旧盐，旧磁盘日盐由保留任务24h删除；原地址/UA不持久不日志。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：PRIVACY_KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：anonymous；rule：anonymous ingress内部
+- 并发：salt每日轮换；不跨日关联
+- 幂等：same day/token同hash
+- 依赖：`analytics.loadDaySalt`、`analytics.trustedPeer`、`analytics.PruneDaySalts`
+- 其他依赖说明：本地secret日盐容器，入口可信peer中间件
+
+## analytics.BindReportingTimeZone
+
+- 级别：参考
+- 文件：`modules/analytics/internal/beacon_privacy.go`
+- 作用：匿名统计参考支持：BindReportingTimeZone
+
+```go
+func BindReportingTimeZone(ctx context.Context, rt *Runtime, name string, view platform.RuntimeView) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 当前代次持久固定可信IANA日界线；首次只在running且无无法证明时区的旧匿名明细时绑定，维护或不同已绑定时区失败。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：由已验证本域入口调用；不接受客户端自报信任状态。
+- 并发：本域锁/事务与可信窗口
+- 幂等：同实际输入保持原事实
+- 依赖：`analytics.advanceWatermark`
+
+## analytics.loadDaySalt
+
+- 级别：参考
+- 文件：`modules/analytics/internal/beacon_privacy.go`
+- 作用：匿名统计参考支持：loadDaySalt
+
+```go
+func loadDaySalt(root, day string) ([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定已验证日期私有control引用，随机32字节，O_EXCL/0600/文件目录fsync；残缺旧盐不重建。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：由已验证本域入口调用；不接受客户端自报信任状态。
+- 并发：本域锁/事务与可信窗口
+- 幂等：同实际输入保持原事实
+- 依赖：`analytics.syncDirectory`
+
+## analytics.SchedulePageAggregates
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：统计任务参考支持：SchedulePageAggregates
+
+```go
+func SchedulePageAggregates(ctx context.Context, op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 每分钟有界扫描真实变动已封闭period及当前应计划空桶；小时封闭5分钟/本地日10分钟后计划，迟到访问新水位产生新不可变输入。
+2. 只保存本域业务输入/提交意图，不领取排队；jobs是唯一调度与租约权威。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`analytics.ensureAggregateIntent`、`analytics.submitAggregateIntents`、`analytics.admitAggregateScheduling`
+- 其他依赖说明：私有SQLite
+
+## analytics.ensureAggregateIntent
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：统计任务参考支持：ensureAggregateIntent
+
+```go
+func ensureAggregateIntent(ctx context.Context, op OperationContext, kind, key, period, zone string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同事务固定真实period/sourceWatermark/schemaVersion1/site/epoch；canonical字节构成真实ObjectRef；同输入哈希确定ID和operation/root，原输入不修改。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`analytics.beginWrite`、`analytics.advanceWatermark`
+- 其他依赖说明：私有SQLite
+
+## analytics.submitAggregateIntents
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：统计任务参考支持：submitAggregateIntents
+
+```go
+func submitAggregateIntents(ctx context.Context, op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有界100原意图经jobs:createJob，固定原dedupeKey/operation/root；未知响应只用原key续接，严格生产响应校验，真实原回执CAS存入。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`jobs:createJob`、`analytics.backgroundOperation`、`analytics.beginWrite`、`analytics.admitAggregateScheduling`
+- 其他依赖说明：私有SQLite
+
+## analytics.backgroundOperation
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：统计任务参考支持：backgroundOperation
+
+```go
+func backgroundOperation(ctx context.Context, rt *Runtime, operation, root string, duration time.Duration) (context.Context, context.CancelFunc, OperationContext)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 清用户proof，本站纯服务，精确原操作与根，每次IO新截止；免费控制costClass空，不创造free枚举。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：无
+- 其他依赖说明：私有SQLite
+
+## analytics.aggregateJobOperation
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：统计任务参考支持：aggregateJobOperation
+
+```go
+func aggregateJobOperation(ctx context.Context, rt *Runtime, job platform.ClaimedJob) (OperationContext, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 领取必须精确匹配真实本域不可变引用/type/epoch/原operation/root；未知提交回执可以真实claim绑定但不伪创建回执。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`analytics.backgroundOperation`
+- 其他依赖说明：私有SQLite
+
+## analytics.recordAggregateLease
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：统计任务参考支持：recordAggregateLease
+
+```go
+func recordAggregateLease(ctx context.Context, op OperationContext, job platform.ClaimedJob, info platform.HeartbeatInfo) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅公共OnLeaseRenewed真实回执更新同job/input/op/root/worker/fence/epoch/attempt/expiry；旧fence拒绝，新真实fence可以取代旧已撤执行权。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`analytics.beginWrite`
+- 其他依赖说明：私有SQLite
+
+## analytics.cancelAggregateLease
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：统计任务参考支持：cancelAggregateLease
+
+```go
+func cancelAggregateLease(ctx context.Context, op OperationContext, job platform.ClaimedJob) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只撤销同job/worker/fence/epoch；不把safePoint当用户取消，不重调CheckLease。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`analytics.beginWrite`
+- 其他依赖说明：私有SQLite
+
+## analytics.checkAggregateLease
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：统计任务参考支持：checkAggregateLease
+
+```go
+func checkAggregateLease(ctx context.Context, execution *platform.JobExecutionInput) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 不可逆事务前锁外调用平台真实CheckLease，缺失失败关闭。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：无
+- 其他依赖说明：私有SQLite
+
+## analytics.verifyAggregateLease
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：统计任务参考支持：verifyAggregateLease
+
+```go
+func verifyAggregateLease(ctx context.Context, tx *sql.Tx, op OperationContext, execution *platform.JobExecutionInput) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 事务内提交前精确CAS本域持久真实租约镜像/expiry，取消/旧fence/epoch拒绝。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：无
+- 其他依赖说明：私有SQLite
+
+## analytics.executePageAggregate
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：统计任务参考支持：executePageAggregate
+
+```go
+func executePageAggregate(ctx context.Context, rt *Runtime, execution platform.JobExecutionInput) (platform.JobExecutionResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取/核对原不可变字节hash/长度/本站schema/代次，按登记hour/day实际执行；不冒费用任务完成。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`analytics.AggregateHourly`、`analytics.AggregateDaily`
+- 其他依赖说明：私有SQLite
+
+## analytics.admitAggregateScheduling
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：新统计任务提交前读取真实运行权威
+
+```go
+func admitAggregateScheduling(ctx context.Context, rt *Runtime) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 每次外部提交前真实runtime确认当前epoch/running/非maintenance；未知或屏障关闭不发新任务。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：无
+- 其他依赖说明：私有SQLite
+
+## analytics.BackgroundOperation
+
+- 级别：参考
+- 文件：`modules/analytics/internal/aggregate_jobs.go`
+- 作用：私有导出/保留期支持：BackgroundOperation
+
+```go
+func BackgroundOperation(ctx context.Context, rt *Runtime, duration time.Duration) (context.Context, context.CancelFunc, OperationContext)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 受信启动只装配本域纯服务journal恢复上下文，不继承历史用户证明。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.backgroundOperation`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.RunPageBackground
+
+- 级别：参考
+- 文件：`modules/analytics/internal/background.go`
+- 作用：统计任务参考支持：RunPageBackground
+
+```go
+func RunPageBackground(ctx context.Context, rt *Runtime) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 本域每5秒flush/每分钟计划及公共worker并发装配，取消时等循环退出；快照safe还需公共Manager private cleanup集成，未假就绪。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`analytics.SchedulePageAggregates`、`analytics.FlushBeacons`、`analytics.RunWorker`、`analytics.ConsumeEvents`、`analytics.PublishAggregateEvents`、`analytics.RunRetentionBackground`、`analytics.runAnalyticsPeriodic`、`analytics.launchPageLoop`
+- 其他依赖说明：私有SQLite
+
+## analytics.DrainBeacons
+
+- 级别：参考
+- 文件：`modules/analytics/internal/background.go`
+- 作用：统计任务参考支持：DrainBeacons
+
+```go
+func DrainBeacons(ctx context.Context, rt *Runtime) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 停止新请求/后台后有界批次排空队列和漏数；仍必须真实平台写窗口，safe后拒普通业务写。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`analytics.FlushBeacons`、`analytics.backgroundOperation`
+- 其他依赖说明：私有SQLite
+
+## analytics.RunRetentionBackground
+
+- 级别：参考
+- 文件：`modules/analytics/internal/background.go`
+- 作用：私有导出/保留期支持：RunRetentionBackground
+
+```go
+func RunRetentionBackground(ctx context.Context, rt *Runtime) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 每分钟有限50批过30天明细续清、旧盐擦除；每小时过期导出；每日180天审计前缀，满10000继续下轮，不误称每次500能跟上入口流量。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PruneDaySalts`、`analytics.backgroundOperation`、`analytics.runAnalyticsPeriodic`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.runAnalyticsPeriodic
+
+- 级别：参考
+- 文件：`modules/analytics/internal/background.go`
+- 作用：装配本域可信操作到公共周期机制
+
+```go
+func runAnalyticsPeriodic(ctx context.Context, rt *Runtime, millis int, run func(context.Context, OperationContext) error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用lifecycle.RunRecoveryLoop的轮询/运行权威/安全窗口，域只创建每次回调可信op；不复制ticker/重试机制。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：`platform.RunRecoveryLoop`、`analytics.backgroundOperation`
+- 其他依赖说明：私有SQLite
+
+## analytics.launchPageLoop
+
+- 级别：参考
+- 文件：`modules/analytics/internal/background.go`
+- 作用：本域后台回调生命周期启动装配
+
+```go
+func launchPageLoop(run func(context.Context) error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅在RunPageBackground闭包启动已装配公共循环，首个明确失败取消同组并等待，错误不吞成成功；不负责领取/租约/轮询。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：按职责更新本域私有元数据；所有任务领取仅jobs
+- 授权：permission：service；rule：仅本域可信后台装配，不接受HTTP自报租约。
+- 并发：事务精确epoch/fence/CAS；网络租约检查在事务外
+- 幂等：不可变任务输入哈希/原回执绑定
+- 依赖：无
+- 其他依赖说明：私有SQLite
+
+## analytics.ConsumeEvents
+
+- 级别：约束
+- 文件：`modules/analytics/internal/consumer.go`
+- 作用：从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认
+
+```go
+func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEventsInput) (ConsumeEventsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 本域后台worker以服务身份构建的操作上下文，含当前dataEpoch | callerService为本域；dataEpoch等于site-config当前active epoch |
+| `input` | `ConsumeEventsInput` | 订阅循环参数 | 必须通过公共schema；consumerId等于本域slug |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ConsumeEventsResult` | 循环退出时的累计计数 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 固定consumerId analytics，平台RunConsumerWithResult接真实jobs订阅/确认，所有登记QA/费用事件保留；每次IO新可信site/epoch/op，不复用proof。
+2. 生产schema仅公共订阅边界一次验证；QA转ProjectQaTurn，重复/旧修订明确ErrEventSkipped后实际确认。
+3. 费用缺完整权威安全统计页时不确认，不能填0或猜账项修订；审计producer registry尚未装配，不计完整事件链ready。
+4. 退出返回平台真实Acknowledged/Skipped/Failed，失败未确认等待jobs重投。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：jobs订阅或确认不可用；重连后续传（可重试）
+- `VALIDATION`：事件信封或载荷不符合登记schema；隔离并确认（不可重试）
+- `INTEGRITY_ERROR`：同eventId异payloadHash；隔离报警（不可重试）
+
+- 副作用：HTTP长连接jobs:subscribeEvents；调用本域登记的事件处理函数；HTTP调用jobs:acknowledgeEvent
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
+- 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
+- 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
+- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`analytics.ProjectQaTurn`、`platform.RunConsumerWithResult`
+
+## analytics.CreateExport
+
+- 级别：约束
+- 文件：`modules/analytics/internal/exports.go`
+- 作用：受权限保护统计导出
+
+```go
+func CreateExport(ctx context.Context, op OperationContext, in CreateExportInput) (CreateExportResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
+| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
+| `in` | `CreateExportInput` | 受权限保护统计导出；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `CreateExportResult` | 受权限保护统计导出成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
+| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+
+**步骤**
+
+1. 原POST statistics:export严格pages|usage且stats.read；专用POST audit-exports严格audits且audit.read，边界即时当前权限，域不重用过期proof。
+2. 固定当前SQLite读快照和对应来源水位，最多100000行/32MiB；固定列白名单不含正文/IP/凭据，公式前缀防护和CSV标准转义。
+3. preparing原操作输入hash/actor/site/epoch/原24h期限先持久；完整part fsync与目录fsync后prepared存真实ref/result，再rename目录fsync后ready。prepared后重试不查询重算原字节。
+4. 重试同操作同输入原结果，异输入CONFLICT，过期GONE要求新操作；保留过期幂等墓碑，不因删文件再授24h。未知旧export记录拒绝静默迁移。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VALIDATION` / HTTP 400：EXPORT_LIMIT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：写私有导出文件/run
+- 授权：permission：stats.read；rule：stats.read或audit.read
+- 并发：内存最多1000行块写；文件temp fsync rename再DB记录
+- 幂等：operationId/filterHash/actor幂等
+- 依赖：`analytics.ValidateDateRange`、`analytics.pageInterval`、`analytics.streamExportRows`、`analytics.installPreparedExport`、`analytics.beginWrite`
+
+## analytics.writeCSVRecord
+
+- 级别：参考
+- 文件：`modules/analytics/internal/exports.go`
+- 作用：私有导出/保留期支持：writeCSVRecord
+
+```go
+func writeCSVRecord(ctx context.Context, op OperationContext, writer *exportWriter, cells []string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定安全列逐单元公式防护/标准CSV转义，文件IO检查取消；累计字节≤32MiB，不截断成功。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.ValidateCSVCell`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.streamExportRows
+
+- 级别：参考
+- 文件：`modules/analytics/internal/exports.go`
+- 作用：私有导出/保留期支持：streamExportRows
+
+```go
+func streamExportRows(ctx context.Context, tx *sql.Tx, op OperationContext, kind string, begin, end time.Time, writer *exportWriter) (int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定SQL读快照/来源真实水位，允许列闭集不带元数据原文/正文/IP/凭据；最多100000行，未知费用不导出成0。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.writeCSVRecord`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.installPreparedExport
+
+- 级别：参考
+- 文件：`modules/analytics/internal/exports.go`
+- 作用：私有导出/保留期支持：installPreparedExport
+
+```go
+func installPreparedExport(ctx context.Context, op OperationContext, rt *Runtime, id string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只装已prepared完整字节与真实ObjectRef；核part或既有final完整hash，rename/目录fsync后才ready；不查询重算prepared内容。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.verifyExportFile`、`analytics.beginWrite`、`analytics.syncDirectory`、`analytics.exportObjectNameValid`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.verifyExportFile
+
+- 级别：参考
+- 文件：`modules/analytics/internal/exports.go`
+- 作用：私有导出/保留期支持：verifyExportFile
+
+```go
+func verifyExportFile(path string, ref platform.ObjectRef) (*os.File, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 私有普通文件/精确ObjectRef长度/完整SHA256/32MiB上限，核后seek0供受控流，不接任意请求路径。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：无
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.OpenExport
+
+- 级别：约束
+- 文件：`modules/analytics/internal/exports.go`
+- 作用：私有导出/保留期支持：OpenExport
+
+```go
+func OpenExport(ctx context.Context, op OperationContext, id, kind string) (*os.File, platform.ObjectRef, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定stats.read统计路由或audit.read审计路由已即时核权；存储真实kind必须与路由相容，不以未知默认pages。
+2. 当前本域site/epoch、原actor、固定24h未过期、ready状态及精确引用ID；完整长度/hash核对后才流出，不能跨主体/任意路径。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：stats.read；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.verifyExportFile`、`analytics.exportObjectNameValid`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.QueryUsageStatistics
+
+- 级别：约束
+- 文件：`modules/analytics/internal/usage_queries.go`
+- 作用：费用汇总查询
+
+```go
+func QueryUsageStatistics(ctx context.Context, op OperationContext, in QueryUsageStatisticsInput) (QueryUsageStatisticsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
+| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
+| `in` | `QueryUsageStatisticsInput` | 费用汇总查询；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `QueryUsageStatisticsResult` | 费用汇总查询成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
+| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+
+**步骤**
+
+1. 实际V2已入账和未入账负债完整上界尚未原子激活为usage-v2-complete时，DEPENDENCY_UNAVAILABLE；禁止以空投影0或已知部分冒充全站总额。消费者未完成，当前函数保持partial blocked。
+2. 只读本域已持久的账项投影、真实usage水位与最后完整对账时间；不称全站实时余额。
+3. 过滤左闭右开窗/class，同SQL快照最多10000条，USD整数精确累加且不超Money安全整数；未知费用/币种不造0或部分和。
+4. gateway不可用仍可读已有投影；无已对账时间明确空，不伪造新鲜度。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：stats.read；rule：stats.read
+- 并发：只读快照，不作允许模型调用的实时决策
+- 幂等：GET幂等
+- 依赖：`analytics.ValidateDateRange`、`analytics.runtimeFrom`
+
+## analytics.PurgeExports
+
+- 级别：参考
+- 文件：`modules/analytics/internal/export_recovery.go`
+- 作用：清理导出临时对象
+
+```go
+func PurgeExports(ctx context.Context, op OperationContext, in PurgeExportsInput) (PurgeExportsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
+| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
+| `in` | `PurgeExportsInput` | 清理导出临时对象；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `PurgeExportsResult` | 清理导出临时对象成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
+| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+
+**步骤**
+
+1. 只清真实过期原导出，私有已登记固定对象名，文件删除/目录fsync后标expired并清派生引用。
+2. 保留actor/epoch/原操作输入hash/原到期墓碑，旧操作GONE不得重新授24h；每批500有界。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：删导出文件/状态
+- 授权：permission：service；rule：service worker
+- 并发：文件/DB非单事务，重启扫描可重复补偿
+- 幂等：exportId幂等
+- 依赖：`analytics.exportObjectNameValid`、`analytics.syncDirectory`、`analytics.beginWrite`
+- 其他依赖说明：私有对象目录
+
+## analytics.RecoverExports
+
+- 级别：参考
+- 文件：`modules/analytics/internal/export_recovery.go`
+- 作用：私有导出/保留期支持：RecoverExports
+
+```go
+func RecoverExports(ctx context.Context, op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 恢复真实prepared对象，preparing仅清已登记未封存part；ready核完整hash，未知旧记录/目录对象拒绝，不假就绪。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：`analytics.installPreparedExport`、`analytics.verifyExportFile`、`analytics.exportObjectNameValid`
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.ExportKind
+
+- 级别：参考
+- 文件：`modules/analytics/internal/export_recovery.go`
+- 作用：私有导出/保留期支持：ExportKind
+
+```go
+func ExportKind(ctx context.Context, rt *Runtime, id string) (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读真实存储kind供固定权限路由匹配，不把未知/缺失当pages。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：无
+- 其他依赖说明：本域私有SQLite/exports对象
+
+## analytics.exportObjectNameValid
+
+- 级别：参考
+- 文件：`modules/analytics/internal/export_recovery.go`
+- 作用：私有导出/保留期支持：exportObjectNameValid
+
+```go
+func exportObjectNameValid(id string) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅服务生成export.+完整64位hash命名，不把SQL损坏ID拼成路径。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：仅按真实journal/当前epoch执行本域私有状态
+- 授权：permission：service；rule：由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。
+- 并发：本域exportMu或短SQLite事务；文件与SQLite分别持久journal
+- 幂等：原操作/输入hash/不可变文件；过期不重造授权
+- 依赖：无
+- 其他依赖说明：本域私有SQLite/exports对象
 
 ## analytics.ReadSnapshotArchive
 

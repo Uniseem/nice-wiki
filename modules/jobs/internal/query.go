@@ -132,16 +132,38 @@ func jobManagementPermission(owner string, jobType string) (string, error) {
 }
 
 // authorizeJobRead 的纯服务路径只开放持久owner本人，不扩展管理功能。
-func authorizeJobRead(ctx context.Context,op OperationContext,jobID string)(jobRecord,error){
- if op.Actor.Kind!="service"{return authorizeJobManagement(ctx,op,jobID)}
- store:=currentStore();if store==nil{return jobRecord{},platform.NewError(platform.CodeDependencyUnavailable,true,"任务存储尚未装配")}
- store.mu.RLock();defer store.mu.RUnlock()
- if store.closed||store.siteID==""{return jobRecord{},platform.NewError(platform.CodeDependencyUnavailable,true,"任务真实站点身份尚未装配")}
- if op.Actor.SubjectID!=op.CallerService||op.Actor.SiteID!=store.siteID{return jobRecord{},platform.NewError(platform.CodeForbidden,false,"任务读取身份不属于当前站点")}
- job:=jobRecord{id:jobID};err:=store.db.QueryRowContext(ctx,`SELECT owner,type,data_epoch FROM jobs WHERE job_id=?`,jobID).Scan(&job.owner,&job.jobType,&job.epoch)
- if errors.Is(err,sql.ErrNoRows){return jobRecord{},platform.NewError(platform.CodeNotFound,false,"任务不存在")};if err!=nil{return jobRecord{},mapQueueDBError(err)}
- if job.owner!=op.CallerService{return jobRecord{},platform.NewError(platform.CodeForbidden,false,"只能读取本服务所属任务")}
- if job.epoch!=op.DataEpoch{return jobRecord{},epochMismatch()}
- if _,err=jobManagementPermission(job.owner,job.jobType);err!=nil{return jobRecord{},err}
- return job,nil
+func authorizeJobRead(ctx context.Context, op OperationContext, jobID string) (jobRecord, error) {
+	if op.Actor.Kind != "service" {
+		return authorizeJobManagement(ctx, op, jobID)
+	}
+	store := currentStore()
+	if store == nil {
+		return jobRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务存储尚未装配")
+	}
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+	if store.closed || store.siteID == "" {
+		return jobRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务真实站点身份尚未装配")
+	}
+	if op.Actor.SubjectID != op.CallerService || op.Actor.SiteID != store.siteID {
+		return jobRecord{}, platform.NewError(platform.CodeForbidden, false, "任务读取身份不属于当前站点")
+	}
+	job := jobRecord{id: jobID}
+	err := store.db.QueryRowContext(ctx, `SELECT owner,type,data_epoch FROM jobs WHERE job_id=?`, jobID).Scan(&job.owner, &job.jobType, &job.epoch)
+	if errors.Is(err, sql.ErrNoRows) {
+		return jobRecord{}, platform.NewError(platform.CodeNotFound, false, "任务不存在")
+	}
+	if err != nil {
+		return jobRecord{}, mapQueueDBError(err)
+	}
+	if job.owner != op.CallerService {
+		return jobRecord{}, platform.NewError(platform.CodeForbidden, false, "只能读取本服务所属任务")
+	}
+	if job.epoch != op.DataEpoch {
+		return jobRecord{}, epochMismatch()
+	}
+	if _, err = jobManagementPermission(job.owner, job.jobType); err != nil {
+		return jobRecord{}, err
+	}
+	return job, nil
 }

@@ -30,6 +30,7 @@
 4. 严格解析new/update/delete/noop候选和readonly规则
 5. 不写active，只保存pending差异候选。
 6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+7. 仅消费CurrentSnapshot.Output.Text非nil的真实完整winning结果，显式空字符串可用；不由历史delta拼接或把费用未知当作没有结果，原费用/paid refs继续保留。
 
 #### `memory.overview`
 

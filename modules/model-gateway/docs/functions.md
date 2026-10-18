@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 243 个函数：约束 41 个，参考 202 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 274 个函数：约束 43 个，参考 231 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -84,6 +84,8 @@ func OpenDatabase(dataDirectory string) (*Store, error)
 1. 仅建立本域active/control/restore目录，WAL/外键/单连接
 2. 校验全部已应用迁移版本再逐事务执行未应用迁移
 3. 失败关闭数据库，不安装未知句柄
+4. 只有O_EXCL真实新建active/model-gateway.db文件才能产database_origin；拒未知active文件/孤立WAL/符号链接，旧库无来源不推首次空历史。
+5. control/database-origin.json以O_EXCL真实创建证书并文件/目录fsync；原控制证书存在而active主库缺失时维护拒绝，不因重新新建文件推历史从未接受。首次迁移中断而来源未完成仍失败关闭，不清控制事实。
 
 **错误**
 
@@ -96,7 +98,7 @@ func OpenDatabase(dataDirectory string) (*Store, error)
 - 授权：permission：service；rule：仅本域可信装配或ReadTaskAvailability已核纯QA服务链路
 - 并发：启动时单连接迁移；错误逆序关闭资源
 - 幂等：已应用编号/名称不重复迁移，未知版本拒绝
-- 依赖：`model-gateway.runMigrations`
+- 依赖：`model-gateway.Store.runMigrations`
 
 ## model-gateway.CurrentStore
 
@@ -242,7 +244,7 @@ func (s *Store) Close() error
 - 幂等：重复关闭不重复撤销或关闭资源
 - 依赖：无
 
-## model-gateway.runMigrations
+## model-gateway.Store.runMigrations
 
 - 级别：参考
 - 文件：`modules/model-gateway/internal/runtime/bootstrap.go`
@@ -323,6 +325,47 @@ func (s *Store) MasterKeyRef() string
 - 并发：同域上下文传播，密钥只在请求内临时持有；不调用网络
 - 幂等：业务写入由同事务HMAC回执与CAS保证；纯计算可重复
 - 依赖：无
+
+## model-gateway.Store.SetDataEpoch
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/bootstrap.go`
+- 作用：Store.SetDataEpoch本域真实来源和隔离数据回调
+
+```go
+func (s *Store) SetDataEpoch(ctx context.Context, dataEpoch platform.Identifier) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 权威runtime首次绑定真实database_origin，原事务写fresh_activation完整tracking和credential_tracking；同代重复无写，异代必须走认证stage，不把旧库清表或重基。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：无
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
 
 ## model-gateway.ValidateProvider
 
@@ -610,6 +653,7 @@ func RotateCredential(ctx context.Context, op OperationContext, input RotateCred
 8. 保留全部旧密文供既有派发引用；不因当前invocations为空推断可销毁。临时可变key/plaintext/HMAC规范编码字节清零，不承诺擦除immutable Go string或标准库内部副本。
 9. RotateCredential要求expectedVersion>=1且当前active凭据存在、同代且nonce/ciphertext长度完整；返回新credentialVersion和retiredVersion，保留旧密文。
 10. 退休材料销毁已接DestroyRetiredSecrets，只有完整应用显式tracking且无legacy缺证据才执行；unknown/held保留。完整启动tracking初始化待下一批，整函数暂不ready。
+11. 仅snapshot_material_redactions有原完整hash来源且nonce/ciphertext都空才视明确未含密钥；普通空值损坏严格失败，管理员新版本配置不复活旧attempt。
 
 **错误**
 
@@ -681,7 +725,7 @@ func writeCredential(ctx context.Context, op OperationContext, input credentialC
 - 授权：permission：superadmin；rule：仅本域可信装配或PutCredential/RotateCredential已核admin+superadmin的链路
 - 并发：同域上下文传播，密钥只在请求内临时持有；不调用网络
 - 幂等：业务写入由同事务HMAC回执与CAS保证；纯计算可重复
-- 依赖：`model-gateway.CurrentStore`、`model-gateway.DestroyRetiredSecrets`、`model-gateway.Store.BeginTx`、`model-gateway.Store.MasterKeyRef`、`model-gateway.credentialDigest`、`model-gateway.credentialFingerprint`、`model-gateway.credentialStorageError`、`model-gateway.loadCredentialMasterKey`、`model-gateway.readCredentialReceipt`
+- 依赖：`model-gateway.CurrentStore`、`model-gateway.DestroyRetiredSecrets`、`model-gateway.Store.BeginTx`、`model-gateway.Store.MasterKeyRef`、`model-gateway.credentialDigest`、`model-gateway.credentialFingerprint`、`model-gateway.credentialStorageError`、`model-gateway.loadCredentialMasterKey`、`model-gateway.readCredentialReceipt`、`model-gateway.IsRedactedMaterial`
 
 ## model-gateway.loadCredentialMasterKey
 
@@ -1744,6 +1788,7 @@ func SelectCandidates(ctx context.Context, op OperationContext, input ResolveRou
 3. embedding全部eligible候选须同一现有embeddingSpaceID，发现异空间INTEGRITY_ERROR，不能混用或静默跳过；先核完整候选再取16项。
 4. 保序返回至多16项模型/供应方版本/凭据版本；无候选DEPENDENCY_UNAVAILABLE。routeVersion为epoch、真实解析配置与最终候选的固定JSON字段顺序SHA256。
 5. 不解密、不读主密钥/价目/余额、不调用供应方、不获取派发引用；费用配置仅声明，执行、费用预留与最后引用释放仍由未来执行链保证。
+6. routeVersion包含全eligible列表，响应保序16项；不能只对已选项CAS漏掉原不eligible变可用。
 
 **错误**
 
@@ -1797,6 +1842,7 @@ func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, mod
 2. 缺模型、停用、有效能力不符、active凭据版本0或材料缺行返回eligible=false；模型/供应方/凭据异代VERSION_MISMATCH、缺供应方或损坏字段/长度INTEGRITY_ERROR、SQL未知失败关闭。
 3. 凭据只查data_epoch和nonce/ciphertext长度，12字节nonce与大于16字节密文仅表示材料具备；不表示能解密、供应方在线或派发引用已持久获取。
 4. 明确源身份的公开目录实际更新，manualOverride优先，不猜接口/凭据/空间。catalogRef双列同步读写，旧空值不猜填，固定路线快照保留源引用。
+5. 生产方给完整Model不透明快照hash；仅embedding附真实五字段空间；明确脱密的缺key模型不eligible，普通坏材料仍失败。
 
 **错误**
 
@@ -1814,7 +1860,48 @@ func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, mod
 - 授权：permission：service；rule：仅已认证任务owner内部链路；身份/schema/deadline由公共边界建立，不重复校验。
 - 并发：同一严格当前epoch只读SQL事务；纯计算不检查ctx，不做网络IO。
 - 幂等：纯读取/计算可重复，无回执或费用写入。
-- 依赖：`model-gateway.availabilityReadError`
+- 依赖：`model-gateway.availabilityReadError`、`model-gateway.ModelSnapshotHash`、`model-gateway.ModelEmbeddingSpace`、`model-gateway.IsRedactedMaterial`
+
+## model-gateway.SelectCandidatesInTransaction
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/profile.go`
+- 作用：生产方免费固定路线及接受事务一致性支持
+
+```go
+func SelectCandidatesInTransaction(ctx context.Context, op OperationContext, tx *sql.Tx, input ResolveRouteInput) (ResolveRouteResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅task真实owner纯服务/原可信costClass和当前epoch读取，不产生费用；在同一真实SQL快照解析完整eligible列表，返回原opaque Model hash与embedding真实空间。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.ResolveProfile`、`model-gateway.readRouteCandidate`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
 
 ## model-gateway.ResolveRoute
 
@@ -1864,6 +1951,94 @@ func ResolveRoute(ctx context.Context, op OperationContext, input ResolveRouteIn
 - 幂等：纯读取可重复，不写回执；快照版本按实际持久行返回。
 - 依赖：`model-gateway.SelectCandidates`
 
+## model-gateway.ResolveTaskRoute
+
+- 级别：约束
+- 文件：`modules/model-gateway/internal/routing/route.go`
+- 作用：生产方免费固定路线及接受事务一致性支持
+
+```go
+func ResolveTaskRoute(ctx context.Context, op OperationContext, input ResolveRouteInput) (ResolveRouteResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `ResolveRouteInput` | 封闭业务输入；逐字段见types $defs/CreateInvocationInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ResolveRouteResult` | 成功结果；逐字段见types $defs/CreateInvocationResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 仅task真实owner纯服务/原可信costClass和当前epoch读取，不产生费用；在同一真实SQL快照解析完整eligible列表，返回原opaque Model hash与embedding真实空间。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只允许AITaskCatalog已登记owner纯服务；TaskID owner及body costClass等可信op，免费读取不扩收费授权。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.ResolveRoute`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.NewRouteHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/routing/route.go`
+- 作用：生产方免费固定路线及接受事务一致性支持
+
+```go
+func NewRouteHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅task真实owner纯服务/原可信costClass和当前epoch读取，不产生费用；在同一真实SQL快照解析完整eligible列表，返回原opaque Model hash与embedding真实空间。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.ResolveTaskRoute`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
 ## model-gateway.QuoteCost
 
 - 级别：约束
@@ -1912,7 +2087,7 @@ func QuoteCost(ctx context.Context, op OperationContext, input QuoteCostInput) (
 - `INTEGRITY_ERROR` / HTTP 422：（不可重试）
 
 - 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 授权：permission：model.manage；rule：portal当前model.manage，或精确根目录AI owner纯服务只读；knowledge必须background，不扩大任何付费准入。
 - 并发：同一次严格当前epoch只读SQL快照，无外部IO；免费报价不受业务写屏障拦截，不做额度准入。
 - 幂等：读取固定不可变价目全值；未配置unknown身份由持久模型版本/updated_at/epoch确定，不生成随机ID或新写。
 - 依赖：`model-gateway.ReadPriceSnapshot`、`model-gateway.RequirePriceCaller`
@@ -1947,6 +2122,7 @@ func ReadPriceSnapshot(ctx context.Context, op OperationContext, modelID string,
 **步骤**
 
 1. 严格同代读取真实模型和manual优先的不可变历史价目；无配置仅报价允许确定性unknown
+2. 已认证source价目只读沿原dataEpoch重算核原SnapshotID，配置迁到target不重写旧价/fee hash。
 
 **错误**
 
@@ -1963,7 +2139,7 @@ func ReadPriceSnapshot(ctx context.Context, op OperationContext, modelID string,
 - 授权：permission：service；rule：仅本域已验证入口或模型CAS调用链；不自行取得跨域权限
 - 并发：跟随调用者SQL快照或纯计算；无外部供应方IO
 - 幂等：不可变价目全值与内容地址可重读，写入仅在模型CAS同事务
-- 依赖：`model-gateway.beginPriceSnapshot`、`model-gateway.MakePriceSnapshot`
+- 依赖：`model-gateway.beginPriceSnapshot`、`model-gateway.MakePriceSnapshot`、`model-gateway.ReadPriceSnapshotInTransaction`
 
 ## model-gateway.SaveManualPrice
 
@@ -2120,7 +2296,8 @@ func RequirePriceCaller(ctx context.Context, op OperationContext) error
 
 **步骤**
 
-1. 仅根AI任务目录owner纯服务可读取免费报价
+1. portal当前model.manage管理员由公共边界即时授权；原已登记AI task owners纯服务免费读价能力保留（含localization）。
+2. knowledge额外Subject==CallerService==knowledge且可信costClass=background，按实际多模型计划只读固定模型/价目，不因此取得新Create/额度/费用权限。
 
 **错误**
 
@@ -2166,6 +2343,47 @@ func NewPriceHandlers() map[string]http.Handler
 - 幂等：不可变价目全值与内容地址可重读，写入仅在模型CAS同事务
 - 依赖：`model-gateway.QuoteCost`
 
+## model-gateway.ReadPriceSnapshotInTransaction
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/quote.go`
+- 作用：ReadPriceSnapshotInTransaction本域真实来源和隔离数据回调
+
+```go
+func ReadPriceSnapshotInTransaction(ctx context.Context, op OperationContext, tx *sql.Tx, modelID string, effectiveAt time.Time, allowUnknown bool) (PriceSnapshot, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.MakePriceSnapshot`、`model-gateway.IsRestoredEpoch`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
 ## model-gateway.CreateInvocation
 
 - 级别：约束
@@ -2201,6 +2419,9 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 6. 同事务持久accepted、原业务deadline、不可变execution hash、路线凭据引用、SSE accepted/outbox及幂等回执。先取得公共TaskGroup容量再提交，回调等待事务commit信号；失败不假accepted；不修改原业务截止。
 7. 恢复历史投影只读及人工费用结算，不新派发旧调用或恢复旧准入scope。
 8. 原创建键索引和accepted/回执同事务；新创建前也核完整tracking，避旧SDK绕过lookup重付。
+9. 共享AcceptPreparedInvocation原子接受持久化，不改变原task owner/QA/background/route授权与tracking门禁。
+10. 保留既有memory.assistant+owner memory的已明确批准admin-probe AI任务；仍用真实profile，不当私有portal连接probe。其他公开创建仍仅原QA/background owner，不扩大匿名或scope。
+11. 若expectedRouteVersion/expectedPriceSnapshots提供，接受写事务内完整重算含此前被过滤/禁用项的eligible列表并比较真实routeVersion；同事务逐候选复读真实当前priceSnapshotId，期待列表必须非空唯一并与整有序候选一一同序相同。预读和仅选中CAS不替此条件。
 
 **错误**
 
@@ -2217,7 +2438,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`identity:checkAuthorization`、`media:readAsset`、`model-gateway.ExecuteInvocation`、`platform.VerifyAdmissionPermit`、`platform.TaskGroup.Start`、`localization:readLanguageSuggestionApproval`、`model-gateway.AuthorizeImages`、`model-gateway.BeginExecution`、`model-gateway.CanonicalInvocationInput`、`model-gateway.CheckLanguageSuggestionApproval`、`model-gateway.EnqueueExecutionEvent`、`model-gateway.ExecutionDependencies`、`model-gateway.ExecutionSnapshotHash`、`model-gateway.ExecutionStorageError`、`model-gateway.ExecutionTransaction.Close`、`model-gateway.ExecutionTransaction.Commit`、`model-gateway.ModelEmbeddingSpace`、`model-gateway.ReadDispatchProvider`、`model-gateway.ReadInvocationRecord`、`model-gateway.ReadPriceSnapshot`、`model-gateway.ReplayExecutionReceipt`、`model-gateway.SaveExecutionReceipt`、`model-gateway.SaveInvocationEvent`、`model-gateway.StartAcceptedInvocation`、`model-gateway.ValidateInvocationPayload`、`model-gateway.ValidateInputModel`、`model-gateway.ResolveRoute`、`model-gateway.RequireInvocationLookupTracking`
+- 依赖：`identity:checkAuthorization`、`media:readAsset`、`model-gateway.ExecuteInvocation`、`platform.VerifyAdmissionPermit`、`platform.TaskGroup.Start`、`localization:readLanguageSuggestionApproval`、`model-gateway.AuthorizeImages`、`model-gateway.BeginExecution`、`model-gateway.CanonicalInvocationInput`、`model-gateway.CheckLanguageSuggestionApproval`、`model-gateway.EnqueueExecutionEvent`、`model-gateway.ExecutionDependencies`、`model-gateway.ExecutionSnapshotHash`、`model-gateway.ExecutionStorageError`、`model-gateway.ExecutionTransaction.Close`、`model-gateway.ExecutionTransaction.Commit`、`model-gateway.ModelEmbeddingSpace`、`model-gateway.ReadDispatchProvider`、`model-gateway.ReadInvocationRecord`、`model-gateway.ReadPriceSnapshot`、`model-gateway.ReplayExecutionReceipt`、`model-gateway.SaveExecutionReceipt`、`model-gateway.SaveInvocationEvent`、`model-gateway.StartAcceptedInvocation`、`model-gateway.ValidateInvocationPayload`、`model-gateway.ValidateInputModel`、`model-gateway.ResolveRoute`、`model-gateway.RequireInvocationLookupTracking`、`model-gateway.AcceptPreparedInvocation`、`model-gateway.SelectCandidatesInTransaction`、`model-gateway.ReadPriceSnapshotInTransaction`
 
 ## model-gateway.StartAcceptedInvocation
 
@@ -2419,6 +2640,44 @@ func ValidateInputModel(input CreateInvocationInput, model gen.Model, adapter st
 - 幂等：沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。
 - 依赖：无
 
+## model-gateway.AcceptPreparedInvocation
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/invocation/create.go`
+- 作用：AcceptPreparedInvocation实际探测执行支持
+
+```go
+func AcceptPreparedInvocation(ctx context.Context, op OperationContext, tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, fixed gatewayruntime.FixedRoute, requestRaw []byte, profileRaw []byte, function string, key string, canonical any, options gatewayruntime.ExecutionOptions) (CreateInvocationResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 普通AI与显式probe各自已校验后共享原invocation持久化/引用/accepted事件/幂等/TaskGroup先容量后commit机制，不扩大入口授权。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：MG真实供应方调用可能收费；当前设计不执行
+- 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`model-gateway.ExecutionSnapshotHash`、`model-gateway.SaveInvocationEvent`、`model-gateway.EnqueueExecutionEvent`、`model-gateway.SaveExecutionReceipt`、`model-gateway.ExecuteInvocation`、`model-gateway.CheckProviderMaterial`
+
 ## model-gateway.ReserveCost
 
 - 级别：参考
@@ -2582,6 +2841,8 @@ func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayrunt
 3. additional为nil表示本次最大金额真实未知，既有amount_micro_usd为NULL表示范围内未知；任一适用额度有限时两者均失败关闭，不按零累计。
 4. 额度值0明确不限；只有所有实际适用额度均不限时才允许未知预留；不释放既有held，不篡改未知金额；已知整数用big.Int求和防溢出。
 5. 恢复当前target授权投影的原source unknown held仍占原site/profile/QA scope，不因epoch过滤清零；用EXISTS语义避多次恢复重复累加。
+6. admin-probe独立日限dailyProbeLimit兼容缺字段=用户明确默认0不限；有限额度遇同scope未知held失败关闭；探测限额变更同QA日限须当前superadmin。
+7. 专用连接probe仅以record.Probe显式内部策略辨识；memory.assistant原admin-probe AI任务保留真实档位、原备用与预算；连接probe日限仅connection_probes真实invocation集合。
 
 **错误**
 
@@ -2674,7 +2935,7 @@ func ReadAttemptEvidence(tx *gatewayruntime.ExecutionTransaction, id string) (pr
 
 **步骤**
 
-1. 验证原供应方脱敏终态证据hash
+1. 核原outcome_json SHA256，再核typed完整canonical仍等原hash；未知/缺失字段不得通过丢信息读取。
 
 **错误**
 
@@ -3406,8 +3667,8 @@ func GetInvocation(ctx context.Context, op OperationContext, input GetInvocation
 
 1. 按原owner或portal当前model.manage/superadmin、同site/epoch读取安全调用快照
 2. 核持久hash、root和costClass一致，返回当前状态及最后序号，不返回prompt/secret
-3. 只读兼容output仅原持久完整有效结构结果，与resultAttemptId的持久evidence全值摘要一致才返回；不以外层费用状态猜结果。
-4. 缺完整输出不填，已有winning但证据损坏为INTEGRITY_ERROR，不当调用不存在来重算。
+3. 只读兼容output为原持久完整文本/结构结果；winning尝试和调用列表精确一致，原evidence Completed/HTTP2xx/accepted/Code空及全值摘要必须与record.Output一致。
+4. 旧完整文本仅单一initial ordinal1/真实winner/无错完整evidence及完整连续accepted→delta/usage→completed原SSE可只读免费派生；多尝试、缺流/缺winning不猜空/404、不重付，不写历史证据/费用/hash。
 5. 恢复旧费用仅经当前target权威投影精确读原结果/费用/原hash/winner，旧scope不变成新准入，具体回调待公共snapshot实现后接。
 
 **错误**
@@ -3453,7 +3714,8 @@ func ReadInvocationSnapshot(tx *gatewayruntime.ExecutionTransaction, record gate
 
 **步骤**
 
-1. 返回原Invocation；只在winning attempt的完整无错证据与原Output规范摘要相等时携真实output。
+1. 返回原Invocation；完整结果需真实winning attempt与调用列表/派发证明一致，完整HTTP2xx/accepted/Code空evidence全值hash匹配record.Output；未知字段或显式null输出不损失信息读取。
+2. 旧文本只调用ReadLegacyTextResult保守证明，active无结果正常省略，旧成功缺winner明确DependencyUnavailable；不把费用未知当结果失败或让调用方重付。
 
 **错误**
 
@@ -3471,7 +3733,50 @@ func ReadInvocationSnapshot(tx *gatewayruntime.ExecutionTransaction, record gate
 - 授权：permission：service；rule：由已完成owner/site/epoch/root授权的Get或Lookup调用。
 - 并发：按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。
 - 幂等：沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。
-- 依赖：`model-gateway.ReadAttemptEvidence`、`model-gateway.ErrorCode`
+- 依赖：`model-gateway.ReadAttemptEvidence`、`model-gateway.ErrorCode`、`model-gateway.ReadAttemptRecord`、`model-gateway.ReadLegacyTextResult`
+
+## model-gateway.ReadLegacyTextResult
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/invocation/read.go`
+- 作用：保守只读还原旧已付费完整文本
+
+```go
+func ReadLegacyTextResult(tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, evidence provider.ProviderOutcome) (*platform.ModelOutput, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 调用方已核真实winning/完整无错HTTP成功evidence；Invocation与实际表都仅一个initial ordinal1 attempt，旧成功终态。
+2. 完整原SSE从1到LastSequence连续，最多65540条/每条1MiB/聚合64MiB；accepted首条、completed末条，同原invocation/root/class/deadline/price/winner；不接受错误/取消/额外完整输出分支。
+3. 每个原delta有效UTF8且≤16KiB，累计≤64KiB；真实OutputStarted与是否有字节一致；全原流无增量且完整证明时才返回显式空文本。
+4. 纯读不改原证据/fee/ledger/paid hash，不填404或0、不重跑；缺任何来源证明明确失败关闭。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：由已完成owner/site/epoch/root授权的Get或Lookup调用。
+- 并发：按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。
+- 幂等：沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。
+- 依赖：`model-gateway.ExecutionStorageError`
 
 ## model-gateway.EstimateTokens
 
@@ -3634,6 +3939,8 @@ func AcquireProviderSlot(ctx context.Context, op OperationContext, input Acquire
 2. 清到期slot，分别核真实固定provider和profile并发上限；0上限按数量小于配置规则表示暂无槽位
 3. 同调用已有未到期槽位返回原租约，不重复领取；新槽位期限不超过原调用deadline
 4. 派发期间执行器每10秒续租，租约未知或取消停止后继供应方IO
+5. 显式admin-probe无AI profile，仅核原冻结provider并发；QA/background仍同时核原真实profile并发，不造profile ID。
+6. 专用连接probe仅以record.Probe显式内部策略辨识；memory.assistant原admin-probe AI任务保留真实档位、原备用与预算；连接probe日限仅connection_probes真实invocation集合。
 
 **错误**
 
@@ -4040,6 +4347,7 @@ func PutFeeBudgetPolicy(ctx context.Context, op OperationContext, input PutFeeBu
 4. 授权后开启短写事务，重新先核原回执，再核全部非released屏障、当前policy和CAS；期间需超管而未授权则VERSION_MISMATCH，不自动重试，不持事务RPC。
 5. 条件INSERT/UPDATE核RowsAffected1；策略、完整回执及本地fee_policy_audit同事务。审计仅actor/rootOperation/epoch/version/time/日额度变化标记；跨域投影仍未完成，不宣称通知analytics。
 6. 仅影响后续预留，不改held/ledger，不调用模型。Commit未知由相同键回读原结果，不自动重试提交。
+7. admin-probe独立日限dailyProbeLimit兼容缺字段=用户明确默认0不限；有限额度遇同scope未知held失败关闭；探测限额变更同QA日限须当前superadmin。
 
 **错误**
 
@@ -4058,7 +4366,7 @@ func PutFeeBudgetPolicy(ctx context.Context, op OperationContext, input PutFeeBu
 - 授权：permission：guard.manage；rule：portal当前guard.manage；首次或daily变化另无锁即时superadmin，短事务重核。
 - 并发：严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway.requireFeePolicyActor`、`model-gateway.beginAdminSnapshot`、`model-gateway.readFeePolicy`、`model-gateway.readFeePolicyReceipt`、`identity:checkAuthorization`
+- 依赖：`model-gateway.requireFeePolicyActor`、`model-gateway.beginAdminSnapshot`、`model-gateway.readFeePolicy`、`model-gateway.readFeePolicyReceipt`、`identity:checkAuthorization`、`model-gateway.FeeProbeLimit`
 - 其他依赖说明：本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表
 
 ## model-gateway.ReadAdminCatalog
@@ -4093,6 +4401,8 @@ func ReadAdminCatalog(ctx context.Context, op OperationContext, input ReadAdminC
 3. ProviderSummary只查非秘密元数据、附加头名称、active凭据版本和材料存在/代次/长度；不SELECT秘密引用或密文正文。
 4. 附各供应方启停状态与最近连接测试结果；本轮启停/材料状态已写，最近probe生产者/投影未齐，整函数in_progress，不伪造空或成功结果。
 5. 响应上限模型1000、供应方/档位64、任务256；超限报错不截断；异代或损坏失败关闭。
+6. 同一SQL快照附真实最近probe及原冻结版本/原调用/实际响应latency；无历史省略lastProbe，不探测或填成功。
+7. 仅snapshot_material_redactions有原完整hash来源且nonce/ciphertext都空才视明确未含密钥；普通空值损坏严格失败，管理员新版本配置不复活旧attempt。
 
 **错误**
 
@@ -4111,7 +4421,7 @@ func ReadAdminCatalog(ctx context.Context, op OperationContext, input ReadAdminC
 - 授权：permission：model.manage；rule：后台管理员
 - 并发：严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。
 - 幂等：只读
-- 依赖：`model-gateway.beginAdminSnapshot`、`model-gateway.readCatalogProviders`、`model-gateway.readCatalogModels`、`model-gateway.readCatalogProfiles`、`model-gateway.readCatalogAssignments`
+- 依赖：`model-gateway.beginAdminSnapshot`、`model-gateway.readCatalogProviders`、`model-gateway.readCatalogModels`、`model-gateway.readCatalogProfiles`、`model-gateway.readCatalogAssignments`、`model-gateway.ReadLatestProbes`
 - 其他依赖说明：本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表
 
 ## model-gateway.requireCatalogReader
@@ -4479,6 +4789,7 @@ func readFeePolicy(ctx context.Context, op OperationContext, tx *sql.Tx) (FeeBud
 **步骤**
 
 1. 无行NOT_FOUND；核site/epoch/版本/金额范围，不编造默认。
+2. admin-probe独立日限dailyProbeLimit兼容缺字段=用户明确默认0不限；有限额度遇同scope未知held失败关闭；探测限额变更同QA日限须当前superadmin。
 
 **错误**
 
@@ -4642,7 +4953,7 @@ func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler
 - 授权：permission：service；rule：仅本域已授权调用链
 - 并发：共用上层快照；纯函数无IO；权限RPC不持SQL事务。
 - 幂等：读取或映射无独立副作用。
-- 依赖：`model-gateway.ReadModels`、`model-gateway.ReadProfiles`、`model-gateway.ReadAdminCatalog`、`model-gateway.ReadFeeBudgetPolicy`、`model-gateway.PutFeeBudgetPolicy`、`model-gateway.GetPriceBook`
+- 依赖：`model-gateway.ReadModels`、`model-gateway.ReadProfiles`、`model-gateway.ReadAdminCatalog`、`model-gateway.ReadFeeBudgetPolicy`、`model-gateway.PutFeeBudgetPolicy`、`model-gateway.GetPriceBook`、`model-gateway.CreateConnectionProbe`
 
 ## model-gateway.QueryUsage
 
@@ -4678,6 +4989,9 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 5. 返回每条账单原固定priceSnapshot全值，不按当前价重算；只读且无模型、额度、预留、账本或审计副作用。
 6. 恢复旧费用仅经当前target权威投影精确读原结果/费用/原hash/winner，旧scope不变成新准入，具体回调待公共snapshot实现后接。
 7. analytics纯服务可读同实际site/current epoch安全用量，不限AI owner原root归属，只返统计DTO不带正文/输出/秘密。其他AI owner仍只读自己全root，不扩新付费权限。
+8. 兼容可选windowCoversRoot实际必给：当前SQL快照窗覆盖全部原root调用创建时间与所有账本时间（含已superseded/voided历史）才true。
+9. 兼容可选allInvocationsFinal实际必给：完整原调用/尝试记录hash及列表精确一致，原TerminalNS真实且无活动lease，outer succeeded仍须全部attempt succeeded/failed/reconciled；缺事实false或严格原错误。
+10. 两标记仅当前原root观察，不把safeToRetry/held0/零金额替新批准收费；消费者另需unknown空、held显式0、所有ledger金额已知及明确新用户批准。
 
 **错误**
 
@@ -4942,7 +5256,7 @@ func readLedgerEntries(ctx context.Context, op OperationContext, tx *sql.Tx, run
 - 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
 - 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
 - 幂等：只读真实状态与固定原价目，无费用写入。
-- 依赖：`model-gateway.readLedgerMetadata`
+- 依赖：`model-gateway.readLedgerMetadata`、`model-gateway.IsRestoredEpoch`
 
 ## model-gateway.readLedgerPage
 
@@ -5038,7 +5352,7 @@ func readRootMetadata(ctx context.Context, op OperationContext, tx *sql.Tx, runt
 - 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
 - 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
 - 幂等：只读真实状态与固定原价目，无费用写入。
-- 依赖：`model-gateway.readLedgerMetadata`
+- 依赖：`model-gateway.readLedgerMetadata`、`model-gateway.IsRestoredEpoch`
 
 ## model-gateway.sumLedgerMoney
 
@@ -5123,7 +5437,7 @@ func NewLedgerHandlers(key platform.SigningKey) (map[string]http.Handler, error)
 - 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
 - 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
 - 幂等：只读真实状态与固定原价目，无费用写入。
-- 依赖：`model-gateway.GetLedger`、`model-gateway.QueryUsage`
+- 依赖：`model-gateway.GetLedger`、`model-gateway.QueryUsage`、`model-gateway.ReadUsageStatisticsPage`
 
 ## model-gateway.AcquireBarrier
 
@@ -5719,6 +6033,7 @@ async function reload(): Promise<void>
 **步骤**
 
 1. 本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。
+2. 独立探测日限默认0不限与真实最近probe原版本展示，不把历史诊断当当前配置成功或未知费用0。
 
 **错误**
 
@@ -6039,6 +6354,7 @@ async function savePolicy(): Promise<void>
 **步骤**
 
 1. 本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。
+2. 独立探测日限默认0不限与真实最近probe原版本展示，不把历史诊断当当前配置成功或未知费用0。
 
 **错误**
 
@@ -6119,6 +6435,7 @@ async function refreshCatalog(): Promise<void>
 **步骤**
 
 1. 本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。
+2. 真实响应fallback明确显示最近缓存/编译目录，不能把降级说成本次远端刷新成功。
 
 **错误**
 
@@ -6239,6 +6556,7 @@ async function runProbe(): Promise<void>
 **步骤**
 
 1. 本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。
+2. 独立探测日限默认0不限与真实最近probe原版本展示，不把历史诊断当当前配置成功或未知费用0。
 
 **错误**
 
@@ -6925,9 +7243,11 @@ func RefreshModelCatalog(ctx context.Context, op OperationContext, input Refresh
 
 1. 管理员显式刷新或MG内部免费每日调度，固定https://models.dev/api.json单GET最多10MiB/30s，不携站点数据，禁重定向。
 2. 解析公开API明确费率/上界，不把缺费率或FixedCost变成0；上游扩展字段不变成本站能力事实。
-3. 不自动创建渠道/凭据/模型；只更新已绑定catalogRef且remote/bundled且非manualOverride行的明确可变token上界及新价目，保留空间/渠道/能力原声明。
-4. 同短写事务内核epoch/屏障/CAS，不可变下载版本、每模型规范摘要、模型CAS/价目/事件/回执原子提交，单条无变不刷全部模型版本。
-5. 编译内置真实bundled快照项目用户许可待回答，未借入内容；整函数仍partial不记ready。
+3. 同短写事务内核epoch/屏障/CAS，不可变下载版本、每模型规范摘要、模型CAS/价目/事件/回执原子提交，单条无变不刷全部模型版本。
+4. 本次用户批准models.dev MIT公开数据固定编译快照；只采用原始JSON与来源/版本/hash/原许可，不复制外部业务代码。
+5. 先固定公开远端下载并走同一Normalize；只在下载不可用时使用当前epoch最近已验证持久normalized源，没有持久源才用经过真实hash校验的编译源；远端损坏/MIME异常不冒成功。
+6. 缓存保留原origin/sourceHash/downloaded时刻；新真实远端origin/rawHash变化也追加下载记录，即使规范业务事实相同。返回source/sourceVersion，降级时明确fallback=cached或bundled。
+7. Apply同一真实source事实/人工override优先，无catalogRef旧配置不改；bundled未给固定每次费用仍nil，不补0；同原模型CAS/价目/事件/幂等回执事务。
 
 **错误**
 
@@ -6944,7 +7264,7 @@ func RefreshModelCatalog(ctx context.Context, op OperationContext, input Refresh
 - 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway.DownloadModelCatalog`、`model-gateway.NormalizeModelCatalog`、`model-gateway.ApplyCatalogSnapshot`、`model-gateway.BeginExecution`、`model-gateway.ReplayExecutionReceipt`、`model-gateway.SaveExecutionReceipt`、`model-gateway.ExecutionTransaction.Close`、`model-gateway.ExecutionTransaction.Commit`
+- 依赖：`model-gateway.DownloadModelCatalog`、`model-gateway.NormalizeModelCatalog`、`model-gateway.ApplyCatalogSnapshot`、`model-gateway.BeginExecution`、`model-gateway.ReplayExecutionReceipt`、`model-gateway.SaveExecutionReceipt`、`model-gateway.ExecutionTransaction.Close`、`model-gateway.ExecutionTransaction.Commit`、`model-gateway.ReadCatalogSource`
 
 ## model-gateway.DownloadModelCatalog
 
@@ -7033,7 +7353,7 @@ func NormalizeModelCatalog(raw []byte) (CatalogSnapshot, error)
 - 作用：ApplyCatalogSnapshot明确源身份的公开目录实际更新，manualOverride优先，不猜接口/凭据/空间。
 
 ```go
-func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationContext, snapshot CatalogSnapshot) (int, int, error)
+func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationContext, snapshot CatalogSnapshot, origin string) (int, int, error)
 ```
 
 **输入**
@@ -7073,7 +7393,7 @@ func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationC
 - 作用：SaveCatalogPrice明确源身份的公开目录实际更新，manualOverride优先，不猜接口/凭据/空间。
 
 ```go
-func SaveCatalogPrice(tx *gatewayruntime.ExecutionTransaction, op OperationContext, modelID string, version int, price billing.ManualPrice) error
+func SaveCatalogPrice(tx *gatewayruntime.ExecutionTransaction, op OperationContext, modelID string, version int, price billing.ManualPrice, origin string) error
 ```
 
 **输入**
@@ -7146,6 +7466,46 @@ func NewCatalogRefreshHandlers() map[string]http.Handler
 - 幂等：沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。
 - 依赖：`model-gateway.RefreshModelCatalog`
 
+## model-gateway.ReadCatalogSource
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/refresh.go`
+- 作用：真实公开源下载及持久缓存/编译固定源选择
+
+```go
+func ReadCatalogSource(ctx context.Context, op OperationContext) (CatalogSource, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 远端成功Normalize并保存真实raw hash；远端不可用先读当前代最近持久normalized与hash，损坏失败关闭；无持久才校验编译原始数据hash并走同一Normalize。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核原owner/site/epoch/root/costClass的内部执行链或可信启动装配，不取得新权限。
+- 并发：按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。
+- 幂等：沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。
+- 依赖：`model-gateway.DownloadModelCatalog`、`model-gateway.NormalizeModelCatalog`、`model-gateway.ReadSnapshot`、`model-gateway.BeginExecution`
+
 ## model-gateway.CreateConnectionProbe
 
 - 级别：约束
@@ -7173,11 +7533,13 @@ func CreateConnectionProbe(ctx context.Context, op OperationContext, input Creat
 
 **步骤**
 
-1. 仅superadmin点击
-2. 构造固定不含站点内容的1token请求
-3. costClass=admin-probe并费用预留
-4. 显示成功/耗时/账单状态
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 仅portal当前superadmin明确点击，私有admin-probe lane，公开Create仍仅QA/background task owner；不可伪造task/profile/QA许可。
+2. 固定OK极小消息与最多1输出token；embedding仅单OK，rerank仅单候选OK；按模型已声明能力和实际adapter选择，不读取站点正文。
+3. 持久内部version1 admin-probe执行策略含approvedBy/permissionRevision，profile_json按costClass明确tagged union且原executionHash覆盖；无AI profile与task assignment。
+4. 原root/site/epoch/模型/渠道/密钥和额外头引用/price全部冻结；模型及provider/credential版本同写事务CAS，原输入/原回执/accepted/outbox/引用原子提交。
+5. 真实平台TaskGroup执行单attempt，明确禁止fallback/structured retry；未知费用沿原held，不重付；原idempotency仅接续未派发阶段或返回当前原调用。
+6. 独立dailyProbeLimit缺失按用户明确默认0不限；有限额度遇未知最大金额或原admin-probe未知held失败关闭，不占QA或background额度。
+7. 最近探测只读真实持久调用/attempt/响应时间，原版本明确展示，不凭空探测成功。
 
 **错误**
 
@@ -7193,7 +7555,83 @@ func CreateConnectionProbe(ctx context.Context, op OperationContext, input Creat
 - 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway.ExecuteInvocation`
+- 依赖：`model-gateway.CreateProbeInvocation`、`model-gateway.beginAdminSnapshot`、`model-gateway.readCatalogModels`
+
+## model-gateway.ReadLatestProbes
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/probe.go`
+- 作用：ReadLatestProbes实际探测执行支持
+
+```go
+func ReadLatestProbes(ctx context.Context, op OperationContext, tx *sql.Tx, providers []gen.ProviderSummary) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同真实管理快照取每provider最近probe原记录及完整原调用；逐条核原模型/渠道/密钥/epoch，实际evidence时间才给latency。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：MG真实供应方调用可能收费；当前设计不执行
+- 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`model-gateway.ReadInvocationRecord`、`model-gateway.ReadAttemptRecord`
+
+## model-gateway.FeeProbeLimit
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/probe.go`
+- 作用：读取独立探测日限，兼容缺失按用户明确默认0不限
+
+```go
+func FeeProbeLimit(policy gen.FeeBudgetPolicy) int
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 字段缺失与明确0均为已批准不限；不借QA/background额度。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：MG真实供应方调用可能收费；当前设计不执行
+- 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：无
 
 ## model-gateway.CreateFallbackAttempt
 
@@ -7224,6 +7662,8 @@ func CreateFallbackAttempt(ctx context.Context, op OperationContext, input Creat
 
 1. 只用accepted固定有序候选；前驱必须当前attempt，直接后继才是fallback，同模型structured_retry最多一次，不重复付费尝试；总attempt上限固定路线长度+一次格式重试。
 2. 先核管理员批准/固定嵌入space并准备真实新attempt，原子Reserve追加新attempt及预留，预算不足停止；旧未知attempt与held不释放，不更换root/总deadline。
+3. admin-probe明确拒绝新增任何paid attempt。
+4. 专用连接probe仅以record.Probe显式内部策略辨识；memory.assistant原admin-probe AI任务保留真实档位、原备用与预算；连接probe日限仅connection_probes真实invocation集合。
 
 **错误**
 
@@ -7594,7 +8034,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`、`model-gateway.NewPriceHandlers`、`model-gateway.EstimateTokens`、`model-gateway.NewTokenHandlers`、`model-gateway.NewLedgerHandlers`、`model-gateway.NewExecutionHandlers`、`platform.NewTaskGroup`、`platform.TaskGroup.Run`、`model-gateway.InstallExecutionOptions`、`model-gateway.NewTokenizerHandlers`、`platform.LoadServiceIdentity`、`model-gateway.ensureDataLayout`、`model-gateway.newRuntimeClient`、`model-gateway.validateConfig`、`model-gateway.NewCatalogRefreshHandlers`、`model-gateway.ReadInitializationState`、`model-gateway.RefreshModelCatalog`、`model-gateway.Application.ConfigureBusiness`、`model-gateway.Application.BackgroundTasks`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`、`model-gateway.NewPriceHandlers`、`model-gateway.EstimateTokens`、`model-gateway.NewTokenHandlers`、`model-gateway.NewLedgerHandlers`、`model-gateway.NewExecutionHandlers`、`platform.NewTaskGroup`、`platform.TaskGroup.Run`、`model-gateway.InstallExecutionOptions`、`model-gateway.NewTokenizerHandlers`、`platform.LoadServiceIdentity`、`model-gateway.ensureDataLayout`、`model-gateway.newRuntimeClient`、`model-gateway.validateConfig`、`model-gateway.NewCatalogRefreshHandlers`、`model-gateway.ReadInitializationState`、`model-gateway.RefreshModelCatalog`、`model-gateway.Application.ConfigureBusiness`、`model-gateway.Application.BackgroundTasks`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`site-config:readSiteConfig`、`model-gateway.ReadGatewaySiteID`、`model-gateway.ReadUsageStatisticsPage`、`model-gateway.Store.SetDataEpoch`、`model-gateway.GatewaySnapshotConfig`、`model-gateway.NewRouteHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.NewRuntimeClient
@@ -7796,6 +8236,47 @@ func ReadInitializationState(ctx context.Context, client *gen.SiteConfigClient, 
 - 并发：按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。
 - 幂等：沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。
 - 依赖：`site-config:readInitializationStatus`
+
+## model-gateway.ReadGatewaySiteID
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/app/wire.go`
+- 作用：安全统计生产支持：ReadGatewaySiteID
+
+```go
+func ReadGatewaySiteID(ctx context.Context, client *gen.SiteConfigClient, epoch string, validate func(json.RawMessage) error) (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. MG纯服务清用户proof，固定2.5秒新操作读site-config:readSiteConfig，严格生产完整schema只取真实Config.SiteID，不用system或旧fee行猜站点。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`site-config:readSiteConfig`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
 
 ## model-gateway.Serve
 
@@ -8993,6 +9474,7 @@ func readInvocationRecord(tx *ExecutionTransaction, op OperationContext, id stri
 **步骤**
 
 1. 仅原记录证据或安全费用投影，不创新付费权限或模型IO。
+2. 原terminal_output_json与完整typed ModelOutput规范值必须等hash，拒未知字段/显式null，不把它们默默省略。
 
 **错误**
 
@@ -9010,7 +9492,7 @@ func readInvocationRecord(tx *ExecutionTransaction, op OperationContext, id stri
 - 授权：permission：service；rule：只在已核原owner/site/epoch/root/costClass的内部执行链或可信启动装配，不取得新权限。
 - 并发：按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。
 - 幂等：沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。
-- 依赖：`model-gateway.ExecutionStorageError`、`model-gateway.ExecutionSnapshotHash`
+- 依赖：`model-gateway.ExecutionStorageError`、`model-gateway.ExecutionSnapshotHash`、`model-gateway.IsRestoredEpoch`
 
 ## model-gateway.NewExecutionHandlers
 
@@ -9400,7 +9882,7 @@ func OpenAttemptHeaders(ctx context.Context, op OperationContext, attemptID stri
 - 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
 - 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
 - 幂等：只读真实状态与固定原价目，无费用写入。
-- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadAttemptRecord`、`model-gateway.ReadInvocationRecord`、`model-gateway.CurrentStore`、`model-gateway.loadCredentialMasterKey`、`model-gateway.SecretHeaderName`
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadAttemptRecord`、`model-gateway.ReadInvocationRecord`、`model-gateway.CurrentStore`、`model-gateway.loadCredentialMasterKey`、`model-gateway.SecretHeaderName`、`model-gateway.IsRestoredEpoch`
 
 ## model-gateway.TokenizeText
 
@@ -9689,6 +10171,8 @@ func ExecuteInvocation(ctx context.Context, op OperationContext, input ExecuteIn
 4. 真实供应方usage含收费ID才RecordUsage/Settle；完整结果且缺usage/ID仍可succeeded+completed，attempt独立charge_unknown并保留held。结果不完整且费用未知outer charge_unknown。缓存等费率未覆盖不伪按普通价；缺币种不猜USD。
 5. 未向调用方输出且未完整成功时依固定路线允许备用；每次新attempt新预留，旧未知费用继续held；格式重试原模型一次且不重置总deadline。已完整付费结果绝不自动重算。
 6. 只有既有派发用量/终态/释放可以进入当前权威许可的5秒finalization记账窗口，不扩原模型deadline、不新派发；IO失败保守收敛原已派发事实，不猜未收费。
+7. admin-probe单attempt失败/unknown立即按原链终态，不执行fallback或structured retry。
+8. 专用连接probe仅以record.Probe显式内部策略辨识；memory.assistant原admin-probe AI任务保留真实档位、原备用与预算；连接probe日限仅connection_probes真实invocation集合。
 
 **错误**
 
@@ -10333,6 +10817,8 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 
 1. 执行一次固定原attempt HTTP，不重定向/重试；httptrace仅在尚未写headers时证明未发出，错误后费用保守unknown。
 2. 响应JSON32MiB/SSE64MiB，空/断流/超时无可靠终态失败；真实idle timer由收到字节续期，不延长原业务截止；文本delta完整UTF8及64KiB上限。
+3. 将同一批原UTF8 delta在既有总64KiB内真实累加；只有HTTP2xx、完整协议结束帧/完整终态、Code空才给原chat/vision/translation能力的ModelOutput.Text指针，显式空文本与没有结果区分。
+4. 累计文本随既有attempt_evidence/resultAttemptId/record.Output同事务持久；不新增收费或改旧证据，SSE缺结束帧即使见过finish_reason也不当完整流。
 
 **错误**
 
@@ -10618,6 +11104,8 @@ func DestroyRetiredSecrets(ctx context.Context, op OperationContext, tx *sql.Tx)
 1. 完整应用显式开启tracking后才允许；任何legacy缺execution证据均保留，不从空invocations推断可销毁。
 2. 非active主凭据及全部route/attempt引用已释放时，同事务审计版本/销毁时刻再删材料，版本不复用。
 3. header无active映射及未释放引用才清空密文保留FK墓碑；outer成功但unknown/held不释放。
+4. 凭据版本在本库全source epoch的真实未释放引用都阻止销毁；不能因config迁到target而漏算旧未知费用引用。
+5. 已认证历史source header也可在全scope原引用都释放且无任何当前provider引用后退休；原AAD/版本不变。
 
 **错误**
 
@@ -10748,7 +11236,8 @@ func LookupInvocation(ctx context.Context, op OperationContext, input LookupInvo
 1. 严格生产方schema消费原完整CreateInvocationInput和key，按原规范请求摘要比原创建回执，异输入CONFLICT。
 2. 只读实际当前Invocation/完整真实output，对原持久请求再核键/语义hash，不改原paid deadline，不重验过期准入来付款。
 3. 回执存在但原记录缺失，或创建键有原行但无回执，均Integrity不伪404。
-4. 只有当前epoch完整tracking真实来源，且无未索引/未知归属/待恢复投影旧行时才确认无原调用返回404；marker缺失503，纯读不建证明。
+4. 只有当前epoch完整tracking真实来源，且无未索引/未知归属/待恢复投影旧行，原key/root/site/body确未接受才INVOCATION_NOT_ACCEPTED（HTTP404）；普通NOT_FOUND/旧部署路由404绝非负证明，marker缺失503，纯读不建证明。
+5. 保留既有memory.assistant+owner memory的已明确批准admin-probe AI任务；仍用真实profile，不当私有portal连接probe。其他公开创建仍仅原QA/background owner，不扩大匿名或scope。
 
 **错误**
 
@@ -10764,6 +11253,7 @@ func LookupInvocation(ctx context.Context, op OperationContext, input LookupInvo
 - `INTEGRITY_ERROR` / HTTP 422：（不可重试）
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
 - `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INVOCATION_NOT_ACCEPTED` / HTTP 404：（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：仅AI目录任务owner纯服务，保原root/site/epoch/costClass；不用旧permit给新付费授权。
@@ -10816,3 +11306,838 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 - 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
 - 幂等：同完整引用只读复用，不生成或重算归档
 - 依赖：`platform.SnapshotManager.OpenArchive`
+
+## model-gateway.ReadUsageStatisticsPage
+
+- 级别：约束
+- 文件：`modules/model-gateway/internal/admin/statistics.go`
+- 作用：安全统计生产支持：ReadUsageStatisticsPage
+
+```go
+func ReadUsageStatisticsPage(ctx context.Context, op OperationContext, input ReadUsageStatisticsPageInput) (ReadUsageStatisticsPageResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `ReadUsageStatisticsPageInput` | 固定历史上界与游标，逐字段见types $defs/ReadUsageStatisticsPageInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadUsageStatisticsPageResult` | 安全posted账本变更页，逐字段见types $defs/ReadUsageStatisticsPageResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 仅analytics纯服务，Actor.SiteID必须等受信启动site-config完整严格响应装配的ExecutionOptions.SiteID，当前runtime_meta epoch严格匹配。
+2. 初次固定实际append-only changeRevision上界，cursor平台签名绑定service/site/epoch/after/limit及固定upper，独立24h到期；每页≤100/2.5秒，后续新写不改变旧页。
+3. 按真实变化顺序返entry独立ledgerRevision、原owner/site/sourceEpoch/root/op/class/冻结provider/model/真实amountKnown+amount/state/occurredAt；缺任何原事实严格失败，不猜event.revision或当前配置。
+4. 升级现存真实行第一次观察baseline version1，与原收费历史版本不同；insert/update/delete、supersede旧项、void全部写同原事务历史，账本金额原行不变。
+5. 旧sourceEpoch跨target恢复若尚缺已认证只读投影明确503，不重基原execution/fee/hash；全域保护未齐不计完整服务。
+6. V2共用真实usage_statistics_timeline全局上界，ledger及invocation/attempt/reservation原事务append-only完整捕获，单页两数组合计100/2.5s。基线仅真实第一次观察，不造历史event revision。
+7. 响应posted-and-inflight且completeFeeCoverage=true仅表示真实来源/无账项未知负债完整覆盖；amountUnknown或charge_unknown/held仍明确未知，消费者不将已知部分和冒全站总额。
+8. 原调用/attempt财务权威拒删除，held reservation拒删除；关闭reservation删改保真实旧事实和deleted标记。无ledger invoc/attempt/held不得消失成0，原来源缺失严格失败。
+9. 需完整fresh/verified-restore tracking，当前runtime/site授权；两数组按实际changeRevision合并顺序，消费分页只更新隔离统计版本，整个固定上界完成才激活，不公开半页统计。
+10. 完整页≤2MiB UTF8响应；pageHash为省略pageHash字段后的其余完整响应canonical JSON SHA256，含cursor/上界/全部安全原事实，不截断source或伪造摘要。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.ExecutionDependencies`、`model-gateway.ledgerRuntime`、`model-gateway.beginAdminSnapshot`、`model-gateway.readStatisticsLineage`、`model-gateway.validateUsageChange`、`platform.SignCursor`、`platform.VerifyCursor`、`model-gateway.ReadUsageObservation`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.readStatisticsLineage
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/statistics.go`
+- 作用：安全统计生产支持：readStatisticsLineage
+
+```go
+func readStatisticsLineage(ctx context.Context, op OperationContext, tx *sql.Tx, stored storedUsageChange) (statisticsLineage, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核原调用完整execution hash及原attempt实际快照，与原不可变路线candidate/provider/model/credential/price全值一致；不访问当前配置补历史。
+2. ModelSnapshotHash只从原冻结Model计算，旧缺stored hash仍需原冻结route完整证明；来源跨target未有认证投影时失败，不过滤或改写。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.ReadStatisticsInvocationRecord`、`model-gateway.ReadAttemptRecord`、`model-gateway.ModelSnapshotHash`、`model-gateway.IsRestoredEpoch`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.validateUsageChange
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/statistics.go`
+- 作用：安全统计生产支持：validateUsageChange
+
+```go
+func validateUsageChange(stored storedUsageChange, lineage statisticsLineage, revision, version int64, observed string) (UsageLedgerChange, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实变更版本与原冻结安全字段逐项相符，金额known与实际nullable字段一致；USD安全整数/真实原账本时间，未知省略不当0。
+2. superseded/voided/deleted保留原身份与金额观察，不伪收费账单；无正文/输出/收费请求ID/凭据。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：无
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.ReadSnapshot
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/bundled/catalog.go`
+- 作用：返回真实固定数据副本和已核来源内容版本
+
+```go
+func ReadSnapshot() ([]byte, Source, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 校验固定5806411字节与实际SHA256/sourceVersion/retrievedAt/MIT来源元数据；数据版本取实际内容hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核原owner/site/epoch/root/costClass的内部执行链或可信启动装配，不取得新权限。
+- 并发：按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。
+- 幂等：沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。
+- 依赖：无
+
+## model-gateway.CreateProbeInvocation
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/invocation/probe.go`
+- 作用：CreateProbeInvocation实际探测执行支持
+
+```go
+func CreateProbeInvocation(ctx context.Context, op OperationContext, input gen.CreateConnectionProbeInput, model gen.Model) (gen.CreateConnectionProbeResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实固定私有probe payload/执行policy，不进AI任务目录；同原接受链冻结并执行一次。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：MG真实供应方调用可能收费；当前设计不执行
+- 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`model-gateway.AcceptPreparedInvocation`、`model-gateway.ReadDispatchProvider`、`model-gateway.ReadPriceSnapshot`、`model-gateway.ReplayExecutionReceipt`、`model-gateway.StartAcceptedInvocation`、`model-gateway.RequireInvocationLookupTracking`
+
+## model-gateway.IsRestoredEpoch
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/restore_projection.go`
+- 作用：IsRestoredEpoch本域真实来源和隔离数据回调
+
+```go
+func IsRestoredEpoch(ctx context.Context, tx *sql.Tx, source string, target string) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：无
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.IsRedactedMaterial
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/restore_projection.go`
+- 作用：IsRedactedMaterial本域真实来源和隔离数据回调
+
+```go
+func IsRedactedMaterial(ctx context.Context, tx *sql.Tx, kind string, key string) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：无
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.CheckProviderMaterial
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/restore_projection.go`
+- 作用：CheckProviderMaterial本域真实来源和隔离数据回调
+
+```go
+func CheckProviderMaterial(ctx context.Context, tx *sql.Tx, op OperationContext, provider gen.Provider) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.IsRestoredEpoch`、`model-gateway.IsRedactedMaterial`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.GatewaySnapshotConfig
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：GatewaySnapshotConfig本域真实来源和隔离数据回调
+
+```go
+func GatewaySnapshotConfig(store *gatewayruntime.Store, root string) lifecycle.SnapshotConfig
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.GatewayWatermark`、`model-gateway.CaptureGatewaySnapshot`、`model-gateway.MigrateGatewayStage`、`model-gateway.ValidateGatewayStage`、`model-gateway.GatewayStageBudget`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.GatewayWatermark
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：GatewayWatermark本域真实来源和隔离数据回调
+
+```go
+func GatewayWatermark(ctx context.Context, db *sql.DB) (int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：无
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.CaptureGatewaySnapshot
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：CaptureGatewaySnapshot本域真实来源和隔离数据回调
+
+```go
+func CaptureGatewaySnapshot(ctx context.Context, store *gatewayruntime.Store, root string, cut lifecycle.SnapshotSafeCut, workspace string, input lifecycle.SnapshotExportInput) (lifecycle.DomainSnapshotManifest, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.GatewaySnapshotInventory`、`model-gateway.OpenGatewaySnapshotDB`、`model-gateway.GatewaySnapshotFile`、`model-gateway.RedactGatewaySnapshot`、`model-gateway.GatewayWatermark`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.GatewaySnapshotInventory
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：GatewaySnapshotInventory本域真实来源和隔离数据回调
+
+```go
+func GatewaySnapshotInventory(ctx context.Context, db *sql.DB, epoch string) ([]platform.AssetVersionRef, []lifecycle.SnapshotInvocationRef, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.ReadInvocationRecord`、`model-gateway.IsRestoredEpoch`、`model-gateway.ImageKey`、`model-gateway.MediaPartAsset`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.OpenGatewaySnapshotDB
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：OpenGatewaySnapshotDB本域真实来源和隔离数据回调
+
+```go
+func OpenGatewaySnapshotDB(ctx context.Context, path string, readonly bool) (*sql.DB, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：无
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.GatewaySnapshotFile
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：GatewaySnapshotFile本域真实来源和隔离数据回调
+
+```go
+func GatewaySnapshotFile(ctx context.Context, path string) (lifecycle.DomainSnapshotFile, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：无
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.RedactGatewaySnapshot
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：RedactGatewaySnapshot本域真实来源和隔离数据回调
+
+```go
+func RedactGatewaySnapshot(ctx context.Context, db *sql.DB, path string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+2. 原header destroyed_at明确销毁审计允许保持空material；必须有合法原时间，不当新红action或普通空值。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.GatewaySnapshotFile`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.GatewayStageBudget
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：GatewayStageBudget本域真实来源和隔离数据回调
+
+```go
+func GatewayStageBudget(ctx context.Context, manifest lifecycle.DomainSnapshotManifest) (int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：无
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.MigrateGatewayStage
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：MigrateGatewayStage本域真实来源和隔离数据回调
+
+```go
+func MigrateGatewayStage(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, target string, root string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+2. 复用公共PrepareRestoredOutbox，仅认证Stage私有上下文内隔离原outbox活动资格、保原行与原epoch，并把gate绑本次host seal，不自行删表或重投。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.GatewayStageBudget`、`model-gateway.OpenGatewaySnapshotDB`、`model-gateway.ValidateGatewayDatabase`、`model-gateway.GatewaySnapshotInventory`、`model-gateway.IsRestoredEpoch`、`platform.PrepareRestoredOutbox`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.ValidateGatewayStage
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：ValidateGatewayStage本域真实来源和隔离数据回调
+
+```go
+func ValidateGatewayStage(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, target string, root string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.GatewayStageBudget`、`model-gateway.OpenGatewaySnapshotDB`、`model-gateway.ValidateGatewayDatabase`、`model-gateway.GatewaySnapshotInventory`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.ValidateGatewayDatabase
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/protection/snapshot.go`
+- 作用：ValidateGatewayDatabase本域真实来源和隔离数据回调
+
+```go
+func ValidateGatewayDatabase(ctx context.Context, db *sql.DB, epoch string, schema int) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：无
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试
+
+## model-gateway.ReadUsageObservation
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/admin/observations.go`
+- 作用：真实无账项调用/attempt/held安全观察，只读原完整冻结来源
+
+```go
+func ReadUsageObservation(ctx context.Context, op OperationContext, tx *sql.Tx, kind string, entity string, raw []byte, revision int64, version int64, deleted bool, observed string) (UsageObservation, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 闭合类型及原owner/site/root/sourceepoch/完整执行hash严格比对；金额未知不补0，原冻结模型/价目只读，不送prompt/output/secret。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。
+- 并发：单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接
+- 幂等：固定watermark/cursor重放原历史页，新写不失效原上界
+- 依赖：`model-gateway.ReadStatisticsInvocationRecord`、`model-gateway.ReadAttemptRecord`、`model-gateway.ModelSnapshotHash`
+- 其他依赖说明：本域append-only统计历史/原冻结调用和尝试

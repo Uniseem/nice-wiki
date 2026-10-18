@@ -153,7 +153,10 @@ func readLedgerEntries(ctx context.Context, op OperationContext, tx *sql.Tx, run
 		if metadata.Site != op.Actor.SiteID {
 			return nil, platform.NewError(platform.CodeForbidden, false, "账本条目不属于当前站点")
 		}
-		projected,e:=gatewayruntime.IsRestoredEpoch(ctx,tx,metadata.Epoch,op.DataEpoch);if e!=nil{return nil,e}
+		projected, e := gatewayruntime.IsRestoredEpoch(ctx, tx, metadata.Epoch, op.DataEpoch)
+		if e != nil {
+			return nil, e
+		}
 		if !projected {
 			return nil, platform.NewError(platform.CodeVersionMismatch, false, "账本条目属于其他数据代次")
 		}
@@ -280,7 +283,10 @@ func readRootMetadata(ctx context.Context, op OperationContext, tx *sql.Tx, runt
 		if metadata.Site != op.Actor.SiteID {
 			return nil, platform.NewError(platform.CodeForbidden, false, "费用根不属于当前站点")
 		}
-		projected,e:=gatewayruntime.IsRestoredEpoch(ctx,tx,metadata.Epoch,op.DataEpoch);if e!=nil{return nil,e}
+		projected, e := gatewayruntime.IsRestoredEpoch(ctx, tx, metadata.Epoch, op.DataEpoch)
+		if e != nil {
+			return nil, e
+		}
 		if !projected {
 			return nil, platform.NewError(platform.CodeVersionMismatch, false, "费用根含其他数据代次")
 		}
@@ -346,9 +352,11 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 	evidence := map[string]bool{}
 	inWindow := map[string]bool{}
 	safeToRetry := true
- windowCoversRoot,allInvocationsFinal:=true,true
+	windowCoversRoot, allInvocationsFinal := true, true
 	for _, record := range metadata {
-  if record.CreatedAt.Before(input.From)||!record.CreatedAt.Before(input.Until){windowCoversRoot=false}
+		if record.CreatedAt.Before(input.From) || !record.CreatedAt.Before(input.Until) {
+			windowCoversRoot = false
+		}
 		var safeRaw []byte
 		var safeHash, initialized sql.NullString
 		var dispatched, attemptUnknown bool
@@ -357,7 +365,7 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 		}
 		if len(safeRaw) == 0 || !safeHash.Valid || !initialized.Valid || initialized.String == "" {
 			safeToRetry = false
-   allInvocationsFinal=false
+			allInvocationsFinal = false
 		} else {
 			var snapshot gen.Invocation
 			if platform.HashBytes(safeRaw) != safeHash.String || json.Unmarshal(safeRaw, &snapshot) != nil || snapshot.InvocationId != record.Id || snapshot.RootOperationId != input.RootOperationId || string(snapshot.State) != record.State {
@@ -384,16 +392,24 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 			if count != len(proof.Invocation.Attempts) {
 				return QueryUsageResult{}, platform.NewError(platform.CodeIntegrityError, false, "原root尝试列表与持久证据不完整")
 			}
-   if proof.TerminalNS<=0||proof.LeaseID!=""||proof.LeaseUntilNS!=0||!slices.Contains([]string{"succeeded","failed","cancelled","reconciled"},string(proof.Invocation.State)){allInvocationsFinal=false}
-   seenAttempts:=map[string]bool{}
+			if proof.TerminalNS <= 0 || proof.LeaseID != "" || proof.LeaseUntilNS != 0 || !slices.Contains([]string{"succeeded", "failed", "cancelled", "reconciled"}, string(proof.Invocation.State)) {
+				allInvocationsFinal = false
+			}
+			seenAttempts := map[string]bool{}
 			for _, item := range proof.Invocation.Attempts {
 				stored, err := gatewayruntime.ReadAttemptRecord(execution, item.AttemptId)
 				if err != nil {
 					return QueryUsageResult{}, err
 				}
-    actual,_:=platform.CanonicalJSON(stored.Attempt);listed,_:=platform.CanonicalJSON(item)
-    if seenAttempts[item.AttemptId]||stored.Attempt.InvocationId!=record.Id||platform.HashBytes(actual)!=platform.HashBytes(listed){return QueryUsageResult{},platform.NewError(platform.CodeIntegrityError,false,"原root尝试完整身份列表与持久事实矛盾")};seenAttempts[item.AttemptId]=true
-    if !slices.Contains([]string{"succeeded","failed","reconciled"},string(stored.Attempt.State)){allInvocationsFinal=false}
+				actual, _ := platform.CanonicalJSON(stored.Attempt)
+				listed, _ := platform.CanonicalJSON(item)
+				if seenAttempts[item.AttemptId] || stored.Attempt.InvocationId != record.Id || platform.HashBytes(actual) != platform.HashBytes(listed) {
+					return QueryUsageResult{}, platform.NewError(platform.CodeIntegrityError, false, "原root尝试完整身份列表与持久事实矛盾")
+				}
+				seenAttempts[item.AttemptId] = true
+				if !slices.Contains([]string{"succeeded", "failed", "reconciled"}, string(stored.Attempt.State)) {
+					allInvocationsFinal = false
+				}
 				if stored.DispatchedNS > 0 {
 					safeToRetry = false
 				}
@@ -416,8 +432,13 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 			}
 		}
 	}
- var outside bool
- if err:=tx.QueryRowContext(ctx,`SELECT EXISTS(SELECT 1 FROM ledger_entries l JOIN invocations i ON i.invocation_id=l.invocation_id WHERE i.root_operation_id=? AND (`+ledgerTimeKey+`<? OR `+ledgerTimeKey+`>=?))`,input.RootOperationId,input.From.UTC().Format(ledgerTimeLayout),input.Until.UTC().Format(ledgerTimeLayout)).Scan(&outside);err!=nil{return QueryUsageResult{},adminStorageError(err)};if outside{windowCoversRoot=false}
+	var outside bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM ledger_entries l JOIN invocations i ON i.invocation_id=l.invocation_id WHERE i.root_operation_id=? AND (`+ledgerTimeKey+`<? OR `+ledgerTimeKey+`>=?))`, input.RootOperationId, input.From.UTC().Format(ledgerTimeLayout), input.Until.UTC().Format(ledgerTimeLayout)).Scan(&outside); err != nil {
+		return QueryUsageResult{}, adminStorageError(err)
+	}
+	if outside {
+		windowCoversRoot = false
+	}
 	entries, err := readLedgerEntries(ctx, op, tx, runtime, `i.root_operation_id=? AND NOT EXISTS(SELECT 1 FROM ledger_entries n WHERE n.supersedes_entry_id=l.entry_id) AND NOT EXISTS(SELECT 1 FROM ledger_voids v WHERE v.entry_id=l.entry_id) AND `+ledgerTimeKey+`>=? AND `+ledgerTimeKey+`<?`, []any{input.RootOperationId, input.From.UTC().Format(ledgerTimeLayout), input.Until.UTC().Format(ledgerTimeLayout)}, 257)
 	if err != nil {
 		return QueryUsageResult{}, err
@@ -485,7 +506,7 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 	if len(unknown) > 256 {
 		return QueryUsageResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "完整未知调用集合超过响应预算")
 	}
-	result := QueryUsageResult{Entries: entries, UnknownInvocationIds: make([]string, 0, len(unknown)), SafeToRetry: &safeToRetry,WindowCoversRoot:&windowCoversRoot,AllInvocationsFinal:&allInvocationsFinal}
+	result := QueryUsageResult{Entries: entries, UnknownInvocationIds: make([]string, 0, len(unknown)), SafeToRetry: &safeToRetry, WindowCoversRoot: &windowCoversRoot, AllInvocationsFinal: &allInvocationsFinal}
 	for id := range unknown {
 		result.UnknownInvocationIds = append(result.UnknownInvocationIds, id)
 	}
@@ -526,7 +547,20 @@ func NewLedgerHandlers(key platform.SigningKey) (map[string]http.Handler, error)
 			w.Header().Set("Cache-Control", "no-store")
 			op, _ := platform.OperationContextFrom(r.Context())
 			query := r.URL.Query()
-   if operation=="readUsageStatisticsPage"{after,_:=strconv.ParseInt(query.Get("afterRevision"),10,64);watermark,_:=strconv.ParseInt(query.Get("watermark"),10,64);limit,_:=strconv.Atoi(query.Get("limit"));ctx:=context.WithValue(r.Context(),ledgerRuntimeKey{},runtime);result,err:=ReadUsageStatisticsPage(ctx,op,ReadUsageStatisticsPageInput{AfterRevision:after,Watermark:watermark,Cursor:query.Get("cursor"),Limit:limit});if err!=nil{_ = problem.WriteProblem(w,problem.FromError(err,op.RequestID));return};w.Header().Set("Content-Type","application/json");_ = json.NewEncoder(w).Encode(result);return}
+			if operation == "readUsageStatisticsPage" {
+				after, _ := strconv.ParseInt(query.Get("afterRevision"), 10, 64)
+				watermark, _ := strconv.ParseInt(query.Get("watermark"), 10, 64)
+				limit, _ := strconv.Atoi(query.Get("limit"))
+				ctx := context.WithValue(r.Context(), ledgerRuntimeKey{}, runtime)
+				result, err := ReadUsageStatisticsPage(ctx, op, ReadUsageStatisticsPageInput{AfterRevision: after, Watermark: watermark, Cursor: query.Get("cursor"), Limit: limit})
+				if err != nil {
+					_ = problem.WriteProblem(w, problem.FromError(err, op.RequestID))
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(result)
+				return
+			}
 			from, fromErr := platform.ParseTimestamp(query.Get("from"))
 			until, untilErr := platform.ParseTimestamp(query.Get("until"))
 			if fromErr != nil || untilErr != nil {

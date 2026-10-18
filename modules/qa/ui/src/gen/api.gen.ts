@@ -487,6 +487,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/internal/cache/{cacheId}/translation-source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取缓存翻译的当前权威基准材料
+         * @description 纯localization同站同代窄读取；正文不入日志，不授予新QA模型许可。
+         */
+        get: operations["readCacheTranslationSource"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -523,6 +543,8 @@ export interface components {
         MemoryContextChanged: components["schemas"]["EventMemoryContextChangedPayload"];
         JobsRequestCancelResult: components["schemas"]["RequestCancelResult"];
         GuardQueueSessionAdmissionResult: components["schemas"]["QueueSessionAdmissionResult"];
+        GetInvocationResult: components["schemas"]["types_GetInvocationResult"];
+        LookupInvocationResult: components["schemas"]["types_LookupInvocationResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /**
@@ -559,7 +581,7 @@ export interface components {
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
          */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED" | "INVOCATION_NOT_ACCEPTED";
         /** @description FieldIssue的公共协议类型；字段及范围按本schema */
         FieldIssue: {
             /** @description 字段路径，不包含字段值 */
@@ -1069,6 +1091,24 @@ export interface components {
             /** @description 诊断事件 */
             events: components["schemas"]["AnswerEvent"][];
         };
+        /** @description 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。 */
+        SnapshotWorkState: {
+            outboxRevision: number;
+            workRevision: number;
+            pendingOutbox: number;
+            pendingWork: number;
+        };
+        /** @description 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。 */
+        SnapshotBarrierObservation: {
+            owner: string;
+            activityRevision: number;
+            work: components["schemas"]["SnapshotWorkState"];
+            revisionWatermark: number;
+            business: number;
+            cleanup: number;
+            fileOps: number;
+            drainCallbacks: number;
+        };
         /** @description 屏障状态及安全点；未到安全点不能导出完整快照 */
         "common.schema_BarrierStatus": {
             /** @description 本次安全屏障ID */
@@ -1084,9 +1124,33 @@ export interface components {
             dataEpoch: components["schemas"]["Identifier"];
             /** @description BarrierStatus.revisionWatermark；按类型、枚举及required约束使用 */
             revisionWatermark: components["schemas"]["Revision"];
+            /** @description safe必须来自真实全域CAS封口；旧兼容响应可省略，不视为新版完整证明。 */
+            sealProofHash?: components["schemas"]["Hash"];
+            /** @description observe操作的真实在途计数/持久水位；未知不填0。 */
+            observation?: components["schemas"]["SnapshotBarrierObservation"];
         };
         BarrierStatus: components["schemas"]["common.schema_BarrierStatus"];
-        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging */
+        /** @description 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。 */
+        SnapshotBrokerObservation: {
+            revision: number;
+            pendingDeliveries: number;
+            activeLeases: number;
+        };
+        SnapshotSealReceipt: {
+            owner: string;
+            sealProofHash: components["schemas"]["Hash"];
+        };
+        /** @description 14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。 */
+        SnapshotSealProof: {
+            barrierId: components["schemas"]["Identifier"];
+            dataEpoch: components["schemas"]["Identifier"];
+            observations: components["schemas"]["SnapshotBarrierObservation"][];
+            brokerBefore: components["schemas"]["SnapshotBrokerObservation"];
+            brokerAfter: components["schemas"]["SnapshotBrokerObservation"];
+            nonJobsSeals?: components["schemas"]["SnapshotSealReceipt"][];
+            nonJobsProofHash?: components["schemas"]["Hash"];
+        };
+        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。 */
         "common.schema_BarrierRequest": {
             /** @description 可恢复操作ID */
             operationId: components["schemas"]["Identifier"];
@@ -1099,7 +1163,25 @@ export interface components {
             mode: "backup" | "restore";
             /** @description 全链路截止；与本地取消取较早值 */
             deadline: components["schemas"]["Timestamp"];
-        };
+            /**
+             * @description 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
+             * @default prepare
+             * @enum {string}
+             */
+            step: "prepare" | "drain" | "observe" | "seal" | "resume-drain";
+            sealProof?: components["schemas"]["SnapshotSealProof"];
+            /** @description resume-drain绑定原真实seal，不打开新业务。 */
+            expectedSealHash?: components["schemas"]["Hash"];
+        } & ({
+            /** @enum {unknown} */
+            step?: "prepare" | "drain" | "observe";
+        } | {
+            /** @enum {unknown} */
+            step: "seal";
+        } | {
+            /** @enum {unknown} */
+            step: "resume-drain";
+        });
         BarrierRequest: components["schemas"]["common.schema_BarrierRequest"];
         types_Identifier: components["schemas"]["Identifier"];
         /** @description 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径 */
@@ -1299,6 +1381,19 @@ export interface components {
             /** @enum {string} */
             reason: "available" | "not_configured" | "unavailable";
         };
+        /** @description 仅localization纯服务同站同代读取真实缓存基准材料；不由请求自报active，不新建缓存或模型。sourceHash仅由QA固定schema1对象canonical产生，消费者直接保存，不复制算法。 */
+        ReadCacheTranslationSourceResult: {
+            cacheId: components["schemas"]["Identifier"];
+            answerRevision: components["schemas"]["Revision"];
+            sourceHash: components["schemas"]["Hash"];
+            /** @enum {string} */
+            state: "pending" | "active" | "disabled";
+            /** @description 真实当前缓存策略/未过期/引用仍有效；false不得触发付费翻译。 */
+            eligible: boolean;
+            question: string;
+            answer: string;
+            sourceLanguage: string;
+        };
         /** @description 消费前验证租约成功结果；失败不返回半成功结果 */
         ValidatePermitResult: {
             /** @description admissionId；UTF-8；不得为 null */
@@ -1338,7 +1433,7 @@ export interface components {
             validations: components["schemas"]["PublicationValidation"][];
         };
         /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
-        AssetVersionRef: {
+        "common.schema_AssetVersionRef": {
             /** @description 逻辑资源ID */
             assetId: components["schemas"]["Identifier"];
             /** @description 不可变对象版本 */
@@ -1350,6 +1445,8 @@ export interface components {
             /** @description 字节数 */
             byteSize: number;
         };
+        /** @description 完整五字段不可变版本引用，唯一来源common；既有JSON不变。 */
+        AssetVersionRef: components["schemas"]["common.schema_AssetVersionRef"];
         /** @description 树/元数据权威，与draft和published独立 */
         DocumentMetadata: {
             /** @description 文档 */
@@ -1917,6 +2014,16 @@ export interface components {
             asset?: components["schemas"]["AssetRef"];
             /** @description 与text的每个UTF-8字节等长；值是本源块原始UTF-8字节起点，单调且处于byteStart..byteEnd */
             sourceOffsets: number[];
+            /** @description 新片段的真实content叶或不可变提取文本路径；缺失兼容旧整块映射，含asset时sourceOffsets映射该提取原文本，不伪装为人工正文 */
+            sourcePath?: string;
+            /** @description 机器派生背景，仅检索使用，不当作人工引文或改原偏移 */
+            contextPrefix?: string;
+            /** @description 整篇源/任务记忆/模型声明的固定机器背景版本 */
+            contextVersionHash?: components["schemas"]["Hash"];
+            /** @description contextPrefix+换行+原text经固定空间真实BPE的完整token计数，原tokenCount仍指源片段 */
+            embeddingTokenCount?: number;
+            /** @description MG真正resultAttemptId指向的opaque模型快照证明；不从attempt.state猜 */
+            contextModelSnapshotHash?: components["schemas"]["Hash"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Candidate: {
@@ -2318,6 +2425,14 @@ export interface components {
             /** @description position 非负 int64；不用浮点数 */
             position: number;
         };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_GetInvocationResult: {
+            /** @description 状态 */
+            invocation: components["schemas"]["Invocation"];
+            /** @description 兼容可选；仅winning完整文本/结构结果与原evidence及record摘要一致；旧单initial完整原SSE可保守只读派生，缺证据不造空/404或重新收费。 */
+            output?: components["schemas"]["ModelOutput"];
+        };
+        types_LookupInvocationResult: components["schemas"]["types_GetInvocationResult"];
     };
     responses: never;
     parameters: never;
@@ -4446,6 +4561,64 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    readCacheTranslationSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cacheId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 当前真实来源；eligible=false不得收费 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadCacheTranslationSourceResult"];
+                };
+            };
+            /** @description 安全错误 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 安全错误 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 安全错误 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 安全错误 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
         };
     };

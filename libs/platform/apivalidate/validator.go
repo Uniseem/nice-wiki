@@ -64,11 +64,11 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "服务入口路由不可读")
 	}
-	knownOperations:=map[string]bool{}
- for _, item := range spec.Paths.Map() {
+	knownOperations := map[string]bool{}
+	for _, item := range spec.Paths.Map() {
 		for _, operation := range item.Operations() {
 			id := operation.OperationID
- knownOperations[id]=true
+			knownOperations[id] = true
 			if id == "" || handlers[id] == nil {
 				return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "存在未绑定的接口处理函数")
 			}
@@ -78,15 +78,25 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 			if len(config.AllowedCallers[id]) == 0 {
 				return nil, platform.NewError(platform.CodeIntegrityError, false, "接口缺少固定调用服务策略")
 			}
-			if !config.ControllerOperations[id]&&config.AdmitBusiness==nil{return nil,platform.NewError(platform.CodeDependencyUnavailable,false,"非控制HTTP独立业务scope未装配")}
- permission, _ := operation.Extensions["x-permission"].(string)
+			if !config.ControllerOperations[id] && config.AdmitBusiness == nil {
+				return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "非控制HTTP独立业务scope未装配")
+			}
+			permission, _ := operation.Extensions["x-permission"].(string)
 			if permission != "anonymous" && permission != "service" && config.Authorize == nil {
 				return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "用户权威授权回调未装配")
 			}
 		}
 	}
- for id,policy:=range config.CleanupOperations{if !knownOperations[id]||config.ControllerOperations[id]||len(policy.Callers)==0||config.AdmitCleanup==nil||config.AuthorizeCleanup==nil{return nil,platform.NewError(platform.CodeDependencyUnavailable,false,"固定清理端口、归属授权或私有lease未完整装配")}}
-	for id:=range config.ControllerOperations{if !knownOperations[id]{return nil,platform.NewError(platform.CodeIntegrityError,false,"控制操作分类不属于真实OpenAPI操作")}}
+	for id, policy := range config.CleanupOperations {
+		if !knownOperations[id] || config.ControllerOperations[id] || len(policy.Callers) == 0 || config.AdmitCleanup == nil || config.AuthorizeCleanup == nil {
+			return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "固定清理端口、归属授权或私有lease未完整装配")
+		}
+	}
+	for id := range config.ControllerOperations {
+		if !knownOperations[id] {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "控制操作分类不属于真实OpenAPI操作")
+		}
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		route, params, err := router.FindRoute(r)
 		if err != nil {
@@ -133,7 +143,7 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 		if err == nil && !slices.Contains(config.AllowedCallers[id], op.CallerService) {
 			err = platform.NewError(platform.CodeForbidden, false, "该服务不允许调用此接口")
 		}
-		if err == nil && (view.Maintenance || view.Phase != platform.PhaseRunning) && !config.MaintenanceOperations[id] && op.CleanupScope==nil {
+		if err == nil && (view.Maintenance || view.Phase != platform.PhaseRunning) && !config.MaintenanceOperations[id] && op.CleanupScope == nil {
 			err = platform.NewError(platform.CodeLocked, true, "当前维护阶段不开放该接口")
 		}
 		if err != nil {
@@ -170,15 +180,52 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 				return
 			}
 		}
-		validatedScope:=http.HandlerFunc(func(w http.ResponseWriter,request *http.Request){
- if scope:=op.CleanupScope;scope!=nil{
- policy,ok:=config.CleanupOperations[id];if !ok||!slices.Contains(policy.Callers,op.CallerService)||scope.Action!=config.Self+":"+id||scope.EventControl!=policy.BrokerControl||!view.Maintenance||(view.Phase!=platform.PhaseBackupBarrier&&view.Phase!=platform.PhaseRestoreStaging)||scope.BarrierID!=view.BarrierID{_=problem.WriteProblem(w,problem.FromError(platform.NewError(platform.CodeForbidden,false,"清理不属于固定本域旧引用操作"),op.RequestID));return}
- body,readErr:=io.ReadAll(request.Body);if readErr!=nil{_=problem.WriteProblem(w,problem.FromError(readErr,op.RequestID));return};request.Body=io.NopCloser(bytes.NewReader(body));resource,scopeErr:=platform.CleanupResourceID(policy.Resource,params,body);if scopeErr==nil&&resource!=scope.ResourceID{scopeErr=platform.NewError(platform.CodeForbidden,false,"清理资源与签名不符")};if scopeErr==nil{scopeErr=config.AuthorizeCleanup(request.Context(),op,*scope,resource)};if scopeErr!=nil{_=problem.WriteProblem(w,problem.FromError(scopeErr,op.RequestID));return};scoped,release,scopeErr:=config.AdmitCleanup(request.Context(),op,*scope);if scopeErr!=nil{_=problem.WriteProblem(w,problem.FromError(scopeErr,op.RequestID));return};defer release();handler.ServeHTTP(w,request.WithContext(scoped));return
- }
- if config.ControllerOperations[id]{handler.ServeHTTP(w,request);return}
- scoped,release,scopeErr:=config.AdmitBusiness(request.Context());if scopeErr!=nil{_=problem.WriteProblem(w,problem.FromError(scopeErr,op.RequestID));return};defer release();handler.ServeHTTP(w,request.WithContext(scoped))
- })
- validate(validatedScope).ServeHTTP(w, r.WithContext(ctx))
+		validatedScope := http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+			if scope := op.CleanupScope; scope != nil {
+				policy, ok := config.CleanupOperations[id]
+				if !ok || !slices.Contains(policy.Callers, op.CallerService) || scope.Action != config.Self+":"+id || scope.EventControl != policy.BrokerControl || !view.Maintenance || (view.Phase != platform.PhaseBackupBarrier && view.Phase != platform.PhaseRestoreStaging) || scope.BarrierID != view.BarrierID {
+					_ = problem.WriteProblem(w, problem.FromError(platform.NewError(platform.CodeForbidden, false, "清理不属于固定本域旧引用操作"), op.RequestID))
+					return
+				}
+				body, readErr := io.ReadAll(request.Body)
+				if readErr != nil {
+					_ = problem.WriteProblem(w, problem.FromError(readErr, op.RequestID))
+					return
+				}
+				request.Body = io.NopCloser(bytes.NewReader(body))
+				resource, scopeErr := platform.CleanupResourceID(policy.Resource, params, body)
+				if scopeErr == nil && resource != scope.ResourceID {
+					scopeErr = platform.NewError(platform.CodeForbidden, false, "清理资源与签名不符")
+				}
+				if scopeErr == nil {
+					scopeErr = config.AuthorizeCleanup(request.Context(), op, *scope, resource)
+				}
+				if scopeErr != nil {
+					_ = problem.WriteProblem(w, problem.FromError(scopeErr, op.RequestID))
+					return
+				}
+				scoped, release, scopeErr := config.AdmitCleanup(request.Context(), op, *scope)
+				if scopeErr != nil {
+					_ = problem.WriteProblem(w, problem.FromError(scopeErr, op.RequestID))
+					return
+				}
+				defer release()
+				handler.ServeHTTP(w, request.WithContext(scoped))
+				return
+			}
+			if config.ControllerOperations[id] {
+				handler.ServeHTTP(w, request)
+				return
+			}
+			scoped, release, scopeErr := config.AdmitBusiness(request.Context())
+			if scopeErr != nil {
+				_ = problem.WriteProblem(w, problem.FromError(scopeErr, op.RequestID))
+				return
+			}
+			defer release()
+			handler.ServeHTTP(w, request.WithContext(scoped))
+		})
+		validate(validatedScope).ServeHTTP(w, r.WithContext(ctx))
 	}), nil
 }
 

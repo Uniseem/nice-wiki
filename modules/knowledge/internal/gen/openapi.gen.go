@@ -34,6 +34,21 @@ const (
 	ModelGateway AdmissionPermitAudience = "model-gateway"
 )
 
+// Defines values for CalloutBlockAttrsKind.
+const (
+	Danger  CalloutBlockAttrsKind = "danger"
+	Info    CalloutBlockAttrsKind = "info"
+	Tip     CalloutBlockAttrsKind = "tip"
+	Warning CalloutBlockAttrsKind = "warning"
+)
+
+// Defines values for CostClass.
+const (
+	CostClassAdminProbe CostClass = "admin-probe"
+	CostClassBackground CostClass = "background"
+	CostClassQa         CostClass = "qa"
+)
+
 // Defines values for ErrorCode.
 const (
 	BUDGETEXCEEDED        ErrorCode = "BUDGET_EXCEEDED"
@@ -46,6 +61,7 @@ const (
 	GONE                  ErrorCode = "GONE"
 	INTEGRITYERROR        ErrorCode = "INTEGRITY_ERROR"
 	INTERNAL              ErrorCode = "INTERNAL"
+	INVOCATIONNOTACCEPTED ErrorCode = "INVOCATION_NOT_ACCEPTED"
 	LOCKED                ErrorCode = "LOCKED"
 	NOTFOUND              ErrorCode = "NOT_FOUND"
 	RATELIMITED           ErrorCode = "RATE_LIMITED"
@@ -57,23 +73,120 @@ const (
 	VERSIONMISMATCH       ErrorCode = "VERSION_MISMATCH"
 )
 
+// Defines values for HeadingBlockAttrsLevel.
+const (
+	N2 HeadingBlockAttrsLevel = 2
+	N3 HeadingBlockAttrsLevel = 3
+	N4 HeadingBlockAttrsLevel = 4
+)
+
+// Defines values for ImageBlockAttrsAltSource.
+const (
+	ImageBlockAttrsAltSourceAuto   ImageBlockAttrsAltSource = "auto"
+	ImageBlockAttrsAltSourceManual ImageBlockAttrsAltSource = "manual"
+)
+
 // Defines values for IndexBuildState.
 const (
-	Active     IndexBuildState = "active"
-	Cancelled  IndexBuildState = "cancelled"
-	Chunking   IndexBuildState = "chunking"
-	Embedding  IndexBuildState = "embedding"
-	Extracting IndexBuildState = "extracting"
-	Failed     IndexBuildState = "failed"
-	Fetching   IndexBuildState = "fetching"
-	Queued     IndexBuildState = "queued"
-	Superseded IndexBuildState = "superseded"
-	Validating IndexBuildState = "validating"
+	IndexBuildStateActive     IndexBuildState = "active"
+	IndexBuildStateCancelled  IndexBuildState = "cancelled"
+	IndexBuildStateChunking   IndexBuildState = "chunking"
+	IndexBuildStateEmbedding  IndexBuildState = "embedding"
+	IndexBuildStateExtracting IndexBuildState = "extracting"
+	IndexBuildStateFailed     IndexBuildState = "failed"
+	IndexBuildStateFetching   IndexBuildState = "fetching"
+	IndexBuildStateQueued     IndexBuildState = "queued"
+	IndexBuildStateSuperseded IndexBuildState = "superseded"
+	IndexBuildStateValidating IndexBuildState = "validating"
+)
+
+// Defines values for IndexProfileOptionTier.
+const (
+	IndexProfileOptionTierEmbedding IndexProfileOptionTier = "embedding"
+	IndexProfileOptionTierFast      IndexProfileOptionTier = "fast"
+	IndexProfileOptionTierRerank    IndexProfileOptionTier = "rerank"
+)
+
+// Defines values for InlineMark0Type.
+const (
+	Bold      InlineMark0Type = "bold"
+	Code      InlineMark0Type = "code"
+	Italic    InlineMark0Type = "italic"
+	Strike    InlineMark0Type = "strike"
+	Underline InlineMark0Type = "underline"
+)
+
+// Defines values for OwnerRecoveryRequestOwner.
+const (
+	OwnerRecoveryRequestOwnerAnalytics      OwnerRecoveryRequestOwner = "analytics"
+	OwnerRecoveryRequestOwnerDataProtection OwnerRecoveryRequestOwner = "data-protection"
+	OwnerRecoveryRequestOwnerKnowledge      OwnerRecoveryRequestOwner = "knowledge"
+	OwnerRecoveryRequestOwnerLocalization   OwnerRecoveryRequestOwner = "localization"
+	OwnerRecoveryRequestOwnerMedia          OwnerRecoveryRequestOwner = "media"
+	OwnerRecoveryRequestOwnerMemory         OwnerRecoveryRequestOwner = "memory"
+	OwnerRecoveryRequestOwnerPublicSite     OwnerRecoveryRequestOwner = "public-site"
+	OwnerRecoveryRequestOwnerQa             OwnerRecoveryRequestOwner = "qa"
+)
+
+// Defines values for OwnerRecoveryResultStatus.
+const (
+	Completed   OwnerRecoveryResultStatus = "completed"
+	Pending     OwnerRecoveryResultStatus = "pending"
+	SafeToRetry OwnerRecoveryResultStatus = "safeToRetry"
+	Unknown     OwnerRecoveryResultStatus = "unknown"
+)
+
+// Defines values for PlatformProvider.
+const (
+	Bilibili PlatformProvider = "bilibili"
+	Douyin   PlatformProvider = "douyin"
+	Tiktok   PlatformProvider = "tiktok"
+	Youtube  PlatformProvider = "youtube"
+)
+
+// Defines values for PlatformVideoSnapshotCapability.
+const (
+	Available        PlatformVideoSnapshotCapability = "available"
+	ManualRequired   PlatformVideoSnapshotCapability = "manual_required"
+	UnsupportedEmbed PlatformVideoSnapshotCapability = "unsupported_embed"
+)
+
+// Defines values for PlatformVideoSnapshotMetadataSource.
+const (
+	PlatformVideoSnapshotMetadataSourceManual PlatformVideoSnapshotMetadataSource = "manual"
+	PlatformVideoSnapshotMetadataSourcePublic PlatformVideoSnapshotMetadataSource = "public"
 )
 
 // Defines values for PriceSnapshotCurrency.
 const (
 	USD PriceSnapshotCurrency = "USD"
+)
+
+// Defines values for ReadIndexOptionsResultDocumentsState.
+const (
+	ReadIndexOptionsResultDocumentsStateReady       ReadIndexOptionsResultDocumentsState = "ready"
+	ReadIndexOptionsResultDocumentsStateUnavailable ReadIndexOptionsResultDocumentsState = "unavailable"
+)
+
+// Defines values for ReadIndexOptionsResultModelsState.
+const (
+	ReadIndexOptionsResultModelsStateReady       ReadIndexOptionsResultModelsState = "ready"
+	ReadIndexOptionsResultModelsStateUnavailable ReadIndexOptionsResultModelsState = "unavailable"
+)
+
+// Defines values for TableCellType.
+const (
+	TableCellTypeTableCell   TableCellType = "tableCell"
+	TableCellTypeTableHeader TableCellType = "tableHeader"
+)
+
+// Defines values for CommonSchemaBarrierRequestStep.
+const (
+	Drain       CommonSchemaBarrierRequestStep = "drain"
+	Observe     CommonSchemaBarrierRequestStep = "observe"
+	Prepare     CommonSchemaBarrierRequestStep = "prepare"
+	ResumeDrain CommonSchemaBarrierRequestStep = "resume-drain"
+	Seal        CommonSchemaBarrierRequestStep = "seal"
 )
 
 // Defines values for TypesQuestionPlanClassification.
@@ -158,11 +271,35 @@ type AssetRef struct {
 	Sha256 Hash `json:"sha256"`
 }
 
-// BarrierRequest 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging
+// AssetVersionRef 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+type AssetVersionRef = CommonSchemaAssetVersionRef
+
+// AttachmentBlock Tiptap attachment节点
+type AttachmentBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// Asset 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+		Asset AssetVersionRef `json:"asset"`
+
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// DisplayName 文件卡片文字，默认media原始文件名
+		DisplayName string `json:"displayName"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// BarrierRequest 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。
 type BarrierRequest = CommonSchemaBarrierRequest
 
 // BarrierStatus 屏障状态及安全点；未到安全点不能导出完整快照
 type BarrierStatus = CommonSchemaBarrierStatus
+
+// Block 16类Tiptap块完整联合体；schema版本在DocumentBody，不含未知attrs/原始HTML
+type Block struct {
+	union json.RawMessage
+}
 
 // BlockRef 同一发布修订内的稳定块引用，附块内容哈希
 type BlockRef struct {
@@ -175,6 +312,38 @@ type BlockRef struct {
 	// Document 不可变发布修订引用；document/revision/contentHash/schema/dataEpoch共同验证
 	Document PublishedRevisionRef `json:"document"`
 }
+
+// BulletListBlock Tiptap bulletList节点
+type BulletListBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+
+	// Content 无序项
+	Content []ListItem  `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// CalloutBlock Tiptap callout节点
+type CalloutBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Kind 提示框
+		Kind CalloutBlockAttrsKind `json:"kind"`
+	} `json:"attrs"`
+
+	// Content 提示框子块，纯文本提取附类型
+	Content []Block     `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// CalloutBlockAttrsKind 提示框
+type CalloutBlockAttrsKind string
 
 // CancelBuildInput 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type CancelBuildInput struct {
@@ -232,8 +401,20 @@ type Chunk struct {
 	// ChunkId 系统生成的不透明 ID，不含个人信息
 	ChunkId Identifier `json:"chunkId"`
 
+	// ContextModelSnapshotHash SHA-256 小写十六进制
+	ContextModelSnapshotHash *Hash `json:"contextModelSnapshotHash,omitempty"`
+
+	// ContextPrefix 机器派生背景，仅检索使用，不当作人工引文或改原偏移
+	ContextPrefix *string `json:"contextPrefix,omitempty"`
+
+	// ContextVersionHash SHA-256 小写十六进制
+	ContextVersionHash *Hash `json:"contextVersionHash,omitempty"`
+
 	// Document 不可变发布修订引用；document/revision/contentHash/schema/dataEpoch共同验证
 	Document PublishedRevisionRef `json:"document"`
+
+	// EmbeddingTokenCount contextPrefix+换行+原text经固定空间真实BPE的完整token计数，原tokenCount仍指源片段
+	EmbeddingTokenCount *int `json:"embeddingTokenCount,omitempty"`
 
 	// Ordinal 文内序号
 	Ordinal int `json:"ordinal"`
@@ -241,12 +422,67 @@ type Chunk struct {
 	// SourceOffsets 与text的每个UTF-8字节等长；值是本源块原始UTF-8字节起点，单调且处于byteStart..byteEnd
 	SourceOffsets []int `json:"sourceOffsets"`
 
+	// SourcePath 新片段的真实content叶或不可变提取文本路径；缺失兼容旧整块映射，含asset时sourceOffsets映射该提取原文本，不伪装为人工正文
+	SourcePath *string `json:"sourcePath,omitempty"`
+
 	// Text 仅内部检索正文
 	Text string `json:"text"`
 
 	// TokenCount 分块token
 	TokenCount int `json:"tokenCount"`
 }
+
+// CodeBlock Tiptap codeBlock节点
+type CodeBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Language 自动plain null
+		Language *string `json:"language"`
+	} `json:"attrs"`
+
+	// Content 最多一个text节点
+	Content []struct {
+		// Text 代码原文，不翻译，保留换行
+		Text string      `json:"text"`
+		Type interface{} `json:"type"`
+	} `json:"content"`
+	Type interface{} `json:"type"`
+}
+
+// Column 单栏
+type Column struct {
+	// Attrs 列属性
+	Attrs struct {
+		// ColumnId 系统生成的不透明 ID，不含个人信息
+		ColumnId Identifier `json:"columnId"`
+	} `json:"attrs"`
+
+	// Content 任意块但不得含columns后代
+	Content []Block     `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// ColumnsBlock Tiptap columns节点
+type ColumnsBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// WidthRatios 2–4栏比例
+		WidthRatios []float32 `json:"widthRatios"`
+	} `json:"attrs"`
+
+	// Content 2–4栏
+	Content []Column    `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// CostClass 可信服务上下文决定，公开请求不能指定
+type CostClass string
 
 // CreateBuildInput 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type CreateBuildInput struct {
@@ -287,6 +523,41 @@ type CreateQueryEmbeddingResult struct {
 	Embedding QueryEmbedding `json:"embedding"`
 }
 
+// DividerBlock Tiptap horizontalRule节点
+type DividerBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// DrawingBlock Tiptap drawing节点
+type DrawingBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Caption 有序行内内容
+		Caption []InlineNode `json:"caption"`
+
+		// DarkSVG 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+		DarkSVG AssetVersionRef `json:"darkSVG"`
+
+		// LightSVG 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+		LightSVG AssetVersionRef `json:"lightSVG"`
+
+		// Scene 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+		Scene AssetVersionRef `json:"scene"`
+
+		// WidthPercent 自然宽null
+		WidthPercent *int `json:"widthPercent"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
 // EmbeddingSpace 供应方、模型版本、维度与预处理版本共同定义空间；不同空间不得比相似度
 type EmbeddingSpace struct {
 	// Dimensions 向量维度正整数
@@ -316,8 +587,11 @@ type EstimateRebuildPlanInput struct {
 
 // EstimateRebuildPlanResult 全量重建计划与估价
 type EstimateRebuildPlanResult struct {
-	// ChunkCount 预计分块数（扣除可复用向量）
+	// ChunkCount 已知材料真实BPE分块扣实际可复用向量数；chunkCountKnown=false不声称完整总数
 	ChunkCount int `json:"chunkCount"`
+
+	// ChunkCountKnown 未生成的资源文字使完整分块数未知时false；chunkCount仍为已知材料扣实际可复用向量后的数量
+	ChunkCountKnown bool `json:"chunkCountKnown"`
 
 	// DocumentCount 需重建的已发布文档数
 	DocumentCount int `json:"documentCount"`
@@ -328,8 +602,8 @@ type EstimateRebuildPlanResult struct {
 	// PlanId 系统生成的不透明 ID，不含个人信息
 	PlanId Identifier `json:"planId"`
 
-	// Quote 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
-	Quote QuoteCostResult `json:"quote"`
+	// Quote 真实多组件费用计划，不冒充单一PriceSnapshot；未产资源文字或缺价使总上限未知
+	Quote RebuildQuote `json:"quote"`
 
 	// QuoteHash SHA-256 小写十六进制
 	QuoteHash Hash `json:"quoteHash"`
@@ -353,6 +627,25 @@ type GetBuildResult struct {
 // Hash SHA-256 小写十六进制
 type Hash = string
 
+// HeadingBlock Tiptap heading节点
+type HeadingBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Level 正文仅H2/H3/H4；不折叠
+		Level HeadingBlockAttrsLevel `json:"level"`
+	} `json:"attrs"`
+
+	// Content 有序行内内容
+	Content []InlineNode `json:"content"`
+	Type    interface{}  `json:"type"`
+}
+
+// HeadingBlockAttrsLevel 正文仅H2/H3/H4；不折叠
+type HeadingBlockAttrsLevel int
+
 // HealthStatus 服务版本、存活/就绪与能力状态，输出脱敏说明
 type HealthStatus struct {
 	// Capabilities 按配置已启用或缺失的业务能力
@@ -370,6 +663,34 @@ type HealthStatus struct {
 
 // Identifier 系统生成的不透明 ID，不含个人信息
 type Identifier = string
+
+// ImageBlock Tiptap image节点
+type ImageBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// Alt auto null
+		Alt *string `json:"alt"`
+
+		// AltSource 来源
+		AltSource ImageBlockAttrsAltSource `json:"altSource"`
+
+		// Asset 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+		Asset AssetVersionRef `json:"asset"`
+
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Caption 有序行内内容
+		Caption []InlineNode `json:"caption"`
+
+		// WidthPercent 自然宽null
+		WidthPercent *int `json:"widthPercent"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// ImageBlockAttrsAltSource 来源
+type ImageBlockAttrsAltSource string
 
 // IndexBuild 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type IndexBuild struct {
@@ -431,6 +752,108 @@ type IndexConfig struct {
 	Version int `json:"version"`
 }
 
+// IndexDocumentOption defines model for IndexDocumentOption.
+type IndexDocumentOption struct {
+	// DocumentId 系统生成的不透明 ID，不含个人信息
+	DocumentId Identifier `json:"documentId"`
+
+	// Reference 不可变发布修订引用；document/revision/contentHash/schema/dataEpoch共同验证
+	Reference PublishedRevisionRef `json:"reference"`
+	Title     string               `json:"title"`
+
+	// VisibilityRevision 对象单调修订号
+	VisibilityRevision Revision `json:"visibilityRevision"`
+}
+
+// IndexProfileOption defines model for IndexProfileOption.
+type IndexProfileOption struct {
+	// CostClass 可信服务上下文决定，公开请求不能指定
+	CostClass CostClass `json:"costClass"`
+	Label     string    `json:"label"`
+
+	// ModelId 系统生成的不透明 ID，不含个人信息
+	ModelId *Identifier `json:"modelId,omitempty"`
+
+	// ProfileId 系统生成的不透明 ID，不含个人信息
+	ProfileId  Identifier `json:"profileId"`
+	ReasonCode *string    `json:"reasonCode,omitempty"`
+
+	// Space 供应方、模型版本、维度与预处理版本共同定义空间；不同空间不得比相似度
+	Space  *EmbeddingSpace        `json:"space,omitempty"`
+	Tier   IndexProfileOptionTier `json:"tier"`
+	Usable bool                   `json:"usable"`
+}
+
+// IndexProfileOptionTier defines model for IndexProfileOption.Tier.
+type IndexProfileOptionTier string
+
+// InlineMark old8项行内能力：5文本marks+highlight+link+inlineMath；同种mark至多一次
+type InlineMark struct {
+	union json.RawMessage
+}
+
+// InlineMark0 无属性marks
+type InlineMark0 struct {
+	// Type 标准格式
+	Type InlineMark0Type `json:"type"`
+}
+
+// InlineMark0Type 标准格式
+type InlineMark0Type string
+
+// InlineMark1 高亮
+type InlineMark1 struct {
+	// Attrs 高亮属性
+	Attrs struct {
+		// Color 默认主题色null
+		Color *string `json:"color"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// InlineMark2 链接mark
+type InlineMark2 struct {
+	// Attrs 链接属性
+	Attrs struct {
+		// Target 站内链接按当前语言和树路径渲染，移动/改名不失效
+		Target LinkTarget `json:"target"`
+
+		// Title 无null
+		Title *string `json:"title"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// InlineNode Tiptap受控行内联合体，未知节点不静默丢弃
+type InlineNode struct {
+	union json.RawMessage
+}
+
+// InlineNode0 Tiptap text
+type InlineNode0 struct {
+	// Marks marks可空
+	Marks []InlineMark `json:"marks"`
+
+	// Text Unicode原文不规范改写，不含NUL
+	Text string      `json:"text"`
+	Type interface{} `json:"type"`
+}
+
+// InlineNode1 显式换行
+type InlineNode1 struct {
+	Type interface{} `json:"type"`
+}
+
+// InlineNode2 行内公式
+type InlineNode2 struct {
+	// Attrs 公式属性
+	Attrs struct {
+		// Latex 原始LaTeX，不翻译；不允许文件/网络宏
+		Latex string `json:"latex"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
 // InspectEvidenceInput 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type InspectEvidenceInput struct {
 	// AdmissionPermit guard分配元数据；token空表示未消费。仅消费后的QA许可具有nw-admission-v1签名并可提交MG。签名覆盖全部字段，MG仍核原根/代次/QA动作；免费语言提示从不签模型token。
@@ -464,6 +887,28 @@ type InspectEvidenceResult struct {
 	SelectedIds []Identifier `json:"selectedIds"`
 }
 
+// LinkTarget 站内链接按当前语言和树路径渲染，移动/改名不失效
+type LinkTarget struct {
+	union json.RawMessage
+}
+
+// LinkTarget0 站内链接
+type LinkTarget0 struct {
+	// BlockId 文档链接null
+	BlockId *Identifier `json:"blockId"`
+
+	// DocumentId 系统生成的不透明 ID，不含个人信息
+	DocumentId Identifier  `json:"documentId"`
+	Kind       interface{} `json:"kind"`
+}
+
+// LinkTarget1 外链
+type LinkTarget1 struct {
+	// Href 仅http/https/mailto；禁止javascript/userinfo
+	Href string      `json:"href"`
+	Kind interface{} `json:"kind"`
+}
+
 // ListBuildsResult 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type ListBuildsResult struct {
 	// Builds 状态记录
@@ -473,14 +918,34 @@ type ListBuildsResult struct {
 	NextCursor *string `json:"nextCursor,omitempty"`
 }
 
-// Money 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限
-type Money struct {
-	// Currency 唯一支持USD
-	Currency interface{} `json:"currency"`
+// ListItem 列表项；可嵌套列表但受深度限制
+type ListItem struct {
+	// Attrs 列表项属性
+	Attrs struct {
+		// ItemId 系统生成的不透明 ID，不含个人信息
+		ItemId Identifier `json:"itemId"`
+	} `json:"attrs"`
 
-	// Micros 百万分之一美元，整数，禁止浮点累计
-	Micros int `json:"micros"`
+	// Content 列表项有序子块，首项paragraph
+	Content []Block     `json:"content"`
+	Type    interface{} `json:"type"`
 }
+
+// MathBlock Tiptap mathBlock节点
+type MathBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Latex LaTeX源码；不翻译；只含公式页加载KaTeX
+		Latex string `json:"latex"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// Money 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限
+type Money = CommonSchemaMoney
 
 // ObjectRef 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径
 type ObjectRef struct {
@@ -503,6 +968,136 @@ type ObjectRef struct {
 	Version Revision `json:"version"`
 }
 
+// OrderedListBlock Tiptap orderedList节点
+type OrderedListBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Start 编号起始
+		Start int `json:"start"`
+	} `json:"attrs"`
+
+	// Content 有序项
+	Content []ListItem  `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// OwnerRecoveryRequest jobs从自己持久任务与失效租约读取，只读owner恢复证明；不得浏览器自报或新建dedupeKey绕过孤立。
+type OwnerRecoveryRequest struct {
+	Attempt         int  `json:"attempt"`
+	CancelRequested bool `json:"cancelRequested"`
+
+	// DataEpoch 系统生成的不透明 ID，不含个人信息
+	DataEpoch    Identifier `json:"dataEpoch"`
+	ExpiredFence int        `json:"expiredFence"`
+
+	// InputRef 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径
+	InputRef ObjectRef `json:"inputRef"`
+
+	// JobId 系统生成的不透明 ID，不含个人信息
+	JobId Identifier                `json:"jobId"`
+	Owner OwnerRecoveryRequestOwner `json:"owner"`
+
+	// RootOperationId 系统生成的不透明 ID，不含个人信息
+	RootOperationId Identifier                    `json:"rootOperationId"`
+	Type            string                        `json:"type"`
+	WorkerId        OwnerRecoveryRequest_WorkerId `json:"workerId"`
+}
+
+// OwnerRecoveryRequestOwner defines model for OwnerRecoveryRequest.Owner.
+type OwnerRecoveryRequestOwner string
+
+// OwnerRecoveryRequestWorkerId0 defines model for .
+type OwnerRecoveryRequestWorkerId0 = interface{}
+
+// OwnerRecoveryRequest_WorkerId defines model for OwnerRecoveryRequest.WorkerId.
+type OwnerRecoveryRequest_WorkerId struct {
+	union json.RawMessage
+}
+
+// OwnerRecoveryResult owner以精确inputRef/root/epoch/fence/attempt匹配原持久事实；不能证明安全则pending/unknown。completed只交原结果，safeToRetry必须能复用原hash/checkpoint/付费结果且无未决派发费用；未知绝不作0或重算。
+type OwnerRecoveryResult struct {
+	PaidResultRefs []Identifier `json:"paidResultRefs"`
+
+	// ResultRef 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径
+	ResultRef *ObjectRef                `json:"resultRef,omitempty"`
+	Status    OwnerRecoveryResultStatus `json:"status"`
+}
+
+// OwnerRecoveryResultStatus defines model for OwnerRecoveryResult.Status.
+type OwnerRecoveryResultStatus string
+
+// ParagraphBlock Tiptap paragraph节点
+type ParagraphBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+
+	// Content 有序行内内容
+	Content []InlineNode `json:"content"`
+	Type    interface{}  `json:"type"`
+}
+
+// PlatformProvider 四个已确认平台
+type PlatformProvider string
+
+// PlatformVideoSnapshot 插入时一次公开快照，不自动刷新、不假造信息；失败可手填标题简介
+type PlatformVideoSnapshot struct {
+	// Author 公开作者
+	Author string `json:"author"`
+
+	// CanonicalURL 允许域名规范视频URL
+	CanonicalURL string `json:"canonicalURL"`
+
+	// Capability provider能力
+	Capability PlatformVideoSnapshotCapability `json:"capability"`
+
+	// Cover 抓取失败无封面null
+	Cover *AssetVersionRef `json:"cover"`
+
+	// Description 公开/手填简介
+	Description string `json:"description"`
+
+	// DurationSeconds 未知null
+	DurationSeconds *int `json:"durationSeconds"`
+
+	// EmbedURL provider构造白名单embed；YouTube nocookie
+	EmbedURL string `json:"embedURL"`
+
+	// FetchedAt 手填null
+	FetchedAt *Timestamp `json:"fetchedAt"`
+
+	// MetadataSource 来源
+	MetadataSource PlatformVideoSnapshotMetadataSource `json:"metadataSource"`
+
+	// Provider 四个已确认平台
+	Provider PlatformProvider `json:"provider"`
+
+	// ProviderVideoId 解析不透明视频ID
+	ProviderVideoId string `json:"providerVideoId"`
+
+	// Title 公开/手填标题
+	Title string `json:"title"`
+}
+
+// PlatformVideoSnapshotCapability provider能力
+type PlatformVideoSnapshotCapability string
+
+// PlatformVideoSnapshotMetadataSource 来源
+type PlatformVideoSnapshotMetadataSource string
+
+// PlatformVideoSource 插入时一次公开信息快照，失败可手填
+type PlatformVideoSource struct {
+	Kind interface{} `json:"kind"`
+
+	// Snapshot 插入时一次公开快照，不自动刷新、不假造信息；失败可手填标题简介
+	Snapshot PlatformVideoSnapshot `json:"snapshot"`
+}
+
 // PriceSnapshot 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type PriceSnapshot struct {
 	// Currency 结算币种
@@ -512,16 +1107,16 @@ type PriceSnapshot struct {
 	EffectiveAt Timestamp `json:"effectiveAt"`
 
 	// FixedCost 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限
-	FixedCost *Money `json:"fixedCost,omitempty"`
+	FixedCost *CommonSchemaMoney `json:"fixedCost,omitempty"`
 
 	// InputPerMillionCost 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限
-	InputPerMillionCost *Money `json:"inputPerMillionCost,omitempty"`
+	InputPerMillionCost *CommonSchemaMoney `json:"inputPerMillionCost,omitempty"`
 
 	// ModelId 系统生成的不透明 ID，不含个人信息
 	ModelId Identifier `json:"modelId"`
 
 	// OutputPerMillionCost 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限
-	OutputPerMillionCost *Money `json:"outputPerMillionCost,omitempty"`
+	OutputPerMillionCost *CommonSchemaMoney `json:"outputPerMillionCost,omitempty"`
 
 	// PriceSnapshotId 系统生成的不透明 ID，不含个人信息
 	PriceSnapshotId Identifier `json:"priceSnapshotId"`
@@ -626,10 +1221,23 @@ type QueryEmbedding struct {
 // QuestionPlan 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type QuestionPlan = TypesQuestionPlan
 
+// QuoteBlock Tiptap blockquote节点
+type QuoteBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+
+	// Content 引用有序子块
+	Content []Block     `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
 // QuoteCostResult 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type QuoteCostResult struct {
 	// MaximumCost 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限
-	MaximumCost *Money `json:"maximumCost,omitempty"`
+	MaximumCost *CommonSchemaMoney `json:"maximumCost,omitempty"`
 
 	// PriceSnapshot 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 	PriceSnapshot PriceSnapshot `json:"priceSnapshot"`
@@ -650,6 +1258,32 @@ type ReadIndexConfigResult struct {
 	Version int `json:"version"`
 }
 
+// ReadIndexOptionsResult 既有知识管理流程的真实安全选项；权威不可达明确unavailable，不能把未知目录伪装为空成功
+type ReadIndexOptionsResult struct {
+	BaseLanguage      string                               `json:"baseLanguage"`
+	DocumentErrorCode *string                              `json:"documentErrorCode,omitempty"`
+	Documents         []IndexDocumentOption                `json:"documents"`
+	DocumentsState    ReadIndexOptionsResultDocumentsState `json:"documentsState"`
+	ModelErrorCode    *string                              `json:"modelErrorCode,omitempty"`
+	ModelsState       ReadIndexOptionsResultModelsState    `json:"modelsState"`
+	Profiles          []IndexProfileOption                 `json:"profiles"`
+
+	// TreeRevision 对象单调修订号
+	TreeRevision *Revision `json:"treeRevision,omitempty"`
+}
+
+// ReadIndexOptionsResultDocumentsState defines model for ReadIndexOptionsResult.DocumentsState.
+type ReadIndexOptionsResultDocumentsState string
+
+// ReadIndexOptionsResultModelsState defines model for ReadIndexOptionsResult.ModelsState.
+type ReadIndexOptionsResultModelsState string
+
+// ReadJobRecoveryInput jobs从自己持久任务与失效租约读取，只读owner恢复证明；不得浏览器自报或新建dedupeKey绕过孤立。
+type ReadJobRecoveryInput = OwnerRecoveryRequest
+
+// ReadJobRecoveryResult owner以精确inputRef/root/epoch/fence/attempt匹配原持久事实；不能证明安全则pending/unknown。completed只交原结果，safeToRetry必须能复用原hash/checkpoint/付费结果且无未决派发费用；未知绝不作0或重算。
+type ReadJobRecoveryResult = OwnerRecoveryResult
+
 // ReadSectionsInput 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type ReadSectionsInput struct {
 	// ChunkIds 最多20个检索块
@@ -663,6 +1297,31 @@ type ReadSectionsInput struct {
 type ReadSectionsResult struct {
 	// Chunks 当前可见分块
 	Chunks []Chunk `json:"chunks"`
+}
+
+// RebuildQuote 真实多组件费用计划，不冒充单一PriceSnapshot；未产资源文字或缺价使总上限未知
+type RebuildQuote struct {
+	Components []RebuildQuoteComponent `json:"components"`
+
+	// MaximumCost 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限
+	MaximumCost  *Money  `json:"maximumCost,omitempty"`
+	PricingKnown bool    `json:"pricingKnown"`
+	Warning      *string `json:"warning,omitempty"`
+}
+
+// RebuildQuoteComponent 固定声明主备用/任务覆盖候选的真实整数报价；总计覆盖每个潜在收费候选，不表示均会派发
+type RebuildQuoteComponent struct {
+	// InputTokens 该真实声明模型完整输入窗口上界，非伪造分词计数
+	InputTokens         int `json:"inputTokens"`
+	MaximumOutputTokens int `json:"maximumOutputTokens"`
+
+	// ModelId 系统生成的不透明 ID，不含个人信息
+	ModelId  TypesIdentifier `json:"modelId"`
+	Quantity int             `json:"quantity"`
+
+	// Quote 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
+	Quote  QuoteCostResult `json:"quote"`
+	TaskId string          `json:"taskId"`
 }
 
 // RedactDiagnosticsResult 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
@@ -758,6 +1417,27 @@ type ServiceReadiness struct {
 	SafePoint bool `json:"safePoint"`
 }
 
+// SnapshotBarrierObservation 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。
+type SnapshotBarrierObservation struct {
+	ActivityRevision  int    `json:"activityRevision"`
+	Business          int    `json:"business"`
+	Cleanup           int    `json:"cleanup"`
+	DrainCallbacks    int    `json:"drainCallbacks"`
+	FileOps           int    `json:"fileOps"`
+	Owner             string `json:"owner"`
+	RevisionWatermark int    `json:"revisionWatermark"`
+
+	// Work 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。
+	Work SnapshotWorkState `json:"work"`
+}
+
+// SnapshotBrokerObservation 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。
+type SnapshotBrokerObservation struct {
+	ActiveLeases      int `json:"activeLeases"`
+	PendingDeliveries int `json:"pendingDeliveries"`
+	Revision          int `json:"revision"`
+}
+
 // SnapshotDiscardRequest 删除某次恢复的暂存目录或换出的旧数据目录
 type SnapshotDiscardRequest struct {
 	// RestoreId 系统生成的不透明 ID，不含个人信息
@@ -809,6 +1489,34 @@ type SnapshotRef struct {
 	SnapshotId Identifier `json:"snapshotId"`
 }
 
+// SnapshotSealProof 14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。
+type SnapshotSealProof struct {
+	// BarrierId 系统生成的不透明 ID，不含个人信息
+	BarrierId Identifier `json:"barrierId"`
+
+	// BrokerAfter 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。
+	BrokerAfter SnapshotBrokerObservation `json:"brokerAfter"`
+
+	// BrokerBefore 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。
+	BrokerBefore SnapshotBrokerObservation `json:"brokerBefore"`
+
+	// DataEpoch 系统生成的不透明 ID，不含个人信息
+	DataEpoch Identifier `json:"dataEpoch"`
+
+	// NonJobsProofHash SHA-256 小写十六进制
+	NonJobsProofHash *Hash                        `json:"nonJobsProofHash,omitempty"`
+	NonJobsSeals     *[]SnapshotSealReceipt       `json:"nonJobsSeals,omitempty"`
+	Observations     []SnapshotBarrierObservation `json:"observations"`
+}
+
+// SnapshotSealReceipt defines model for SnapshotSealReceipt.
+type SnapshotSealReceipt struct {
+	Owner string `json:"owner"`
+
+	// SealProofHash SHA-256 小写十六进制
+	SealProofHash Hash `json:"sealProofHash"`
+}
+
 // SnapshotStageRequest 把本域备份归档暂存到restore/<restoreId>/staged；不改active目录（ADR0003）
 type SnapshotStageRequest struct {
 	// BarrierId 系统生成的不透明 ID，不含个人信息
@@ -854,10 +1562,158 @@ type SnapshotStageResult struct {
 	TargetDataEpoch Identifier `json:"targetDataEpoch"`
 }
 
+// SnapshotWorkState 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。
+type SnapshotWorkState struct {
+	OutboxRevision int `json:"outboxRevision"`
+	PendingOutbox  int `json:"pendingOutbox"`
+	PendingWork    int `json:"pendingWork"`
+	WorkRevision   int `json:"workRevision"`
+}
+
+// TableBlock Tiptap table节点
+type TableBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+
+	// Content 最多200行、30逻辑列
+	Content []TableRow  `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// TableCell 表格单元格，grid覆盖必须无洞无重叠
+type TableCell struct {
+	// Attrs 完整表格cell属性
+	Attrs struct {
+		// BackgroundColor 继承null
+		BackgroundColor *string `json:"backgroundColor"`
+
+		// CellId 系统生成的不透明 ID，不含个人信息
+		CellId Identifier `json:"cellId"`
+
+		// Colspan 列跨度
+		Colspan int `json:"colspan"`
+
+		// Colwidth auto null
+		Colwidth *[]int `json:"colwidth"`
+
+		// Rowspan 行跨度
+		Rowspan int `json:"rowspan"`
+	} `json:"attrs"`
+
+	// Content cell正文有序块
+	Content []Block `json:"content"`
+
+	// Type 标准Tiptap单元格
+	Type TableCellType `json:"type"`
+}
+
+// TableCellType 标准Tiptap单元格
+type TableCellType string
+
+// TableRow 表格行
+type TableRow struct {
+	// Attrs 行属性
+	Attrs struct {
+		// RowId 系统生成的不透明 ID，不含个人信息
+		RowId Identifier `json:"rowId"`
+	} `json:"attrs"`
+
+	// Content 仅起始cell，上一行rowspan可覆盖
+	Content []TableCell `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// TaskItem 任务项
+type TaskItem struct {
+	// Attrs 任务项属性
+	Attrs struct {
+		// Checked 勾选
+		Checked bool `json:"checked"`
+
+		// ItemId 系统生成的不透明 ID，不含个人信息
+		ItemId Identifier `json:"itemId"`
+	} `json:"attrs"`
+
+	// Content 首项paragraph及嵌套任务
+	Content []Block     `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// TaskListBlock Tiptap taskList节点
+type TaskListBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+
+	// Content 任务列表
+	Content []TaskItem  `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
 // Timestamp RFC3339 UTC 时间
 type Timestamp = time.Time
 
-// CommonSchemaBarrierRequest 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging
+// UploadedVideoSource 上传视频，服务端不转码
+type UploadedVideoSource struct {
+	// Asset 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+	Asset AssetVersionRef `json:"asset"`
+	Kind  interface{}     `json:"kind"`
+}
+
+// VideoBlock Tiptap video节点
+type VideoBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Description 用户说明或抓取公开简介
+		Description string `json:"description"`
+
+		// Poster 浏览器截帧/自传/平台本地封面，暂无null
+		Poster *AssetVersionRef `json:"poster"`
+
+		// Source 统一视频组件来源
+		Source VideoBlock_Attrs_Source `json:"source"`
+
+		// Title 用户填写或公开信息标题
+		Title string `json:"title"`
+
+		// WidthPercent 自然宽null
+		WidthPercent *int `json:"widthPercent"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// VideoBlock_Attrs_Source 统一视频组件来源
+type VideoBlock_Attrs_Source struct {
+	union json.RawMessage
+}
+
+// CommonSchemaAssetVersionRef 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+type CommonSchemaAssetVersionRef struct {
+	// AssetId 系统生成的不透明 ID，不含个人信息
+	AssetId Identifier `json:"assetId"`
+
+	// ByteSize 字节数
+	ByteSize int `json:"byteSize"`
+
+	// MediaType 嗅探确认MIME
+	MediaType string `json:"mediaType"`
+
+	// Sha256 SHA-256 小写十六进制
+	Sha256 Hash `json:"sha256"`
+
+	// Version 对象单调修订号
+	Version Revision `json:"version"`
+}
+
+// CommonSchemaBarrierRequest 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。
 type CommonSchemaBarrierRequest struct {
 	// BarrierId 系统生成的不透明 ID，不含个人信息
 	BarrierId Identifier `json:"barrierId"`
@@ -865,11 +1721,39 @@ type CommonSchemaBarrierRequest struct {
 	// Deadline RFC3339 UTC 时间
 	Deadline Timestamp `json:"deadline"`
 
+	// ExpectedSealHash SHA-256 小写十六进制
+	ExpectedSealHash *Hash `json:"expectedSealHash,omitempty"`
+
 	// Mode BarrierRequest.mode；按类型、枚举及required约束使用
 	Mode interface{} `json:"mode"`
 
 	// OperationId 系统生成的不透明 ID，不含个人信息
 	OperationId Identifier `json:"operationId"`
+
+	// SealProof 14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。
+	SealProof *SnapshotSealProof `json:"sealProof,omitempty"`
+
+	// Step 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
+	Step  *CommonSchemaBarrierRequestStep `json:"step,omitempty"`
+	union json.RawMessage
+}
+
+// CommonSchemaBarrierRequestStep 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
+type CommonSchemaBarrierRequestStep string
+
+// CommonSchemaBarrierRequest0 defines model for .
+type CommonSchemaBarrierRequest0 struct {
+	Step interface{} `json:"step,omitempty"`
+}
+
+// CommonSchemaBarrierRequest1 defines model for .
+type CommonSchemaBarrierRequest1 struct {
+	Step interface{} `json:"step"`
+}
+
+// CommonSchemaBarrierRequest2 defines model for .
+type CommonSchemaBarrierRequest2 struct {
+	Step interface{} `json:"step"`
 }
 
 // CommonSchemaBarrierStatus 屏障状态及安全点；未到安全点不能导出完整快照
@@ -880,14 +1764,29 @@ type CommonSchemaBarrierStatus struct {
 	// DataEpoch 系统生成的不透明 ID，不含个人信息
 	DataEpoch Identifier `json:"dataEpoch"`
 
+	// Observation 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。
+	Observation *SnapshotBarrierObservation `json:"observation,omitempty"`
+
 	// Owner 对象唯一所属模块slug
 	Owner string `json:"owner"`
 
 	// RevisionWatermark 对象单调修订号
 	RevisionWatermark Revision `json:"revisionWatermark"`
 
+	// SealProofHash SHA-256 小写十六进制
+	SealProofHash *Hash `json:"sealProofHash,omitempty"`
+
 	// State 精确枚举状态，未知值拒绝
 	State interface{} `json:"state"`
+}
+
+// CommonSchemaMoney 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限
+type CommonSchemaMoney struct {
+	// Currency 唯一支持USD
+	Currency interface{} `json:"currency"`
+
+	// Micros 百万分之一美元，整数，禁止浮点累计
+	Micros int `json:"micros"`
 }
 
 // CommonSchemaSnapshotExportRequest 指定屏障和是否含秘密的快照导出请求
@@ -1118,6 +2017,9 @@ type InspectEvidenceJSONRequestBody = InspectEvidenceInput
 // PutIndexConfigJSONRequestBody defines body for PutIndexConfig for application/json ContentType.
 type PutIndexConfigJSONRequestBody = PutIndexConfigInput
 
+// ReadJobRecoveryJSONRequestBody defines body for ReadJobRecovery for application/json ContentType.
+type ReadJobRecoveryJSONRequestBody = ReadJobRecoveryInput
+
 // CreateQueryEmbeddingJSONRequestBody defines body for CreateQueryEmbedding for application/json ContentType.
 type CreateQueryEmbeddingJSONRequestBody = CreateQueryEmbeddingInput
 
@@ -1141,6 +2043,992 @@ type ExportSnapshotJSONRequestBody = SnapshotExportRequest
 
 // StageSnapshotJSONRequestBody defines body for StageSnapshot for application/json ContentType.
 type StageSnapshotJSONRequestBody = SnapshotStageRequest
+
+// AsParagraphBlock returns the union data inside the Block as a ParagraphBlock
+func (t Block) AsParagraphBlock() (ParagraphBlock, error) {
+	var body ParagraphBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromParagraphBlock overwrites any union data inside the Block as the provided ParagraphBlock
+func (t *Block) FromParagraphBlock(v ParagraphBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeParagraphBlock performs a merge with any union data inside the Block, using the provided ParagraphBlock
+func (t *Block) MergeParagraphBlock(v ParagraphBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsHeadingBlock returns the union data inside the Block as a HeadingBlock
+func (t Block) AsHeadingBlock() (HeadingBlock, error) {
+	var body HeadingBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromHeadingBlock overwrites any union data inside the Block as the provided HeadingBlock
+func (t *Block) FromHeadingBlock(v HeadingBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeHeadingBlock performs a merge with any union data inside the Block, using the provided HeadingBlock
+func (t *Block) MergeHeadingBlock(v HeadingBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsQuoteBlock returns the union data inside the Block as a QuoteBlock
+func (t Block) AsQuoteBlock() (QuoteBlock, error) {
+	var body QuoteBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromQuoteBlock overwrites any union data inside the Block as the provided QuoteBlock
+func (t *Block) FromQuoteBlock(v QuoteBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeQuoteBlock performs a merge with any union data inside the Block, using the provided QuoteBlock
+func (t *Block) MergeQuoteBlock(v QuoteBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDividerBlock returns the union data inside the Block as a DividerBlock
+func (t Block) AsDividerBlock() (DividerBlock, error) {
+	var body DividerBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDividerBlock overwrites any union data inside the Block as the provided DividerBlock
+func (t *Block) FromDividerBlock(v DividerBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDividerBlock performs a merge with any union data inside the Block, using the provided DividerBlock
+func (t *Block) MergeDividerBlock(v DividerBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBulletListBlock returns the union data inside the Block as a BulletListBlock
+func (t Block) AsBulletListBlock() (BulletListBlock, error) {
+	var body BulletListBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBulletListBlock overwrites any union data inside the Block as the provided BulletListBlock
+func (t *Block) FromBulletListBlock(v BulletListBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBulletListBlock performs a merge with any union data inside the Block, using the provided BulletListBlock
+func (t *Block) MergeBulletListBlock(v BulletListBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsOrderedListBlock returns the union data inside the Block as a OrderedListBlock
+func (t Block) AsOrderedListBlock() (OrderedListBlock, error) {
+	var body OrderedListBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrderedListBlock overwrites any union data inside the Block as the provided OrderedListBlock
+func (t *Block) FromOrderedListBlock(v OrderedListBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrderedListBlock performs a merge with any union data inside the Block, using the provided OrderedListBlock
+func (t *Block) MergeOrderedListBlock(v OrderedListBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTaskListBlock returns the union data inside the Block as a TaskListBlock
+func (t Block) AsTaskListBlock() (TaskListBlock, error) {
+	var body TaskListBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTaskListBlock overwrites any union data inside the Block as the provided TaskListBlock
+func (t *Block) FromTaskListBlock(v TaskListBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTaskListBlock performs a merge with any union data inside the Block, using the provided TaskListBlock
+func (t *Block) MergeTaskListBlock(v TaskListBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTableBlock returns the union data inside the Block as a TableBlock
+func (t Block) AsTableBlock() (TableBlock, error) {
+	var body TableBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTableBlock overwrites any union data inside the Block as the provided TableBlock
+func (t *Block) FromTableBlock(v TableBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTableBlock performs a merge with any union data inside the Block, using the provided TableBlock
+func (t *Block) MergeTableBlock(v TableBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCodeBlock returns the union data inside the Block as a CodeBlock
+func (t Block) AsCodeBlock() (CodeBlock, error) {
+	var body CodeBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCodeBlock overwrites any union data inside the Block as the provided CodeBlock
+func (t *Block) FromCodeBlock(v CodeBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCodeBlock performs a merge with any union data inside the Block, using the provided CodeBlock
+func (t *Block) MergeCodeBlock(v CodeBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMathBlock returns the union data inside the Block as a MathBlock
+func (t Block) AsMathBlock() (MathBlock, error) {
+	var body MathBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMathBlock overwrites any union data inside the Block as the provided MathBlock
+func (t *Block) FromMathBlock(v MathBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMathBlock performs a merge with any union data inside the Block, using the provided MathBlock
+func (t *Block) MergeMathBlock(v MathBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCalloutBlock returns the union data inside the Block as a CalloutBlock
+func (t Block) AsCalloutBlock() (CalloutBlock, error) {
+	var body CalloutBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCalloutBlock overwrites any union data inside the Block as the provided CalloutBlock
+func (t *Block) FromCalloutBlock(v CalloutBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCalloutBlock performs a merge with any union data inside the Block, using the provided CalloutBlock
+func (t *Block) MergeCalloutBlock(v CalloutBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsImageBlock returns the union data inside the Block as a ImageBlock
+func (t Block) AsImageBlock() (ImageBlock, error) {
+	var body ImageBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromImageBlock overwrites any union data inside the Block as the provided ImageBlock
+func (t *Block) FromImageBlock(v ImageBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeImageBlock performs a merge with any union data inside the Block, using the provided ImageBlock
+func (t *Block) MergeImageBlock(v ImageBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsAttachmentBlock returns the union data inside the Block as a AttachmentBlock
+func (t Block) AsAttachmentBlock() (AttachmentBlock, error) {
+	var body AttachmentBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAttachmentBlock overwrites any union data inside the Block as the provided AttachmentBlock
+func (t *Block) FromAttachmentBlock(v AttachmentBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAttachmentBlock performs a merge with any union data inside the Block, using the provided AttachmentBlock
+func (t *Block) MergeAttachmentBlock(v AttachmentBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDrawingBlock returns the union data inside the Block as a DrawingBlock
+func (t Block) AsDrawingBlock() (DrawingBlock, error) {
+	var body DrawingBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDrawingBlock overwrites any union data inside the Block as the provided DrawingBlock
+func (t *Block) FromDrawingBlock(v DrawingBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDrawingBlock performs a merge with any union data inside the Block, using the provided DrawingBlock
+func (t *Block) MergeDrawingBlock(v DrawingBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsVideoBlock returns the union data inside the Block as a VideoBlock
+func (t Block) AsVideoBlock() (VideoBlock, error) {
+	var body VideoBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromVideoBlock overwrites any union data inside the Block as the provided VideoBlock
+func (t *Block) FromVideoBlock(v VideoBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeVideoBlock performs a merge with any union data inside the Block, using the provided VideoBlock
+func (t *Block) MergeVideoBlock(v VideoBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsColumnsBlock returns the union data inside the Block as a ColumnsBlock
+func (t Block) AsColumnsBlock() (ColumnsBlock, error) {
+	var body ColumnsBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromColumnsBlock overwrites any union data inside the Block as the provided ColumnsBlock
+func (t *Block) FromColumnsBlock(v ColumnsBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeColumnsBlock performs a merge with any union data inside the Block, using the provided ColumnsBlock
+func (t *Block) MergeColumnsBlock(v ColumnsBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t Block) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *Block) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsInlineMark0 returns the union data inside the InlineMark as a InlineMark0
+func (t InlineMark) AsInlineMark0() (InlineMark0, error) {
+	var body InlineMark0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineMark0 overwrites any union data inside the InlineMark as the provided InlineMark0
+func (t *InlineMark) FromInlineMark0(v InlineMark0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineMark0 performs a merge with any union data inside the InlineMark, using the provided InlineMark0
+func (t *InlineMark) MergeInlineMark0(v InlineMark0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInlineMark1 returns the union data inside the InlineMark as a InlineMark1
+func (t InlineMark) AsInlineMark1() (InlineMark1, error) {
+	var body InlineMark1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineMark1 overwrites any union data inside the InlineMark as the provided InlineMark1
+func (t *InlineMark) FromInlineMark1(v InlineMark1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineMark1 performs a merge with any union data inside the InlineMark, using the provided InlineMark1
+func (t *InlineMark) MergeInlineMark1(v InlineMark1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInlineMark2 returns the union data inside the InlineMark as a InlineMark2
+func (t InlineMark) AsInlineMark2() (InlineMark2, error) {
+	var body InlineMark2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineMark2 overwrites any union data inside the InlineMark as the provided InlineMark2
+func (t *InlineMark) FromInlineMark2(v InlineMark2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineMark2 performs a merge with any union data inside the InlineMark, using the provided InlineMark2
+func (t *InlineMark) MergeInlineMark2(v InlineMark2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t InlineMark) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *InlineMark) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsInlineNode0 returns the union data inside the InlineNode as a InlineNode0
+func (t InlineNode) AsInlineNode0() (InlineNode0, error) {
+	var body InlineNode0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineNode0 overwrites any union data inside the InlineNode as the provided InlineNode0
+func (t *InlineNode) FromInlineNode0(v InlineNode0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineNode0 performs a merge with any union data inside the InlineNode, using the provided InlineNode0
+func (t *InlineNode) MergeInlineNode0(v InlineNode0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInlineNode1 returns the union data inside the InlineNode as a InlineNode1
+func (t InlineNode) AsInlineNode1() (InlineNode1, error) {
+	var body InlineNode1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineNode1 overwrites any union data inside the InlineNode as the provided InlineNode1
+func (t *InlineNode) FromInlineNode1(v InlineNode1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineNode1 performs a merge with any union data inside the InlineNode, using the provided InlineNode1
+func (t *InlineNode) MergeInlineNode1(v InlineNode1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInlineNode2 returns the union data inside the InlineNode as a InlineNode2
+func (t InlineNode) AsInlineNode2() (InlineNode2, error) {
+	var body InlineNode2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineNode2 overwrites any union data inside the InlineNode as the provided InlineNode2
+func (t *InlineNode) FromInlineNode2(v InlineNode2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineNode2 performs a merge with any union data inside the InlineNode, using the provided InlineNode2
+func (t *InlineNode) MergeInlineNode2(v InlineNode2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t InlineNode) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *InlineNode) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsLinkTarget0 returns the union data inside the LinkTarget as a LinkTarget0
+func (t LinkTarget) AsLinkTarget0() (LinkTarget0, error) {
+	var body LinkTarget0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLinkTarget0 overwrites any union data inside the LinkTarget as the provided LinkTarget0
+func (t *LinkTarget) FromLinkTarget0(v LinkTarget0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLinkTarget0 performs a merge with any union data inside the LinkTarget, using the provided LinkTarget0
+func (t *LinkTarget) MergeLinkTarget0(v LinkTarget0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLinkTarget1 returns the union data inside the LinkTarget as a LinkTarget1
+func (t LinkTarget) AsLinkTarget1() (LinkTarget1, error) {
+	var body LinkTarget1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLinkTarget1 overwrites any union data inside the LinkTarget as the provided LinkTarget1
+func (t *LinkTarget) FromLinkTarget1(v LinkTarget1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLinkTarget1 performs a merge with any union data inside the LinkTarget, using the provided LinkTarget1
+func (t *LinkTarget) MergeLinkTarget1(v LinkTarget1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t LinkTarget) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *LinkTarget) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsOwnerRecoveryRequestWorkerId0 returns the union data inside the OwnerRecoveryRequest_WorkerId as a OwnerRecoveryRequestWorkerId0
+func (t OwnerRecoveryRequest_WorkerId) AsOwnerRecoveryRequestWorkerId0() (OwnerRecoveryRequestWorkerId0, error) {
+	var body OwnerRecoveryRequestWorkerId0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOwnerRecoveryRequestWorkerId0 overwrites any union data inside the OwnerRecoveryRequest_WorkerId as the provided OwnerRecoveryRequestWorkerId0
+func (t *OwnerRecoveryRequest_WorkerId) FromOwnerRecoveryRequestWorkerId0(v OwnerRecoveryRequestWorkerId0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOwnerRecoveryRequestWorkerId0 performs a merge with any union data inside the OwnerRecoveryRequest_WorkerId, using the provided OwnerRecoveryRequestWorkerId0
+func (t *OwnerRecoveryRequest_WorkerId) MergeOwnerRecoveryRequestWorkerId0(v OwnerRecoveryRequestWorkerId0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsIdentifier returns the union data inside the OwnerRecoveryRequest_WorkerId as a Identifier
+func (t OwnerRecoveryRequest_WorkerId) AsIdentifier() (Identifier, error) {
+	var body Identifier
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIdentifier overwrites any union data inside the OwnerRecoveryRequest_WorkerId as the provided Identifier
+func (t *OwnerRecoveryRequest_WorkerId) FromIdentifier(v Identifier) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIdentifier performs a merge with any union data inside the OwnerRecoveryRequest_WorkerId, using the provided Identifier
+func (t *OwnerRecoveryRequest_WorkerId) MergeIdentifier(v Identifier) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t OwnerRecoveryRequest_WorkerId) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *OwnerRecoveryRequest_WorkerId) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsUploadedVideoSource returns the union data inside the VideoBlock_Attrs_Source as a UploadedVideoSource
+func (t VideoBlock_Attrs_Source) AsUploadedVideoSource() (UploadedVideoSource, error) {
+	var body UploadedVideoSource
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUploadedVideoSource overwrites any union data inside the VideoBlock_Attrs_Source as the provided UploadedVideoSource
+func (t *VideoBlock_Attrs_Source) FromUploadedVideoSource(v UploadedVideoSource) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUploadedVideoSource performs a merge with any union data inside the VideoBlock_Attrs_Source, using the provided UploadedVideoSource
+func (t *VideoBlock_Attrs_Source) MergeUploadedVideoSource(v UploadedVideoSource) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPlatformVideoSource returns the union data inside the VideoBlock_Attrs_Source as a PlatformVideoSource
+func (t VideoBlock_Attrs_Source) AsPlatformVideoSource() (PlatformVideoSource, error) {
+	var body PlatformVideoSource
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPlatformVideoSource overwrites any union data inside the VideoBlock_Attrs_Source as the provided PlatformVideoSource
+func (t *VideoBlock_Attrs_Source) FromPlatformVideoSource(v PlatformVideoSource) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePlatformVideoSource performs a merge with any union data inside the VideoBlock_Attrs_Source, using the provided PlatformVideoSource
+func (t *VideoBlock_Attrs_Source) MergePlatformVideoSource(v PlatformVideoSource) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t VideoBlock_Attrs_Source) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *VideoBlock_Attrs_Source) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCommonSchemaBarrierRequest0 returns the union data inside the CommonSchemaBarrierRequest as a CommonSchemaBarrierRequest0
+func (t CommonSchemaBarrierRequest) AsCommonSchemaBarrierRequest0() (CommonSchemaBarrierRequest0, error) {
+	var body CommonSchemaBarrierRequest0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCommonSchemaBarrierRequest0 overwrites any union data inside the CommonSchemaBarrierRequest as the provided CommonSchemaBarrierRequest0
+func (t *CommonSchemaBarrierRequest) FromCommonSchemaBarrierRequest0(v CommonSchemaBarrierRequest0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCommonSchemaBarrierRequest0 performs a merge with any union data inside the CommonSchemaBarrierRequest, using the provided CommonSchemaBarrierRequest0
+func (t *CommonSchemaBarrierRequest) MergeCommonSchemaBarrierRequest0(v CommonSchemaBarrierRequest0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCommonSchemaBarrierRequest1 returns the union data inside the CommonSchemaBarrierRequest as a CommonSchemaBarrierRequest1
+func (t CommonSchemaBarrierRequest) AsCommonSchemaBarrierRequest1() (CommonSchemaBarrierRequest1, error) {
+	var body CommonSchemaBarrierRequest1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCommonSchemaBarrierRequest1 overwrites any union data inside the CommonSchemaBarrierRequest as the provided CommonSchemaBarrierRequest1
+func (t *CommonSchemaBarrierRequest) FromCommonSchemaBarrierRequest1(v CommonSchemaBarrierRequest1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCommonSchemaBarrierRequest1 performs a merge with any union data inside the CommonSchemaBarrierRequest, using the provided CommonSchemaBarrierRequest1
+func (t *CommonSchemaBarrierRequest) MergeCommonSchemaBarrierRequest1(v CommonSchemaBarrierRequest1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCommonSchemaBarrierRequest2 returns the union data inside the CommonSchemaBarrierRequest as a CommonSchemaBarrierRequest2
+func (t CommonSchemaBarrierRequest) AsCommonSchemaBarrierRequest2() (CommonSchemaBarrierRequest2, error) {
+	var body CommonSchemaBarrierRequest2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCommonSchemaBarrierRequest2 overwrites any union data inside the CommonSchemaBarrierRequest as the provided CommonSchemaBarrierRequest2
+func (t *CommonSchemaBarrierRequest) FromCommonSchemaBarrierRequest2(v CommonSchemaBarrierRequest2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCommonSchemaBarrierRequest2 performs a merge with any union data inside the CommonSchemaBarrierRequest, using the provided CommonSchemaBarrierRequest2
+func (t *CommonSchemaBarrierRequest) MergeCommonSchemaBarrierRequest2(v CommonSchemaBarrierRequest2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t CommonSchemaBarrierRequest) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["barrierId"], err = json.Marshal(t.BarrierId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'barrierId': %w", err)
+	}
+
+	object["deadline"], err = json.Marshal(t.Deadline)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'deadline': %w", err)
+	}
+
+	if t.ExpectedSealHash != nil {
+		object["expectedSealHash"], err = json.Marshal(t.ExpectedSealHash)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'expectedSealHash': %w", err)
+		}
+	}
+
+	object["mode"], err = json.Marshal(t.Mode)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'mode': %w", err)
+	}
+
+	object["operationId"], err = json.Marshal(t.OperationId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'operationId': %w", err)
+	}
+
+	if t.SealProof != nil {
+		object["sealProof"], err = json.Marshal(t.SealProof)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'sealProof': %w", err)
+		}
+	}
+
+	if t.Step != nil {
+		object["step"], err = json.Marshal(t.Step)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'step': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *CommonSchemaBarrierRequest) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["barrierId"]; found {
+		err = json.Unmarshal(raw, &t.BarrierId)
+		if err != nil {
+			return fmt.Errorf("error reading 'barrierId': %w", err)
+		}
+	}
+
+	if raw, found := object["deadline"]; found {
+		err = json.Unmarshal(raw, &t.Deadline)
+		if err != nil {
+			return fmt.Errorf("error reading 'deadline': %w", err)
+		}
+	}
+
+	if raw, found := object["expectedSealHash"]; found {
+		err = json.Unmarshal(raw, &t.ExpectedSealHash)
+		if err != nil {
+			return fmt.Errorf("error reading 'expectedSealHash': %w", err)
+		}
+	}
+
+	if raw, found := object["mode"]; found {
+		err = json.Unmarshal(raw, &t.Mode)
+		if err != nil {
+			return fmt.Errorf("error reading 'mode': %w", err)
+		}
+	}
+
+	if raw, found := object["operationId"]; found {
+		err = json.Unmarshal(raw, &t.OperationId)
+		if err != nil {
+			return fmt.Errorf("error reading 'operationId': %w", err)
+		}
+	}
+
+	if raw, found := object["sealProof"]; found {
+		err = json.Unmarshal(raw, &t.SealProof)
+		if err != nil {
+			return fmt.Errorf("error reading 'sealProof': %w", err)
+		}
+	}
+
+	if raw, found := object["step"]; found {
+		err = json.Unmarshal(raw, &t.Step)
+		if err != nil {
+			return fmt.Errorf("error reading 'step': %w", err)
+		}
+	}
+
+	return err
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1180,6 +3068,12 @@ type ServerInterface interface {
 	// 更新索引配置
 	// (PUT /v1/index-config)
 	PutIndexConfig(w http.ResponseWriter, r *http.Request, params PutIndexConfigParams)
+	// 读取知识管理真实选项
+	// (GET /v1/index-options)
+	ReadIndexOptions(w http.ResponseWriter, r *http.Request)
+	// 读取原知识任务恢复证明
+	// (POST /v1/jobs/{jobId}/recovery)
+	ReadJobRecovery(w http.ResponseWriter, r *http.Request, jobId Identifier)
 	// 统一生成并复用查询嵌入
 	// (POST /v1/query-embeddings)
 	CreateQueryEmbedding(w http.ResponseWriter, r *http.Request, params CreateQueryEmbeddingParams)
@@ -1926,6 +3820,59 @@ func (siw *ServerInterfaceWrapper) PutIndexConfig(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// ReadIndexOptions operation middleware
+func (siw *ServerInterfaceWrapper) ReadIndexOptions(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadIndexOptions(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadJobRecovery operation middleware
+func (siw *ServerInterfaceWrapper) ReadJobRecovery(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "jobId" -------------
+	var jobId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "jobId", r.PathValue("jobId"), &jobId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jobId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadJobRecovery(w, r, jobId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateQueryEmbedding operation middleware
 func (siw *ServerInterfaceWrapper) CreateQueryEmbedding(w http.ResponseWriter, r *http.Request) {
 
@@ -2585,6 +4532,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("POST "+options.BaseURL+"/v1/evidence:inspect", wrapper.InspectEvidence)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/index-config", wrapper.ReadIndexConfig)
 	m.HandleFunc("PUT "+options.BaseURL+"/v1/index-config", wrapper.PutIndexConfig)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/index-options", wrapper.ReadIndexOptions)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/jobs/{jobId}/recovery", wrapper.ReadJobRecovery)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/query-embeddings", wrapper.CreateQueryEmbedding)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/rebuild-plans", wrapper.EstimateRebuildPlan)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/rebuild-plans/{planId}:approve", wrapper.ApproveRebuildPlan)
@@ -3355,6 +5304,15 @@ func (response ReadIndexConfig403ApplicationProblemPlusJSONResponse) VisitReadIn
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ReadIndexConfig404ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadIndexConfig404ApplicationProblemPlusJSONResponse) VisitReadIndexConfigResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type PutIndexConfigRequestObject struct {
 	Params PutIndexConfigParams
 	Body   *PutIndexConfigJSONRequestBody
@@ -3442,6 +5400,61 @@ type PutIndexConfigdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response PutIndexConfigdefaultApplicationProblemPlusJSONResponse) VisitPutIndexConfigResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type ReadIndexOptionsRequestObject struct {
+}
+
+type ReadIndexOptionsResponseObject interface {
+	VisitReadIndexOptionsResponse(w http.ResponseWriter) error
+}
+
+type ReadIndexOptions200JSONResponse ReadIndexOptionsResult
+
+func (response ReadIndexOptions200JSONResponse) VisitReadIndexOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadIndexOptions403ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadIndexOptions403ApplicationProblemPlusJSONResponse) VisitReadIndexOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadJobRecoveryRequestObject struct {
+	JobId Identifier `json:"jobId"`
+	Body  *ReadJobRecoveryJSONRequestBody
+}
+
+type ReadJobRecoveryResponseObject interface {
+	VisitReadJobRecoveryResponse(w http.ResponseWriter) error
+}
+
+type ReadJobRecovery200JSONResponse ReadJobRecoveryResult
+
+func (response ReadJobRecovery200JSONResponse) VisitReadJobRecoveryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadJobRecoverydefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ReadJobRecoverydefaultApplicationProblemPlusJSONResponse) VisitReadJobRecoveryResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(response.StatusCode)
 
@@ -3567,6 +5580,18 @@ func (response EstimateRebuildPlan403ApplicationProblemPlusJSONResponse) VisitEs
 	return json.NewEncoder(w).Encode(response)
 }
 
+type EstimateRebuildPlandefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response EstimateRebuildPlandefaultApplicationProblemPlusJSONResponse) VisitEstimateRebuildPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
 type ApproveRebuildPlanRequestObject struct {
 	PlanId string `json:"planId"`
 	Body   *ApproveRebuildPlanJSONRequestBody
@@ -3601,6 +5626,18 @@ func (response ApproveRebuildPlan409ApplicationProblemPlusJSONResponse) VisitApp
 	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveRebuildPlandefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ApproveRebuildPlandefaultApplicationProblemPlusJSONResponse) VisitApproveRebuildPlanResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type SearchKnowledgeRequestObject struct {
@@ -4044,6 +6081,12 @@ type StrictServerInterface interface {
 	// 更新索引配置
 	// (PUT /v1/index-config)
 	PutIndexConfig(ctx context.Context, request PutIndexConfigRequestObject) (PutIndexConfigResponseObject, error)
+	// 读取知识管理真实选项
+	// (GET /v1/index-options)
+	ReadIndexOptions(ctx context.Context, request ReadIndexOptionsRequestObject) (ReadIndexOptionsResponseObject, error)
+	// 读取原知识任务恢复证明
+	// (POST /v1/jobs/{jobId}/recovery)
+	ReadJobRecovery(ctx context.Context, request ReadJobRecoveryRequestObject) (ReadJobRecoveryResponseObject, error)
 	// 统一生成并复用查询嵌入
 	// (POST /v1/query-embeddings)
 	CreateQueryEmbedding(ctx context.Context, request CreateQueryEmbeddingRequestObject) (CreateQueryEmbeddingResponseObject, error)
@@ -4454,6 +6497,63 @@ func (sh *strictHandler) PutIndexConfig(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
+// ReadIndexOptions operation middleware
+func (sh *strictHandler) ReadIndexOptions(w http.ResponseWriter, r *http.Request) {
+	var request ReadIndexOptionsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadIndexOptions(ctx, request.(ReadIndexOptionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadIndexOptions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadIndexOptionsResponseObject); ok {
+		if err := validResponse.VisitReadIndexOptionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadJobRecovery operation middleware
+func (sh *strictHandler) ReadJobRecovery(w http.ResponseWriter, r *http.Request, jobId Identifier) {
+	var request ReadJobRecoveryRequestObject
+
+	request.JobId = jobId
+
+	var body ReadJobRecoveryJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadJobRecovery(ctx, request.(ReadJobRecoveryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadJobRecovery")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadJobRecoveryResponseObject); ok {
+		if err := validResponse.VisitReadJobRecoveryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CreateQueryEmbedding operation middleware
 func (sh *strictHandler) CreateQueryEmbedding(w http.ResponseWriter, r *http.Request, params CreateQueryEmbeddingParams) {
 	var request CreateQueryEmbeddingRequestObject
@@ -4746,200 +6846,324 @@ func (sh *strictHandler) StageSnapshot(w http.ResponseWriter, r *http.Request, p
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"c4xlb0Vzj+CqF4YT2RUv8qzI6ZelAVRNLy3RTyrqYiEWcSHPcENiDfU6rzyfl06TWOIondaixbyDPOoH",
-	"mutXYzQrZzeQYOipnJ5Q0n7l4c5JtIXEOxIjSAavSEVu9V6/kv2wfcJ3EH2oBUeQH5wujjCbeMHOcozD",
-	"gA8TIxgmpcIwvH0iI8O7BRu42dcnAskgryEnQxK4JykzQygRlpNrt3qvN12h0Td21OP7WH09GTSVQLNv",
-	"UCqC0VtoHq481n2RyuowE4DB8ezGIzkZpcGhJuVz5/IaZTaxEnASOupekZO510Eforp39SuMIDD3SbIR",
-	"3DNQLDntg8O+3KNV9NKjbC6i9ZdoYqQeGEJSfm28m5OM0kTDcG4ynxT8iIaNIJJSnGkq6I9e31UOFFGq",
-	"33OFDV6qHoZWUACMBD5npHrSPdjHC0anDGgqASOvYCSQj520lKnKo7s87wAM94lxb+VYg9J9PHxaEOLf",
-	"EJ+Sxf/oBsJ9q/MusNtZrv8zVWWm/Kiyqpcv+foxNFHgeelmPt3U/CtmCjYazaKLsQF6ildneEaeVTGt",
-	"O5+CI8NofjmbWKzn4YS8o9ihSbeHfLtUQyiB+WfVsG+KVedz3UAgT+BRbCpeThmbCs8x4kgJj2vjgrwX",
-	"g6komtg58HjVw9pRP5p9c+DxKulNmHolJ0O5xSG4NKREhumfoO8tjARgfEbeGVX+TOUmNw8zMTkZhJEA",
-	"/Sf+771JlIgqsaScycDUq3IHwToBh7eJWCkUom/HmGB8Uw1K8g76vCEG4e3A8RMQjAMdbZn6NdIjTRhe",
-	"U6Kr8O24spSCkaBRKtIlAJfA24Aoslx/xXfQc4wCs+KT6P04fZPxQ/lB1m6UKdWIpdk69GIkmxg2VdqC",
-	"R+Njw/OP/G91hJQw0ayXUgUmGOqjIPBCm2HqX/uTMjMEfUSTguFsPJ4/9onRnQfDY9nAIxjbRIFRNPuG",
-	"rkOXl/2p9UZHe2tvx81Ok9l0q7P1Vu931s7ejrbWXmu7yWy6frP7m472div+a+fN3jvXb97qxJ9/e7PT",
-	"ajKb2m52Xr/R0dZrMpt+snb3dNzsvPNDR88Prb1t35nMphs3274nT7nV2XOrq+tmd6+1/U5P23fWH1pL",
-	"Pmxr7Wr9puNGR+8/TWZTd2uv9c6Njh86KAnf3Gr/1tp7x/o/bVZrO/mkrbWzzXrjBvnvdmtr+42OTqv+",
-	"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",
+	"H4sIAAAAAAAC/+z9W1cT2dYwjn8VR97n4n3HBkHUPjjGvqCB7mZvTxuw97Of/vffUSQLqDaksqsqHrqH",
+	"YyRKIGBOKueDgILQKAkqQkgCfpfHWquSK77Cb6w1qyqVpHLEVnd3broFqlbNNedcc83z/NVmF4bdggu5",
+	"ZMl24VebZB9Cwxz7Z7tjmJckXnBdReIwL9NfcQ4HL/OCi3NeFQU3EmUeSbYLA5xTQk02B5LsIu+mf7dd",
+	"sA16ONGBA6NZfwj775OpHRKKHacXZOEGcqm/JTOrm+pakixukb1AZvfgvfeekvLDv3E0rM6P/KM9E0vg",
+	"SBz798niuOtWM6eD03zzjLp9hKMhfLCHI3ESiSrJtUvfvffeg19nno+qC9PYv5m9v4m3Z0js7XE6eOk7",
+	"JRUiKwkcXiYrBy1K6hl5udryj3Y8sakcLh6nF7A/lNk9yMS3M5teEomqa0klFVYSIXX7iGyu4icPGOTv",
+	"vfdsTTa3afO/2jg7bPnXAgxo8GsfCOJ3/uxqSkmEtV0uJslcXEl4M2O7tiabfMeNbBdskizyrkHb3Sab",
+	"sd1uB136v0Q0YLtg+z8tOXK1aLRq6XYgl8wP8EhkL3ocPHLZkQVAuwfq5CaApaT86uQrNbWsJLywP/Xw",
+	"Ifa/UQ7fqZObtiYbcnmGbRd+tA0LDuRsHuRkdIu7Y/vJAlIHJ3NdbsE+VBuc6LabF5HULld6rY8fRpLM",
+	"DbvpWy4k3xLEG994HINI7rULblTbV0X0bw+S5FqRKiFGi7o/K3n6f0b2mj/LeK6YkMO8S4ajlZ3dI7G3",
+	"SiKp/pZUEq+P00ElESJPRkggClTFY9uZuO84vaCk/P9oJ8FxOAAk6FMOTOdt+whHHmaXnqi/JfU3gupz",
+	"H9l+mont4MOpYg7VcMmLyEHZxMyuZiybt96kHxV9Y2YmsMSxJb3NHGdi9xxrCuyDFH/tbrco3EQ9qN/D",
+	"Ox1XnZyr2+X21CrKyPgBHhulAmUskh0L4VSySAa46dI1EvffHkFG33NSxXPDnilEuPZF8zLVYaAHSR5n",
+	"fShQU4/Jk8WizbOl/yb0S8WcigMLOJVU50fIkxGcSiqpFJ5YJVM7tibbMHebH6Yy5uu2trNnv2xrPfvF",
+	"V+fPffnlF62trU2UxeGvrcameJeMBinqCjCR+7wlAiQJyT0UuTVtOPN2hCSjmeQLJXX43uvDjwM4EaT/",
+	"2HqkHD5WX6XwkwdKIoy3ZzIT98jUznF6Ieudz7wbG0YOnsORGRLeyMRTODJdfF9QiGpllv47Murlf7GQ",
+	"6jgWJFO7OH6QebVqAicIX6ckW1rGa/Tus5VHa5ONwd53x211d2yMZIL3zbs/TgepOPH7MrFEdmE0uxXM",
+	"xH1WN5k0xLWd/6IuJtdRZSxihtGElJKE/wGJVKbUTn/AqpII0Ss8MgvsgNNT6uTmcXqBbD8j02MkON77",
+	"fTse9ePYAY6n8JKX4mR6TEntqeMBsvhSSWjKyO/OAzrdzeeq7cy5L899dfaLc1+dgO54xk/CT9XVWCa2",
+	"dqn7Uhd84CJyDcpDtgtn2mBt4+cTkr/JdhMIVunxHnSTZ8+V5hh9pbp4R5Y5+9AwcsnfOAX7jRp5p493",
+	"y5z7FGcskpm4p947KGYCWRaluvgSL83gV0+Id8OasSphr/BoUN6i+6yVIR285HZydy5zwxacAwcBh1bV",
+	"8TEyPYa3Z47TwWxqNhNbAxkZXsYbD7SnoqF8xmo7f74CYxVeAhr8TRoG8oGzorGs8buu6ObIZfupcHUZ",
+	"eAYIZrXYN5wo8kjsAb2n1rtmz6/GVvHGJBmfVedHcGwc+zfxq0h2flGdfJOJ71NlLPUQx+bJ45ByuEht",
+	"iMAW2X56nF4QkSQLIqLKXjqSeTebee4jr+6JHpfMDyO8NqIkw9oj1yWZG+Rdg6dwYNQtIjcnIux/k53Z",
+	"JtM7TL1Zf+/1OUSOd5HJPbxz9N7rE/olJN5EOLysJB/g2JP3Xp+EOCeFbnm5o70X7/hw5Bl+FBSR5BlG",
+	"zfD2zAZJ+NXo6HvvPfY0s3uAb92iIAwcp7Xntb+El+ljp4Y4aYiaSf495XBOkpGbCt+jmezcCNnfJ/uj",
+	"JLyBA3tg0IEZJrjQlQHbhR9/tbkEwLnrjvYLM/Ho6lfph20/3W3K/xO67UZ2GTl6EecEFeruT3cLjxSF",
+	"xcwoGvIoi9H9UkAAT5Rv6Bc0aCp8qNJnKNjFnMieairck8UX856o8Ckz+Up+0gpXRZogHIOa5QjiHE7e",
+	"hWqyBIvgqfKGoQZtsbTKP8Cn6UP0ng+Og7Lz3usjT+aVxBGOTOi4UZPPydJykcHcz9lveNzMCGLnjuGf",
+	"IomT67Dmc2Ss8Fqvi3NLQ4Lca7xA39YI7UADHFP6zcybt3910adOrSspv/YAWJJKej4ztoUnNiVuAL33",
+	"3tMYXU3GM/EUmXlKFsdBTuny4Z4JEaXPCWwLUGRivEoy3ozEJhOvaTQ18VEZEd0rc7Kn5lsXhPHEHvH6",
+	"cGQCJLR674CyyOIWDuwYv6Eq3/1DHE/jsaR2V797ofqLL+p6j0p9zhbAPCdXoVrpjKTh64rpTbrQLRcS",
+	"LdREMD8m40rCS8a9VDnZXMVLM5LTM2hlE4ia/vZPTkbiMCfeqF7hM52JWo69JHOyxblXXx+pqzE420Bf",
+	"qsMvbqnL69ibJg8eqaklE08zTqV7aLLRI8FY2Ik4CVEuHOB4J3IUC1AzpwL+dHDyXRnFSLHkY10jzd/I",
+	"mS/UVynQPKl2yFgv45vE0YBy+Pg4vQD4ALsEL252CnYP028Fxx046zj6AvbNtJwWUM++77t0Me+mLYfq",
+	"q5zIDYqcewhApBdTWcogzsG7Bqt7+B8eQUbVPdrJ3+QdSKzu4W88TieSL/KSXN3zV0QHEpGj+hf6OOlG",
+	"LU/3O6vcZofgqPLJS5xcJUk6OKdT8FQJa/cwN1glBIX2VEUSitytqlnjB96BhGpx5vQMuyTt4Z/001SH",
+	"eyAaVBJeHHmIE/eVd7FM7Cke9avzI+rmGxybpwdQcxUEs3Mj9EdwEjAvUvFVQGGoRZbVZ6xpJ77SW1c9",
+	"/U5eGkIOXeQyC7FApBmLNZksr9w+LOVWwUmry6buNxb5iDZ1HeguYZ1a4cUuuGSNLAUG9MwKTkayq3ST",
+	"vIyGpUoAULR0y2iYabnc7W5454zuT9V/NmDgRJG7Y2UK57BcwRTOQW+1szxpUhe57bDC503rJtsN3uWw",
+	"oB+LIpLVUZP+wLsGBKoP8dRAuMWJmi7h4FyDSKysAefOGvtkbeykg4O3o3hp5jgdVJNxMj1GFl+SSBRH",
+	"prNzI2DsVMtvusw9GbNpND4hp7nsyPmNh3c66gnw4B1fdmYbXAvZhVEcDRynF3AknvWOwy/VdBKvvYKY",
+	"tZIIkUhUOVqgiuLsEU5HXB6nk94GRw9AX7QKErMgRa18xTvQsFuQkct+5+/ojoXWfXBP3R7PTsbynWdf",
+	"nD9/9ouKflkRcZJV2BpHpslegKp/Cyu1r2sVm9FCguxzRZuqQM66olUfi54VqelyoNtsG9aIKbV5B+/Q",
+	"jJXPa9P2IY+roqXWwR6622Rzotu8nXP2cC4LcyUTD2VXD3A0RF6utiqJJACXFxZsbf3yzNdft50/9+W5",
+	"1q+/PlMpiCHZBdHCwOvp+RYHRiE0MiCIw5xsu2BzCJ5+JzJ/zXp5l2e4H1a/ieyyIFrvBUcfZsciH3Iv",
+	"VPHq5528fMewe4vl+dJ9vOnDkXhmw0e8G0rqWWFctaaPFvAnkDqfiHlY0BFuCawlX+vM83nxdPUBE3Ok",
+	"pKqrUX/hjoy6LBWE8CMlNa2mAqDc1M0tLJQlc6LVpZ+MXuv79qvM2/0TfoPxQy02Cnuh1guP3fG35UuC",
+	"Azl1P1RNH4X3r4pogL9tgY3FJJ7bJLtH6uRy5n6QzMWP00El5SfPvOruU/Dkas6Qw8fK4aKSTOL9dZye",
+	"ompSYJpMHtBr0RdRN1L5N+O51q8rX7gacFrcrZZtncx0a7Kh4X7kcPCuwT7hBnJ1CB4r/TAPd38hoaeZ",
+	"1eBfcHiZ/lJNRfBCEsfm1d+S2ZlddXEZx558c7WLRauoQs3yeTKxVUg9oG8ZX1JSIRIcI8moOj5GYm/N",
+	"THjuzNfnzraeq8R7gujgXZzTMsRIDetkBEf2T3R1CB7Rjq4MDEhItkhiURJhhoT5ERKPKImta33fNn8F",
+	"IXeqfk29o0LJmyazcapLJ6l2Dd4z04NwAiluQlOZnftKYhKCc8bZPX1alxMm7bvuHeU0ck1pK9TCYctX",
+	"OXnICq07QCt1fgRIreneOLJHAtNGUgSYDWBCZPbj+GjkOL0AEhn70zh2QGY2wNgisyt4Z4TuPvqCCVwy",
+	"s5eHdHggE1+HNXF4GZbVwxBbmWd+JZGEAwnZF/kn8KszX7dVPIGUihbkTfnxqD97fxPEgNXq1WnUcpnT",
+	"hQOjeGlGT3v7gHc0U64L3TG23KExi24NA3mQmq+P3F1VeCYsL3TDAVmfba+//rlb907ONejhBq2Solhs",
+	"zO3keNcpqmvkM83ZIoakz3BU8bwgix7UZHNzsoxEutL//0eu+Zf25v9pbf76+l9ON//0l/+yVe8LMACs",
+	"zR+w6MVr80rCqyS2KFsYZDCkTy35gTMrw5x4Q1JSz9QVH5zdIuyXOn70FTjxcNzVd6lM/CH997sldWoO",
+	"rqKCxKPWc1+d//ILq0NY4F5gHy3lW4A/WmDN5NGowoNhHIQT+TCYb7pWhg9NkZXIhzk7gVKnxs4gO5ED",
+	"1FiiJhZVUikyEsFLM8rhKGSD4OgLWErC0bCSevaRXVVAopNTWTqR3GQrfO5S8xbvkId6OJkXLDSqtv/1",
+	"Pj5HViIkPqkc5fkbC8TK9jN4RElMEm8KPwqeOU4Hs6tJqvNFgxo9mmzott3pkfib6JJ+e4KArdq8z7HF",
+	"OTNPtBXyREkZbN5uTTyuo6JaTtbERA0wl+Jj6YSMLMkdTk6ySvqOxJV3q2QxhCdWlcSEknjAFPU3ODbP",
+	"Erxe4rQ3E98nr+5BtgQJjuHYvMlL/m+O5XfYbwyKgodpI5xjmHc1u0WhH1nWoHSIiJPR5+wAPqkNNyCI",
+	"VjU9ZDaOo89xNKgnDxgFChqO+gXBiTjX7+xOLh0eBLirc/vmiPgndPuyzf/Dg8Q7Xbq5/pmyMldcGFjW",
+	"eVbweBWcKAqCfEXP9mr5N0UKNWBaJDdnR1AzV2fUg61VsohiOYnHRsnyeib+tJ7FGXiV0GFQt5c9Xcgh",
+	"AKC+Vg3nJp91PtcDZLiiKqEpfztFaMqtY4WRvBSgurSsIUHkfxFcMufs8TjRHybZoFATyN9mHYnveZk6",
+	"dWHaASt87vqsnXNbl/mSxXGcjGRWg3jUD2k+1apy3S4n70KXBQcqtkxai7U4Byfe6P3huzqKO5z84JBc",
+	"36uSHVXOy7Z4j+nDV5Fot1R6M2Nb6sgejh3mvCaanp5X+2fhMqlUC2go5AC4ae85BBZAl6NtNSdGY9c6",
+	"jkqB4K+Np5WjBZycJNMH770+rV6bpXK+9/rU1C5OPlcS4ezTEbw2okZHtSxP/yscDeLYvHIwDn774/QC",
+	"S/QMwo9gUpP4pLqQUNJpnHxerLXyw8hFySqVCnvC16mhNrWrBSBN5LPwTAsO5PwhV+VVYpvmPWohmciW",
+	"OrmJX02pa0moFyq6f90icouCHUkS7xos+Q0oZcwhKzZD3kzBl6wXFdhlUgZYyPojK2OZ+KitlF5QWeBY",
+	"lkDq75oAKUBik5lKJZBgyY+iKIgdltUQxp/U+RFqr/lf4VAkE4vplZ8LoA7gyEQmeB8v7JLgOFl8Cfsw",
+	"2XE/tF/s7mzv675y2dZku3a5/Vrf912X+7o72vu6Om1Ntm+v9HzT3dnZRf96+Urf9W+vXLtMf//dlctd",
+	"tiZbx5XL317s7uizNdl+6Orp7b5y+fql7t5L7X0d39uabBevdPydrXLtcu+1q1ev9PR1dV7v7fi+61J7",
+	"wS872q+2f9N9sbvvX7YmW097X9f1i92XugGEb651ftfVd73rvzu6ujrZbzraL3d0XbzI/t3Z1d55sfty",
+	"l/nvnV1Xuy53dl3u+Nf1a5fbf2jvvtj+zUUKbm9f+8Wu6z1dvdcuUpC7L/d1fdfT3fev6109PVd6tN/0",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

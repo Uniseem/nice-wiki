@@ -34,6 +34,7 @@
 | GET `/v1/admin/turns/{turnId}` | `readTurnRecord` | `qa.ReadTurnRecord` | `qa.manage` | `—` → 200 `ReadTurnRecordResult` | 查看问答记录 | `FORBIDDEN`、`NOT_FOUND`、`GONE` |
 | GET `/v1/public-capabilities` | `readPublicCapability` | `qa.ReadPublicCapability` | `service` | `—` → 200 `ReadPublicCapabilityResult` | 免费读取公开问答入口配置能力 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 503`、`HTTP default` |
 | GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `qa.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
+| GET `/v1/internal/cache/{cacheId}/translation-source` | `readCacheTranslationSource` | `qa.ReadCacheTranslationSource` | `service` | `—` → 200 `ReadCacheTranslationSourceResult` | 读取缓存翻译的当前权威基准材料 | `HTTP 403`、`HTTP 404`、`HTTP 409`、`HTTP 503` |
 <!-- openapi:end -->
 
 完整字段、requestBody/query/path/header、错误HTTP状态和security见openapi.json。请求JSON上限1MiB，UTF8，Content-Type=application/json，拒绝额外字段/null。私网所有请求服务认证；管理写请求Origin/CSRF检查。HTTP202只确认持久接受，后续状态/账单以事件和读取操作为准。

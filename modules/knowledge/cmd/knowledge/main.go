@@ -2,16 +2,23 @@
 package main
 
 import (
- "context"
- "os"
- "nice-wiki/libs/platform"
- "nice-wiki/libs/platform/lifecycle"
- "nice-wiki/modules/knowledge/internal/app"
- "nice-wiki/modules/knowledge/internal/extract"
+	"context"
+	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/modules/knowledge/internal/app"
+	"nice-wiki/modules/knowledge/internal/extract"
+	"os"
 )
 
 func main() {
- handled,err:=extract.RunPDFParserChild()
- if handled {if err!=nil {os.Exit(1)};os.Exit(0)}
- os.Exit(lifecycle.RunService(platform.ServiceSpec{Module:app.ModuleSlug,BuildApplication:func(ctx context.Context,config platform.ServiceConfig)(platform.Application,error){return app.BuildApplication(ctx,config)},RuntimeClient:app.NewRuntimeClient}))
+	handled, err := extract.RunPDFParserChild()
+	if handled {
+		if err != nil {
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+	os.Exit(lifecycle.RunService(platform.ServiceSpec{Module: app.ModuleSlug, BuildApplication: func(ctx context.Context, config platform.ServiceConfig) (platform.Application, error) {
+		return app.BuildApplication(ctx, config)
+	}, RuntimeClient: app.NewRuntimeClient}))
 }

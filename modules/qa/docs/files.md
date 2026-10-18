@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 71 个：手写 52、UI 3、生成 5、配置 10、迁移 1。函数 120 个：约束 40，参考 80。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 72 个：手写 53、UI 3、生成 5、配置 10、迁移 1。函数 121 个：约束 41，参考 80。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -77,3 +77,4 @@
 | `modules/qa/internal/admin/records.go` | 手写 | 浏览与筛选问答记录 | `qa.ListTurnRecords`、`qa.ReadTurnRecord` |
 | `modules/qa/internal/admin/policy.go` | 手写 | 读取问答策略 | `qa.ReadQaPolicy`、`qa.ReadPublicCapability` |
 | `modules/qa/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `qa.ReadSnapshotArchive` |
+| `modules/qa/internal/cache/translation-source.go` | 手写 | 本地化缓存译文仅能读取当前真实QA缓存来源 | `qa.ReadCacheTranslationSource` |

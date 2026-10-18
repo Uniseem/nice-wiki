@@ -320,9 +320,11 @@ func hashCreateJobInput(in CreateJobInput) (platform.Hash, []byte, error) {
 // NewQueueHandlers只做已通过统一边界的请求绑定，不以本组映射冒充完整服务。
 func NewQueueHandlers() map[string]http.Handler {
 	return map[string]http.Handler{
- "readJob": http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
- op,_:=platform.OperationContextFrom(r.Context());result,err:=ReadJob(r.Context(),op,ReadJobInput{JobID:r.PathValue("jobId"),Actor:op.Actor,DataEpoch:op.DataEpoch});writeEventResponse(w,op.RequestID,result,err,http.StatusOK)
- }),
+		"readJob": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := ReadJob(r.Context(), op, ReadJobInput{JobID: r.PathValue("jobId"), Actor: op.Actor, DataEpoch: op.DataEpoch})
+			writeEventResponse(w, op.RequestID, result, err, http.StatusOK)
+		}),
 		"createJob": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			var input gen.CreateJobRequestBody

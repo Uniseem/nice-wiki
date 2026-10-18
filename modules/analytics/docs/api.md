@@ -26,6 +26,11 @@
 | GET `/readyz` | `ready` | `analytics.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `analytics.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `analytics.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
+| POST `/v1/internal/beacons` | `ingestTrustedBeacon` | `analytics.IngestBeacon` | `service` | `IngestBeaconInput` → 204 `—` | 可信portal匿名访问转交 | `VALIDATION`、`VERSION_MISMATCH` |
+| POST `/v1/audit-exports` | `createAuditExport` | `analytics.CreateExport` | `audit.read` | `CreateAuditExportRequestBody` → 200 `CreateExportResult` | 当前审计权限私有CSV导出 | `FORBIDDEN`、`VALIDATION` |
+| GET `/v1/statistics/exports/{exportId}` | `downloadStatisticsExport` | `analytics.OpenExport` | `stats.read` | `—` → 200 `text/csv` | 当前权限同主体私有CSV下载 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 404`、`HTTP 409`、`HTTP 410`、`HTTP 422`、`HTTP 503` |
+| GET `/v1/audit-exports/{exportId}` | `downloadAuditExport` | `analytics.OpenExport` | `audit.read` | `—` → 200 `text/csv` | 当前权限同主体私有CSV下载 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 404`、`HTTP 409`、`HTTP 410`、`HTTP 422`、`HTTP 503` |
+| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `analytics.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 <!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。

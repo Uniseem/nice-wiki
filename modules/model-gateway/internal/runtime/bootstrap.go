@@ -5,14 +5,14 @@ package runtime
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
- "encoding/json"
- "time"
- "nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/lifecycle"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	_ "modernc.org/sqlite" // 纯Go SQLite驱动，不依赖CGO。
 
@@ -95,14 +95,55 @@ func OpenDatabase(dataDirectory string) (*Store, error) {
 		}
 	}
 
- entries,e:=os.ReadDir(filepath.Join(cleanRoot,"active"));if e!=nil{return nil,mapDatabaseError(e)};exists:=false;for _,entry:=range entries{if entry.Name()==databaseName{exists=true};if (entry.Name()!=databaseName&&entry.Name()!=databaseName+"-wal"&&entry.Name()!=databaseName+"-shm")||entry.IsDir()||!entry.Type().IsRegular(){return nil,platform.NewError(platform.CodeIntegrityError,false,"模型active存在未知文件，拒绝创建新权威覆盖历史")}};if !exists&&len(entries)>0{return nil,platform.NewError(platform.CodeIntegrityError,false,"缺主库但存在旧WAL材料，不能宣称新建空历史")}
- birthPath:=filepath.Join(cleanRoot,"control","database-origin.json")
- if !exists{if _,e=os.Lstat(birthPath);e==nil{return nil,platform.NewError(platform.CodeIntegrityError,false,"原控制区已记录库创建但active库丢失，禁止重建空历史")}else if !errors.Is(e,os.ErrNotExist){return nil,mapDatabaseError(e)}}
- databasePath:=filepath.Join(cleanRoot,"active",databaseName)
- if err=lifecycle.ValidatePrivatePath(databasePath,"regular-file",true);err!=nil{return nil,err}
- created,createErr:=os.OpenFile(databasePath,os.O_RDWR|os.O_CREATE|os.O_EXCL,0600);fresh:=createErr==nil
- if createErr!=nil&&!errors.Is(createErr,os.ErrExist){return nil,platform.NewError(platform.CodeDependencyUnavailable,true,"建立模型网关私有库失败")}
- if fresh{if err=created.Sync();err!=nil{_ = created.Close();return nil,mapDatabaseError(err)};_ = created.Close();directory,e:=os.Open(filepath.Dir(databasePath));if e!=nil{return nil,mapDatabaseError(e)};e=directory.Sync();_ = directory.Close();if e!=nil{return nil,mapDatabaseError(e)}}
+	entries, e := os.ReadDir(filepath.Join(cleanRoot, "active"))
+	if e != nil {
+		return nil, mapDatabaseError(e)
+	}
+	exists := false
+	for _, entry := range entries {
+		if entry.Name() == databaseName {
+			exists = true
+		}
+		if (entry.Name() != databaseName && entry.Name() != databaseName+"-wal" && entry.Name() != databaseName+"-shm") || entry.IsDir() || !entry.Type().IsRegular() {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "模型active存在未知文件，拒绝创建新权威覆盖历史")
+		}
+	}
+	if !exists && len(entries) > 0 {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "缺主库但存在旧WAL材料，不能宣称新建空历史")
+	}
+	birthPath := filepath.Join(cleanRoot, "control", "database-origin.json")
+	if !exists {
+		if _, e = os.Lstat(birthPath); e == nil {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "原控制区已记录库创建但active库丢失，禁止重建空历史")
+		} else if !errors.Is(e, os.ErrNotExist) {
+			return nil, mapDatabaseError(e)
+		}
+	}
+	databasePath := filepath.Join(cleanRoot, "active", databaseName)
+	if err = lifecycle.ValidatePrivatePath(databasePath, "regular-file", true); err != nil {
+		return nil, err
+	}
+	created, createErr := os.OpenFile(databasePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
+	fresh := createErr == nil
+	if createErr != nil && !errors.Is(createErr, os.ErrExist) {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "建立模型网关私有库失败")
+	}
+	if fresh {
+		if err = created.Sync(); err != nil {
+			_ = created.Close()
+			return nil, mapDatabaseError(err)
+		}
+		_ = created.Close()
+		directory, e := os.Open(filepath.Dir(databasePath))
+		if e != nil {
+			return nil, mapDatabaseError(e)
+		}
+		e = directory.Sync()
+		_ = directory.Close()
+		if e != nil {
+			return nil, mapDatabaseError(e)
+		}
+	}
 	dsn := "file:" + filepath.Join(cleanRoot, "active", databaseName) +
 		"?_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)&_pragma=busy_timeout(3000)"
 	db, err := sql.Open("sqlite", dsn)
@@ -119,7 +160,36 @@ func OpenDatabase(dataDirectory string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
- if fresh{proof,_:=platform.CanonicalJSON(struct{Format,Owner,InstanceID,CreatedAt string}{"nice-wiki.gateway-birth.v1","model-gateway",platform.NewIdentifier(),time.Now().UTC().Format(time.RFC3339Nano)});certificate,e:=os.OpenFile(birthPath,os.O_CREATE|os.O_EXCL|os.O_WRONLY,0600);if e!=nil{_ = db.Close();return nil,platform.NewError(platform.CodeIntegrityError,false,"库创建证书冲突或缺可写控制区，不能证明新历史")};_,e=certificate.Write(proof);if e==nil{e=certificate.Sync()};_ = certificate.Close();if e==nil{directory,openErr:=os.Open(filepath.Dir(birthPath));if openErr!=nil{e=openErr}else{e=directory.Sync();_ = directory.Close()}};if e!=nil{_ = db.Close();return nil,mapDatabaseError(e)};if _,err=store.db.Exec(`INSERT INTO database_origin(singleton,proof_json,proof_hash) VALUES(1,?,?)`,proof,platform.HashBytes(proof));err!=nil{_ = db.Close();return nil,mapDatabaseError(err)}}
+	if fresh {
+		proof, _ := platform.CanonicalJSON(struct{ Format, Owner, InstanceID, CreatedAt string }{"nice-wiki.gateway-birth.v1", "model-gateway", platform.NewIdentifier(), time.Now().UTC().Format(time.RFC3339Nano)})
+		certificate, e := os.OpenFile(birthPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+		if e != nil {
+			_ = db.Close()
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "库创建证书冲突或缺可写控制区，不能证明新历史")
+		}
+		_, e = certificate.Write(proof)
+		if e == nil {
+			e = certificate.Sync()
+		}
+		_ = certificate.Close()
+		if e == nil {
+			directory, openErr := os.Open(filepath.Dir(birthPath))
+			if openErr != nil {
+				e = openErr
+			} else {
+				e = directory.Sync()
+				_ = directory.Close()
+			}
+		}
+		if e != nil {
+			_ = db.Close()
+			return nil, mapDatabaseError(e)
+		}
+		if _, err = store.db.Exec(`INSERT INTO database_origin(singleton,proof_json,proof_hash) VALUES(1,?,?)`, proof, platform.HashBytes(proof)); err != nil {
+			_ = db.Close()
+			return nil, mapDatabaseError(err)
+		}
+	}
 
 	return store, nil
 }
@@ -177,9 +247,36 @@ func (s *Store) SetDataEpoch(ctx context.Context, dataEpoch platform.Identifier)
 		return err
 	}
 	defer tx.Rollback()
- var current string;if err=tx.QueryRowContext(ctx,`SELECT data_epoch FROM runtime_meta WHERE singleton=1`).Scan(&current);err!=nil{return mapDatabaseError(err)}
- if current!=""&&current!=dataEpoch{return platform.NewError(platform.CodeStaleResult,false,"启动不能重基既有业务代际，必须经过验证的恢复迁移")}
- if current==""{var raw []byte;var hash string;if err=tx.QueryRowContext(ctx,`SELECT proof_json,proof_hash FROM database_origin WHERE singleton=1`).Scan(&raw,&hash);err==sql.ErrNoRows{return platform.NewError(platform.CodeDependencyUnavailable,false,"旧库缺O_EXCL真实创建来源，不得由空表推首次接受证明")}else if err!=nil{return mapDatabaseError(err)};var proof struct{Format,Owner,InstanceID,CreatedAt string};if platform.HashBytes(raw)!=hash||json.Unmarshal(raw,&proof)!=nil||proof.Format!="nice-wiki.gateway-birth.v1"||proof.Owner!="model-gateway"||!platform.ValidIdentifier(proof.InstanceID){return platform.NewError(platform.CodeIntegrityError,false,"真实库创建来源损坏")};binding,_:=platform.CanonicalJSON(struct{OriginHash,DataEpoch string}{hash,dataEpoch});if _,err=tx.ExecContext(ctx,`INSERT INTO invocation_lookup_tracking(singleton,format_version,data_epoch,proof_kind,proof_hash,created_at) VALUES(1,1,?,'fresh_activation',?,?)`,dataEpoch,platform.HashBytes(binding),platform.Now());err!=nil{return mapDatabaseError(err)};if _,err=tx.ExecContext(ctx,`UPDATE credential_tracking SET enabled=1 WHERE singleton=1`);err!=nil{return mapDatabaseError(err)};if _,err=tx.ExecContext(ctx,`UPDATE runtime_meta SET data_epoch=?,updated_at=? WHERE singleton=1`,dataEpoch,platform.Now());err!=nil{return mapDatabaseError(err)}}
+	var current string
+	if err = tx.QueryRowContext(ctx, `SELECT data_epoch FROM runtime_meta WHERE singleton=1`).Scan(&current); err != nil {
+		return mapDatabaseError(err)
+	}
+	if current != "" && current != dataEpoch {
+		return platform.NewError(platform.CodeStaleResult, false, "启动不能重基既有业务代际，必须经过验证的恢复迁移")
+	}
+	if current == "" {
+		var raw []byte
+		var hash string
+		if err = tx.QueryRowContext(ctx, `SELECT proof_json,proof_hash FROM database_origin WHERE singleton=1`).Scan(&raw, &hash); err == sql.ErrNoRows {
+			return platform.NewError(platform.CodeDependencyUnavailable, false, "旧库缺O_EXCL真实创建来源，不得由空表推首次接受证明")
+		} else if err != nil {
+			return mapDatabaseError(err)
+		}
+		var proof struct{ Format, Owner, InstanceID, CreatedAt string }
+		if platform.HashBytes(raw) != hash || json.Unmarshal(raw, &proof) != nil || proof.Format != "nice-wiki.gateway-birth.v1" || proof.Owner != "model-gateway" || !platform.ValidIdentifier(proof.InstanceID) {
+			return platform.NewError(platform.CodeIntegrityError, false, "真实库创建来源损坏")
+		}
+		binding, _ := platform.CanonicalJSON(struct{ OriginHash, DataEpoch string }{hash, dataEpoch})
+		if _, err = tx.ExecContext(ctx, `INSERT INTO invocation_lookup_tracking(singleton,format_version,data_epoch,proof_kind,proof_hash,created_at) VALUES(1,1,?,'fresh_activation',?,?)`, dataEpoch, platform.HashBytes(binding), platform.Now()); err != nil {
+			return mapDatabaseError(err)
+		}
+		if _, err = tx.ExecContext(ctx, `UPDATE credential_tracking SET enabled=1 WHERE singleton=1`); err != nil {
+			return mapDatabaseError(err)
+		}
+		if _, err = tx.ExecContext(ctx, `UPDATE runtime_meta SET data_epoch=?,updated_at=? WHERE singleton=1`, dataEpoch, platform.Now()); err != nil {
+			return mapDatabaseError(err)
+		}
+	}
 
 	if err := tx.Commit(); err != nil {
 		return mapDatabaseError(err)
@@ -229,7 +326,9 @@ func (s *Store) Close() error {
 // runMigrations 按编号执行 migrations/ 内嵌的只追加迁移（首个迁移自建
 // schema_migrations），并初始化运行水位单例；跨服务事件表由平台建立。
 func (s *Store) runMigrations() error {
- if err:=outbox.EnsureSchema(context.Background(),s.db);err!=nil{return err}
+	if err := outbox.EnsureSchema(context.Background(), s.db); err != nil {
+		return err
+	}
 	all, err := gatewaymigrations.All()
 	if err != nil {
 		return (platform.NewError(platform.CodeIntegrityError, false, "模型网关迁移集不合法"))

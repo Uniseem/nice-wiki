@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 116 个函数：约束 35 个，参考 81 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 119 个函数：约束 35 个，参考 84 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -150,7 +150,7 @@ func FailJob(ctx context.Context, op OperationContext, in FailJobInput) (FailJob
 - 作用：安装本域Store及可信runtime/control屏障读取钩子
 
 ```go
-func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker)
+func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker, siteID string)
 ```
 
 **输入**
@@ -168,7 +168,7 @@ func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.Iden
 
 **步骤**
 
-1. 安装本域Store及可信runtime/control屏障读取钩子
+1. 只安装已从site-config严格响应取得的真实siteID及真实runtime/recovery/identity客户端，不从scheduler actor或任务旧行推当前站点。
 
 **错误**
 
@@ -392,7 +392,7 @@ func NewQueueHandlers() map[string]http.Handler
 - 授权：信任严格入口已验证上下文；不新增通用身份/schema/截止校验
 - 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
 - 幂等：显式延迟属于去重材料，原成功不重新分配时刻
-- 依赖：`jobs.CreateJob`、`jobs.writeEventResponse`
+- 依赖：`jobs.CreateJob`、`jobs.writeEventResponse`、`jobs.ReadJob`
 
 ## jobs.ClaimJob
 
@@ -1691,10 +1691,10 @@ func ReadJob(ctx context.Context, op OperationContext, in ReadJobInput) (ReadJob
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：操作键冲突、旧epoch或可信依赖不可用（可重试）
 
 - 副作用：无
-- 授权：permission：job.manage；rule：job.manage入口粗能力；终点按持久任务类型登记的managementPermission实时核权，不用用户自报owner/type
+- 授权：permission：job.manage；rule：管理员按持久owner/type当前功能权限；纯服务只准actor.kind=service、subjectId=callerService=持久owner，真实启动siteID与actor.siteId、当前epoch一致且owner/type登记。服务读取不替代管理权限，不读取他域或跨站任务。
 - 并发：SQLite快照读
 - 幂等：GET幂等
-- 依赖：`identity:checkAuthorization`、`jobs.authorizeJobManagement`、`jobs.beginLeaseOperation`、`jobs.readJobRecord`
+- 依赖：`identity:checkAuthorization`、`jobs.beginLeaseOperation`、`jobs.readJobRecord`、`jobs.authorizeJobRead`
 
 ## jobs.authorizeJobManagement
 
@@ -1820,6 +1820,39 @@ func jobManagementPermission(owner string, jobType string) (string, error)
 - 并发：短SQL，网络核权不持事务/锁
 - 幂等：遵循入口原回执或签名游标规则
 - 依赖：无
+
+## jobs.authorizeJobRead
+
+- 级别：参考
+- 文件：`modules/jobs/internal/query.go`
+- 作用：本域纯服务只读任务归属，管理访问继续当前授权
+
+```go
+func authorizeJobRead(ctx context.Context, op OperationContext, jobID string) (jobRecord,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 纯服务从当前真实Store.siteID核站点并按持久owner/type/epoch核本人所属及登记配对。
+2. 管理员完整复用authorizeJobManagement，未知身份与配置不作默认允许。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：信任严格入口已验证上下文；不新增通用身份/schema/截止校验
+- 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
+- 幂等：显式延迟属于去重材料，原成功不重新分配时刻
+- 依赖：`jobs.currentStore`、`jobs.authorizeJobManagement`、`jobs.jobManagementPermission`
 
 ## jobs.AppendProgress
 
@@ -3831,7 +3864,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`、`jobs.NewQueueHandlers`、`jobs.NewScheduleHandlers`、`jobs.NewLeaseHandlers`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
+- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`、`jobs.NewQueueHandlers`、`jobs.NewScheduleHandlers`、`jobs.NewLeaseHandlers`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`jobs.ReadQueueSiteID`、`jobs.NewOwnerRecoveryChecker`、`site-config:readSiteConfig`、`knowledge:readJobRecovery`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## jobs.Serve
@@ -4877,3 +4910,69 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 - 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
 - 幂等：同完整引用只读复用，不生成或重算归档
 - 依赖：`platform.SnapshotManager.OpenArchive`
+
+## jobs.ReadQueueSiteID
+
+- 级别：参考
+- 文件：`modules/jobs/internal/app/owner_recovery.go`
+- 作用：只读当前真实站点身份
+
+```go
+func ReadQueueSiteID(ctx context.Context, client *gen.SiteConfigClient, epoch string, validate func(json.RawMessage)error)(string,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 调用site-config:readSiteConfig，消费严格生产方响应，只取真实config.siteId；启动未初始化或不可用失败。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：信任严格入口已验证上下文；不新增通用身份/schema/截止校验
+- 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
+- 幂等：显式延迟属于去重材料，原成功不重新分配时刻
+- 依赖：`site-config:readSiteConfig`
+
+## jobs.NewOwnerRecoveryChecker
+
+- 级别：参考
+- 文件：`modules/jobs/internal/app/owner_recovery.go`
+- 作用：将真实原任务恢复请求送本域已登记owner只读接口
+
+```go
+func NewOwnerRecoveryChecker(config platform.ServiceConfig,key platform.SigningKey,siteID string)(jobs.OwnerRecoveryChecker,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 当前实际只有knowledge:readJobRecovery；未登记的owner返回依赖不可用并保留orphan，不能凭进程存活或错误判断可重试。
+2. 发起新的5秒纯读取op，actor jobs绑定启动权威siteID、输入原root/epoch；不继承scheduler的system站点、不发Create/Cancel或续费许可。
+3. 结果严格按生产方OwnerRecoveryResult解码并保持实际完整paidResultRefs，检查scope/结果引用，不猜unknown为safeToRetry。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：信任严格入口已验证上下文；不新增通用身份/schema/截止校验
+- 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
+- 幂等：显式延迟属于去重材料，原成功不重新分配时刻
+- 依赖：`knowledge:readJobRecovery`、`platform.NewPayloadValidator`

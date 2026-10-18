@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 123 个函数：约束 43 个，参考 80 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 124 个函数：约束 43 个，参考 81 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -509,6 +509,7 @@ func BuildManifest(ctx context.Context, op OperationContext, in BuildManifestInp
 2. 构建BackupManifestV1，记录14份域清单hash及完整来源绑定引用；等价重复目标去重，原域tar原数组不改。
 3. 仅以实际domain objects及content publications验证目标；真实缺失失败，不能以快照存在/unknown空清单替代引用证明。
 4. 顶层JSON及实际全局权威引用索引均≤2MiB，域清单≤16MiB；超限BUDGET_EXCEEDED且不产生ready，不截断。
+5. 新V2须14域V2完整库存；typed asset由media五字段版本权威、invocation由MG原调用/根/源epoch权威逐字段闭包，旧V1缺库存不补空；原canonical字节/原费用epoch不改。
 
 **错误**
 
@@ -591,6 +592,7 @@ func bindDomainEvidence(backupID, epoch, barrierID string, snapshots []SnapshotR
 **步骤**
 
 1. 使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。
+2. 新V2须14域V2完整库存；typed asset由media五字段版本权威、invocation由MG原调用/根/源epoch权威逐字段闭包，旧V1缺库存不补空；原canonical字节/原费用epoch不改。
 
 **错误**
 
@@ -603,7 +605,7 @@ func bindDomainEvidence(backupID, epoch, barrierID string, snapshots []SnapshotR
 - 授权：内部固定的完整快照/恢复校验链；纯算法不重查调用方身份。
 - 并发：输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。
 - 幂等：相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。
-- 依赖：无
+- 依赖：`data-protection.DomainSnapshotManifest.MarshalJSON`
 
 ## data-protection.validateManifestEvidence
 
@@ -626,6 +628,7 @@ func validateManifestEvidence(manifest BackupManifestV1, domains []DomainSnapsho
 **步骤**
 
 1. 使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。
+2. 新V2须14域V2完整库存；typed asset由media五字段版本权威、invocation由MG原调用/根/源epoch权威逐字段闭包，旧V1缺库存不补空；原canonical字节/原费用epoch不改。
 
 **错误**
 
@@ -661,6 +664,7 @@ func resolveReferenceTargets(domains []DomainSnapshotManifest, references []Back
 **步骤**
 
 1. 使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。
+2. 新V2须14域V2完整库存；typed asset由media五字段版本权威、invocation由MG原调用/根/源epoch权威逐字段闭包，旧V1缺库存不补空；原canonical字节/原费用epoch不改。
 
 **错误**
 
@@ -709,6 +713,43 @@ func decodeBackupManifest(store *Store, raw string) (BackupManifestV1, error)
 - 并发：输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。
 - 幂等：相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。
 - 依赖：无
+
+## data-protection.DomainSnapshotManifest.MarshalJSON
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/manifest.go`
+- 作用：按版本保留真实canonical域清单编码
+
+```go
+func (manifest DomainSnapshotManifest) MarshalJSON() ([]byte,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. V1保原字段与编码，任何新类型库存拒绝；V2显式写完整assets/invocations，包括已知空数组，不省略必填证明。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：MISSING_DOMAIN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VERSION_MISMATCH` / HTTP 409：MIXED_EPOCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `INTEGRITY_ERROR`：真实证据或格式/引用索引预算不满足。（不可重试）
+- `BUDGET_EXCEEDED`：真实证据或格式/引用索引预算不满足。（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实证据或格式/引用索引预算不满足。（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：内部
+- 并发：纯函数，不嵌secret/materialized token
+- 幂等：同snapshot清单同hash
+- 依赖：无
+- 其他依赖说明：根contracts/modules.json
 
 ## data-protection.VerifyObjectHash
 

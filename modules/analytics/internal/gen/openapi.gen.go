@@ -29,75 +29,366 @@ const (
 	UserDelegationScopes   = "userDelegation.Scopes"
 )
 
-// Defines values for AuditRecordResultCode.
+// Defines values for AuditAction.
 const (
-	AuditRecordResultCodeBUDGETEXCEEDED        AuditRecordResultCode = "BUDGET_EXCEEDED"
-	AuditRecordResultCodeCANCELLED             AuditRecordResultCode = "CANCELLED"
-	AuditRecordResultCodeCONFLICT              AuditRecordResultCode = "CONFLICT"
-	AuditRecordResultCodeDEADLINEEXCEEDED      AuditRecordResultCode = "DEADLINE_EXCEEDED"
-	AuditRecordResultCodeDEPENDENCYUNAVAILABLE AuditRecordResultCode = "DEPENDENCY_UNAVAILABLE"
-	AuditRecordResultCodeFORBIDDEN             AuditRecordResultCode = "FORBIDDEN"
-	AuditRecordResultCodeINTEGRITYERROR        AuditRecordResultCode = "INTEGRITY_ERROR"
-	AuditRecordResultCodeINTERNAL              AuditRecordResultCode = "INTERNAL"
-	AuditRecordResultCodeLOCKED                AuditRecordResultCode = "LOCKED"
-	AuditRecordResultCodeNOTFOUND              AuditRecordResultCode = "NOT_FOUND"
-	AuditRecordResultCodeRATELIMITED           AuditRecordResultCode = "RATE_LIMITED"
-	AuditRecordResultCodeSTALERESULT           AuditRecordResultCode = "STALE_RESULT"
-	AuditRecordResultCodeSUCCESS               AuditRecordResultCode = "SUCCESS"
-	AuditRecordResultCodeUNAUTHENTICATED       AuditRecordResultCode = "UNAUTHENTICATED"
-	AuditRecordResultCodeUNSUPPORTEDCAPABILITY AuditRecordResultCode = "UNSUPPORTED_CAPABILITY"
-	AuditRecordResultCodeUNSUPPORTEDSCHEMA     AuditRecordResultCode = "UNSUPPORTED_SCHEMA"
-	AuditRecordResultCodeVALIDATION            AuditRecordResultCode = "VALIDATION"
-	AuditRecordResultCodeVERSIONMISMATCH       AuditRecordResultCode = "VERSION_MISMATCH"
+	AnalyticsAcquireBarrier                    AuditAction = "analytics.acquireBarrier"
+	AnalyticsAppendAudit                       AuditAction = "analytics.appendAudit"
+	AnalyticsCreateExport                      AuditAction = "analytics.createExport"
+	AnalyticsDiscardSnapshot                   AuditAction = "analytics.discardSnapshot"
+	AnalyticsExportSnapshot                    AuditAction = "analytics.exportSnapshot"
+	AnalyticsIngestBeacon                      AuditAction = "analytics.ingestBeacon"
+	AnalyticsReconcileUsage                    AuditAction = "analytics.reconcileUsage"
+	AnalyticsRecordCrawlerAccess               AuditAction = "analytics.recordCrawlerAccess"
+	AnalyticsReleaseBarrier                    AuditAction = "analytics.releaseBarrier"
+	AnalyticsRetention                         AuditAction = "analytics.retention"
+	AnalyticsStageSnapshot                     AuditAction = "analytics.stageSnapshot"
+	ContentAcquireBarrier                      AuditAction = "content.acquireBarrier"
+	ContentAcquireEditLock                     AuditAction = "content.acquireEditLock"
+	ContentCreateDocument                      AuditAction = "content.createDocument"
+	ContentCreatePreviewGrant                  AuditAction = "content.createPreviewGrant"
+	ContentDiffRevisions                       AuditAction = "content.diffRevisions"
+	ContentDiscardSnapshot                     AuditAction = "content.discardSnapshot"
+	ContentExportSnapshot                      AuditAction = "content.exportSnapshot"
+	ContentForceReleaseEditLock                AuditAction = "content.forceReleaseEditLock"
+	ContentMoveDocument                        AuditAction = "content.moveDocument"
+	ContentPublishDocument                     AuditAction = "content.publishDocument"
+	ContentPurgeDocuments                      AuditAction = "content.purgeDocuments"
+	ContentReleaseBarrier                      AuditAction = "content.releaseBarrier"
+	ContentReleaseEditLock                     AuditAction = "content.releaseEditLock"
+	ContentRenewEditLock                       AuditAction = "content.renewEditLock"
+	ContentReorderChildren                     AuditAction = "content.reorderChildren"
+	ContentRestoreDocument                     AuditAction = "content.restoreDocument"
+	ContentRollbackPublishedRevision           AuditAction = "content.rollbackPublishedRevision"
+	ContentSaveDraft                           AuditAction = "content.saveDraft"
+	ContentStageSnapshot                       AuditAction = "content.stageSnapshot"
+	ContentTrashDocument                       AuditAction = "content.trashDocument"
+	ContentUpdateDocumentMetadata              AuditAction = "content.updateDocumentMetadata"
+	ContentValidatePreviewGrant                AuditAction = "content.validatePreviewGrant"
+	ContentValidatePublications                AuditAction = "content.validatePublications"
+	ContentWithdrawDocument                    AuditAction = "content.withdrawDocument"
+	DataProtectionAbortRestore                 AuditAction = "data-protection.abortRestore"
+	DataProtectionAcquireBarrier               AuditAction = "data-protection.acquireBarrier"
+	DataProtectionAuthorizeBackupDownload      AuditAction = "data-protection.authorizeBackupDownload"
+	DataProtectionBuildMirror                  AuditAction = "data-protection.buildMirror"
+	DataProtectionCleanupRestore               AuditAction = "data-protection.cleanupRestore"
+	DataProtectionConfigureRemote              AuditAction = "data-protection.configureRemote"
+	DataProtectionContinueRestore              AuditAction = "data-protection.continueRestore"
+	DataProtectionCreateBackup                 AuditAction = "data-protection.createBackup"
+	DataProtectionCreateRestore                AuditAction = "data-protection.createRestore"
+	DataProtectionDiscardSnapshot              AuditAction = "data-protection.discardSnapshot"
+	DataProtectionExportSnapshot               AuditAction = "data-protection.exportSnapshot"
+	DataProtectionImportPortableBackup         AuditAction = "data-protection.importPortableBackup"
+	DataProtectionReleaseBarrier               AuditAction = "data-protection.releaseBarrier"
+	DataProtectionRestoreDuringSetup           AuditAction = "data-protection.restoreDuringSetup"
+	DataProtectionScheduleLocalBackup          AuditAction = "data-protection.scheduleLocalBackup"
+	DataProtectionStageSnapshot                AuditAction = "data-protection.stageSnapshot"
+	DataProtectionSyncMirror                   AuditAction = "data-protection.syncMirror"
+	DataProtectionValidateRestore              AuditAction = "data-protection.validateRestore"
+	IdentityAcquireBarrier                     AuditAction = "identity.acquireBarrier"
+	IdentityChangePassword                     AuditAction = "identity.changePassword"
+	IdentityCheckAuthorization                 AuditAction = "identity.checkAuthorization"
+	IdentityCreateAccount                      AuditAction = "identity.createAccount"
+	IdentityCreateSession                      AuditAction = "identity.createSession"
+	IdentityDiscardSnapshot                    AuditAction = "identity.discardSnapshot"
+	IdentityExportSnapshot                     AuditAction = "identity.exportSnapshot"
+	IdentityRefreshSession                     AuditAction = "identity.refreshSession"
+	IdentityRegisterFirstSuperadmin            AuditAction = "identity.registerFirstSuperadmin"
+	IdentityReleaseBarrier                     AuditAction = "identity.releaseBarrier"
+	IdentityResetAccountPassword               AuditAction = "identity.resetAccountPassword"
+	IdentityRevokeSession                      AuditAction = "identity.revokeSession"
+	IdentitySetAccountPermissions              AuditAction = "identity.setAccountPermissions"
+	IdentitySetAccountStatus                   AuditAction = "identity.setAccountStatus"
+	IdentityStageSnapshot                      AuditAction = "identity.stageSnapshot"
+	IdentityUpdatePreferences                  AuditAction = "identity.updatePreferences"
+	IdentityVerifySessionCSRF                  AuditAction = "identity.verifySessionCSRF"
+	JobsAcknowledgeEvent                       AuditAction = "jobs.acknowledgeEvent"
+	JobsAcquireBarrier                         AuditAction = "jobs.acquireBarrier"
+	JobsCancelJob                              AuditAction = "jobs.cancelJob"
+	JobsClaimJob                               AuditAction = "jobs.claimJob"
+	JobsCompleteJob                            AuditAction = "jobs.completeJob"
+	JobsCoordinateBarrier                      AuditAction = "jobs.coordinateBarrier"
+	JobsCreateJob                              AuditAction = "jobs.createJob"
+	JobsCreateSchedule                         AuditAction = "jobs.createSchedule"
+	JobsDiscardSnapshot                        AuditAction = "jobs.discardSnapshot"
+	JobsExportSnapshot                         AuditAction = "jobs.exportSnapshot"
+	JobsFailJob                                AuditAction = "jobs.failJob"
+	JobsHeartbeatJob                           AuditAction = "jobs.heartbeatJob"
+	JobsPublishEvent                           AuditAction = "jobs.publishEvent"
+	JobsReleaseBarrier                         AuditAction = "jobs.releaseBarrier"
+	JobsReplayDelivery                         AuditAction = "jobs.replayDelivery"
+	JobsRetryJob                               AuditAction = "jobs.retryJob"
+	JobsStageSnapshot                          AuditAction = "jobs.stageSnapshot"
+	JobsStartJob                               AuditAction = "jobs.startJob"
+	JobsUpdateSchedule                         AuditAction = "jobs.updateSchedule"
+	KnowledgeAcquireBarrier                    AuditAction = "knowledge.acquireBarrier"
+	KnowledgeApproveRebuildPlan                AuditAction = "knowledge.approveRebuildPlan"
+	KnowledgeCancelBuild                       AuditAction = "knowledge.cancelBuild"
+	KnowledgeCreateBuild                       AuditAction = "knowledge.createBuild"
+	KnowledgeCreateQueryEmbedding              AuditAction = "knowledge.createQueryEmbedding"
+	KnowledgeDiscardSnapshot                   AuditAction = "knowledge.discardSnapshot"
+	KnowledgeEstimateRebuildPlan               AuditAction = "knowledge.estimateRebuildPlan"
+	KnowledgeExportSnapshot                    AuditAction = "knowledge.exportSnapshot"
+	KnowledgeInspectEvidence                   AuditAction = "knowledge.inspectEvidence"
+	KnowledgePutIndexConfig                    AuditAction = "knowledge.putIndexConfig"
+	KnowledgeReadSections                      AuditAction = "knowledge.readSections"
+	KnowledgeReleaseBarrier                    AuditAction = "knowledge.releaseBarrier"
+	KnowledgeSearchKnowledge                   AuditAction = "knowledge.searchKnowledge"
+	KnowledgeStageSnapshot                     AuditAction = "knowledge.stageSnapshot"
+	LocalizationAcquireBarrier                 AuditAction = "localization.acquireBarrier"
+	LocalizationApplyApprovedGlossaryProposal  AuditAction = "localization.applyApprovedGlossaryProposal"
+	LocalizationApproveLanguagePlan            AuditAction = "localization.approveLanguagePlan"
+	LocalizationCancelTranslation              AuditAction = "localization.cancelTranslation"
+	LocalizationCreateTranslation              AuditAction = "localization.createTranslation"
+	LocalizationDeleteGlossaryTerm             AuditAction = "localization.deleteGlossaryTerm"
+	LocalizationDiscardSnapshot                AuditAction = "localization.discardSnapshot"
+	LocalizationEditTranslationUnit            AuditAction = "localization.editTranslationUnit"
+	LocalizationEstimateLanguagePlan           AuditAction = "localization.estimateLanguagePlan"
+	LocalizationExportSnapshot                 AuditAction = "localization.exportSnapshot"
+	LocalizationPutGlossaryTerm                AuditAction = "localization.putGlossaryTerm"
+	LocalizationPutInterfaceString             AuditAction = "localization.putInterfaceString"
+	LocalizationPutLanguage                    AuditAction = "localization.putLanguage"
+	LocalizationReadTranslation                AuditAction = "localization.readTranslation"
+	LocalizationReleaseBarrier                 AuditAction = "localization.releaseBarrier"
+	LocalizationRequestInterfaceTranslation    AuditAction = "localization.requestInterfaceTranslation"
+	LocalizationRollbackAutomaticGlossaryBatch AuditAction = "localization.rollbackAutomaticGlossaryBatch"
+	LocalizationSaveLanguagePreference         AuditAction = "localization.saveLanguagePreference"
+	LocalizationSetLanguageEnabled             AuditAction = "localization.setLanguageEnabled"
+	LocalizationSetUnitProtection              AuditAction = "localization.setUnitProtection"
+	LocalizationStageSnapshot                  AuditAction = "localization.stageSnapshot"
+	LocalizationSuggestLanguage                AuditAction = "localization.suggestLanguage"
+	LocalizationTranslateCachedAnswer          AuditAction = "localization.translateCachedAnswer"
+	MediaAbortUpload                           AuditAction = "media.abortUpload"
+	MediaAcquireBarrier                        AuditAction = "media.acquireBarrier"
+	MediaAcquireResourceReferences             AuditAction = "media.acquireResourceReferences"
+	MediaAttachImageVariants                   AuditAction = "media.attachImageVariants"
+	MediaBeginUpload                           AuditAction = "media.beginUpload"
+	MediaBuildDeliveryManifest                 AuditAction = "media.buildDeliveryManifest"
+	MediaCancelManualCleanup                   AuditAction = "media.cancelManualCleanup"
+	MediaCompleteUpload                        AuditAction = "media.completeUpload"
+	MediaConfirmManualCleanup                  AuditAction = "media.confirmManualCleanup"
+	MediaConfirmResourceReferences             AuditAction = "media.confirmResourceReferences"
+	MediaDiscardSnapshot                       AuditAction = "media.discardSnapshot"
+	MediaExportSnapshot                        AuditAction = "media.exportSnapshot"
+	MediaProposeManualCleanup                  AuditAction = "media.proposeManualCleanup"
+	MediaPutUploadChunk                        AuditAction = "media.putUploadChunk"
+	MediaReadVideoMetadata                     AuditAction = "media.readVideoMetadata"
+	MediaReleaseBarrier                        AuditAction = "media.releaseBarrier"
+	MediaReleaseResourceReferences             AuditAction = "media.releaseResourceReferences"
+	MediaStageSnapshot                         AuditAction = "media.stageSnapshot"
+	MemoryAcquireBarrier                       AuditAction = "memory.acquireBarrier"
+	MemoryAppendAssistantMessage               AuditAction = "memory.appendAssistantMessage"
+	MemoryApproveProposal                      AuditAction = "memory.approveProposal"
+	MemoryArchiveEntry                         AuditAction = "memory.archiveEntry"
+	MemoryCancelAssistantRun                   AuditAction = "memory.cancelAssistantRun"
+	MemoryCreateAssistantRun                   AuditAction = "memory.createAssistantRun"
+	MemoryCreateEntry                          AuditAction = "memory.createEntry"
+	MemoryDeleteAssistantConversation          AuditAction = "memory.deleteAssistantConversation"
+	MemoryDiscardSnapshot                      AuditAction = "memory.discardSnapshot"
+	MemoryExportSnapshot                       AuditAction = "memory.exportSnapshot"
+	MemoryPutMapping                           AuditAction = "memory.putMapping"
+	MemoryPutTaskBudget                        AuditAction = "memory.putTaskBudget"
+	MemoryRejectProposal                       AuditAction = "memory.rejectProposal"
+	MemoryReleaseBarrier                       AuditAction = "memory.releaseBarrier"
+	MemoryRemoveMapping                        AuditAction = "memory.removeMapping"
+	MemoryReorderMappings                      AuditAction = "memory.reorderMappings"
+	MemoryResolveContext                       AuditAction = "memory.resolveContext"
+	MemoryRestoreEntry                         AuditAction = "memory.restoreEntry"
+	MemoryStageSnapshot                        AuditAction = "memory.stageSnapshot"
+	MemoryUpdateEntry                          AuditAction = "memory.updateEntry"
+	ModelGatewayAcquireBarrier                 AuditAction = "model-gateway.acquireBarrier"
+	ModelGatewayCancelInference                AuditAction = "model-gateway.cancelInference"
+	ModelGatewayCreateConnectionProbe          AuditAction = "model-gateway.createConnectionProbe"
+	ModelGatewayCreateInference                AuditAction = "model-gateway.createInference"
+	ModelGatewayDiscardSnapshot                AuditAction = "model-gateway.discardSnapshot"
+	ModelGatewayEstimateTokens                 AuditAction = "model-gateway.estimateTokens"
+	ModelGatewayExportSnapshot                 AuditAction = "model-gateway.exportSnapshot"
+	ModelGatewayPutCredential                  AuditAction = "model-gateway.putCredential"
+	ModelGatewayPutFeeBudgetPolicy             AuditAction = "model-gateway.putFeeBudgetPolicy"
+	ModelGatewayPutModel                       AuditAction = "model-gateway.putModel"
+	ModelGatewayPutProfile                     AuditAction = "model-gateway.putProfile"
+	ModelGatewayPutProvider                    AuditAction = "model-gateway.putProvider"
+	ModelGatewayPutTaskAssignment              AuditAction = "model-gateway.putTaskAssignment"
+	ModelGatewayQuoteCost                      AuditAction = "model-gateway.quoteCost"
+	ModelGatewayReadTaskAvailability           AuditAction = "model-gateway.readTaskAvailability"
+	ModelGatewayReconcileCharge                AuditAction = "model-gateway.reconcileCharge"
+	ModelGatewayRefreshModelCatalog            AuditAction = "model-gateway.refreshModelCatalog"
+	ModelGatewayReleaseBarrier                 AuditAction = "model-gateway.releaseBarrier"
+	ModelGatewayRotateCredential               AuditAction = "model-gateway.rotateCredential"
+	ModelGatewayStageSnapshot                  AuditAction = "model-gateway.stageSnapshot"
+	PortalAccess                               AuditAction = "portal.access"
+	PortalAcquireBarrier                       AuditAction = "portal.acquireBarrier"
+	PortalReleaseBarrier                       AuditAction = "portal.releaseBarrier"
+	PortalUpdatePreferences                    AuditAction = "portal.updatePreferences"
+	PublicSiteAcquireBarrier                   AuditAction = "public-site.acquireBarrier"
+	PublicSiteDiscardSnapshot                  AuditAction = "public-site.discardSnapshot"
+	PublicSiteExportSnapshot                   AuditAction = "public-site.exportSnapshot"
+	PublicSiteIssuePreviewToken                AuditAction = "public-site.issuePreviewToken"
+	PublicSiteReleaseBarrier                   AuditAction = "public-site.releaseBarrier"
+	PublicSiteResolvePublishedLink             AuditAction = "public-site.resolvePublishedLink"
+	PublicSiteStageSnapshot                    AuditAction = "public-site.stageSnapshot"
+	QaAcquireBarrier                           AuditAction = "qa.acquireBarrier"
+	QaApproveCacheEntry                        AuditAction = "qa.approveCacheEntry"
+	QaCancelTurn                               AuditAction = "qa.cancelTurn"
+	QaCreateConversation                       AuditAction = "qa.createConversation"
+	QaCreateDebugTurn                          AuditAction = "qa.createDebugTurn"
+	QaDeleteConversation                       AuditAction = "qa.deleteConversation"
+	QaDisableCacheEntry                        AuditAction = "qa.disableCacheEntry"
+	QaDiscardSnapshot                          AuditAction = "qa.discardSnapshot"
+	QaExportSnapshot                           AuditAction = "qa.exportSnapshot"
+	QaProposeCacheEntry                        AuditAction = "qa.proposeCacheEntry"
+	QaPutQaPolicy                              AuditAction = "qa.putQaPolicy"
+	QaRecordFeedback                           AuditAction = "qa.recordFeedback"
+	QaReleaseBarrier                           AuditAction = "qa.releaseBarrier"
+	QaStageSnapshot                            AuditAction = "qa.stageSnapshot"
+	QaStartTurn                                AuditAction = "qa.startTurn"
+	SiteConfigAbortInitialization              AuditAction = "site-config.abortInitialization"
+	SiteConfigAcquireBarrier                   AuditAction = "site-config.acquireBarrier"
+	SiteConfigDiscardSnapshot                  AuditAction = "site-config.discardSnapshot"
+	SiteConfigExportSnapshot                   AuditAction = "site-config.exportSnapshot"
+	SiteConfigInitializeSite                   AuditAction = "site-config.initializeSite"
+	SiteConfigRegisterActivation               AuditAction = "site-config.registerActivation"
+	SiteConfigReleaseBarrier                   AuditAction = "site-config.releaseBarrier"
+	SiteConfigRestoreConfigRevision            AuditAction = "site-config.restoreConfigRevision"
+	SiteConfigResumeInitialization             AuditAction = "site-config.resumeInitialization"
+	SiteConfigStageSnapshot                    AuditAction = "site-config.stageSnapshot"
+	SiteConfigTransitionRuntimeState           AuditAction = "site-config.transitionRuntimeState"
+	SiteConfigUpdateBanner                     AuditAction = "site-config.updateBanner"
+	SiteConfigUpdateBranding                   AuditAction = "site-config.updateBranding"
+	SiteConfigUpdateFooter                     AuditAction = "site-config.updateFooter"
+	SiteConfigUpdateHome                       AuditAction = "site-config.updateHome"
+	SiteConfigUpdateSiteConfig                 AuditAction = "site-config.updateSiteConfig"
+	TrafficGuardAcquireBarrier                 AuditAction = "traffic-guard.acquireBarrier"
+	TrafficGuardBeginLoginAttempt              AuditAction = "traffic-guard.beginLoginAttempt"
+	TrafficGuardConsumeAdmission               AuditAction = "traffic-guard.consumeAdmission"
+	TrafficGuardCreateAdmission                AuditAction = "traffic-guard.createAdmission"
+	TrafficGuardCreateBan                      AuditAction = "traffic-guard.createBan"
+	TrafficGuardDiscardSnapshot                AuditAction = "traffic-guard.discardSnapshot"
+	TrafficGuardExportSnapshot                 AuditAction = "traffic-guard.exportSnapshot"
+	TrafficGuardFinishLoginAttempt             AuditAction = "traffic-guard.finishLoginAttempt"
+	TrafficGuardIssueChallenge                 AuditAction = "traffic-guard.issueChallenge"
+	TrafficGuardQueueSessionAdmission          AuditAction = "traffic-guard.queueSessionAdmission"
+	TrafficGuardReleaseAdmission               AuditAction = "traffic-guard.releaseAdmission"
+	TrafficGuardReleaseBarrier                 AuditAction = "traffic-guard.releaseBarrier"
+	TrafficGuardRenewAdmission                 AuditAction = "traffic-guard.renewAdmission"
+	TrafficGuardReportModelRisk                AuditAction = "traffic-guard.reportModelRisk"
+	TrafficGuardRevokeBan                      AuditAction = "traffic-guard.revokeBan"
+	TrafficGuardStageSnapshot                  AuditAction = "traffic-guard.stageSnapshot"
+	TrafficGuardUpdatePolicy                   AuditAction = "traffic-guard.updatePolicy"
+	TrafficGuardVerifyAdmission                AuditAction = "traffic-guard.verifyAdmission"
+	TrafficGuardVerifyChallenge                AuditAction = "traffic-guard.verifyChallenge"
+)
+
+// Defines values for AuditRecordActorKind.
+const (
+	Admin   AuditRecordActorKind = "admin"
+	Service AuditRecordActorKind = "service"
+	Visitor AuditRecordActorKind = "visitor"
+)
+
+// Defines values for AuditRecordProducer.
+const (
+	AuditRecordProducerAnalytics      AuditRecordProducer = "analytics"
+	AuditRecordProducerContent        AuditRecordProducer = "content"
+	AuditRecordProducerDataProtection AuditRecordProducer = "data-protection"
+	AuditRecordProducerIdentity       AuditRecordProducer = "identity"
+	AuditRecordProducerJobs           AuditRecordProducer = "jobs"
+	AuditRecordProducerKnowledge      AuditRecordProducer = "knowledge"
+	AuditRecordProducerLocalization   AuditRecordProducer = "localization"
+	AuditRecordProducerMedia          AuditRecordProducer = "media"
+	AuditRecordProducerMemory         AuditRecordProducer = "memory"
+	AuditRecordProducerModelGateway   AuditRecordProducer = "model-gateway"
+	AuditRecordProducerPortal         AuditRecordProducer = "portal"
+	AuditRecordProducerPublicSite     AuditRecordProducer = "public-site"
+	AuditRecordProducerQa             AuditRecordProducer = "qa"
+	AuditRecordProducerSiteConfig     AuditRecordProducer = "site-config"
+	AuditRecordProducerTrafficGuard   AuditRecordProducer = "traffic-guard"
+)
+
+// Defines values for AuditRecordSchemaVersion.
+const (
+	N1 AuditRecordSchemaVersion = 1
+	N2 AuditRecordSchemaVersion = 2
+)
+
+// Defines values for AuditResultCode0.
+const (
+	OK      AuditResultCode0 = "OK"
+	SUCCESS AuditResultCode0 = "SUCCESS"
+)
+
+// Defines values for BarrierRequestStep.
+const (
+	Drain       BarrierRequestStep = "drain"
+	Observe     BarrierRequestStep = "observe"
+	Prepare     BarrierRequestStep = "prepare"
+	ResumeDrain BarrierRequestStep = "resume-drain"
+	Seal        BarrierRequestStep = "seal"
 )
 
 // Defines values for CostClass.
 const (
-	AdminProbe CostClass = "admin-probe"
-	Background CostClass = "background"
-	Qa         CostClass = "qa"
+	CostClassAdminProbe CostClass = "admin-probe"
+	CostClassBackground CostClass = "background"
+	CostClassQa         CostClass = "qa"
+)
+
+// Defines values for CreateAuditExportRequestBodyKind.
+const (
+	Audits CreateAuditExportRequestBodyKind = "audits"
+)
+
+// Defines values for CreateExportRequestBodyKind.
+const (
+	Pages CreateExportRequestBodyKind = "pages"
+	Usage CreateExportRequestBodyKind = "usage"
 )
 
 // Defines values for ErrorCode.
 const (
-	ErrorCodeBUDGETEXCEEDED        ErrorCode = "BUDGET_EXCEEDED"
-	ErrorCodeCANCELLED             ErrorCode = "CANCELLED"
-	ErrorCodeCHALLENGEREQUIRED     ErrorCode = "CHALLENGE_REQUIRED"
-	ErrorCodeCONFLICT              ErrorCode = "CONFLICT"
-	ErrorCodeDEADLINEEXCEEDED      ErrorCode = "DEADLINE_EXCEEDED"
-	ErrorCodeDEPENDENCYUNAVAILABLE ErrorCode = "DEPENDENCY_UNAVAILABLE"
-	ErrorCodeFORBIDDEN             ErrorCode = "FORBIDDEN"
-	ErrorCodeGONE                  ErrorCode = "GONE"
-	ErrorCodeINTEGRITYERROR        ErrorCode = "INTEGRITY_ERROR"
-	ErrorCodeINTERNAL              ErrorCode = "INTERNAL"
-	ErrorCodeLOCKED                ErrorCode = "LOCKED"
-	ErrorCodeNOTFOUND              ErrorCode = "NOT_FOUND"
-	ErrorCodeRATELIMITED           ErrorCode = "RATE_LIMITED"
-	ErrorCodeSTALERESULT           ErrorCode = "STALE_RESULT"
-	ErrorCodeUNAUTHENTICATED       ErrorCode = "UNAUTHENTICATED"
-	ErrorCodeUNSUPPORTEDCAPABILITY ErrorCode = "UNSUPPORTED_CAPABILITY"
-	ErrorCodeUNSUPPORTEDSCHEMA     ErrorCode = "UNSUPPORTED_SCHEMA"
-	ErrorCodeVALIDATION            ErrorCode = "VALIDATION"
-	ErrorCodeVERSIONMISMATCH       ErrorCode = "VERSION_MISMATCH"
+	BUDGETEXCEEDED        ErrorCode = "BUDGET_EXCEEDED"
+	CANCELLED             ErrorCode = "CANCELLED"
+	CHALLENGEREQUIRED     ErrorCode = "CHALLENGE_REQUIRED"
+	CONFLICT              ErrorCode = "CONFLICT"
+	DEADLINEEXCEEDED      ErrorCode = "DEADLINE_EXCEEDED"
+	DEPENDENCYUNAVAILABLE ErrorCode = "DEPENDENCY_UNAVAILABLE"
+	FORBIDDEN             ErrorCode = "FORBIDDEN"
+	GONE                  ErrorCode = "GONE"
+	INTEGRITYERROR        ErrorCode = "INTEGRITY_ERROR"
+	INTERNAL              ErrorCode = "INTERNAL"
+	INVOCATIONNOTACCEPTED ErrorCode = "INVOCATION_NOT_ACCEPTED"
+	LOCKED                ErrorCode = "LOCKED"
+	NOTFOUND              ErrorCode = "NOT_FOUND"
+	RATELIMITED           ErrorCode = "RATE_LIMITED"
+	STALERESULT           ErrorCode = "STALE_RESULT"
+	UNAUTHENTICATED       ErrorCode = "UNAUTHENTICATED"
+	UNSUPPORTEDCAPABILITY ErrorCode = "UNSUPPORTED_CAPABILITY"
+	UNSUPPORTEDSCHEMA     ErrorCode = "UNSUPPORTED_SCHEMA"
+	VALIDATION            ErrorCode = "VALIDATION"
+	VERSIONMISMATCH       ErrorCode = "VERSION_MISMATCH"
 )
 
-// AppendAuditRequestBody 已鉴权服务审计事件；不能提交任意message；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
+// Defines values for QueryPageStatisticsResultGranularity.
+const (
+	QueryPageStatisticsResultGranularityDay  QueryPageStatisticsResultGranularity = "day"
+	QueryPageStatisticsResultGranularityHour QueryPageStatisticsResultGranularity = "hour"
+)
+
+// Defines values for QueryPageStatisticsParamsGranularity.
+const (
+	QueryPageStatisticsParamsGranularityDay  QueryPageStatisticsParamsGranularity = "day"
+	QueryPageStatisticsParamsGranularityHour QueryPageStatisticsParamsGranularity = "hour"
+)
+
+// AppendAuditRequestBody defines model for AppendAuditRequestBody.
 type AppendAuditRequestBody struct {
-	// Action action；UTF-8；不得为 null
-	Action string `json:"action"`
-
-	// AuditId auditId；UTF-8；不得为 null
-	AuditId string `json:"auditId"`
-
-	// Metadata metadata；UTF-8；不得为 null
-	Metadata string `json:"metadata"`
-
-	// ResourceId resourceId；UTF-8；不得为 null
-	ResourceId string `json:"resourceId"`
-
-	// ResultCode resultCode；UTF-8；不得为 null
-	ResultCode string `json:"resultCode"`
+	union json.RawMessage
 }
+
+// AppendAuditRequestBody0 defines model for .
+type AppendAuditRequestBody0 = interface{}
+
+// AppendAuditRequestBody1 defines model for .
+type AppendAuditRequestBody1 = interface{}
 
 // AppendAuditResult 追加安全审计成功结果；失败不返回半成功结果
 type AppendAuditResult struct {
@@ -108,13 +399,17 @@ type AppendAuditResult struct {
 	Seq Revision `json:"seq"`
 }
 
+// AuditAction 固定producer.operationId审计动作；只追加历史动作，不因接口退休删除旧记录含义。
+type AuditAction string
+
 // AuditRecord 仅安全允许字段审计；动作成功结果编码需登记SUCCESS
 type AuditRecord struct {
 	// Action action；UTF-8；不得为 null
 	Action string `json:"action"`
 
 	// ActorId 系统生成的不透明 ID，不含个人信息
-	ActorId Identifier `json:"actorId"`
+	ActorId   Identifier            `json:"actorId"`
+	ActorKind *AuditRecordActorKind `json:"actorKind,omitempty"`
 
 	// AuditId 系统生成的不透明 ID，不含个人信息
 	AuditId Identifier `json:"auditId"`
@@ -122,23 +417,53 @@ type AuditRecord struct {
 	// Hash SHA-256 小写十六进制
 	Hash Hash `json:"hash"`
 
+	// Metadata 只输出经严格白名单重验后的安全canonical JSON；异常旧元数据省略并chainValid=false。
+	Metadata *string `json:"metadata,omitempty"`
+
 	// OccurredAt RFC3339 UTC 时间
 	OccurredAt Timestamp `json:"occurredAt"`
 
+	// OriginEpoch 系统生成的不透明 ID，不含个人信息
+	OriginEpoch *Identifier `json:"originEpoch,omitempty"`
+
 	// PreviousHash SHA-256 小写十六进制
-	PreviousHash Hash `json:"previousHash"`
+	PreviousHash Hash                 `json:"previousHash"`
+	Producer     *AuditRecordProducer `json:"producer,omitempty"`
 
 	// ResourceId 系统生成的不透明 ID，不含个人信息
 	ResourceId Identifier `json:"resourceId"`
 
-	// ResultCode 操作成功或公共错误码，无输入正文
-	ResultCode AuditRecordResultCode `json:"resultCode"`
+	// ResultCode 新V2成功标准OK；兼容旧HTTP SUCCESS输入并标准化，不改V1原链。
+	ResultCode AuditResultCode `json:"resultCode"`
+
+	// SchemaVersion 链编码版本；V1原hash只读保留，新事实为V2。
+	SchemaVersion *AuditRecordSchemaVersion `json:"schemaVersion,omitempty"`
+
+	// SiteId 系统生成的不透明 ID，不含个人信息
+	SiteId *Identifier `json:"siteId,omitempty"`
+
+	// SourceOperationId 系统生成的不透明 ID，不含个人信息
+	SourceOperationId *Identifier `json:"sourceOperationId,omitempty"`
 }
 
-// AuditRecordResultCode 操作成功或公共错误码，无输入正文
-type AuditRecordResultCode string
+// AuditRecordActorKind defines model for AuditRecord.ActorKind.
+type AuditRecordActorKind string
 
-// BarrierRequest 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging
+// AuditRecordProducer defines model for AuditRecord.Producer.
+type AuditRecordProducer string
+
+// AuditRecordSchemaVersion 链编码版本；V1原hash只读保留，新事实为V2。
+type AuditRecordSchemaVersion int
+
+// AuditResultCode 新V2成功标准OK；兼容旧HTTP SUCCESS输入并标准化，不改V1原链。
+type AuditResultCode struct {
+	union json.RawMessage
+}
+
+// AuditResultCode0 defines model for AuditResultCode.0.
+type AuditResultCode0 string
+
+// BarrierRequest 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。
 type BarrierRequest struct {
 	// BarrierId 系统生成的不透明 ID，不含个人信息
 	BarrierId Identifier `json:"barrierId"`
@@ -146,11 +471,39 @@ type BarrierRequest struct {
 	// Deadline RFC3339 UTC 时间
 	Deadline Timestamp `json:"deadline"`
 
+	// ExpectedSealHash SHA-256 小写十六进制
+	ExpectedSealHash *Hash `json:"expectedSealHash,omitempty"`
+
 	// Mode BarrierRequest.mode；按类型、枚举及required约束使用
 	Mode interface{} `json:"mode"`
 
 	// OperationId 系统生成的不透明 ID，不含个人信息
 	OperationId Identifier `json:"operationId"`
+
+	// SealProof 14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。
+	SealProof *SnapshotSealProof `json:"sealProof,omitempty"`
+
+	// Step 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
+	Step  *BarrierRequestStep `json:"step,omitempty"`
+	union json.RawMessage
+}
+
+// BarrierRequestStep 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
+type BarrierRequestStep string
+
+// BarrierRequest0 defines model for .
+type BarrierRequest0 struct {
+	Step interface{} `json:"step,omitempty"`
+}
+
+// BarrierRequest1 defines model for .
+type BarrierRequest1 struct {
+	Step interface{} `json:"step"`
+}
+
+// BarrierRequest2 defines model for .
+type BarrierRequest2 struct {
+	Step interface{} `json:"step"`
 }
 
 // BarrierStatus 屏障状态及安全点；未到安全点不能导出完整快照
@@ -161,11 +514,17 @@ type BarrierStatus struct {
 	// DataEpoch 系统生成的不透明 ID，不含个人信息
 	DataEpoch Identifier `json:"dataEpoch"`
 
+	// Observation 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。
+	Observation *SnapshotBarrierObservation `json:"observation,omitempty"`
+
 	// Owner 对象唯一所属模块slug
 	Owner string `json:"owner"`
 
 	// RevisionWatermark 对象单调修订号
 	RevisionWatermark Revision `json:"revisionWatermark"`
+
+	// SealProofHash SHA-256 小写十六进制
+	SealProofHash *Hash `json:"sealProofHash,omitempty"`
 
 	// State 精确枚举状态，未知值拒绝
 	State interface{} `json:"state"`
@@ -174,17 +533,35 @@ type BarrierStatus struct {
 // CostClass 可信服务上下文决定，公开请求不能指定
 type CostClass string
 
+// CreateAuditExportRequestBody 已授权过滤范围生成CSV引用，最多10万行；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
+type CreateAuditExportRequestBody struct {
+	// From RFC3339 UTC 时间
+	From Timestamp `json:"from"`
+
+	// Kind kind；UTF-8；不得为 null
+	Kind CreateAuditExportRequestBodyKind `json:"kind"`
+
+	// To RFC3339 UTC 时间
+	To Timestamp `json:"to"`
+}
+
+// CreateAuditExportRequestBodyKind kind；UTF-8；不得为 null
+type CreateAuditExportRequestBodyKind string
+
 // CreateExportRequestBody 已授权过滤范围生成CSV引用，最多10万行；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
 type CreateExportRequestBody struct {
 	// From RFC3339 UTC 时间
 	From Timestamp `json:"from"`
 
 	// Kind kind；UTF-8；不得为 null
-	Kind string `json:"kind"`
+	Kind CreateExportRequestBodyKind `json:"kind"`
 
 	// To RFC3339 UTC 时间
 	To Timestamp `json:"to"`
 }
+
+// CreateExportRequestBodyKind kind；UTF-8；不得为 null
+type CreateExportRequestBodyKind string
 
 // CreateExportResult 受权限保护统计导出成功结果；失败不返回半成功结果
 type CreateExportResult struct {
@@ -192,10 +569,14 @@ type CreateExportResult struct {
 	ExpiresAt Timestamp `json:"expiresAt"`
 
 	// ExportId exportId；UTF-8；不得为 null
-	ExportId string `json:"exportId"`
+	ExportId string      `json:"exportId"`
+	Kind     interface{} `json:"kind,omitempty"`
 
 	// ObjectRef 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径
 	ObjectRef ObjectRef `json:"objectRef"`
+
+	// Watermark 对象单调修订号
+	Watermark *Revision `json:"watermark,omitempty"`
 }
 
 // ErrorCode ErrorCode的公共协议类型；字段及范围按本schema
@@ -230,6 +611,39 @@ type HealthStatus struct {
 
 // Identifier 系统生成的不透明 ID，不含个人信息
 type Identifier = string
+
+// IngestBeaconInput 匿名HTTP接收输入；未标可选字段均必填，空集合用[]，不传null
+type IngestBeaconInput struct {
+	// BeaconId beaconId；UTF-8；不得为 null
+	BeaconId string `json:"beaconId"`
+
+	// DataEpoch 系统生成的不透明 ID，不含个人信息
+	DataEpoch Identifier `json:"dataEpoch"`
+
+	// DocumentId documentId；UTF-8；不得为 null
+	DocumentId string `json:"documentId"`
+
+	// ElapsedMs elapsedMs 非负 int64；不用浮点数
+	ElapsedMs int `json:"elapsedMs"`
+
+	// EventType eventType；UTF-8；不得为 null
+	EventType string `json:"eventType"`
+
+	// Locale locale；UTF-8；不得为 null
+	Locale string `json:"locale"`
+
+	// PeerAddress peerAddress；UTF-8；不得为 null
+	PeerAddress string `json:"peerAddress"`
+
+	// ReferrerDomain referrerDomain；UTF-8；不得为 null
+	ReferrerDomain string `json:"referrerDomain"`
+
+	// Status status 非负 int64；不用浮点数
+	Status int `json:"status"`
+
+	// UserAgent userAgent；UTF-8；不得为 null
+	UserAgent string `json:"userAgent"`
+}
 
 // IngestBeaconRequestBody 204；严格allowlist，未知字段拒绝400，不携带IP/正文；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
 type IngestBeaconRequestBody struct {
@@ -315,6 +729,15 @@ type Problem struct {
 	Type string `json:"type"`
 }
 
+// QaTotals 真实已投影完成/失败与缓存/无答案分类计数；比率以completed为分母，0表示无样本不伪报百分比。
+type QaTotals struct {
+	Completed         int `json:"completed"`
+	ExactCacheHits    int `json:"exactCacheHits"`
+	Failed            int `json:"failed"`
+	SemanticCacheHits int `json:"semanticCacheHits"`
+	Unanswered        int `json:"unanswered"`
+}
+
 // QueryAuditsResult 审计分页成功结果；失败不返回半成功结果
 type QueryAuditsResult struct {
 	// AuditIds 有序列表；空列表表示没有可用项
@@ -326,11 +749,29 @@ type QueryAuditsResult struct {
 
 // QueryContentGapsResult 热门文档与答不出问题联动成功结果；失败不返回半成功结果
 type QueryContentGapsResult struct {
+	// FromUTC RFC3339 UTC 时间
+	FromUTC *Timestamp `json:"fromUTC,omitempty"`
+
 	// HotDocuments 有序列表；空列表表示没有可用项
 	HotDocuments []StatisticRow `json:"hotDocuments"`
 
+	// PageWatermark 对象单调修订号
+	PageWatermark *Revision `json:"pageWatermark,omitempty"`
+
+	// QaTotals 真实已投影完成/失败与缓存/无答案分类计数；比率以completed为分母，0表示无样本不伪报百分比。
+	QaTotals *QaTotals `json:"qaTotals,omitempty"`
+
+	// QaWatermark 对象单调修订号
+	QaWatermark *Revision `json:"qaWatermark,omitempty"`
+
+	// ToUTC RFC3339 UTC 时间
+	ToUTC *Timestamp `json:"toUTC,omitempty"`
+
 	// UnansweredRecordIds 有序列表；空列表表示没有可用项
 	UnansweredRecordIds []string `json:"unansweredRecordIds"`
+
+	// UpdatedAt 最近真实问答投影提交时间；空表示尚无已投影事件。
+	UpdatedAt *string `json:"updatedAt,omitempty"`
 }
 
 // QueryPageStatisticsResult 访问汇总查询成功结果；失败不返回半成功结果
@@ -338,12 +779,24 @@ type QueryPageStatisticsResult struct {
 	// DropCount dropCount 非负 int64；不用浮点数
 	DropCount int `json:"dropCount"`
 
+	// FromUTC RFC3339 UTC 时间
+	FromUTC *Timestamp `json:"fromUTC,omitempty"`
+
+	// Granularity 实际统计桶粒度。
+	Granularity *QueryPageStatisticsResultGranularity `json:"granularity,omitempty"`
+
 	// Rows 有序列表；空列表表示没有可用项
 	Rows []StatisticRow `json:"rows"`
+
+	// ToUTC RFC3339 UTC 时间
+	ToUTC *Timestamp `json:"toUTC,omitempty"`
 
 	// Watermark 对象单调修订号
 	Watermark Revision `json:"watermark"`
 }
+
+// QueryPageStatisticsResultGranularity 实际统计桶粒度。
+type QueryPageStatisticsResultGranularity string
 
 // QueryUsageStatisticsResult 费用汇总查询成功结果；失败不返回半成功结果
 type QueryUsageStatisticsResult struct {
@@ -447,6 +900,27 @@ type ServiceReadiness struct {
 	SafePoint bool `json:"safePoint"`
 }
 
+// SnapshotBarrierObservation 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。
+type SnapshotBarrierObservation struct {
+	ActivityRevision  int    `json:"activityRevision"`
+	Business          int    `json:"business"`
+	Cleanup           int    `json:"cleanup"`
+	DrainCallbacks    int    `json:"drainCallbacks"`
+	FileOps           int    `json:"fileOps"`
+	Owner             string `json:"owner"`
+	RevisionWatermark int    `json:"revisionWatermark"`
+
+	// Work 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。
+	Work SnapshotWorkState `json:"work"`
+}
+
+// SnapshotBrokerObservation 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。
+type SnapshotBrokerObservation struct {
+	ActiveLeases      int `json:"activeLeases"`
+	PendingDeliveries int `json:"pendingDeliveries"`
+	Revision          int `json:"revision"`
+}
+
 // SnapshotDiscardRequest 删除某次恢复的暂存目录或换出的旧数据目录
 type SnapshotDiscardRequest struct {
 	// RestoreId 系统生成的不透明 ID，不含个人信息
@@ -516,6 +990,34 @@ type SnapshotRef struct {
 	SnapshotId Identifier `json:"snapshotId"`
 }
 
+// SnapshotSealProof 14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。
+type SnapshotSealProof struct {
+	// BarrierId 系统生成的不透明 ID，不含个人信息
+	BarrierId Identifier `json:"barrierId"`
+
+	// BrokerAfter 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。
+	BrokerAfter SnapshotBrokerObservation `json:"brokerAfter"`
+
+	// BrokerBefore 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。
+	BrokerBefore SnapshotBrokerObservation `json:"brokerBefore"`
+
+	// DataEpoch 系统生成的不透明 ID，不含个人信息
+	DataEpoch Identifier `json:"dataEpoch"`
+
+	// NonJobsProofHash SHA-256 小写十六进制
+	NonJobsProofHash *Hash                        `json:"nonJobsProofHash,omitempty"`
+	NonJobsSeals     *[]SnapshotSealReceipt       `json:"nonJobsSeals,omitempty"`
+	Observations     []SnapshotBarrierObservation `json:"observations"`
+}
+
+// SnapshotSealReceipt defines model for SnapshotSealReceipt.
+type SnapshotSealReceipt struct {
+	Owner string `json:"owner"`
+
+	// SealProofHash SHA-256 小写十六进制
+	SealProofHash Hash `json:"sealProofHash"`
+}
+
 // SnapshotStageRequest 把本域备份归档暂存到restore/<restoreId>/staged；不改active目录（ADR0003）
 type SnapshotStageRequest struct {
 	// BarrierId 系统生成的不透明 ID，不含个人信息
@@ -559,6 +1061,14 @@ type SnapshotStageResult struct {
 
 	// TargetDataEpoch 系统生成的不透明 ID，不含个人信息
 	TargetDataEpoch Identifier `json:"targetDataEpoch"`
+}
+
+// SnapshotWorkState 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。
+type SnapshotWorkState struct {
+	OutboxRevision int `json:"outboxRevision"`
+	PendingOutbox  int `json:"pendingOutbox"`
+	PendingWork    int `json:"pendingWork"`
+	WorkRevision   int `json:"workRevision"`
 }
 
 // StatisticRow 匿名访问聚合行
@@ -606,11 +1116,32 @@ type UsageEntry struct {
 	State interface{} `json:"state"`
 }
 
+// CreateAuditExportParams defines parameters for CreateAuditExport.
+type CreateAuditExportParams struct {
+	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
+	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
+
+	// IdempotencyKey 本操作幂等键，同键不同规范body hash返回409
+	IdempotencyKey Identifier `json:"Idempotency-Key"`
+}
+
+// DownloadAuditExportParams defines parameters for DownloadAuditExport.
+type DownloadAuditExportParams struct {
+	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
+	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
+}
+
 // QueryAuditsParams defines parameters for QueryAudits.
 type QueryAuditsParams struct {
 	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
 	Action *string `form:"action,omitempty" json:"action,omitempty"`
+
+	// From 可选from/to必须同现，左闭右开，绑定审计游标。
+	From *Timestamp `form:"from,omitempty" json:"from,omitempty"`
+
+	// To 可选from/to必须同现，左闭右开，绑定审计游标。
+	To *Timestamp `form:"to,omitempty" json:"to,omitempty"`
 
 	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
 	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
@@ -667,6 +1198,15 @@ type RecordCrawlerAccessParams struct {
 	IdempotencyKey Identifier `json:"Idempotency-Key"`
 }
 
+// IngestTrustedBeaconParams defines parameters for IngestTrustedBeacon.
+type IngestTrustedBeaconParams struct {
+	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
+	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
+
+	// IdempotencyKey 本操作幂等键，同键不同规范body hash返回409
+	IdempotencyKey Identifier `json:"Idempotency-Key"`
+}
+
 // ReadSnapshotArchiveParams defines parameters for ReadSnapshotArchive.
 type ReadSnapshotArchiveParams struct {
 	Sha256   Hash `form:"sha256" json:"sha256"`
@@ -709,16 +1249,28 @@ type QueryContentGapsParams struct {
 	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
 }
 
+// DownloadStatisticsExportParams defines parameters for DownloadStatisticsExport.
+type DownloadStatisticsExportParams struct {
+	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
+	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
+}
+
 // QueryPageStatisticsParams defines parameters for QueryPageStatistics.
 type QueryPageStatisticsParams struct {
-	From       Timestamp `form:"from" json:"from"`
-	To         Timestamp `form:"to" json:"to"`
-	Locale     *string   `form:"locale,omitempty" json:"locale,omitempty"`
-	DocumentId *string   `form:"documentId,omitempty" json:"documentId,omitempty"`
+	From       *Timestamp `form:"from,omitempty" json:"from,omitempty"`
+	To         *Timestamp `form:"to,omitempty" json:"to,omitempty"`
+	Locale     *string    `form:"locale,omitempty" json:"locale,omitempty"`
+	DocumentId *string    `form:"documentId,omitempty" json:"documentId,omitempty"`
+
+	// Granularity 仅完整统计桶；默认最近7个完整日/168完整UTC小时，显式边界需对齐粒度。
+	Granularity *QueryPageStatisticsParamsGranularity `form:"granularity,omitempty" json:"granularity,omitempty"`
 
 	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
 	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
 }
+
+// QueryPageStatisticsParamsGranularity defines parameters for QueryPageStatistics.
+type QueryPageStatisticsParamsGranularity string
 
 // QueryUsageStatisticsParams defines parameters for QueryUsageStatistics.
 type QueryUsageStatisticsParams struct {
@@ -748,6 +1300,9 @@ type ReconcileUsageParams struct {
 	IdempotencyKey Identifier `json:"Idempotency-Key"`
 }
 
+// CreateAuditExportJSONRequestBody defines body for CreateAuditExport for application/json ContentType.
+type CreateAuditExportJSONRequestBody = CreateAuditExportRequestBody
+
 // AppendAuditJSONRequestBody defines body for AppendAudit for application/json ContentType.
 type AppendAuditJSONRequestBody = AppendAuditRequestBody
 
@@ -762,6 +1317,9 @@ type IngestBeaconJSONRequestBody = IngestBeaconRequestBody
 
 // RecordCrawlerAccessJSONRequestBody defines body for RecordCrawlerAccess for application/json ContentType.
 type RecordCrawlerAccessJSONRequestBody = RecordCrawlerAccessRequestBody
+
+// IngestTrustedBeaconJSONRequestBody defines body for IngestTrustedBeacon for application/json ContentType.
+type IngestTrustedBeaconJSONRequestBody = IngestBeaconInput
 
 // DiscardSnapshotJSONRequestBody defines body for DiscardSnapshot for application/json ContentType.
 type DiscardSnapshotJSONRequestBody = SnapshotDiscardRequest
@@ -778,6 +1336,328 @@ type CreateExportJSONRequestBody = CreateExportRequestBody
 // ReconcileUsageJSONRequestBody defines body for ReconcileUsage for application/json ContentType.
 type ReconcileUsageJSONRequestBody = ReconcileUsageRequestBody
 
+// AsAppendAuditRequestBody0 returns the union data inside the AppendAuditRequestBody as a AppendAuditRequestBody0
+func (t AppendAuditRequestBody) AsAppendAuditRequestBody0() (AppendAuditRequestBody0, error) {
+	var body AppendAuditRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAppendAuditRequestBody0 overwrites any union data inside the AppendAuditRequestBody as the provided AppendAuditRequestBody0
+func (t *AppendAuditRequestBody) FromAppendAuditRequestBody0(v AppendAuditRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAppendAuditRequestBody0 performs a merge with any union data inside the AppendAuditRequestBody, using the provided AppendAuditRequestBody0
+func (t *AppendAuditRequestBody) MergeAppendAuditRequestBody0(v AppendAuditRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsAppendAuditRequestBody1 returns the union data inside the AppendAuditRequestBody as a AppendAuditRequestBody1
+func (t AppendAuditRequestBody) AsAppendAuditRequestBody1() (AppendAuditRequestBody1, error) {
+	var body AppendAuditRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAppendAuditRequestBody1 overwrites any union data inside the AppendAuditRequestBody as the provided AppendAuditRequestBody1
+func (t *AppendAuditRequestBody) FromAppendAuditRequestBody1(v AppendAuditRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAppendAuditRequestBody1 performs a merge with any union data inside the AppendAuditRequestBody, using the provided AppendAuditRequestBody1
+func (t *AppendAuditRequestBody) MergeAppendAuditRequestBody1(v AppendAuditRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t AppendAuditRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *AppendAuditRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsAuditResultCode0 returns the union data inside the AuditResultCode as a AuditResultCode0
+func (t AuditResultCode) AsAuditResultCode0() (AuditResultCode0, error) {
+	var body AuditResultCode0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAuditResultCode0 overwrites any union data inside the AuditResultCode as the provided AuditResultCode0
+func (t *AuditResultCode) FromAuditResultCode0(v AuditResultCode0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAuditResultCode0 performs a merge with any union data inside the AuditResultCode, using the provided AuditResultCode0
+func (t *AuditResultCode) MergeAuditResultCode0(v AuditResultCode0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsErrorCode returns the union data inside the AuditResultCode as a ErrorCode
+func (t AuditResultCode) AsErrorCode() (ErrorCode, error) {
+	var body ErrorCode
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromErrorCode overwrites any union data inside the AuditResultCode as the provided ErrorCode
+func (t *AuditResultCode) FromErrorCode(v ErrorCode) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeErrorCode performs a merge with any union data inside the AuditResultCode, using the provided ErrorCode
+func (t *AuditResultCode) MergeErrorCode(v ErrorCode) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t AuditResultCode) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *AuditResultCode) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBarrierRequest0 returns the union data inside the BarrierRequest as a BarrierRequest0
+func (t BarrierRequest) AsBarrierRequest0() (BarrierRequest0, error) {
+	var body BarrierRequest0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBarrierRequest0 overwrites any union data inside the BarrierRequest as the provided BarrierRequest0
+func (t *BarrierRequest) FromBarrierRequest0(v BarrierRequest0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBarrierRequest0 performs a merge with any union data inside the BarrierRequest, using the provided BarrierRequest0
+func (t *BarrierRequest) MergeBarrierRequest0(v BarrierRequest0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBarrierRequest1 returns the union data inside the BarrierRequest as a BarrierRequest1
+func (t BarrierRequest) AsBarrierRequest1() (BarrierRequest1, error) {
+	var body BarrierRequest1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBarrierRequest1 overwrites any union data inside the BarrierRequest as the provided BarrierRequest1
+func (t *BarrierRequest) FromBarrierRequest1(v BarrierRequest1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBarrierRequest1 performs a merge with any union data inside the BarrierRequest, using the provided BarrierRequest1
+func (t *BarrierRequest) MergeBarrierRequest1(v BarrierRequest1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBarrierRequest2 returns the union data inside the BarrierRequest as a BarrierRequest2
+func (t BarrierRequest) AsBarrierRequest2() (BarrierRequest2, error) {
+	var body BarrierRequest2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBarrierRequest2 overwrites any union data inside the BarrierRequest as the provided BarrierRequest2
+func (t *BarrierRequest) FromBarrierRequest2(v BarrierRequest2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBarrierRequest2 performs a merge with any union data inside the BarrierRequest, using the provided BarrierRequest2
+func (t *BarrierRequest) MergeBarrierRequest2(v BarrierRequest2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BarrierRequest) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["barrierId"], err = json.Marshal(t.BarrierId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'barrierId': %w", err)
+	}
+
+	object["deadline"], err = json.Marshal(t.Deadline)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'deadline': %w", err)
+	}
+
+	if t.ExpectedSealHash != nil {
+		object["expectedSealHash"], err = json.Marshal(t.ExpectedSealHash)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'expectedSealHash': %w", err)
+		}
+	}
+
+	object["mode"], err = json.Marshal(t.Mode)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'mode': %w", err)
+	}
+
+	object["operationId"], err = json.Marshal(t.OperationId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'operationId': %w", err)
+	}
+
+	if t.SealProof != nil {
+		object["sealProof"], err = json.Marshal(t.SealProof)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'sealProof': %w", err)
+		}
+	}
+
+	if t.Step != nil {
+		object["step"], err = json.Marshal(t.Step)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'step': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *BarrierRequest) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["barrierId"]; found {
+		err = json.Unmarshal(raw, &t.BarrierId)
+		if err != nil {
+			return fmt.Errorf("error reading 'barrierId': %w", err)
+		}
+	}
+
+	if raw, found := object["deadline"]; found {
+		err = json.Unmarshal(raw, &t.Deadline)
+		if err != nil {
+			return fmt.Errorf("error reading 'deadline': %w", err)
+		}
+	}
+
+	if raw, found := object["expectedSealHash"]; found {
+		err = json.Unmarshal(raw, &t.ExpectedSealHash)
+		if err != nil {
+			return fmt.Errorf("error reading 'expectedSealHash': %w", err)
+		}
+	}
+
+	if raw, found := object["mode"]; found {
+		err = json.Unmarshal(raw, &t.Mode)
+		if err != nil {
+			return fmt.Errorf("error reading 'mode': %w", err)
+		}
+	}
+
+	if raw, found := object["operationId"]; found {
+		err = json.Unmarshal(raw, &t.OperationId)
+		if err != nil {
+			return fmt.Errorf("error reading 'operationId': %w", err)
+		}
+	}
+
+	if raw, found := object["sealProof"]; found {
+		err = json.Unmarshal(raw, &t.SealProof)
+		if err != nil {
+			return fmt.Errorf("error reading 'sealProof': %w", err)
+		}
+	}
+
+	if raw, found := object["step"]; found {
+		err = json.Unmarshal(raw, &t.Step)
+		if err != nil {
+			return fmt.Errorf("error reading 'step': %w", err)
+		}
+	}
+
+	return err
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// 本域进程存活
@@ -786,6 +1666,12 @@ type ServerInterface interface {
 	// 本域启动/恢复就绪
 	// (GET /readyz)
 	Ready(w http.ResponseWriter, r *http.Request)
+	// 当前审计权限私有CSV导出
+	// (POST /v1/audit-exports)
+	CreateAuditExport(w http.ResponseWriter, r *http.Request, params CreateAuditExportParams)
+	// 当前权限同主体私有CSV下载
+	// (GET /v1/audit-exports/{exportId})
+	DownloadAuditExport(w http.ResponseWriter, r *http.Request, exportId Identifier, params DownloadAuditExportParams)
 	// 审计分页
 	// (GET /v1/audits)
 	QueryAudits(w http.ResponseWriter, r *http.Request, params QueryAuditsParams)
@@ -807,6 +1693,9 @@ type ServerInterface interface {
 	// AI Markdown访问独立计数
 	// (POST /v1/crawler-access)
 	RecordCrawlerAccess(w http.ResponseWriter, r *http.Request, params RecordCrawlerAccessParams)
+	// 可信portal匿名访问转交
+	// (POST /v1/internal/beacons)
+	IngestTrustedBeacon(w http.ResponseWriter, r *http.Request, params IngestTrustedBeaconParams)
 	// 受控读取已完成域快照归档
 	// (GET /v1/snapshots/{snapshotId}/archive)
 	ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotId Identifier, params ReadSnapshotArchiveParams)
@@ -822,6 +1711,9 @@ type ServerInterface interface {
 	// 热门文档与答不出问题联动
 	// (GET /v1/statistics/content-gaps)
 	QueryContentGaps(w http.ResponseWriter, r *http.Request, params QueryContentGapsParams)
+	// 当前权限同主体私有CSV下载
+	// (GET /v1/statistics/exports/{exportId})
+	DownloadStatisticsExport(w http.ResponseWriter, r *http.Request, exportId Identifier, params DownloadStatisticsExportParams)
 	// 访问汇总查询
 	// (GET /v1/statistics/pages)
 	QueryPageStatistics(w http.ResponseWriter, r *http.Request, params QueryPageStatisticsParams)
@@ -873,6 +1765,134 @@ func (siw *ServerInterfaceWrapper) Ready(w http.ResponseWriter, r *http.Request)
 	handler.ServeHTTP(w, r)
 }
 
+// CreateAuditExport operation middleware
+func (siw *ServerInterfaceWrapper) CreateAuditExport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateAuditExportParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "X-Request-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
+		var XRequestId Identifier
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
+			return
+		}
+
+		params.XRequestId = &XRequestId
+
+	}
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey Identifier
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAuditExport(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DownloadAuditExport operation middleware
+func (siw *ServerInterfaceWrapper) DownloadAuditExport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "exportId" -------------
+	var exportId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "exportId", r.PathValue("exportId"), &exportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "exportId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DownloadAuditExportParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "X-Request-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
+		var XRequestId Identifier
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
+			return
+		}
+
+		params.XRequestId = &XRequestId
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DownloadAuditExport(w, r, exportId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // QueryAudits operation middleware
 func (siw *ServerInterfaceWrapper) QueryAudits(w http.ResponseWriter, r *http.Request) {
 
@@ -910,6 +1930,22 @@ func (siw *ServerInterfaceWrapper) QueryAudits(w http.ResponseWriter, r *http.Re
 	err = runtime.BindQueryParameter("form", true, false, "action", r.URL.Query(), &params.Action)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "action", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "from", r.URL.Query(), &params.From)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "to", r.URL.Query(), &params.To)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
 		return
 	}
 
@@ -1350,6 +2386,69 @@ func (siw *ServerInterfaceWrapper) RecordCrawlerAccess(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// IngestTrustedBeacon operation middleware
+func (siw *ServerInterfaceWrapper) IngestTrustedBeacon(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params IngestTrustedBeaconParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "X-Request-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
+		var XRequestId Identifier
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
+			return
+		}
+
+		params.XRequestId = &XRequestId
+
+	}
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey Identifier
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.IngestTrustedBeacon(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ReadSnapshotArchive operation middleware
 func (siw *ServerInterfaceWrapper) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request) {
 
@@ -1693,6 +2792,63 @@ func (siw *ServerInterfaceWrapper) QueryContentGaps(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// DownloadStatisticsExport operation middleware
+func (siw *ServerInterfaceWrapper) DownloadStatisticsExport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "exportId" -------------
+	var exportId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "exportId", r.PathValue("exportId"), &exportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "exportId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DownloadStatisticsExportParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "X-Request-Id" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
+		var XRequestId Identifier
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
+			return
+		}
+
+		params.XRequestId = &XRequestId
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DownloadStatisticsExport(w, r, exportId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // QueryPageStatistics operation middleware
 func (siw *ServerInterfaceWrapper) QueryPageStatistics(w http.ResponseWriter, r *http.Request) {
 
@@ -1709,31 +2865,17 @@ func (siw *ServerInterfaceWrapper) QueryPageStatistics(w http.ResponseWriter, r 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params QueryPageStatisticsParams
 
-	// ------------- Required query parameter "from" -------------
+	// ------------- Optional query parameter "from" -------------
 
-	if paramValue := r.URL.Query().Get("from"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "from", r.URL.Query(), &params.From)
+	err = runtime.BindQueryParameter("form", true, false, "from", r.URL.Query(), &params.From)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
 		return
 	}
 
-	// ------------- Required query parameter "to" -------------
+	// ------------- Optional query parameter "to" -------------
 
-	if paramValue := r.URL.Query().Get("to"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "to", r.URL.Query(), &params.To)
+	err = runtime.BindQueryParameter("form", true, false, "to", r.URL.Query(), &params.To)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
 		return
@@ -1752,6 +2894,14 @@ func (siw *ServerInterfaceWrapper) QueryPageStatistics(w http.ResponseWriter, r 
 	err = runtime.BindQueryParameter("form", true, false, "documentId", r.URL.Query(), &params.DocumentId)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "documentId", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "granularity" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "granularity", r.URL.Query(), &params.Granularity)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "granularity", Err: err})
 		return
 	}
 
@@ -2137,6 +3287,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc("GET "+options.BaseURL+"/healthz", wrapper.Health)
 	m.HandleFunc("GET "+options.BaseURL+"/readyz", wrapper.Ready)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/audit-exports", wrapper.CreateAuditExport)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/audit-exports/{exportId}", wrapper.DownloadAuditExport)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/audits", wrapper.QueryAudits)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/audits", wrapper.AppendAudit)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/audits/{auditId}", wrapper.ReadAudit)
@@ -2144,11 +3296,13 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("POST "+options.BaseURL+"/v1/barriers/{barrierId}:release", wrapper.ReleaseBarrier)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/beacons", wrapper.IngestBeacon)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/crawler-access", wrapper.RecordCrawlerAccess)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/internal/beacons", wrapper.IngestTrustedBeacon)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/snapshots/{snapshotId}/archive", wrapper.ReadSnapshotArchive)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/snapshots:discard", wrapper.DiscardSnapshot)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/snapshots:export", wrapper.ExportSnapshot)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/snapshots:stage", wrapper.StageSnapshot)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/statistics/content-gaps", wrapper.QueryContentGaps)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/statistics/exports/{exportId}", wrapper.DownloadStatisticsExport)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/statistics/pages", wrapper.QueryPageStatistics)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/statistics/usage", wrapper.QueryUsageStatistics)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/statistics:export", wrapper.CreateExport)
@@ -2201,6 +3355,142 @@ func (response Ready200JSONResponse) VisitReadyResponse(w http.ResponseWriter) e
 type Ready503ApplicationProblemPlusJSONResponse Problem
 
 func (response Ready503ApplicationProblemPlusJSONResponse) VisitReadyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAuditExportRequestObject struct {
+	Params CreateAuditExportParams
+	Body   *CreateAuditExportJSONRequestBody
+}
+
+type CreateAuditExportResponseObject interface {
+	VisitCreateAuditExportResponse(w http.ResponseWriter) error
+}
+
+type CreateAuditExport200JSONResponse CreateExportResult
+
+func (response CreateAuditExport200JSONResponse) VisitCreateAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAuditExport400ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateAuditExport400ApplicationProblemPlusJSONResponse) VisitCreateAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAuditExport403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateAuditExport403ApplicationProblemPlusJSONResponse) VisitCreateAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadAuditExportRequestObject struct {
+	ExportId Identifier `json:"exportId"`
+	Params   DownloadAuditExportParams
+}
+
+type DownloadAuditExportResponseObject interface {
+	VisitDownloadAuditExportResponse(w http.ResponseWriter) error
+}
+
+type DownloadAuditExport200TextcsvResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response DownloadAuditExport200TextcsvResponse) VisitDownloadAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type DownloadAuditExport400ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadAuditExport400ApplicationProblemPlusJSONResponse) VisitDownloadAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadAuditExport401ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadAuditExport401ApplicationProblemPlusJSONResponse) VisitDownloadAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadAuditExport403ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadAuditExport403ApplicationProblemPlusJSONResponse) VisitDownloadAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadAuditExport404ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadAuditExport404ApplicationProblemPlusJSONResponse) VisitDownloadAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadAuditExport409ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadAuditExport409ApplicationProblemPlusJSONResponse) VisitDownloadAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadAuditExport410ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadAuditExport410ApplicationProblemPlusJSONResponse) VisitDownloadAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(410)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadAuditExport422ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadAuditExport422ApplicationProblemPlusJSONResponse) VisitDownloadAuditExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadAuditExport503ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadAuditExport503ApplicationProblemPlusJSONResponse) VisitDownloadAuditExportResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(503)
 
@@ -2440,6 +3730,41 @@ func (response RecordCrawlerAccess403ApplicationProblemPlusJSONResponse) VisitRe
 	return json.NewEncoder(w).Encode(response)
 }
 
+type IngestTrustedBeaconRequestObject struct {
+	Params IngestTrustedBeaconParams
+	Body   *IngestTrustedBeaconJSONRequestBody
+}
+
+type IngestTrustedBeaconResponseObject interface {
+	VisitIngestTrustedBeaconResponse(w http.ResponseWriter) error
+}
+
+type IngestTrustedBeacon204Response struct {
+}
+
+func (response IngestTrustedBeacon204Response) VisitIngestTrustedBeaconResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type IngestTrustedBeacon400ApplicationProblemPlusJSONResponse Problem
+
+func (response IngestTrustedBeacon400ApplicationProblemPlusJSONResponse) VisitIngestTrustedBeaconResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type IngestTrustedBeacon409ApplicationProblemPlusJSONResponse Problem
+
+func (response IngestTrustedBeacon409ApplicationProblemPlusJSONResponse) VisitIngestTrustedBeaconResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ReadSnapshotArchiveRequestObject struct {
 	SnapshotId Identifier `json:"snapshotId"`
 	Params     ReadSnapshotArchiveParams
@@ -2653,6 +3978,106 @@ func (response QueryContentGaps503ApplicationProblemPlusJSONResponse) VisitQuery
 	return json.NewEncoder(w).Encode(response)
 }
 
+type DownloadStatisticsExportRequestObject struct {
+	ExportId Identifier `json:"exportId"`
+	Params   DownloadStatisticsExportParams
+}
+
+type DownloadStatisticsExportResponseObject interface {
+	VisitDownloadStatisticsExportResponse(w http.ResponseWriter) error
+}
+
+type DownloadStatisticsExport200TextcsvResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response DownloadStatisticsExport200TextcsvResponse) VisitDownloadStatisticsExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type DownloadStatisticsExport400ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadStatisticsExport400ApplicationProblemPlusJSONResponse) VisitDownloadStatisticsExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadStatisticsExport401ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadStatisticsExport401ApplicationProblemPlusJSONResponse) VisitDownloadStatisticsExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadStatisticsExport403ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadStatisticsExport403ApplicationProblemPlusJSONResponse) VisitDownloadStatisticsExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadStatisticsExport404ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadStatisticsExport404ApplicationProblemPlusJSONResponse) VisitDownloadStatisticsExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadStatisticsExport409ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadStatisticsExport409ApplicationProblemPlusJSONResponse) VisitDownloadStatisticsExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadStatisticsExport410ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadStatisticsExport410ApplicationProblemPlusJSONResponse) VisitDownloadStatisticsExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(410)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadStatisticsExport422ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadStatisticsExport422ApplicationProblemPlusJSONResponse) VisitDownloadStatisticsExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadStatisticsExport503ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadStatisticsExport503ApplicationProblemPlusJSONResponse) VisitDownloadStatisticsExportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type QueryPageStatisticsRequestObject struct {
 	Params QueryPageStatisticsParams
 }
@@ -2803,6 +4228,12 @@ type StrictServerInterface interface {
 	// 本域启动/恢复就绪
 	// (GET /readyz)
 	Ready(ctx context.Context, request ReadyRequestObject) (ReadyResponseObject, error)
+	// 当前审计权限私有CSV导出
+	// (POST /v1/audit-exports)
+	CreateAuditExport(ctx context.Context, request CreateAuditExportRequestObject) (CreateAuditExportResponseObject, error)
+	// 当前权限同主体私有CSV下载
+	// (GET /v1/audit-exports/{exportId})
+	DownloadAuditExport(ctx context.Context, request DownloadAuditExportRequestObject) (DownloadAuditExportResponseObject, error)
 	// 审计分页
 	// (GET /v1/audits)
 	QueryAudits(ctx context.Context, request QueryAuditsRequestObject) (QueryAuditsResponseObject, error)
@@ -2824,6 +4255,9 @@ type StrictServerInterface interface {
 	// AI Markdown访问独立计数
 	// (POST /v1/crawler-access)
 	RecordCrawlerAccess(ctx context.Context, request RecordCrawlerAccessRequestObject) (RecordCrawlerAccessResponseObject, error)
+	// 可信portal匿名访问转交
+	// (POST /v1/internal/beacons)
+	IngestTrustedBeacon(ctx context.Context, request IngestTrustedBeaconRequestObject) (IngestTrustedBeaconResponseObject, error)
 	// 受控读取已完成域快照归档
 	// (GET /v1/snapshots/{snapshotId}/archive)
 	ReadSnapshotArchive(ctx context.Context, request ReadSnapshotArchiveRequestObject) (ReadSnapshotArchiveResponseObject, error)
@@ -2839,6 +4273,9 @@ type StrictServerInterface interface {
 	// 热门文档与答不出问题联动
 	// (GET /v1/statistics/content-gaps)
 	QueryContentGaps(ctx context.Context, request QueryContentGapsRequestObject) (QueryContentGapsResponseObject, error)
+	// 当前权限同主体私有CSV下载
+	// (GET /v1/statistics/exports/{exportId})
+	DownloadStatisticsExport(ctx context.Context, request DownloadStatisticsExportRequestObject) (DownloadStatisticsExportResponseObject, error)
 	// 访问汇总查询
 	// (GET /v1/statistics/pages)
 	QueryPageStatistics(ctx context.Context, request QueryPageStatisticsRequestObject) (QueryPageStatisticsResponseObject, error)
@@ -2923,6 +4360,66 @@ func (sh *strictHandler) Ready(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ReadyResponseObject); ok {
 		if err := validResponse.VisitReadyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateAuditExport operation middleware
+func (sh *strictHandler) CreateAuditExport(w http.ResponseWriter, r *http.Request, params CreateAuditExportParams) {
+	var request CreateAuditExportRequestObject
+
+	request.Params = params
+
+	var body CreateAuditExportJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateAuditExport(ctx, request.(CreateAuditExportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateAuditExport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateAuditExportResponseObject); ok {
+		if err := validResponse.VisitCreateAuditExportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DownloadAuditExport operation middleware
+func (sh *strictHandler) DownloadAuditExport(w http.ResponseWriter, r *http.Request, exportId Identifier, params DownloadAuditExportParams) {
+	var request DownloadAuditExportRequestObject
+
+	request.ExportId = exportId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DownloadAuditExport(ctx, request.(DownloadAuditExportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DownloadAuditExport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DownloadAuditExportResponseObject); ok {
+		if err := validResponse.VisitDownloadAuditExportResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -3149,6 +4646,39 @@ func (sh *strictHandler) RecordCrawlerAccess(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// IngestTrustedBeacon operation middleware
+func (sh *strictHandler) IngestTrustedBeacon(w http.ResponseWriter, r *http.Request, params IngestTrustedBeaconParams) {
+	var request IngestTrustedBeaconRequestObject
+
+	request.Params = params
+
+	var body IngestTrustedBeaconJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.IngestTrustedBeacon(ctx, request.(IngestTrustedBeaconRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "IngestTrustedBeacon")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(IngestTrustedBeaconResponseObject); ok {
+		if err := validResponse.VisitIngestTrustedBeaconResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ReadSnapshotArchive operation middleware
 func (sh *strictHandler) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotId Identifier, params ReadSnapshotArchiveParams) {
 	var request ReadSnapshotArchiveRequestObject
@@ -3301,6 +4831,33 @@ func (sh *strictHandler) QueryContentGaps(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// DownloadStatisticsExport operation middleware
+func (sh *strictHandler) DownloadStatisticsExport(w http.ResponseWriter, r *http.Request, exportId Identifier, params DownloadStatisticsExportParams) {
+	var request DownloadStatisticsExportRequestObject
+
+	request.ExportId = exportId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DownloadStatisticsExport(ctx, request.(DownloadStatisticsExportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DownloadStatisticsExport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DownloadStatisticsExportResponseObject); ok {
+		if err := validResponse.VisitDownloadStatisticsExportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // QueryPageStatistics operation middleware
 func (sh *strictHandler) QueryPageStatistics(w http.ResponseWriter, r *http.Request, params QueryPageStatisticsParams) {
 	var request QueryPageStatisticsRequestObject
@@ -3422,142 +4979,221 @@ func (sh *strictHandler) ReconcileUsage(w http.ResponseWriter, r *http.Request, 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"DjBfePXO/w0AAP//lOVJ7uMDAQA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -3,8 +3,8 @@ package model
 
 import (
 	"context"
- "database/sql"
- "encoding/json"
+	"database/sql"
+	"encoding/json"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
@@ -14,24 +14,24 @@ import (
 
 type OperationContext = platform.OperationContext
 type InvokeModelInput struct {
- SemanticKey string `json:"-"`
-	Request platform.CreateInvocationInput `json:"request"`
-	Stream  bool                           `json:"stream"`
+	SemanticKey string                         `json:"-"`
+	Request     platform.CreateInvocationInput `json:"request"`
+	Stream      bool                           `json:"stream"`
 }
 type InvokeModelResult = platform.InvokeModelOutcome
 
 type ModelRuntime struct {
- Raw *gen.ModelGatewayClient
- ValidateTokenization func(json.RawMessage)error
- ValidateUsage func(json.RawMessage)error
- DB *sql.DB
- WriteWindow platform.WriteWindowConfig
- Expectations map[string]ModelExpectation
- OwnerID string
- BeforeDispatch func(context.Context)error
-	Gateway         platform.GatewayClient
-	AdmissionPermit *platform.AdmissionPermit
-	OnEvent         func(platform.StreamEvent) error
+	Raw                  *gen.ModelGatewayClient
+	ValidateTokenization func(json.RawMessage) error
+	ValidateUsage        func(json.RawMessage) error
+	DB                   *sql.DB
+	WriteWindow          platform.WriteWindowConfig
+	Expectations         map[string]ModelExpectation
+	OwnerID              string
+	BeforeDispatch       func(context.Context) error
+	Gateway              platform.GatewayClient
+	AdmissionPermit      *platform.AdmissionPermit
+	OnEvent              func(platform.StreamEvent) error
 }
 type modelRuntimeKey struct{}
 
@@ -49,10 +49,15 @@ func NewModelRuntime(raw *gen.ModelGatewayClient, db *sql.DB, window platform.Wr
 	if err != nil {
 		return ModelRuntime{}, err
 	}
-	tokenization,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),"GatewayTokenizeTextResult")
- if err!=nil {return ModelRuntime{},err}
- usage,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),"GatewayQueryUsageResult");if err!=nil {return ModelRuntime{},err}
- return ModelRuntime{Raw:raw,ValidateUsage:usage,ValidateTokenization:tokenization,Gateway: gateway,DB:db,WriteWindow:window}, nil
+	tokenization, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "GatewayTokenizeTextResult")
+	if err != nil {
+		return ModelRuntime{}, err
+	}
+	usage, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "GatewayQueryUsageResult")
+	if err != nil {
+		return ModelRuntime{}, err
+	}
+	return ModelRuntime{Raw: raw, ValidateUsage: usage, ValidateTokenization: tokenization, Gateway: gateway, DB: db, WriteWindow: window}, nil
 }
 func WithModelRuntime(ctx context.Context, runtime ModelRuntime) context.Context {
 	return context.WithValue(ctx, modelRuntimeKey{}, runtime)
@@ -67,22 +72,58 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 	if op.CostClass == platform.CostClassQA {
 		input.Request.AdmissionPermit = runtime.AdmissionPermit
 	}
-	if expected,ok:=runtime.Expectations[input.Request.TaskID];ok {input.Request.ExpectedRouteVersion=expected.RouteVersion;input.Request.ExpectedPriceSnapshots=expected.Prices}
- semantic:=input.SemanticKey;if semantic=="" {semantic=input.Request.IDempotencyKey}
- key := "knowledge." + platform.HashBytes([]byte(op.OperationID+":"+semantic))
-	key,original,found,err:=BeginModelStep(ctx,op,runtime,key,semantic,input.Request)
- if err!=nil {return InvokeModelResult{},err};if found {return original,nil}
- input.Request.IDempotencyKey=key // 实际RPC/lookup用持久原key；助手临时摘要不是外发幂等字段。
- if runtime.BeforeDispatch!=nil {if err=runtime.BeforeDispatch(ctx);err!=nil {if HasCompleteResult(original) {return original,nil};return InvokeModelResult{},err}}
- if err=MarkModelDispatch(ctx,op,runtime,key);err!=nil {return InvokeModelResult{},err}
- outcome,err:=modelclient.InvokeModel(platform.WithOperationContext(ctx,op),runtime.Gateway,op,platform.InvokeModelRequest{Request:input.Request,IDempotencyKey:key,Stream:true,OnEvent:func(event platform.StreamEvent)error{
-  if err:=SaveModelProgress(ctx,op,runtime,key,event);err!=nil {return err}
-  if input.Stream&&runtime.OnEvent!=nil {return runtime.OnEvent(event)};return nil
- }})
- if outcome.InvocationID!="" {if saved:=RecordModelObservation(ctx,op,runtime,key,outcome);saved!=nil {return outcome,saved}}
- if err!=nil {if HasCompleteResult(original) {return original,nil};return outcome,err}
- if !HasCompleteResult(outcome)&&HasCompleteResult(original) {return original,nil}
- return outcome,nil
+	if expected, ok := runtime.Expectations[input.Request.TaskID]; ok {
+		input.Request.ExpectedRouteVersion = expected.RouteVersion
+		input.Request.ExpectedPriceSnapshots = expected.Prices
+	}
+	semantic := input.SemanticKey
+	if semantic == "" {
+		semantic = input.Request.IDempotencyKey
+	}
+	key := "knowledge." + platform.HashBytes([]byte(op.OperationID+":"+semantic))
+	key, original, found, err := BeginModelStep(ctx, op, runtime, key, semantic, input.Request)
+	if err != nil {
+		return InvokeModelResult{}, err
+	}
+	if found {
+		return original, nil
+	}
+	input.Request.IDempotencyKey = key // 实际RPC/lookup用持久原key；助手临时摘要不是外发幂等字段。
+	if runtime.BeforeDispatch != nil {
+		if err = runtime.BeforeDispatch(ctx); err != nil {
+			if HasCompleteResult(original) {
+				return original, nil
+			}
+			return InvokeModelResult{}, err
+		}
+	}
+	if err = MarkModelDispatch(ctx, op, runtime, key); err != nil {
+		return InvokeModelResult{}, err
+	}
+	outcome, err := modelclient.InvokeModel(platform.WithOperationContext(ctx, op), runtime.Gateway, op, platform.InvokeModelRequest{Request: input.Request, IDempotencyKey: key, Stream: true, OnEvent: func(event platform.StreamEvent) error {
+		if err := SaveModelProgress(ctx, op, runtime, key, event); err != nil {
+			return err
+		}
+		if input.Stream && runtime.OnEvent != nil {
+			return runtime.OnEvent(event)
+		}
+		return nil
+	}})
+	if outcome.InvocationID != "" {
+		if saved := RecordModelObservation(ctx, op, runtime, key, outcome); saved != nil {
+			return outcome, saved
+		}
+	}
+	if err != nil {
+		if HasCompleteResult(original) {
+			return original, nil
+		}
+		return outcome, err
+	}
+	if !HasCompleteResult(outcome) && HasCompleteResult(original) {
+		return original, nil
+	}
+	return outcome, nil
 }
 
 // CompletedOutput 只读取终态结构化结果，收费未知、失败和缺输出均不重算。
@@ -90,9 +131,12 @@ func CompletedOutput(outcome InvokeModelResult, capability string) (*platform.Mo
 	if !HasCompleteResult(outcome) {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "模型结果未成功完成，保留原调用待查")
 	}
- if outcome.CurrentSnapshot!=nil&&outcome.CurrentSnapshot.Output!=nil {
-  if outcome.CurrentSnapshot.Output.Capability!=capability {return nil,platform.NewError(platform.CodeIntegrityError,false,"原模型当前完整输出能力不一致")};return outcome.CurrentSnapshot.Output,nil
- }
+	if outcome.CurrentSnapshot != nil && outcome.CurrentSnapshot.Output != nil {
+		if outcome.CurrentSnapshot.Output.Capability != capability {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "原模型当前完整输出能力不一致")
+		}
+		return outcome.CurrentSnapshot.Output, nil
+	}
 	var output *platform.ModelOutput
 	for _, event := range outcome.Events {
 		if event.Output != nil {
@@ -128,8 +172,11 @@ func BindAdmissionPermit(ctx context.Context, op OperationContext, permit *gen.A
 }
 
 // WithModelLease 仅装配jobs真实CheckLease；原结果复用无新付费，派发前锁外核权威。
-func WithModelLease(ctx context.Context,check func(context.Context)error)(context.Context,error) {
- runtime,ok:=ctx.Value(modelRuntimeKey{}).(ModelRuntime)
- if !ok||check==nil {return nil,platform.NewError(platform.CodeDependencyUnavailable,false,"模型步骤缺真实租约检查")}
- runtime.BeforeDispatch=check;return WithModelRuntime(ctx,runtime),nil
+func WithModelLease(ctx context.Context, check func(context.Context) error) (context.Context, error) {
+	runtime, ok := ctx.Value(modelRuntimeKey{}).(ModelRuntime)
+	if !ok || check == nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "模型步骤缺真实租约检查")
+	}
+	runtime.BeforeDispatch = check
+	return WithModelRuntime(ctx, runtime), nil
 }

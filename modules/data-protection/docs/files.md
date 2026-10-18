@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 68 个：手写 42、UI 4、生成 5、配置 10、迁移 6。函数 123 个：约束 43，参考 80。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 68 个：手写 42、UI 4、生成 5、配置 10、迁移 6。函数 124 个：约束 43，参考 81。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -10,7 +10,7 @@
 | `modules/data-protection/internal/backup.go` | 手写 | 建立备份操作；同文件职责限本域以下登记函数 | `data-protection.CreateBackup`、`data-protection.CollectSnapshots`（参考）、`data-protection.FinalizeBackup`（参考）、`data-protection.ExecuteBackup`、`data-protection.enqueueBackupState`（参考）、`data-protection.submitBackupJob`（参考） |
 | `modules/data-protection/internal/maintenance.go` | 手写 | 打开站点维护屏障；同文件职责限本域以下登记函数 | `data-protection.AcquireMaintenance`（参考）、`data-protection.WaitAllSafe`（参考）、`data-protection.ReleaseMaintenance`（参考） |
 | `modules/data-protection/internal/snapshot_client.go` | 手写 | 统一导出单域；同文件职责限本域以下登记函数 | `data-protection.ExportDomainSnapshot`（参考） |
-| `modules/data-protection/internal/manifest.go` | 手写 | 构建统一备份manifest；同文件职责限本域以下登记函数 | `data-protection.BuildManifest`（参考）、`data-protection.ValidateCrossDomainRefs`（参考）、`data-protection.bindDomainEvidence`（参考）、`data-protection.validateManifestEvidence`（参考）、`data-protection.resolveReferenceTargets`（参考）、`data-protection.decodeBackupManifest`（参考） |
+| `modules/data-protection/internal/manifest.go` | 手写 | 构建统一备份manifest；同文件职责限本域以下登记函数 | `data-protection.BuildManifest`（参考）、`data-protection.ValidateCrossDomainRefs`（参考）、`data-protection.bindDomainEvidence`（参考）、`data-protection.validateManifestEvidence`（参考）、`data-protection.resolveReferenceTargets`（参考）、`data-protection.decodeBackupManifest`（参考）、`data-protection.DomainSnapshotManifest.MarshalJSON`（参考） |
 | `modules/data-protection/internal/integrity.go` | 手写 | 校验文件完整性；同文件职责限本域以下登记函数 | `data-protection.VerifyObjectHash`（参考） |
 | `modules/data-protection/internal/crypto.go` | 手写 | 加密备份对象；同文件职责限本域以下登记函数 | `data-protection.EncryptBackupObject`（参考）、`data-protection.DecryptForValidation`（参考）、`data-protection.ConfigureKeyring`（参考）、`data-protection.readKEKFile`（参考）、`data-protection.configuredKEK`（参考）、`data-protection.aesGCM`（参考）、`data-protection.cryptoNonce`（参考）、`data-protection.frameHeader`（参考）、`data-protection.frameAAD`（参考）、`data-protection.wrapAAD`（参考）、`data-protection.writeCryptoFrame`（参考）、`data-protection.syncObjectDirectory`（参考）、`data-protection.writeCryptoJournal`（参考）、`data-protection.activateEncryptedObject`（参考）、`data-protection.readCryptoHeader`（参考）、`data-protection.decryptCryptoFrames`（参考）、`data-protection.activateDecryptedObject`（参考） |
 | `modules/data-protection/internal/queries.go` | 手写 | 分页备份目录；同文件职责限本域以下登记函数 | `data-protection.ListBackups`、`data-protection.ReadBackup`、`data-protection.ReadMirrorStatus` |

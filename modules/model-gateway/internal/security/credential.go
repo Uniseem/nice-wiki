@@ -18,7 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
- "strconv"
+	"strconv"
 	"syscall"
 	"time"
 	"unicode/utf8"
@@ -168,7 +168,15 @@ func writeCredential(ctx context.Context, op OperationContext, input credentialC
 		if oldEpoch != op.DataEpoch {
 			return credentialWriteResult{}, platform.NewError(platform.CodeVersionMismatch, false, "当前凭据代次已变化")
 		}
-		if nonceSize != 12 || ciphertextSize <= 16 {redacted,e:=gatewayruntime.IsRedactedMaterial(ctx,tx,"credential",input.ProviderID+"|"+strconv.Itoa(currentVersion));if e!=nil{return credentialWriteResult{},e};if !redacted||nonceSize!=0||ciphertextSize!=0{return credentialWriteResult{},platform.NewError(platform.CodeIntegrityError,false,"当前凭据材料不完整")}}
+		if nonceSize != 12 || ciphertextSize <= 16 {
+			redacted, e := gatewayruntime.IsRedactedMaterial(ctx, tx, "credential", input.ProviderID+"|"+strconv.Itoa(currentVersion))
+			if e != nil {
+				return credentialWriteResult{}, e
+			}
+			if !redacted || nonceSize != 0 || ciphertextSize != 0 {
+				return credentialWriteResult{}, platform.NewError(platform.CodeIntegrityError, false, "当前凭据材料不完整")
+			}
+		}
 	}
 	var reused bool
 	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM credentials WHERE provider_id=? AND credential_version=?) OR EXISTS(SELECT 1 FROM credential_retirements WHERE provider_id=? AND credential_version=?)`, input.ProviderID, result.Version, input.ProviderID, result.Version).Scan(&reused); err != nil {

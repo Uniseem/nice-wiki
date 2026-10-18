@@ -44,7 +44,9 @@ func EnsureSchema(ctx context.Context, db *sql.DB) error {
 	if _, err := db.ExecContext(ctx, schemaIndexSQL); err != nil {
 		return platform.NewError(platform.CodeInternal, true, "创建outbox索引失败")
 	}
- if _,err:=db.ExecContext(ctx,observationSchemaSQL);err!=nil{return platform.NewError(platform.CodeInternal,true,"创建outbox真实活动水位失败")}
+	if _, err := db.ExecContext(ctx, observationSchemaSQL); err != nil {
+		return platform.NewError(platform.CodeInternal, true, "创建outbox真实活动水位失败")
+	}
 	return nil
 }
 

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 74 个：手写 47、UI 12、生成 5、配置 10。函数 262 个：约束 43，参考 219。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 74 个：手写 47、UI 12、生成 5、配置 10。函数 265 个：约束 43，参考 222。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -27,14 +27,14 @@
 | `modules/content/internal/visibility_service.go` | 手写 | 同步核公开引用是否仍可见且当前 | `content.ValidatePublications`、`content.readPublicationSnapshot`（参考） |
 | `modules/content/internal/publication_reader.go` | 手写 | 获取仍公开的精确正文快照 | `content.ReadPublishedRevision`、`content.loadVisiblePublication`（参考） |
 | `modules/content/internal/trash_service.go` | 手写 | 删除进回收站，可选旧URL替代跳转 | `content.TrashDocument`、`content.RestoreDocument`、`content.PurgeDocuments` |
-| `modules/content/internal/history_service.go` | 手写 | 查看署名发布/git版本历史 | `content.ReadRevisionHistory`、`content.DiffRevisions`、`content.RollbackPublishedRevision` |
+| `modules/content/internal/history_service.go` | 手写 | 查看署名发布/git版本历史 | `content.ReadRevisionHistory`、`content.DiffRevisions`、`content.RollbackPublishedRevision`、`content.readHistoricalBody`（参考）、`content.historyBlockMap`（参考） |
 | `modules/content/internal/preview_service.go` | 手写 | 管理员预览草稿公开样式 | `content.CreatePreviewGrant`、`content.ValidatePreviewGrant` |
 | `modules/content/internal/reference_reader.go` | 手写 | 向资源库列出哪些文档引用文件 | `content.ListResourceReferences`、`content.NewReferenceRuntime`（参考）、`content.WithReferenceRuntime`（参考）、`content.referenceRuntimeFromContext`（参考）、`content.readReferenceCursor`（参考）、`content.validateReferenceCoverage`（参考）、`content.readReferenceSources`（参考）、`content.readPublicationReferences`（参考）、`content.readCommittedReferenceSource`（参考）、`content.referenceSortKey`（参考） |
 | `modules/content/internal/object_reader.go` | 手写 | 经对象API读取私有文件而不共享目录 | `content.ReadContentObject` |
 | `modules/content/internal/outbox_repository.go` | 手写 | 与发布/撤回提交原子登记最小事件 | `content.PublishContentEvent`（参考）、`content.bindPublicationTx`（参考）、`content.RelayOutbox`、`content.WithRelayRuntime`（参考） |
 | `modules/content/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `content.AcquireBarrier`、`content.ReleaseBarrier` |
 | `modules/content/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `content.ExportSnapshot`、`content.StageSnapshot`、`content.DiscardSnapshot` |
-| `modules/content/internal/public_route_reader.go` | 手写 | 公开导航读取已发布文档树 | `content.ReadPublicTree`、`content.ResolvePublicPath` |
+| `modules/content/internal/public_route_reader.go` | 手写 | 公开导航读取已发布文档树 | `content.ReadPublicTree`、`content.ResolvePublicPath`、`content.readPublicRouteSnapshot`（参考） |
 | `modules/content/web/src/editor/editor-runtime.ts` | UI | 创建Tiptap3/Vue编辑器会话 | `content.createEditorSession`（参考） |
 | `modules/content/web/src/editor/block-actions.ts` | UI | 拖拽手柄菜单排序/转换/复制/删除 | `content.applyBlockAction`（参考） |
 | `modules/content/web/src/editor/slash-menu.ts` | UI | slash插入菜单与Markdown输入快捷键 | `content.resolveSlashMenu`（参考） |

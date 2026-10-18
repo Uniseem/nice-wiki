@@ -122,7 +122,9 @@ func SignAssertion(key platform.SigningKey, claims platform.AssertionClaims) (st
 	case expiresAt.Sub(issuedAt) <= 0 || expiresAt.Sub(issuedAt) > AssertionTTL:
 		return "", platform.NewError(platform.CodeValidation, false, "断言有效期必须大于0且不超过60秒")
 	}
- if err:=platform.ValidateCleanupScope(claims.CleanupScope,claims.Issuer,claims.Audience,time.Now());err!=nil{return "",err}
+	if err := platform.ValidateCleanupScope(claims.CleanupScope, claims.Issuer, claims.Audience, time.Now()); err != nil {
+		return "", err
+	}
 	privateKey, err := LoadSigningKey(key)
 	if err != nil {
 		return "", err
@@ -203,7 +205,9 @@ func checkAssertionClaims(claims platform.AssertionClaims, expect platform.Asser
 	if claims.SiteID != "" && !platform.ValidIdentifier(claims.SiteID) {
 		return platform.NewError(platform.CodeUnauthenticated, false, "断言站点作用域不合法")
 	}
- if err:=platform.ValidateCleanupScope(claims.CleanupScope,claims.Issuer,claims.Audience,time.Now());err!=nil{return err}
+	if err := platform.ValidateCleanupScope(claims.CleanupScope, claims.Issuer, claims.Audience, time.Now()); err != nil {
+		return err
+	}
 	if !validLoginScopes(claims) || !validBudgetScopes(claims) {
 		return platform.NewError(platform.CodeUnauthenticated, false, "登录网络作用域来源不合法")
 	}
@@ -273,7 +277,7 @@ var replayCache = map[string]time.Time{}
 // 请求正文读取SHA-256后原样回填，供后续传输使用。
 func SignOutboundRequest(ctx context.Context, r *http.Request, issuer, audience string, key platform.SigningKey) error {
 	var bodyHash platform.Hash
- var body []byte
+	var body []byte
 	if r.Body != nil && r.ContentLength != 0 {
 		readBody, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -306,7 +310,22 @@ func SignOutboundRequest(ctx context.Context, r *http.Request, issuer, audience 
 			claims.LoginNetworkScopes = append([]platform.Hash(nil), op.LoginNetworkScopes...)
 		}
 	}
- if issuerSource:=platform.CleanupIssuerFrom(ctx);issuerSource!=nil{scope,err:=issuerSource.IssueCleanup(ctx,platform.CleanupRequest{SourceService:issuer,TargetService:audience,Method:r.Method,Path:r.URL.Path,RawQuery:r.URL.RawQuery,Body:body,BodyHash:bodyHash});if err!=nil{return err};if scope!=nil{claims.CleanupScope=scope;claims.ExpiresAt=scope.Deadline;op,ok:=platform.OperationContextFrom(ctx);if !ok{return platform.NewError(platform.CodeIntegrityError,false,"清理发行缺原操作")};op.Deadline=scope.Deadline;ctx=platform.WithOperationContext(platform.WithPortalProof(ctx,""),op)}}
+	if issuerSource := platform.CleanupIssuerFrom(ctx); issuerSource != nil {
+		scope, err := issuerSource.IssueCleanup(ctx, platform.CleanupRequest{SourceService: issuer, TargetService: audience, Method: r.Method, Path: r.URL.Path, RawQuery: r.URL.RawQuery, Body: body, BodyHash: bodyHash})
+		if err != nil {
+			return err
+		}
+		if scope != nil {
+			claims.CleanupScope = scope
+			claims.ExpiresAt = scope.Deadline
+			op, ok := platform.OperationContextFrom(ctx)
+			if !ok {
+				return platform.NewError(platform.CodeIntegrityError, false, "清理发行缺原操作")
+			}
+			op.Deadline = scope.Deadline
+			ctx = platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op)
+		}
+	}
 	token, err := SignAssertion(key, claims)
 	if err != nil {
 		return err

@@ -9,7 +9,7 @@ import (
 	"errors"
 	"math/big"
 	"net/http"
- "slices"
+	"slices"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -103,12 +103,12 @@ func ReadPriceSnapshot(ctx context.Context, op OperationContext, modelID string,
 		return PriceSnapshot{}, err
 	}
 	defer tx.Rollback()
- return ReadPriceSnapshotInTransaction(ctx,op,tx,modelID,effectiveAt,allowUnknown)
+	return ReadPriceSnapshotInTransaction(ctx, op, tx, modelID, effectiveAt, allowUnknown)
 }
 
 // ReadPriceSnapshotInTransaction在接受事务复读真实当前价目，原source价目以认证投影读取并用原epoch核hash。
-func ReadPriceSnapshotInTransaction(ctx context.Context,op OperationContext,tx *sql.Tx,modelID string,effectiveAt time.Time,allowUnknown bool)(PriceSnapshot,error){
- var err error
+func ReadPriceSnapshotInTransaction(ctx context.Context, op OperationContext, tx *sql.Tx, modelID string, effectiveAt time.Time, allowUnknown bool) (PriceSnapshot, error) {
+	var err error
 	var epoch, updated string
 	var version int
 	if err = tx.QueryRowContext(ctx, `SELECT data_epoch,version,updated_at FROM models WHERE model_id=?`, modelID).Scan(&epoch, &version, &updated); errors.Is(err, sql.ErrNoRows) {
@@ -120,17 +120,17 @@ func ReadPriceSnapshotInTransaction(ctx context.Context,op OperationContext,tx *
 		return PriceSnapshot{}, platform.NewError(platform.CodeVersionMismatch, false, "报价模型代次已变化")
 	}
 	var otherEpoch bool
-	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM price_book_entries p WHERE model_id=? AND data_epoch<>? AND NOT EXISTS(SELECT 1 FROM restored_epoch_sources s WHERE s.source_epoch=p.data_epoch AND s.target_epoch=?))`, modelID, op.DataEpoch,op.DataEpoch).Scan(&otherEpoch); err != nil {
+	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM price_book_entries p WHERE model_id=? AND data_epoch<>? AND NOT EXISTS(SELECT 1 FROM restored_epoch_sources s WHERE s.source_epoch=p.data_epoch AND s.target_epoch=?))`, modelID, op.DataEpoch, op.DataEpoch).Scan(&otherEpoch); err != nil {
 		return PriceSnapshot{}, platform.NormalizeIOError(err, platform.CodeDependencyUnavailable, true, "核对价目代次失败")
 	}
 	if otherEpoch {
 		return PriceSnapshot{}, platform.NewError(platform.CodeVersionMismatch, false, "价目历史含其他数据代次")
 	}
-	var raw, digest, id, source,priceEpoch string
+	var raw, digest, id, source, priceEpoch string
 	var priceVersion int
 	var seconds int64
 	var nanos int
-	err = tx.QueryRowContext(ctx, `SELECT price_snapshot_id,model_version,source,data_epoch,effective_seconds,effective_nanos,snapshot_json,snapshot_hash FROM price_book_entries WHERE model_id=? AND (data_epoch=? OR data_epoch IN (SELECT source_epoch FROM restored_epoch_sources WHERE target_epoch=?)) AND (effective_seconds<? OR (effective_seconds=? AND effective_nanos<=?)) ORDER BY CASE source WHEN 'manual' THEN 0 WHEN 'remote' THEN 1 ELSE 2 END,effective_seconds DESC,effective_nanos DESC,model_version DESC LIMIT 1`, modelID, op.DataEpoch,op.DataEpoch, effectiveAt.Unix(), effectiveAt.Unix(), effectiveAt.Nanosecond()).Scan(&id, &priceVersion, &source,&priceEpoch, &seconds, &nanos, &raw, &digest)
+	err = tx.QueryRowContext(ctx, `SELECT price_snapshot_id,model_version,source,data_epoch,effective_seconds,effective_nanos,snapshot_json,snapshot_hash FROM price_book_entries WHERE model_id=? AND (data_epoch=? OR data_epoch IN (SELECT source_epoch FROM restored_epoch_sources WHERE target_epoch=?)) AND (effective_seconds<? OR (effective_seconds=? AND effective_nanos<=?)) ORDER BY CASE source WHEN 'manual' THEN 0 WHEN 'remote' THEN 1 ELSE 2 END,effective_seconds DESC,effective_nanos DESC,model_version DESC LIMIT 1`, modelID, op.DataEpoch, op.DataEpoch, effectiveAt.Unix(), effectiveAt.Unix(), effectiveAt.Nanosecond()).Scan(&id, &priceVersion, &source, &priceEpoch, &seconds, &nanos, &raw, &digest)
 	if errors.Is(err, sql.ErrNoRows) {
 		if !allowUnknown {
 			return PriceSnapshot{}, platform.NewError(platform.CodeNotFound, false, "指定时刻尚无已登记价目")
@@ -148,8 +148,16 @@ func ReadPriceSnapshotInTransaction(ctx context.Context,op OperationContext,tx *
 	if len(raw) > 1<<20 || platform.HashBytes([]byte(raw)) != digest || json.Unmarshal([]byte(raw), &stored) != nil || priceVersion < 1 || priceVersion > version {
 		return PriceSnapshot{}, platform.NewError(platform.CodeIntegrityError, false, "不可变价目材料损坏")
 	}
- projected,e:=gatewayruntime.IsRestoredEpoch(ctx,tx,priceEpoch,op.DataEpoch);if e!=nil{return PriceSnapshot{},e};if !projected{return PriceSnapshot{},platform.NewError(platform.CodeStaleResult,false,"价目来源没有当前target认证投影")};proofOp:=op;proofOp.DataEpoch=priceEpoch
- expected, err := MakePriceSnapshot(ctx, proofOp, modelID, priceVersion, source, time.Unix(seconds, int64(nanos)), ManualPrice{stored.InputPerMillionCost, stored.OutputPerMillionCost, stored.FixedCost})
+	projected, e := gatewayruntime.IsRestoredEpoch(ctx, tx, priceEpoch, op.DataEpoch)
+	if e != nil {
+		return PriceSnapshot{}, e
+	}
+	if !projected {
+		return PriceSnapshot{}, platform.NewError(platform.CodeStaleResult, false, "价目来源没有当前target认证投影")
+	}
+	proofOp := op
+	proofOp.DataEpoch = priceEpoch
+	expected, err := MakePriceSnapshot(ctx, proofOp, modelID, priceVersion, source, time.Unix(seconds, int64(nanos)), ManualPrice{stored.InputPerMillionCost, stored.OutputPerMillionCost, stored.FixedCost})
 	encoded, encodeErr := platform.CanonicalJSON(expected)
 	if err != nil || encodeErr != nil || id != expected.PriceSnapshotId || !bytes.Equal([]byte(raw), encoded) {
 		return PriceSnapshot{}, platform.NewError(platform.CodeIntegrityError, false, "不可变价目身份、时刻或完整率矛盾")
@@ -158,8 +166,12 @@ func ReadPriceSnapshotInTransaction(ctx context.Context,op OperationContext,tx *
 }
 
 func RequirePriceCaller(ctx context.Context, op OperationContext) error {
- if op.CallerService=="portal"&&op.Actor.Kind=="admin"&&(slices.Contains(op.Actor.Grants,"model.manage")||slices.Contains(op.Actor.Grants,"superadmin")){return nil}
- if op.CallerService=="knowledge"&&(op.Actor.Kind!="service"||op.Actor.SubjectID!="knowledge"||op.CostClass!=platform.CostClassBackground){return platform.NewError(platform.CodeForbidden,false,"知识估价只允许原后台计划纯服务上下文")}
+	if op.CallerService == "portal" && op.Actor.Kind == "admin" && (slices.Contains(op.Actor.Grants, "model.manage") || slices.Contains(op.Actor.Grants, "superadmin")) {
+		return nil
+	}
+	if op.CallerService == "knowledge" && (op.Actor.Kind != "service" || op.Actor.SubjectID != "knowledge" || op.CostClass != platform.CostClassBackground) {
+		return platform.NewError(platform.CodeForbidden, false, "知识估价只允许原后台计划纯服务上下文")
+	}
 	if op.Actor.Kind == "service" && op.Actor.SubjectID == op.CallerService {
 		for _, task := range gen.AITaskCatalog {
 			if task.Owner == op.CallerService {

@@ -1000,9 +1000,9 @@ func ExpireUploadSessions(ctx context.Context, op OperationContext, input Expire
 
 **步骤**
 
-1. 只扫描receiving expiry，明确不扫描ready assets
-2. 锁upload标expired/释放reservation
-3. 删除服务生成tmp路径并journal；complete已ready不删除
+1. 只扫描当前epoch真实过期receiving及已持久prepared临时删除意图；与chunk/complete持同一Store.mu互斥，ready/blocked/其他状态拒绝。
+2. expired会话与upload_expirations.prepared同事务提交，释放未完成配额；随后仅用os.Root清服务生成uploads/<uploadId>.part并fsync uploads，最后记removed，重启按原意图续清。
+3. 不扫描或删除ready资产，不替旧blob/付费决定造完成，未知文件类型失败关闭。
 
 **错误**
 
@@ -1012,7 +1012,7 @@ func ExpireUploadSessions(ctx context.Context, op OperationContext, input Expire
 - 授权：service:media maintenance
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：expired去重
-- 依赖：无
+- 依赖：`media.currentBlobStore`、`media.readUploadRow`、`media.writeUploadRow`、`media.openMediaRoot`、`media.syncDirectory`
 
 ## media.SniffAssetType
 

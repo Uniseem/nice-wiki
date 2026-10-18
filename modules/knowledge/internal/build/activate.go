@@ -68,7 +68,7 @@ func ActivateBuild(ctx context.Context, op OperationContext, input ActivateBuild
 		return ActivateBuildResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "活动代数读取失败")
 	}
 	if generation != input.ExpectedActiveGeneration || record.Build.Generation <= generation {
-		if _, err := tx.ExecContext(work, `UPDATE builds SET state='superseded',generation_state='retired',retired_at_ns=? WHERE build_id=?`, time.Now().UTC().UnixNano(),input.BuildID); err != nil {
+		if _, err := tx.ExecContext(work, `UPDATE builds SET state='superseded',generation_state='retired',retired_at_ns=? WHERE build_id=?`, time.Now().UTC().UnixNano(), input.BuildID); err != nil {
 			return ActivateBuildResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "过期构建写入失败")
 		}
 		record.Build.State = gen.IndexBuildState("superseded")
@@ -77,7 +77,7 @@ func ActivateBuild(ctx context.Context, op OperationContext, input ActivateBuild
 			return ActivateBuildResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "活动指针写入失败")
 		}
 		if previousID != "" {
-			if _, err := tx.ExecContext(work, `UPDATE builds SET generation_state='retired',retired_at_ns=? WHERE build_id=?`, time.Now().UTC().UnixNano(),previousID); err != nil {
+			if _, err := tx.ExecContext(work, `UPDATE builds SET generation_state='retired',retired_at_ns=? WHERE build_id=?`, time.Now().UTC().UnixNano(), previousID); err != nil {
 				return ActivateBuildResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "旧代数保留状态写入失败")
 			}
 		}
@@ -99,8 +99,10 @@ func ActivateBuild(ctx context.Context, op OperationContext, input ActivateBuild
 	if time.Since(observed) > time.Second {
 		return ActivateBuildResult{}, platform.NewError(platform.CodeStaleResult, false, "激活提交前权威证明已到期")
 	}
-	if _,err:=indexer.CommitExecutionResult(work,tx,op,"knowledge.build",input.BuildID,input.LeaseID,record.Build);err!=nil {return ActivateBuildResult{},err}
- if err := tx.Commit(); err != nil {
+	if _, err := indexer.CommitExecutionResult(work, tx, op, "knowledge.build", input.BuildID, input.LeaseID, record.Build); err != nil {
+		return ActivateBuildResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
 		return ActivateBuildResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "构建激活提交失败")
 	}
 	return ActivateBuildResult{Build: record.Build}, nil

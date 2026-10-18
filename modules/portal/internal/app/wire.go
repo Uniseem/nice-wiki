@@ -4,15 +4,15 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"nice-wiki/libs/platform/apivalidate"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-	"nice-wiki/libs/platform/apivalidate"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-		portal "nice-wiki/modules/portal/internal"
+	portal "nice-wiki/modules/portal/internal"
 	"nice-wiki/modules/portal/internal/gen"
 	"nice-wiki/modules/portal/internal/transport"
 )
@@ -34,7 +34,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	anchors, key, err := lifecycle.LoadServiceIdentity(config)
- if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	delegationKey, err := lifecycle.LoadPortalDelegation(config, anchors)
 	if err != nil {
 		return nil, err
@@ -69,8 +71,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		authResolver = portal.IdentityAuthResolver{Client: client}
 	}
 	siteID, err := readSiteIdentity(ctx, config, key, view.DataEpoch)
- if err != nil { return nil, err }
- return transport.NewApplication(config, anchors, key, delegationKey, runtimeClient, csrfVerifier, authResolver, routes, view.DataEpoch, siteID)
+	if err != nil {
+		return nil, err
+	}
+	return transport.NewApplication(config, anchors, key, delegationKey, runtimeClient, csrfVerifier, authResolver, routes, view.DataEpoch, siteID)
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，不在此函数中缓存
@@ -178,18 +182,30 @@ func ensureDataLayout(dataRoot string) error {
 }
 
 func readSiteIdentity(ctx context.Context, config platform.ServiceConfig, key platform.SigningKey, epoch platform.Identifier) (platform.Identifier, error) {
- validate, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "PortalSiteConfigResponse")
- if err != nil { return "", err }
- deadline := time.Now().UTC().Add(30*time.Second)
- work, cancel := context.WithDeadline(platform.WithPortalProof(ctx, ""), deadline)
- defer cancel()
- id := platform.NewIdentifier()
- op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline.Format(time.RFC3339Nano), DataEpoch: epoch, Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system", ExpiresAt: deadline.Format(time.RFC3339Nano), Grants: []string{}}}
- client := gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key)
- raw, err := client.ReadSiteConfig(platform.WithOperationContext(work, op))
- if err != nil { return "", err }
- if err := validate(raw); err != nil { return "", err }
- var result struct { Config struct { SiteID platform.Identifier `json:"siteId"` } `json:"config"` }
- if err := json.Unmarshal(raw, &result); err != nil { return "", platform.NewError(platform.CodeIntegrityError, false, "站点身份响应不可读") }
- return result.Config.SiteID, nil
+	validate, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "PortalSiteConfigResponse")
+	if err != nil {
+		return "", err
+	}
+	deadline := time.Now().UTC().Add(30 * time.Second)
+	work, cancel := context.WithDeadline(platform.WithPortalProof(ctx, ""), deadline)
+	defer cancel()
+	id := platform.NewIdentifier()
+	op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline.Format(time.RFC3339Nano), DataEpoch: epoch, Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system", ExpiresAt: deadline.Format(time.RFC3339Nano), Grants: []string{}}}
+	client := gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key)
+	raw, err := client.ReadSiteConfig(platform.WithOperationContext(work, op))
+	if err != nil {
+		return "", err
+	}
+	if err := validate(raw); err != nil {
+		return "", err
+	}
+	var result struct {
+		Config struct {
+			SiteID platform.Identifier `json:"siteId"`
+		} `json:"config"`
+	}
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return "", platform.NewError(platform.CodeIntegrityError, false, "站点身份响应不可读")
+	}
+	return result.Config.SiteID, nil
 }

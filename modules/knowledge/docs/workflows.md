@@ -23,19 +23,24 @@
 - 执行函数：`knowledge.ExecuteBuild`
 - 触发：HandlePublication、CreateBuild、RecoverBuildLeases创建
 
-1. FetchPublishedSource取得固定发布修订；ListExtractableAssets列出引用媒体，未有派生文本的资源CreateExtraction排队并等待其完成或标unsupported
-2. NormalizeSource→SplitChunks→EnrichChunkContext（仅变更块付费）→WriteStagingChunks写独立代数
-3. BuildLexicalIndex；RequestEmbeddings分批后StoreEmbeddings，复用同chunkHash/空间已有向量
-4. ValidateBuild后ActivateBuild原子切换；修订已被替代则标superseded；ActivateBuild在同一事务登记index.ready outbox
+1. 精确原job/ref/root/worker/fence读已批准完整BuildJobInput；已完成只返回原持久结果；付费前与最终写前使用平台CheckLease
+2. FetchPublishedSource核完整固定源；整篇超过固定context预算失败关闭，不截断、不降级；真实提取独立任务只等待同原ID
+3. 完整raw chunks、首次真实task memory、增强chunks与固定单块embedding batches各阶段只冻结一次；背景语义用原整组ID，配置漂移不能绕原unknown
+4. 原文字/offsets不改，机器context单独保存；同完整retrieval text/space真实向量复用，未命中按固定原单块批次付费
+5. 完整词项/向量/hash/一秒content权威证明后ActivateBuild，active/outbox/最终原JobExecutionResult同事务；jobs回执未知后只重交原真实结果
+6. 错误边界持久当前原fence真实failure_code/state并保完整已知paid refs；如果最终业务已原子完成则只重交真实成功结果，不覆盖；控制元数据窗口不延长原批准
 
 #### `knowledge.extract`
 
 - 执行函数：`knowledge.ExecuteExtraction`
 - 触发：ExecuteBuild经CreateExtraction创建
 
-1. 读取提取记录与资源hash，按MIME分派：PDF→ExtractPdfText，图片/画板/视频封面→ExtractImageDescription，视频→ExtractVideoMetadata，其他附件→DescribeAttachment
-2. 结果按assetHash/extractorVersion/模型/记忆版本保存为机器派生文本，不覆盖人工caption
-3. 不支持或无文本标unsupported，不自动OCR或转写
+1. 真实独立jobs租约读取完整原ExtractionJobInput；核原发布当前性、精确媒体version/hash授权及冻结任务计划
+2. PDF公共隔离runner真实提取，图片真实视觉，文本附件完整描述，上传视频只原可信正文元数据；未声明格式/无文字unsupported，无自动OCR/字幕/URL重抓
+3. 新付费前通过WithModelLease回核jobs；原owner/稳定语义/原记忆档位/key找回，unknown绝不新owner或换配置重算
+4. 核当前镜像fence/lease/cancel与原计划，提取结果/hash/实际模型证明和最终JobExecutionResult同事务；人工caption不动
+5. 错误边界持久当前原fence真实failure_code/state并保完整已知paid refs；如果最终业务已原子完成则只重交真实成功结果，不覆盖；控制元数据窗口不延长原批准
+6. 来源明确unsupported时直接真实unsupported，不下载超限资源或调用模型；真实模型付费前再次CheckExtractionPlan原声明，已外发仅原key观察
 
 ### 后台任务
 

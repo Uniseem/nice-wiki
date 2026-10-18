@@ -732,6 +732,26 @@
       "streaming": false
     },
     {
+      "method": "POST",
+      "path": "/v1/audit-exports",
+      "owner": "analytics",
+      "operationId": "createAuditExport",
+      "permission": "audit.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/audit-exports/{exportId}",
+      "owner": "analytics",
+      "operationId": "downloadAuditExport",
+      "permission": "audit.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
       "method": "GET",
       "path": "/v1/audits",
       "owner": "analytics",
@@ -1087,6 +1107,16 @@
       "owner": "qa",
       "operationId": "getConversation",
       "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/cost-quotes",
+      "owner": "model-gateway",
+      "operationId": "quoteCost",
+      "permission": "model.manage",
       "admission": null,
       "timeoutMs": 5000,
       "streaming": false
@@ -1459,6 +1489,16 @@
       "permission": "knowledge.manage",
       "admission": null,
       "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/index-options",
+      "owner": "knowledge",
+      "operationId": "readIndexOptions",
+      "permission": "knowledge.manage",
+      "admission": null,
+      "timeoutMs": null,
       "streaming": false
     },
     {
@@ -1918,7 +1958,7 @@
       "operationId": "estimateRebuildPlan",
       "permission": "knowledge.manage",
       "admission": null,
-      "timeoutMs": null,
+      "timeoutMs": 180000,
       "streaming": false
     },
     {
@@ -1928,7 +1968,7 @@
       "operationId": "approveRebuildPlan",
       "permission": "knowledge.manage",
       "admission": null,
-      "timeoutMs": null,
+      "timeoutMs": 180000,
       "streaming": false
     },
     {
@@ -2136,6 +2176,16 @@
       "path": "/v1/statistics/content-gaps",
       "owner": "analytics",
       "operationId": "queryContentGaps",
+      "permission": "stats.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/statistics/exports/{exportId}",
+      "owner": "analytics",
+      "operationId": "downloadStatisticsExport",
       "permission": "stats.read",
       "admission": null,
       "timeoutMs": null,

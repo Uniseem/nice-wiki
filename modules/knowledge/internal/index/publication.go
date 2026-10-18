@@ -1,11 +1,11 @@
 package index
 
 import (
- "context"
- "encoding/json"
- "time"
- "nice-wiki/libs/platform"
- "nice-wiki/modules/knowledge/internal/gen"
+	"context"
+	"encoding/json"
+	"nice-wiki/libs/platform"
+	"nice-wiki/modules/knowledge/internal/gen"
+	"time"
 )
 
 func ValidatePublication(ctx context.Context, op OperationContext, client *gen.ContentClient, validate func(json.RawMessage) error, ref gen.PublishedRevisionRef) (time.Time, int, error) {

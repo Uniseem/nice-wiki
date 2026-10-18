@@ -25,7 +25,16 @@ import (
 // NewOperationHandlers 仅交平台NewServiceHandler装配，统一校验、鉴权及门禁在该入口完成。
 func NewOperationHandlers(bind func(context.Context) context.Context) map[string]http.Handler {
 	return map[string]http.Handler{
- "readCacheTranslationSource":http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){w.Header().Set("Cache-Control","no-store");ctx,op,err:=operationContext(r,bind);if err!=nil{writeResult(w,op,0,nil,err);return};result,err:=cache.ReadCacheTranslationSource(ctx,op,cache.ReadCacheTranslationSourceInput{CacheId:r.PathValue("cacheId")});writeResult(w,op,http.StatusOK,result,err)}),
+		"readCacheTranslationSource": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			ctx, op, err := operationContext(r, bind)
+			if err != nil {
+				writeResult(w, op, 0, nil, err)
+				return
+			}
+			result, err := cache.ReadCacheTranslationSource(ctx, op, cache.ReadCacheTranslationSourceInput{CacheId: r.PathValue("cacheId")})
+			writeResult(w, op, http.StatusOK, result, err)
+		}),
 		"proposeCacheEntry": jsonOperation(bind, http.StatusCreated, cache.ProposeCacheEntry, nil),
 		"cancelTurn": jsonOperation(bind, http.StatusOK, turn.CancelTurn, func(r *http.Request, input *gen.CancelTurnInput) error {
 			if input.TurnId != r.PathValue("turnId") {

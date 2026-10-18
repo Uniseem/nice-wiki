@@ -34,8 +34,8 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 
 // ModelText 只读取网关已持久化的完整winning文本；费用状态另行保留。
 func ModelText(outcome InvokeModelResult) (string, error) {
- if outcome.State != "completed" || outcome.CurrentSnapshot == nil || outcome.CurrentSnapshot.Output == nil || outcome.CurrentSnapshot.Output.Text == nil {
-  return "", platform.NewError(platform.CodeDependencyUnavailable, false, "模型完整文本尚未持久化，保留原调用待查询")
- }
- return *outcome.CurrentSnapshot.Output.Text, nil
+	if outcome.State != "completed" || outcome.CurrentSnapshot == nil || outcome.CurrentSnapshot.Output == nil || outcome.CurrentSnapshot.Output.Text == nil {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, false, "模型完整文本尚未持久化，保留原调用待查询")
+	}
+	return *outcome.CurrentSnapshot.Output.Text, nil
 }

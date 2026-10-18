@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 262 个函数：约束 43 个，参考 219 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 265 个函数：约束 43 个，参考 222 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -5319,9 +5319,8 @@ func ReadRevisionHistory(ctx context.Context, op OperationContext, input ReadRev
 
 **步骤**
 
-1. publish功能权限
-2. 读取本域history + data git镜像回执，不读取DP目录
-3. 显示执行发布账号的署名与时间，即使账号deleted仍保留
+1. 当前content.publish授权，按真实site/epoch/doc读取同一SQL快照中发布署名历史和镜像回执，不读取data-protection磁盘。
+2. 游标仅绑定稳定账号/会话/授权修订与固定文档/limit；真实reference_scan_state水位改变需从头，保留删除账号原名、原发布时间及镜像状态。
 
 **错误**
 
@@ -5333,7 +5332,7 @@ func ReadRevisionHistory(ctx context.Context, op OperationContext, input ReadRev
 - 授权：content.publish
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：无
+- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.beginTreeRead`、`content.readPublicationSnapshot`、`platform.SignCursor`、`platform.VerifyCursor`
 
 ## content.DiffRevisions
 
@@ -5362,9 +5361,8 @@ func DiffRevisions(ctx context.Context, op OperationContext, input DiffRevisions
 
 **步骤**
 
-1. publish权限读两个COMMITTED文件
-2. 按blockId比较hash与前序父位置
-3. 区分文本/属性变化和移动，不将ID变化误配历史
+1. 当前content.publish授权；leftRevisionId/rightRevisionId指历史PublishedRevisionRef.publishedRevisionId，按同站文档publication_snapshots映射真实COMMITTED draft revision/hash，读精确文件。
+2. 按稳定blockId比完整HashBlock及父/容器/前序同级块位置，分别给新增/删除/内容属性改变/移动，不按文字或数组序号猜ID对应。
 
 **错误**
 
@@ -5376,7 +5374,7 @@ func DiffRevisions(ctx context.Context, op OperationContext, input DiffRevisions
 - 授权：content.publish
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：确定性
-- 依赖：`content.ReadRevisionBody`、`content.HashBlock`
+- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.beginTreeRead`、`content.ReadRevisionBody`、`content.readHistoricalBody`、`content.historyBlockMap`
 
 ## content.RollbackPublishedRevision
 
@@ -5424,6 +5422,70 @@ func RollbackPublishedRevision(ctx context.Context, op OperationContext, input R
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
 - 依赖：`content.ReadRevisionHistory`、`content.ReadRevisionBody`、`content.CommitPublication`、`media:readAsset`
+
+## content.readHistoricalBody
+
+- 级别：参考
+- 文件：`modules/content/internal/history_service.go`
+- 作用：按历史发布映射读取真实COMMITTED正文
+
+```go
+func readHistoricalBody(ctx context.Context,op OperationContext,runtime TreeRuntime,documentID,publishedID string)(DocumentBody,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按历史发布映射读取真实COMMITTED正文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：调用者已持有可信树快照
+- 并发：纯计算
+- 幂等：确定性
+- 依赖：`content.beginTreeRead`、`content.ReadRevisionBody`
+
+## content.historyBlockMap
+
+- 级别：参考
+- 文件：`modules/content/internal/history_service.go`
+- 作用：稳定块hash及精确前序位置
+
+```go
+func historyBlockMap(body DocumentBody)(map[string]historyBlock,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 稳定块hash及精确前序位置
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：调用者已持有可信树快照
+- 并发：纯计算
+- 幂等：确定性
+- 依赖：`content.bodyJSONValue`、`content.HashBlock`
 
 ## content.CreatePreviewGrant
 
@@ -6310,7 +6372,7 @@ func ReadPublicTree(ctx context.Context, op OperationContext, input ReadPublicTr
 - 授权：anonymous/service:public-site/knowledge
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`content.ValidatePublications`
+- 依赖：`content.treeRuntimeFromContext`、`content.beginTreeRead`、`content.readTreeSnapshot`、`content.readPublicRouteSnapshot`
 
 ## content.ResolvePublicPath
 
@@ -6352,7 +6414,40 @@ func ResolvePublicPath(ctx context.Context, op OperationContext, input ResolvePu
 - 授权：anonymous/service:public-site
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：`content.ValidatePublications`
+- 依赖：`content.treeRuntimeFromContext`、`content.beginTreeRead`、`content.readTreeSnapshot`、`content.readPublicRouteSnapshot`
+
+## content.readPublicRouteSnapshot
+
+- 级别：参考
+- 文件：`modules/content/internal/public_route_reader.go`
+- 作用：在同一真实SQL快照计算公开前序树与完整路径
+
+```go
+func readPublicRouteSnapshot(ctx context.Context, tx *sql.Tx, op OperationContext, runtime TreeRuntime) (ReadPublicTreeResult,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取完整可信树，保留所有祖先slug但仅输出已发布标题；按稳定树前序计算最近公开父节点。
+2. 逐个当前发布引用由同事务validatePublicationRef核可见/精确，缺路径或损坏拒绝整个树。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：调用者已持有可信树快照
+- 并发：纯计算
+- 幂等：确定性
+- 依赖：`content.readTreeSnapshot`、`content.canonicalDocumentPaths`、`content.validatePublicationRef`、`content.treePreorder`
 
 ## content.createEditorSession
 
@@ -7261,7 +7356,7 @@ func RegisterPublicationRoutes(app *Application, runtime TreeRuntime, anchors pl
 - 授权：受信启动装配；业务权限由发布入口或服务边界执行
 - 并发：装配时不持业务事务
 - 幂等：重复装配同一进程只注册一次路由表
-- 依赖：`content.PublishDocument`、`content.WithdrawDocument`、`content.ValidatePublications`、`content.ReadPublishedRevision`、`platform.NewServiceHandler`
+- 依赖：`content.PublishDocument`、`content.WithdrawDocument`、`content.ValidatePublications`、`content.ReadPublishedRevision`、`platform.NewServiceHandler`、`content.ReadPublicTree`、`content.ResolvePublicPath`、`content.ReadRevisionHistory`、`content.DiffRevisions`
 
 ## content.mountModuleUI
 

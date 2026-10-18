@@ -1468,6 +1468,7 @@ func RunAssistant(ctx context.Context, op OperationContext, input RunAssistantIn
 4. 严格解析new/update/delete/noop候选和readonly规则
 5. 不写active，只保存pending差异候选。
 6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+7. 仅消费CurrentSnapshot.Output.Text非nil的真实完整winning结果，显式空字符串可用；不由历史delta拼接或把费用未知当作没有结果，原费用/paid refs继续保留。
 
 **错误**
 
@@ -3142,7 +3143,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`memory.LoadRuntime`、`memory.RecoverAssistantLeases`、`memory.DispatchGlossaryCommand`、`memory.PruneContextSnapshots`、`memory.PublishOutbox`、`memory.ConsumeEvents`、`memory.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`memory.NewApplication`、`memory.ConfigureWrites`、`memory.ConfigurePublisher`、`memory.ConfigureGateway`、`memory.ConfigureAssistantClients`、`memory.ConfigureValidators`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
+- 依赖：`site-config:registerActivation`、`memory.LoadRuntime`、`memory.RecoverAssistantLeases`、`memory.DispatchGlossaryCommand`、`memory.PruneContextSnapshots`、`memory.PublishOutbox`、`memory.ConsumeEvents`、`memory.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`memory.NewApplication`、`memory.ConfigureWrites`、`memory.ConfigurePublisher`、`memory.ConfigureGateway`、`memory.ConfigureAssistantClients`、`memory.ConfigureValidators`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`model-gateway:readInference`、`model-gateway:lookupInference`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## memory.Serve
@@ -3455,10 +3456,9 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 
 **步骤**
 
-1. 以可信op（rootOperationId、costClass，问答类附已消费的准入许可）调用model-gateway:createInference，幂等键=本域操作ID+步骤名；同键重放返回原调用，不重复收费
-2. 循环调用model-gateway:resumeInference按lastSequence续读事件直到terminal；stream=true时逐条把delta交给调用方，断线按序号续传
-3. ctx取消或截止到达时调用model-gateway:cancelInference并返回CANCELLED；已派发费用由网关结算，本域不推定免费
-4. completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）
+1. 本域只装配可信op与原准入/批准，公共InvokeModel按原完整请求和同一幂等键先lookup并观察当前快照；仅生产方专用INVOCATION_NOT_ACCEPTED负证明且原批准截止仍有效时首次create。
+2. Request.IDempotencyKey与外层原键完全相同；普通NOT_FOUND不视为未接受；Get/Lookup只读scope不延长付费deadline。
+3. 完整结果完成与费用状态分别保留；取消、续读、真实接受后错误和已有引用均由公共适配器保留，不换新键或新owner重付。
 
 **错误**
 
@@ -3471,7 +3471,7 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 - 授权：permission：service；rule：以本服务身份调用网关，费用类别继承可信op
 - 并发：每次调用独立；同一根操作的子调用共享网关费用作用域
 - 幂等：幂等键固定，重试返回原invocation
-- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`
+- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`、`model-gateway:readInference`、`model-gateway:lookupInference`
 
 ## memory.ConfigureGateway
 

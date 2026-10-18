@@ -54,7 +54,7 @@ const (
 	CodeUnauthenticated       = "UNAUTHENTICATED"
 	CodeForbidden             = "FORBIDDEN"
 	CodeNotFound              = "NOT_FOUND"
- CodeInvocationNotAccepted = "INVOCATION_NOT_ACCEPTED"
+	CodeInvocationNotAccepted = "INVOCATION_NOT_ACCEPTED"
 	CodeGone                  = "GONE"
 	CodeChallengeRequired     = "CHALLENGE_REQUIRED"
 	CodeConflict              = "CONFLICT"
@@ -79,7 +79,7 @@ var ProblemHTTPStatus = map[string]int{
 	CodeUnauthenticated:       401,
 	CodeForbidden:             403,
 	CodeNotFound:              404,
- CodeInvocationNotAccepted: 404,
+	CodeInvocationNotAccepted: 404,
 	CodeGone:                  410,
 	CodeChallengeRequired:     429,
 	CodeConflict:              409,
@@ -163,18 +163,18 @@ type AuthContext struct {
 
 // OperationContext 服务间可信操作元数据。
 type OperationContext struct {
- CleanupScope *CleanupScope `json:"-"`
-	RequestID           Identifier  `json:"requestId"`
-	OperationID         Identifier  `json:"operationId"`
-	RootOperationID     Identifier  `json:"rootOperationId"`
-	CallerService       string      `json:"callerService"`
-	Actor               AuthContext `json:"actor"`
-	Deadline            Timestamp   `json:"deadline"`
-	DataEpoch           Identifier  `json:"dataEpoch"`
-	CostClass           string      `json:"costClass,omitempty"`
-	CancellationID      Identifier  `json:"cancellationId,omitempty"`
-	LoginNetworkScopes  []Hash      `json:"-"`
-	NetworkBudgetScopes []Hash      `json:"-"`
+	CleanupScope        *CleanupScope `json:"-"`
+	RequestID           Identifier    `json:"requestId"`
+	OperationID         Identifier    `json:"operationId"`
+	RootOperationID     Identifier    `json:"rootOperationId"`
+	CallerService       string        `json:"callerService"`
+	Actor               AuthContext   `json:"actor"`
+	Deadline            Timestamp     `json:"deadline"`
+	DataEpoch           Identifier    `json:"dataEpoch"`
+	CostClass           string        `json:"costClass,omitempty"`
+	CancellationID      Identifier    `json:"cancellationId,omitempty"`
+	LoginNetworkScopes  []Hash        `json:"-"`
+	NetworkBudgetScopes []Hash        `json:"-"`
 }
 
 // EventEnvelope 持久至少一次事件信封；载荷须符合生产方events.json。
@@ -223,18 +223,18 @@ type SessionSecrets struct {
 
 // AssertionClaims 服务断言声明；expiresAt与issuedAt相差≤60秒。
 type AssertionClaims struct {
- CleanupScope *CleanupScope `json:"cleanupScope,omitempty"`
-	Issuer              string     `json:"iss"`
-	Audience            string     `json:"aud"`
-	Method              string     `json:"method"`
-	Path                string     `json:"path"`
-	BodyHash            Hash       `json:"bodyHash"`
-	IssuedAt            Timestamp  `json:"issuedAt"`
-	ExpiresAt           Timestamp  `json:"expiresAt"`
-	JTI                 Identifier `json:"jti"`
-	LoginNetworkScopes  []Hash     `json:"loginNetworkScopes,omitempty"`
-	NetworkBudgetScopes []Hash     `json:"networkBudgetScopes,omitempty"`
-	SiteID              Identifier `json:"siteId,omitempty"`
+	CleanupScope        *CleanupScope `json:"cleanupScope,omitempty"`
+	Issuer              string        `json:"iss"`
+	Audience            string        `json:"aud"`
+	Method              string        `json:"method"`
+	Path                string        `json:"path"`
+	BodyHash            Hash          `json:"bodyHash"`
+	IssuedAt            Timestamp     `json:"issuedAt"`
+	ExpiresAt           Timestamp     `json:"expiresAt"`
+	JTI                 Identifier    `json:"jti"`
+	LoginNetworkScopes  []Hash        `json:"loginNetworkScopes,omitempty"`
+	NetworkBudgetScopes []Hash        `json:"networkBudgetScopes,omitempty"`
+	SiteID              Identifier    `json:"siteId,omitempty"`
 }
 
 // AssertionExpectation 验证断言时的期望值。
@@ -322,15 +322,15 @@ const (
 )
 
 // WorkAdmission签发独立的进程内真实scope，调用者等实际IO与确认全结束才释放。
-type WorkAdmission func(context.Context)(context.Context,func(),error)
-type JobExecutionScopeBinder func(context.Context,OperationContext,ClaimedJob)(context.Context,error)
+type WorkAdmission func(context.Context) (context.Context, func(), error)
+type JobExecutionScopeBinder func(context.Context, OperationContext, ClaimedJob) (context.Context, error)
 
 // RelayConfig outbox转发循环参数；batchLimit≤100。
 type RelayConfig struct {
- BindEventScope func(context.Context,OutboxRow)(context.Context,func(),error)
- AdmitBatch WorkAdmission `json:"-"`
-	BatchLimit int `json:"batchLimit"`
-	PollMillis int `json:"pollMillis"`
+	BindEventScope func(context.Context, OutboxRow) (context.Context, func(), error)
+	AdmitBatch     WorkAdmission `json:"-"`
+	BatchLimit     int           `json:"batchLimit"`
+	PollMillis     int           `json:"pollMillis"`
 	// Runtime 与 WriteWindow均必需；未知权威或关闭安全窗口时停止active写入。
 	Runtime     func(ctx context.Context) (RuntimeView, error) `json:"-"`
 	WriteWindow func(context.Context) (time.Time, error)       `json:"-"`
@@ -344,7 +344,7 @@ type WriteWindowConfig struct {
 
 // RecoveryLoopConfig 的Recover只执行本域一个有界恢复批次，不执行付费重算。
 type RecoveryLoopConfig struct {
- AdmitBatch WorkAdmission
+	AdmitBatch  WorkAdmission
 	PollMillis  int
 	Runtime     func(context.Context) (RuntimeView, error)
 	WriteWindow func(context.Context) (time.Time, error)
@@ -353,9 +353,9 @@ type RecoveryLoopConfig struct {
 
 // ConsumerConfig 事件订阅循环参数；事件为“名称@版本”。
 type ConsumerConfig struct {
- AllowDrain func(context.Context,RuntimeView)(bool,error)
- AdmitBatch WorkAdmission `json:"-"`
- AdmitDelivery WorkAdmission `json:"-"`
+	AllowDrain    func(context.Context, RuntimeView) (bool, error)
+	AdmitBatch    WorkAdmission `json:"-"`
+	AdmitDelivery WorkAdmission `json:"-"`
 	// SiteID由本域受信装配提供；空值仅用于system控制命名空间。
 	SiteID      string   `json:"-"`
 	ConsumerID  string   `json:"consumerId"`
@@ -376,13 +376,13 @@ type ConsumerRunResult struct {
 
 // WorkerConfig 任务领取循环参数；owner为本域slug。
 type WorkerConfig struct {
- OnCancellationObserved func(context.Context, OperationContext, ClaimedJob) error `json:"-"`
- AdmitBusiness WorkAdmission `json:"-"`
- BindExecutionScope JobExecutionScopeBinder `json:"-"`
-	OnLeaseRenewed func(context.Context, OperationContext, ClaimedJob, HeartbeatInfo) error `json:"-"`
-	Owner          string                                                                   `json:"owner"`
-	JobTypes       []string                                                                 `json:"jobTypes"`
-	MaxConcurrency int                                                                      `json:"maxConcurrency"`
+	OnCancellationObserved func(context.Context, OperationContext, ClaimedJob) error                `json:"-"`
+	AdmitBusiness          WorkAdmission                                                            `json:"-"`
+	BindExecutionScope     JobExecutionScopeBinder                                                  `json:"-"`
+	OnLeaseRenewed         func(context.Context, OperationContext, ClaimedJob, HeartbeatInfo) error `json:"-"`
+	Owner                  string                                                                   `json:"owner"`
+	JobTypes               []string                                                                 `json:"jobTypes"`
+	MaxConcurrency         int                                                                      `json:"maxConcurrency"`
 	// Runtime 读取当前运行状态；维护期间暂停领取。可为nil。
 	Runtime func(ctx context.Context) (RuntimeView, error) `json:"-"`
 	// OperationContext从本域持久任务读取获准主体与预算，不凭任务ID猜测授权。
@@ -391,11 +391,11 @@ type WorkerConfig struct {
 
 // ServiceBoundaryConfig 只由服务启动时从合同装配，不接受请求自报策略。
 type ServiceBoundaryConfig struct {
- CleanupOperations map[string]CleanupOperationPolicy
- AuthorizeCleanup func(context.Context,OperationContext,CleanupScope,string)error
- AdmitCleanup func(context.Context,OperationContext,CleanupScope)(context.Context,func(),error)
- AdmitBusiness WorkAdmission
- ControllerOperations map[string]bool
+	CleanupOperations     map[string]CleanupOperationPolicy
+	AuthorizeCleanup      func(context.Context, OperationContext, CleanupScope, string) error
+	AdmitCleanup          func(context.Context, OperationContext, CleanupScope) (context.Context, func(), error)
+	AdmitBusiness         WorkAdmission
+	ControllerOperations  map[string]bool
 	Self                  string
 	Anchors               TrustAnchors
 	Runtime               func(context.Context) (RuntimeView, error)
@@ -421,7 +421,13 @@ type AssetRef struct {
 }
 
 // AssetVersionRef绑定media真实不可变版本；不从AssetRef猜version。
-type AssetVersionRef struct{AssetID Identifier `json:"assetId"`;Version int64 `json:"version"`;SHA256 Hash `json:"sha256"`;MediaType string `json:"mediaType"`;ByteSize int64 `json:"byteSize"`}
+type AssetVersionRef struct {
+	AssetID   Identifier `json:"assetId"`
+	Version   int64      `json:"version"`
+	SHA256    Hash       `json:"sha256"`
+	MediaType string     `json:"mediaType"`
+	ByteSize  int64      `json:"byteSize"`
+}
 
 // ObjectRef 所属服务提供的不可变受控对象。
 type ObjectRef struct {
@@ -482,24 +488,27 @@ type GatewayMessage struct {
 	Parts   []GatewayPart `json:"parts,omitempty"`
 }
 
-type ExpectedPriceSnapshot struct{ModelID Identifier `json:"modelId"`;PriceSnapshotID Identifier `json:"priceSnapshotId"`}
+type ExpectedPriceSnapshot struct {
+	ModelID         Identifier `json:"modelId"`
+	PriceSnapshotID Identifier `json:"priceSnapshotId"`
+}
 
 // CreateInvocationInput model-gateway调用请求；字段与生产方types.json一致。
 type CreateInvocationInput struct {
- ExpectedRouteVersion Hash `json:"expectedRouteVersion,omitempty"`
- ExpectedPriceSnapshots []ExpectedPriceSnapshot `json:"expectedPriceSnapshots,omitempty"`
- LanguageSuggestionApprovalID string `json:"languageSuggestionApprovalId,omitempty"`
-	Query                  string           `json:"query,omitempty"`
-	TaskID                 string           `json:"taskId"`
-	ProfileID              Identifier       `json:"profileId"`
-	Capability             string           `json:"capability"`
-	Messages               []GatewayMessage `json:"messages"`
-	Texts                  []string         `json:"texts"`
-	CandidateIDs           []Identifier     `json:"candidateIds"`
-	MaximumOutputTokens    int64            `json:"maximumOutputTokens"`
-	IDempotencyKey         string           `json:"idempotencyKey"`
-	AdmissionPermit        *AdmissionPermit `json:"admissionPermit,omitempty"`
-	ExpectedEmbeddingSpace *EmbeddingSpace  `json:"expectedEmbeddingSpace,omitempty"`
+	ExpectedRouteVersion         Hash                    `json:"expectedRouteVersion,omitempty"`
+	ExpectedPriceSnapshots       []ExpectedPriceSnapshot `json:"expectedPriceSnapshots,omitempty"`
+	LanguageSuggestionApprovalID string                  `json:"languageSuggestionApprovalId,omitempty"`
+	Query                        string                  `json:"query,omitempty"`
+	TaskID                       string                  `json:"taskId"`
+	ProfileID                    Identifier              `json:"profileId"`
+	Capability                   string                  `json:"capability"`
+	Messages                     []GatewayMessage        `json:"messages"`
+	Texts                        []string                `json:"texts"`
+	CandidateIDs                 []Identifier            `json:"candidateIds"`
+	MaximumOutputTokens          int64                   `json:"maximumOutputTokens"`
+	IDempotencyKey               string                  `json:"idempotencyKey"`
+	AdmissionPermit              *AdmissionPermit        `json:"admissionPermit,omitempty"`
+	ExpectedEmbeddingSpace       *EmbeddingSpace         `json:"expectedEmbeddingSpace,omitempty"`
 }
 
 // ModelAttempt 一次独立计费的供应方尝试。
@@ -556,7 +565,7 @@ type EmbeddingSpace struct {
 }
 
 type ModelOutput struct {
- Text *string `json:"text,omitempty"`
+	Text           *string         `json:"text,omitempty"`
 	Capability     string          `json:"capability"`
 	EmbeddingSpace *EmbeddingSpace `json:"embeddingSpace,omitempty"`
 	Vectors        [][]float64     `json:"vectors,omitempty"`
@@ -583,10 +592,10 @@ type InvokeModelRequest struct {
 
 // InvokeModelOutcome保留原接受事实；error非nil时已有ID/快照/事件仍为真实事实。
 type InvokeModelOutcome struct {
- CurrentSnapshot *GatewayInvocationSnapshot `json:"currentSnapshot,omitempty"`
-	InvocationID Identifier    `json:"invocationId"`
-	State        string        `json:"state"`
-	Events       []StreamEvent `json:"events"`
+	CurrentSnapshot *GatewayInvocationSnapshot `json:"currentSnapshot,omitempty"`
+	InvocationID    Identifier                 `json:"invocationId"`
+	State           string                     `json:"state"`
+	Events          []StreamEvent              `json:"events"`
 }
 
 // ServiceConfig 通用服务配置；secret只保存引用路径。
@@ -793,8 +802,8 @@ type EventPublisher interface {
 
 // TypedWorkerJobsClient在领取前由jobs按登记类型筛选，避免同owner下依赖任务互占全部worker。
 type TypedWorkerJobsClient interface {
- WorkerJobsClient
- ClaimJobTypes(ctx context.Context, owner, workerID string, limit int, jobTypes []string) ([]ClaimedJob, error)
+	WorkerJobsClient
+	ClaimJobTypes(ctx context.Context, owner, workerID string, limit int, jobTypes []string) ([]ClaimedJob, error)
 }
 
 // WorkerJobsClient只暴露任务租约控制，不要求无关事件端口。
@@ -820,9 +829,16 @@ type JobsClient interface {
 }
 
 // GatewayInvocationSnapshot为当前真实权威，与历史Events独立，不从费用状态推断输出。
-type GatewayInvocationSnapshot struct {Invocation Invocation `json:"invocation"`;Output *ModelOutput `json:"output,omitempty"`}
-type CurrentInvocationReader interface {GetInference(context.Context, Identifier)(GatewayInvocationSnapshot,error)}
-type InvocationLookupReader interface {LookupInference(context.Context,string,CreateInvocationInput)(GatewayInvocationSnapshot,error)}
+type GatewayInvocationSnapshot struct {
+	Invocation Invocation   `json:"invocation"`
+	Output     *ModelOutput `json:"output,omitempty"`
+}
+type CurrentInvocationReader interface {
+	GetInference(context.Context, Identifier) (GatewayInvocationSnapshot, error)
+}
+type InvocationLookupReader interface {
+	LookupInference(context.Context, string, CreateInvocationInput) (GatewayInvocationSnapshot, error)
+}
 
 // GatewayClient model-gateway服务的调用接口；实现自动附服务断言。
 type GatewayClient interface {

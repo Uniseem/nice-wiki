@@ -4,13 +4,13 @@ package transport
 
 import (
 	"context"
- "encoding/json"
- "strconv"
- "io"
- "nice-wiki/libs/platform/apivalidate"
- analytics "nice-wiki/modules/analytics/internal"
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"nice-wiki/libs/platform/apivalidate"
+	analytics "nice-wiki/modules/analytics/internal"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -44,25 +44,55 @@ type Application struct {
 	httpServer   *http.Server
 
 	// 业务存储、journal、worker及恢复回执待后续工作包接入。
- backgroundCancel context.CancelFunc
- backgroundDone chan struct{}
- storage *analytics.Runtime
+	backgroundCancel context.CancelFunc
+	backgroundDone   chan struct{}
+	storage          *analytics.Runtime
 	journalRecovered bool
 }
 
 // NewApplication 绑定本域OpenAPI完整路由；业务路由在能力未实现期间
 // 统一返回DEPENDENCY_UNAVAILABLE，不返回伪造统计或审计结果。
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtime platform.SiteConfigClient, storage *analytics.Runtime, identity *gen.IdentityClient) (*Application,error) {
- application:=&Application{config:config,anchors:anchors,runtime:runtime,storage:storage}
- spec,err:=gen.GetSwagger();if err!=nil{return nil,platform.NewError(platform.CodeIntegrityError,false,"统计接口规格不可读")};mux:=http.NewServeMux();routed:=gen.HandlerFromMux(&server{app:application},mux);handlers:=map[string]http.Handler{};callers:=map[string][]string{};services:=map[string][]string{};maintenance:=map[string]bool{}
- for _,path:=range spec.Paths.Map(){for _,operation:=range path.Operations(){id:=operation.OperationID;handlers[id]=routed;if id!="health"&&id!="ready"{callers[id]=[]string{"portal"}}}}
- for _,id:=range []string{"acquireBarrier","releaseBarrier","exportSnapshot","stageSnapshot","discardSnapshot"}{callers[id]=[]string{"data-protection"};services[id]=[]string{"data-protection"};maintenance[id]=true}
- callers["ingestTrustedBeacon"]=[]string{"portal"};services["ingestTrustedBeacon"]=callers["ingestTrustedBeacon"]
- callers["recordCrawlerAccess"]=[]string{"public-site"};services["recordCrawlerAccess"]=callers["recordCrawlerAccess"]
- callers["appendAudit"]=[]string{"identity","site-config","jobs","content","media","public-site","model-gateway","knowledge","qa","localization","memory","traffic-guard","analytics","data-protection","portal"};services["appendAudit"]=callers["appendAudit"]
- for _,id:=range []string{"queryPageStatistics","queryUsageStatistics","queryAudits","readAudit","queryContentGaps","downloadStatisticsExport","downloadAuditExport"}{maintenance[id]=true}
- protected,err:=apivalidate.NewServiceHandler(spec,platform.ServiceBoundaryConfig{Self:moduleName,Anchors:anchors,Runtime:func(ctx context.Context)(platform.RuntimeView,error){return lifecycle.ReadRuntime(ctx,runtime)},OpenedDataEpoch:storage.Epoch,AllowedCallers:callers,ServiceActorCallers:services,MaintenanceOperations:maintenance,OperationBodyLimits:map[string]int64{"ingestBeacon":2048,"ingestTrustedBeacon":4096},Authorize:apivalidate.NewIdentityAuthorizer(identity)},handlers);if err!=nil{return nil,err}
- application.httpServer=&http.Server{Addr:config.Listen,Handler:protected,ReadHeaderTimeout:5*time.Second,MaxHeaderBytes:64<<10};return application,nil
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtime platform.SiteConfigClient, storage *analytics.Runtime, identity *gen.IdentityClient) (*Application, error) {
+	application := &Application{config: config, anchors: anchors, runtime: runtime, storage: storage}
+	spec, err := gen.GetSwagger()
+	if err != nil {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "统计接口规格不可读")
+	}
+	mux := http.NewServeMux()
+	routed := gen.HandlerFromMux(&server{app: application}, mux)
+	handlers := map[string]http.Handler{}
+	callers := map[string][]string{}
+	services := map[string][]string{}
+	maintenance := map[string]bool{}
+	for _, path := range spec.Paths.Map() {
+		for _, operation := range path.Operations() {
+			id := operation.OperationID
+			handlers[id] = routed
+			if id != "health" && id != "ready" {
+				callers[id] = []string{"portal"}
+			}
+		}
+	}
+	for _, id := range []string{"acquireBarrier", "releaseBarrier", "exportSnapshot", "stageSnapshot", "discardSnapshot"} {
+		callers[id] = []string{"data-protection"}
+		services[id] = []string{"data-protection"}
+		maintenance[id] = true
+	}
+	callers["ingestTrustedBeacon"] = []string{"portal"}
+	services["ingestTrustedBeacon"] = callers["ingestTrustedBeacon"]
+	callers["recordCrawlerAccess"] = []string{"public-site"}
+	services["recordCrawlerAccess"] = callers["recordCrawlerAccess"]
+	callers["appendAudit"] = []string{"identity", "site-config", "jobs", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "analytics", "data-protection", "portal"}
+	services["appendAudit"] = callers["appendAudit"]
+	for _, id := range []string{"queryPageStatistics", "queryUsageStatistics", "queryAudits", "readAudit", "queryContentGaps", "downloadStatisticsExport", "downloadAuditExport"} {
+		maintenance[id] = true
+	}
+	protected, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: func(ctx context.Context) (platform.RuntimeView, error) { return lifecycle.ReadRuntime(ctx, runtime) }, OpenedDataEpoch: storage.Epoch, AllowedCallers: callers, ServiceActorCallers: services, MaintenanceOperations: maintenance, OperationBodyLimits: map[string]int64{"ingestBeacon": 2048, "ingestTrustedBeacon": 4096}, Authorize: apivalidate.NewIdentityAuthorizer(identity)}, handlers)
+	if err != nil {
+		return nil, err
+	}
+	application.httpServer = &http.Server{Addr: config.Listen, Handler: protected, ReadHeaderTimeout: 5 * time.Second, MaxHeaderBytes: 64 << 10}
+	return application, nil
 }
 
 // Serve 实现 platform.Application，供统一进程模板调用。
@@ -83,7 +113,10 @@ func Serve(ctx context.Context, app *Application) error {
 	if !app.serveStarted.CompareAndSwap(false, true) {
 		return platform.NewError(platform.CodeConflict, false, "同Application重复启动Serve")
 	}
- background,cancelBackground:=context.WithCancel(ctx);app.backgroundCancel=cancelBackground;app.backgroundDone=make(chan struct{});go func(){defer close(app.backgroundDone);_ = analytics.RunPageBackground(background,app.storage)}()
+	background, cancelBackground := context.WithCancel(ctx)
+	app.backgroundCancel = cancelBackground
+	app.backgroundDone = make(chan struct{})
+	go func() { defer close(app.backgroundDone); _ = analytics.RunPageBackground(background, app.storage) }()
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -116,9 +149,25 @@ func Shutdown(ctx context.Context, app *Application) error {
 			app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭HTTP服务失败")
 			return
 		}
-  if app.backgroundCancel!=nil{app.backgroundCancel();select{case <-app.backgroundDone:case <-ctx.Done():app.shutdownErr=platform.NewError(platform.CodeDeadlineExceeded,true,"后台任务未能在期限内停止");return}}
-  if err:=analytics.DrainBeacons(ctx,app.storage);err!=nil{app.shutdownErr=err;return}
-  if app.storage!=nil{if err:=app.storage.Close();err!=nil{app.shutdownErr=err;return}}
+		if app.backgroundCancel != nil {
+			app.backgroundCancel()
+			select {
+			case <-app.backgroundDone:
+			case <-ctx.Done():
+				app.shutdownErr = platform.NewError(platform.CodeDeadlineExceeded, true, "后台任务未能在期限内停止")
+				return
+			}
+		}
+		if err := analytics.DrainBeacons(ctx, app.storage); err != nil {
+			app.shutdownErr = err
+			return
+		}
+		if app.storage != nil {
+			if err := app.storage.Close(); err != nil {
+				app.shutdownErr = err
+				return
+			}
+		}
 		app.state.Store(stateClosed)
 	})
 	return app.shutdownErr
@@ -189,15 +238,74 @@ func (s *server) Ready(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) QueryAudits(w http.ResponseWriter, r *http.Request, params gen.QueryAuditsParams) {
- op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信上下文"));return};limit:=int64(20);if value:=r.URL.Query().Get("limit");value!=""{limit,_=strconv.ParseInt(value,10,64)};result,err:=analytics.QueryAudits(analytics.WithRuntime(r.Context(),s.app.storage),op,analytics.QueryAuditsInput{Cursor:r.URL.Query().Get("cursor"),Limit:limit,Action:r.URL.Query().Get("action"),From:r.URL.Query().Get("from"),To:r.URL.Query().Get("to"),Actor:op.Actor,DataEpoch:op.DataEpoch});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	limit := int64(20)
+	if value := r.URL.Query().Get("limit"); value != "" {
+		limit, _ = strconv.ParseInt(value, 10, 64)
+	}
+	result, err := analytics.QueryAudits(analytics.WithRuntime(r.Context(), s.app.storage), op, analytics.QueryAuditsInput{Cursor: r.URL.Query().Get("cursor"), Limit: limit, Action: r.URL.Query().Get("action"), From: r.URL.Query().Get("from"), To: r.URL.Query().Get("to"), Actor: op.Actor, DataEpoch: op.DataEpoch})
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) AppendAudit(w http.ResponseWriter, r *http.Request, params gen.AppendAuditParams) {
- op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信上下文"));return};var body struct{AuditID string `json:"auditId"`;ActorID *string `json:"actorId"`;Action string `json:"action"`;ResourceID string `json:"resourceId"`;ResultCode string `json:"resultCode"`;Metadata string `json:"metadata"`;ActorKind *string `json:"actorKind"`;OccurredAt *string `json:"occurredAt"`;SourceOperationID *string `json:"sourceOperationId"`};if err:=json.NewDecoder(r.Body).Decode(&body);err!=nil{writeProblem(w,r,platform.NewError(platform.CodeValidation,false,"审计正文不可读"));return};actor:=op.Actor.SubjectID;if body.ActorID!=nil{actor=*body.ActorID};result,err:=analytics.AppendAudit(analytics.WithRuntime(r.Context(),s.app.storage),op,analytics.AppendAuditInput{AuditID:body.AuditID,ActorID:actor,Action:body.Action,ResourceID:body.ResourceID,ResultCode:body.ResultCode,Metadata:body.Metadata,ActorKind:body.ActorKind,OccurredAt:body.OccurredAt,SourceOperationID:body.SourceOperationID,DataEpoch:op.DataEpoch});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	var body struct {
+		AuditID           string  `json:"auditId"`
+		ActorID           *string `json:"actorId"`
+		Action            string  `json:"action"`
+		ResourceID        string  `json:"resourceId"`
+		ResultCode        string  `json:"resultCode"`
+		Metadata          string  `json:"metadata"`
+		ActorKind         *string `json:"actorKind"`
+		OccurredAt        *string `json:"occurredAt"`
+		SourceOperationID *string `json:"sourceOperationId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeProblem(w, r, platform.NewError(platform.CodeValidation, false, "审计正文不可读"))
+		return
+	}
+	actor := op.Actor.SubjectID
+	if body.ActorID != nil {
+		actor = *body.ActorID
+	}
+	result, err := analytics.AppendAudit(analytics.WithRuntime(r.Context(), s.app.storage), op, analytics.AppendAuditInput{AuditID: body.AuditID, ActorID: actor, Action: body.Action, ResourceID: body.ResourceID, ResultCode: body.ResultCode, Metadata: body.Metadata, ActorKind: body.ActorKind, OccurredAt: body.OccurredAt, SourceOperationID: body.SourceOperationID, DataEpoch: op.DataEpoch})
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) ReadAudit(w http.ResponseWriter, r *http.Request, auditID string, params gen.ReadAuditParams) {
- op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信上下文"));return};result,err:=analytics.ReadAudit(analytics.WithRuntime(r.Context(),s.app.storage),op,analytics.ReadAuditInput{AuditID:auditID,Actor:op.Actor,DataEpoch:op.DataEpoch});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	result, err := analytics.ReadAudit(analytics.WithRuntime(r.Context(), s.app.storage), op, analytics.ReadAuditInput{AuditID: auditID, Actor: op.Actor, DataEpoch: op.DataEpoch})
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) AcquireBarrier(w http.ResponseWriter, r *http.Request, params gen.AcquireBarrierParams) {
@@ -212,15 +320,46 @@ func (s *server) IngestBeacon(w http.ResponseWriter, r *http.Request, params gen
 	writeUnavailable(w, r)
 }
 
-func (s *server) RecordCrawlerAccess(w http.ResponseWriter,r *http.Request,params gen.RecordCrawlerAccessParams){
- op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信上下文"));return};var input analytics.RecordCrawlerAccessInput;if json.NewDecoder(r.Body).Decode(&input)!=nil{writeProblem(w,r,platform.NewError(platform.CodeValidation,false,"爬虫计数正文不可读"));return};input.DataEpoch=op.DataEpoch
- result,err:=analytics.RecordCrawlerAccess(analytics.WithRuntime(r.Context(),s.app.storage),op,input);if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
+func (s *server) RecordCrawlerAccess(w http.ResponseWriter, r *http.Request, params gen.RecordCrawlerAccessParams) {
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	var input analytics.RecordCrawlerAccessInput
+	if json.NewDecoder(r.Body).Decode(&input) != nil {
+		writeProblem(w, r, platform.NewError(platform.CodeValidation, false, "爬虫计数正文不可读"))
+		return
+	}
+	input.DataEpoch = op.DataEpoch
+	result, err := analytics.RecordCrawlerAccess(analytics.WithRuntime(r.Context(), s.app.storage), op, input)
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 // IngestTrustedBeacon的全部正文由portal服务签名；本域不读取代理链或原始UA头。
-func (s *server) IngestTrustedBeacon(w http.ResponseWriter,r *http.Request,params gen.IngestTrustedBeaconParams){
- op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信上下文"));return};var input analytics.IngestBeaconInput;if json.NewDecoder(r.Body).Decode(&input)!=nil{writeProblem(w,r,platform.NewError(platform.CodeValidation,false,"可信访问正文不可读"));return}
- if _,err:=analytics.IngestBeacon(analytics.WithRuntime(r.Context(),s.app.storage),op,input);err!=nil{writeProblem(w,r,err);return};w.Header().Set("Cache-Control","no-store");w.WriteHeader(http.StatusNoContent)
+func (s *server) IngestTrustedBeacon(w http.ResponseWriter, r *http.Request, params gen.IngestTrustedBeaconParams) {
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	var input analytics.IngestBeaconInput
+	if json.NewDecoder(r.Body).Decode(&input) != nil {
+		writeProblem(w, r, platform.NewError(platform.CodeValidation, false, "可信访问正文不可读"))
+		return
+	}
+	if _, err := analytics.IngestBeacon(analytics.WithRuntime(r.Context(), s.app.storage), op, input); err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *server) DiscardSnapshot(w http.ResponseWriter, r *http.Request, params gen.DiscardSnapshotParams) {
@@ -235,27 +374,124 @@ func (s *server) StageSnapshot(w http.ResponseWriter, r *http.Request, params ge
 	writeUnavailable(w, r)
 }
 
-func (s *server) QueryContentGaps(w http.ResponseWriter,r *http.Request,params gen.QueryContentGapsParams){
- op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信上下文"));return};q:=r.URL.Query();result,err:=analytics.QueryContentGaps(analytics.WithRuntime(r.Context(),s.app.storage),op,analytics.QueryContentGapsInput{From:q.Get("from"),To:q.Get("to"),Actor:op.Actor,DataEpoch:op.DataEpoch});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
+func (s *server) QueryContentGaps(w http.ResponseWriter, r *http.Request, params gen.QueryContentGapsParams) {
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	q := r.URL.Query()
+	result, err := analytics.QueryContentGaps(analytics.WithRuntime(r.Context(), s.app.storage), op, analytics.QueryContentGapsInput{From: q.Get("from"), To: q.Get("to"), Actor: op.Actor, DataEpoch: op.DataEpoch})
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) QueryPageStatistics(w http.ResponseWriter, r *http.Request, params gen.QueryPageStatisticsParams) {
- op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信上下文"));return};q:=r.URL.Query();result,err:=analytics.QueryPageStatistics(analytics.WithRuntime(r.Context(),s.app.storage),op,analytics.QueryPageStatisticsInput{From:q.Get("from"),To:q.Get("to"),Locale:q.Get("locale"),DocumentID:q.Get("documentId"),Granularity:q.Get("granularity"),Actor:op.Actor,DataEpoch:op.DataEpoch});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	q := r.URL.Query()
+	result, err := analytics.QueryPageStatistics(analytics.WithRuntime(r.Context(), s.app.storage), op, analytics.QueryPageStatisticsInput{From: q.Get("from"), To: q.Get("to"), Locale: q.Get("locale"), DocumentID: q.Get("documentId"), Granularity: q.Get("granularity"), Actor: op.Actor, DataEpoch: op.DataEpoch})
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
-func (s *server) QueryUsageStatistics(w http.ResponseWriter,r *http.Request,params gen.QueryUsageStatisticsParams){
- op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信上下文"));return};q:=r.URL.Query();result,err:=analytics.QueryUsageStatistics(analytics.WithRuntime(r.Context(),s.app.storage),op,analytics.QueryUsageStatisticsInput{From:q.Get("from"),To:q.Get("to"),CostClass:q.Get("costClass"),Actor:op.Actor,DataEpoch:op.DataEpoch});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
+func (s *server) QueryUsageStatistics(w http.ResponseWriter, r *http.Request, params gen.QueryUsageStatisticsParams) {
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	q := r.URL.Query()
+	result, err := analytics.QueryUsageStatistics(analytics.WithRuntime(r.Context(), s.app.storage), op, analytics.QueryUsageStatisticsInput{From: q.Get("from"), To: q.Get("to"), CostClass: q.Get("costClass"), Actor: op.Actor, DataEpoch: op.DataEpoch})
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
-func (s *server) CreateExport(w http.ResponseWriter,r *http.Request,params gen.CreateExportParams){s.createExport(w,r,false)}
-func (s *server) CreateAuditExport(w http.ResponseWriter,r *http.Request,params gen.CreateAuditExportParams){s.createExport(w,r,true)}
-func (s *server) createExport(w http.ResponseWriter,r *http.Request,audits bool){
- op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信上下文"));return};var body struct{Kind string `json:"kind"`;From string `json:"from"`;To string `json:"to"`};if json.NewDecoder(r.Body).Decode(&body)!=nil{writeProblem(w,r,platform.NewError(platform.CodeValidation,false,"导出条件不可读"));return};if (body.Kind=="audits")!=audits{writeProblem(w,r,platform.NewError(platform.CodeForbidden,false,"导出类型与当前权限路由不同"));return};result,err:=analytics.CreateExport(analytics.WithRuntime(r.Context(),s.app.storage),op,analytics.CreateExportInput{Kind:body.Kind,From:body.From,To:body.To,Actor:op.Actor,DataEpoch:op.DataEpoch});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
+func (s *server) CreateExport(w http.ResponseWriter, r *http.Request, params gen.CreateExportParams) {
+	s.createExport(w, r, false)
 }
-func (s *server) DownloadStatisticsExport(w http.ResponseWriter,r *http.Request,exportID string,params gen.DownloadStatisticsExportParams){s.downloadExport(w,r,exportID,false)}
-func (s *server) DownloadAuditExport(w http.ResponseWriter,r *http.Request,exportID string,params gen.DownloadAuditExportParams){s.downloadExport(w,r,exportID,true)}
-func (s *server) downloadExport(w http.ResponseWriter,r *http.Request,id string,audits bool){
- op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信上下文"));return};kind,err:=analytics.ExportKind(r.Context(),s.app.storage,id);if err!=nil{writeProblem(w,r,err);return};if (kind=="audits")!=audits{writeProblem(w,r,platform.NewError(platform.CodeForbidden,false,"导出类型与当前权限路由不同"));return};file,ref,err:=analytics.OpenExport(analytics.WithRuntime(r.Context(),s.app.storage),op,id,kind);if err!=nil{writeProblem(w,r,err);return};defer file.Close();w.Header().Set("Content-Type","text/csv; charset=utf-8");w.Header().Set("Content-Length",strconv.FormatInt(ref.ByteSize,10));w.Header().Set("Content-Disposition",`attachment; filename="analytics.csv"`);w.Header().Set("X-Content-Type-Options","nosniff");w.Header().Set("Cache-Control","no-store");_,_ = io.Copy(w,file)
+func (s *server) CreateAuditExport(w http.ResponseWriter, r *http.Request, params gen.CreateAuditExportParams) {
+	s.createExport(w, r, true)
+}
+func (s *server) createExport(w http.ResponseWriter, r *http.Request, audits bool) {
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	var body struct {
+		Kind string `json:"kind"`
+		From string `json:"from"`
+		To   string `json:"to"`
+	}
+	if json.NewDecoder(r.Body).Decode(&body) != nil {
+		writeProblem(w, r, platform.NewError(platform.CodeValidation, false, "导出条件不可读"))
+		return
+	}
+	if (body.Kind == "audits") != audits {
+		writeProblem(w, r, platform.NewError(platform.CodeForbidden, false, "导出类型与当前权限路由不同"))
+		return
+	}
+	result, err := analytics.CreateExport(analytics.WithRuntime(r.Context(), s.app.storage), op, analytics.CreateExportInput{Kind: body.Kind, From: body.From, To: body.To, Actor: op.Actor, DataEpoch: op.DataEpoch})
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
+}
+func (s *server) DownloadStatisticsExport(w http.ResponseWriter, r *http.Request, exportID string, params gen.DownloadStatisticsExportParams) {
+	s.downloadExport(w, r, exportID, false)
+}
+func (s *server) DownloadAuditExport(w http.ResponseWriter, r *http.Request, exportID string, params gen.DownloadAuditExportParams) {
+	s.downloadExport(w, r, exportID, true)
+}
+func (s *server) downloadExport(w http.ResponseWriter, r *http.Request, id string, audits bool) {
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	kind, err := analytics.ExportKind(r.Context(), s.app.storage, id)
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	if (kind == "audits") != audits {
+		writeProblem(w, r, platform.NewError(platform.CodeForbidden, false, "导出类型与当前权限路由不同"))
+		return
+	}
+	file, ref, err := analytics.OpenExport(analytics.WithRuntime(r.Context(), s.app.storage), op, id, kind)
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	defer file.Close()
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Length", strconv.FormatInt(ref.ByteSize, 10))
+	w.Header().Set("Content-Disposition", `attachment; filename="analytics.csv"`)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = io.Copy(w, file)
 }
 
 func (s *server) ReconcileUsage(w http.ResponseWriter, r *http.Request, params gen.ReconcileUsageParams) {
@@ -276,5 +512,5 @@ func writeProblem(w http.ResponseWriter, r *http.Request, err error) {
 
 // ReadSnapshotArchive 等待真实归档manager，明确失败关闭。
 func (s *server) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotID gen.Identifier, params gen.ReadSnapshotArchiveParams) {
- writeUnavailable(w, r)
+	writeUnavailable(w, r)
 }

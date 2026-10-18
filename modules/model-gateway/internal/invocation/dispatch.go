@@ -195,6 +195,9 @@ func ReadAttemptEvidence(tx *gatewayruntime.ExecutionTransaction, id string) (pr
 	if platform.HashBytes(raw) != hash || json.Unmarshal(raw, &result) != nil {
 		return result, platform.NewError(platform.CodeIntegrityError, false, "供应方脱敏证据损坏")
 	}
- canonical,err:=platform.CanonicalJSON(result);if err!=nil||platform.HashBytes(canonical)!=hash{return result,platform.NewError(platform.CodeIntegrityError,false,"供应方证据含未知或不完整字段，不能损失信息读取")}
+	canonical, err := platform.CanonicalJSON(result)
+	if err != nil || platform.HashBytes(canonical) != hash {
+		return result, platform.NewError(platform.CodeIntegrityError, false, "供应方证据含未知或不完整字段，不能损失信息读取")
+	}
 	return result, nil
 }

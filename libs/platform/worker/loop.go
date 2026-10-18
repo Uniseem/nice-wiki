@@ -35,7 +35,7 @@ func RunWorkerLoop(ctx context.Context, client platform.WorkerJobsClient, config
 
 // RunWorkerLoopWithResult 仅累计实际jobs回执；不把未确认的在途/取消算成终局。
 func RunWorkerLoopWithResult(ctx context.Context, client platform.WorkerJobsClient, config platform.WorkerConfig, executors platform.JobExecutorRegistry) (platform.WorkerRunResult, error) {
-	if client == nil || len(config.JobTypes) == 0 || config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes || config.OperationContext == nil || config.Runtime == nil || config.AdmitBusiness==nil || config.BindExecutionScope==nil {
+	if client == nil || len(config.JobTypes) == 0 || config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes || config.OperationContext == nil || config.Runtime == nil || config.AdmitBusiness == nil || config.BindExecutionScope == nil {
 		return platform.WorkerRunResult{}, platform.NewError(platform.CodeValidation, false, "worker配置不合法")
 	}
 	typed, ok := client.(platform.TypedWorkerJobsClient)
@@ -92,7 +92,13 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 			}
 			continue
 		}
-		scope,releaseScope,scopeErr:=l.config.AdmitBusiness(ctx);if scopeErr!=nil{if !sleep(ctx,maintenancePause){return};continue}
+		scope, releaseScope, scopeErr := l.config.AdmitBusiness(ctx)
+		if scopeErr != nil {
+			if !sleep(ctx, maintenancePause) {
+				return
+			}
+			continue
+		}
 		// 领取属于owner队列控制；具体本站授权在领取后的域factory建立。
 		claimCtx, cancelClaim := context.WithTimeout(platform.WithPortalProof(scope, ""), 30*time.Second)
 		deadline, _ := claimCtx.Deadline()
@@ -105,7 +111,7 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 		jobs, err := l.typed.ClaimJobTypes(platform.WithOperationContext(claimCtx, op), l.config.Owner, workerID, 1, l.config.JobTypes)
 		cancelClaim()
 		if err != nil {
- releaseScope()
+			releaseScope()
 			if ctx.Err() != nil {
 				return
 			}
@@ -124,7 +130,7 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 			continue
 		}
 		if len(jobs) == 0 {
- releaseScope()
+			releaseScope()
 			if !sleep(ctx, idlePause) {
 				return
 			}
@@ -132,7 +138,7 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 		}
 		l.claimed.Add(int64(len(jobs)))
 		l.execute(scope, workerID, jobs[0])
- releaseScope()
+		releaseScope()
 	}
 }
 
@@ -147,7 +153,10 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 	if err != nil {
 		return
 	}
-	ctx,err=l.config.BindExecutionScope(ctx,op,job);if err!=nil{return}
+	ctx, err = l.config.BindExecutionScope(ctx, op, job)
+	if err != nil {
+		return
+	}
 	ctx, cancelTask := context.WithDeadline(ctx, deadline)
 	defer cancelTask()
 	ctx = platform.WithOperationContext(ctx, op)

@@ -136,8 +136,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 读取管理任务状态
-         * @description 状态/引用/安全错误码
+         * 读取当前管理授权或本域所属任务状态
+         * @description 管理员仍核当前功能管理权限；纯服务仅可读取当前真实站点、当前epoch、持久owner/type为本服务的任务，不开放列表或他域任务。
          */
         get: operations["readJob"];
         put?: never;
@@ -547,6 +547,8 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        QueueSiteConfigResult: components["schemas"]["ReadSiteConfigResult"];
+        KnowledgeOwnerRecoveryResult: components["schemas"]["OwnerRecoveryResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /** @description 已持久登记的异步任务引用，不代表任务执行成功 */
@@ -570,7 +572,7 @@ export interface components {
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
          */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED" | "INVOCATION_NOT_ACCEPTED";
         /** @description FieldIssue的公共协议类型；字段及范围按本schema */
         FieldIssue: {
             /** @description 字段路径，不包含字段值 */
@@ -787,7 +789,7 @@ export interface components {
              * @description 只接受公共错误码，不传原始错误或正文
              * @enum {string}
              */
-            errorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL";
+            errorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "INVOCATION_NOT_ACCEPTED";
             /** @description 本次租约的workerId；必须与当前租约持有者相同 */
             workerId: string;
             /** @description 可选；owner在持久安全点确认的已有付费结果引用，与已存引用合并保留 */
@@ -929,6 +931,24 @@ export interface components {
             /** @description enabled 的明确真假结果，不可 null */
             enabled: boolean;
         };
+        /** @description 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。 */
+        SnapshotWorkState: {
+            outboxRevision: number;
+            workRevision: number;
+            pendingOutbox: number;
+            pendingWork: number;
+        };
+        /** @description 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。 */
+        SnapshotBarrierObservation: {
+            owner: string;
+            activityRevision: number;
+            work: components["schemas"]["SnapshotWorkState"];
+            revisionWatermark: number;
+            business: number;
+            cleanup: number;
+            fileOps: number;
+            drainCallbacks: number;
+        };
         /** @description 屏障状态及安全点；未到安全点不能导出完整快照 */
         BarrierStatus: {
             /** @description 本次安全屏障ID */
@@ -944,13 +964,37 @@ export interface components {
             dataEpoch: components["schemas"]["Identifier"];
             /** @description BarrierStatus.revisionWatermark；按类型、枚举及required约束使用 */
             revisionWatermark: components["schemas"]["Revision"];
+            /** @description safe必须来自真实全域CAS封口；旧兼容响应可省略，不视为新版完整证明。 */
+            sealProofHash?: components["schemas"]["Hash"];
+            /** @description observe操作的真实在途计数/持久水位；未知不填0。 */
+            observation?: components["schemas"]["SnapshotBarrierObservation"];
         };
         /** @description 等待全域安全点成功结果；失败不返回半成功结果 */
         CoordinateBarrierResult: {
             /** @description 公共 BarrierStatus 合同，遵守其字段和空值规则 */
             status: components["schemas"]["BarrierStatus"];
         };
-        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging */
+        /** @description 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。 */
+        SnapshotBrokerObservation: {
+            revision: number;
+            pendingDeliveries: number;
+            activeLeases: number;
+        };
+        SnapshotSealReceipt: {
+            owner: string;
+            sealProofHash: components["schemas"]["Hash"];
+        };
+        /** @description 14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。 */
+        SnapshotSealProof: {
+            barrierId: components["schemas"]["Identifier"];
+            dataEpoch: components["schemas"]["Identifier"];
+            observations: components["schemas"]["SnapshotBarrierObservation"][];
+            brokerBefore: components["schemas"]["SnapshotBrokerObservation"];
+            brokerAfter: components["schemas"]["SnapshotBrokerObservation"];
+            nonJobsSeals?: components["schemas"]["SnapshotSealReceipt"][];
+            nonJobsProofHash?: components["schemas"]["Hash"];
+        };
+        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。 */
         BarrierRequest: {
             /** @description 可恢复操作ID */
             operationId: components["schemas"]["Identifier"];
@@ -963,7 +1007,25 @@ export interface components {
             mode: "backup" | "restore";
             /** @description 全链路截止；与本地取消取较早值 */
             deadline: components["schemas"]["Timestamp"];
-        };
+            /**
+             * @description 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
+             * @default prepare
+             * @enum {string}
+             */
+            step: "prepare" | "drain" | "observe" | "seal" | "resume-drain";
+            sealProof?: components["schemas"]["SnapshotSealProof"];
+            /** @description resume-drain绑定原真实seal，不打开新业务。 */
+            expectedSealHash?: components["schemas"]["Hash"];
+        } & ({
+            /** @enum {unknown} */
+            step?: "prepare" | "drain" | "observe";
+        } | {
+            /** @enum {unknown} */
+            step: "seal";
+        } | {
+            /** @enum {unknown} */
+            step: "resume-drain";
+        });
         /** @description 只允许data-protection+超管委托，协调全部有状态域安全点；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         CoordinateBarrierRequestBody: {
             /** @description 公共 BarrierRequest 合同，遵守其字段和空值规则 */
@@ -1152,6 +1214,245 @@ export interface components {
             items: components["schemas"]["DeliverySummary"][];
             /** @description 分页信息 */
             pageInfo: components["schemas"]["PageInfo"];
+        };
+        /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
+        "common.schema_AssetVersionRef": {
+            /** @description 逻辑资源ID */
+            assetId: components["schemas"]["Identifier"];
+            /** @description 不可变对象版本 */
+            version: components["schemas"]["Revision"];
+            /** @description Hash */
+            sha256: components["schemas"]["Hash"];
+            /** @description 嗅探确认MIME */
+            mediaType: string;
+            /** @description 字节数 */
+            byteSize: number;
+        };
+        /** @description 完整五字段不可变版本引用，唯一来源common；既有JSON不变。 */
+        AssetVersionRef: components["schemas"]["common.schema_AssetVersionRef"];
+        /** @description https 公共地址；本地开发 http 由部署能力显式允许；禁止 userinfo/query/fragment */
+        SafeURL: string;
+        /** @description 规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证 */
+        LanguageTag: string;
+        /** @description 站点链接判别联合体 */
+        LinkTarget: {
+            /** @constant */
+            kind: "document";
+            /** @description 站内ID */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 无null */
+            blockId: components["schemas"]["Identifier"] | null;
+        } | {
+            /** @constant */
+            kind: "qa";
+        } | {
+            /** @constant */
+            kind: "external";
+            /** @description http/https/mailto安全链接 */
+            url: string;
+        };
+        /** @description 首页0–3按钮 */
+        HeroButton: {
+            /** @description 稳定按钮 */
+            buttonId: components["schemas"]["Identifier"];
+            /** @description 翻译字段 */
+            text: string;
+            /** @description LinkTarget */
+            target: components["schemas"]["LinkTarget"];
+            /**
+             * @description 按钮
+             * @enum {string}
+             */
+            style: "primary" | "secondary";
+        };
+        /** @description 首页背景完整联合体 */
+        HeroBackground: {
+            /** @constant */
+            kind: "color";
+            /** @description #RRGGBB */
+            color: string;
+        } | {
+            /**
+             * @description 图片/动图
+             * @enum {string}
+             */
+            kind: "image" | "animation";
+            asset: components["schemas"]["AssetVersionRef"];
+        } | {
+            /** @constant */
+            kind: "video";
+            asset: components["schemas"]["AssetVersionRef"];
+            poster: components["schemas"]["AssetVersionRef"];
+        };
+        /** @description 仅全屏一屏hero；下方无卡片/精选/其他内容 */
+        HomeConfig: {
+            /** @description 默认站点名，翻译 */
+            mainTitle: string;
+            /** @description 副标题，翻译 */
+            subtitle: string;
+            /** @description 默认Welcome To */
+            backgroundText: string;
+            /** @description 默认false，后台可开翻译 */
+            translateBackgroundText: boolean;
+            /** @description 0–3按钮 */
+            buttons: components["schemas"]["HeroButton"][];
+            /** @description HeroBackground */
+            background: components["schemas"]["HeroBackground"];
+            /** @description 遮罩0–100% */
+            overlayPercent: number;
+            /**
+             * @description 文字
+             * @enum {string}
+             */
+            textColor: "light" | "dark";
+            /** @description CAS */
+            revision: components["schemas"]["Revision"];
+        };
+        /** @description 页脚链接 */
+        FooterLink: {
+            /** @description 稳定ID */
+            linkId: components["schemas"]["Identifier"];
+            /** @description 翻译字段 */
+            text: string;
+            /** @description LinkTarget */
+            target: components["schemas"]["LinkTarget"];
+        };
+        /** @description 页脚版权、链接、ICP、源代码 */
+        FooterConfig: {
+            /** @description 版权文本，翻译 */
+            copyright: string;
+            /** @description 自定义链接 */
+            links: components["schemas"]["FooterLink"][];
+            /** @description 无null */
+            icpNumber: string | null;
+            /** @description 无null */
+            icpLink: string | null;
+            /**
+             * @description 默认显示源代码链接，AGPL网络用户可获得源码
+             * @default https://github.com/Uniseem/nice-wiki
+             */
+            sourceCodeURL: string;
+        };
+        /** @description 单条站点公告横幅；无富文公告列表产品 */
+        Announcement: {
+            /** @description 同条公告关闭标识；localStorage记录，不用cookie */
+            announcementId: components["schemas"]["Identifier"];
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description 不可变横幅文件 */
+            revisionId: components["schemas"]["Identifier"];
+            /** @description Hash */
+            bodyHash: components["schemas"]["Hash"];
+            /** @description 后台开关 */
+            enabled: boolean;
+            /** @description 立即null */
+            startsAt: components["schemas"]["Timestamp"] | null;
+            /** @description 永久null */
+            endsAt: components["schemas"]["Timestamp"] | null;
+            /** @description 设置CAS */
+            revision: components["schemas"]["Revision"];
+            /** @description 即时失效水位 */
+            visibilityRevision: components["schemas"]["Revision"];
+            /** @description 更新 */
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 可配置资源上限 */
+        ResourceLimits: {
+            /**
+             * @description 文档 UTF-8 规范 JSON 上限
+             * @default 16777216
+             */
+            maxDocumentBytes: number;
+            /**
+             * @description 单个资源上传上限
+             * @default 134217728
+             */
+            maxUploadBytes: number;
+            /**
+             * @description 站点存储逻辑配额
+             * @default 10737418240
+             */
+            siteStorageBytes: number;
+            /**
+             * @description 上传并发
+             * @default 4
+             */
+            maxUploadConcurrency: number;
+        };
+        /** @description 会话/预览非业务功能新增 */
+        SecurityPolicy: {
+            /**
+             * @description 管理员预览TTL
+             * @default 900
+             */
+            previewTTLSeconds: number;
+            /**
+             * @description 会话最长
+             * @default 604800
+             */
+            sessionAbsoluteTTLSeconds: number;
+        };
+        /** @description 版本化站点设置权威文件；既有功能不增添多内容首页 */
+        SiteConfig: {
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description 站名，会翻译 */
+            name: string;
+            /** @description 无null */
+            logo: components["schemas"]["AssetVersionRef"] | null;
+            /** @description 无null */
+            favicon: components["schemas"]["AssetVersionRef"] | null;
+            /**
+             * @description #RRGGBB
+             * @default #2563EB
+             */
+            themeColor: string;
+            /** @description 无null */
+            defaultShareImage: components["schemas"]["AssetVersionRef"] | null;
+            /** @description SafeURL */
+            publicBaseURL: components["schemas"]["SafeURL"];
+            /** @description LanguageTag */
+            baseLanguage: components["schemas"]["LanguageTag"];
+            /**
+             * @description title/site模板
+             * @default {title} | {site}
+             */
+            titleTemplate: string;
+            /** @description SEO文本 */
+            description: string;
+            /**
+             * @description 搜索引擎
+             * @default true
+             */
+            indexingEnabled: boolean;
+            /** @description HomeConfig */
+            home: components["schemas"]["HomeConfig"];
+            /** @description FooterConfig */
+            footer: components["schemas"]["FooterConfig"];
+            /** @description 暂无公告null */
+            banner: components["schemas"]["Announcement"] | null;
+            /** @description ResourceLimits */
+            resourceLimits: components["schemas"]["ResourceLimits"];
+            /** @description SecurityPolicy */
+            securityPolicy: components["schemas"]["SecurityPolicy"];
+            /** @description CAS */
+            revision: components["schemas"]["Revision"];
+            /** @description 已登录唯一超管完成name/baseLanguage向导 */
+            initialized: boolean;
+            /** @description 修改 */
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 读取后台站点配置的结果 */
+        ReadSiteConfigResult: {
+            /** @description SiteConfig */
+            config: components["schemas"]["SiteConfig"];
+        };
+        /** @description owner以精确inputRef/root/epoch/fence/attempt匹配原持久事实；不能证明安全则pending/unknown。completed只交原结果，safeToRetry必须能复用原hash/checkpoint/付费结果且无未决派发费用；未知绝不作0或重算。 */
+        OwnerRecoveryResult: {
+            /** @enum {string} */
+            status: "completed" | "safeToRetry" | "pending" | "unknown";
+            resultRef?: components["schemas"]["ObjectRef"];
+            paidResultRefs: components["schemas"]["Identifier"][];
         };
     };
     responses: never;

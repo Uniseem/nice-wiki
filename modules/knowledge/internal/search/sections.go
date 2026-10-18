@@ -49,6 +49,8 @@ func ReadSections(ctx context.Context, op OperationContext, input ReadSectionsIn
 	for _, candidate := range validated.Candidates {
 		result.Chunks = append(result.Chunks, candidate.Chunk)
 	}
- if err:=ValidateSectionSources(ctx,op,result.Chunks);err!=nil {return ReadSectionsResult{},err}
+	if err := ValidateSectionSources(ctx, op, result.Chunks); err != nil {
+		return ReadSectionsResult{}, err
+	}
 	return result, nil
 }

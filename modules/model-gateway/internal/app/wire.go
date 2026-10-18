@@ -17,7 +17,7 @@ import (
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	"nice-wiki/modules/model-gateway/internal/invocation"
- "nice-wiki/modules/model-gateway/internal/routing"
+	"nice-wiki/modules/model-gateway/internal/routing"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/security"
 	"nice-wiki/modules/model-gateway/internal/tokens"
@@ -65,7 +65,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	gatewayruntime.InstallStore(store, config.MasterKeyRef)
- if err=store.SetDataEpoch(ctx,runtimeView.DataEpoch);err!=nil{_ = store.Close();return nil,err}
+	if err = store.SetDataEpoch(ctx, runtimeView.DataEpoch); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
 	defer store.Close()
 	taskGroup, err := lifecycle.NewTaskGroup(ctx, 256)
 	if err != nil {
@@ -79,9 +82,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 		validators[name] = validator
 	}
- siteClient:=gen.NewSiteConfigClient(config.Dependencies["site-config"],ModuleSlug,key);siteID,err:=ReadGatewaySiteID(ctx,siteClient,runtimeView.DataEpoch,validators["GatewaySiteConfigResult"]);if err!=nil{return nil,err}
+	siteClient := gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key)
+	siteID, err := ReadGatewaySiteID(ctx, siteClient, runtimeView.DataEpoch, validators["GatewaySiteConfigResult"])
+	if err != nil {
+		return nil, err
+	}
 	mediaClient := gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key)
-	options := gatewayruntime.ExecutionOptions{SiteID:siteID,Anchors: anchors, Tasks: taskGroup, Media: mediaClient, MediaBytes: mediaClient, Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), Validators: validators, WriteWindow: platform.WriteWindowConfig{Runtime: runtimeAuthority.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
+	options := gatewayruntime.ExecutionOptions{SiteID: siteID, Anchors: anchors, Tasks: taskGroup, Media: mediaClient, MediaBytes: mediaClient, Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), Validators: validators, WriteWindow: platform.WriteWindowConfig{Runtime: runtimeAuthority.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
 		view, err := runtimeAuthority.ReadRuntimeState(work)
 		if err != nil {
 			return time.Time{}, err
@@ -115,7 +122,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	usageCallers := append(append([]string{}, assignmentCallers...), "analytics")
 	usageServices := append(append([]string{}, assignmentCallers[1:]...), "analytics")
 	handlers := catalog.NewTaskAvailabilityHandlers(authorize)
- for operationID,handler:=range routing.NewRouteHandlers(){handlers[operationID]=handler}
+	for operationID, handler := range routing.NewRouteHandlers() {
+		handlers[operationID] = handler
+	}
 	for operationID, handler := range invocation.NewExecutionHandlers() {
 		handlers[operationID] = handler
 	}
@@ -158,38 +167,38 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		OpenedDataEpoch: runtimeView.DataEpoch,
 		Authorize:       authorize,
-		ServiceActorCallers: map[string][]string{"resolveTaskRoute": assignmentCallers[1:],"tokenizeText": {"knowledge"}, "lookupInference": assignmentCallers[1:],
+		ServiceActorCallers: map[string][]string{"resolveTaskRoute": assignmentCallers[1:], "tokenizeText": {"knowledge"}, "lookupInference": assignmentCallers[1:],
 			"createInference": assignmentCallers[1:], "readUsageStatisticsPage": {"analytics"}, "quoteCost": assignmentCallers[1:], "cancelInference": assignmentCallers[1:], "queryUsage": usageServices, "readModels": assignmentCallers[1:], "readProfiles": assignmentCallers[1:], "readInference": assignmentCallers[1:], "resumeInference": assignmentCallers[1:]},
 		AllowedCallers: map[string][]string{
- "resolveTaskRoute": assignmentCallers[1:],
-   "readUsageStatisticsPage": {"analytics"},
-			"lookupInference":      assignmentCallers[1:],
-			"getLedger":            {"portal"},
-			"readInference":        assignmentCallers,
-			"resumeInference":      assignmentCallers,
-			"reconcileCharge":      {"portal"},
-			"createInference":      assignmentCallers[1:],
-			"cancelInference":      assignmentCallers[1:],
-			"queryUsage":           usageCallers,
-			"readTaskAvailability": {"qa"},
-			"getPriceBook":         {"portal"},
-			"quoteCost":            assignmentCallers,
-			"tokenizeText":         {"knowledge"},
-			"estimateTokens":       {"localization"},
-			"putTaskAssignment":    {"portal"},
-			"putProfile":           {"portal"},
-			"putProvider":          {"portal"},
-			"putModel":             {"portal"},
-			"refreshModelCatalog":  {"portal"},
-			"putCredential":        {"portal"},
-			"rotateCredential":     {"portal"},
-			"readTaskAssignments":  assignmentCallers,
-			"readModels":           assignmentCallers,
-			"readProfiles":         assignmentCallers,
-			"readAdminCatalog":     {"portal"},
- "createConnectionProbe": {"portal"},
-			"readFeeBudgetPolicy":  {"portal"},
-			"putFeeBudgetPolicy":   {"portal"},
+			"resolveTaskRoute":        assignmentCallers[1:],
+			"readUsageStatisticsPage": {"analytics"},
+			"lookupInference":         assignmentCallers[1:],
+			"getLedger":               {"portal"},
+			"readInference":           assignmentCallers,
+			"resumeInference":         assignmentCallers,
+			"reconcileCharge":         {"portal"},
+			"createInference":         assignmentCallers[1:],
+			"cancelInference":         assignmentCallers[1:],
+			"queryUsage":              usageCallers,
+			"readTaskAvailability":    {"qa"},
+			"getPriceBook":            {"portal"},
+			"quoteCost":               assignmentCallers,
+			"tokenizeText":            {"knowledge"},
+			"estimateTokens":          {"localization"},
+			"putTaskAssignment":       {"portal"},
+			"putProfile":              {"portal"},
+			"putProvider":             {"portal"},
+			"putModel":                {"portal"},
+			"refreshModelCatalog":     {"portal"},
+			"putCredential":           {"portal"},
+			"rotateCredential":        {"portal"},
+			"readTaskAssignments":     assignmentCallers,
+			"readModels":              assignmentCallers,
+			"readProfiles":            assignmentCallers,
+			"readAdminCatalog":        {"portal"},
+			"createConnectionProbe":   {"portal"},
+			"readFeeBudgetPolicy":     {"portal"},
+			"putFeeBudgetPolicy":      {"portal"},
 		},
 	}, handlers)
 	if err != nil {
@@ -267,7 +276,26 @@ func ReadInitializationState(ctx context.Context, client *gen.SiteConfigClient, 
 }
 
 // ReadGatewaySiteID只取生产方严格响应的真实siteId，不把system或旧费用行当当前站点。
-func ReadGatewaySiteID(ctx context.Context,client *gen.SiteConfigClient,epoch string,validate func(json.RawMessage)error)(string,error){
- work,cancel:=context.WithTimeout(platform.WithPortalProof(ctx,""),2500*time.Millisecond);defer cancel();deadline,_:=work.Deadline();id:=platform.NewIdentifier();op:=platform.OperationContext{RequestID:id,OperationID:id,RootOperationID:id,CallerService:ModuleSlug,Actor:platform.AuthContext{Kind:"service",SubjectID:ModuleSlug},DataEpoch:epoch,Deadline:deadline.UTC().Format(time.RFC3339Nano)}
- raw,err:=client.ReadSiteConfig(platform.WithOperationContext(work,op));if err!=nil{return "",err};if validate(raw)!=nil{return "",platform.NewError(platform.CodeIntegrityError,false,"站点配置响应不符合生产合同")};var result struct{Config struct{SiteID string `json:"siteId"`} `json:"config"`};if json.Unmarshal(raw,&result)!=nil||result.Config.SiteID==""{return "",platform.NewError(platform.CodeDependencyUnavailable,true,"网关当前站点尚未初始化")};return result.Config.SiteID,nil
+func ReadGatewaySiteID(ctx context.Context, client *gen.SiteConfigClient, epoch string, validate func(json.RawMessage) error) (string, error) {
+	work, cancel := context.WithTimeout(platform.WithPortalProof(ctx, ""), 2500*time.Millisecond)
+	defer cancel()
+	deadline, _ := work.Deadline()
+	id := platform.NewIdentifier()
+	op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug}, DataEpoch: epoch, Deadline: deadline.UTC().Format(time.RFC3339Nano)}
+	raw, err := client.ReadSiteConfig(platform.WithOperationContext(work, op))
+	if err != nil {
+		return "", err
+	}
+	if validate(raw) != nil {
+		return "", platform.NewError(platform.CodeIntegrityError, false, "站点配置响应不符合生产合同")
+	}
+	var result struct {
+		Config struct {
+			SiteID string `json:"siteId"`
+		} `json:"config"`
+	}
+	if json.Unmarshal(raw, &result) != nil || result.Config.SiteID == "" {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "网关当前站点尚未初始化")
+	}
+	return result.Config.SiteID, nil
 }

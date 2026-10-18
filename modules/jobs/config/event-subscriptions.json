@@ -98,6 +98,12 @@
       "handler": "qa.InvalidateCache"
     },
     {
+      "event": "invocation.reconciled",
+      "version": 1,
+      "consumer": "analytics",
+      "handler": "analytics.ConsumeAnalyticsEvent"
+    },
+    {
       "event": "invocation.settled",
       "version": 1,
       "consumer": "analytics",

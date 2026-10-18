@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 64 个函数：约束 15 个，参考 49 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 66 个函数：约束 15 个，参考 51 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -586,6 +586,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 10. 认证响应统一Cache-Control:no-store；成功raw tokens只进入Secure HttpOnly SameSite=Strict host-only Path=/ cookie，浏览器body只保安全session/account/nextRoute；失败和敏感回执冲突不改已有cookie
 11. 当前设备撤销只用ResolveAuthContext的权威sessionId传入响应适配；非当前设备不删除cookie
 12. 匿名traffic-guard调用只从真实连接/部署信任链生成站点隔离30日预算范围；当前/前期预算key最多两把，未配置站点/key失败关闭，不用HTTP签名key默默替代预算pepper
+13. 仅analytics:ingestBeacon匿名公开路由：以启动装配的严格公开schema校验实际正文，2048字节上限；用唯一可信代理解析与真实HTTP User-Agent覆写来源，写当前epoch并重算签名正文hash。转固定/v1/internal/beacons，仅本机portal纯服务身份，禁止转浏览器身份或原IP日志。
 
 **错误**
 
@@ -599,7 +600,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 - 授权：permission：anonymous；rule：入口本身匿名可达；路由权限按路由表与上游服务二次校验
 - 并发：每请求独立；上游取消随客户端断开传播
 - 幂等：幂等由上游operationId保证；入口不重放写请求
-- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.CheckEntranceGate`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`、`platform.PrivateNetworkScopes`、`portal.authenticationOperation`、`portal.prepareAuthenticationRequest`、`platform.PrivateBudgetNetworkScopes`、`platform.ResolveVisitorAddress`
+- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.CheckEntranceGate`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`、`platform.PrivateNetworkScopes`、`portal.authenticationOperation`、`portal.prepareAuthenticationRequest`、`platform.PrivateBudgetNetworkScopes`、`platform.ResolveVisitorAddress`、`portal.prepareTrustedBeacon`、`analytics:ingestTrustedBeacon`
 
 ## portal.authenticationOperation
 
@@ -864,6 +865,46 @@ func adaptSessionRevocation(response *http.Response) ([]byte, []*http.Cookie, er
 - 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
 - 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
 - 依赖：`portal.decodeAuthenticationJSON`、`portal.authenticationProblem`
+
+## portal.prepareTrustedBeacon
+
+- 级别：参考
+- 文件：`modules/portal/internal/proxy_stream.go`
+- 作用：以严格公开正文和可信连接构造签名内部beacon，不记录原IP
+
+```go
+func prepareTrustedBeacon(runtime *ProxyRuntime, op OperationContext) ([]byte, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `runtime` | `ProxyRuntime` | 真实请求内存上下文 | 可信启动装配 |
+| `op` | `OperationContext` | 本次真实入口上下文 | epoch由权威读取 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `body` | `[]byte` | 仅内部HTTP传输的canonical正文 | 不日志、不持久 |
+| `error` | `error` | 未知身份或正文不合法拒绝 |  |
+
+**步骤**
+
+1. 实际公开正文≤2048字节并以生产方严格公开schema校验；客户端peer/epoch等未知字段拒绝。
+2. 公共ResolveVisitorAddress只从真实socket与部署信任链取得规范地址；User-Agent只用真实HTTP头且≤1024字节有效UTF8，绝不使用客户端JSON自报值。
+3. 注入本次dataEpoch，canonical JSON≤4096；仅返回内存正文，由ProxyRequest重算bodyHash并签入portal纯服务调用。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：`platform.ResolveVisitorAddress`、`platform.CanonicalJSON`
 
 ## portal.LoadBootstrap
 
@@ -2243,6 +2284,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 8. 分别加载服务断言与delegationKeyRef专用委托签名引用；委托keyId必须在portalDelegationKeys登记，缺失失败关闭
 9. 完整本域handler覆盖未齐时NewApplication明确DEPENDENCY_UNAVAILABLE，禁止用默认503占位handler或固定Ready成功冒充完整服务；TrustedProxyCIDRs只从受信ServiceConfig注入
 10. 入口公开基址必须经platform.NormalizePublicURL校验；https为默认，显式AllowLocalHTTP只开放loopback本地HTTP；cookie仍为Secure
+11. 用严格生产方readSiteConfig返回值取得真实siteId，绑定真实运行epoch；不可用不以system或随机ID代替。
 
 **错误**
 
@@ -2254,8 +2296,49 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`portal.CompileRouteRegistry`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`portal.NewApplication`、`platform.NormalizePublicURL`、`platform.LoadPortalDelegation`
+- 依赖：`portal.CompileRouteRegistry`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`portal.NewApplication`、`platform.NormalizePublicURL`、`platform.LoadPortalDelegation`、`portal.readSiteIdentity`、`platform.LoadServiceIdentity`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
+
+## portal.readSiteIdentity
+
+- 级别：参考
+- 文件：`modules/portal/internal/app/wire.go`
+- 作用：启动从生产方只读权威取得真实站点身份
+
+```go
+func readSiteIdentity(ctx context.Context, config platform.ServiceConfig, key platform.SigningKey, epoch platform.Identifier) (platform.Identifier, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 启动IO取消 |  |
+| `config` | `ServiceConfig` | 可信部署依赖 |  |
+| `key` | `SigningKey` | 已加载服务签名 |  |
+| `epoch` | `Identifier` | 真实runtime epoch |  |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `siteID` | `Identifier` | 真实站点ID |  |
+| `error` | `error` | 依赖或完整性错误 |  |
+
+**步骤**
+
+1. 构造当前epoch、30秒截止的portal纯服务只读上下文，撤用户证明且费用类别为空。
+2. 调用site-config:readSiteConfig，以生产方PortalSiteConfigResponse严格schema验证并读取config.siteId；未知不猜站点ID。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
+- 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
+- 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
+- 依赖：`site-config:readSiteConfig`、`platform.NewPayloadValidator`
 
 ## portal.Serve
 
@@ -2431,7 +2514,7 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 作用：完整本域HTTP覆盖未齐时拒绝构造应用
 
 ```go
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier) (*Application, error)
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier, siteID platform.Identifier) (*Application, error)
 ```
 
 **输入**
@@ -2447,6 +2530,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 1. 注入受信配置/服务与专用委托密钥/epoch/权威客户端；TrustedProxyCIDRs不从浏览器取
 2. registerLocalRoutes按静态required清单核真实非nil处理器，缺任何本域handler返回DEPENDENCY_UNAVAILABLE；不注册默认503占位
 3. 只有本域完整覆盖后才挂静态代理catchall并返回Application
+4. 仅由启动传入真实siteID，编译登记BeaconPublicRequest严格校验器并传入请求内存上下文；失败拒绝装配。
 
 **错误**
 
@@ -2456,7 +2540,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 - 授权：仅受信进程运行时与静态路由；用户写仍同Origin、CSRF和identity当前权威
 - 并发：每请求局部值，完成验证与构造前不写浏览器头或正文
 - 幂等：不重放上游写；只适配本次权威结果，失败不改变已有cookie
-- 依赖：`portal.registerLocalRoutes`、`portal.proxyHandler`
+- 依赖：`portal.registerLocalRoutes`、`portal.proxyHandler`、`platform.NewPayloadValidator`
 
 ## portal.registerLocalRoutes
 

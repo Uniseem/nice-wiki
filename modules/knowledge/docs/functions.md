@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 98 个函数：约束 33 个，参考 65 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 221 个函数：约束 35 个，参考 186 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -33,11 +33,10 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 
 **步骤**
 
-1. 检查DB与索引文件manifest
-2. 核验空间/哈希一致
-3. 不一致active标unavailable
-4. 注册租约恢复
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 仅本域服务启动，私有DataDirectory必须匹配可信Runtime.DataRoot及同站同代index_identity
+2. 读取SQLite真实quick_check及所有活动指针，在同一只读快照逐项核build/doc/代数/完整空间
+3. 重算每代chunks/terms/vectors清单及manifestHash，任何错误返回失败并关闭就绪，不改active、不自动重建/调用模型
+4. 完整迁移/恢复目录和后台租约恢复由BuildApplication与已登记backgroundTasks装配；本函数不伪造ready或活动代数
 
 **错误**
 
@@ -54,7 +53,7 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ReadBuildRecord`、`knowledge.ReadGeneration`
 
 ## knowledge.PutIndexConfig
 
@@ -83,11 +82,12 @@ func PutIndexConfig(ctx context.Context, op OperationContext, input PutIndexConf
 
 **步骤**
 
-1. 校验chunkTokens/overlap
-2. 解析模型空间声明
-3. 空间变化只生成新代数不覆盖active
-4. CAS保存
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 即时入口核knowledge.manage，本域核可信portal管理主体；config.version必须等于expectedVersion，overlap小于chunkTokens，语言仅可信站点基准语言
+2. 已保存原回执先返回，不因之后模型停用改变原操作结果；同键异输入CONFLICT
+3. 开启时以knowledge本站纯服务读MG无secret profiles/models，严格生产方schema；profile主模型必须embedding且enabled，输入上限容纳chunkTokens，MG权威embeddingSpace全部五字段精确匹配
+4. 可选重排profile必须配置有效rerank主模型；禁止本域复制或重算spaceId算法。明确关闭配置不依赖模型可达，不触发付费
+5. 取得平台写窗口与本域身份事务后再次核幂等回执；首次expectedVersion=0创建version1，后续CAS且configId稳定
+6. 配置及安全原回执同事务；空间变化只影响后续构建，不修改active、不自动花钱重建
 
 **错误**
 
@@ -105,7 +105,7 @@ func PutIndexConfig(ctx context.Context, op OperationContext, input PutIndexConf
 - 授权：权限 knowledge.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:readModels`
+- 依赖：`knowledge.AuthorizeAdmin`、`knowledge.RuntimeFromContext`、`knowledge.validateConfiguredSpace`、`knowledge.BeginIndexWrite`、`knowledge.ReadOperationReceipt`、`knowledge.SaveOperationReceipt`
 
 ## knowledge.ReadIndexConfig
 
@@ -134,8 +134,8 @@ func ReadIndexConfig(ctx context.Context, op OperationContext, input ReadIndexCo
 
 **步骤**
 
-1. knowledge.manage
-2. 返回当前分块参数、嵌入空间与版本
+1. 仅已认证knowledge.manage管理员读取当前可信站点/代次私有配置
+2. 无配置返回NOT_FOUND，不捏造模型/空间；返回真实当前version用于后续CAS
 
 **错误**
 
@@ -145,7 +145,40 @@ func ReadIndexConfig(ctx context.Context, op OperationContext, input ReadIndexCo
 - 授权：permission：knowledge.manage；rule：后台管理员
 - 并发：只读快照
 - 幂等：只读
-- 依赖：无
+- 依赖：`knowledge.AuthorizeAdmin`、`knowledge.RuntimeFromContext`、`knowledge.ReadConfig`
+
+## knowledge.validateConfiguredSpace
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/config/config.go`
+- 作用：用MG权威profile主模型与完整空间声明校验启用配置，不重算spaceId
+
+```go
+func validateConfiguredSpace(ctx context.Context, op OperationContext, runtime index.Runtime, config gen.IndexConfig) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 用MG权威profile主模型与完整空间声明校验启用配置，不重算spaceId
+2. 可选rerankProfileId只能选择QA费用类别的真实原生rerank档位；背景入库embedding与QA检索重排费用类别分离
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信本域装配或已授权用例内部调用，继承外层权限/事务
+- 并发：复用本域短事务；外部权威读取不持有SQL事务
+- 幂等：同原记录及规范输入约束
+- 依赖：`knowledge.ReadModelCatalog`、`knowledge.EmbeddingProfile`
 
 ## knowledge.HandlePublication
 
@@ -174,11 +207,11 @@ func HandlePublication(ctx context.Context, op OperationContext, input HandlePub
 
 **步骤**
 
-1. inbox按eventId去重
-2. 验证dataEpoch
-3. 配置关闭或未配置档位则记录skipped
-4. 创建唯一document/revision/space build与job outbox同事务
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 消费公共订阅边界已校验的原信封，并核eventId/document/site/epoch/visibility与payload及信封逐字段一致
+2. 当前平台写窗口事务内最先ConsumeInbox，重复无操作；visibility水位不前进则只提交inbox
+3. 保存本域可见水位；无配置或明确停用时skipped，不捏造嵌入空间或新任务
+4. 已启用时QueueBuild固定配置/空间及后台批准，与原inbox/水位/派发意图同事务，不反向同步回源
+5. 提交后尝试原DispatchBuild，jobs未知保留意图由恢复继续；真实当前来源在FetchPublishedSource及每次模型前再次证明
 
 **错误**
 
@@ -195,7 +228,7 @@ func HandlePublication(ctx context.Context, op OperationContext, input HandlePub
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:createJob`、`content:validatePublications`、`knowledge.ConsumeInbox`、`platform.ClaimInbox`
+- 依赖：`knowledge.BeginIndexWrite`、`knowledge.ConsumeInbox`、`knowledge.ReadConfig`、`knowledge.QueueBuild`、`knowledge.DispatchBuild`
 
 ## knowledge.CreateBuild
 
@@ -224,11 +257,12 @@ func CreateBuild(ctx context.Context, op OperationContext, input CreateBuildInpu
 
 **步骤**
 
-1. 向content验证visible/current
-2. 固定config/space
-3. 同修订同空间幂等
-4. force新generation且保留旧active
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 核已认证knowledge.manage管理员；同幂等键原回执优先返回，同键异输入CONFLICT
+2. 先锁外content验证完整发布引用visible/current，创建提交前证明不超过一秒且不低于本域撤回水位
+3. 在当前平台写窗口私有事务固定已启用配置及MG完整空间；首次或force使用独立持久代数高水位，GC不得回退代数
+4. 同文档/完整修订/空间force=false复用已有构建；force=true只创建新staging，不改旧active
+5. build、精确配置、后台批准元数据、完整原inputRef/原payload/去重键的持久派发意图及原回执同事务提交
+6. HTTP202只确认本域持久接受，提交后尝试DispatchBuild；jobs不可达保留同一意图由恢复批次继续，不捏造job成功或新付费attempt
 
 **错误**
 
@@ -246,7 +280,74 @@ func CreateBuild(ctx context.Context, op OperationContext, input CreateBuildInpu
 - 授权：权限 knowledge.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`content:validatePublications`、`jobs:createJob`
+- 依赖：`knowledge.AuthorizeAdmin`、`knowledge.RuntimeFromContext`、`knowledge.ReadOperationReceipt`、`knowledge.SaveOperationReceipt`、`knowledge.ValidatePublication`、`knowledge.BeginIndexWrite`、`knowledge.ReadConfig`、`knowledge.QueueBuild`、`knowledge.DispatchBuild`
+
+## knowledge.QueueBuild
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/create.go`
+- 作用：在已授权事务按完整修订/空间去重，单调分配代数并固定原任务inputRef与后台批准
+
+```go
+func QueueBuild(ctx context.Context, tx *sql.Tx, op OperationContext, config gen.IndexConfig, document gen.PublishedRevisionRef, force bool) (gen.IndexBuild, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在已授权事务按完整修订/空间去重，单调分配代数并固定原任务inputRef与后台批准
+2. 新分配前核可信DataRoot的真实可用磁盘水位，≤10%停止新build，已有同源原结果复用不受影响；不造余额/额度
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：已授权业务或原事件链路内部调用，继承外层事务和批准
+- 并发：本地短事务；外部RPC不持有SQL事务
+- 幂等：原持久输入/去重键/版本唯一
+- 依赖：`knowledge.ReadBuildRecord`、`knowledge.RuntimeFromContext`、`knowledge.EnsureBuildDiskBudget`
+
+## knowledge.DispatchBuild
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/create.go`
+- 作用：读取原持久inputRef/去重键，锁外jobs创建并安全保存真实jobId/operationId，取消竞态不丢已接受引用
+
+```go
+func DispatchBuild(ctx context.Context, op OperationContext, buildID string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取原持久inputRef/去重键，锁外jobs创建并安全保存真实jobId/operationId，取消竞态不丢已接受引用
+2. RPC前事务将pending置dispatching且核cancel_requested=0；取消可区分尚未派发与接受未知，重试仅原inputRef和去重键，绝不新增付费attempt
+3. jobs CreateJob请求明确携原dataEpoch必填字段，严格核生产schema
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：已授权业务或原事件链路内部调用，继承外层事务和批准
+- 并发：本地短事务；外部RPC不持有SQL事务
+- 幂等：原持久输入/去重键/版本唯一
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ReadBuildRecord`、`knowledge.BeginIndexWrite`、`jobs:createJob`
 
 ## knowledge.FetchPublishedSource
 
@@ -275,11 +376,10 @@ func FetchPublishedSource(ctx context.Context, op OperationContext, input FetchP
 
 **步骤**
 
-1. 校验build租约及deadline
-2. 调content只读发布对象
-3. 对比contentHash
-4. 保存私有临时source引用
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 先核原构建租约及不可变来源，释放SQL事务后才调用content精确publishedRevisionId
+2. 严格生产方ReadPublishedRevisionResult schema，完整reference逐字段一致；canonical DocumentBody JSON字节≤16MiB且SHA256等于原contentHash
+3. 返回完整结构JSON，保留稳定ID/块/marks/attrs；不把扁平文本摘要冒充权威正文
+4. 回写前重新取得平台当前写窗口与同租约，原源JSON及hash同build唯一保存，异内容拒绝；不写外域私有文件
 
 **错误**
 
@@ -297,7 +397,7 @@ func FetchPublishedSource(ctx context.Context, op OperationContext, input FetchP
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`content:readPublishedRevision`
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.BeginBuildWrite`、`content:readPublishedRevision`
 
 ## knowledge.ListExtractableAssets
 
@@ -326,11 +426,11 @@ func ListExtractableAssets(ctx context.Context, op OperationContext, input ListE
 
 **步骤**
 
-1. 按正文schema解析引用
-2. 逐项media:readAsset核验读取授权与hash（只读，不预留引用）
-3. 限制每文档100资源单件50MiB
-4. 不支持类型标明unsupported
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 输入必须为已绑定发布引用的完整canonical DocumentBody，重算原contentHash，拒绝超过16MiB或旧epoch
+2. 沿真实attrs及有序子树解析完整AssetVersionRef，保留最近稳定BlockRef/hash；不从URL/文件名/文本猜资源，不产生新块ID
+3. 按assetId/version/hash去重，最多100资源；每件向media:readAsset传精确version并严格核生产schema、本站/ready及全字段相等，不换latest
+4. MIME固定白名单且单件≤50MiB的入assets，其他授权引用明确unsupportedAssets；sources保留各原块来源与是否支持
+5. 只读取资源授权，不预留/修改媒体引用，不覆盖人工caption
 
 **错误**
 
@@ -346,7 +446,71 @@ func ListExtractableAssets(ctx context.Context, op OperationContext, input ListE
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`media:readAsset`
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.scanAssetSources`、`knowledge.extractableMediaType`、`media:readAsset`
+
+## knowledge.scanAssetSources
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/source/media.go`
+- 作用：沿权威JSON的真实稳定块提取完整媒体版本及原块hash，不猜字符串资源
+
+```go
+func scanAssetSources(body []byte, document gen.PublishedRevisionRef) ([]AssetSource, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 沿权威JSON的真实稳定块提取完整媒体版本及原块hash，不猜字符串资源
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：已授权业务或原事件链路内部调用，继承外层事务和批准
+- 并发：本地短事务；外部RPC不持有SQL事务
+- 幂等：原持久输入/去重键/版本唯一
+- 依赖：无
+
+## knowledge.extractableMediaType
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/source/media.go`
+- 作用：固定支持PDF、纯文本/Markdown/CSV/JSON、受支持图像及视频MIME集合
+
+```go
+func extractableMediaType(mediaType string) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定支持PDF、纯文本/Markdown/CSV/JSON、受支持图像及视频MIME集合
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：已授权业务或原事件链路内部调用，继承外层事务和批准
+- 并发：本地短事务；外部RPC不持有SQL事务
+- 幂等：原持久输入/去重键/版本唯一
+- 依赖：无
 
 ## knowledge.CreateExtraction
 
@@ -355,7 +519,7 @@ func ListExtractableAssets(ctx context.Context, op OperationContext, input ListE
 - 作用：按hash幂等提取资源
 
 ```go
-func CreateExtraction(ctx context.Context, op OperationContext, input CreateExtractionInput) (CreateExtractionResult, error)
+func CreateExtraction(ctx context.Context,op OperationContext,input CreateExtractionInput)(CreateExtractionResult,error)
 ```
 
 **输入**
@@ -380,6 +544,9 @@ func CreateExtraction(ctx context.Context, op OperationContext, input CreateExtr
 3. 记录来源授权
 4. 排队独立租约
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+6. 新build全量明批资源计划传入只内部非序列化ApprovedPlan；当前计划不匹配CONFLICT，已有关联同build仍先返回原owner
+7. 意图改为稳定asset hash/MIME/size/task/extractor语义（不含可变记忆/模型），旧计划hash行回找最早真实owner再CAS建立语义索引；不同计划未终局拒新付费
+8. 优先复用合法缓存或免费恢复原完整paid描述；只jobs真终局且完整原root费用无未决、无缺接受ID已外发、当前无可用完整结果时，新明批build可CAS替换意图新owner；原任务/paid输出/关联全部保留
 
 **错误**
 
@@ -395,49 +562,72 @@ func CreateExtraction(ctx context.Context, op OperationContext, input CreateExtr
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`media:readAsset`、`jobs:createJob`
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.BeginBuildWrite`、`knowledge.SameAsset`、`knowledge.ReadExtraction`、`knowledge.PrepareExtractionPlan`、`knowledge.DispatchExtraction`、`knowledge.InspectFailedExtraction`、`knowledge.SaveRecoveredExtraction`
 
-## knowledge.ExecuteExtraction
+## knowledge.PrepareExtractionPlan
 
-- 级别：约束
+- 级别：参考
 - 文件：`modules/knowledge/internal/extract/create.go`
-- 作用：按资源类型执行一次派生文本提取
+- 作用：首次冻结任务记忆/档位/覆盖/opaque声明；PDF免费解析、视频只原元数据、未知明确unsupported
 
 ```go
-func ExecuteExtraction(ctx context.Context, op OperationContext, input JobExecutionInput) (JobExecutionResult, error)
+func PrepareExtractionPlan(ctx context.Context,op OperationContext,origin source.AssetSource,version,language string)(ExtractionPlan,error)
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
-| `input` | `JobExecutionInput` | 输入 | 必须通过对应schema |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `JobExecutionResult` | 结果 | 无error时有效 |
-| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+无
 
 **步骤**
 
-1. 读取提取记录与资源hash，按MIME分派：PDF→ExtractPdfText，图片/画板/视频封面→ExtractImageDescription，视频→ExtractVideoMetadata，其他附件→DescribeAttachment
-2. 结果按assetHash/extractorVersion/模型/记忆版本保存为机器派生文本，不覆盖人工caption
-3. 不支持或无文本标unsupported，不自动OCR或转写
+1. 首次冻结任务记忆/档位/覆盖/opaque声明；PDF免费解析、视频只原元数据、未知明确unsupported
+2. 真实MG resolveTaskRoute返回档位/赋值/eligible候选/routeVersion和opaque模型hash，禁止本域手拼主备用；估价价格快照仅原全量明批注入，不重估
 
 **错误**
 
-- `UNSUPPORTED_CAPABILITY`：类型不支持或未配置视觉档（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：media或网关不可用（可重试）
+- 无
 
-- 副作用：写提取结果
-- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
-- 并发：同assetHash/extractorVersion一次一个
-- 幂等：按assetHash/extractorVersion幂等复用
-- 依赖：`knowledge.ExtractPdfText`、`knowledge.ExtractImageDescription`、`knowledge.ExtractVideoMetadata`、`knowledge.DescribeAttachment`
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ResolveTaskMemory`、`knowledge.ReadTaskRoute`
+
+## knowledge.ReadExtraction
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/create.go`
+- 作用：只读有精确当前来源授权关联的原结果/hash；缓存绑定新引用不覆盖原付费证明
+
+```go
+func ReadExtraction(ctx context.Context,op OperationContext,id string,origin source.AssetSource)(ExtractionArtifact,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读有精确当前来源授权关联的原结果/hash；缓存绑定新引用不覆盖原付费证明
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`
 
 ## knowledge.ExtractPdfText
 
@@ -466,11 +656,10 @@ func ExtractPdfText(ctx context.Context, op OperationContext, input ExtractPdfTe
 
 **步骤**
 
-1. media授权流下载并验证hash
-2. 在无网络沙箱读取最多500页/50MiB
-3. 保留页码按阅读序提取
-4. 无文本标unsupported等待显式OCR任务
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数60000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 执行器拥有独立提取租约和最终写资格；本函数不写DB或模型
+2. 对完整AssetSource精确version/原发布引用通过media授权字节流，≤50MiB有界读/核hash及长度/Close，不取latest
+3. 公共RunBoundedParser自身隔离子进程pdf-text-v1真实解析≤500页，输出≤16MiB，文字≤8MiB；完整真实页号与unsupported声明核对
+4. 无文字明确unsupported，无OCR/自动转写，保留原资源/BlockRef；main已在任何配置密钥前接真实RunPDFParserChild
 
 **错误**
 
@@ -488,7 +677,39 @@ func ExtractPdfText(ctx context.Context, op OperationContext, input ExtractPdfTe
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数60000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`media:readAsset`、`platform.RunBoundedParser`
+- 依赖：`knowledge.DownloadExtractionAsset`、`platform.RunBoundedParser`
+
+## knowledge.RunPDFParserChild
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/pdf.go`
+- 作用：配置/密钥前公共隔离解析入口；main真实装配未齐不计ready
+
+```go
+func RunPDFParserChild() (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 配置/密钥前公共隔离解析入口；main真实装配未齐不计ready
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`platform.RunParserChild`、`knowledge.ParsePDFPages`
 
 ## knowledge.ExtractImageDescription
 
@@ -517,11 +738,9 @@ func ExtractImageDescription(ctx context.Context, op OperationContext, input Ext
 
 **步骤**
 
-1. 发布构建显式视觉描述配置
-2. 根knowledge.describe-visual使用vision档（未设采用fast视觉能力）800output token
-3. 图片/画板/视频封面assetHash+task/model/memory version幂等复用
-4. 保存machineDerived仅检索不覆盖人工caption，取消旧revision后不写。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 只执行原发布任务批准的真实PNG/JPEG/WebP/GIF视觉资源，授权下载原version并核hash/长度；其他实际不支持的输入显式UNSUPPORTED_CAPABILITY
+2. knowledge.describe-visual的任务记忆必须匹配源语言和原任务，vision档未设可交配置fast视觉能力，由MG主备用真实能力门禁决定，不推测外部模型成功
+3. InvokeModel使用原提取拥有者/assetHash/task/profile/记忆版本键，真实付费步骤完整结果保留；跨构建缓存由提取创建/执行器拥有，不覆盖人工caption
 
 **错误**
 
@@ -537,7 +756,7 @@ func ExtractImageDescription(ctx context.Context, op OperationContext, input Ext
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`media:readAsset`、`knowledge.InvokeModel`
+- 依赖：`knowledge.SameAsset`、`knowledge.DownloadExtractionAsset`、`knowledge.DescribeResource`
 
 ## knowledge.ExtractVideoMetadata
 
@@ -566,11 +785,9 @@ func ExtractVideoMetadata(ctx context.Context, op OperationContext, input Extrac
 
 **步骤**
 
-1. 从media取得已授权平台元数据
-2. 仅收录已有字幕与题名
-3. 校验语言/编码
-4. 无字幕不自动转写
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 核固定正文canonical hash/epoch及真实原video blockId/hash，只读取正文已保存attrs.title/description和来源类型
+2. metadata存在可ready，当前字幕schema不存在则transcriptState固定unsupported，无URL重抓、无自动转写
+3. 上传视频保留真实asset；平台视频无视频asset时内部asset缺失，保留sourceBlock，绝不以poster冒视频
 
 **错误**
 
@@ -586,7 +803,39 @@ func ExtractVideoMetadata(ctx context.Context, op OperationContext, input Extrac
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`media:readVideoMetadata`
+- 依赖：`knowledge.FindVideoBlock`
+
+## knowledge.FindVideoBlock
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/video.go`
+- 作用：只按原有序正文树读取实际video块及规范节点
+
+```go
+func FindVideoBlock(raw json.RawMessage, blockID string) (json.RawMessage, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只按原有序正文树读取实际video块及规范节点
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
 
 ## knowledge.NormalizeSource
 
@@ -615,11 +864,11 @@ func NormalizeSource(ctx context.Context, op OperationContext, input NormalizeSo
 
 **步骤**
 
-1. 解析块级纯文本
-2. Unicode NFKC并统一LF
-3. 保留段落和代码大小写
-4. 构建offset映射不丢弃引用源位置
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 真实叶UTF8上限4MiB且schema最多1Mi Unicode字符；保留原叶稳定NFKC起始游标，不能从任意字节中部继续
+2. 规范CRLF/CR到LF并用已批准x/text的NFKC稳定边界迭代，逐规范UTF8字节映射原叶最早源起点
+3. 单次规范片段最多4MiB/1Mi Unicode字符；NFKC膨胀时在真实稳定归一化边界返回nextByte/source范围，不截任意字节、不伪造全叶结果
+4. 消耗到EOF才省略nextByte，内部构建必须继续所有片段；没有付费、存储、模型token推测
+5. 单次完整原机器页/描述最多8MiB，原content叶仍由来源入口限制4MiB/1Mi字符；每个真实稳定NFKC输出片段≤4MiB且≤1Mi字符后调用真实BPE，NextByte不截断
 
 **错误**
 
@@ -636,6 +885,102 @@ func NormalizeSource(ctx context.Context, op OperationContext, input NormalizeSo
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`knowledge.validBoundedText`、`knowledge.canonicalizeLineEndings`、`knowledge.checkContext`
+
+## knowledge.validBoundedText
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/chunk/normalize.go`
+- 作用：检查真实源叶非空、合法UTF8及4MiB字节界限
+
+```go
+func validBoundedText(value string) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 检查真实源叶非空、合法UTF8及4MiB字节界限
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域规范化内部参考助手，不建立外部授权
+- 并发：无共享状态
+- 幂等：同输入或同取消状态同结果
+- 依赖：无
+
+## knowledge.canonicalizeLineEndings
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/chunk/normalize.go`
+- 作用：统一CRLF/CR到LF并保留每个规范字节对应原UTF8起点
+
+```go
+func canonicalizeLineEndings(source string) ([]byte, []int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 统一CRLF/CR到LF并保留每个规范字节对应原UTF8起点
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域规范化内部参考助手，不建立外部授权
+- 并发：无共享状态
+- 幂等：同输入或同取消状态同结果
+- 依赖：无
+
+## knowledge.checkContext
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/chunk/normalize.go`
+- 作用：传播规范化阶段已确定的取消和截止，错误不携带正文
+
+```go
+func checkContext(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 传播规范化阶段已确定的取消和截止，错误不携带正文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域规范化内部参考助手，不建立外部授权
+- 并发：无共享状态
+- 幂等：同输入或同取消状态同结果
 - 依赖：无
 
 ## knowledge.SplitChunks
@@ -665,10 +1010,11 @@ func SplitChunks(ctx context.Context, op OperationContext, input SplitChunksInpu
 
 **步骤**
 
-1. 从可信内部SourceBlock取得单一稳定BlockRef、规范正文、逐UTF8字节sourceOffsets与所选模型tokenizer给定的tokenEnds；不猜模型分词
-2. 不跨block合并；长块按chunkTokens/overlapTokens在tokenEnds给定的UTF8边界切分，每段始终保留原blockId与blockHash
-3. 每个输出chunk记录该唯一来源与完整sourceOffsets，byteStart/byteEnd覆盖对应原始UTF8片段；相同规范化源段可有重叠原文范围
-4. chunkId由完整BlockRef、可选asset、contextVersionHash、规范文本区间与chunkHash确定；不将派生内容写回人工正文；总块数上限256
+1. 输入为固定完整发布引用下可信SourceBlock真实叶片段，可共享原BlockRef但不得重复sourcePath/真实源范围
+2. 真实BPE tokenEnds只核递增/覆盖，允许UTF8码点内部端点，不能以rune冒充token
+3. 选择每块终点时不超过chunkTokens及64KiB并退到完整UTF8边界；重叠起点向前进至完整UTF8边界，实际重叠不超过配置，保留真实token序号计数
+4. 单次最多256块并返回内部nextCursor，全构建ordinal保持；调用方必须续读所有片段，不能把有限批当完整完成
+5. 新chunkId绑定完整BlockRef、sourcePath、真实源范围、规范区间、contextVersionHash及chunkHash，旧无path整块身份保持兼容；每字节sourceOffsets和asset来源不丢失
 
 **错误**
 
@@ -758,6 +1104,9 @@ func NewIndexRuntime(runtime Runtime)(Runtime,error)
 
 1. 按精确Go签名处理已校验输入和可信依赖
 2. 具体分支、固定参数与共同规则见本域data及实现注释
+3. 实际装配严格MG profiles/models、jobs创建/取消及content源正文/发布事件运行载荷validator，缺生产schema启动失败
+4. 严格GatewayQuoteCostResult生产schema用于真实全量费用分项，不本域复制价格计算
+5. 严格GatewayResolveTaskRouteResult alias依生产方ResolveRouteResult，所有本域候选来自同一快照
 
 **错误**
 
@@ -1038,6 +1387,7 @@ func ReadGeneration(ctx context.Context, tx *sql.Tx, record BuildRecord) ([]Gene
 
 1. 按精确Go签名处理已校验输入和可信依赖
 2. 具体分支、固定参数与共同规则见本域data及实现注释
+3. 完整词项回验与BuildLexicalIndex一样基于独立机器prefix加原text的RetrievalText，不能按原text单独计算导致所有增强索引被错误拒绝
 
 **错误**
 
@@ -1054,7 +1404,7 @@ func ReadGeneration(ctx context.Context, tx *sql.Tx, record BuildRecord) ([]Gene
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge.ReadChunks`、`knowledge.DecodeVector`、`knowledge.TokenizeText`、`knowledge.storageError`
+- 依赖：`knowledge.ReadChunks`、`knowledge.DecodeVector`、`knowledge.TokenizeText`、`knowledge.storageError`、`knowledge.RetrievalText`
 
 ## knowledge.BuildLexicalIndex
 
@@ -1104,7 +1454,7 @@ func BuildLexicalIndex(ctx context.Context, op OperationContext, input BuildLexi
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge.BeginBuildWrite`、`knowledge.ReadChunks`、`knowledge.TokenizeText`、`knowledge.storageError`
+- 依赖：`knowledge.BeginBuildWrite`、`knowledge.ReadChunks`、`knowledge.TokenizeText`、`knowledge.storageError`、`knowledge.RetrievalText`
 
 ## knowledge.TokenizeText
 
@@ -1146,6 +1496,38 @@ func TokenizeText(text string) []string
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：无
 
+## knowledge.RetrievalText
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/lexical.go`
+- 作用：仅检索用机器背景加换行原text，保持原引文/偏移
+
+```go
+func RetrievalText(value gen.Chunk) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅检索用机器背景加换行原text，保持原引文/偏移
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
 ## knowledge.RequestEmbeddings
 
 - 级别：参考
@@ -1178,6 +1560,8 @@ func RequestEmbeddings(ctx context.Context, op OperationContext, input RequestEm
 3. 继承ctx调用MG
 4. 对每返回space和dimension严格校验
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+6. 每次embedding请求显式携完整expectedEmbeddingSpace，由MG在费用预占及主备用派发前硬核；不只事后发现错空间
+7. 每项完整检索文本重新真实BPE核embeddingTokenCount及权威模型实际总token预算；无装配假额度，输入摘要含完整检索文本hash
 
 **错误**
 
@@ -1194,7 +1578,7 @@ func RequestEmbeddings(ctx context.Context, op OperationContext, input RequestEm
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge.InvokeModel`、`knowledge.RuntimeFromContext`、`knowledge.ReadBuildRecord`、`knowledge.ReadChunks`、`knowledge.storageError`、`knowledge.CompletedOutput`
+- 依赖：`knowledge.InvokeModel`、`knowledge.RuntimeFromContext`、`knowledge.ReadBuildRecord`、`knowledge.ReadChunks`、`knowledge.storageError`、`knowledge.CompletedOutput`、`knowledge.WithModelOwner`、`knowledge.ReadModelCatalog`、`knowledge.EmbeddingProfile`、`knowledge.RetrievalText`、`knowledge.TokenizeSource`、`knowledge.BeginBuildWrite`
 
 ## knowledge.StoreEmbeddings
 
@@ -1335,47 +1719,7 @@ func ValidateBuild(ctx context.Context, op OperationContext, input ValidateBuild
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`content:validatePublications`、`knowledge.RuntimeFromContext`、`knowledge.ReadBuildRecord`、`knowledge.ReadGeneration`、`knowledge.validatePublication`、`knowledge.BeginBuildWrite`
-
-## knowledge.validatePublication
-
-- 级别：参考
-- 文件：`modules/knowledge/internal/build/validate.go`
-- 作用：validatePublication的本域内部实现助手
-
-```go
-func validatePublication(ctx context.Context,op OperationContext,client *gen.ContentClient,validate func(json.RawMessage)error,ref gen.PublishedRevisionRef)(time.Time,int,error)
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 按精确Go签名处理已校验输入和可信依赖
-2. 具体分支、固定参数与共同规则见本域data及实现注释
-
-**错误**
-
-- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
-- `VALIDATION` / HTTP 400：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`content:validatePublications`、`knowledge.RuntimeFromContext`、`knowledge.ReadBuildRecord`、`knowledge.ReadGeneration`、`knowledge.ValidatePublication`、`knowledge.BeginBuildWrite`
 
 ## knowledge.ActivateBuild
 
@@ -1409,6 +1753,7 @@ func ActivateBuild(ctx context.Context, op OperationContext, input ActivateBuild
 3. 文档/space锁CAS active generation
 4. 成功写active及index.ready否则superseded
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+6. 新退役状态同时记录真实retired_at_ns供24小时GC；旧未知退役时刻不回填
 
 **错误**
 
@@ -1425,7 +1770,7 @@ func ActivateBuild(ctx context.Context, op OperationContext, input ActivateBuild
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`content:validatePublications`、`knowledge.RuntimeFromContext`、`knowledge.ReadBuildRecord`、`knowledge.ReadGeneration`、`knowledge.BeginBuildWrite`、`platform.EnqueueEvent`
+- 依赖：`content:validatePublications`、`knowledge.RuntimeFromContext`、`knowledge.ReadBuildRecord`、`knowledge.ReadGeneration`、`knowledge.BeginBuildWrite`、`platform.EnqueueEvent`、`knowledge.CommitExecutionResult`
 
 ## knowledge.CancelBuild
 
@@ -1454,11 +1799,10 @@ func CancelBuild(ctx context.Context, op OperationContext, input CancelBuildInpu
 
 **步骤**
 
-1. 设取消标记
-2. 取消jobs及所有MG invocation
-3. 取消staging写权限
-4. 保留active与收费未知引用
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 即时入口已核knowledge.manage，本域核可信portal管理主体；读取原幂等回执，同键异输入CONFLICT
+2. 当前写窗口事务内先持久取消staging写资格、清lease并保留active；取消意图和原安全结果同事务，失败/终止构建仍可请求清理未知调用
+3. 提交后锁外CancelBuildSideEffects，按持久原owner/site/epoch/root请求jobs及平台网关取消；不预占/退还费用，不删未知引用
+4. 重放原结果仍继续未完成取消副作用；jobs接受结果未知时保留dispatching和取消意图并失败关闭，不假称已清理
 
 **错误**
 
@@ -1474,7 +1818,7 @@ func CancelBuild(ctx context.Context, op OperationContext, input CancelBuildInpu
 - 授权：权限 knowledge.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:cancelJob`、`model-gateway:cancelInference`
+- 依赖：`knowledge.AuthorizeAdmin`、`knowledge.BeginIndexWrite`、`knowledge.ReadOperationReceipt`、`knowledge.SaveOperationReceipt`、`knowledge.ReadBuildRecord`、`knowledge.CancelBuildSideEffects`、`knowledge.CancelUnusedExtractions`
 
 ## knowledge.RetireDocumentIndex
 
@@ -1503,11 +1847,10 @@ func RetireDocumentIndex(ctx context.Context, op OperationContext, input RetireD
 
 **步骤**
 
-1. inbox去重
-2. 只接受更高visibilityRevision
-3. active→retired
-4. 取消相关build并事件失效
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 接原撤回信封核本站/文档/当前epoch及visibility源水位；同事务最先ConsumeInbox，不重构假事件
+2. 只有更高水位才关闭active指针，并将未完成构建置superseded、清原lease且持久cancel_requested；已完成active历史状态保留，独立generation_state改retired
+3. 捕获每个真实旧active完整发布/空间，按EventIndexRetiredPayload逐项写outbox，与水位/inbox/失效同事务
+4. 提交后锁外CancelDocumentSideEffects请求jobs/MG取消，不退款、不丢费用未知引用；失败不确认，重复原事件仍继续原取消意图，禁止旧事件取消新发布构建
 
 **错误**
 
@@ -1523,7 +1866,7 @@ func RetireDocumentIndex(ctx context.Context, op OperationContext, input RetireD
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:cancelJob`、`knowledge.ConsumeInbox`、`platform.ClaimInbox`
+- 依赖：`knowledge.BeginIndexWrite`、`knowledge.ConsumeInbox`、`knowledge.ReadBuildRecord`、`knowledge.CancelDocumentSideEffects`、`platform.EnqueueEvent`、`knowledge.CancelUnusedExtractions`
 
 ## knowledge.NormalizeQuery
 
@@ -1928,7 +2271,7 @@ func RerankCandidates(ctx context.Context, op OperationContext, input RerankCand
 
 **步骤**
 
-1. 已配置rerank时显式传query与等长texts/candidateIds；未配时fast/chat核查，最多20项和800输出token
+1. 已配置的QA原生rerank先核档位成本类别；未配时从MG真实目录按可信costClass选择fast/chat，不使用空或background默认profile；最多20项和800输出token
 2. 只接受既有候选ID的完整无重复排列，未处理尾项保持次序
 3. 继承可信根任务、费用归属、已消费的QA许可与共享截止，调用平台模型助手
 4. 仅格式不合格追加一次独立attempt，仍不合法回退原顺序；依赖或收费未知错误不重放
@@ -1956,7 +2299,7 @@ func RerankCandidates(ctx context.Context, op OperationContext, input RerankCand
 - 作用：requestRerank的本域内部实现助手
 
 ```go
-func requestRerank(ctx context.Context,op OperationContext,runtime Runtime,input RerankCandidatesInput,attempt int)([]string,error)
+func requestRerank(ctx context.Context, op OperationContext, input RerankCandidatesInput, attempt int) ([]string, error)
 ```
 
 **输入**
@@ -1971,6 +2314,7 @@ func requestRerank(ctx context.Context,op OperationContext,runtime Runtime,input
 
 1. 按精确Go签名处理已校验输入和可信依赖
 2. 具体分支、固定参数与共同规则见本域data及实现注释
+3. 原生档位必须属于可信成本类别，fast档位由真实MG目录选择；当前完整Text优先，收费未知有有效输出仍可消费，不重新付费重排
 
 **错误**
 
@@ -1987,7 +2331,7 @@ func requestRerank(ctx context.Context,op OperationContext,runtime Runtime,input
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge.InvokeModel`、`knowledge.CompletedOutput`
+- 依赖：`knowledge.InvokeModel`、`knowledge.CompletedOutput`、`knowledge.CompletedText`、`knowledge.RuntimeFromContext`、`knowledge.ReadModelCatalog`、`knowledge.TextProfile`
 
 ## knowledge.SelectContext
 
@@ -2506,14 +2850,14 @@ func WithAdminSigningKey(ctx context.Context,key platform.SigningKey)context.Con
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：无
 
-## knowledge.authorizeAdmin
+## knowledge.AuthorizeAdmin
 
 - 级别：参考
 - 文件：`modules/knowledge/internal/admin/read.go`
 - 作用：authorizeAdmin的本域内部实现助手
 
 ```go
-func authorizeAdmin(op OperationContext)error
+func AuthorizeAdmin(op OperationContext) error
 ```
 
 **输入**
@@ -2584,58 +2928,7 @@ func beginAdminRead(ctx context.Context,op OperationContext)(*sql.Tx,error)
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge.authorizeAdmin`、`knowledge.RuntimeFromContext`
-
-## knowledge.ConsumeInbox
-
-- 级别：参考
-- 文件：`modules/knowledge/internal/events/inbox.go`
-- 作用：事件去重与代际保护
-
-```go
-func ConsumeInbox(ctx context.Context, op OperationContext, input ConsumeInboxInput) (ConsumeInboxResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `ConsumeInboxInput` | 封闭业务输入；逐字段见types $defs/ConsumeInboxInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ConsumeInboxResult` | 成功结果；逐字段见types $defs/ConsumeInboxResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
-
-**步骤**
-
-1. 校验事件类型/schema
-2. dataEpoch==runtime
-3. eventId/hash唯一
-4. 同事务登记业务执行结果
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-
-**错误**
-
-- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
-- `STALE_RESULT` / HTTP 409：（不可重试）
-- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：写inbox
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`knowledge.AuthorizeAdmin`、`knowledge.RuntimeFromContext`
 
 ## knowledge.ConsumeEvents
 
@@ -2664,11 +2957,11 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 
 **步骤**
 
-1. 进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连
-2. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未换入该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
-3. 按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入
-4. 处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放
-5. 屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件
+1. 只装配knowledge后台及events.json两种content发布事件，SiteID来自可信op
+2. 复用平台NewEventConsumer适配真实gen.JobsClient订阅与严格AckResult，不伪造worker方法
+3. ValidatePayload仅在公共订阅边界按生产schema校验一次；handler接原完整信封，dataEpoch/runtime/维护/过期上下文由公共循环控制
+4. 本地handler提交后才确认，重复/业务skipped返回公共ErrEventSkipped；失败不确认，不伪填零统计
+5. 复用RunConsumerWithResult返回实际Acknowledged/Skipped/Failed，不复制SSE/重连/并发/确认循环
 
 **错误**
 
@@ -2680,7 +2973,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`knowledge.HandlePublication`、`knowledge.RetireDocumentIndex`、`platform.RunConsumer`
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.HandlePublication`、`knowledge.RetireDocumentIndex`、`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`platform.NewEventConsumer`、`platform.RunConsumerWithResult`
 
 ## knowledge.PublishOutbox
 
@@ -2709,11 +3002,9 @@ func PublishOutbox(ctx context.Context, op OperationContext, input PublishOutbox
 
 **步骤**
 
-1. 租约领取批次
-2. jobs持久发布
-3. ACK才标记
-4. 有限三次退避后留待下一轮
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 只接受知识后台，以当前runtime和同代DB装配平台NewEventPublisher/RunRelayBatch
+2. 每批最多100，租约、原eventId发布、退避/隔离/确认及旧代清理由公共relay实现，不复制循环
+3. 运行权威epoch变化时拒绝旧DB写入；结果published/pending仅为该批真实计数，workerId保留兼容不冒充租约身份
 
 **错误**
 
@@ -2729,7 +3020,7 @@ func PublishOutbox(ctx context.Context, op OperationContext, input PublishOutbox
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:publishEvent`、`platform.RunRelay`
+- 依赖：`knowledge.RuntimeFromContext`、`jobs:publishEvent`、`platform.NewEventPublisher`、`platform.RunRelayBatch`
 
 ## knowledge.RecoverBuildLeases
 
@@ -2758,11 +3049,10 @@ func RecoverBuildLeases(ctx context.Context, op OperationContext, input RecoverB
 
 **步骤**
 
-1. 到期worker停止写
-2. content验证当前发布
-3. 已失效标superseded
-4. 确定性已完成阶段复用，仅缺失embedding在原调用可确证时重续
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 以本域服务有界扫描本站同代非终态到期原构建，以及尚未完成清理的持久取消意图（即使构建已终态）；取消清理不因旧镜像租约未到期而跳过，真实时间解析及literal CAS防续约竞态
+2. 锁外以原PublishedRevisionRef查content权威；未知失败关闭，明确失效时CAS关闭旧写资格并保留独立取消意图，锁外实际取消原job/MG
+3. 只对pending/dispatching意图使用原inputRef/root/dedupeKey/dataEpoch续派并保留真实job引用，no-op取消不计requeued
+4. dispatched到期原任务保留原阶段/模型引用给jobs owner恢复证明，不另建dedupe绕过orphan，不把费用未知当0重算
 
 **错误**
 
@@ -2779,7 +3069,39 @@ func RecoverBuildLeases(ctx context.Context, op OperationContext, input RecoverB
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`content:validatePublications`、`jobs:createJob`
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ReadBuildRecord`、`knowledge.ValidatePublication`、`knowledge.BeginIndexWrite`、`knowledge.CancelBuildSideEffects`、`knowledge.DispatchBuild`、`knowledge.CancelUnusedExtractions`
+
+## knowledge.RecoverExtractionTasks
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/runtime/recovery.go`
+- 作用：有界续派原提取意图与原取消清理，已派发到期由jobs owner恢复证明
+
+```go
+func RecoverExtractionTasks(ctx context.Context,op OperationContext,limit int)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按原scope/完整持久输入组合真实已有机制，不换原key或批准
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域后台服务组合调用
+- 并发：本站同代真实原拥有者与安全窗口
+- 幂等：只用原输入/原key/原取消意图
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.DispatchExtraction`、`knowledge.CancelExtractionSideEffects`
 
 ## knowledge.CollectRetiredIndexes
 
@@ -2808,11 +3130,12 @@ func CollectRetiredIndexes(ctx context.Context, op OperationContext, input Colle
 
 **步骤**
 
-1. 检查retired且无reader lease
-2. 无未完成build引用
-3. 删除本服务索引文件并校验路径在私有目录
-4. 删除元数据事务
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 只接受本域后台服务；olderThan不得晚于服务当前时刻减24小时
+2. 平台写窗口与同代私有SQL事务内最多扫描limit个已知retired_at_ns的retired代数，旧迁移未知退役时间不假填不删除
+3. 检查active指针、未终结调度意图和未终结/收费未知模型步骤引用，有引用保留
+4. 本域所有索引在SQL，读者在同一SQLite快照载入完整材料后释放事务，无额外文件reader句柄；SQLite为并发快照保留旧页
+5. 按外键顺序删向量/词项/块/私有源/终结调度/代数，同事务提交，不删active或未完成结果
+6. 已付费模型完成结果独立保留供哈希复用，不随索引GC删除；收费未知或未完成结果仍阻止回收
 
 **错误**
 
@@ -2828,7 +3151,7 @@ func CollectRetiredIndexes(ctx context.Context, op OperationContext, input Colle
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`knowledge.BeginIndexWrite`
 
 ## knowledge.RedactDiagnostics
 
@@ -2911,6 +3234,7 @@ func ReadSections(ctx context.Context, op OperationContext, input ReadSectionsIn
 3. content批量校验current/visible/epoch
 4. 返回完整sourceOffsets与hash
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+6. 新sourcePath逐项回读私有固定发布body hash/原块/JSON叶与原文范围，绝不取latest；资源提取证据视图尚未装配则该分支失败关闭并保持partial
 
 **错误**
 
@@ -2927,7 +3251,7 @@ func ReadSections(ctx context.Context, op OperationContext, input ReadSectionsIn
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`content:validatePublications`、`knowledge.activeSnapshot`、`knowledge.publicationKey`、`knowledge.ValidateCandidates`
+- 依赖：`content:validatePublications`、`knowledge.activeSnapshot`、`knowledge.publicationKey`、`knowledge.ValidateCandidates`、`knowledge.ValidateSectionSources`
 
 ## knowledge.AcquireBarrier
 
@@ -3183,13 +3507,14 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 作用：加载本域后台概览
 
 ```ts
-export async function loadAdminOverview(input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult>
+export async function loadAdminOverview(client: ModuleAPIClient, input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult>
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
+| `client` | `ModuleAPIClient` | portal非序列化同源调用端口 | 认证/CSRF/单次会话刷新由portal持有，禁止读取HttpOnly凭据 |
 | `input` | `LoadAdminOverviewInput` | 本域封闭输入；每个字段规格见types.json $defs/LoadAdminOverviewInput | schema required/additionalProperties/range全部强制；null禁止。 |
 | `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件。 |
 
@@ -3201,11 +3526,9 @@ export async function loadAdminOverview(input: LoadAdminOverviewInput, signal: A
 
 **步骤**
 
-1. portal提供已认证apiClient
-2. 读取本域管理API
-3. 取消旧navigation请求
-4. 基于server version显示状态且不在UI推测费用或任务成功
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 调用portal apiClient并行读真实配置/公开树模型选项/构建分页，配置NOT_FOUND只表示未配置，其他故障向页面反馈
+2. 导航/刷新先取消旧请求，卸载停止控制器，过时响应不更新UI；只显示服务端真实状态，无成功或费用推断
+3. Overview页面接全量免费估价与逐分项/未知提示，明确勾选后提交原planId/quoteHash批准；原回执/冲突和卸载取消保留
 
 **错误**
 
@@ -3221,6 +3544,262 @@ export async function loadAdminOverview(input: LoadAdminOverviewInput, signal: A
 - 授权：权限 knowledge.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`knowledge.safeCode`、`knowledge.ReadIndexConfig`、`knowledge.ReadIndexOptions`、`knowledge.ListBuilds`
+
+## knowledge.safeCode
+
+- 级别：参考
+- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
+- 作用：只显示安全公共错误码，不插入原始详情
+
+```ts
+export function safeCode(error: unknown): string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只显示安全公共错误码，不插入原始详情
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
+- 并发：AbortController取消导航/卸载，过时响应不回写
+- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
+- 依赖：无
+
+## knowledge.refresh
+
+- 级别：参考
+- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
+- 作用：取消旧导航并加载真实分页，过时响应不更新UI
+
+```ts
+async function refresh(cursor?: string): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 取消旧导航并加载真实分页，过时响应不更新UI
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
+- 并发：AbortController取消导航/卸载，过时响应不回写
+- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
+- 依赖：`knowledge.LoadAdminOverview`、`knowledge.safeCode`
+
+## knowledge.createBuild
+
+- 级别：参考
+- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
+- 作用：人工选择完整发布引用并明确确认可能费用后提交原幂等键；202只显示已接收
+
+```ts
+async function createBuild(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 人工选择完整发布引用并明确确认可能费用后提交原幂等键；202只显示已接收
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
+- 并发：AbortController取消导航/卸载，过时响应不回写
+- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
+- 依赖：`knowledge.CreateBuild`、`knowledge.refresh`、`knowledge.safeCode`
+
+## knowledge.cancelBuild
+
+- 级别：参考
+- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
+- 作用：原构建固定取消键，提交真实取消后刷新状态，不推断退款
+
+```ts
+async function cancelBuild(buildId: string): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原构建固定取消键，提交真实取消后刷新状态，不推断退款
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
+- 并发：AbortController取消导航/卸载，过时响应不回写
+- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
+- 依赖：`knowledge.CancelBuild`、`knowledge.refresh`、`knowledge.safeCode`
+
+## knowledge.afterSave
+
+- 级别：参考
+- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
+- 作用：保存只刷新真实配置，不自动构建
+
+```ts
+function afterSave(): void
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保存只刷新真实配置，不自动构建
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
+- 并发：AbortController取消导航/卸载，过时响应不回写
+- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
+- 依赖：`knowledge.refresh`
+
+## knowledge.estimateRebuild
+
+- 级别：参考
+- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
+- 作用：管理员免费估价，真实分项/未知数量与总价提示、原幂等键和卸载取消，不提交付费
+
+```ts
+async function estimateRebuild(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 管理员免费估价，真实分项/未知数量与总价提示、原幂等键和卸载取消，不提交付费
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只消费原已授权任务权威声明，不扩模型付费批准
+- 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
+- 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
+- 依赖：`knowledge.EstimateRebuildPlan`
+
+## knowledge.approveRebuild
+
+- 级别：参考
+- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
+- 作用：明确勾选后按原planId/quoteHash提交批准，过期/冲突保持原输入并要求重估，不自动明批unknown
+
+```ts
+async function approveRebuild(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 明确勾选后按原planId/quoteHash提交批准，过期/冲突保持原输入并要求重估，不自动明批unknown
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只消费原已授权任务权威声明，不扩模型付费批准
+- 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
+- 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
+- 依赖：`knowledge.ApproveRebuildPlan`
+
+## knowledge.formatQuoteMoney
+
+- 级别：参考
+- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
+- 作用：仅安全整数显示精确六位美元，超浏览器精确范围不伪造金额
+
+```ts
+function formatQuoteMoney(value: { currency: string; micros: number } | undefined): string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅安全整数显示精确六位美元，超浏览器精确范围不伪造金额
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只消费原已授权任务权威声明，不扩模型付费批准
+- 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
+- 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
 - 依赖：无
 
 ## knowledge.SubmitPrimaryEdit
@@ -3230,13 +3809,14 @@ export async function loadAdminOverview(input: LoadAdminOverviewInput, signal: A
 - 作用：提交本域明确人工修改
 
 ```ts
-export async function submitPrimaryEdit(input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult>
+export async function submitPrimaryEdit(client: ModuleAPIClient, input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult>
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
+| `client` | `ModuleAPIClient` | portal非序列化同源调用端口 | 认证/CSRF/单次会话刷新由portal持有，禁止读取HttpOnly凭据 |
 | `input` | `SubmitPrimaryEditInput` | 本域封闭输入；每个字段规格见types.json $defs/SubmitPrimaryEditInput | schema required/additionalProperties/range全部强制；null禁止。 |
 | `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件。 |
 
@@ -3248,11 +3828,9 @@ export async function submitPrimaryEdit(input: SubmitPrimaryEditInput, signal: A
 
 **步骤**
 
-1. 表单逐字段验证本域schema
-2. 生成幂等键并携expectedVersion
-3. 调本域putIndexConfig API
-4. 409保留用户输入并显示当前版本，不自动覆盖重发
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 校验整型分块/重叠范围、expectedVersion和原config版本，同输入重试保留原幂等键
+2. 仅人工提交PUT index-config，不自动重建；409保留输入、读取显示权威当前版本并停止自动覆盖
+3. 导航卸载取消请求，取消后不更新组件
 
 **错误**
 
@@ -3269,7 +3847,39 @@ export async function submitPrimaryEdit(input: SubmitPrimaryEditInput, signal: A
 - 授权：权限 knowledge.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`knowledge.PutIndexConfig`
+
+## knowledge.save
+
+- 级别：参考
+- 文件：`modules/knowledge/ui/src/views/EditView.vue`
+- 作用：真实档位完整空间与语言；保存原版本/输入；409另读权威当前版本不自动重发
+
+```ts
+async function save(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实档位完整空间与语言；保存原版本/输入；409另读权威当前版本不自动重发
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
+- 并发：AbortController取消导航/卸载，过时响应不回写
+- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
+- 依赖：`knowledge.SubmitPrimaryEdit`、`knowledge.ReadIndexConfig`、`knowledge.safeCode`
 
 ## knowledge.EnrichChunkContext
 
@@ -3298,11 +3908,13 @@ func EnrichChunkContext(ctx context.Context, op OperationContext, input EnrichCh
 
 **步骤**
 
-1. task knowledge.context使用fast档
-2. 同文整篇原文为固定输入前缀，最多16片段一批
-3. 生成1至2句产品/功能/小节背景不改变源正文
-4. 按chunkHash+documentHash+memory版本幂等复用，只为变更块付费
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 整篇固定发布正文canonical JSON原文核contentHash并保留全部消息；超过65536字符等固定消息/模型预算失败关闭，保留旧active和原付费结果，无基础索引降级/截断/额外摘要
+2. fast知识上下文任务、可信background费用类别，最多16片段及500输出token，严格原chunkId与一至两句短背景，不修改原text/hash/偏移
+3. contextVersionHash绑定文档hash/任务记忆hash及修订/真实模型声明；缓存另绑原块/path/原区间避免重复短句串背景，完整源相同重发布可复用
+4. 付费前同事务认领原来源意图，其他构建等原结果而不重新调用；机器前缀/摘要/真实invocation持久，保留所有已付费结果
+5. 机器背景独立字段由ApplyChunkContext再次真实BPE完整检索文本；词项/embedding使用前缀+换行+原文，源证据完全不变
+6. 首次完整任务记忆/档位/声明模型计划在原build lease内持久冻结，重试漂移在认领新上下文付费意图前CONFLICT
+7. 缓存按每项实际winning模型snapshot/完整源/记忆版本保存，任务覆盖与有序备用仅决定当前缓存资格；逐项prefixContextHashes/modelSnapshotHashes允许同批已有不同真实来源，不把计划hash冒充实际来源
 
 **错误**
 
@@ -3319,7 +3931,232 @@ func EnrichChunkContext(ctx context.Context, op OperationContext, input EnrichCh
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory:resolveContext`、`knowledge.InvokeModel`
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.BeginBuildWrite`、`knowledge.WithModelOwner`、`knowledge.InvokeModel`、`knowledge.ReadContextPrefixes`、`knowledge.ContextSourceKey`、`knowledge.ClaimContextIntents`、`knowledge.ContextSemanticKey`、`knowledge.FreezeContextPlan`、`knowledge.ContextResultHash`、`knowledge.WinningModelSnapshot`、`knowledge.ReadTaskRoute`
+
+## knowledge.ReadContextPrefixes
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/chunk/context.go`
+- 作用：严格完整JSON/原ID/一至两句，不把机器背景当原引文
+
+```go
+func ReadContextPrefixes(outcome modelruntime.InvokeModelResult, chunks []gen.Chunk) (map[string]string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格完整JSON/原ID/一至两句，不把机器背景当原引文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.HasCompleteResult`、`knowledge.CompletedText`
+
+## knowledge.ContextSourceKey
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/chunk/context.go`
+- 作用：真实原块/path/区间与原文hash绑定，避免重复短句串背景
+
+```go
+func ContextSourceKey(value gen.Chunk) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实原块/path/区间与原文hash绑定，避免重复短句串背景
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.ClaimContextIntents
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/chunk/context.go`
+- 作用：跨构建同源付费意图只归原build/root/op，其他构建等待原结果不重花费
+
+```go
+func ClaimContextIntents(ctx context.Context, tx *sql.Tx, op OperationContext, buildID, contextHash string, chunks []gen.Chunk) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 跨构建同源付费意图只归原build/root/op，其他构建等待原结果不重花费
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.ContextSourceKey`
+
+## knowledge.ApplyChunkContext
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/chunk/context.go`
+- 作用：只新增机器派生字段，完整检索文本真实BPE，保留原text/hash/证据偏移
+
+```go
+func ApplyChunkContext(ctx context.Context, op OperationContext, chunks []gen.Chunk, context EnrichChunkContextResult, modelID string, space gen.EmbeddingSpace) ([]gen.Chunk, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只新增机器派生字段，完整检索文本真实BPE，保留原text/hash/证据偏移
+2. 逐项使用实际背景版本与winning模型证明，不把整批请求计划hash当每项真实模型版本
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.TokenizeSource`、`knowledge.RetrievalText`
+
+## knowledge.ContextSemanticKey
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/chunk/context.go`
+- 作用：原片段身份构成稳定上下文阶段key，不含模型/记忆配置
+
+```go
+func ContextSemanticKey(chunks []gen.Chunk) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原片段身份构成稳定上下文阶段key，不含模型/记忆配置
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.FreezeContextPlan
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/chunk/context.go`
+- 作用：首次完整任务记忆/档位计划及hash冻结，重试漂移在新付费意图前CONFLICT
+
+```go
+func FreezeContextPlan(ctx context.Context, op OperationContext, buildID, leaseID string, plan ContextPlan) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 首次完整任务记忆/档位计划及hash冻结，重试漂移在新付费意图前CONFLICT
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.BeginBuildWrite`
+
+## knowledge.ContextResultHash
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/chunk/context.go`
+- 作用：本域机器背景版本绑定完整源/真实记忆/实际winning快照，不计算MG快照算法
+
+```go
+func ContextResultHash(documentHash string, memory platform.MemoryContext, snapshot string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 本域机器背景版本绑定完整源/真实记忆/实际winning快照，不计算MG快照算法
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
 
 ## knowledge.InspectEvidence
 
@@ -3404,6 +4241,8 @@ func CreateQueryEmbedding(ctx context.Context, op OperationContext, input Create
 4. MG保留独立attempt费用证据
 5. 返回完整空间/vectorHash供QA cache与本域search复用
 6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+7. 每次embedding请求显式携完整expectedEmbeddingSpace，由MG在费用预占及主备用派发前硬核；不只事后发现错空间
+8. 原结果优先复用，新调用按可信op.costClass选择主模型完整同空间的embedding档位；QA不复用background档位或改费用类别
 
 **错误**
 
@@ -3420,7 +4259,7 @@ func CreateQueryEmbedding(ctx context.Context, op OperationContext, input Create
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge.InvokeModel`、`knowledge.searchRuntime`、`knowledge.NormalizeQuery`、`knowledge.acquireQueryFlight`、`knowledge.RuntimeFromContext`、`knowledge.CompletedOutput`、`knowledge.validVector`、`platform.NewWriteContext`、`knowledge.BindAdmissionPermit`
+- 依赖：`knowledge.InvokeModel`、`knowledge.searchRuntime`、`knowledge.NormalizeQuery`、`knowledge.acquireQueryFlight`、`knowledge.RuntimeFromContext`、`knowledge.CompletedOutput`、`knowledge.validVector`、`platform.NewWriteContext`、`knowledge.BindAdmissionPermit`、`knowledge.ReadModelCatalog`、`knowledge.EmbeddingProfile`
 
 ## knowledge.acquireQueryFlight
 
@@ -3489,11 +4328,10 @@ func DescribeAttachment(ctx context.Context, op OperationContext, input Describe
 
 **步骤**
 
-1. 支持文件MIME/大小白名单且media授权
-2. 文本附件根knowledge.describe fast档800tokens
-3. 非文本附件根knowledge.extract-attachment vision文件能力1500tokens，不支持明确unsupported
-4. assetHash/extractor/model/memory版本复用，描述完整再长文分块。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 核精确原资产/版本授权下载与hash，文本MIME读取完整UTF8正文且≤65536字符，调用knowledge.describe fast800输出，不截断
+2. 受控原生PDF文件分支使用kind=file/file AssetRef、vision能力及knowledge.extract-attachment1500输出，由MG核file+vision及真实原版bytes/供应方adapter；其他未声明MIME明确unsupported
+3. 普通PDF无文字仍unsupported不自动OCR；本函数原生PDF分支只用于另一个已批准的原生附件任务，Memory.TaskID必须精确匹配，不能用普通PDF提取记忆绕过
+4. 本域只组装任务与来源、原提取拥有者幂等键，模型机制/费用/备用全由平台与MG，结果机器派生且原调用保留，跨构建提取缓存归创建/执行器
 
 **错误**
 
@@ -3511,7 +4349,7 @@ func DescribeAttachment(ctx context.Context, op OperationContext, input Describe
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`media:readAsset`、`memory:resolveContext`、`knowledge.InvokeModel`
+- 依赖：`knowledge.SameAsset`、`knowledge.DownloadExtractionAsset`、`knowledge.DescribeResource`
 
 ## knowledge.RunWorker
 
@@ -3520,7 +4358,7 @@ func DescribeAttachment(ctx context.Context, op OperationContext, input Describe
 - 作用：主动领取本域持久任务
 
 ```go
-func RunWorker(ctx context.Context, op OperationContext, input RunWorkerInput) (RunWorkerResult, error)
+func RunWorker(ctx context.Context,op OperationContext,input RunWorkerInput)(RunWorkerResult,error)
 ```
 
 **输入**
@@ -3540,10 +4378,10 @@ func RunWorker(ctx context.Context, op OperationContext, input RunWorkerInput) (
 
 **步骤**
 
-1. 进程启动后循环调用jobs:claimJob，只领取本域implementation.json jobTypes登记的类型；维护或屏障非released时暂停领取
-2. 领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested
-3. 执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束
-4. lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账
+1. 两个平台RunWorkerLoopWithResult分别按knowledge.build并发1与knowledge.extract并发3领取，jobs权威可选jobTypes筛选，总并发固定4；维护暂停由平台统一拥有
+2. 平台Start后首次真实Heartbeat及每次续约回调MirrorExecutionLease；AdoptClaimedJob在执行前保存完整原claim，执行保留原批准root/op/deadline
+3. OnCancellationObserved持久原cancel事实与写资格关闭，不CheckLease递归、不本地伪造心跳；ExecuteBuild/ExecuteExtraction使用实际registry
+4. 真实jobs回执累计四种结果并等待两个循环退出；只取消协作ctx，不丢仍在途任务/费用事实
 
 **错误**
 
@@ -3555,12 +4393,80 @@ func RunWorker(ctx context.Context, op OperationContext, input RunWorkerInput) (
 - `LOCKED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `BUDGET_EXCEEDED`：网关额度不足（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
 
 - 副作用：jobs租约/完成状态及本域工作链副作用
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 授权：permission：service；rule：仅knowledge纯后台服务；input.workerId只兼容标签，实际worker由平台生成
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:claimJob`、`jobs:heartbeatJob`、`jobs:completeJob`、`jobs:failJob`、`jobs:startJob`、`jobs:checkLease`、`knowledge.ExecuteBuild`、`knowledge.ExecuteExtraction`、`platform.RunWorkerLoop`、`platform.RunWorkerLoopWithResult`
+- 依赖：`platform.RunWorkerLoopWithResult`、`knowledge.ResolveClaimedJobOperation`、`knowledge.MirrorExecutionLease`、`knowledge.RecordExecutionCancellation`
+
+## knowledge.NewWorkerRuntime
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/runtime/worker.go`
+- 作用：真实jobs客户端与六个严格生产回执校验器，注入真实执行registry
+
+```go
+func NewWorkerRuntime(raw *gen.JobsClient,executors platform.JobExecutorRegistry,runtime func(context.Context)(platform.RuntimeView,error))(WorkerRuntime,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实jobs客户端与六个严格生产回执校验器，注入真实执行registry
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`platform.NewPayloadValidator`、`platform.NewJobsClient`
+
+## knowledge.WithWorkerRuntime
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/runtime/worker.go`
+- 作用：绑定请求独立本域worker依赖
+
+```go
+func WithWorkerRuntime(ctx context.Context,runtime WorkerRuntime)context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 绑定请求独立本域worker依赖
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：无
 
 ## knowledge.main
 
@@ -3582,9 +4488,9 @@ func main()
 
 **步骤**
 
-1. 读取--config/--data-dir/--listen及环境覆盖，严格解析ServiceConfig；配置错误安全stderr后exit2
-2. signal.NotifyContext注册SIGINT/SIGTERM；调用BuildApplication，失败exit1且只输出errorCode
-3. 调用Serve；正常关闭或signal后以30秒context调用Shutdown；安全退出0，无法安全关闭exit1且保留journal
+1. 在任何配置/密钥/DB加载前调用RunPDFParserChild；handled直接exit0/1，不记录PDF或详细错误
+2. 普通启动只装配本域Module/BuildApplication/RuntimeClient参数并调用platform.RunService统一配置/信号/后台/Drain/Shutdown/恢复重启
+3. 完整app未齐时由真实handler/worker缺失门禁拒绝启动，不暴露假业务服务
 
 **错误**
 
@@ -3595,7 +4501,7 @@ func main()
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
-- 依赖：`knowledge.BuildApplication`、`knowledge.Serve`、`knowledge.Shutdown`、`platform.RunService`、`platform.RunParserChild`
+- 依赖：`knowledge.RunPDFParserChild`、`knowledge.BuildApplication`、`knowledge.NewRuntimeClient`、`platform.RunService`、`knowledge.Serve`、`knowledge.Shutdown`
 
 ## knowledge.BuildApplication
 
@@ -3604,7 +4510,7 @@ func main()
 - 作用：装配本域存储、客户端、函数路由与worker
 
 ```go
-func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, error)
+func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error)
 ```
 
 **输入**
@@ -3629,7 +4535,6 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
-7. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
 
@@ -3641,8 +4546,136 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`knowledge.LoadRuntime`、`knowledge.RecoverBuildLeases`、`knowledge.CollectRetiredIndexes`、`knowledge.PublishOutbox`、`knowledge.ConsumeEvents`、`knowledge.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`knowledge.NewOperationHandlers`、`knowledge.NewModelRuntime`、`knowledge.WithModelRuntime`、`knowledge.NewIndexRuntime`、`knowledge.WithIndexRuntime`、`knowledge.NewSearchRuntime`、`knowledge.WithSearchRuntime`、`knowledge.WithAdminSigningKey`、`platform.LoadServiceIdentity`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
+- 依赖：`platform.LoadServiceIdentity`、`platform.NewSiteConfigClient`、`platform.ReadRuntime`、`platform.ApplyRestoreSwap`、`platform.NewPayloadValidator`、`platform.NewIdentityAuthorizer`、`knowledge.OpenRepository`、`knowledge.NewIndexRuntime`、`knowledge.NewModelRuntime`、`knowledge.LoadRuntime`、`knowledge.WithIndexRuntime`、`knowledge.WithModelRuntime`、`knowledge.WithAdminSigningKey`、`knowledge.bindSearchRuntime`、`knowledge.assembleBackgroundTasks`、`knowledge.serviceOperation`、`knowledge.NewApplication`、`site-config:readSiteConfig`、`identity:checkAuthorization`、`knowledge.NewWorkerRuntime`、`knowledge.WithWorkerRuntime`、`knowledge.ExecuteBuild`、`knowledge.ExecuteExtraction`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
+
+## knowledge.NewRuntimeClient
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/app/wire.go`
+- 作用：统一身份加载与运行权威客户端参数装配
+
+```go
+func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 统一身份加载与运行权威客户端参数装配
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`platform.LoadServiceIdentity`、`platform.NewSiteConfigClient`
+
+## knowledge.serviceOperation
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/app/wire.go`
+- 作用：本域服务控制读/后台批次当前请求元数据，不用于重写已批准任务root或费用
+
+```go
+func serviceOperation(ctx context.Context, siteID, epoch string) platform.OperationContext
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 本域服务控制读/后台批次当前请求元数据，不用于重写已批准任务root或费用
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.bindSearchRuntime
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/app/wire.go`
+- 作用：每请求读取实际私有配置，无配置不虚构空间，配置启用后装配当前检索上下文
+
+```go
+func bindSearchRuntime(ctx context.Context, db *sql.DB, indexes indexer.Runtime) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 每请求读取实际私有配置，无配置不虚构空间，配置启用后装配当前检索上下文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.ReadConfig`、`knowledge.NewSearchRuntime`、`knowledge.WithSearchRuntime`
+
+## knowledge.assembleBackgroundTasks
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/app/wire.go`
+- 作用：真实已有事件/转发/原构建恢复/10分钟GC装配，缺worker导致完整容器拒绝启动
+
+```go
+func assembleBackgroundTasks(bind func(context.Context) context.Context, siteID, epoch string, window platform.WriteWindowConfig) []platform.BackgroundTask
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实已有事件/转发/原构建恢复/10分钟GC装配，缺worker导致完整容器拒绝启动
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`platform.RunRecoveryLoop`、`knowledge.serviceOperation`、`knowledge.PublishOutbox`、`knowledge.RecoverBuildLeases`、`knowledge.CollectRetiredIndexes`、`knowledge.ConsumeEvents`、`knowledge.RunWorker`、`knowledge.RecoverExtractionTasks`
 
 ## knowledge.Serve
 
@@ -3669,10 +4702,8 @@ func Serve(ctx context.Context, app *Application) error
 
 **步骤**
 
-1. 仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout
-2. 启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no
-3. 运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录
-4. ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态
+1. 只有完整prepared容器允许单次监听，net.ListenConfig继承ctx，HTTP请求继承进程取消
+2. HTTP drain与后台等待由platform.RunService协调，Serve不抢先关闭私有DB；ErrServerClosed正常结束
 
 **错误**
 
@@ -3683,7 +4714,7 @@ func Serve(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：只有一Serve调用；每请求取消独立，worker只本域
 - 幂等：重复Serve返回CONFLICT语义，不开第二监听
-- 依赖：`knowledge.BuildApplication`、`knowledge.Shutdown`、`platform.WatchRuntime`、`platform.BuildOperationContext`、`platform.WriteProblem`
+- 依赖：无
 - 其他依赖说明：本域OpenAPI路由
 
 ## knowledge.Shutdown
@@ -3711,10 +4742,8 @@ func Shutdown(ctx context.Context, app *Application) error
 
 **步骤**
 
-1. CAS lifecycle ready→draining，拒新写/claim/paid步骤并关闭SSE接受新订阅
-2. 取消本域worker的新步骤；等待已有DB事务、文件journal、模型可结算阶段安全确认；不能因超时假定供应方免费或删除paid refs
-3. http.Server.Shutdown等在途响应；flush本域outbox/journal、close DB与文件句柄；正常lifecycle closed
-4. deadline未安全返回DEADLINE_EXCEEDED并保留完整journal/未决费用引用，启动恢复收敛；不清掉活跃控制记录
+1. platform先停止后台并Drain等待请求，再同次关闭私有DB
+2. 关闭错误保留原安全失败并重复返回，不提前清理数据或journal
 
 **错误**
 
@@ -3754,8 +4783,7 @@ func Health(ctx context.Context, app *Application) (HealthStatus, error)
 
 **步骤**
 
-1. 仅读本进程lifecycle与HTTP循环是否存活；不查询远程依赖/模型/数据库
-2. 存活且未closed返回200 HealthStatus；closed或server不可用返回503；不泄漏路径、端点或secret
+1. 匿名只报knowledge版本、存活/排空与基础管理能力，不虚构模型或数据库业务成功
 
 **错误**
 
@@ -3793,10 +4821,8 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 
 **步骤**
 
-1. 确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态
-2. 已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威
-3. 维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
-4. 未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现
+1. 读取当前runtime和实际DB可用性，核opened epoch与prepared/draining，完整未装配拒就绪
+2. 公开允许严格要求非维护/running，同站已初始化与LoadRuntime完成才组装容器；真实备份safePoint控制未装配保持false，Ready仍partial
 
 **错误**
 
@@ -3806,7 +4832,7 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 授权：permission：anonymous；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：有界只读快照；依赖请求总deadline1500ms，禁止模型探测
 - 幂等：GET只读重复安全
-- 依赖：无
+- 依赖：`knowledge.Health`、`platform.ReadRuntime`
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
 
 ## knowledge.NewOperationHandlers
@@ -3831,6 +4857,8 @@ func NewOperationHandlers(bind func(context.Context)context.Context) map[string]
 
 1. 按精确Go签名处理已校验输入和可信依赖
 2. 具体分支、固定参数与共同规则见本域data及实现注释
+3. CreateBuild实际绑定HTTP202，其他已完成操作保留其准确200；统一错误仍由公共Problem处理
+4. CancelBuild显式核路径与正文同buildId后调用真实取消用例
 
 **错误**
 
@@ -3847,7 +4875,7 @@ func NewOperationHandlers(bind func(context.Context)context.Context) map[string]
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge.jsonOperation`、`knowledge.operationContext`、`knowledge.writeResult`、`knowledge.Retrieve`、`knowledge.ReadSections`、`knowledge.CreateQueryEmbedding`、`knowledge.GetBuild`、`knowledge.ListBuilds`、`knowledge.RedactDiagnostics`
+- 依赖：`knowledge.jsonOperation`、`knowledge.operationContext`、`knowledge.writeResult`、`knowledge.Retrieve`、`knowledge.ReadSections`、`knowledge.CreateQueryEmbedding`、`knowledge.GetBuild`、`knowledge.ListBuilds`、`knowledge.RedactDiagnostics`、`knowledge.PutIndexConfig`、`knowledge.ReadIndexConfig`、`knowledge.CreateBuild`、`knowledge.CancelBuild`、`knowledge.ReadJobRecovery`、`knowledge.ReadIndexOptions`、`knowledge.EstimateRebuildPlan`、`knowledge.ApproveRebuildPlan`
 
 ## knowledge.jsonOperation
 
@@ -3856,7 +4884,7 @@ func NewOperationHandlers(bind func(context.Context)context.Context) map[string]
 - 作用：jsonOperation的本域内部实现助手
 
 ```go
-func jsonOperation[I,R any](bind func(context.Context)context.Context,run func(context.Context,platform.OperationContext,I)(R,error))http.Handler
+func jsonOperation[I, R any](bind func(context.Context) context.Context, run func(context.Context, OperationContext, I) (R, error), status int) http.Handler
 ```
 
 **输入**
@@ -3936,7 +4964,7 @@ func operationContext(r *http.Request,bind func(context.Context)context.Context)
 - 作用：writeResult的本域内部实现助手
 
 ```go
-func writeResult(w http.ResponseWriter,op platform.OperationContext,result any,err error)
+func writeResult(w http.ResponseWriter, op OperationContext, result any, err error, status int)
 ```
 
 **输入**
@@ -3968,6 +4996,38 @@ func writeResult(w http.ResponseWriter,op platform.OperationContext,result any,e
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：无
+
+## knowledge.NewApplication
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/transport/server.go`
+- 作用：完整HTTP合同/固定caller策略/必要后台入口门禁，缺任一真实handler或worker拒绝容器
+
+```go
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, authority platform.SiteConfigClient, epoch string, db *sql.DB, bind func(context.Context) context.Context, authorize func(context.Context, platform.OperationContext, string, string) error, tasks []platform.BackgroundTask) (*Application, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整HTTP合同/固定caller策略/必要后台入口门禁，缺任一真实handler或worker拒绝容器
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.NewOperationHandlers`、`knowledge.Health`、`knowledge.Ready`、`platform.NewServiceHandler`、`platform.ReadRuntime`
 
 ## knowledge.mountModuleUI
 
@@ -3992,9 +5052,9 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 
 **步骤**
 
-1. 校验rootElement与bootstrap module/capabilities；按本域已登记Vue页面导入模块路由，createApp挂载，不注册别域业务组件
-2. 只装配同源HTTP/JSON/SSE客户端和已有权限清理/语言逻辑，复用identity/qa会话，缺AI能力保持关闭提示
-3. 同DOM重复mount先复用既有实例；unmount停止AbortController/SSE/listeners，不能清服务端业务记录
+1. 校验DOM/module与非序列化apiClient；同DOM/buildRevision复用实例，版本变化先卸载旧Vue再挂载
+2. 仅本域Overview/Edit页面，knowledge.manage能力不足显示无权限；服务端仍独立鉴权
+3. Vue卸载取消所有控制器，不清服务器业务记录，不读认证cookie或token
 
 **错误**
 
@@ -4004,13 +5064,13 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 - 授权：permission：anonymous；rule：只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限
 - 并发：同DOM一个Vue实例，AbortController取消旧请求
 - 幂等：同DOM/buildRevision重复挂载复用实例
-- 依赖：无
+- 依赖：`knowledge.LoadAdminOverview`、`knowledge.SubmitPrimaryEdit`、`knowledge.refresh`、`knowledge.createBuild`、`knowledge.cancelBuild`、`knowledge.afterSave`、`knowledge.save`
 - 其他依赖说明：本域已登记UI页面函数
 
 ## knowledge.InvokeModel
 
 - 级别：参考
-- 文件：`modules/knowledge/internal/runtime/model_client.go`
+- 文件：`modules/knowledge/internal/model/client.go`
 - 作用：经模型网关执行一次调用并读取到终态
 
 ```go
@@ -4034,10 +5094,13 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 
 **步骤**
 
-1. 以可信op（rootOperationId、costClass，问答类附已消费的准入许可）调用model-gateway:createInference，幂等键=本域操作ID+步骤名；同键重放返回原调用，不重复收费
-2. 循环调用model-gateway:resumeInference按lastSequence续读事件直到terminal；stream=true时逐条把delta交给调用方，断线按序号续传
-3. ctx取消或截止到达时调用model-gateway:cancelInference并返回CANCELLED；已派发费用由网关结算，本域不推定免费
-4. completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）
+1. 本域先持久原请求规范摘要/原op/key，完整已保存终态原样复用，无论成功/失败/费用未知都不另建调用
+2. 公共InvokeModel真实调用与续读机制不复制；强制内部事件回调先保存真实invocationId再转可选UI事件，授权许可不保存
+3. 返回前完整终态及hash持久；网络/取消/崩溃未知保留dispatching/running及原key，后续仅原MG幂等键找回，不换操作或重扣
+4. 内部非序列化SemanticKey来自原chunk/batch/资源阶段身份，不能包含可变配置本身；原MG key/op在本域持久，Root内独立QA查询以规范查询身份区分
+5. 平台返回错误也保留实际InvocationID/CurrentSnapshot；短控制窗口只保存原观察；已保留完整结果不因新观察缺失而丢失，原费用未知仍由MG对账
+6. 本域原意图先prepared（dispatch_started=0），真实租约门禁后、平台RPC前原子转dispatching/1；旧记录默认1保守unknown，不能用无InvocationID推零费用
+7. 原全量明批ModelExpectation按task注入expectedRouteVersion/expectedPriceSnapshots，并纳入稳定原请求hash/去凭据DTO；任一版本漂移MG原子拒绝，不自动重估或新owner
 
 **错误**
 
@@ -4050,16 +5113,16 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 - 授权：permission：service；rule：以本服务身份调用网关，费用类别继承可信op
 - 并发：每次调用独立；同一根操作的子调用共享网关费用作用域
 - 幂等：幂等键固定，重试返回原invocation
-- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`
+- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`、`knowledge.BeginModelStep`、`knowledge.SaveModelProgress`、`knowledge.RecordModelObservation`、`knowledge.HasCompleteResult`、`knowledge.MarkModelDispatch`
 
 ## knowledge.NewModelRuntime
 
 - 级别：参考
-- 文件：`modules/knowledge/internal/runtime/model_client.go`
+- 文件：`modules/knowledge/internal/model/client.go`
 - 作用：NewModelRuntime的本域内部实现助手
 
 ```go
-func NewModelRuntime(raw *gen.ModelGatewayClient) (ModelRuntime,error)
+func NewModelRuntime(raw *gen.ModelGatewayClient, db *sql.DB, window platform.WriteWindowConfig) (ModelRuntime, error)
 ```
 
 **输入**
@@ -4074,6 +5137,8 @@ func NewModelRuntime(raw *gen.ModelGatewayClient) (ModelRuntime,error)
 
 1. 按精确Go签名处理已校验输入和可信依赖
 2. 具体分支、固定参数与共同规则见本域data及实现注释
+3. NewGatewayClient严格生产校验器五项：CreateInvocationResult/CancelInvocationResult/StreamEvent/GetInvocationResult/LookupInvocationResult；原key只读观察经公共客户端，不复制HTTP/SSE机制
+4. 严格GatewayQueryUsageResult生产schema用于恢复完整根费用终局证明
 
 **错误**
 
@@ -4090,12 +5155,12 @@ func NewModelRuntime(raw *gen.ModelGatewayClient) (ModelRuntime,error)
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`platform.NewGatewayClient`、`platform.NewPayloadValidator`
+- 依赖：`platform.NewGatewayClient`、`platform.NewPayloadValidator`、`model-gateway:readInference`、`model-gateway:lookupInference`
 
 ## knowledge.WithModelRuntime
 
 - 级别：参考
-- 文件：`modules/knowledge/internal/runtime/model_client.go`
+- 文件：`modules/knowledge/internal/model/client.go`
 - 作用：WithModelRuntime的本域内部实现助手
 
 ```go
@@ -4135,7 +5200,7 @@ func WithModelRuntime(ctx context.Context,runtime ModelRuntime) context.Context
 ## knowledge.CompletedOutput
 
 - 级别：参考
-- 文件：`modules/knowledge/internal/runtime/model_client.go`
+- 文件：`modules/knowledge/internal/model/client.go`
 - 作用：CompletedOutput的本域内部实现助手
 
 ```go
@@ -4154,6 +5219,7 @@ func CompletedOutput(outcome InvokeModelResult, capability string) (*platform.Mo
 
 1. 按精确Go签名处理已校验输入和可信依赖
 2. 具体分支、固定参数与共同规则见本域data及实现注释
+3. 优先读CurrentSnapshot实际完整结构Output并核能力；无当前Output才用原真实completed事件，不拼事件、不复制旧unknown
 
 **错误**
 
@@ -4170,12 +5236,12 @@ func CompletedOutput(outcome InvokeModelResult, capability string) (*platform.Mo
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`knowledge.HasCompleteResult`
 
 ## knowledge.BindAdmissionPermit
 
 - 级别：参考
-- 文件：`modules/knowledge/internal/runtime/model_client.go`
+- 文件：`modules/knowledge/internal/model/client.go`
 - 作用：绑定本次已消费准入至独立模型上下文
 
 ```go
@@ -4211,6 +5277,38 @@ func BindAdmissionPermit(ctx context.Context, op OperationContext, permit *gen.A
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：`knowledge.WithModelRuntime`
 
+## knowledge.WithModelLease
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/client.go`
+- 作用：付费前绑定真实jobs租约检查，不复制续约机制
+
+```go
+func WithModelLease(ctx context.Context,check func(context.Context)error)(context.Context,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按原scope/完整持久输入组合真实已有机制，不换原key或批准
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域后台服务组合调用
+- 并发：本站同代真实原拥有者与安全窗口
+- 幂等：只用原输入/原key/原取消意图
+- 依赖：`knowledge.WithModelRuntime`
+
 ## knowledge.ExecuteBuild
 
 - 级别：约束
@@ -4218,7 +5316,7 @@ func BindAdmissionPermit(ctx context.Context, op OperationContext, permit *gen.A
 - 作用：执行一次文档索引构建
 
 ```go
-func ExecuteBuild(ctx context.Context, op OperationContext, input JobExecutionInput) (JobExecutionResult, error)
+func ExecuteBuild(ctx context.Context,op OperationContext,input JobExecutionInput)(result JobExecutionResult,failure error)
 ```
 
 **输入**
@@ -4238,21 +5336,62 @@ func ExecuteBuild(ctx context.Context, op OperationContext, input JobExecutionIn
 
 **步骤**
 
-1. FetchPublishedSource取得固定发布修订；ListExtractableAssets列出引用媒体，未有派生文本的资源CreateExtraction排队并等待其完成或标unsupported
-2. NormalizeSource→SplitChunks→EnrichChunkContext（仅变更块付费）→WriteStagingChunks写独立代数
-3. BuildLexicalIndex；RequestEmbeddings分批后StoreEmbeddings，复用同chunkHash/空间已有向量
-4. ValidateBuild后ActivateBuild原子切换；修订已被替代则标superseded；ActivateBuild在同一事务登记index.ready outbox
+1. 精确原job/ref/root/worker/fence读已批准完整BuildJobInput；已完成只返回原持久结果；付费前与最终写前使用平台CheckLease
+2. FetchPublishedSource核完整固定源；整篇超过固定context预算失败关闭，不截断、不降级；真实提取独立任务只等待同原ID
+3. 完整raw chunks、首次真实task memory、增强chunks与固定单块embedding batches各阶段只冻结一次；背景语义用原整组ID，配置漂移不能绕原unknown
+4. 原文字/offsets不改，机器context单独保存；同完整retrieval text/space真实向量复用，未命中按固定原单块批次付费
+5. 完整词项/向量/hash/一秒content权威证明后ActivateBuild，active/outbox/最终原JobExecutionResult同事务；jobs回执未知后只重交原真实结果
+6. 错误边界持久当前原fence真实failure_code/state并保完整已知paid refs；如果最终业务已原子完成则只重交真实成功结果，不覆盖；控制元数据窗口不延长原批准
 
 **错误**
 
 - `STALE_RESULT`：源修订已被替代（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：content/media/网关不可用（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `BUDGET_EXCEEDED`：网关额度不足（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
 
 - 副作用：写staging与active索引；模型费用经网关
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：同document/space一次只运行一个build；所有写入核lease与epoch
 - 幂等：按document/revision/space/generation唯一
-- 依赖：`knowledge.FetchPublishedSource`、`knowledge.ListExtractableAssets`、`knowledge.CreateExtraction`、`knowledge.NormalizeSource`、`knowledge.SplitChunks`、`knowledge.EnrichChunkContext`、`knowledge.WriteStagingChunks`、`knowledge.BuildLexicalIndex`、`knowledge.RequestEmbeddings`、`knowledge.StoreEmbeddings`、`knowledge.ValidateBuild`、`knowledge.ActivateBuild`、`knowledge.TokenizeSource`
+- 依赖：`knowledge.ReadExecutionRecord`、`knowledge.WithModelLease`、`knowledge.ExecutionLeaseID`、`knowledge.SetBuildStage`、`knowledge.FetchPublishedSource`、`knowledge.RuntimeFromContext`、`knowledge.ReadBuildPlan`、`knowledge.FreezeBuildPlan`、`knowledge.ReadModelCatalog`、`knowledge.EmbeddingProfile`、`knowledge.PrepareBuildChunks`、`knowledge.ResolveTaskMemory`、`knowledge.EnrichChunkContext`、`knowledge.ApplyChunkContext`、`knowledge.WriteStagingChunks`、`knowledge.BuildLexicalIndex`、`knowledge.PrepareEmbeddingPlan`、`knowledge.ReuseEmbeddingBatch`、`knowledge.RequestEmbeddings`、`knowledge.StoreEmbeddings`、`knowledge.ValidateBuild`、`knowledge.ActivateBuild`、`knowledge.CheckEmbeddingPlan`、`knowledge.FinishExecutionFailure`、`knowledge.CheckRebuildApproval`、`knowledge.WithModelExpectations`
+
+## knowledge.PrepareBuildChunks
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/execute.go`
+- 作用：固定正文续读全部真实叶及真实原提取文字；独立子任务等待不inline、不另付费
+
+```go
+func PrepareBuildChunks(ctx context.Context,op OperationContext,payload BuildJobInput,content source.FetchPublishedSourceResult,leaseID,modelID string)([]gen.Chunk,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定正文续读全部真实叶及真实原提取文字；独立子任务等待不inline、不另付费
+2. 本地failed仅当前attempt失败，锁外查jobs原任务；queued/leased/running/retry-wait/cancel-requested/orphan等待原ID，只有dead-letter/cancelled终止，succeeded必须回读真实ready/unsupported结果
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.BuildSourceBlocks`、`knowledge.ListExtractableAssets`、`knowledge.CreateExtraction`、`knowledge.ReadExtraction`、`knowledge.BindExtractionViews`、`knowledge.BuildMaterialBlocks`、`knowledge.SplitChunks`、`knowledge.ReadExtractionJobState`、`knowledge.ReadBuildPlan`
 
 ## knowledge.EstimateRebuildPlan
 
@@ -4281,10 +5420,10 @@ func EstimateRebuildPlan(ctx context.Context, op OperationContext, input Estimat
 
 **步骤**
 
-1. knowledge.manage；content:readPublicTree列出已发布文档
-2. 按当前分块配置估算分块数，扣除同chunkHash/空间可复用向量与描述
-3. model-gateway:quoteCost估算knowledge.embed、knowledge.context与描述任务费用；缺价保留price_unknown
-4. 保存计划（文档修订集合、quoteHash、24小时过期），不调用模型
+1. 即时knowledge.manage；免费读取完整当前公开树及固定正文/hash/真实BPE，源/策略16MiB、256文档/4096真实分块预算超限失败不截断
+2. 冻结完整空间/主备用覆盖候选/任务记忆；核真实资源、背景和向量缓存后扣实际复用；未产资源文字明确chunkCountKnown=false
+3. 逐真实模型固定输入窗口保守QuoteCost，真实整数分项汇总；缺价或完整数量未知则pricingKnown=false、省maximumCost并给warning，不以0代替
+4. 不调用模型/不建资源或paid意图；当前配置版本CAS后保存固定来源集合、真实策略/报价hash和24小时有效期，原operation回放原结果
 
 **错误**
 
@@ -4295,7 +5434,7 @@ func EstimateRebuildPlan(ctx context.Context, op OperationContext, input Estimat
 - 授权：permission：knowledge.manage；rule：后台管理员按登记权限
 - 并发：只读快照或CAS
 - 幂等：读取幂等；写入按operationId
-- 依赖：`content:readPublicTree`、`model-gateway:quoteCost`
+- 依赖：`knowledge.AuthorizeAdmin`、`knowledge.RuntimeFromContext`、`knowledge.PrepareRebuildSnapshot`、`knowledge.BeginIndexWrite`、`knowledge.ReadConfig`
 
 ## knowledge.ApproveRebuildPlan
 
@@ -4324,9 +5463,10 @@ func ApproveRebuildPlan(ctx context.Context, op OperationContext, input ApproveR
 
 **步骤**
 
-1. 计划未过期且quoteHash一致
-2. 为计划内每篇文档CreateBuild（force新generation，保留旧active直到新代数激活）
-3. 记录批准人与估价
+1. 即时knowledge.manage和可信background，核本站同代原管理员、未过期计划与quoteHash；已批准同输入只回原回执
+2. 锁外重新核完整源/配置/模型/记忆/报价/缓存集合不漂移，当前配置及原批准状态再CAS
+3. 一个安全写事务中为完整原集合QueueBuild(force=true)，保存各构建原明批策略、批准人/root/时点和完整任务ID回执；任一失败全部回滚
+4. 事务后只派发已提交原任务，未知保持久意图恢复；旧active保留至新代数真正核验/激活，不自动新批准
 
 **错误**
 
@@ -4337,13 +5477,809 @@ func ApproveRebuildPlan(ctx context.Context, op OperationContext, input ApproveR
 - 授权：permission：knowledge.manage；rule：后台管理员按登记权限
 - 并发：只读快照或CAS
 - 幂等：读取幂等；写入按operationId
-- 依赖：`knowledge.CreateBuild`
+- 依赖：`knowledge.AuthorizeAdmin`、`knowledge.RuntimeFromContext`、`knowledge.PrepareRebuildSnapshot`、`knowledge.BeginIndexWrite`、`knowledge.ReadConfig`、`knowledge.QueueBuild`、`knowledge.DispatchBuild`
+
+## knowledge.ReadRebuildDocuments
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild.go`
+- 作用：严格公开树生产schema取完整真实发布修订/树水位，最多256文档超预算失败不截断
+
+```go
+func ReadRebuildDocuments(ctx context.Context,op OperationContext,runtime indexer.Runtime)([]gen.PublishedRevisionRef,int64,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格公开树生产schema取完整真实发布修订/树水位，最多256文档超预算失败不截断
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：`content:readPublicTree`
+
+## knowledge.PrepareRebuildPolicy
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild.go`
+- 作用：冻结原完整空间、嵌入/上下文/各资源任务记忆和真实声明策略，估价不创建模型或资源意图
+
+```go
+func PrepareRebuildPolicy(ctx context.Context,op OperationContext,runtime indexer.Runtime,config gen.IndexConfig,resources []source.AssetSource)(RebuildPolicy,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 嵌入、上下文、资源均以MG免费resolveTaskRoute真实eligible候选/routeVersion为准，不手拼主备用或任务覆盖；嵌入档位及每候选完整空间必须匹配配置
+2. 冻结真实任务记忆与完整候选opaque快照；估价不建任何paid/资源意图
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：`knowledge.ReadTaskRoute`、`knowledge.ResolveTaskMemory`、`knowledge.PrepareExtractionPlan`
+
+## knowledge.CheckRebuildApproval
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild.go`
+- 作用：每次可能付费前重核原明批模型/任务/记忆；当前漂移CONFLICT，不换key或延批准，正常单篇无全量记录
+
+```go
+func CheckRebuildApproval(ctx context.Context,op OperationContext,buildID string,config gen.IndexConfig)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 每次可能付费前重核原明批模型/任务/记忆；当前漂移CONFLICT，不换key或延批准，正常单篇无全量记录
+2. 客户端重读只诊断策略漂移；真正付费Create必须携原expectedRouteVersion和逐候选expectedPriceSnapshots，MG事务内整路由/价格CAS，包含disabled→enabled变化；绝不拿客户端预读冒原子CAS
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：`knowledge.ReadBuildPlan`、`knowledge.RuntimeFromContext`、`knowledge.PrepareRebuildPolicy`
+
+## knowledge.AddRebuildQuoteRoute
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild.go`
+- 作用：按真实固定模型窗口与已知数量聚合各任务候选，最多256完整分项且整数溢出失败关闭
+
+```go
+func AddRebuildQuoteRoute(components map[string]*RebuildQuoteComponent,route RebuildRoute,quantity,output int64)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按真实固定模型窗口与已知数量聚合各任务候选，最多256完整分项且整数溢出失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：无
+
+## knowledge.QuoteRebuildComponents
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild.go`
+- 作用：严格MG报价生产schema逐真实模型报价并整数汇总；任一缺价或未来材料未知则总pricingKnown=false且省maximumCost，保全部真实分项
+
+```go
+func QuoteRebuildComponents(ctx context.Context,op OperationContext,runtime indexer.Runtime,components map[string]*RebuildQuoteComponent,countKnown bool)(RebuildQuote,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只消费本次已冻结的真实逐候选QuoteCost回执，严格生产schema核对后做整数求和；缺价或完整材料数量未知则pricingKnown=false且省最大费，不构造单一PriceSnapshot
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：无
+
+## knowledge.PrepareRebuildSnapshot
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild.go`
+- 作用：免费固定正文/BPE/已付费背景和向量缓存，已知材料扣真实复用；未产资源文字chunkCountKnown=false且总上限未知，不调AI凑价；完整源/策略16MiB、真实分块4096预算不截断
+
+```go
+func PrepareRebuildSnapshot(ctx context.Context,op OperationContext,reason string)(RebuildSnapshot,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 免费固定正文/BPE/已付费背景和向量缓存，已知材料扣真实复用；未产资源文字chunkCountKnown=false且总上限未知，不调AI凑价；完整源/策略16MiB、真实分块4096预算不截断
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ReadConfig`、`knowledge.ReadRebuildDocuments`、`knowledge.ReadRebuildSource`、`knowledge.ListExtractableAssets`、`knowledge.PrepareRebuildPolicy`、`knowledge.BuildSourceBlocks`、`knowledge.ReadRebuildExtractionCache`、`knowledge.BuildMaterialBlocks`、`knowledge.SplitChunks`、`knowledge.ReadRebuildCachedContext`、`knowledge.HasRebuildVector`、`knowledge.AddRebuildQuoteRoute`、`knowledge.QuoteRebuildComponents`、`knowledge.FreezeRebuildRoutePrices`
+
+## knowledge.ReadRebuildSource
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild.go`
+- 作用：严格真实固定发布正文16MiB/hash，必需整篇上下文超过65536字符失败关闭不截断
+
+```go
+func ReadRebuildSource(ctx context.Context,op OperationContext,runtime indexer.Runtime,document gen.PublishedRevisionRef)([]byte,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格真实固定发布正文16MiB/hash，必需整篇上下文超过65536字符失败关闭不截断
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：`content:readPublishedRevision`
+
+## knowledge.FreezeRebuildRoutePrices
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild.go`
+- 作用：逐权威eligible候选免费QuoteCost、核实际PriceSnapshot模型ID，冻结expectedPriceSnapshots及完整原报价；未来材料未知仍不虚构数量或总价
+
+```go
+func FreezeRebuildRoutePrices(ctx context.Context,op OperationContext,runtime indexer.Runtime,route *RebuildRoute,output int64)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 逐权威eligible候选免费QuoteCost、核实际PriceSnapshot模型ID，冻结expectedPriceSnapshots及完整原报价；未来材料未知仍不虚构数量或总价
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只消费原已授权任务权威声明，不扩模型付费批准
+- 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
+- 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
+- 依赖：`model-gateway:quoteCost`
+
+## knowledge.OpenRepository
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/repository.go`
+- 作用：按本域active私有路径打开SQLite，执行内嵌只追加迁移和平台inbox/outbox建表，旧身份不重标
+
+```go
+func OpenRepository(ctx context.Context, dataRoot, site, epoch string) (*sql.DB, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按本域active私有路径打开SQLite，执行内嵌只追加迁移和平台inbox/outbox建表，旧身份不重标
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信本域装配或已授权用例内部调用，继承外层权限/事务
+- 并发：复用本域短事务；外部权威读取不持有SQL事务
+- 幂等：同原记录及规范输入约束
+- 依赖：`knowledge.storageError`
+
+## knowledge.BeginIndexWrite
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/repository.go`
+- 作用：SQL事务前取得平台当前写窗口，核对本域站点/代次
+
+```go
+func BeginIndexWrite(ctx context.Context, op OperationContext) (context.Context, *sql.Tx, context.CancelFunc, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. SQL事务前取得平台当前写窗口，核对本域站点/代次
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信本域装配或已授权用例内部调用，继承外层权限/事务
+- 并发：复用本域短事务；外部权威读取不持有SQL事务
+- 幂等：同原记录及规范输入约束
+- 依赖：`knowledge.RuntimeFromContext`、`platform.NewWriteContext`、`knowledge.storageError`
+
+## knowledge.ReadConfig
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/repository.go`
+- 作用：读取同代私有配置，缺失NOT_FOUND而非伪默认
+
+```go
+func ReadConfig(ctx context.Context, tx *sql.Tx, op OperationContext) (gen.IndexConfig, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取同代私有配置，缺失NOT_FOUND而非伪默认
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信本域装配或已授权用例内部调用，继承外层权限/事务
+- 并发：复用本域短事务；外部权威读取不持有SQL事务
+- 幂等：同原记录及规范输入约束
+- 依赖：`knowledge.storageError`
+
+## knowledge.ReadOperationReceipt
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/repository.go`
+- 作用：按站点/代次/管理主体/函数/键读取安全原回执并核规范输入hash
+
+```go
+func ReadOperationReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, function, key string, input any, result any) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按站点/代次/管理主体/函数/键读取安全原回执并核规范输入hash
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信本域装配或已授权用例内部调用，继承外层权限/事务
+- 并发：复用本域短事务；外部权威读取不持有SQL事务
+- 幂等：同原记录及规范输入约束
+- 依赖：`knowledge.storageError`
+
+## knowledge.SaveOperationReceipt
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/repository.go`
+- 作用：与本域业务事务一起保存规范输入hash及安全结果
+
+```go
+func SaveOperationReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, function, key string, input, result any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 与本域业务事务一起保存规范输入hash及安全结果
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信本域装配或已授权用例内部调用，继承外层权限/事务
+- 并发：复用本域短事务；外部权威读取不持有SQL事务
+- 幂等：同原记录及规范输入约束
+- 依赖：`knowledge.storageError`
+
+## knowledge.EnsureBuildDiskBudget
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/repository.go`
+- 作用：实施本域已确认10%低水位，仅阻止新代数，不影响原结果读取或复用
+
+```go
+func EnsureBuildDiskBudget(dataRoot string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 对可信私有本地目录读取真实Statfs可用块，未知或≤10%拒绝新build，保留active
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只由已授权创建链路传可信Runtime.DataRoot
+- 并发：只读文件系统水位，不另造预占账本
+- 幂等：同真实水位同决定
+- 依赖：无
+
+## knowledge.ConsumeInbox
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/inbox.go`
+- 作用：事件去重与代际保护
+
+```go
+func ConsumeInbox(ctx context.Context, op OperationContext, input ConsumeInboxInput, tx *sql.Tx) (ConsumeInboxResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `ConsumeInboxInput` | 封闭业务输入；逐字段见types $defs/ConsumeInboxInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ConsumeInboxResult` | 成功结果；逐字段见types $defs/ConsumeInboxResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 只接公共订阅边界核验的原EventEnvelope，事务首项写入调用ClaimInboxBeforeWrite并提供真实tx.Commit回调
+2. 同ID异hash只提交隔离且返回原完整性错误；已隔离始终拒绝；正常inbox和业务状态由外层事务共同提交
+3. 源水位按producer/eventType/eventVersion/subject流单调；公共订阅只在handler成功提交后确认
+
+**错误**
+
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：写inbox
+- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`platform.ClaimInboxBeforeWrite`
+
+## knowledge.CancelBuildSideEffects
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/cancellation.go`
+- 作用：按已持久取消意图及原root请求已知jobs/MG停止，未知接受不假成功，不退款不丢引用
+
+```go
+func CancelBuildSideEffects(ctx context.Context, op OperationContext, buildID string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按已持久取消意图及原root请求已知jobs/MG停止，未知接受不假成功，不退款不丢引用
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只由本域已授权取消或原撤回事件组合调用，原root由持久记录核归属
+- 并发：SQL外调用jobs与公共网关；回写前重新取得当前安全窗口
+- 幂等：原build/job/invocation和固定取消键，不重派模型
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ReadBuildRecord`、`knowledge.BeginIndexWrite`、`knowledge.storageError`、`jobs:cancelJob`、`model-gateway:cancelInference`、`knowledge.CancelExtractionSideEffects`
+
+## knowledge.CancelDocumentSideEffects
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/cancellation.go`
+- 作用：只扫描本域同文档已持久取消意图，重放旧撤回不取消新构建
+
+```go
+func CancelDocumentSideEffects(ctx context.Context, op OperationContext, documentID string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只扫描本域同文档已持久取消意图，重放旧撤回不取消新构建
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只由本域已授权取消或原撤回事件组合调用，原root由持久记录核归属
+- 并发：SQL外调用jobs与公共网关；回写前重新取得当前安全窗口
+- 幂等：原build/job/invocation和固定取消键，不重派模型
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.CancelBuildSideEffects`、`knowledge.storageError`
+
+## knowledge.ReadIndexOptions
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/admin/options.go`
+- 作用：读取已有索引管理流程的真实安全选项
+
+```go
+func ReadIndexOptions(ctx context.Context, op OperationContext, input ReadIndexOptionsInput) (ReadIndexOptionsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `ReadIndexOptionsInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadIndexOptionsResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. knowledge.manage读取可信基准语言、MG纯服务无密钥目录及content当前公开树
+2. 分别返回真实ready/unavailable状态与安全错误码，失败不伪装为空目录
+3. embedding选项只声明完整权威space及精确支持tokenizer，不构造ID/hash；文档返回真实固定发布引用及可见性修订
+
+**错误**
+
+- `FORBIDDEN`：权限不足（不可重试）
+
+- 副作用：无
+- 授权：permission：knowledge.manage；rule：后台管理员
+- 并发：只读快照
+- 幂等：只读
+- 依赖：`knowledge.AuthorizeAdmin`、`knowledge.RuntimeFromContext`、`knowledge.ReadModelCatalog`、`knowledge.optionErrorCode`、`content:readPublicTree`
+
+## knowledge.optionErrorCode
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/admin/options.go`
+- 作用：只返回公共安全错误码，不透传跨域详情
+
+```go
+func optionErrorCode(err error) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只返回公共安全错误码，不透传跨域详情
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.ReadModelCatalog
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/catalog.go`
+- 作用：以本域纯服务读严格生产schema目录，不计算空间hash
+
+```go
+func ReadModelCatalog(ctx context.Context, op OperationContext, runtime Runtime) (ModelCatalog, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 以本域纯服务读严格生产schema目录，不计算空间hash
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`model-gateway:readModels`、`model-gateway:readProfiles`
+
+## knowledge.EmbeddingProfile
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/catalog.go`
+- 作用：按可信费用类别/embedding主模型/完整五字段空间选择档位，不跨空间回退
+
+```go
+func EmbeddingProfile(catalog ModelCatalog, profileID, costClass string, space gen.EmbeddingSpace) (ProfileDeclaration, ModelDeclaration, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信费用类别/embedding主模型/完整五字段空间选择档位，不跨空间回退
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.TextProfile
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/catalog.go`
+- 作用：首个具备所需能力的配置声明预检查，不作为实际winning证明
+
+```go
+func TextProfile(catalog ModelCatalog, tier, costClass, capability string) (ProfileDeclaration, ModelDeclaration, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 首个具备所需能力的配置声明预检查，不作为实际winning证明
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.ReadTaskAssignment
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/catalog.go`
+- 作用：纯服务只读本域任务的严格生产schema覆盖声明，空列表为未设置，不伪造记录
+
+```go
+func ReadTaskAssignment(ctx context.Context, op OperationContext, runtime Runtime, taskID string) (*TaskAssignment, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 纯服务只读本域任务的严格生产schema覆盖声明，空列表为未设置，不伪造记录
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`model-gateway:readTaskAssignments`
+
+## knowledge.ProfileModelSnapshots
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/catalog.go`
+- 作用：按已公开覆盖替换首项/保留备用语义收集当前缓存资格opaque模型证明，不计算MG hash或选择winning
+
+```go
+func ProfileModelSnapshots(catalog ModelCatalog, profile ProfileDeclaration, assignment *TaskAssignment) []string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按已公开覆盖替换首项/保留备用语义收集当前缓存资格opaque模型证明，不计算MG hash或选择winning
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
 
 ## knowledge.TokenizeSource
 
 - 级别：参考
-- 文件：`modules/knowledge/internal/source/tokenize.go`
-- 作用：从固定模型免费BPE端口取得真实字节token边界
+- 文件：`modules/knowledge/internal/model/tokenize.go`
+- 作用：免费模型真实BPE与完整固定空间/字节来源核对
 
 ```go
 func TokenizeSource(ctx context.Context, op OperationContext, input TokenizeSourceInput) (TokenizeSourceResult, error)
@@ -4359,7 +6295,730 @@ func TokenizeSource(ctx context.Context, op OperationContext, input TokenizeSour
 
 **步骤**
 
-1. 读取model-gateway:tokenizeText完整同代space/tokenizerVersion/textHash/真实byteTokenEnds，逐项匹配固定构建输入；该函数尚待模块源码，不与本地全文词项TokenizeText混淆。
+1. 纯knowledge服务调用MG tokenizeText，严格核生产schema、完整空间、tokenizerVersion及原文hash
+2. 真实tokenCount等于端点数，端点严格递增并覆盖完整原文；允许UTF8内部端点，不把rune冒充token
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`model-gateway:tokenizeText`
+
+## knowledge.BuildSourceBlocks
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/source/blocks.go`
+- 作用：固定发布正文真实原叶的有界规范化/免费BPE片段
+
+```go
+func BuildSourceBlocks(ctx context.Context, op OperationContext, input BuildSourceBlocksInput) (BuildSourceBlocksResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核完整canonical正文16MiB/hash/epoch，按最近稳定块保留原BlockRef与真实JSON sourcePath
+2. 原块文本视图为该最近稳定块拥有的text及alt叶按正文遍历直接串联，嵌套稳定块独立起算；sourceOffsets为未转义UTF8原文字节，不混入JSON字节
+3. 每次仅处理一个真实叶的一个NFKC稳定片段，续读Next而不积压全篇膨胀映射；modelId/完整空间固定，真实BPE不猜测
+4. contextVersionHash固定完整文档/原块/预处理版本的规范摘要，不虚构已执行模型上下文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.CollectSourceLeaves`、`knowledge.NormalizeSource`、`knowledge.TokenizeSource`
+
+## knowledge.CollectSourceLeaves
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/source/blocks.go`
+- 作用：有序原叶、稳定最近块及原文偏移来源
+
+```go
+func CollectSourceLeaves(body []byte, document gen.PublishedRevisionRef) ([]SourceLeaf, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 最近稳定块拥有的text（content顺序）→attrs.alt→仅video的attrs.title→attrs.description，原叶直接串联无新增分隔符；嵌套稳定块独立起算
+2. sourcePath指真实JSON字符串，offset指未转义原文字节；平台snapshot已在正文固定，不构建重抓URL，原块hash/id保留
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.WithModelOwner
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/journal.go`
+- 作用：请求独立绑定真实构建拥有者供取消/恢复/GC保护
+
+```go
+func WithModelOwner(ctx context.Context, ownerID string) (context.Context, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 请求独立绑定真实构建拥有者供取消/恢复/GC保护
+
+**错误**
+
+- 无
+
+- 副作用：本域model_steps原结果与不可变引用
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.WithModelRuntime`
+
+## knowledge.beginModelWrite
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/journal.go`
+- 作用：当前平台写窗口与本站同代私有身份核对
+
+```go
+func beginModelWrite(ctx context.Context, op OperationContext, runtime ModelRuntime) (context.Context, *sql.Tx, context.CancelFunc, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 当前平台写窗口与本站同代私有身份核对
+
+**错误**
+
+- 无
+
+- 副作用：本域model_steps原结果与不可变引用
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`platform.NewWriteContext`
+
+## knowledge.BeginModelStep
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/journal.go`
+- 作用：外部付费前持久原输入hash和原op/key，完整原结果hash核对后复用
+
+```go
+func BeginModelStep(ctx context.Context, op OperationContext, runtime ModelRuntime, key, semantic string, request platform.CreateInvocationInput) (string, InvokeModelResult, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. owner+稳定semantic_key唯一记录原MG key/op和实际去凭据请求hash，调用方临时hash/许可token不入实际请求语义
+2. 同语义改输入/配置/记忆或原op不符CONFLICT，绝不新造key绕旧unknown；完整原结果核hash后复用
+3. 旧空semantic记录仅在原op与完整原请求hash相同时绑定原MG key；其他旧阶段不能证明则拒新付费，保留引用和原结果
+4. unknown没有真实完整结果时仅原key再观察，不永久冻结为终态；有真实完整结果保留使用，费用仍由MG持有未知预留
+5. 只已知failed/cancelled或完整completed本地结果直接复用；running/pending/unknown（即使有ID）经平台原key只读观察，不能永远返回不完整旧unknown
+6. 全新稳定语义准备状态prepared/dispatch_started0只证明尚未进行RPC；不覆盖旧dispatching/unknown。实际外发标记由MarkModelDispatch在真实租约门禁后提交
+7. 仅background且明确owner首次prepared/0时冻结完整去凭据原Create DTO，实际RPC字段使用持久resolved key；QA正文/permit永不持久；重放原语义输入漂移CONFLICT
+
+**错误**
+
+- 无
+
+- 副作用：本域model_steps原结果与不可变引用
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.beginModelWrite`、`knowledge.HasCompleteResult`
+
+## knowledge.SaveModelProgress
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/journal.go`
+- 作用：真实网关事件引用与root/费用类别核对并持久，不保存许可或prompt
+
+```go
+func SaveModelProgress(ctx context.Context, op OperationContext, runtime ModelRuntime, key string, event platform.StreamEvent) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实网关事件引用与root/费用类别核对并持久，不保存许可或prompt
+
+**错误**
+
+- 无
+
+- 副作用：本域model_steps原结果与不可变引用
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.beginModelWrite`
+
+## knowledge.CompleteModelStep
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/journal.go`
+- 作用：完整所有终态原结果≤16MiB及hash保存，拒不同原结果，不重算费用未知
+
+```go
+func CompleteModelStep(ctx context.Context, op OperationContext, runtime ModelRuntime, key string, outcome InvokeModelResult) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整所有终态原结果≤16MiB及hash保存，拒不同原结果，不重算费用未知
+2. 原unknown观察可推进，已完整有效原输出不可覆盖，对账须保持原winning快照；不是新attempt
+3. 不完整原观察可推进到同ID真实新观察；已经完整paid输出按winner opaque hash及真实完整Text/结构Output核不变，原结果字节保留；最新真实费用终态仅投影state，不伪造费用或事件
+4. 完整paid输出字节/hash不可变；最新真实CurrentSnapshot观察另列/hash保存，费用state由真实Invocation和全部attempt投影，不能用Outcome.completed当结算
+
+**错误**
+
+- 无
+
+- 副作用：本域model_steps原结果与不可变引用
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.beginModelWrite`、`knowledge.HasCompleteResult`、`knowledge.WinningModelSnapshot`、`knowledge.CompletedText`、`knowledge.CompletedOutput`、`knowledge.ModelObservationState`
+
+## knowledge.RecordModelObservation
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/journal.go`
+- 作用：取消/截止后的实际接受ID及当前对象只以短控制窗口持久观察，不续期付费、不重新模型
+
+```go
+func RecordModelObservation(ctx context.Context,op OperationContext,runtime ModelRuntime,key string,outcome InvokeModelResult)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 取消/截止后的实际接受ID及当前对象只以短控制窗口持久观察，不续期付费、不重新模型
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只原已授权模型调用结果消费/保留，不新增批准
+- 并发：固定原调用/site/epoch/root，完整结果只读或原scope短元数据窗口
+- 幂等：原invocation/key不变，付费输出不可变，费用状态只投影真实观察
+- 依赖：`knowledge.CompleteModelStep`
+
+## knowledge.MarkModelDispatch
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/journal.go`
+- 作用：真实租约门禁后、平台RPC前持久原模型外发事实，旧未知不按无ID当零费
+
+```go
+func MarkModelDispatch(ctx context.Context,op OperationContext,runtime ModelRuntime,key string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实租约门禁后、平台RPC前持久原模型外发事实，旧未知不按无ID当零费
+2. 同原key再次继续时清除旧时点负证明，dispatch_started保持1，不伪装从未外发
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权原本域任务内部组合，不新增模型批准
+- 并发：原site/epoch/owner/op/fence CAS；失败元数据使用短控制窗口，原业务截止不变
+- 幂等：原job/key/完整结果不变；未知保留原引用
+- 依赖：`knowledge.beginModelWrite`
+
+## knowledge.DownloadExtractionAsset
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/source.go`
+- 作用：完整原发布/版本授权有界读50MiB，核真实长度/hash及Close，不取latest
+
+```go
+func DownloadExtractionAsset(ctx context.Context, op OperationContext, origin source.AssetSource) ([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整原发布/版本授权有界读50MiB，核真实长度/hash及Close，不取latest
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.RuntimeFromContext`、`media:readAssetBytes`
+
+## knowledge.ParsePDFPages
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/pdf_worker.go`
+- 作用：仅公共无网络沙箱自身子入口内解析，真实页号/阅读序/500页50MiB及8MiB字文预算，无OCR无伪空成功
+
+```go
+func ParsePDFPages(raw []byte) (PDFText, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅公共无网络沙箱自身子入口内解析，真实页号/阅读序/500页50MiB及8MiB字文预算，无OCR无伪空成功
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.ValidateSectionSources
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/search/source-views.go`
+- 作用：content sourcePath回读精确私有发布body hash/原块/实际JSON叶，资源路径读同发布/原块/资源hash的不可变机器提取原文视图，缺记录返回NOT_FOUND，不取latest或伪造路径
+
+```go
+func ValidateSectionSources(ctx context.Context, op OperationContext, chunks []gen.Chunk) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. content sourcePath回读精确私有发布body hash/原块/实际JSON叶，资源路径读同发布/原块/资源hash的不可变机器提取原文视图，缺记录返回NOT_FOUND，不取latest或伪造路径
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.CollectSourceLeaves`、`knowledge.publicationKey`、`knowledge.ReadExtractionSourceView`、`knowledge.ValidateSourceRange`
+
+## knowledge.ValidateSourceRange
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/search/source-views.go`
+- 作用：原块/真实UTF8范围核验，不混淆机器原文与人工正文
+
+```go
+func ValidateSourceRange(value gen.Chunk, leaf source.SourceLeaf) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原块/真实UTF8范围核验，不混淆机器原文与人工正文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.ReadExtractionSourceView
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/source/extraction-view.go`
+- 作用：只读取同站同代/完整发布/原块/AssetRef/路径的不可变提取原文及hash，缺失不捏造
+
+```go
+func ReadExtractionSourceView(ctx context.Context, op OperationContext, value gen.Chunk) (SourceLeaf, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读取同站同代/完整发布/原块/AssetRef/路径的不可变提取原文及hash，缺失不捏造
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.RuntimeFromContext`
+
+## knowledge.SameAsset
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/describe.go`
+- 作用：完整资源hash/类型/长度与授权原version来源核对
+
+```go
+func SameAsset(asset platform.AssetRef, origin source.AssetSource) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整资源hash/类型/长度与授权原version来源核对
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.DescribeResource
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/describe.go`
+- 作用：只原批准background任务/对应记忆/配置档位/真实资源消息；模型原结果持久，机器描述不改人工caption
+
+```go
+func DescribeResource(ctx context.Context, op OperationContext, id string, origin source.AssetSource, memory platform.MemoryContext, task, tier, capability, text string, parts []platform.GatewayPart, limit int64) (Extraction, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只原批准background任务/对应记忆/配置档位/真实资源消息；模型原结果持久，机器描述不改人工caption
+2. 全量明批资源计划显式携原routeVersion/expectedPriceSnapshots；普通资源使用MG真实免费路由版本，原key重放不改期望
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ReadModelCatalog`、`knowledge.WithModelOwner`、`knowledge.InvokeModel`、`knowledge.DescriptionText`、`knowledge.WinningModelSnapshot`、`knowledge.TextProfile`
+
+## knowledge.DescriptionText
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/describe.go`
+- 作用：只读取真实完成模型完整UTF8输出，失败/费用未知无伪文本
+
+```go
+func DescriptionText(outcome modelruntime.InvokeModelResult) (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读取真实完成模型完整UTF8输出，失败/费用未知无伪文本
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.HasCompleteResult`、`knowledge.CompletedText`
+
+## knowledge.WinningModelSnapshot
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/provenance.go`
+- 作用：只用真实resultAttemptId在原Invocation找opaque快照hash，不按费用状态猜winning，旧缺证明失败关闭
+
+```go
+func WinningModelSnapshot(outcome InvokeModelResult) (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只用真实resultAttemptId在原Invocation找opaque快照hash，不按费用状态猜winning，旧缺证明失败关闭
+2. 真实CurrentSnapshot优先于历史SSE Invocation，只按其resultAttemptId精确取opaque模型证明；无当前对象才兼容原真实事件
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：无
+
+## knowledge.HasCompleteResult
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/provenance.go`
+- 作用：完整真实结果与费用状态分离，unknown必须真实完整结果及winning证明
+
+```go
+func HasCompleteResult(outcome InvokeModelResult) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整真实结果与费用状态分离，unknown必须真实完整结果及winning证明
+2. 完整当前Output与真实winning证明可消费，不要求伪造completed SSE；旧真实completed事件仅作兼容分支
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大服务权限
+- 并发：只读固定权威声明，无跨域业务表
+- 幂等：只读，无模型调用或费用
+- 依赖：`knowledge.WinningModelSnapshot`
+
+## knowledge.CompletedText
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/provenance.go`
+- 作用：只消费真实完整Output.Text指针；旧无snapshot已保存completed真实事件兼容，不造SSE，不把部分delta补成当前全文
+
+```go
+func CompletedText(outcome InvokeModelResult,maximumBytes int)(string,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只消费真实完整Output.Text指针；旧无snapshot已保存completed真实事件兼容，不造SSE，不把部分delta补成当前全文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只原已授权模型调用结果消费/保留，不新增批准
+- 并发：固定原调用/site/epoch/root，完整结果只读或原scope短元数据窗口
+- 幂等：原invocation/key不变，付费输出不可变，费用状态只投影真实观察
+- 依赖：`knowledge.HasCompleteResult`
+
+## knowledge.ModelObservationState
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/provenance.go`
+- 作用：只从真实Invocation及每个attempt投影费用副作用状态，Outcome.completed仅表示完整结果可消费
+
+```go
+func ModelObservationState(outcome InvokeModelResult)string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只从真实Invocation及每个attempt投影费用副作用状态，Outcome.completed仅表示完整结果可消费
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅原已授权结果内部纯投影
+- 并发：真实固定对象纯计算
+- 幂等：相同真实对象相同输出
+- 依赖：无
+
+## knowledge.ValidatePublication
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/publication.go`
+- 作用：validatePublication的本域内部实现助手
+
+```go
+func ValidatePublication(ctx context.Context, op OperationContext, client *gen.ContentClient, validate func(json.RawMessage) error, ref gen.PublishedRevisionRef) (time.Time, int, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名处理已校验输入和可信依赖
+2. 具体分支、固定参数与共同规则见本域data及实现注释
 
 **错误**
 
@@ -4376,7 +7035,937 @@ func TokenizeSource(ctx context.Context, op OperationContext, input TokenizeSour
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:tokenizeText`
+- 依赖：`content:validatePublications`
+
+## knowledge.ExecutionLeaseID
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：只由真实jobs job/fence编码私有镜像标识，不产生租约权限
+
+```go
+func ExecutionLeaseID(jobID string,fence int64)string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只由真实jobs job/fence编码私有镜像标识，不产生租约权限
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：无
+
+## knowledge.ApprovedJobInput
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：按封闭本域jobTypes读原完整payload/ref/root及派发归属并核hash长度
+
+```go
+func ApprovedJobInput(ctx context.Context,tx *sql.Tx,jobType,objectID string)(ExecutionRecord,string,string,string,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按封闭本域jobTypes读原完整payload/ref/root及派发归属并核hash长度
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：无
+
+## knowledge.AdoptClaimedJob
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：在任何业务执行前存真实claim拥有者与fence；执行保留原批准截止，控制写不续费批准
+
+```go
+func AdoptClaimedJob(ctx context.Context,job platform.ClaimedJob)(OperationContext,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在任何业务执行前存真实claim拥有者与fence；执行保留原批准截止，控制写不续费批准
+2. 只有jobs真实更高fence新claim且原批准未过期，可恢复本域同原对象failed/cancelled=0阶段；续约不能复活失败/取消对象，不延长期限
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ApprovedJobInput`、`knowledge.BeginIndexWrite`、`knowledge.SaveExecutionMirror`
+
+## knowledge.SaveExecutionMirror
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：只按真实claim/续租回执镜像lease；不能调用CheckLease递归心跳
+
+```go
+func SaveExecutionMirror(ctx context.Context,tx *sql.Tx,job platform.ClaimedJob,expires string,cancelled bool)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只按真实claim/续租回执镜像lease；不能调用CheckLease递归心跳
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.ExecutionLeaseID`
+
+## knowledge.LoadExecutionRecord
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：读原拥有者完整来源及不可变最终结果，核输入/结果hash长度和对象标识
+
+```go
+func LoadExecutionRecord(ctx context.Context,tx *sql.Tx,jobID string)(ExecutionRecord,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读原拥有者完整来源及不可变最终结果，核输入/结果hash长度和对象标识
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：无
+
+## knowledge.ReadExecutionRecord
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：执行器核原job/worker/fence/attempt/root/完整ref和当前有效镜像
+
+```go
+func ReadExecutionRecord(ctx context.Context,op OperationContext,input platform.JobExecutionInput)(ExecutionRecord,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 执行器核原job/worker/fence/attempt/root/完整ref和当前有效镜像
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.LoadExecutionRecord`
+
+## knowledge.MirrorExecutionLease
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：只消费平台权威续租回执，同worker/fence/epoch CAS镜像
+
+```go
+func MirrorExecutionLease(ctx context.Context,op OperationContext,job platform.ClaimedJob,info platform.HeartbeatInfo)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅真实heartbeat成功且公共worker已一次绑定原私有job执行scope后，使用真实ExpiresAt接管execution_records与同原job/fence镜像；不在只读factory先写，不复制心跳或续付费deadline。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.AdoptClaimedJob`
+
+## knowledge.ReadPaidResultRefs
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：按原owner及真实关联提取完整返回真实invocation IDs，空数组无伪造
+
+```go
+func ReadPaidResultRefs(ctx context.Context,tx *sql.Tx,op OperationContext,objectID string)([]string,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按原owner及真实关联提取完整返回真实invocation IDs，空数组无伪造
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：无
+
+## knowledge.CommitExecutionResult
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：与最终本域业务状态同事务保存完整结果及真实ObjectRef/paidResultRefs
+
+```go
+func CommitExecutionResult(ctx context.Context,tx *sql.Tx,op OperationContext,jobType,objectID,leaseID string,body any)(platform.JobExecutionResult,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 与最终本域业务状态同事务保存完整结果及真实ObjectRef/paidResultRefs
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.LoadExecutionRecord`、`knowledge.ExecutionLeaseID`、`knowledge.ReadPaidResultRefs`
+
+## knowledge.RecordExecutionCancellation
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：jobs真实取消观察先持久关闭原写资格，保留unknown和独立清理意图
+
+```go
+func RecordExecutionCancellation(ctx context.Context,op OperationContext,job platform.ClaimedJob)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. jobs真实取消观察先持久关闭原写资格，保留unknown和独立清理意图
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.BeginIndexWrite`、`knowledge.LoadExecutionRecord`、`knowledge.CancelUnusedExtractions`
+
+## knowledge.FinishExecutionFailure
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：只当前原worker/fence写真实失败诊断与完整已知引用；最终业务已提交则重交真实成功，控制写不延长付费批准
+
+```go
+func FinishExecutionFailure(ctx context.Context,op OperationContext,input platform.JobExecutionInput,cause error)(platform.JobExecutionResult,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只当前原worker/fence写真实失败诊断与完整已知引用；最终业务已提交则重交真实成功，控制写不延长付费批准
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权原本域任务内部组合，不新增模型批准
+- 并发：原site/epoch/owner/op/fence CAS；失败元数据使用短控制窗口，原业务截止不变
+- 幂等：原job/key/完整结果不变；未知保留原引用
+- 依赖：`knowledge.BeginIndexWrite`、`knowledge.LoadExecutionRecord`、`knowledge.ExecutionLeaseID`、`knowledge.ReadPaidResultRefs`
+
+## knowledge.ResolveClaimedJobOperation
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/execution.go`
+- 作用：领取factory只读核原批准任务，不在未绑定job_claim内写业务
+
+```go
+func ResolveClaimedJobOperation(ctx context.Context,job platform.ClaimedJob)(OperationContext,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读真实原输入/引用/任务owner/root/epoch/op配对，恢复原批准deadline，不续授权；无执行记录或租约镜像写入。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ApprovedJobInput`
+
+## knowledge.ResolveTaskMemory
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/memory.go`
+- 作用：严格生产schema读取真实任务/语言完整记忆，不自行构造空版本
+
+```go
+func ResolveTaskMemory(ctx context.Context,op OperationContext,taskID,language string)(platform.MemoryContext,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格生产schema读取真实任务/语言完整记忆，不自行构造空版本
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`、`memory:resolveContext`
+
+## knowledge.CancelUnusedExtractions
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/extraction_cancel.go`
+- 作用：原构建取消同事务只取消已无其他有效原批准构建使用的子任务
+
+```go
+func CancelUnusedExtractions(ctx context.Context,tx *sql.Tx,op OperationContext,buildID string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原构建取消同事务只取消已无其他有效原批准构建使用的子任务
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：无
+
+## knowledge.CancelExtractionSideEffects
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/extraction_cancel.go`
+- 作用：只取消持久原提取job/key/模型引用，不删除unknown，不重定向最新源
+
+```go
+func CancelExtractionSideEffects(ctx context.Context,op OperationContext,id string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只取消持久原提取job/key/模型引用，不删除unknown，不重定向最新源
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ApprovedJobInput`、`knowledge.BeginIndexWrite`、`jobs:cancelJob`、`platform.CancelInference`
+
+## knowledge.ReadJobRecovery
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/runtime/job_recovery.go`
+- 作用：只jobs服务核原完整来源及失效租约后给completed/safeToRetry/pending/unknown真实证明
+
+```go
+func ReadJobRecovery(ctx context.Context,op OperationContext,input ReadJobRecoveryInput)(ReadJobRecoveryResult,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整inputRef/root/epoch/job/worker/expiredFence/attempt/cancel逐项核持久来源；completed只返回本域最终事务真实ResultRef及非null完整paidRefs，不要求费用已结算
+2. 模型只读观察在SQL锁外，经公共Observe/Lookup原ID/key；背景原DTO/hash与原op/root/site/epoch齐全才能lookup，不调用InvokeModel/Create/Cancel；旧缺body/ID保持pending
+3. prepared且dispatch_started=0仅证明未RPC；1仍可能收费，只有专用INVOCATION_NOT_ACCEPTED时点观察可继续同原key，不推永久零费或新owner
+4. 本域全部未完成模型调用真实终局且结果hash/专用观察完整，子任务全完成/取消；再读取MG完整原root窗口、显式终局/held/unknown/逐账单价格证明；任一缺失/旧epoch/超预算保持pending
+5. 上游IO后重新核原worker/fence/attempt/cancel及真实租约；workflowVersion1才safeToRetry，原批准过期仅供jobs按DEADLINE_EXCEEDED分类，不续付费或复活原批准；取消依原事实终止
+6. 新版完全未执行且无执行/模型/孩子/分块事实可证明从未执行；其余pending/unknown，不推零费用或新owner；原paidRefs始终保留
+7. 免费恢复完整artifact必须逐hash/原真实paid输出/原资源与winning回验；只把业务完整缓存作为可免费使用结果，不伪造旧jobs完成；跨根无需其fee已结算，同根仍全root费用证明
+
+**错误**
+
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `BUDGET_EXCEEDED`：网关额度不足（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅jobs纯服务、本站同代；path/body jobId相同，input.owner固定knowledge
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ApprovedJobInput`、`knowledge.LoadExecutionRecord`、`knowledge.ReadPaidResultRefs`、`knowledge.ObserveOwnerModelSteps`、`knowledge.ValidateModelNonAcceptance`、`knowledge.OwnerFeesFinal`、`knowledge.ValidateRecoveredExtractions`
+
+## knowledge.ReadBuildPlan
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/plan.go`
+- 作用：读原构建首次完整阶段计划，核原hash与16MiB运行预算
+
+```go
+func ReadBuildPlan(ctx context.Context,op OperationContext,id,phase string,target any)(bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读原构建首次完整阶段计划，核原hash与16MiB运行预算
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`
+
+## knowledge.FreezeBuildPlan
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/plan.go`
+- 作用：真实原租约内冻结完整阶段计划；配置/分组漂移CONFLICT，不换key
+
+```go
+func FreezeBuildPlan(ctx context.Context,op OperationContext,id,leaseID,phase string,plan any)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实原租约内冻结完整阶段计划；配置/分组漂移CONFLICT，不换key
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.BeginBuildWrite`
+
+## knowledge.SetBuildStage
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/plan.go`
+- 作用：原租约内记录已经进入的实际阶段
+
+```go
+func SetBuildStage(ctx context.Context,op OperationContext,id,leaseID,stage string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原租约内记录已经进入的实际阶段
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.BeginBuildWrite`
+
+## knowledge.PrepareEmbeddingPlan
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/embedding_plan.go`
+- 作用：固定真实模型声明和单块批次，完整检索文本真实BPE预算，不因缓存变化改组
+
+```go
+func PrepareEmbeddingPlan(ctx context.Context,op OperationContext,config gen.IndexConfig,chunks []gen.Chunk,runtime indexer.Runtime)(EmbeddingPlan,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定真实模型声明和单块批次，完整检索文本真实BPE预算，不因缓存变化改组
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.ReadModelCatalog`、`knowledge.EmbeddingProfile`、`knowledge.RetrievalText`
+
+## knowledge.ReuseEmbeddingBatch
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/embedding_plan.go`
+- 作用：同完整空间与完整检索文本匹配真实向量，核hash/维度后复用，不覆盖原结果
+
+```go
+func ReuseEmbeddingBatch(ctx context.Context,op OperationContext,buildID,leaseID string,ids []string,space gen.EmbeddingSpace)(bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同完整空间与完整检索文本匹配真实向量，核hash/维度后复用，不覆盖原结果
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.RetrievalText`、`knowledge.DecodeVector`、`knowledge.StoreEmbeddings`
+
+## knowledge.CheckEmbeddingPlan
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/embedding_plan.go`
+- 作用：首次嵌入付费前核冻结模型声明；原语义已存在仅找回原key
+
+```go
+func CheckEmbeddingPlan(ctx context.Context,op OperationContext,buildID string,ids []string,space gen.EmbeddingSpace,plan EmbeddingPlan)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核原site/epoch/owner/semantic存在则不新规划；不存在则当前权威profile/model必须与首次完整计划一致，变化CONFLICT
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已批准原构建内部调用
+- 并发：原拥有者与固定分组
+- 幂等：未知不另key
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ReadModelCatalog`、`knowledge.EmbeddingProfile`
+
+## knowledge.ExecuteExtraction
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/extract/execute.go`
+- 作用：按资源类型执行一次派生文本提取
+
+```go
+func ExecuteExtraction(ctx context.Context,op OperationContext,input JobExecutionInput)(result JobExecutionResult,failure error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `JobExecutionInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `JobExecutionResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 真实独立jobs租约读取完整原ExtractionJobInput；核原发布当前性、精确媒体version/hash授权及冻结任务计划
+2. PDF公共隔离runner真实提取，图片真实视觉，文本附件完整描述，上传视频只原可信正文元数据；未声明格式/无文字unsupported，无自动OCR/字幕/URL重抓
+3. 新付费前通过WithModelLease回核jobs；原owner/稳定语义/原记忆档位/key找回，unknown绝不新owner或换配置重算
+4. 核当前镜像fence/lease/cancel与原计划，提取结果/hash/实际模型证明和最终JobExecutionResult同事务；人工caption不动
+5. 错误边界持久当前原fence真实failure_code/state并保完整已知paid refs；如果最终业务已原子完成则只重交真实成功结果，不覆盖；控制元数据窗口不延长原批准
+6. 来源明确unsupported时直接真实unsupported，不下载超限资源或调用模型；真实模型付费前再次CheckExtractionPlan原声明，已外发仅原key观察
+
+**错误**
+
+- `UNSUPPORTED_CAPABILITY`：类型不支持或未配置视觉档（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：media或网关不可用（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `BUDGET_EXCEEDED`：网关额度不足（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：写提取结果
+- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
+- 并发：同assetHash/extractorVersion一次一个
+- 幂等：按assetHash/extractorVersion幂等复用
+- 依赖：`knowledge.ReadExecutionRecord`、`knowledge.ExecutionLeaseID`、`knowledge.RuntimeFromContext`、`knowledge.ValidatePublication`、`knowledge.CheckExtractionPlan`、`knowledge.WithModelLease`、`knowledge.ExtractPdfText`、`knowledge.ExtractImageDescription`、`knowledge.DescribeAttachment`、`knowledge.ExtractVideoMetadata`、`knowledge.BeginIndexWrite`、`knowledge.CommitExecutionResult`、`knowledge.FinishExecutionFailure`
+
+## knowledge.CheckExtractionPlan
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/execute.go`
+- 作用：首次付费前核冻结声明；已存在阶段只观察原key不重选计划
+
+```go
+func CheckExtractionPlan(ctx context.Context,op OperationContext,payload ExtractionJobInput)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 首次付费前核冻结声明；已存在阶段只观察原key不重选计划
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.PrepareExtractionPlan`
+
+## knowledge.DispatchExtraction
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/dispatch.go`
+- 作用：先持久dispatching，再原input/root/op/epoch/dedupe派发独立jobs，未知不换key
+
+```go
+func DispatchExtraction(ctx context.Context,op OperationContext,id string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 先持久dispatching，再原input/root/op/epoch/dedupe派发独立jobs，未知不换key
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ApprovedJobInput`、`knowledge.BeginIndexWrite`、`jobs:createJob`
+
+## knowledge.ReadExtractionJobState
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/dispatch.go`
+- 作用：只按本域原job引用与纯owner身份读jobs权威状态，attempt失败不冒任务终局
+
+```go
+func ReadExtractionJobState(ctx context.Context,op OperationContext,id string)(string,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 锁内只读原完整批准来源后释放SQL；外部只读原jobId，严格生产schema及已登记九状态，未知拒绝
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：knowledge纯服务仅自己持久owner/type任务；site/epoch取可信op及原批准，不接受自报owner
+- 并发：固定原job/完整引用，网络锁外，不改原root或付费批准
+- 幂等：纯读取原jobId，可重复
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ApprovedJobInput`、`jobs:readJob`
+
+## knowledge.BindExtractionViews
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/views.go`
+- 作用：真实提取页/描述按精确发布/块/asset关联不可变机器原文视图，页路径独立偏移零起算
+
+```go
+func BindExtractionViews(ctx context.Context,op OperationContext,buildID,leaseID string,origin source.AssetSource,artifact ExtractionArtifact)([]source.SourceLeaf,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实提取页/描述按精确发布/块/asset关联不可变机器原文视图，页路径独立偏移零起算
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.BeginBuildWrite`
+
+## knowledge.BuildMaterialBlocks
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/source/material.go`
+- 作用：完整机器文字NFKC真实稳定边界续读，4MiB/1Mi字符BPE片段与原页路径偏移不改
+
+```go
+func BuildMaterialBlocks(ctx context.Context,op OperationContext,leaf SourceLeaf,asset *gen.AssetRef,modelID string,space gen.EmbeddingSpace)([]chunk.SourceBlock,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 完整机器文字NFKC真实稳定边界续读，4MiB/1Mi字符BPE片段与原页路径偏移不改
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
+- 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
+- 幂等：原输入/hash/语义身份不变，未知不换key
+- 依赖：`knowledge.NormalizeSource`、`knowledge.TokenizeSource`
 
 ## knowledge.ReadSnapshotArchive
 
@@ -4423,3 +8012,421 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 - 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
 - 幂等：同完整引用只读复用，不生成或重算归档
 - 依赖：`platform.SnapshotManager.OpenArchive`
+
+## knowledge.ObserveOwnerModelSteps
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/recovery.go`
+- 作用：锁外每次至多16项真实原模型观察；已知ID用公共Observe，未知ID仅完整背景原请求lookup，普通404保持未知；完整未决集合仍阻止safeToRetry
+
+```go
+func ObserveOwnerModelSteps(ctx context.Context,op OperationContext,objectID string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 锁外每次至多16项真实原模型观察；已知ID用公共Observe，未知ID仅完整背景原请求lookup，普通404保持未知；完整未决集合仍阻止safeToRetry
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅原已批准本域背景任务的观察与恢复证明；不新增模型付费批准
+- 并发：SQL锁外真实只读上游；本地短元数据窗口只原site/epoch/owner/key，最终恢复重新核worker/fence/cancel
+- 幂等：原完整请求/hash/op/root/key不变；保留原paid结果与真实观察，未知不换owner
+- 依赖：`platform.ObserveInvocation`、`platform.LookupModelInvocation`、`knowledge.RecordModelObservation`、`knowledge.RecordModelNonAcceptance`
+
+## knowledge.RecordModelNonAcceptance
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/recovery.go`
+- 作用：只保存MG专用INVOCATION_NOT_ACCEPTED时点观察及完整原scope/hash，保持dispatch_started=1；不推永久无费或新owner
+
+```go
+func RecordModelNonAcceptance(ctx context.Context,op OperationContext,runtime ModelRuntime,key,inputHash string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只保存MG专用INVOCATION_NOT_ACCEPTED时点观察及完整原scope/hash，保持dispatch_started=1；不推永久无费或新owner
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅原已批准本域背景任务的观察与恢复证明；不新增模型付费批准
+- 并发：SQL锁外真实只读上游；本地短元数据窗口只原site/epoch/owner/key，最终恢复重新核worker/fence/cancel
+- 幂等：原完整请求/hash/op/root/key不变；保留原paid结果与真实观察，未知不换owner
+- 依赖：`knowledge.beginModelWrite`
+
+## knowledge.ValidateModelNonAcceptance
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/recovery.go`
+- 作用：核专用观察完整hash/原site/epoch/owner/key/op/root/input和真实时点，不能以普通404/缺ID代替
+
+```go
+func ValidateModelNonAcceptance(raw []byte,hash,site,epoch,owner,key,operation,root,inputHash string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核专用观察完整hash/原site/epoch/owner/key/op/root/input和真实时点，不能以普通404/缺ID代替
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅原已批准本域背景任务的观察与恢复证明；不新增模型付费批准
+- 并发：SQL锁外真实只读上游；本地短元数据窗口只原site/epoch/owner/key，最终恢复重新核worker/fence/cancel
+- 幂等：原完整请求/hash/op/root/key不变；保留原paid结果与真实观察，未知不换owner
+- 依赖：无
+
+## knowledge.RootFeesFinal
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/fee-proof.go`
+- 作用：严格生产schema读原root QueryUsage有界完整窗；显式windowCoversRoot/allInvocationsFinal、held USD0、空unknown、每条pricingKnown与actualCost齐全才证明；缺字段/旧epoch/超预算未知
+
+```go
+func RootFeesFinal(ctx context.Context,op OperationContext,rootID string)(bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格生产schema读原root QueryUsage有界完整窗；显式windowCoversRoot/allInvocationsFinal、held USD0、空unknown、每条pricingKnown与actualCost齐全才证明；缺字段/旧epoch/超预算未知
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅原已批准本域背景任务的观察与恢复证明；不新增模型付费批准
+- 并发：SQL锁外真实只读上游；本地短元数据窗口只原site/epoch/owner/key，最终恢复重新核worker/fence/cancel
+- 幂等：原完整请求/hash/op/root/key不变；保留原paid结果与真实观察，未知不换owner
+- 依赖：`model-gateway:queryUsage`
+
+## knowledge.OwnerFeesFinal
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/fee-proof.go`
+- 作用：原已接受调用和未完成孩子按真实原root核全部费用；跨根已完成缓存免费复用无需重付证明，同根已完成孩子仍全root覆盖，paidRefs完整保留
+
+```go
+func OwnerFeesFinal(ctx context.Context,op OperationContext,objectID,rootID string)(bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原已接受调用和未完成孩子按真实原root核全部费用；跨根已完成缓存免费复用无需重付证明，同根已完成孩子仍全root覆盖，paidRefs完整保留
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅原已批准本域背景任务的观察与恢复证明；不新增模型付费批准
+- 并发：SQL锁外真实只读上游；本地短元数据窗口只原site/epoch/owner/key，最终恢复重新核worker/fence/cancel
+- 幂等：原完整请求/hash/op/root/key不变；保留原paid结果与真实观察，未知不换owner
+- 依赖：`knowledge.RootFeesFinal`
+
+## knowledge.InspectFailedExtraction
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/cache.go`
+- 作用：新明确批准build先只读观察原paid完整输出并核真实winner/原记忆计划；同build永远原owner；无可用输出仅jobs真终局及完整原root费用证明才允许CAS新owner；无ID已外发（含时点未接受）禁止换owner
+
+```go
+func InspectFailedExtraction(ctx context.Context,op OperationContext,buildID,intentKey string,origin source.AssetSource,plan ExtractionPlan)(FailedExtractionResolution,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 新明确批准build先只读观察原paid完整输出并核真实winner/原记忆计划；同build永远原owner；无可用输出仅jobs真终局及完整原root费用证明才允许CAS新owner；无ID已外发（含时点未接受）禁止换owner
+2. 旧source/plan必须与ApprovedJobInput完整原inputRef hash一致；新memory/route不能改变稳定资源意图，合法完整paid输出可免费复用，即使仍费用unknown；不同计划未终局CONFLICT
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.ObserveOwnerModelSteps`、`knowledge.HasCompleteResult`、`knowledge.WinningModelSnapshot`、`knowledge.DescriptionText`、`knowledge.ReadExtractionJobState`、`knowledge.ApprovedJobInput`、`knowledge.RootFeesFinal`
+
+## knowledge.SaveRecoveredExtraction
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/cache.go`
+- 作用：只保存原完整paid输出hash证明的免费派生artifact；原失败任务、MG费用和execution_records不改，不伪造旧jobs完成回执
+
+```go
+func SaveRecoveredExtraction(ctx context.Context,tx *sql.Tx,op OperationContext,resolution FailedExtractionResolution)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只保存原完整paid输出hash证明的免费派生artifact；原失败任务、MG费用和execution_records不改，不伪造旧jobs完成回执
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：无
+
+## knowledge.ValidateRecoveredExtractions
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/extract/cache.go`
+- 作用：拥有者恢复前逐项核免费恢复artifact与真正paid输出/hash/原asset块/文字/真实winning一致，存在行不代替完整证据
+
+```go
+func ValidateRecoveredExtractions(ctx context.Context,op OperationContext,objectID string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 最多原100资源及自身完整证据，逐hash回验原artifact/model结果/来源；不从恢复缓存存在推零费
+2. 跨根完整免费缓存不再等旧任务执行回执，同根仍由完整RootFeesFinal涵盖费用，原paidRefs完整保留
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅原拥有者恢复证明内部组合，不新增批准
+- 并发：固定本站同代原SQL快照
+- 幂等：相同不可变证据相同结果，损坏失败关闭
+- 依赖：`knowledge.RuntimeFromContext`、`knowledge.DescriptionText`、`knowledge.WinningModelSnapshot`、`knowledge.SameAsset`
+
+## knowledge.ReadRebuildExtractionCache
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild_cache.go`
+- 作用：只按原asset/任务记忆/提取器与当前模型真实snapshot读合法缓存，缺失保持未知材料
+
+```go
+func ReadRebuildExtractionCache(ctx context.Context,op OperationContext,runtime indexer.Runtime,resource RebuildResourcePlan)(extract.ExtractionArtifact,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只按原asset/任务记忆/提取器与当前模型真实snapshot读合法缓存，缺失保持未知材料
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：无
+
+## knowledge.ReadRebuildCachedContext
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild_cache.go`
+- 作用：按真实完整源/记忆/模型/原片段身份读取已付费前缀，核hash后派生检索文字
+
+```go
+func ReadRebuildCachedContext(ctx context.Context,op OperationContext,runtime indexer.Runtime,document gen.PublishedRevisionRef,route RebuildRoute,value gen.Chunk)(gen.Chunk,bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按真实完整源/记忆/模型/原片段身份读取已付费前缀，核hash后派生检索文字
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：`knowledge.ContextResultHash`、`knowledge.ContextSourceKey`
+
+## knowledge.HasRebuildVector
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/build/rebuild_cache.go`
+- 作用：只有完整检索文字和完整空间均一致且真实向量维度/hash合法才扣可复用数量
+
+```go
+func HasRebuildVector(ctx context.Context,op OperationContext,runtime indexer.Runtime,target gen.Chunk,space gen.EmbeddingSpace)(bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只有完整检索文字和完整空间均一致且真实向量维度/hash合法才扣可复用数量
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner
+- 并发：SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制
+- 幂等：原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执
+- 依赖：`knowledge.RetrievalText`、`knowledge.DecodeVector`
+
+## knowledge.ReadTaskRoute
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/index/route.go`
+- 作用：严格MG resolveTaskRoute同快照resolved/candidates/routeVersion和候选modelSnapshotHash/embeddingSpace，不复制筛选/覆盖/快照hash算法
+
+```go
+func ReadTaskRoute(ctx context.Context,op OperationContext,runtime Runtime,taskID string)(TaskRoute,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格MG resolveTaskRoute同快照resolved/candidates/routeVersion和候选modelSnapshotHash/embeddingSpace，不复制筛选/覆盖/快照hash算法
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只消费原已授权任务权威声明，不扩模型付费批准
+- 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
+- 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
+- 依赖：`model-gateway:resolveTaskRoute`
+
+## knowledge.WithModelExpectations
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/model/expectation.go`
+- 作用：只绑定原明确批准opaque路由和逐真实候选价格快照，接受事务CAS由MG统一拥有
+
+```go
+func WithModelExpectations(ctx context.Context,expectations map[string]ModelExpectation)(context.Context,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只绑定原明确批准opaque路由和逐真实候选价格快照，接受事务CAS由MG统一拥有
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：只消费原已授权任务权威声明，不扩模型付费批准
+- 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
+- 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
+- 依赖：`knowledge.WithModelRuntime`

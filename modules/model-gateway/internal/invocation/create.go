@@ -24,7 +24,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 	if !exists || task.Owner != op.CallerService || op.Actor.Kind != "service" || op.Actor.SubjectID != op.CallerService {
 		return CreateInvocationResult{}, platform.NewError(platform.CodeForbidden, false, "模型任务只允许目录owner纯服务执行")
 	}
-	if op.CostClass != platform.CostClassQA && op.CostClass != platform.CostClassBackground && !(input.TaskId=="memory.assistant"&&op.CallerService=="memory"&&op.CostClass==platform.CostClassAdminProbe) {
+	if op.CostClass != platform.CostClassQA && op.CostClass != platform.CostClassBackground && !(input.TaskId == "memory.assistant" && op.CallerService == "memory" && op.CostClass == platform.CostClassAdminProbe) {
 		return CreateInvocationResult{}, platform.NewError(platform.CodeForbidden, false, "公开模型创建仅原QA/后台或已批准memory.assistant费用链")
 	}
 	if input.TaskId != "localization.suggest" && input.LanguageSuggestionApprovalId != nil {
@@ -37,7 +37,9 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 	if err != nil {
 		return CreateInvocationResult{}, err
 	}
-if options.SiteID==""||op.Actor.SiteID!=options.SiteID{return CreateInvocationResult{},platform.NewError(platform.CodeForbidden,false,"新调用必须绑定当前实际站点")}
+	if options.SiteID == "" || op.Actor.SiteID != options.SiteID {
+		return CreateInvocationResult{}, platform.NewError(platform.CodeForbidden, false, "新调用必须绑定当前实际站点")
+	}
 	canonical := CanonicalInvocationInput(op, input)
 	read, err := gatewayruntime.BeginExecution(ctx, op, false)
 	if err != nil {
@@ -155,8 +157,29 @@ if options.SiteID==""||op.Actor.SiteID!=options.SiteID{return CreateInvocationRe
 	if err := RequireInvocationLookupTracking(tx, op); err != nil {
 		return result, err
 	}
- currentRoute,err:=catalog.SelectCandidatesInTransaction(tx.Context,op,tx.Tx,routing.ResolveRouteInput{TaskId:input.TaskId,CostClass:op.CostClass});if err!=nil{return result,err};if currentRoute.RouteVersion!=route.RouteVersion||(input.ExpectedRouteVersion!=nil&&*input.ExpectedRouteVersion!=currentRoute.RouteVersion){return result,platform.NewError(platform.CodeStaleResult,false,"实际接受事务完整路线不同于原固定/批准路线")}
- if input.ExpectedPriceSnapshots!=nil{expected:=*input.ExpectedPriceSnapshots;if len(expected)!=len(route.Candidates){return result,platform.NewError(platform.CodeStaleResult,false,"批准报价未完整覆盖实际有序候选")};seen:=map[string]bool{};for i,item:=range expected{if seen[item.ModelId]{return result,platform.NewError(platform.CodeValidation,false,"批准报价模型身份不能重复")};seen[item.ModelId]=true;if item.ModelId!=route.Candidates[i].Model.ModelId||item.PriceSnapshotId!=fixed.Candidates[i].Price.PriceSnapshotId{return result,platform.NewError(platform.CodeStaleResult,false,"批准模型/价目与实际候选顺序不同")}}}
+	currentRoute, err := catalog.SelectCandidatesInTransaction(tx.Context, op, tx.Tx, routing.ResolveRouteInput{TaskId: input.TaskId, CostClass: op.CostClass})
+	if err != nil {
+		return result, err
+	}
+	if currentRoute.RouteVersion != route.RouteVersion || (input.ExpectedRouteVersion != nil && *input.ExpectedRouteVersion != currentRoute.RouteVersion) {
+		return result, platform.NewError(platform.CodeStaleResult, false, "实际接受事务完整路线不同于原固定/批准路线")
+	}
+	if input.ExpectedPriceSnapshots != nil {
+		expected := *input.ExpectedPriceSnapshots
+		if len(expected) != len(route.Candidates) {
+			return result, platform.NewError(platform.CodeStaleResult, false, "批准报价未完整覆盖实际有序候选")
+		}
+		seen := map[string]bool{}
+		for i, item := range expected {
+			if seen[item.ModelId] {
+				return result, platform.NewError(platform.CodeValidation, false, "批准报价模型身份不能重复")
+			}
+			seen[item.ModelId] = true
+			if item.ModelId != route.Candidates[i].Model.ModelId || item.PriceSnapshotId != fixed.Candidates[i].Price.PriceSnapshotId {
+				return result, platform.NewError(platform.CodeStaleResult, false, "批准模型/价目与实际候选顺序不同")
+			}
+		}
+	}
 	var profileVersion, assignmentVersion int
 	if err := tx.Tx.QueryRowContext(tx.Context, `SELECT version FROM profiles WHERE profile_id=? AND data_epoch=?`, route.Resolved.Profile.ProfileId, op.DataEpoch).Scan(&profileVersion); err != nil {
 		return result, gatewayruntime.ExecutionStorageError(err)
@@ -167,7 +190,15 @@ if options.SiteID==""||op.Actor.SiteID!=options.SiteID{return CreateInvocationRe
 	if profileVersion != route.Resolved.Profile.Version || assignmentVersion != route.Resolved.Assignment.Version {
 		return result, platform.NewError(platform.CodeStaleResult, false, "模型路线读取期间配置已变化")
 	}
- for index,candidate:=range route.Candidates{price,e:=billing.ReadPriceSnapshotInTransaction(tx.Context,op,tx.Tx,candidate.Model.ModelId,time.Now().UTC(),true);if e!=nil{return result,e};if price.PriceSnapshotId!=fixed.Candidates[index].Price.PriceSnapshotId{return result,platform.NewError(platform.CodeStaleResult,false,"接受事务实际价目已变化，不能挪用旧报价")}}
+	for index, candidate := range route.Candidates {
+		price, e := billing.ReadPriceSnapshotInTransaction(tx.Context, op, tx.Tx, candidate.Model.ModelId, time.Now().UTC(), true)
+		if e != nil {
+			return result, e
+		}
+		if price.PriceSnapshotId != fixed.Candidates[index].Price.PriceSnapshotId {
+			return result, platform.NewError(platform.CodeStaleResult, false, "接受事务实际价目已变化，不能挪用旧报价")
+		}
+	}
 	for index, candidate := range route.Candidates {
 		var modelVersion int
 		if err := tx.Tx.QueryRowContext(tx.Context, `SELECT version FROM models WHERE model_id=? AND data_epoch=?`, candidate.Model.ModelId, op.DataEpoch).Scan(&modelVersion); err != nil {
@@ -199,14 +230,23 @@ if options.SiteID==""||op.Actor.SiteID!=options.SiteID{return CreateInvocationRe
 	invocation := gen.Invocation{InvocationId: id, RootOperationId: op.RootOperationID, CostClass: gen.CostClass(op.CostClass), State: gen.InvocationState("accepted"), Deadline: deadline, PriceSnapshotId: fixed.Candidates[0].Price.PriceSnapshotId, Attempts: make([]gen.Attempt, 0)}
 	record := gatewayruntime.InvocationRecord{Invocation: invocation, Request: input, Operation: op, Profile: route.Resolved.Profile, Binding: binding, CreatedNS: now.UnixNano()}
 	record.Route, _ = platform.CanonicalJSON(fixed)
- requestRaw,_:=platform.CanonicalJSON(input);profileRaw,_:=platform.CanonicalJSON(record.Profile)
- return AcceptPreparedInvocation(ctx,op,tx,record,fixed,requestRaw,profileRaw,"model-gateway.CreateInvocation",input.IdempotencyKey,canonical,options)
+	requestRaw, _ := platform.CanonicalJSON(input)
+	profileRaw, _ := platform.CanonicalJSON(record.Profile)
+	return AcceptPreparedInvocation(ctx, op, tx, record, fixed, requestRaw, profileRaw, "model-gateway.CreateInvocation", input.IdempotencyKey, canonical, options)
 }
 
 // AcceptPreparedInvocation共享已批准调用的原子接受与本进程任务启动；入口权限仍由各自调用方完成。
-func AcceptPreparedInvocation(ctx context.Context, op OperationContext, tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, fixed gatewayruntime.FixedRoute, requestRaw []byte, profileRaw []byte, function string, key string, canonical any, options gatewayruntime.ExecutionOptions) (CreateInvocationResult,error){
- for _,candidate:=range fixed.Candidates{if err:=gatewayruntime.CheckProviderMaterial(ctx,tx.Tx,op,candidate.Provider);err!=nil{return CreateInvocationResult{},err}}
-	invocation:=record.Invocation;id:=invocation.InvocationId;deadline:=time.Time(invocation.Deadline);now:=time.Unix(0,record.CreatedNS).UTC();var result CreateInvocationResult
+func AcceptPreparedInvocation(ctx context.Context, op OperationContext, tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, fixed gatewayruntime.FixedRoute, requestRaw []byte, profileRaw []byte, function string, key string, canonical any, options gatewayruntime.ExecutionOptions) (CreateInvocationResult, error) {
+	for _, candidate := range fixed.Candidates {
+		if err := gatewayruntime.CheckProviderMaterial(ctx, tx.Tx, op, candidate.Provider); err != nil {
+			return CreateInvocationResult{}, err
+		}
+	}
+	invocation := record.Invocation
+	id := invocation.InvocationId
+	deadline := time.Time(invocation.Deadline)
+	now := time.Unix(0, record.CreatedNS).UTC()
+	var result CreateInvocationResult
 	raw, _ := platform.CanonicalJSON(invocation)
 	operationRaw, _ := platform.CanonicalJSON(op)
 	priceRaw, _ := platform.CanonicalJSON(fixed.Candidates[0].Price)

@@ -29,7 +29,7 @@ func RunConsumer(ctx context.Context, client platform.EventConsumerClient, confi
 
 // RunConsumerWithResult退出时等待分片结束，再返回实际累计计数。
 func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerClient, config platform.ConsumerConfig, handlers platform.EventHandlerRegistry) (result platform.ConsumerRunResult, err error) {
-	if client == nil || config.ConsumerID == "" || config.Runtime == nil || config.ValidatePayload == nil || config.AdmitBatch==nil || config.AdmitDelivery==nil || len(config.Events) < 1 || len(config.Events) > maxEvents || config.MaxInFlight < 1 || config.MaxInFlight > maxInFlightCap {
+	if client == nil || config.ConsumerID == "" || config.Runtime == nil || config.ValidatePayload == nil || config.AdmitBatch == nil || config.AdmitDelivery == nil || len(config.Events) < 1 || len(config.Events) > maxEvents || config.MaxInFlight < 1 || config.MaxInFlight > maxInFlightCap {
 		return result, platform.NewError(platform.CodeValidation, false, "订阅配置或真实运行依赖不完整")
 	}
 	subscribed := map[string]bool{}
@@ -56,19 +56,26 @@ func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerCli
 			return result, nil
 		}
 		view, ok := readRuntime(ctx, config.Runtime)
-		if !ok || c.pauseFor(ctx,view) {
+		if !ok || c.pauseFor(ctx, view) {
 			if !sleep(ctx, holdPause) {
 				return result, nil
 			}
 			continue
 		}
-		call,cancel:=c.operation(ctx,view.DataEpoch,config.ConsumerID)
- batch,releaseBatch,scopeErr:=config.AdmitBatch(call);if scopeErr!=nil{cancel();if !sleep(ctx,holdPause){return result,nil};continue}
- call=batch
+		call, cancel := c.operation(ctx, view.DataEpoch, config.ConsumerID)
+		batch, releaseBatch, scopeErr := config.AdmitBatch(call)
+		if scopeErr != nil {
+			cancel()
+			if !sleep(ctx, holdPause) {
+				return result, nil
+			}
+			continue
+		}
+		call = batch
 		stream, openErr := client.SubscribeEvents(call, config.ConsumerID, lastID)
 		if openErr != nil {
 			cancel()
- releaseBatch()
+			releaseBatch()
 			if ctx.Err() != nil {
 				return result, nil
 			}
@@ -83,7 +90,7 @@ func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerCli
 		held := c.dispatch(ctx, call, stream, &lastID)
 		_ = stream.Close()
 		cancel()
- releaseBatch()
+		releaseBatch()
 		if ctx.Err() != nil {
 			return result, nil
 		}
@@ -93,7 +100,11 @@ func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerCli
 	}
 }
 
-type consumerDelivery struct{event platform.EventEnvelope;ctx context.Context;done func()}
+type consumerDelivery struct {
+	event platform.EventEnvelope
+	ctx   context.Context
+	done  func()
+}
 
 type consumerLoop struct {
 	client       platform.EventConsumerClient
@@ -123,8 +134,8 @@ func (c *consumerLoop) stop() {
 func (c *consumerLoop) worker(ctx context.Context, index int) {
 	defer close(c.dones[index])
 	for delivery := range c.queues[index] {
- c.process(delivery.ctx,delivery.event)
- delivery.done()
+		c.process(delivery.ctx, delivery.event)
+		delivery.done()
 	}
 }
 func (c *consumerLoop) queueFor(subject string) chan consumerDelivery {
@@ -156,19 +167,37 @@ func (c *consumerLoop) dispatch(parent context.Context, ctx context.Context, str
 			return false
 		}
 		*lastID = stream.LastID()
-		decision:=c.classify(ctx,event)
- if decision==outcomeHold{return true};if decision==outcomeFailed{c.failed.Add(1);continue}
- work,cancelDelivery:=c.operation(parent,event.DataEpoch,event.EventID)
- scoped,release,scopeErr:=c.config.AdmitDelivery(work)
- if scopeErr!=nil{cancelDelivery();return true}
- delivery:=consumerDelivery{event:event,ctx:scoped,done:func(){cancelDelivery();release()}}
- if decision==outcomeSkipped{c.acknowledge(scoped,event,true);delivery.done();continue}
- select{case c.queueFor(event.SubjectID)<-delivery:case<-ctx.Done():delivery.done();return false}
+		decision := c.classify(ctx, event)
+		if decision == outcomeHold {
+			return true
+		}
+		if decision == outcomeFailed {
+			c.failed.Add(1)
+			continue
+		}
+		work, cancelDelivery := c.operation(parent, event.DataEpoch, event.EventID)
+		scoped, release, scopeErr := c.config.AdmitDelivery(work)
+		if scopeErr != nil {
+			cancelDelivery()
+			return true
+		}
+		delivery := consumerDelivery{event: event, ctx: scoped, done: func() { cancelDelivery(); release() }}
+		if decision == outcomeSkipped {
+			c.acknowledge(scoped, event, true)
+			delivery.done()
+			continue
+		}
+		select {
+		case c.queueFor(event.SubjectID) <- delivery:
+		case <-ctx.Done():
+			delivery.done()
+			return false
+		}
 	}
 }
 func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnvelope, skipped bool) {
 	view, ok := readRuntime(ctx, c.config.Runtime)
-	if !ok || c.pauseFor(ctx,view) {
+	if !ok || c.pauseFor(ctx, view) {
 		c.failed.Add(1)
 		return
 	}
@@ -186,7 +215,7 @@ func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnve
 }
 func (c *consumerLoop) process(ctx context.Context, event platform.EventEnvelope) {
 	view, ok := readRuntime(ctx, c.config.Runtime)
-	if !ok || c.pauseFor(ctx,view) || event.DataEpoch != view.DataEpoch {
+	if !ok || c.pauseFor(ctx, view) || event.DataEpoch != view.DataEpoch {
 		c.failed.Add(1)
 		return
 	}
@@ -214,17 +243,28 @@ func (c *consumerLoop) classify(ctx context.Context, event platform.EventEnvelop
 		return outcomeFailed
 	}
 	view, ok := readRuntime(ctx, c.config.Runtime)
-	if !ok || c.pauseFor(ctx,view) {
+	if !ok || c.pauseFor(ctx, view) {
 		return outcomeHold
 	}
-	if event.DataEpoch!=view.DataEpoch{return outcomeHold}
+	if event.DataEpoch != view.DataEpoch {
+		return outcomeHold
+	}
 	if c.config.ValidatePayload(event.EventType, event.EventVersion, event.Payload) != nil {
 		return outcomeFailed
 	}
 	return outcomeProcess
 }
 func eventKey(name string, version int) string { return name + "@" + strconv.Itoa(version) }
-func(c *consumerLoop)pauseFor(ctx context.Context,view platform.RuntimeView)bool{if !view.Maintenance&&view.Phase==platform.PhaseRunning{return false};if c.config.AllowDrain==nil{return true};allowed,err:=c.config.AllowDrain(ctx,view);return err!=nil||!allowed}
+func (c *consumerLoop) pauseFor(ctx context.Context, view platform.RuntimeView) bool {
+	if !view.Maintenance && view.Phase == platform.PhaseRunning {
+		return false
+	}
+	if c.config.AllowDrain == nil {
+		return true
+	}
+	allowed, err := c.config.AllowDrain(ctx, view)
+	return err != nil || !allowed
+}
 func readRuntime(ctx context.Context, provider func(context.Context) (platform.RuntimeView, error)) (platform.RuntimeView, bool) {
 	if provider == nil {
 		return platform.RuntimeView{}, false

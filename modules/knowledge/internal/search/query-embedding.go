@@ -140,14 +140,18 @@ func CreateQueryEmbedding(ctx context.Context, op OperationContext, input Create
 		}
 		return result, nil
 	}
-	catalog,err:=indexer.ReadModelCatalog(ctx,op,store)
- if err!=nil {return CreateQueryEmbeddingResult{},err}
- profile,_,err:=indexer.EmbeddingProfile(catalog,"",op.CostClass,input.Space)
- if err!=nil {return CreateQueryEmbeddingResult{},err}
- expected:=&platform.EmbeddingSpace{SpaceID:input.Space.SpaceId,Provider:input.Space.Provider,ModelVersion:input.Space.ModelVersion,Dimensions:int64(input.Space.Dimensions),PreprocessingVersion:input.Space.PreprocessingVersion}
- call := op
+	catalog, err := indexer.ReadModelCatalog(ctx, op, store)
+	if err != nil {
+		return CreateQueryEmbeddingResult{}, err
+	}
+	profile, _, err := indexer.EmbeddingProfile(catalog, "", op.CostClass, input.Space)
+	if err != nil {
+		return CreateQueryEmbeddingResult{}, err
+	}
+	expected := &platform.EmbeddingSpace{SpaceID: input.Space.SpaceId, Provider: input.Space.Provider, ModelVersion: input.Space.ModelVersion, Dimensions: int64(input.Space.Dimensions), PreprocessingVersion: input.Space.PreprocessingVersion}
+	call := op
 	call.OperationID = operationID
-	outcome, err := modelruntime.InvokeModel(ctx, call, modelruntime.InvokeModelInput{SemanticKey:"query-embedding."+key,Request: platform.CreateInvocationInput{TaskID: "knowledge.embed", ProfileID: profile.ProfileID, Capability: platform.CapabilityEmbedding, ExpectedEmbeddingSpace:expected, Texts: []string{query.Normalized}, MaximumOutputTokens: 0, IDempotencyKey: "query." + key}})
+	outcome, err := modelruntime.InvokeModel(ctx, call, modelruntime.InvokeModelInput{SemanticKey: "query-embedding." + key, Request: platform.CreateInvocationInput{TaskID: "knowledge.embed", ProfileID: profile.ProfileID, Capability: platform.CapabilityEmbedding, ExpectedEmbeddingSpace: expected, Texts: []string{query.Normalized}, MaximumOutputTokens: 0, IDempotencyKey: "query." + key}})
 	if err != nil {
 		return CreateQueryEmbeddingResult{}, err
 	}

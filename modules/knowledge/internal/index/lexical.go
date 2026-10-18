@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"nice-wiki/libs/platform"
- "nice-wiki/modules/knowledge/internal/gen"
+	"nice-wiki/modules/knowledge/internal/gen"
 	"strings"
 	"unicode"
 )
@@ -97,4 +97,9 @@ func BuildLexicalIndex(ctx context.Context, op OperationContext, input BuildLexi
 }
 
 // RetrievalText 仅用于检索，机器上下文绝不改写引文原text和偏移。
-func RetrievalText(value gen.Chunk) string { if value.ContextPrefix!=nil&&*value.ContextPrefix!="" {return *value.ContextPrefix+"\n"+value.Text};return value.Text }
+func RetrievalText(value gen.Chunk) string {
+	if value.ContextPrefix != nil && *value.ContextPrefix != "" {
+		return *value.ContextPrefix + "\n" + value.Text
+	}
+	return value.Text
+}

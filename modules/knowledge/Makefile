@@ -7,7 +7,7 @@ generate:
 build:
 	go build -mod=readonly ./cmd/knowledge
 	pnpm --dir ui install --frozen-lockfile
-	pnpm --dir ui run check
+	pnpm --dir ui run typecheck
 	pnpm --dir ui run build
 
 run:
@@ -17,4 +17,4 @@ verify:
 	go build -mod=readonly ./...
 	go vet -mod=readonly ./...
 	test -z "$$(gofmt -l .)"
-	pnpm --dir ui run check
+	pnpm --dir ui run typecheck

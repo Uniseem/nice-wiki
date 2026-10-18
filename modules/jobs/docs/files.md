@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 58 个：手写 28、UI 4、生成 8、配置 10、迁移 8。函数 116 个：约束 35，参考 81。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 59 个：手写 29、UI 4、生成 8、配置 10、迁移 8。函数 119 个：约束 35，参考 84。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -13,7 +13,7 @@
 | `modules/jobs/internal/retry.go` | 手写 | 固定错误重试分类；同文件职责限本域以下登记函数 | `jobs.ClassifyFailure`（参考）、`jobs.ComputeRetryAt`（参考） |
 | `modules/jobs/internal/scheduler.go` | 手写 | 到期重排；同文件职责限本域以下登记函数 | `jobs.RequeueDue`（参考）、`jobs.ReapExpiredLeases`（参考）、`jobs.TickSchedules`（参考）、`jobs.lastDueTick`（参考）、`jobs.collectOrphans`（参考）、`jobs.reconcileOrphan`（参考） |
 | `modules/jobs/internal/cancellation.go` | 手写 | 请求取消任务；同文件职责限本域以下登记函数 | `jobs.RequestCancel`、`jobs.ConfirmCancelled`（参考） |
-| `modules/jobs/internal/query.go` | 手写 | 读取管理任务状态；同文件职责限本域以下登记函数 | `jobs.ReadJob`、`jobs.authorizeJobManagement`（参考）、`jobs.authorizePermission`（参考）、`jobs.jobManagementPermission`（参考） |
+| `modules/jobs/internal/query.go` | 手写 | 读取管理任务状态；同文件职责限本域以下登记函数 | `jobs.ReadJob`、`jobs.authorizeJobManagement`（参考）、`jobs.authorizePermission`（参考）、`jobs.jobManagementPermission`（参考）、`jobs.authorizeJobRead`（参考） |
 | `modules/jobs/internal/progress.go` | 手写 | 持久进度安全点；同文件职责限本域以下登记函数 | `jobs.AppendProgress`（参考） |
 | `modules/jobs/internal/http_progress.go` | 手写 | 任务进度SSE；同文件职责限本域以下登记函数 | `jobs.StreamProgress`、`jobs.progressStream.Next`（参考）、`jobs.progressStream.Close`（参考）、`jobs.readProgressFrame`（参考）、`jobs.NewProgressHandlers`（参考）、`jobs.bindProgressCursor`（参考） |
 | `modules/jobs/internal/event_validation.go` | 手写 | 验证跨域事件；同文件职责限本域以下登记函数 | `jobs.ValidateEnvelope`（参考）、`jobs.findEventDefinition`（参考）、`jobs.validateEventPayload`（参考）、`jobs.consumerHasEvent`（参考） |
@@ -64,3 +64,4 @@
 | `modules/jobs/migrations/0007_progress_retention.sql` | 迁移 | 只追加nullable进度发生时刻；同job/seq/epoch及安全字段的唯一一致持久源回填，未知不猜时间 | 无 |
 | `modules/jobs/migrations/0008_schedules.sql` | 迁移 | 只追加定时任务的类型、输入引用、代次、操作回执和到期索引；不重建schedules，不删除已有行 | 无 |
 | `modules/jobs/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `jobs.ReadSnapshotArchive` |
+| `modules/jobs/internal/app/owner_recovery.go` | 手写 | 只读当前真实站点身份 | `jobs.ReadQueueSiteID`（参考）、`jobs.NewOwnerRecoveryChecker`（参考） |

@@ -150,7 +150,9 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 	}
 	if route.Definition.Owner == "analytics" && route.Definition.UpstreamOperationID == "ingestBeacon" {
 		body, err := prepareTrustedBeacon(runtime, op)
-		if err != nil { return ProxyRequestResult{}, err }
+		if err != nil {
+			return ProxyRequestResult{}, err
+		}
 		runtime.Body = body
 		validated.Envelope.BodyBytes = int64(len(body))
 		validated.Envelope.BodyDigest = platform.HashBytes(body)
@@ -576,18 +578,34 @@ func adaptSessionRevocation(response *http.Response) ([]byte, []*http.Cookie, er
 
 // prepareTrustedBeacon 仅构造内部签名正文，连接地址不进入持久状态或日志。
 func prepareTrustedBeacon(runtime *ProxyRuntime, op OperationContext) ([]byte, error) {
- if runtime.ValidateBeaconBody == nil || runtime.SiteID == "" { return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "统计入口权威尚未装配") }
- if len(runtime.Body) > 2048 { return nil, platform.NewError(platform.CodeBudgetExceeded, false, "统计正文超出上限") }
- if err := runtime.ValidateBeaconBody(runtime.Body); err != nil { return nil, err }
- peer, err := serviceauth.ResolveVisitorAddress(runtime.Request.RemoteAddr, strings.Join(runtime.Request.Header.Values("X-Forwarded-For"), ","), runtime.TrustedProxyCIDRs)
- if err != nil { return nil, err }
- agent := runtime.Request.UserAgent()
- if len(agent) > 1024 || !utf8.ValidString(agent) { return nil, platform.NewError(platform.CodeValidation, false, "统计客户端信息不合法") }
- var body map[string]any
- if err := json.Unmarshal(runtime.Body, &body); err != nil { return nil, platform.NewError(platform.CodeValidation, false, "统计正文不可读") }
- body["peerAddress"], body["userAgent"], body["dataEpoch"] = peer, agent, op.DataEpoch
- encoded, err := platform.CanonicalJSON(body)
- if err != nil { return nil, err }
- if len(encoded) > 4096 { return nil, platform.NewError(platform.CodeBudgetExceeded, false, "内部统计正文超出上限") }
- return encoded, nil
+	if runtime.ValidateBeaconBody == nil || runtime.SiteID == "" {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "统计入口权威尚未装配")
+	}
+	if len(runtime.Body) > 2048 {
+		return nil, platform.NewError(platform.CodeBudgetExceeded, false, "统计正文超出上限")
+	}
+	if err := runtime.ValidateBeaconBody(runtime.Body); err != nil {
+		return nil, err
+	}
+	peer, err := serviceauth.ResolveVisitorAddress(runtime.Request.RemoteAddr, strings.Join(runtime.Request.Header.Values("X-Forwarded-For"), ","), runtime.TrustedProxyCIDRs)
+	if err != nil {
+		return nil, err
+	}
+	agent := runtime.Request.UserAgent()
+	if len(agent) > 1024 || !utf8.ValidString(agent) {
+		return nil, platform.NewError(platform.CodeValidation, false, "统计客户端信息不合法")
+	}
+	var body map[string]any
+	if err := json.Unmarshal(runtime.Body, &body); err != nil {
+		return nil, platform.NewError(platform.CodeValidation, false, "统计正文不可读")
+	}
+	body["peerAddress"], body["userAgent"], body["dataEpoch"] = peer, agent, op.DataEpoch
+	encoded, err := platform.CanonicalJSON(body)
+	if err != nil {
+		return nil, err
+	}
+	if len(encoded) > 4096 {
+		return nil, platform.NewError(platform.CodeBudgetExceeded, false, "内部统计正文超出上限")
+	}
+	return encoded, nil
 }

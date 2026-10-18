@@ -267,7 +267,9 @@ func ReadAdminCatalog(ctx context.Context, op OperationContext, input ReadAdminC
 	if err != nil {
 		return ReadAdminCatalogResult{}, err
 	}
-	if err:=ReadLatestProbes(ctx,op,tx,providers);err!=nil{return ReadAdminCatalogResult{},err}
+	if err := ReadLatestProbes(ctx, op, tx, providers); err != nil {
+		return ReadAdminCatalogResult{}, err
+	}
 	return ReadAdminCatalogResult{Providers: providers, Models: models, Profiles: profiles, TaskAssignments: assignments}, nil
 }
 
@@ -288,22 +290,24 @@ func readCatalogProviders(ctx context.Context, op OperationContext, tx *sql.Tx) 
 		var provider gen.ProviderSummary
 		var names []byte
 		var epoch string
-		var credentialEpoch,redactionDatabase,redactionMaterial sql.NullString
+		var credentialEpoch, redactionDatabase, redactionMaterial sql.NullString
 		var nonceLength, ciphertextLength sql.NullInt64
 		if err := rows.Scan(&provider.ProviderId, &provider.Version, &provider.Adapter, &provider.BaseUrl, &provider.Enabled,
 			&provider.CredentialVersion, &provider.ConnectTimeoutMs, &provider.RequestTimeoutMs, &provider.DisplayName,
-			&names, &provider.ConcurrencyLimit, &provider.StreamIdleTimeoutMs, &epoch, &credentialEpoch, &nonceLength, &ciphertextLength,&redactionDatabase,&redactionMaterial); err != nil {
+			&names, &provider.ConcurrencyLimit, &provider.StreamIdleTimeoutMs, &epoch, &credentialEpoch, &nonceLength, &ciphertextLength, &redactionDatabase, &redactionMaterial); err != nil {
 			return nil, adminStorageError(err)
 		}
 		if epoch != op.DataEpoch || (credentialEpoch.Valid && credentialEpoch.String != op.DataEpoch) {
 			return nil, platform.NewError(platform.CodeVersionMismatch, false, "供应方或凭据代次已变化")
 		}
-		redacted:=redactionDatabase.Valid&&redactionMaterial.Valid&&platform.ValidHash(redactionDatabase.String)&&platform.ValidHash(redactionMaterial.String)&&nonceLength.Int64==0&&ciphertextLength.Int64==0
- if (redactionDatabase.Valid||redactionMaterial.Valid)&&!redacted{return nil,platform.NewError(platform.CodeIntegrityError,false,"明确脱密材料的来源摘要损坏")}
+		redacted := redactionDatabase.Valid && redactionMaterial.Valid && platform.ValidHash(redactionDatabase.String) && platform.ValidHash(redactionMaterial.String) && nonceLength.Int64 == 0 && ciphertextLength.Int64 == 0
+		if (redactionDatabase.Valid || redactionMaterial.Valid) && !redacted {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "明确脱密材料的来源摘要损坏")
+		}
 		if provider.Version < 1 || provider.Version > 9007199254740991 || json.Unmarshal(names, &provider.ExtraHeaderNames) != nil || provider.ExtraHeaderNames == nil || len(provider.ExtraHeaderNames) > 256 || (credentialEpoch.Valid && !redacted && (nonceLength.Int64 != 12 || ciphertextLength.Int64 <= 16)) {
 			return nil, platform.NewError(platform.CodeIntegrityError, false, "供应方目录或凭据元数据损坏")
 		}
-		provider.CredentialConfigured = credentialEpoch.Valid&&!redacted
+		provider.CredentialConfigured = credentialEpoch.Valid && !redacted
 		if len(result) == 64 {
 			return nil, platform.NewError(platform.CodeBudgetExceeded, false, "供应方目录超过响应条目上限")
 		}
@@ -405,7 +409,7 @@ func PutFeeBudgetPolicy(ctx context.Context, op OperationContext, input PutFeeBu
 	if current.Version != input.ExpectedVersion {
 		return PutFeeBudgetPolicyResult{}, platform.NewError(platform.CodeVersionMismatch, false, "费用策略版本已变化")
 	}
-	needsSuperadmin := missing || (current.DailyQaLimit.Micros != input.Policy.DailyQaLimit.Micros||FeeProbeLimit(current)!=FeeProbeLimit(input.Policy))
+	needsSuperadmin := missing || (current.DailyQaLimit.Micros != input.Policy.DailyQaLimit.Micros || FeeProbeLimit(current) != FeeProbeLimit(input.Policy))
 	// 即时身份RPC不得持有本域事务；写事务重新核原回执、屏障和CAS。
 	_ = tx.Rollback()
 	if needsSuperadmin {
@@ -439,7 +443,7 @@ func PutFeeBudgetPolicy(ctx context.Context, op OperationContext, input PutFeeBu
 	if err != nil && !missing {
 		return PutFeeBudgetPolicyResult{}, err
 	}
-	if current.Version != input.ExpectedVersion || (!needsSuperadmin && (missing || (current.DailyQaLimit.Micros != input.Policy.DailyQaLimit.Micros||FeeProbeLimit(current)!=FeeProbeLimit(input.Policy)))) {
+	if current.Version != input.ExpectedVersion || (!needsSuperadmin && (missing || (current.DailyQaLimit.Micros != input.Policy.DailyQaLimit.Micros || FeeProbeLimit(current) != FeeProbeLimit(input.Policy)))) {
 		return PutFeeBudgetPolicyResult{}, platform.NewError(platform.CodeVersionMismatch, false, "费用策略或日额度授权条件已变化")
 	}
 	now := platform.Now()
@@ -448,13 +452,13 @@ func PutFeeBudgetPolicy(ctx context.Context, op OperationContext, input PutFeeBu
 		changed, err = tx.ExecContext(ctx, `INSERT INTO fee_budget_policy
 			(singleton, site_id, version, hourly_limits_enabled, session_hourly_limit_micro_usd, network_multiplier, daily_qa_limit_micro_usd, daily_probe_limit_micro_usd,data_epoch, updated_at)
 			VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(singleton) DO NOTHING`, op.Actor.SiteID, input.Policy.Version,
-			input.Policy.HourlyLimitsEnabled, input.Policy.SessionHourlyLimit.Micros, input.Policy.NetworkMultiplier, input.Policy.DailyQaLimit.Micros,FeeProbeLimit(input.Policy), op.DataEpoch, now)
+			input.Policy.HourlyLimitsEnabled, input.Policy.SessionHourlyLimit.Micros, input.Policy.NetworkMultiplier, input.Policy.DailyQaLimit.Micros, FeeProbeLimit(input.Policy), op.DataEpoch, now)
 	} else {
 		changed, err = tx.ExecContext(ctx, `UPDATE fee_budget_policy SET version = ?, hourly_limits_enabled = ?,
 			session_hourly_limit_micro_usd = ?, network_multiplier = ?, daily_qa_limit_micro_usd = ?,daily_probe_limit_micro_usd = ?, updated_at = ?
 			WHERE singleton = 1 AND site_id = ? AND version = ? AND data_epoch = ?`, input.Policy.Version,
 			input.Policy.HourlyLimitsEnabled, input.Policy.SessionHourlyLimit.Micros, input.Policy.NetworkMultiplier,
-			input.Policy.DailyQaLimit.Micros,FeeProbeLimit(input.Policy), now, op.Actor.SiteID, input.ExpectedVersion, op.DataEpoch)
+			input.Policy.DailyQaLimit.Micros, FeeProbeLimit(input.Policy), now, op.Actor.SiteID, input.ExpectedVersion, op.DataEpoch)
 	}
 	if err != nil {
 		return PutFeeBudgetPolicyResult{}, adminStorageError(err)
@@ -469,7 +473,7 @@ func PutFeeBudgetPolicy(ctx context.Context, op OperationContext, input PutFeeBu
 	if _, err := tx.ExecContext(ctx, `INSERT INTO fee_policy_audit
 		(site_id, data_epoch, policy_version, actor_id, root_operation_id, created_at, daily_limit_changed)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`, op.Actor.SiteID, op.DataEpoch, input.Policy.Version, op.Actor.SubjectID,
-		op.RootOperationID, now, missing || (current.DailyQaLimit.Micros != input.Policy.DailyQaLimit.Micros||FeeProbeLimit(current)!=FeeProbeLimit(input.Policy))); err != nil {
+		op.RootOperationID, now, missing || (current.DailyQaLimit.Micros != input.Policy.DailyQaLimit.Micros || FeeProbeLimit(current) != FeeProbeLimit(input.Policy))); err != nil {
 		return PutFeeBudgetPolicyResult{}, adminStorageError(err)
 	}
 	result := PutFeeBudgetPolicyResult{Policy: input.Policy}
@@ -501,10 +505,10 @@ func requireFeePolicyActor(ctx context.Context, op OperationContext) error {
 func readFeePolicy(ctx context.Context, op OperationContext, tx *sql.Tx) (FeeBudgetPolicy, error) {
 	var policy FeeBudgetPolicy
 	var siteID, epoch string
- var probe int
+	var probe int
 	err := tx.QueryRowContext(ctx, `SELECT site_id, version, hourly_limits_enabled, session_hourly_limit_micro_usd,
 		network_multiplier, daily_qa_limit_micro_usd,daily_probe_limit_micro_usd, data_epoch FROM fee_budget_policy WHERE singleton = 1`).Scan(
-		&siteID, &policy.Version, &policy.HourlyLimitsEnabled, &policy.SessionHourlyLimit.Micros, &policy.NetworkMultiplier, &policy.DailyQaLimit.Micros,&probe, &epoch)
+		&siteID, &policy.Version, &policy.HourlyLimitsEnabled, &policy.SessionHourlyLimit.Micros, &policy.NetworkMultiplier, &policy.DailyQaLimit.Micros, &probe, &epoch)
 	if errors.Is(err, sql.ErrNoRows) {
 		return FeeBudgetPolicy{}, platform.NewError(platform.CodeNotFound, false, "费用策略尚未明确配置")
 	}
@@ -521,7 +525,7 @@ func readFeePolicy(ctx context.Context, op OperationContext, tx *sql.Tx) (FeeBud
 		return FeeBudgetPolicy{}, platform.NewError(platform.CodeIntegrityError, false, "费用策略持久记录损坏")
 	}
 	policy.SessionHourlyLimit.Currency, policy.DailyQaLimit.Currency = "USD", "USD"
- policy.DailyProbeLimit=&gen.Money{Currency:"USD",Micros:probe}
+	policy.DailyProbeLimit = &gen.Money{Currency: "USD", Micros: probe}
 	return policy, nil
 }
 
@@ -584,7 +588,7 @@ func GetPriceBook(ctx context.Context, op OperationContext, input GetPriceBookIn
 // NewAdminHandlers 绑定真实HTTP输入与平台已验证上下文；费用权限只在入口核一次。
 func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler {
 	handlers := make(map[string]http.Handler)
-	for _, operationID := range []string{"readModels", "readProfiles", "readAdminCatalog", "readFeeBudgetPolicy", "putFeeBudgetPolicy", "getPriceBook","createConnectionProbe"} {
+	for _, operationID := range []string{"readModels", "readProfiles", "readAdminCatalog", "readFeeBudgetPolicy", "putFeeBudgetPolicy", "getPriceBook", "createConnectionProbe"} {
 		handlers[operationID] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Cache-Control", "no-store")
 			op, _ := platform.OperationContextFrom(r.Context())
@@ -601,9 +605,17 @@ func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler {
 			var result any
 			var err error
 			switch operationID {
-   case "createConnectionProbe":
-    var input gen.CreateConnectionProbeInput
-    if json.NewDecoder(r.Body).Decode(&input)!=nil{err=platform.NewError(platform.CodeValidation,false,"诊断输入不可读")}else if input.ProviderId!=r.PathValue("providerId"){err=platform.NewError(platform.CodeValidation,false,"诊断渠道路径不一致")}else if key:=r.Header.Get("Idempotency-Key");key!=""&&key!=input.IdempotencyKey{err=platform.NewError(platform.CodeValidation,false,"诊断幂等头不一致")}else{result,err=CreateConnectionProbe(r.Context(),op,input)}
+			case "createConnectionProbe":
+				var input gen.CreateConnectionProbeInput
+				if json.NewDecoder(r.Body).Decode(&input) != nil {
+					err = platform.NewError(platform.CodeValidation, false, "诊断输入不可读")
+				} else if input.ProviderId != r.PathValue("providerId") {
+					err = platform.NewError(platform.CodeValidation, false, "诊断渠道路径不一致")
+				} else if key := r.Header.Get("Idempotency-Key"); key != "" && key != input.IdempotencyKey {
+					err = platform.NewError(platform.CodeValidation, false, "诊断幂等头不一致")
+				} else {
+					result, err = CreateConnectionProbe(r.Context(), op, input)
+				}
 			case "getPriceBook":
 				result, err = GetPriceBook(r.Context(), op, GetPriceBookInput{ModelId: r.PathValue("modelId"), EffectiveAt: r.URL.Query().Get("effectiveAt")})
 			case "readModels":

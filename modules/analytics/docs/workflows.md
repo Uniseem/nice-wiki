@@ -30,6 +30,7 @@ beacon validated→queued→persisted/dropped；dropping只影响匿名计数
 | `invocation.settled` | 1 | `analytics.ConsumeAnalyticsEvent` | 仅账项引用；收到后调用gateway.queryUsage拉权威安全ledger投影，不猜金额 |
 | `qa.turn.completed` | 1 | `analytics.ProjectQaTurn` | 统计问答量、缓存命中与无答案比率 |
 | `qa.turn.failed` | 1 | `analytics.ProjectQaTurn` | 统计问答量、缓存命中与无答案比率 |
+| `invocation.reconciled` | 1 | `analytics.ConsumeAnalyticsEvent` | 人工证明更正费用原引用，缺权威安全统计页时保持未确认，不猜金额或账项修订。 |
 
 ### 异步任务
 
@@ -39,9 +40,10 @@ beacon validated→queued→persisted/dropped；dropping只影响匿名计数
 - 触发：系统定时
 - 系统定时：`5 * * * *`
 
-1. 选择hour范围当前inbox
-2. 按document/locale group count并dayHash去重
-3. 事务替换该hour派生聚合及watermark
+1. 可信本域worker注入JobExecutionInput与不可变SourceWatermark，HTTP不得自报。
+2. 锁外CheckLease，事务内当前epoch/同job/worker/fence/attempt/expiry；当前period来源必须等原输入，改变则STALE_RESULT，新输入另计划。
+3. 完整已封闭UTC小时按document/locale count与dailyHash distinct，时延分桶；同事务替换桶/真实水位/outbox/原结果，提交前再核镜像截止。
+4. 超过原明细30天且缺原聚合失败关闭，保留历史真实聚合不重建0。
 
 #### `analytics.aggregate-daily`
 
@@ -49,11 +51,10 @@ beacon validated→queued→persisted/dropped；dropping只影响匿名计数
 - 触发：系统定时（站点时区）
 - 系统定时：`10 0 * * *`
 
-1. 按站点IANA时区日边界
-2. 明细同dailyvisitorHash distinct得UV
-3. group views/UV/热门文档语言/sourceDomain/country/语言分布
-4. AI Markdown crawler计数独立不混真人
-5. 日汇总长期保存
+1. 唯一可信ReportingTimeZone必须非空且等任务timezone，DST以AddDate日历日完整封闭边界。
+2. 可信worker注入真实执行与不可变来源水位；锁外CheckLease/事务内fence及来源CAS，迟到变化新输入不改旧输入。
+3. document/locale总UV在所有维度间distinct；source/country维度另表，不SUM维度UV；维度最多100000否则事务失败。
+4. 完整替换日总量/维度与原结果/outbox/真实修订；提交前核租约镜像；原明细已过保留而缺原结果不可重建0。
 
 #### `analytics.aggregate-usage`
 
@@ -81,12 +82,13 @@ beacon validated→queued→persisted/dropped；dropping只影响匿名计数
 | 函数 | 运行时机 | 作用 |
 |---|---|---|
 | `analytics.FlushBeacons` | 每5秒 | 批量持久匿名条目 |
-| `analytics.PurgeBeacons` | 每日 | 清理短期匿名行 |
+| `analytics.PurgeBeacons` | 每分钟有界续批；仅30天前明细 | 清理短期匿名行 |
 | `analytics.PurgeAuditHistory` | 每日 | 审计保留期清理 |
 | `analytics.PurgeExports` | 每小时 | 清理导出临时对象 |
 | `analytics.PublishAggregateEvents` | 启动后持续，空闲每1秒 | 派生事件outbox派发 |
 | `analytics.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
 | `analytics.RunWorker` | 启动后持续 | 主动领取并执行本域登记的持久任务 |
+| `analytics.SchedulePageAggregates` | 每分钟，完整封闭小时5分钟/本地日10分钟后，迟到真实period水位修订补新输入 | 统计任务参考支持：SchedulePageAggregates |
 <!-- flows:end -->
 
 R1收尾首切片：私有SQLite V1只在空未版本化库事务建表，未知旧库维护拒绝；siteId严格来自site-config:readSiteConfig，epoch来自runtime，不造身份。控制屏障由公共机制持有，不放active表；盐不进入快照。日报总PV/UV独立于source/country维度表，UV不可SUM维度distinct。

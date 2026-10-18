@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 120 个函数：约束 40 个，参考 80 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 121 个函数：约束 41 个，参考 80 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -93,7 +93,7 @@ func NewRuntime(runtime Runtime)(Runtime,error)
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`platform.NewGatewayClient`、`platform.NewPayloadValidator`
+- 依赖：`platform.NewGatewayClient`、`platform.NewPayloadValidator`、`model-gateway:readInference`、`model-gateway:lookupInference`
 
 ## qa.WithRuntime
 
@@ -4827,7 +4827,7 @@ func NewOperationHandlers(bind func(context.Context)context.Context)map[string]h
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`qa.CreateConversation`、`qa.GetConversation`、`qa.RecordFeedback`、`qa.DisableCacheEntry`、`qa.ReadQaPolicy`、`qa.ReadPublicCapability`、`qa.ListCacheEntries`、`qa.ReadCacheCalibration`、`qa.serveAnswerStream`、`qa.jsonOperation`、`qa.operationContext`、`qa.writeResult`、`qa.ProposeCacheEntry`、`qa.ListTurnRecords`、`qa.ReadTurnRecord`、`qa.ReadDebugTurn`、`qa.CancelTurn`、`qa.DeleteConversation`
+- 依赖：`qa.CreateConversation`、`qa.GetConversation`、`qa.RecordFeedback`、`qa.DisableCacheEntry`、`qa.ReadQaPolicy`、`qa.ReadPublicCapability`、`qa.ListCacheEntries`、`qa.ReadCacheCalibration`、`qa.serveAnswerStream`、`qa.jsonOperation`、`qa.operationContext`、`qa.writeResult`、`qa.ProposeCacheEntry`、`qa.ListTurnRecords`、`qa.ReadTurnRecord`、`qa.ReadDebugTurn`、`qa.CancelTurn`、`qa.DeleteConversation`、`qa.ReadCacheTranslationSource`
 
 ## qa.jsonOperation
 
@@ -5173,11 +5173,9 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 
 **步骤**
 
-1. 以可信op（rootOperationId、costClass，问答类附已消费的准入许可）调用model-gateway:createInference，幂等键=本域操作ID+步骤名；同键重放返回原调用，不重复收费
-2. 循环调用model-gateway:resumeInference按lastSequence续读事件直到terminal；stream=true时逐条把delta交给调用方，断线按序号续传
-3. ctx取消或截止到达时调用model-gateway:cancelInference并返回CANCELLED；已派发费用由网关结算，本域不推定免费
-4. completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）
-5. 原受理状态未知或费用未知时只按原完整请求与原幂等键lookupInference观察当前快照，不因原付费deadline已过期新建模型调用；公共观察适配未齐时保持blocked。
+1. 本域只装配可信op与原准入/批准，公共InvokeModel按原完整请求和同一幂等键先lookup并观察当前快照；仅生产方专用INVOCATION_NOT_ACCEPTED负证明且原批准截止仍有效时首次create。
+2. Request.IDempotencyKey与外层原键完全相同；普通NOT_FOUND不视为未接受；Get/Lookup只读scope不延长付费deadline。
+3. 完整结果完成与费用状态分别保留；取消、续读、真实接受后错误和已有引用均由公共适配器保留，不换新键或新owner重付。
 
 **错误**
 
@@ -5200,13 +5198,13 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 - 授权：permission：service；rule：以本服务身份调用网关，费用类别继承可信op
 - 并发：每次调用独立；同一根操作的子调用共享网关费用作用域
 - 幂等：幂等键固定，重试返回原invocation
-- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`、`qa.FromContext`、`model-gateway:lookupInference`
+- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`、`qa.FromContext`、`model-gateway:lookupInference`、`model-gateway:readInference`
 
 ## qa.ModelText
 
 - 级别：参考
 - 文件：`modules/qa/internal/runtime/model_client.go`
-- 作用：读取持久成功模型文本增量并限制输出大小，失败和费用未知不当作空答案
+- 作用：读取已持久化的完整winning文本，不把缺失结果当空答案，不把结果完成等同费用已结算
 
 ```go
 func ModelText(outcome InvokeModelResult)(string,error)
@@ -5224,6 +5222,7 @@ func ModelText(outcome InvokeModelResult)(string,error)
 
 1. 按精确Go签名处理可信输入和已装配依赖
 2. 详细边界和固定算法见data/workflows及源码注释
+3. 仅消费CurrentSnapshot.Output.Text非nil的真实完整winning结果，显式空字符串可用；不由历史delta拼接或把费用未知当作没有结果，原费用/paid refs继续保留。
 
 **错误**
 
@@ -5553,3 +5552,49 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 - 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
 - 幂等：同完整引用只读复用，不生成或重算归档
 - 依赖：`platform.SnapshotManager.OpenArchive`
+
+## qa.ReadCacheTranslationSource
+
+- 级别：约束
+- 文件：`modules/qa/internal/cache/translation-source.go`
+- 作用：缓存翻译只读当前真实基准来源
+
+```go
+func ReadCacheTranslationSource(ctx context.Context,op OperationContext,input ReadCacheTranslationSourceInput)(ReadCacheTranslationSourceResult,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只接受localization纯服务，同站/代次由本域私有库核；按真实cacheId读持久条目，不信正文宣称active。
+2. 当前active才通过既有ValidateCachedAnswer重核策略、到期、记忆和引用；非当前或未知不返回eligible=true。
+3. sourceHash=SHA256(canonical schemaVersion1/cacheId/answerRevision/sourceLanguage/question/answer)，返回真实完整基准材料与状态；不调用模型、不签permit、不重建缓存。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：callerService=actor.subjectId=localization、actor.kind=service，同站同代本域权威只读。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`qa.BeginRead`、`qa.ReadCache`、`qa.ValidateCachedAnswer`、`qa.ServiceReadContext`

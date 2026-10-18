@@ -510,7 +510,7 @@ export interface components {
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
          */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED" | "INVOCATION_NOT_ACCEPTED";
         /** @description FieldIssue的公共协议类型；字段及范围按本schema */
         FieldIssue: {
             /** @description 字段路径，不包含字段值 */
@@ -805,6 +805,24 @@ export interface components {
              */
             mode: "enqueue" | "cancel";
         };
+        /** @description 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。 */
+        SnapshotWorkState: {
+            outboxRevision: number;
+            workRevision: number;
+            pendingOutbox: number;
+            pendingWork: number;
+        };
+        /** @description 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。 */
+        SnapshotBarrierObservation: {
+            owner: string;
+            activityRevision: number;
+            work: components["schemas"]["SnapshotWorkState"];
+            revisionWatermark: number;
+            business: number;
+            cleanup: number;
+            fileOps: number;
+            drainCallbacks: number;
+        };
         /** @description 屏障状态及安全点；未到安全点不能导出完整快照 */
         BarrierStatus: {
             /** @description 本次安全屏障ID */
@@ -820,8 +838,32 @@ export interface components {
             dataEpoch: components["schemas"]["Identifier"];
             /** @description BarrierStatus.revisionWatermark；按类型、枚举及required约束使用 */
             revisionWatermark: components["schemas"]["Revision"];
+            /** @description safe必须来自真实全域CAS封口；旧兼容响应可省略，不视为新版完整证明。 */
+            sealProofHash?: components["schemas"]["Hash"];
+            /** @description observe操作的真实在途计数/持久水位；未知不填0。 */
+            observation?: components["schemas"]["SnapshotBarrierObservation"];
         };
-        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging */
+        /** @description 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。 */
+        SnapshotBrokerObservation: {
+            revision: number;
+            pendingDeliveries: number;
+            activeLeases: number;
+        };
+        SnapshotSealReceipt: {
+            owner: string;
+            sealProofHash: components["schemas"]["Hash"];
+        };
+        /** @description 14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。 */
+        SnapshotSealProof: {
+            barrierId: components["schemas"]["Identifier"];
+            dataEpoch: components["schemas"]["Identifier"];
+            observations: components["schemas"]["SnapshotBarrierObservation"][];
+            brokerBefore: components["schemas"]["SnapshotBrokerObservation"];
+            brokerAfter: components["schemas"]["SnapshotBrokerObservation"];
+            nonJobsSeals?: components["schemas"]["SnapshotSealReceipt"][];
+            nonJobsProofHash?: components["schemas"]["Hash"];
+        };
+        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。 */
         BarrierRequest: {
             /** @description 可恢复操作ID */
             operationId: components["schemas"]["Identifier"];
@@ -834,7 +876,25 @@ export interface components {
             mode: "backup" | "restore";
             /** @description 全链路截止；与本地取消取较早值 */
             deadline: components["schemas"]["Timestamp"];
-        };
+            /**
+             * @description 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
+             * @default prepare
+             * @enum {string}
+             */
+            step: "prepare" | "drain" | "observe" | "seal" | "resume-drain";
+            sealProof?: components["schemas"]["SnapshotSealProof"];
+            /** @description resume-drain绑定原真实seal，不打开新业务。 */
+            expectedSealHash?: components["schemas"]["Hash"];
+        } & ({
+            /** @enum {unknown} */
+            step?: "prepare" | "drain" | "observe";
+        } | {
+            /** @enum {unknown} */
+            step: "seal";
+        } | {
+            /** @enum {unknown} */
+            step: "resume-drain";
+        });
         /** @description 解除风控维护成功结果；失败不返回半成功结果 */
         ReleaseBarrierResult: {
             /** @description 公共 BarrierStatus 合同，遵守其字段和空值规则 */

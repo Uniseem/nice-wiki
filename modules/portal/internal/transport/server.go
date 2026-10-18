@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/problem"
 	"nice-wiki/libs/platform/apivalidate"
+	"nice-wiki/libs/platform/problem"
 	portal "nice-wiki/modules/portal/internal"
 	"nice-wiki/modules/portal/internal/gen"
 )
@@ -32,7 +32,7 @@ const (
 )
 
 type Application struct {
-	siteID platform.Identifier
+	siteID             platform.Identifier
 	validateBeaconBody func(json.RawMessage) error
 	config             platform.ServiceConfig
 	anchors            platform.TrustAnchors
@@ -54,7 +54,9 @@ type Application struct {
 
 func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier, siteID platform.Identifier) (*Application, error) {
 	validateBeacon, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "BeaconPublicRequest")
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	application := &Application{
 		siteID: siteID, validateBeaconBody: validateBeacon,
 		config: config, anchors: anchors, signingKey: signingKey, delegationKey: delegationKey, runtime: runtime,

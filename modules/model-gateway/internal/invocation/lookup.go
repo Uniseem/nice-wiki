@@ -26,7 +26,7 @@ func RequireInvocationLookupTracking(tx *gatewayruntime.ExecutionTransaction, op
 		return platform.NewError(platform.CodeIntegrityError, false, "原调用tracking来源或代际证据不合法")
 	}
 	var unknown bool
-	err = tx.Tx.QueryRowContext(tx.Context, `SELECT EXISTS(SELECT 1 FROM invocations WHERE owner_service IS NULL OR owner_service='' OR site_id IS NULL OR site_id='' OR data_epoch='' OR (owner_service=? AND site_id=? AND ((data_epoch<>? AND NOT EXISTS(SELECT 1 FROM restored_epoch_sources s WHERE s.source_epoch=invocations.data_epoch AND s.target_epoch=?)) OR create_command_key IS NULL OR create_command_key='' OR execution_hash IS NULL OR execution_hash='')))`, op.CallerService, op.Actor.SiteID, op.DataEpoch,op.DataEpoch).Scan(&unknown)
+	err = tx.Tx.QueryRowContext(tx.Context, `SELECT EXISTS(SELECT 1 FROM invocations WHERE owner_service IS NULL OR owner_service='' OR site_id IS NULL OR site_id='' OR data_epoch='' OR (owner_service=? AND site_id=? AND ((data_epoch<>? AND NOT EXISTS(SELECT 1 FROM restored_epoch_sources s WHERE s.source_epoch=invocations.data_epoch AND s.target_epoch=?)) OR create_command_key IS NULL OR create_command_key='' OR execution_hash IS NULL OR execution_hash='')))`, op.CallerService, op.Actor.SiteID, op.DataEpoch, op.DataEpoch).Scan(&unknown)
 	if err != nil {
 		return gatewayruntime.ExecutionStorageError(err)
 	}
@@ -41,7 +41,7 @@ func LookupInvocation(ctx context.Context, op OperationContext, input LookupInvo
 	if !exists || task.Owner != op.CallerService || op.Actor.Kind != "service" || op.Actor.SubjectID != op.CallerService {
 		return LookupInvocationResult{}, platform.NewError(platform.CodeForbidden, false, "原调用查找仅AI任务owner纯服务")
 	}
-	if op.CostClass != platform.CostClassQA && op.CostClass != platform.CostClassBackground && !(input.TaskId=="memory.assistant"&&op.CallerService=="memory"&&op.CostClass==platform.CostClassAdminProbe) {
+	if op.CostClass != platform.CostClassQA && op.CostClass != platform.CostClassBackground && !(input.TaskId == "memory.assistant" && op.CallerService == "memory" && op.CostClass == platform.CostClassAdminProbe) {
 		return LookupInvocationResult{}, platform.NewError(platform.CodeForbidden, false, "原调用查找须保留原费用类别")
 	}
 	tx, err := gatewayruntime.BeginExecution(ctx, op, false)
@@ -64,8 +64,13 @@ func LookupInvocation(ctx context.Context, op OperationContext, input LookupInvo
 		if orphan {
 			return LookupInvocationResult{}, platform.NewError(platform.CodeIntegrityError, false, "创建键已有原调用但完整回执缺失，禁止重新收费")
 		}
- var previous bool
-  if err:=tx.Tx.QueryRowContext(tx.Context,`SELECT EXISTS(SELECT 1 FROM invocations i JOIN restored_epoch_sources s ON s.source_epoch=i.data_epoch WHERE i.owner_service=? AND i.site_id=? AND i.create_command_key=? AND s.target_epoch=?)`,op.CallerService,op.Actor.SiteID,input.IdempotencyKey,op.DataEpoch).Scan(&previous);err!=nil{return LookupInvocationResult{},gatewayruntime.ExecutionStorageError(err)};if previous{return LookupInvocationResult{},platform.NewError(platform.CodeStaleResult,false,"原创建键存在已接受旧代调用，须读取原付费引用，不得改代重付")}
+		var previous bool
+		if err := tx.Tx.QueryRowContext(tx.Context, `SELECT EXISTS(SELECT 1 FROM invocations i JOIN restored_epoch_sources s ON s.source_epoch=i.data_epoch WHERE i.owner_service=? AND i.site_id=? AND i.create_command_key=? AND s.target_epoch=?)`, op.CallerService, op.Actor.SiteID, input.IdempotencyKey, op.DataEpoch).Scan(&previous); err != nil {
+			return LookupInvocationResult{}, gatewayruntime.ExecutionStorageError(err)
+		}
+		if previous {
+			return LookupInvocationResult{}, platform.NewError(platform.CodeStaleResult, false, "原创建键存在已接受旧代调用，须读取原付费引用，不得改代重付")
+		}
 		if err := RequireInvocationLookupTracking(tx, op); err != nil {
 			return LookupInvocationResult{}, err
 		}

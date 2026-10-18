@@ -27,7 +27,7 @@ type LanguageApprovalClient interface {
 	ReadLanguageSuggestionApproval(context.Context, string) (json.RawMessage, error)
 }
 type ExecutionOptions struct {
- SiteID string
+	SiteID            string
 	LanguageApprovals LanguageApprovalClient
 	WriteWindow       platform.WriteWindowConfig
 	Anchors           platform.TrustAnchors
@@ -38,10 +38,10 @@ type ExecutionOptions struct {
 	Validators        map[string]func(json.RawMessage) error
 }
 type ExecutionTransaction struct {
- write,finalizing bool
-	Tx      *sql.Tx
-	Context context.Context
-	cancel  context.CancelFunc
+	write, finalizing bool
+	Tx                *sql.Tx
+	Context           context.Context
+	cancel            context.CancelFunc
 }
 type FixedCandidate struct {
 	Model             gen.Model         `json:"model"`
@@ -50,12 +50,12 @@ type FixedCandidate struct {
 	Price             gen.PriceSnapshot `json:"price"`
 }
 type FixedRoute struct {
-	Version              string             `json:"version"`
-	Candidates           []FixedCandidate   `json:"candidates"`
+	Version              string              `json:"version"`
+	Candidates           []FixedCandidate    `json:"candidates"`
 	Assignment           *gen.TaskAssignment `json:"assignment,omitempty"`
-	RequiredCapabilities []string           `json:"requiredCapabilities"`
-	Fallback             bool               `json:"fallback"`
-	AssetVersions        map[string]int     `json:"assetVersions"`
+	RequiredCapabilities []string            `json:"requiredCapabilities"`
+	Fallback             bool                `json:"fallback"`
+	AssetVersions        map[string]int      `json:"assetVersions"`
 }
 type FeeScopeBinding struct {
 	InvocationID       string    `json:"invocationId"`
@@ -66,9 +66,14 @@ type FeeScopeBinding struct {
 	DataEpoch          string    `json:"dataEpoch"`
 	ExpiresAt          time.Time `json:"expiresAt"`
 }
-type ProbePolicy struct{Kind string `json:"kind"`;SchemaVersion int `json:"schemaVersion"`;ApprovedBy string `json:"approvedBy"`;PermissionRevision int64 `json:"permissionRevision"`}
+type ProbePolicy struct {
+	Kind               string `json:"kind"`
+	SchemaVersion      int    `json:"schemaVersion"`
+	ApprovedBy         string `json:"approvedBy"`
+	PermissionRevision int64  `json:"permissionRevision"`
+}
 type InvocationRecord struct {
- Probe *ProbePolicy
+	Probe           *ProbePolicy
 	Invocation      gen.Invocation
 	Request         gen.CreateInvocationInput
 	Operation       OperationContext
@@ -193,7 +198,7 @@ func beginExecution(ctx context.Context, op OperationContext, write, finalizing 
 			return nil, platform.NewError(platform.CodeLocked, false, "模型执行被本地屏障阻止")
 		}
 	}
-	return &ExecutionTransaction{Tx: tx, Context: work, cancel: cancel,write:write,finalizing:finalizing}, nil
+	return &ExecutionTransaction{Tx: tx, Context: work, cancel: cancel, write: write, finalizing: finalizing}, nil
 }
 func (t *ExecutionTransaction) Close()        { _ = t.Tx.Rollback(); t.cancel() }
 func (t *ExecutionTransaction) Commit() error { return ExecutionStorageError(t.Tx.Commit()) }
@@ -224,15 +229,28 @@ func readInvocationRecord(tx *ExecutionTransaction, op OperationContext, id stri
 		return record, ExecutionStorageError(err)
 	}
 	admin := op.CallerService == "portal" && op.Actor.Kind == "admin" && (slices.Contains(op.Actor.Grants, "model.manage") || slices.Contains(op.Actor.Grants, "superadmin"))
-	projected,err:=IsRestoredEpoch(tx.Context,tx.Tx,epoch,op.DataEpoch);if err!=nil{return InvocationRecord{},err}
- if epoch!=op.DataEpoch&&tx.write&&!(tx.finalizing&&admin&&slices.Contains(op.Actor.Grants,"superadmin")){return InvocationRecord{},platform.NewError(platform.CodeForbidden,false,"原代付费记录仅认证读取或当前超管人工对账，不能复活旧执行")}
- if site != op.Actor.SiteID || !projected || (!admin && !statistics && owner != op.CallerService) {
+	projected, err := IsRestoredEpoch(tx.Context, tx.Tx, epoch, op.DataEpoch)
+	if err != nil {
+		return InvocationRecord{}, err
+	}
+	if epoch != op.DataEpoch && tx.write && !(tx.finalizing && admin && slices.Contains(op.Actor.Grants, "superadmin")) {
+		return InvocationRecord{}, platform.NewError(platform.CodeForbidden, false, "原代付费记录仅认证读取或当前超管人工对账，不能复活旧执行")
+	}
+	if site != op.Actor.SiteID || !projected || (!admin && !statistics && owner != op.CallerService) {
 		return InvocationRecord{}, platform.NewError(platform.CodeForbidden, false, "不能读取其他站点或owner的模型调用")
 	}
 	if len(invocationRaw) == 0 || platform.HashBytes(invocationRaw) != hash || json.Unmarshal(invocationRaw, &record.Invocation) != nil || json.Unmarshal(requestRaw, &record.Request) != nil || json.Unmarshal(operationRaw, &record.Operation) != nil {
 		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "模型调用持久快照不完整")
 	}
- if costClass==platform.CostClassAdminProbe&&owner=="portal"{var policy ProbePolicy;if json.Unmarshal(profileRaw,&policy)!=nil||policy.Kind!="admin-probe"||policy.SchemaVersion!=1||policy.ApprovedBy!=record.Operation.Actor.SubjectID||policy.PermissionRevision!=int64(record.Operation.Actor.PermissionRevision)||record.Operation.CallerService!="portal"||record.Operation.Actor.Kind!="admin"{return InvocationRecord{},platform.NewError(platform.CodeIntegrityError,false,"原连接探测人工批准策略损坏")};record.Probe=&policy}else if json.Unmarshal(profileRaw,&record.Profile)!=nil{return InvocationRecord{},platform.NewError(platform.CodeIntegrityError,false,"原AI档位快照损坏")}
+	if costClass == platform.CostClassAdminProbe && owner == "portal" {
+		var policy ProbePolicy
+		if json.Unmarshal(profileRaw, &policy) != nil || policy.Kind != "admin-probe" || policy.SchemaVersion != 1 || policy.ApprovedBy != record.Operation.Actor.SubjectID || policy.PermissionRevision != int64(record.Operation.Actor.PermissionRevision) || record.Operation.CallerService != "portal" || record.Operation.Actor.Kind != "admin" {
+			return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "原连接探测人工批准策略损坏")
+		}
+		record.Probe = &policy
+	} else if json.Unmarshal(profileRaw, &record.Profile) != nil {
+		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "原AI档位快照损坏")
+	}
 	if createKey.Valid && createKey.String != record.Request.IdempotencyKey {
 		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "原创建键与不可变请求不一致")
 	}
@@ -242,7 +260,13 @@ func readInvocationRecord(tx *ExecutionTransaction, op OperationContext, id stri
 	if len(outputRaw) > 0 && json.Unmarshal(outputRaw, &record.Output) != nil {
 		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "模型调用结构输出损坏")
 	}
- if len(outputRaw)>0{stored,e:=platform.CanonicalJSON(json.RawMessage(outputRaw));decoded,e2:=platform.CanonicalJSON(record.Output);if record.Output==nil||e!=nil||e2!=nil||platform.HashBytes(stored)!=platform.HashBytes(decoded){return InvocationRecord{},platform.NewError(platform.CodeIntegrityError,false,"原结果JSON含未知字段或显式空值，不能损失信息读取")}}
+	if len(outputRaw) > 0 {
+		stored, e := platform.CanonicalJSON(json.RawMessage(outputRaw))
+		decoded, e2 := platform.CanonicalJSON(record.Output)
+		if record.Output == nil || e != nil || e2 != nil || platform.HashBytes(stored) != platform.HashBytes(decoded) {
+			return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "原结果JSON含未知字段或显式空值，不能损失信息读取")
+		}
+	}
 	if executionHash == "" || executionHash != ExecutionSnapshotHash(requestRaw, operationRaw, record.Route, profileRaw, record.Binding, record.CreatedNS, owner, site, epoch) {
 		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "不可变调用输入/路线/费用绑定摘要不一致")
 	}

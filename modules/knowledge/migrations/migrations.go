@@ -4,5 +4,6 @@ package migrations
 import "embed"
 
 // Files 是唯一迁移来源。
+//
 //go:embed *.sql
 var Files embed.FS

@@ -679,6 +679,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/statistics/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * analytics专用固定水位安全账本变更页
+         * @description 仅analytics纯服务当前真实site/epoch，单页最多100且2.5s；固定历史watermark/签名游标，兼容60s任务续接。仅posted账本，不宣称无账项未知/held完整。
+         */
+        get: operations["readUsageStatisticsPage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/task-routes:resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 免费读取当前任务真实固定路线
+         * @description 固定task owner纯服务与原可信costClass，免费读取真实routeVersion、全候选不透明Model快照hash和embedding空间；不创建调用/费用/QA许可。
+         */
+        post: operations["resolveTaskRoute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -686,6 +726,7 @@ export interface components {
         MediaReadAssetResult: components["schemas"]["ReadAssetResult"];
         LanguageSuggestionApprovalResult: components["schemas"]["ReadLanguageSuggestionApprovalResult"];
         SiteInitializationStatusResult: components["schemas"]["ReadInitializationStatusResult"];
+        GatewaySiteConfigResult: components["schemas"]["ReadSiteConfigResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
@@ -732,7 +773,7 @@ export interface components {
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
          */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED" | "INVOCATION_NOT_ACCEPTED";
         /** @description FieldIssue的公共协议类型；字段及范围按本schema */
         FieldIssue: {
             /** @description 字段路径，不包含字段值 */
@@ -1078,6 +1119,10 @@ export interface components {
             preprocessingVersion: string;
         };
         EmbeddingSpace: components["schemas"]["common.schema_EmbeddingSpace"];
+        ExpectedPriceSnapshot: {
+            modelId: components["schemas"]["Identifier"];
+            priceSnapshotId: components["schemas"]["Identifier"];
+        };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         CreateInvocationInput: {
             /** @description 根AI task catalog */
@@ -1107,6 +1152,10 @@ export interface components {
             expectedEmbeddingSpace?: components["schemas"]["EmbeddingSpace"];
             /** @description 仅localization.suggest+background必需，其他任务禁止。每次新attempt前与派发前读取localization持久管理员批准，停用/换版失败关闭。 */
             languageSuggestionApprovalId?: components["schemas"]["Identifier"];
+            /** @description 批准计划的实际routeVersion；接受事务完整重算eligible候选，缺省兼容旧调用 */
+            expectedRouteVersion?: components["schemas"]["Hash"];
+            /** @description 按完整实际ordered candidates一一同序固定原报价，接受事务复读原真实priceSnapshotId相等；modelId唯一 */
+            expectedPriceSnapshots?: components["schemas"]["ExpectedPriceSnapshot"][];
         };
         /** @description 模型完整结果：embedding/rerank结构结果或chat/vision/translation完整UTF8文本；completed事件或严格当前快照承载，不以delta片段冒充完整。 */
         ModelOutput: {
@@ -1131,7 +1180,7 @@ export interface components {
         GetInvocationResult: {
             /** @description 状态 */
             invocation: components["schemas"]["Invocation"];
-            /** @description 兼容可选；仅原持久完整有效结构输出，必须与winning attempt/evidence摘要一致，不新调模型/不造事件。 */
+            /** @description 兼容可选；仅winning完整文本/结构结果与原evidence及record摘要一致；旧单initial完整原SSE可保守只读派生，缺证据不造空/404或重新收费。 */
             output?: components["schemas"]["ModelOutput"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
@@ -1277,6 +1326,10 @@ export interface components {
             unknownInvocationIds: components["schemas"]["Identifier"][];
             /** @description 兼容可选，实际生产始终给；仅完整原root全部调用accepted/reserved且全部attempt未派发为true；旧证据不完整/未知/成功结果/零金额都不表示可重算。仅继续原输入hash阶段，仍须原paidRefs与费用准入。 */
             safeToRetry?: boolean;
+            /** @description 兼容可选，实际本实现始终给。当前严格SQL快照查询窗同时覆盖原root全部调用createdAt及全部ledger行时间（含已superseded/voided历史）才true；不能用缺字段默认true。 */
+            windowCoversRoot?: boolean;
+            /** @description 兼容可选，实际本实现始终给。原root完整调用/真实attempt列表匹配且全部终局、无活动执行lease才true；外层succeeded不证明unknown/仍活动attempt已终局，旧缺事实false或严格失败。不等于safeToRetry或新付费准入。 */
+            allInvocationsFinal?: boolean;
         };
         /** @description readModels安全模型声明，embedding配置完整时附MG权威五字段空间；不改变PutModel输入 */
         ModelWithSpace: {
@@ -1329,6 +1382,24 @@ export interface components {
         };
         /** @description 对象单调修订号 */
         Revision: number;
+        /** @description 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。 */
+        SnapshotWorkState: {
+            outboxRevision: number;
+            workRevision: number;
+            pendingOutbox: number;
+            pendingWork: number;
+        };
+        /** @description 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。 */
+        SnapshotBarrierObservation: {
+            owner: string;
+            activityRevision: number;
+            work: components["schemas"]["SnapshotWorkState"];
+            revisionWatermark: number;
+            business: number;
+            cleanup: number;
+            fileOps: number;
+            drainCallbacks: number;
+        };
         /** @description 屏障状态及安全点；未到安全点不能导出完整快照 */
         "common.schema_BarrierStatus": {
             /** @description 本次安全屏障ID */
@@ -1344,9 +1415,33 @@ export interface components {
             dataEpoch: components["schemas"]["Identifier"];
             /** @description BarrierStatus.revisionWatermark；按类型、枚举及required约束使用 */
             revisionWatermark: components["schemas"]["Revision"];
+            /** @description safe必须来自真实全域CAS封口；旧兼容响应可省略，不视为新版完整证明。 */
+            sealProofHash?: components["schemas"]["Hash"];
+            /** @description observe操作的真实在途计数/持久水位；未知不填0。 */
+            observation?: components["schemas"]["SnapshotBarrierObservation"];
         };
         BarrierStatus: components["schemas"]["common.schema_BarrierStatus"];
-        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging */
+        /** @description 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。 */
+        SnapshotBrokerObservation: {
+            revision: number;
+            pendingDeliveries: number;
+            activeLeases: number;
+        };
+        SnapshotSealReceipt: {
+            owner: string;
+            sealProofHash: components["schemas"]["Hash"];
+        };
+        /** @description 14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。 */
+        SnapshotSealProof: {
+            barrierId: components["schemas"]["Identifier"];
+            dataEpoch: components["schemas"]["Identifier"];
+            observations: components["schemas"]["SnapshotBarrierObservation"][];
+            brokerBefore: components["schemas"]["SnapshotBrokerObservation"];
+            brokerAfter: components["schemas"]["SnapshotBrokerObservation"];
+            nonJobsSeals?: components["schemas"]["SnapshotSealReceipt"][];
+            nonJobsProofHash?: components["schemas"]["Hash"];
+        };
+        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。 */
         "common.schema_BarrierRequest": {
             /** @description 可恢复操作ID */
             operationId: components["schemas"]["Identifier"];
@@ -1359,7 +1454,25 @@ export interface components {
             mode: "backup" | "restore";
             /** @description 全链路截止；与本地取消取较早值 */
             deadline: components["schemas"]["Timestamp"];
-        };
+            /**
+             * @description 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
+             * @default prepare
+             * @enum {string}
+             */
+            step: "prepare" | "drain" | "observe" | "seal" | "resume-drain";
+            sealProof?: components["schemas"]["SnapshotSealProof"];
+            /** @description resume-drain绑定原真实seal，不打开新业务。 */
+            expectedSealHash?: components["schemas"]["Hash"];
+        } & ({
+            /** @enum {unknown} */
+            step?: "prepare" | "drain" | "observe";
+        } | {
+            /** @enum {unknown} */
+            step: "seal";
+        } | {
+            /** @enum {unknown} */
+            step: "resume-drain";
+        });
         BarrierRequest: components["schemas"]["common.schema_BarrierRequest"];
         types_Identifier: components["schemas"]["Identifier"];
         /** @description 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径 */
@@ -1455,6 +1568,18 @@ export interface components {
             updated: number;
             /** @description 手动覆盖数 */
             preservedOverrides: number;
+            /**
+             * @description 实际采用的来源；缓存仍保留原来源
+             * @enum {string}
+             */
+            source?: "remote" | "bundled";
+            /** @description 原公开数据内容版本，不用dev分支提交猜API版本 */
+            sourceVersion?: string;
+            /**
+             * @description 远端不可用才明确降级；缺失表示本次真实远端成功
+             * @enum {string}
+             */
+            fallback?: "cached" | "bundled";
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         RefreshModelCatalogInput: {
@@ -1514,6 +1639,8 @@ export interface components {
             networkMultiplier: number;
             /** @description 站点每天qa上限，0不限，background独立 */
             dailyQaLimit: components["schemas"]["Money"];
+            /** @description 独立admin-probe日额度；本次用户明确默认0不限，兼容缺字段等同该明确默认，不影响QA/background */
+            dailyProbeLimit?: components["schemas"]["Money"];
         };
         ReadFeeBudgetPolicyResult: {
             /** @description 费用配置结果 */
@@ -1616,6 +1743,16 @@ export interface components {
              */
             scope: "staged" | "before";
         };
+        ConnectionProbeSummary: {
+            invocation: components["schemas"]["Invocation"];
+            modelId: components["schemas"]["Identifier"];
+            providerVersion: number;
+            modelVersion: number;
+            credentialVersion: number;
+            createdAt: components["schemas"]["Timestamp"];
+            /** @description 实际dispatched_ns至持久供应方响应evidence.recorded_ns耗时；没有响应证据不提供 */
+            latencyMs?: number;
+        };
         /** @description 后台安全供应方投影，不含秘密引用或密文；最近探测另待实施。 */
         ProviderSummary: {
             /** @description 供应方ID */
@@ -1650,6 +1787,8 @@ export interface components {
             streamIdleTimeoutMs: number;
             /** @description 同代active凭据材料存在且长度完整；不证明可解密、在线或已经探测 */
             credentialConfigured: boolean;
+            /** @description 真实最近探测；从未执行则省略，旧版本结果不冒当前渠道/密钥成功 */
+            lastProbe?: components["schemas"]["ConnectionProbeSummary"];
         };
         /** @description 读取渠道、模型、档位与任务分配的结果；不含密钥 */
         ReadAdminCatalogResult: {
@@ -1711,8 +1850,167 @@ export interface components {
             /** @description 原始UTF8文本；额外限制4MiB字节，不进行隐式预处理。 */
             text: string;
         };
+        /** @description 纯安全posted账项变更；只真实entry，不把held/未知attempt伪成entry。冻结provider/model来自原attempt与执行路线，不查当前配置。 */
+        UsageLedgerChange: {
+            ledgerEntryId: components["schemas"]["Identifier"];
+            invocationId: components["schemas"]["Identifier"];
+            attemptId: components["schemas"]["Identifier"];
+            operationId: components["schemas"]["Identifier"];
+            rootOperationId: components["schemas"]["Identifier"];
+            ownerService: components["schemas"]["Identifier"];
+            siteId: components["schemas"]["Identifier"];
+            sourceDataEpoch: components["schemas"]["Identifier"];
+            providerId: components["schemas"]["Identifier"];
+            modelId: components["schemas"]["Identifier"];
+            changeRevision: components["schemas"]["Revision"];
+            /**
+             * Format: int64
+             * @description 本统计捕获账项独立修订；真实初次baseline观察为1，后续实际写/改/supersede/void/delete递增，不冒原事件修订。
+             */
+            ledgerRevision: number;
+            providerVersion: number;
+            modelVersion: number;
+            modelSnapshotHash: components["schemas"]["Hash"];
+            costClass: components["schemas"]["CostClass"];
+            amountKnown: boolean;
+            /** @description 只实际已知金额时存在；未知省略，不造0。 */
+            amount?: components["schemas"]["Money"];
+            /** @enum {unknown} */
+            state: "settled" | "reconciled" | "price_unknown" | "superseded" | "voided" | "deleted";
+            /** @enum {unknown} */
+            ledgerStatus: "settled" | "reconciled" | "price_unknown";
+            /** @description 原账本真实createdAt，非观察/分页时间。 */
+            occurredAt: components["schemas"]["Timestamp"];
+            observedAt: components["schemas"]["Timestamp"];
+            /** @enum {unknown} */
+            captureKind: "baseline" | "change";
+        } & unknown;
+        UsageObservationOrigin: {
+            invocationId: components["schemas"]["Identifier"];
+            operationId: components["schemas"]["Identifier"];
+            rootOperationId: components["schemas"]["Identifier"];
+            ownerService: components["schemas"]["Identifier"];
+            siteId: components["schemas"]["Identifier"];
+            sourceDataEpoch: components["schemas"]["Identifier"];
+            costClass: components["schemas"]["CostClass"];
+        };
+        UsageInvocationFact: {
+            /** @enum {string} */
+            state: "accepted" | "reserved" | "dispatching" | "streaming" | "cancel_requested" | "cancelled" | "failed" | "succeeded" | "charge_unknown" | "reconciled";
+            createdAt: components["schemas"]["Timestamp"];
+            terminal: boolean;
+            /** @description 该原观察仍有持久执行租约；过期也保守占用，不表示旧代可复活执行 */
+            activeExecution: boolean;
+            attemptCount: number;
+            /** @description 同一原数据库快照真实所有attempt皆succeeded/failed/reconciled，不仅outer succeeded */
+            allAttemptsFinal: boolean;
+        };
+        UsageAttemptFact: {
+            attemptId: components["schemas"]["Identifier"];
+            /** @enum {string} */
+            state: "reserved" | "dispatching" | "streaming" | "failed" | "succeeded" | "charge_unknown" | "reconciled";
+            providerId: components["schemas"]["Identifier"];
+            providerVersion: number;
+            modelId: components["schemas"]["Identifier"];
+            modelVersion: number;
+            modelSnapshotHash: components["schemas"]["Hash"];
+            priceSnapshotId: components["schemas"]["Identifier"];
+            dispatched: boolean;
+        };
+        UsageReservationFact: {
+            reservationId: components["schemas"]["Identifier"];
+            attemptId: components["schemas"]["Identifier"];
+            /** @enum {string} */
+            state: "held" | "settled" | "released";
+            version: number;
+            amountKnown: boolean;
+            maximumCost?: components["schemas"]["Money"];
+            heldCost?: components["schemas"]["Money"];
+            unknownUsageCount: number;
+        } & unknown;
+        UsageObservation: {
+            changeRevision: number;
+            entityRevision: number;
+            /** @enum {string} */
+            kind: "invocation" | "attempt" | "reservation";
+            entityId: components["schemas"]["Identifier"];
+            origin: components["schemas"]["UsageObservationOrigin"];
+            deleted: boolean;
+            observedAt: components["schemas"]["Timestamp"];
+            invocation?: components["schemas"]["UsageInvocationFact"];
+            attempt?: components["schemas"]["UsageAttemptFact"];
+            reservation?: components["schemas"]["UsageReservationFact"];
+        } & ({
+            /** @constant */
+            kind?: "invocation";
+        } | {
+            /** @constant */
+            kind?: "attempt";
+        } | {
+            /** @constant */
+            kind?: "reservation";
+        });
+        /** @description V2完整posted及inflight来源闭包不表示金额均已知；未知金额必须显式unknown，禁止部分已知和冒全站总额。调用和attempt原财务权威不删除，reservation held禁止删除；已关闭reservation删改真实留历史。 */
+        ReadUsageStatisticsPageResult: {
+            /** @constant */
+            schemaVersion: 2;
+            watermark: components["schemas"]["Revision"];
+            throughRevision: components["schemas"]["Revision"];
+            changes: components["schemas"]["UsageLedgerChange"][];
+            nextCursor: string;
+            /** @constant */
+            feeCoverage: "posted-and-inflight";
+            /** @constant */
+            completeFeeCoverage: true;
+            /** @description 无账项真实invocation/attempt/held闭包，与changes共用同一timeline上界；两数组合计最多100，按changeRevision合并排序 */
+            observations: components["schemas"]["UsageObservation"][];
+            /** @description 对该响应其余全部字段（含固定上界、所有原事实及nextCursor）的完整canonical JSON UTF8作SHA256；仅计算时省略pageHash，不截断或另猜源hash。 */
+            pageHash: components["schemas"]["Hash"];
+        };
+        /** @description 免费配置快照，不过滤供应方或解密凭据。 */
+        ResolveProfileResult: {
+            /** @description 真实生效档位原始快照，费用字段仅配置声明，不作额度准入 */
+            profile: components["schemas"]["Profile"];
+            /** @description 同快照真实任务赋值及版本 */
+            assignment: components["schemas"]["TaskAssignment"];
+            /** @description 先覆盖再回退的有序唯一引用，不改原始profile */
+            orderedModelIds: components["schemas"]["Identifier"][];
+            /** @description 有效目录能力；无override的rerank回退转fast/chat */
+            requiredCapabilities: string[];
+            /** @description 是否采用真实fast档位承载回退 */
+            fallback: boolean;
+        };
+        /** @description 免费路线候选；未获取持久派发引用，不表示凭据可解密。 */
+        RouteCandidate: {
+            /** @description 同代启用模型安全元数据 */
+            model: components["schemas"]["Model"];
+            /** @description 同快照供应方配置版本 */
+            providerVersion: number;
+            /** @description active凭据版本，仅元数据引用 */
+            credentialVersion: number;
+            /** @description 生产方既有不透明完整Model规范快照hash，消费者不可自行推导 */
+            modelSnapshotHash: components["schemas"]["Hash"];
+            /** @description embedding实际五字段空间；非embedding省略 */
+            embeddingSpace?: components["schemas"]["EmbeddingSpace"];
+        };
+        /** @description 本地元数据eligible候选，不表示在线、费用或派发准入。 */
+        ResolveRouteResult: {
+            /** @description 与候选同一SQL快照的解析结果 */
+            resolved: components["schemas"]["ResolveProfileResult"];
+            /** @description 先完整过滤再保序取16项 */
+            candidates: components["schemas"]["RouteCandidate"][];
+            /** @description epoch/完整解析配置/全eligible候选冻结版本的规范hash；返回候选仍按保序最多16，配置资格变化接受事务严格检测 */
+            routeVersion: components["schemas"]["Hash"];
+        };
+        /** @description 内部免费候选元数据解析输入；不代表费用或派发准入。 */
+        ResolveRouteInput: {
+            /** @description 唯一目录ID；必须已有同代赋值且属于可信callerService */
+            taskId: string;
+            /** @description 只核对可信op.costClass，不覆盖 */
+            costClass: components["schemas"]["CostClass"];
+        };
         /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
-        AssetVersionRef: {
+        "common.schema_AssetVersionRef": {
             /** @description 逻辑资源ID */
             assetId: components["schemas"]["Identifier"];
             /** @description 不可变对象版本 */
@@ -1724,6 +2022,8 @@ export interface components {
             /** @description 字节数 */
             byteSize: number;
         };
+        /** @description 完整五字段不可变版本引用，唯一来源common；既有JSON不变。 */
+        AssetVersionRef: components["schemas"]["common.schema_AssetVersionRef"];
         /** @description 浏览器生成WebP尺寸，最多640/1280/1920且不放大原图 */
         ImageVariant: {
             /** @description 实际像素宽 */
@@ -1822,6 +2122,223 @@ export interface components {
             state: components["schemas"]["PublicInitializationState"];
             /** @description 仅同站点超管或identity/site-config可信服务返回，匿名省略 */
             coordination?: components["schemas"]["InitializationState"];
+        };
+        /** @description https 公共地址；本地开发 http 由部署能力显式允许；禁止 userinfo/query/fragment */
+        SafeURL: string;
+        /** @description 规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证 */
+        LanguageTag: string;
+        /** @description 站点链接判别联合体 */
+        LinkTarget: {
+            /** @constant */
+            kind: "document";
+            /** @description 站内ID */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 无null */
+            blockId: components["schemas"]["Identifier"] | null;
+        } | {
+            /** @constant */
+            kind: "qa";
+        } | {
+            /** @constant */
+            kind: "external";
+            /** @description http/https/mailto安全链接 */
+            url: string;
+        };
+        /** @description 首页0–3按钮 */
+        HeroButton: {
+            /** @description 稳定按钮 */
+            buttonId: components["schemas"]["Identifier"];
+            /** @description 翻译字段 */
+            text: string;
+            /** @description LinkTarget */
+            target: components["schemas"]["LinkTarget"];
+            /**
+             * @description 按钮
+             * @enum {string}
+             */
+            style: "primary" | "secondary";
+        };
+        /** @description 首页背景完整联合体 */
+        HeroBackground: {
+            /** @constant */
+            kind: "color";
+            /** @description #RRGGBB */
+            color: string;
+        } | {
+            /**
+             * @description 图片/动图
+             * @enum {string}
+             */
+            kind: "image" | "animation";
+            asset: components["schemas"]["AssetVersionRef"];
+        } | {
+            /** @constant */
+            kind: "video";
+            asset: components["schemas"]["AssetVersionRef"];
+            poster: components["schemas"]["AssetVersionRef"];
+        };
+        /** @description 仅全屏一屏hero；下方无卡片/精选/其他内容 */
+        HomeConfig: {
+            /** @description 默认站点名，翻译 */
+            mainTitle: string;
+            /** @description 副标题，翻译 */
+            subtitle: string;
+            /** @description 默认Welcome To */
+            backgroundText: string;
+            /** @description 默认false，后台可开翻译 */
+            translateBackgroundText: boolean;
+            /** @description 0–3按钮 */
+            buttons: components["schemas"]["HeroButton"][];
+            /** @description HeroBackground */
+            background: components["schemas"]["HeroBackground"];
+            /** @description 遮罩0–100% */
+            overlayPercent: number;
+            /**
+             * @description 文字
+             * @enum {string}
+             */
+            textColor: "light" | "dark";
+            /** @description CAS */
+            revision: components["schemas"]["Revision"];
+        };
+        /** @description 页脚链接 */
+        FooterLink: {
+            /** @description 稳定ID */
+            linkId: components["schemas"]["Identifier"];
+            /** @description 翻译字段 */
+            text: string;
+            /** @description LinkTarget */
+            target: components["schemas"]["LinkTarget"];
+        };
+        /** @description 页脚版权、链接、ICP、源代码 */
+        FooterConfig: {
+            /** @description 版权文本，翻译 */
+            copyright: string;
+            /** @description 自定义链接 */
+            links: components["schemas"]["FooterLink"][];
+            /** @description 无null */
+            icpNumber: string | null;
+            /** @description 无null */
+            icpLink: string | null;
+            /**
+             * @description 默认显示源代码链接，AGPL网络用户可获得源码
+             * @default https://github.com/Uniseem/nice-wiki
+             */
+            sourceCodeURL: string;
+        };
+        /** @description 单条站点公告横幅；无富文公告列表产品 */
+        Announcement: {
+            /** @description 同条公告关闭标识；localStorage记录，不用cookie */
+            announcementId: components["schemas"]["Identifier"];
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description 不可变横幅文件 */
+            revisionId: components["schemas"]["Identifier"];
+            /** @description Hash */
+            bodyHash: components["schemas"]["Hash"];
+            /** @description 后台开关 */
+            enabled: boolean;
+            /** @description 立即null */
+            startsAt: components["schemas"]["Timestamp"] | null;
+            /** @description 永久null */
+            endsAt: components["schemas"]["Timestamp"] | null;
+            /** @description 设置CAS */
+            revision: components["schemas"]["Revision"];
+            /** @description 即时失效水位 */
+            visibilityRevision: components["schemas"]["Revision"];
+            /** @description 更新 */
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 可配置资源上限 */
+        ResourceLimits: {
+            /**
+             * @description 文档 UTF-8 规范 JSON 上限
+             * @default 16777216
+             */
+            maxDocumentBytes: number;
+            /**
+             * @description 单个资源上传上限
+             * @default 134217728
+             */
+            maxUploadBytes: number;
+            /**
+             * @description 站点存储逻辑配额
+             * @default 10737418240
+             */
+            siteStorageBytes: number;
+            /**
+             * @description 上传并发
+             * @default 4
+             */
+            maxUploadConcurrency: number;
+        };
+        /** @description 会话/预览非业务功能新增 */
+        SecurityPolicy: {
+            /**
+             * @description 管理员预览TTL
+             * @default 900
+             */
+            previewTTLSeconds: number;
+            /**
+             * @description 会话最长
+             * @default 604800
+             */
+            sessionAbsoluteTTLSeconds: number;
+        };
+        /** @description 版本化站点设置权威文件；既有功能不增添多内容首页 */
+        SiteConfig: {
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description 站名，会翻译 */
+            name: string;
+            /** @description 无null */
+            logo: components["schemas"]["AssetVersionRef"] | null;
+            /** @description 无null */
+            favicon: components["schemas"]["AssetVersionRef"] | null;
+            /**
+             * @description #RRGGBB
+             * @default #2563EB
+             */
+            themeColor: string;
+            /** @description 无null */
+            defaultShareImage: components["schemas"]["AssetVersionRef"] | null;
+            /** @description SafeURL */
+            publicBaseURL: components["schemas"]["SafeURL"];
+            /** @description LanguageTag */
+            baseLanguage: components["schemas"]["LanguageTag"];
+            /**
+             * @description title/site模板
+             * @default {title} | {site}
+             */
+            titleTemplate: string;
+            /** @description SEO文本 */
+            description: string;
+            /**
+             * @description 搜索引擎
+             * @default true
+             */
+            indexingEnabled: boolean;
+            /** @description HomeConfig */
+            home: components["schemas"]["HomeConfig"];
+            /** @description FooterConfig */
+            footer: components["schemas"]["FooterConfig"];
+            /** @description 暂无公告null */
+            banner: components["schemas"]["Announcement"] | null;
+            /** @description ResourceLimits */
+            resourceLimits: components["schemas"]["ResourceLimits"];
+            /** @description SecurityPolicy */
+            securityPolicy: components["schemas"]["SecurityPolicy"];
+            /** @description CAS */
+            revision: components["schemas"]["Revision"];
+            /** @description 已登录唯一超管完成name/baseLanguage向导 */
+            initialized: boolean;
+            /** @description 修改 */
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 读取后台站点配置的结果 */
+        ReadSiteConfigResult: {
+            /** @description SiteConfig */
+            config: components["schemas"]["SiteConfig"];
         };
     };
     responses: never;
@@ -5154,7 +5671,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 对象不存在、游标已过保留期或公开派生结果尚不可用。 */
+            /** @description 仅INVOCATION_NOT_ACCEPTED表示真实tracking确认原键/root/site/epoch/body未被接受；普通路由NOT_FOUND不构成负证明。 */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5244,6 +5761,199 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    readUsageStatisticsPage: {
+        parameters: {
+            query?: {
+                afterRevision?: components["schemas"]["Revision"];
+                watermark?: components["schemas"]["Revision"];
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 完整当前页；后续新写不改变已固定上界。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadUsageStatisticsPageResult"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resolveTaskRoute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveRouteInput"];
+            };
+        };
+        responses: {
+            /** @description 同一权威SQL快照的真实固定候选，不创建费用或任务 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolveRouteResult"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 严格失败，未知来源不伪空页/0。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
         };
     };

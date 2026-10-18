@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 177 个函数：约束 21 个，参考 156 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 235 个函数：约束 21 个，参考 214 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -45,7 +45,7 @@ func SignAssertion(key SigningKey, claims AssertionClaims) (string, error)
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：纯函数，可并发
 - 幂等：每次生成新jti
-- 依赖：`platform.validLoginScopes`、`platform.validBudgetScopes`
+- 依赖：`platform.validLoginScopes`、`platform.validBudgetScopes`、`platform.ValidateCleanupScope`
 
 ## platform.VerifyAssertion
 
@@ -217,7 +217,7 @@ func SignOutboundRequest(ctx context.Context, r *http.Request, issuer, audience 
 - 授权：permission：service；rule：库函数，只取已建立可信OperationContext；签名站点不授予用户或对象权限
 - 并发：无共享可变业务状态；每次RPC独立上下文
 - 幂等：每次传输签发新jti，业务op与root不由此重建
-- 依赖：`platform.SignAssertion`、`platform.applyOperationHeaders`
+- 依赖：`platform.SignAssertion`、`platform.applyOperationHeaders`、`platform.CleanupIssuerFrom`、`platform.ValidateCleanupScope`
 
 ## platform.applyOperationHeaders
 
@@ -993,6 +993,41 @@ func EnqueueEvent(tx Tx, envelope EventEnvelope) error
 - 幂等：eventId唯一
 - 依赖：无
 
+## platform.EnsureSchema
+
+- 级别：参考
+- 文件：`libs/platform/outbox/outbox.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func EnsureSchema(ctx context.Context, db *sql.DB) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
 ## platform.RunRelay
 
 - 级别：约束
@@ -1188,6 +1223,7 @@ func RunRelayBatch(ctx context.Context, store OutboxStore, client EventPublisher
 2. 先按当前epoch丢弃旧代pending，再重新取得窗口领取本批30秒行租约；不持SQL事务调用jobs
 3. 逐条发布固定信封；网络返回后重取运行/窗口，只有同代且窗口有效才标relayed、隔离或安排1/2/4秒退避（上限60秒）
 4. 原代改变则只丢弃原代行；本批已持久确认/隔离/保留pending分别计数，未知本地提交或窗口错误不返回成功计数
+5. 必需真实已装配的scope准入hook，缺失失败关闭，统计完整实际在途直到最终本地提交/确认完成。
 
 **错误**
 
@@ -1199,7 +1235,7 @@ func RunRelayBatch(ctx context.Context, store OutboxStore, client EventPublisher
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：行级租约防多实例重复
 - 幂等：eventId固定
-- 依赖：`jobs:publishEvent`、`platform.relayWriteContext`、`platform.NewWriteContext`
+- 依赖：`jobs:publishEvent`、`platform.relayWriteContext`、`platform.NewWriteContext`、`platform.SnapshotManager.BindOutboxEventScope`
 
 ## platform.ClaimInbox
 
@@ -1412,6 +1448,9 @@ func RunConsumerWithResult(ctx context.Context, client EventConsumerClient, conf
 3. 同subject串行，分片间并发；权威未知/维护屏障暂停；新代不确认，旧代确认计skipped
 4. 信封/schema错误、handler失败或缺失、确认失败均不确认且计failed；handler明确ErrEventSkipped只确认计skipped
 5. 正常提交且确认成功计acknowledged；ctx退出排空分片后返回累计计数
+6. 必需真实已装配的scope准入hook，缺失失败关闭，统计完整实际在途直到最终本地提交/确认完成。
+7. 每条事件入队前AdmitDelivery独立scope，不继承订阅流结束的ctx，完成handler提交及ack返回后才释放。
+8. 订阅批次与单条投递各有独立scope；结束订阅不取消已入队投递的独立上下文。
 
 **错误**
 
@@ -1421,7 +1460,7 @@ func RunConsumerWithResult(ctx context.Context, client EventConsumerClient, conf
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：每进程一个订阅
 - 幂等：依赖处理函数inbox去重
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`platform.consumerLoop.start`、`platform.consumerLoop.stop`、`platform.consumerLoop.operation`、`platform.consumerLoop.dispatch`、`platform.inbox.readRuntime`、`platform.inbox.pauseFor`、`platform.inbox.sleep`、`platform.inbox.isConfigRejected`
+- 依赖：`jobs:acknowledgeEvent`、`jobs:subscribeEvents`、`platform.consumerLoop.dispatch`、`platform.consumerLoop.operation`、`platform.consumerLoop.start`、`platform.consumerLoop.stop`、`platform.inbox.isConfigRejected`、`platform.consumerLoop.pauseFor`、`platform.inbox.readRuntime`、`platform.inbox.sleep`、`platform.SnapshotManager.AllowEventDrain`、`platform.SnapshotManager.AdmitEventBatch`
 
 ## platform.consumerLoop.start
 
@@ -1429,8 +1468,8 @@ func RunConsumerWithResult(ctx context.Context, client EventConsumerClient, conf
 - 文件：`libs/platform/inbox/consumer.go`
 - 作用：事件消费内部实际助手：consumerLoop.start
 
-```ts
-func(c *consumerLoop) start(ctx context.Context)
+```go
+func (c *consumerLoop) start(ctx context.Context)
 ```
 
 **输入**
@@ -1461,8 +1500,8 @@ func(c *consumerLoop) start(ctx context.Context)
 - 文件：`libs/platform/inbox/consumer.go`
 - 作用：事件消费内部实际助手：consumerLoop.stop
 
-```ts
-func(c *consumerLoop) stop()
+```go
+func (c *consumerLoop) stop()
 ```
 
 **输入**
@@ -1493,8 +1532,8 @@ func(c *consumerLoop) stop()
 - 文件：`libs/platform/inbox/consumer.go`
 - 作用：事件消费内部实际助手：consumerLoop.worker
 
-```ts
-func(c *consumerLoop) worker(ctx context.Context,index int)
+```go
+func (c *consumerLoop) worker(ctx context.Context, index int)
 ```
 
 **输入**
@@ -1525,8 +1564,8 @@ func(c *consumerLoop) worker(ctx context.Context,index int)
 - 文件：`libs/platform/inbox/consumer.go`
 - 作用：事件消费内部实际助手：consumerLoop.queueFor
 
-```ts
-func(c *consumerLoop) queueFor(subject string)chan EventEnvelope
+```go
+func (c *consumerLoop) queueFor(subject string) chan consumerDelivery
 ```
 
 **输入**
@@ -1557,8 +1596,8 @@ func(c *consumerLoop) queueFor(subject string)chan EventEnvelope
 - 文件：`libs/platform/inbox/consumer.go`
 - 作用：事件消费内部实际助手：consumerLoop.operation
 
-```ts
-func(c *consumerLoop) operation(ctx context.Context,epoch,root string)(context.Context,context.CancelFunc)
+```go
+func (c *consumerLoop) operation(ctx context.Context, epoch, root string) (context.Context, context.CancelFunc)
 ```
 
 **输入**
@@ -1589,8 +1628,8 @@ func(c *consumerLoop) operation(ctx context.Context,epoch,root string)(context.C
 - 文件：`libs/platform/inbox/consumer.go`
 - 作用：事件消费内部实际助手：consumerLoop.dispatch
 
-```ts
-func(c *consumerLoop) dispatch(ctx context.Context,stream EventStream,lastID *string)bool
+```go
+func (c *consumerLoop) dispatch(parent context.Context, ctx context.Context, stream platform.EventStream, lastID *string) bool
 ```
 
 **输入**
@@ -1621,8 +1660,8 @@ func(c *consumerLoop) dispatch(ctx context.Context,stream EventStream,lastID *st
 - 文件：`libs/platform/inbox/consumer.go`
 - 作用：事件消费内部实际助手：consumerLoop.acknowledge
 
-```ts
-func(c *consumerLoop) acknowledge(ctx context.Context,event EventEnvelope,skipped bool)
+```go
+func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnvelope, skipped bool)
 ```
 
 **输入**
@@ -1645,7 +1684,7 @@ func(c *consumerLoop) acknowledge(ctx context.Context,event EventEnvelope,skippe
 - 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
 - 并发：仅运行时自己的分片与原子计数
 - 幂等：确认沿consumerId/eventId稳定幂等键
-- 依赖：`platform.inbox.readRuntime`、`platform.inbox.pauseFor`、`platform.consumerLoop.operation`
+- 依赖：`platform.inbox.readRuntime`、`platform.consumerLoop.pauseFor`、`platform.consumerLoop.operation`
 
 ## platform.consumerLoop.process
 
@@ -1653,8 +1692,8 @@ func(c *consumerLoop) acknowledge(ctx context.Context,event EventEnvelope,skippe
 - 文件：`libs/platform/inbox/consumer.go`
 - 作用：事件消费内部实际助手：consumerLoop.process
 
-```ts
-func(c *consumerLoop) process(ctx context.Context,event EventEnvelope)
+```go
+func (c *consumerLoop) process(ctx context.Context, event platform.EventEnvelope)
 ```
 
 **输入**
@@ -1677,7 +1716,7 @@ func(c *consumerLoop) process(ctx context.Context,event EventEnvelope)
 - 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
 - 并发：仅运行时自己的分片与原子计数
 - 幂等：确认沿consumerId/eventId稳定幂等键
-- 依赖：`platform.inbox.readRuntime`、`platform.inbox.pauseFor`、`platform.consumerLoop.operation`、`platform.consumerLoop.acknowledge`
+- 依赖：`platform.inbox.readRuntime`、`platform.consumerLoop.pauseFor`、`platform.consumerLoop.operation`、`platform.consumerLoop.acknowledge`
 
 ## platform.consumerLoop.classify
 
@@ -1685,8 +1724,8 @@ func(c *consumerLoop) process(ctx context.Context,event EventEnvelope)
 - 文件：`libs/platform/inbox/consumer.go`
 - 作用：事件消费内部实际助手：consumerLoop.classify
 
-```ts
-func(c *consumerLoop) classify(ctx context.Context,event EventEnvelope)outcome
+```go
+func (c *consumerLoop) classify(ctx context.Context, event platform.EventEnvelope) outcome
 ```
 
 **输入**
@@ -1709,7 +1748,7 @@ func(c *consumerLoop) classify(ctx context.Context,event EventEnvelope)outcome
 - 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
 - 并发：仅运行时自己的分片与原子计数
 - 幂等：确认沿consumerId/eventId稳定幂等键
-- 依赖：`platform.inbox.readRuntime`、`platform.inbox.pauseFor`、`platform.inbox.eventKey`、`platform.validateEnvelope`
+- 依赖：`platform.inbox.readRuntime`、`platform.consumerLoop.pauseFor`、`platform.inbox.eventKey`、`platform.validateEnvelope`
 
 ## platform.inbox.eventKey
 
@@ -1718,7 +1757,7 @@ func(c *consumerLoop) classify(ctx context.Context,event EventEnvelope)outcome
 - 作用：事件消费内部实际助手：inbox.eventKey
 
 ```go
-func eventKey(name string,version int)string
+func eventKey(name string, version int) string
 ```
 
 **输入**
@@ -1743,14 +1782,14 @@ func eventKey(name string,version int)string
 - 幂等：确认沿consumerId/eventId稳定幂等键
 - 依赖：无
 
-## platform.inbox.pauseFor
+## platform.consumerLoop.pauseFor
 
 - 级别：参考
 - 文件：`libs/platform/inbox/consumer.go`
 - 作用：事件消费内部实际助手：inbox.pauseFor
 
 ```go
-func pauseFor(view RuntimeView)bool
+func (c *consumerLoop) pauseFor(ctx context.Context, view platform.RuntimeView) bool
 ```
 
 **输入**
@@ -1773,7 +1812,7 @@ func pauseFor(view RuntimeView)bool
 - 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
 - 并发：仅运行时自己的分片与原子计数
 - 幂等：确认沿consumerId/eventId稳定幂等键
-- 依赖：无
+- 依赖：`platform.SnapshotManager.AllowEventDrain`
 
 ## platform.inbox.readRuntime
 
@@ -1782,7 +1821,7 @@ func pauseFor(view RuntimeView)bool
 - 作用：事件消费内部实际助手：inbox.readRuntime
 
 ```go
-func readRuntime(ctx context.Context,provider func(context.Context)(RuntimeView,error))(RuntimeView,bool)
+func readRuntime(ctx context.Context, provider func(context.Context) (platform.RuntimeView, error)) (platform.RuntimeView, bool)
 ```
 
 **输入**
@@ -1814,7 +1853,7 @@ func readRuntime(ctx context.Context,provider func(context.Context)(RuntimeView,
 - 作用：事件消费内部实际助手：inbox.sleep
 
 ```go
-func sleep(ctx context.Context,d time.Duration)bool
+func sleep(ctx context.Context, d time.Duration) bool
 ```
 
 **输入**
@@ -1846,7 +1885,7 @@ func sleep(ctx context.Context,d time.Duration)bool
 - 作用：事件消费内部实际助手：inbox.isConfigRejected
 
 ```go
-func isConfigRejected(err error)bool
+func isConfigRejected(err error) bool
 ```
 
 **输入**
@@ -2142,6 +2181,9 @@ func RunWorkerLoopWithResult(ctx context.Context, client WorkerJobsClient, confi
 2. Claim真实成功累计claimed；CompleteJob成功回执才completed；FailJob成功回执后仅明确CANCELLED计cancelled，其余failed，任何未确认终局不计。
 3. 正常ctx退出等待所有worker及其heartbeat goroutine排空后返完整累计；不包装伪客户端、不造0统计或新任务。
 4. 必须实际TypedWorkerJobsClient按config.JobTypes领取前筛选，缺少此能力失败关闭，不以本地丢弃已领取任务代替。
+5. 必需真实已装配的scope准入hook，缺失失败关闭，统计完整实际在途直到最终本地提交/确认完成。
+6. 每一并发槽位领取前获取基于进程ctx的scope，claim RPC短截止不截短任务本身，贯穿执行、在途心跳退出与最终complete/fail。
+7. WorkerConfig.AdmitBusiness必须装SnapshotManager.AdmitJobClaim，BindExecutionScope装SnapshotManager.BindJobExecutionScope；仅公共循环完成factory与ClaimedJob匹配后绑定一次。
 
 **错误**
 
@@ -2151,7 +2193,75 @@ func RunWorkerLoopWithResult(ctx context.Context, client WorkerJobsClient, confi
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：并发≤maxConcurrency
 - 幂等：jobs按jobId与fence去重
-- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`platform.workerControlContext`、`platform.newExecutionLease`、`platform.executionLeaseContext`、`platform.renewExecutionLease`、`platform.ClaimJob`、`platform.StartJob`、`platform.HeartbeatJob`、`platform.CheckLease`、`platform.CompleteJob`、`platform.FailJob`、`platform.ClaimJobTypes`
+- 依赖：`jobs:checkLease`、`jobs:claimJob`、`jobs:completeJob`、`jobs:failJob`、`jobs:heartbeatJob`、`jobs:startJob`、`platform.CheckLease`、`platform.ClaimJob`、`platform.ClaimJobTypes`、`platform.CompleteJob`、`platform.FailJob`、`platform.HeartbeatJob`、`platform.SnapshotManager.AdmitJobClaim`、`platform.StartJob`、`platform.executionLeaseContext`、`platform.newExecutionLease`、`platform.renewExecutionLease`、`platform.workerControlContext`、`platform.workerLoop.run`
+
+## platform.workerLoop.run
+
+- 级别：参考
+- 文件：`libs/platform/worker/loop.go`
+- 作用：公共循环真实scope的领取/入队/执行/最终确认接线
+
+```go
+func (l *workerLoop) run(ctx context.Context, index int)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。
+2. WorkerConfig.AdmitBusiness必须装SnapshotManager.AdmitJobClaim，BindExecutionScope装SnapshotManager.BindJobExecutionScope；仅公共循环完成factory与ClaimedJob匹配后绑定一次。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：`platform.workerLoop.execute`
+
+## platform.workerLoop.execute
+
+- 级别：参考
+- 文件：`libs/platform/worker/loop.go`
+- 作用：公共循环真实scope的领取/入队/执行/最终确认接线
+
+```go
+func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.ClaimedJob)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只持有真实已准入scope处理已登记任务/事件，在最终IO与确认返回后才释放，不把随机领取root用为付费cleanup。
+2. WorkerConfig.AdmitBusiness必须装SnapshotManager.AdmitJobClaim，BindExecutionScope装SnapshotManager.BindJobExecutionScope；仅公共循环完成factory与ClaimedJob匹配后绑定一次。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：`platform.SnapshotManager.BindJobExecutionScope`
 
 ## platform.InvokeModel
 
@@ -2181,23 +2291,535 @@ func InvokeModel(ctx context.Context, client GatewayClient, op OperationContext,
 
 **步骤**
 
-1. model-gateway:createInference（幂等键=操作ID+步骤名）
-2. model-gateway:resumeInference按序号读取到终态，流式时逐条回调
-3. 取消或截止时model-gateway:cancelInference
-4. failed/charge_unknown按网关Problem返回，不在调用方重放
-5. 首次从排他序号0重读已持久事件；已succeeded调用也重读既有付费结果，不按当前lastSequence跳过
-6. 超过4096事件返回BUDGET_EXCEEDED并取消，不静默截断
+1. 先用原完整请求和原键LookupInference，仅真可信tracking证明INVOCATION_NOT_ACCEPTED(404)且原付费截止有效才Create原键/原input；从不换键重付。
+2. 有原调用只观察同ID。独立5秒fresh只读op保原owner/root/site/epoch/costClass和请求全值，不重签permit或延长付费deadline。
+3. 当前真实winning output与事件历史独立返回CurrentSnapshot，未知费用不抹去完整结果，不伪造SSE或零费用。
+4. SSE从0排他序号重读已付费事件，最多4096条不截断；每次历史终态或流结束后取当前Get权威，旧charge_unknown/StreamError不遮住后来完整结果。
+5. 所有Create已接受后的错误/取消均保留真实InvocationID/CurrentSnapshot/已收事件；读取故障不伪404或重派。
+6. 只有INVOCATION_NOT_ACCEPTED表示真实tracking证明原键未被接受；普通NOT_FOUND/旧部署路由404为未知或缺能力，绝不凭此Create。
 
 **错误**
 
-- `CANCELLED`：已取消（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：网关失败（可重试）
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INVOCATION_NOT_ACCEPTED`：仅lookup真实完整tracking的精确否证明（不可重试）
 
 - 副作用：HTTP调用网关
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：每次调用独立
 - 幂等：幂等键固定
-- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.NewGatewayClient`
+- 依赖：`model-gateway:cancelInference`、`model-gateway:createInference`、`model-gateway:lookupInference`、`model-gateway:readInference`、`model-gateway:resumeInference`、`platform.GetInference`、`platform.LookupInference`、`platform.NewGatewayClient`、`platform.bindDeadline`、`platform.cancelCall`、`platform.drain`、`platform.finishKnownGatewaySnapshot`、`platform.gatewayReadContext`、`platform.modelInvokeSleep`、`platform.notifyCurrentModelTerminal`、`platform.readCurrentGatewaySnapshot`
+
+## platform.gatewayReadContext
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：保原owner/actor/root/site/epoch/costClass与上下文值，脱离原HTTP/付费取消只给5秒新读取RPC截止与新OperationID，清旧portal proof。
+
+```go
+func gatewayReadContext(ctx context.Context, op OperationContext) (context.Context, context.CancelFunc)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保原owner/actor/root/site/epoch/costClass与上下文值，脱离原HTTP/付费取消只给5秒新读取RPC截止与新OperationID，清旧portal proof。
+2. 不改原op或原body、不重签/续消费permit，仅只读观察与取消原调用控制用。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.readCurrentGatewaySnapshot
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：当前真实Get快照仅同原ID更新CurrentSnapshot，失败保留上次事实。
+
+```go
+func readCurrentGatewaySnapshot(ctx context.Context, client CurrentInvocationReader, op OperationContext, outcome *InvokeModelOutcome) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 当前真实Get快照仅同原ID更新CurrentSnapshot，失败保留上次事实。
+2. 已接受ID的Get404为缺失权威Integrity，不当作新付费许可。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.GetInference`、`platform.gatewayReadContext`
+
+## platform.finishKnownGatewaySnapshot
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：当前真实完整output直接交付completed，费用状态仍原样保留CurrentSnapshot。
+
+```go
+func finishKnownGatewaySnapshot(outcome *InvokeModelOutcome, lastSequence int64) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 当前真实完整output直接交付completed，费用状态仍原样保留CurrentSnapshot。
+2. 旧完整文本无output时只可从原持久事件序号读到当前LastSequence和真实completed证据完成，不伪造CurrentSnapshot.Output。
+3. 终态当前证据不全时Integrity而不404或新键补算。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.terminalOf`
+
+## platform.modelEventTerminal
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：原模型调用的严格当前只读观察或接受事实保留
+
+```go
+func modelEventTerminal(event StreamEvent) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只使用原键、原主体和原root/site/epoch/costClass读真实生产方证据，不重签准入、不换键重付、不伪造事件。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.terminalOf`
+
+## platform.notifyCurrentModelTerminal
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：只回调与刚Get的当前状态/结果来源兼容的原始真实终态事件。
+
+```go
+func notifyCurrentModelTerminal(input InvokeModelRequest, outcome InvokeModelOutcome) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只回调与刚Get的当前状态/结果来源兼容的原始真实终态事件。
+2. 旧StreamError/charge_unknown过时不作当前终态回调，但原样保留Events；不构造合成SSE。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.drain
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：按原排他序号逐条保留真实事件，重复可跳过、缺号Integrity，超4096取消而不静默截断。
+
+```go
+func drain(ctx context.Context, client GatewayClient, stream ModelEventStream, input InvokeModelRequest, outcome *InvokeModelOutcome, lastSequence *int64) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按原排他序号逐条保留真实事件，重复可跳过、缺号Integrity，超4096取消而不静默截断。
+2. 非终态可实时OnEvent；历史终态先回外层Get当前权威再决定回调。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.cancelCall`、`platform.modelEventTerminal`
+
+## platform.terminalOf
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：原模型调用的严格当前只读观察或接受事实保留
+
+```go
+func terminalOf(state string) (string, bool)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只使用原键、原主体和原root/site/epoch/costClass读真实生产方证据，不重签准入、不换键重付、不伪造事件。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.cancelCall
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：只取消已知原ID，原root/owner/site/epoch/costClass的独立5秒控制RPC设有效截止，不伸长付费任务截止。
+
+```go
+func cancelCall(ctx context.Context, client GatewayClient, invocationID Identifier, idempotencyKey string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只取消已知原ID，原root/owner/site/epoch/costClass的独立5秒控制RPC设有效截止，不伸长付费任务截止。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.CancelInference`、`platform.gatewayReadContext`
+
+## platform.bindDeadline
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：把原付费op.Deadline与ctx取较早值，坏截止失败关闭不弃截止付费。
+
+```go
+func bindDeadline(ctx context.Context, op OperationContext) (context.Context, context.CancelFunc, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 把原付费op.Deadline与ctx取较早值，坏截止失败关闭不弃截止付费。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.modelInvokeSleep
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：原模型调用的严格当前只读观察或接受事实保留
+
+```go
+func modelInvokeSleep(ctx context.Context, d time.Duration) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只使用原键、原主体和原root/site/epoch/costClass读真实生产方证据，不重签准入、不换键重付、不伪造事件。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.ObserveInvocation
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：仅用原已知ID、原owner/root/site/epoch/costClass以fresh5秒只读Get观察当前真实快照。
+
+```go
+func ObserveInvocation(ctx context.Context, client GatewayClient, op OperationContext, invocationID Identifier) (GatewayInvocationSnapshot, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅用原已知ID、原owner/root/site/epoch/costClass以fresh5秒只读Get观察当前真实快照。
+2. 不Create、不Cancel、不收费、不触发流回调；原deadline已过仍可读，错误不当不存在重派。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：仅原调用当前权威的只读RPC，不新建应用状态或费用
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.readCurrentGatewaySnapshot`
+
+## platform.LookupModelInvocation
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/invoke.go`
+- 作用：仅用原完整body/原key在fresh5秒只读lookup，保原owner/actor/root/site/epoch/costClass。
+
+```go
+func LookupModelInvocation(ctx context.Context, client GatewayClient, op OperationContext, input InvokeModelRequest) (GatewayInvocationSnapshot, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅用原完整body/原key在fresh5秒只读lookup，保原owner/actor/root/site/epoch/costClass。
+2. 不走InvokeModel可Create分支，原deadline是否有效均不Create/Cancel/收费，不重签permit。
+3. 缺能力/marker或存储证据错误保留真实错误，不伪404。
+4. 只有INVOCATION_NOT_ACCEPTED表示真实tracking证明原键未被接受；普通NOT_FOUND/旧部署路由404为未知或缺能力，绝不凭此Create。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INVOCATION_NOT_ACCEPTED`：仅lookup真实完整tracking的精确否证明（不可重试）
+
+- 副作用：仅原调用当前权威的只读RPC，不新建应用状态或费用
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.gatewayReadContext`、`platform.LookupInference`
 
 ## platform.LoadServiceConfig
 
@@ -2560,6 +3182,7 @@ func RunRecoveryLoop(ctx context.Context, config RecoveryLoopConfig) error
 2. NewWriteContext核当前epoch/阶段/维护窗口；单批最多30秒，业务每次RPC前后仍核自己的权威
 3. 仅显式retryable平台错误及批次deadline在下周期继续；未知或永久错误上报退出，持久决定不丢
 4. 取消立即停止新批次，原ctx取消传下游IO；不建立新的模型/付费尝试
+5. 每个本域恢复批次必需AdmitBatch真实独立scope并持有到完整Recover与最终持久IO返回，不绕过屏障新准入。
 
 **错误**
 
@@ -2728,6 +3351,10 @@ func NewServiceHandler(spec OpenAPIDocument, config ServiceBoundaryConfig, handl
 4. 合法Idempotency-Key作为operationId；原root保留；注入原PortalProof供下游原样传递
 5. 一次严格schema验证后交本域适配；用户权限由Authorize当前权威回调确认
 6. 仅显式ServiceActorCallers子白名单且Actor.Kind=service允许业务service读取；有用户委托仍要求当前用户权威，不借服务名绕过
+7. 必需真实已装配的scope准入hook，缺失失败关闭，统计完整实际在途直到最终本地提交/确认完成。
+8. ControllerOperations仅供可信启动固定登记纯控制操作，只免业务scope，身份/schema/权限/epoch不绕过。
+9. 非控制HTTP在全部边界授权/schema校验后用AdmitBusiness获独立lease，直到handler/响应流完全返回才释放。
+10. cleanupScope仅固定CleanupOperations，真实path/body资源及policy.BrokerControl全等并经AuthorizeCleanup权威原对象归属，才AdmitCleanup整请求lease；不绕原身份/权限/epoch。
 
 **错误**
 
@@ -2742,7 +3369,7 @@ func NewServiceHandler(spec OpenAPIDocument, config ServiceBoundaryConfig, handl
 - 授权：入口验证服务身份与用户即时授权，策略只来自本域合同装配
 - 并发：只读启动配置，单请求上下文隔离
 - 幂等：以可信Idempotency-Key建立operationId，不改已有费用rootOperationId
-- 依赖：`platform.NewRequestValidator`、`platform.BuildOperationContext`、`platform.WriteProblem`
+- 依赖：`platform.NewRequestValidator`、`platform.BuildOperationContext`、`platform.WriteProblem`、`platform.CleanupResourceID`、`platform.SnapshotManager.AdmitCleanup`
 
 ## platform.NewIdentityAuthorizer
 
@@ -2983,7 +3610,7 @@ func readSnapshotStageRecord(dataRoot, restoreID string) (snapshotStageRecord, e
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
-- 依赖：`platform.CanonicalJSON`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.snapshotStageID`
+- 依赖：`platform.CanonicalJSON`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.snapshotStageID`、`platform.validateSnapshotManifestVersion`
 
 ## platform.ApplyRestoreSwap
 
@@ -4165,7 +4792,7 @@ func (c *jobsClient) ClaimJobTypes(ctx context.Context, owner, workerID string, 
 
 - 级别：参考
 - 文件：`libs/platform/modelclient/client.go`
-- 作用：启动要求CreateInvocationResult/CancelInvocationResult/StreamEvent校验器并复制映射；不执行RPC
+- 作用：统一网关生成端口并要求五个真实响应校验器，构造不RPC。
 
 ```go
 func NewGatewayClient(raw RawGatewayClient, validators GatewayResponseValidators) (GatewayClient, error)
@@ -4187,17 +4814,18 @@ func NewGatewayClient(raw RawGatewayClient, validators GatewayResponseValidators
 
 **步骤**
 
-1. 启动要求CreateInvocationResult/CancelInvocationResult/StreamEvent校验器并复制映射；不执行RPC
+1. 要求CreateInvocationResult/CancelInvocationResult/StreamEvent/GetInvocationResult/LookupInvocationResult五个真实生产方严格校验器，拷贝映射，构造不调RPC。
+2. 旧RawGatewayClient三方法不破坏，读端口经可选RawCurrentGatewayClient/RawLookupGatewayClient获取；Invoke缺此能力失败关闭。
 
 **错误**
 
-- `VALIDATION`：客户端或六个校验器缺失（不可重试）
+- `VALIDATION`：端口或五个校验器缺失（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
 - 并发：无共享可变业务状态；每次RPC独立上下文
 - 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
-- 依赖：`platform.CreateInference`、`platform.CancelInference`、`platform.ResumeInference`
+- 依赖：`platform.CancelInference`、`platform.CreateInference`、`platform.GetInference`、`platform.LookupInference`、`platform.ResumeInference`
 
 ## platform.decodeInvocation
 
@@ -4226,6 +4854,7 @@ func (c *gatewayClient) decodeInvocation(name string, raw JSONBytes) (Invocation
 **步骤**
 
 1. 按生产方严格schema核响应再解析invocation
+2. 原始响应必须是真实UTF8。
 
 **错误**
 
@@ -4275,7 +4904,7 @@ func (c *gatewayClient) CreateInference(ctx context.Context, key string, input C
 - 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
 - 并发：无共享可变业务状态；每次RPC独立上下文
 - 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
-- 依赖：`model-gateway:createInference`、`platform.decodeInvocation`
+- 依赖：`model-gateway:createInference`、`platform.decodeInvocation`、`platform.normalizeGatewayInput`
 
 ## platform.CancelInference
 
@@ -4306,6 +4935,7 @@ func (c *gatewayClient) CancelInference(ctx context.Context, key string, id stri
 
 1. 生产方body仅invocationId/reason/idempotencyKey，路径与body一致
 2. 严格响应校验并核取消对象
+3. 成功回执还必须与原root/costClass相同，无原可信op不发送取消。
 
 **错误**
 
@@ -4384,6 +5014,7 @@ func (s *validatedModelStream) Next(ctx context.Context) (StreamEvent, error)
 
 1. 原始JSON先严格schema校验，再解析；对象与流invocationId一致
 2. output仅completed，向量空间维度一致且有限，重排与嵌入数据不得混合
+3. 原始JSON必须为真实UTF8，输出复用validateModelOutput核Text指针、64KiB与三类字段互斥。
 
 **错误**
 
@@ -4393,7 +5024,7 @@ func (s *validatedModelStream) Next(ctx context.Context) (StreamEvent, error)
 - 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
 - 并发：无共享可变业务状态；每次RPC独立上下文
 - 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
-- 依赖：无
+- 依赖：`platform.validateModelOutput`
 
 ## platform.validatedModelClose
 
@@ -4456,6 +5087,217 @@ func (s *validatedModelStream) LastID() string
 **错误**
 
 - `VALIDATION`：客户端或六个校验器缺失（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.LookupInference
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：使用可选RawLookupGatewayClient的原lookupInference操作，原键和完整规范输入与Create同一编码，不写任何费用。
+
+```go
+func (c *gatewayClient) LookupInference(ctx context.Context, key string, input CreateInvocationInput) (GatewayInvocationSnapshot, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 使用可选RawLookupGatewayClient的原lookupInference操作，原键和完整规范输入与Create同一编码，不写任何费用。
+2. 严格LookupInvocationResult后核原root/costClass和结果能力，错误不伪404。
+3. 只有INVOCATION_NOT_ACCEPTED表示真实tracking证明原键未被接受；普通NOT_FOUND/旧部署路由404为未知或缺能力，绝不凭此Create。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INVOCATION_NOT_ACCEPTED`：仅lookup真实完整tracking的精确否证明（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.decodeGatewaySnapshot`、`platform.normalizeGatewayInput`、`model-gateway:lookupInference`
+
+## platform.GetInference
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：使用可选RawCurrentGatewayClient.ReadInference只读当前权威。
+
+```go
+func (c *gatewayClient) GetInference(ctx context.Context, id string) (GatewayInvocationSnapshot, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 使用可选RawCurrentGatewayClient.ReadInference只读当前权威。
+2. 严格GetInvocationResult后核原ID/root/costClass，不替换原调用。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.decodeGatewaySnapshot`、`model-gateway:readInference`
+
+## platform.normalizeGatewayInput
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：有值的body键与原步骤键不一致则CONFLICT；同键编码保留全部原输入与可选批准字段，三个必需空集合显式[]。
+
+```go
+func normalizeGatewayInput(key string, input CreateInvocationInput) (CreateInvocationInput, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 有值的body键与原步骤键不一致则CONFLICT；同键编码保留全部原输入与可选批准字段，三个必需空集合显式[]。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.decodeGatewaySnapshot
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：真实生产方校验器先核完整UTF8/schema再解码，不定义影子成功结构。
+
+```go
+func (c *gatewayClient) decodeGatewaySnapshot(name string, raw JSONBytes) (GatewayInvocationSnapshot, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实生产方校验器先核完整UTF8/schema再解码，不定义影子成功结构。
+2. output必须有当前Invocation内真实winning attempt ID，不以费用状态猜结果。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.validateModelOutput`
+
+## platform.validateModelOutput
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：chat/vision/translation必须有Text指针，真实空串合法，≤64KiB UTF8，与空间/向量/排序互斥。
+
+```go
+func validateModelOutput(output *ModelOutput) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. chat/vision/translation必须有Text指针，真实空串合法，≤64KiB UTF8，与空间/向量/排序互斥。
+2. embedding空间/逐维长度/有限值一致；rerank不混Text/向量。
+
+**错误**
+
+- `VALIDATION`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `FORBIDDEN`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CONFLICT`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `INTEGRITY_ERROR`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_CAPABILITY`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `UNSUPPORTED_SCHEMA`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `BUDGET_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `CANCELLED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
+- `DEADLINE_EXCEEDED`：按真实原请求/当前权威或有界读取失败返回，保留已知接受事实（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
@@ -4827,8 +5669,8 @@ func NewEventConsumer(raw RawEventClient,validateAck func(json.RawMessage)error)
 - 文件：`libs/platform/inbox/client.go`
 - 作用：事件消费内部实际助手：eventConsumer.SubscribeEvents
 
-```ts
-func(c *eventConsumer) SubscribeEvents(ctx context.Context,consumerID,lastID string)(EventStream,error)
+```go
+func (c *eventConsumer) SubscribeEvents(ctx context.Context,consumerID,lastID string)(EventStream,error)
 ```
 
 **输入**
@@ -4859,8 +5701,8 @@ func(c *eventConsumer) SubscribeEvents(ctx context.Context,consumerID,lastID str
 - 文件：`libs/platform/inbox/client.go`
 - 作用：事件消费内部实际助手：eventConsumer.AcknowledgeEvent
 
-```ts
-func(c *eventConsumer) AcknowledgeEvent(ctx context.Context,consumerID,eventID string)error
+```go
+func (c *eventConsumer) AcknowledgeEvent(ctx context.Context,consumerID,eventID string)error
 ```
 
 **输入**
@@ -4939,6 +5781,7 @@ func (g *TaskGroup) Start(ctx context.Context, key string, run func(context.Cont
 **步骤**
 
 1. 只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。
+2. 必须已SetAdmission，在原业务截止下重新申请独立任务lease，不继承将被HTTP释放的同一lease；每个失败/重复/并发限制路径释放新lease，真实执行完原结算/终态后才释放。
 
 **错误**
 
@@ -5071,6 +5914,105 @@ func (g *TaskGroup) stop()
 **步骤**
 
 1. 只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：无
+
+## platform.TaskGroup.SetAdmission
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_group.go`
+- 作用：仅启动期装配一次真实新业务准入，无hook任务Start失败关闭。
+
+```go
+func (g *TaskGroup) SetAdmission(admit WorkAdmission) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅启动期装配一次真实新业务准入，无hook任务Start失败关闭。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：无
+
+## platform.TaskGroup.CancelActive
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_group.go`
+- 作用：只取消当前任务，不永久关闭集合，配合已关新准入的Manager用于屏障BeginDrain。
+
+```go
+func (g *TaskGroup) CancelActive() int
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只取消当前任务，不永久关闭集合，配合已关新准入的Manager用于屏障BeginDrain。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：无
+
+## platform.TaskGroup.WaitIdle
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_group.go`
+- 作用：等真实存量任务退出，不把该瞬时结果作全域safe。
+
+```go
+func (g *TaskGroup) WaitIdle(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 等真实存量任务退出，不把该瞬时结果作全域safe。
 
 **错误**
 
@@ -5315,6 +6257,76 @@ func LoadPortalDelegation(config ServiceConfig, anchors TrustAnchors) (SigningKe
 - 并发：启动时调用一次
 - 幂等：纯函数
 - 依赖：`platform.readIdentityConfig`、`platform.LoadSigningKey`
+
+## platform.DomainSnapshotManifest.MarshalJSON
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_types.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func (m DomainSnapshotManifest) MarshalJSON() ([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.validateSnapshotManifestVersion
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_types.go`
+- 作用：显式V1/2及真实库存非nil；V2要求assets/invocations，V1不接受新typed refs，不改原hash。
+
+```go
+func validateSnapshotManifestVersion(manifest DomainSnapshotManifest) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 显式V1/2及真实库存非nil；V2要求assets/invocations，V1不接受新typed refs，不改原hash。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：只访问固定私有配置引用或处理调用方原始字节；不记录秘密、不调用服务/模型。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
 
 ## platform.snapshotIOError
 
@@ -5959,7 +6971,7 @@ func validateSnapshotInventory(manifest DomainSnapshotManifest, validate func([]
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
-- 依赖：`platform.CanonicalJSON`、`platform.integrity`、`platform.safeSnapshotRelative`、`platform.snapshotBudget`、`platform.snapshotUnsupported`
+- 依赖：`platform.CanonicalJSON`、`platform.integrity`、`platform.safeSnapshotRelative`、`platform.snapshotBudget`、`platform.snapshotUnsupported`、`platform.validateSnapshotManifestVersion`
 
 ## platform.verifySnapshotInventoryTree
 
@@ -6156,8 +7168,7 @@ func NewSnapshotManager(config SnapshotConfig) (*SnapshotManager, error)
 
 **步骤**
 
-1. 必需真实完整回调，不导入业务域或自造数据清单。
-2. 从私有control读严格原屏障回执，核全值原输入摘要；重启旧safe先持久降为draining再真实证明。
+1. 强制真实回调齐全，读原持久barrier绑定；重启safe先failed，须原hash显式resume后重证。
 
 **错误**
 
@@ -6178,7 +7189,7 @@ func NewSnapshotManager(config SnapshotConfig) (*SnapshotManager, error)
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
-- 依赖：`platform.CanonicalJSON`、`platform.SnapshotManager.persistBarrier`、`platform.ValidatePrivatePath`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.snapshotIOError`
+- 依赖：`platform.CanonicalJSON`、`platform.SnapshotManager.persistBarrier`、`platform.ValidatePrivatePath`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.snapshotIOError`、`platform.SnapshotManager.PrepareBarrier`、`platform.SnapshotManager.DrainBarrier`、`platform.SnapshotManager.ObserveBarrier`、`platform.SnapshotManager.SealBarrier`、`platform.SnapshotManager.ResumeDrain`、`platform.SnapshotManager.AdmitEventBatch`、`platform.SnapshotManager.AllowEventDrain`、`platform.SnapshotManager.BindOutboxEventScope`、`platform.SnapshotManager.ExistingWorkContext`
 
 ## platform.SnapshotManager.persistBarrier
 
@@ -6351,7 +7362,7 @@ func (m *SnapshotManager) AdmitBusiness(ctx context.Context) (context.Context, f
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
-- 依赖：`platform.SnapshotManager.signalLocked`
+- 依赖：`platform.SnapshotManager.signalLocked`、`platform.WithCleanupIssuer`、`platform.snapshotAdmission.IssueCleanup`
 
 ## platform.SnapshotManager.WriteWindow
 
@@ -6375,6 +7386,7 @@ func (m *SnapshotManager) WriteWindow(ctx context.Context) (time.Time, error)
 
 1. 只认本Manager尚活跃的business/cleanup私有lease与ctx，不认外部字段。
 2. 维护下只在当前BackupBarrier/RestoreStaging精确barrier/epoch和draining原截止内给收尾窗口；safe已封闭。
+3. 未绑定的job_claim不可作业务写窗口。
 
 **错误**
 
@@ -6439,7 +7451,7 @@ func (c *SnapshotCleanup) Context(ctx context.Context) (context.Context, func(),
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
-- 依赖：`platform.SnapshotManager.signalLocked`
+- 依赖：`platform.SnapshotManager.signalLocked`、`platform.SnapshotManager.requireDraining`、`platform.SnapshotManager.newCleanupLocked`
 
 ## platform.SnapshotManager.runDrainCallback
 
@@ -6484,54 +7496,11 @@ func (m *SnapshotManager) runDrainCallback(ctx context.Context, callback func(co
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
 - 依赖：`platform.SnapshotCleanup.Context`、`platform.SnapshotManager.signalLocked`
 
-## platform.SnapshotManager.waitCounts
-
-- 级别：参考
-- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
-- 作用：实现公共快照内部单一机制
-
-```go
-func (m *SnapshotManager) waitCounts(ctx context.Context, all bool) error
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
-
-**错误**
-
-- `VALIDATION`：装配或输入不合法（不可重试）
-- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
-- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
-- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
-- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
-- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
-- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
-- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
-- `CANCELLED`：调用IO已取消（不可重试）
-- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
-- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
-
-- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
-- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
-- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
-- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
-- 依赖：`platform.snapshotIOError`
-
 ## platform.SnapshotManager.EnterBarrier
 
 - 级别：参考
 - 文件：`libs/platform/lifecycle/snapshot_barrier.go`
-- 作用：先核权威当前phase/barrier/epoch和原输入，同mutex下闭新准入并持久draining。
+- 作用：旧入口只转prepare，不单域直接宣称safe。
 
 ```go
 func (m *SnapshotManager) EnterBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)
@@ -6547,9 +7516,7 @@ func (m *SnapshotManager) EnterBarrier(ctx context.Context, input SnapshotBarrie
 
 **步骤**
 
-1. 先核权威当前phase/barrier/epoch和原输入，同mutex下闭新准入并持久draining。
-2. BeginDrain停领取/取消已有作业，等business全退出；Drain完成原费用、取消回执和最终outbox，关新cleanup签发并等存量清理结束。
-3. 读真实Watermark后复核当前权威和所有计数，才持久本进程safe。不以此自证全域/jobs最终安全。
+1. 旧入口只转prepare，不单域直接宣称safe。
 
 **错误**
 
@@ -6570,7 +7537,7 @@ func (m *SnapshotManager) EnterBarrier(ctx context.Context, input SnapshotBarrie
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
-- 依赖：`platform.CanonicalJSON`、`platform.SnapshotManager.persistBarrier`、`platform.SnapshotManager.runDrainCallback`、`platform.SnapshotManager.signalLocked`、`platform.SnapshotManager.waitCounts`、`platform.integrity`、`platform.lockSnapshotControl`
+- 依赖：`platform.CanonicalJSON`、`platform.SnapshotManager.persistBarrier`、`platform.SnapshotManager.runDrainCallback`、`platform.SnapshotManager.signalLocked`、`platform.integrity`、`platform.lockSnapshotControl`、`platform.SnapshotManager.PrepareBarrier`
 
 ## platform.SnapshotManager.ReleaseBarrier
 
@@ -6614,7 +7581,327 @@ func (m *SnapshotManager) ReleaseBarrier(ctx context.Context, barrierID string) 
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
-- 依赖：`platform.SnapshotManager.persistBarrier`、`platform.SnapshotManager.signalLocked`、`platform.integrity`、`platform.lockSnapshotControl`
+- 依赖：`platform.SnapshotManager.persistBarrier`、`platform.SnapshotManager.signalLocked`、`platform.integrity`、`platform.lockSnapshotControl`、`platform.Store.Resume`
+
+## platform.SnapshotManager.AdmitJobClaim
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：新领取仅running且本屏障released可准入。
+
+```go
+func (m *SnapshotManager) AdmitJobClaim(ctx context.Context) (context.Context, func(), error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 新领取仅running且本屏障released可准入。
+2. 私有lease标记job_claim且未绑定，清除随机claim root之原操作绑定；未绑定不可写入业务或签cleanup。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：`platform.SnapshotManager.AdmitBusiness`
+
+## platform.SnapshotManager.BindJobExecutionScope
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：仅公共worker核真实ClaimedJob与owner factory原op/原root/site/epoch相符后调用。
+
+```go
+func (m *SnapshotManager) BindJobExecutionScope(ctx context.Context, op platform.OperationContext, job platform.ClaimedJob) (context.Context, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅公共worker核真实ClaimedJob与owner factory原op/原root/site/epoch相符后调用。
+2. 仅本Manager活跃未绑定job_claim私有scope可绑定一次，保留真实JobID/循环workerID/原fence和真实原op/actor/root/site/costClass/epoch。
+3. 只建立既有执行身份绑定，不给新Start/paid授权，原租约与当前屏障照旧核对。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：无
+
+## platform.SnapshotManager.PrepareBarrier
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：核当前运行权威原barrier/epoch/mode/deadline，原输入hash幂等，持久draining拒新业务。
+
+```go
+func (m *SnapshotManager) PrepareBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核当前运行权威原barrier/epoch/mode/deadline，原输入hash幂等，持久draining拒新业务。
+2. 只取消旧进程任务并BeginDrain停止新周期/claim，不等待跨域收尾；所有14域先完成此步。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.SnapshotManager.runDrainCallback`
+
+## platform.SnapshotManager.DrainBarrier
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：在真实draining保留旧cleanup/inbox/outbox有限收尾，执行真实Drain，不触发冻结收费job。
+
+```go
+func (m *SnapshotManager) DrainBarrier(ctx context.Context, barrierID string) (SnapshotBarrierStatus, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在真实draining保留旧cleanup/inbox/outbox有限收尾，执行真实Drain，不触发冻结收费job。
+2. drain完成仅记Drained，不是safe。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.SnapshotManager.requireDraining`、`platform.SnapshotManager.runDrainCallback`
+
+## platform.SnapshotManager.requireDraining
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func (m *SnapshotManager) requireDraining(ctx context.Context, barrierID string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.SnapshotManager.ObserveBarrier
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：读真实全部活动outbox/持久工作水位与Watermark，前后进程activityRevision必须相同。
+
+```go
+func (m *SnapshotManager) ObserveBarrier(ctx context.Context, barrierID string) (SnapshotBarrierObservation, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读真实全部活动outbox/持久工作水位与Watermark，前后进程activityRevision必须相同。
+2. 包含未来retry/leased/quarantine，未知不当0；返回完整在途计数。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.SnapshotManager.requireDraining`、`platform.Store.Observe`
+
+## platform.SnapshotManager.SealBarrier
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：核14owner唯一排序全覆盖、全部在途0、broker前后同实际revision与0事件pending/lease。
+
+```go
+func (m *SnapshotManager) SealBarrier(ctx context.Context, proof SnapshotSealProof) (SnapshotBarrierStatus, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核14owner唯一排序全覆盖、全部在途0、broker前后同实际revision与0事件pending/lease。
+2. 真实VerifyGlobalSeal权威回调证明全域阶段；13非jobs先CAS封口，jobs必须最后核全部原proof回执与最终broker同水位。
+3. mutex关闭新cleanup并SealWork事务CAS全部持久写水位，持久safe与proofHash后方可导出。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.validateSnapshotSealProof`、`platform.SnapshotManager.requireDraining`、`platform.SnapshotManager.persistBarrier`、`platform.Store.Seal`
+
+## platform.SnapshotManager.ResumeDrain
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：精确原sealHash/barrier/epoch与维护决定绑定，ResumeWork只重开旧清理，不开新业务/付费。
+
+```go
+func (m *SnapshotManager) ResumeDrain(ctx context.Context, barrierID, expectedSealHash string) (SnapshotBarrierStatus, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确原sealHash/barrier/epoch与维护决定绑定，ResumeWork只重开旧清理，不开新业务/付费。
+2. safe/重启failed只能显式重开；仍需重新drain与全域稳定证明。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.SnapshotManager.persistBarrier`、`platform.Store.Resume`
+
+## platform.validateSnapshotSealProof
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func validateSnapshotSealProof(proof SnapshotSealProof, owner string) (SnapshotBarrierObservation, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
 
 ## platform.SnapshotManager.beginFileOperation
 
@@ -6702,7 +7989,7 @@ func (m *SnapshotManager) Export(ctx context.Context, input SnapshotExportInput)
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
-- 依赖：`platform.BuildSnapshotArchive`、`platform.CanonicalJSON`、`platform.SnapshotManager.beginFileOperation`、`platform.ValidatePrivatePath`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.removeSnapshotTree`、`platform.snapshotDirectory`、`platform.snapshotIOError`、`platform.syncSnapshotDirectories`、`platform.verifySnapshotExportRecord`、`platform.verifySnapshotFile`、`platform.writeSnapshotJSON`
+- 依赖：`platform.BuildSnapshotArchive`、`platform.CanonicalJSON`、`platform.SnapshotManager.beginFileOperation`、`platform.ValidatePrivatePath`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.removeSnapshotTree`、`platform.snapshotDirectory`、`platform.snapshotIOError`、`platform.syncSnapshotDirectories`、`platform.verifySnapshotExportRecord`、`platform.verifySnapshotFile`、`platform.writeSnapshotJSON`、`platform.CaptureSnapshotFiles`、`platform.DomainSnapshotManifest.MarshalJSON`
 
 ## platform.SnapshotManager.OpenArchive
 
@@ -6963,7 +8250,7 @@ func (m *SnapshotManager) Stage(ctx context.Context, input SnapshotStageInput, s
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
-- 依赖：`platform.CanonicalJSON`、`platform.CheckSnapshotDiskBudget`、`platform.ExtractSnapshotArchive`、`platform.SnapshotManager.beginFileOperation`、`platform.SnapshotManager.finishStage`、`platform.fingerprintSnapshotTree`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.removeSnapshotTree`、`platform.snapshotBudget`、`platform.snapshotDirectory`、`platform.snapshotIOError`、`platform.snapshotStageID`、`platform.syncSnapshotDirectories`、`platform.verifySnapshotFile`、`platform.writeSnapshotJSON`
+- 依赖：`platform.CanonicalJSON`、`platform.CheckSnapshotDiskBudget`、`platform.ExtractSnapshotArchive`、`platform.SnapshotManager.beginFileOperation`、`platform.SnapshotManager.finishStage`、`platform.fingerprintSnapshotTree`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.removeSnapshotTree`、`platform.snapshotBudget`、`platform.snapshotDirectory`、`platform.snapshotIOError`、`platform.snapshotStageID`、`platform.syncSnapshotDirectories`、`platform.verifySnapshotFile`、`platform.writeSnapshotJSON`、`platform.PrepareRestoredOutbox`、`platform.SnapshotStageBinding`
 
 ## platform.SnapshotManager.finishStage
 
@@ -7096,3 +8383,891 @@ func verifySnapshotExportRecord(record snapshotExportRecord) error
 - 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
 - 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
 - 依赖：`platform.CanonicalJSON`、`platform.integrity`
+
+## platform.WithCleanupIssuer
+
+- 级别：参考
+- 文件：`libs/platform/scope.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func WithCleanupIssuer(ctx context.Context, issuer CleanupScopeIssuer) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.CleanupIssuerFrom
+
+- 级别：参考
+- 文件：`libs/platform/scope.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func CleanupIssuerFrom(ctx context.Context) CleanupScopeIssuer
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.WithoutCleanupIssuer
+
+- 级别：参考
+- 文件：`libs/platform/scope.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func WithoutCleanupIssuer(ctx context.Context) context.Context
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.WithCleanupIssuer`、`platform.noCleanupIssuer.IssueCleanup`
+
+## platform.noCleanupIssuer.IssueCleanup
+
+- 级别：参考
+- 文件：`libs/platform/scope.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func (*noCleanupIssuer) IssueCleanup(context.Context, CleanupRequest) (*CleanupScope, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.MatchCleanupRoute
+
+- 级别：参考
+- 文件：`libs/platform/scope.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func MatchCleanupRoute(route CleanupRoute, request CleanupRequest) (string, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.CleanupResourceID`
+
+## platform.CleanupResourceID
+
+- 级别：参考
+- 文件：`libs/platform/scope.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func CleanupResourceID(rule CleanupResource, params map[string]string, body []byte) (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.ValidateCleanupScope
+
+- 级别：参考
+- 文件：`libs/platform/scope.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func ValidateCleanupScope(scope *CleanupScope, issuer, audience string, now time.Time) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.snapshotAdmission.IssueCleanup
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_cleanup.go`
+- 作用：真实活跃私有原执行才可发行固定旧资源action，随机claim不能签。
+
+```go
+func (lease *snapshotAdmission) IssueCleanup(ctx context.Context, request platform.CleanupRequest) (*platform.CleanupScope, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实活跃私有原执行才可发行固定旧资源action，随机claim不能签。
+2. 原root/site/epoch/costClass不得改变；event/consumer控制根仅BrokerControl，绝不挪作paid root。
+3. 30秒/ctx/barrier/原cleanup deadline取最短，queryHash真实RawQuery，纯控制只读无cleanup写授权。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.MatchCleanupRoute`
+
+## platform.SnapshotManager.ExistingWorkContext
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_cleanup.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func (m *SnapshotManager) ExistingWorkContext(ctx context.Context) (context.Context, func(), error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+2. 保留event_broker来源，不能经分叉变为paid原任务root。
+3. 在原op截止过期或ctx已取消时，读取运行权威只使用独立2秒控制截止并保留原root/site/epoch/class；不延长原paid请求。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.SnapshotManager.requireDraining`、`platform.SnapshotManager.currentBarrierID`、`platform.SnapshotManager.newCleanupLocked`
+
+## platform.SnapshotManager.currentBarrierID
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_cleanup.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func (m *SnapshotManager) currentBarrierID() string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.SnapshotManager.newCleanupLocked
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_cleanup.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func (m *SnapshotManager) newCleanupLocked(ctx context.Context, op platform.OperationContext) (context.Context, func(), error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.WithCleanupIssuer`
+
+## platform.SnapshotManager.AdmitCleanup
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_cleanup.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func (m *SnapshotManager) AdmitCleanup(ctx context.Context, op platform.OperationContext, scope platform.CleanupScope) (context.Context, func(), error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+2. 接收签名eventControl在新私有lease中保持，后续只能BrokerControl动作。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.SnapshotManager.requireDraining`、`platform.SnapshotManager.newCleanupLocked`
+
+## platform.SnapshotManager.AdmitEventBatch
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_cleanup.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func (m *SnapshotManager) AdmitEventBatch(ctx context.Context) (context.Context, func(), error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.requireDraining`、`platform.SnapshotManager.newCleanupLocked`
+
+## platform.SnapshotManager.AllowEventDrain
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_cleanup.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func (m *SnapshotManager) AllowEventDrain(ctx context.Context, view platform.RuntimeView) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.SnapshotManager.BindOutboxEventScope
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_cleanup.go`
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+
+```go
+func (m *SnapshotManager) BindOutboxEventScope(ctx context.Context, row platform.OutboxRow) (context.Context, func(), error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.SnapshotManager.newCleanupLocked`、`platform.WithCleanupIssuer`
+
+## platform.CaptureSnapshotFiles
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_capture.go`
+- 作用：只在Manager真实safe Capture许可内读同activeRoot，workspace空且在active外；全树拒symlink/hardlink/非regular。
+
+```go
+func CaptureSnapshotFiles(ctx context.Context, activeRoot, workspace string, databases map[string]*sql.DB, exclude SnapshotCaptureExclude) ([]DomainSnapshotFile, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只在Manager真实safe Capture许可内读同activeRoot，workspace空且在active外；全树拒symlink/hardlink/非regular。
+2. 登记SQLite连接以PRAGMA主文件精确匹配，VACUUM main INTO独立副本，不复制live DB/wal/shm，未知SQLite失败关闭。
+3. 固定exclude不接受请求输入，真实完整容量预检；普通文件流copy+hash/fsync，数据库副本真实hash/fsync，完整目录fsync后返回inventory。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.ValidatePrivatePath`、`platform.CheckSnapshotDiskBudget`、`platform.snapshotDirectory`、`platform.syncSnapshotDirectories`
+
+## platform.Store.Observe
+
+- 级别：参考
+- 文件：`libs/platform/outbox/observation.go`
+- 作用：真实SQL统一revision读全部未来retry/leased/quarantined活动，未知状态失败，不只due或空队列。
+
+```go
+func (s *Store) Observe(ctx context.Context) (Observation, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 真实SQL统一revision读全部未来retry/leased/quarantined活动，未知状态失败，不只due或空队列。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.Store.Seal
+
+- 级别：参考
+- 文件：`libs/platform/outbox/observation.go`
+- 作用：同SQLite事务CAS真实revision+全部活动0并持久proofHash，触发器禁止此后outbox INSERT/UPDATE/DELETE。
+
+```go
+func (s *Store) Seal(ctx context.Context, revision int64, proofHash string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同SQLite事务CAS真实revision+全部活动0并持久proofHash，触发器禁止此后outbox INSERT/UPDATE/DELETE。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.Store.Resume
+
+- 级别：参考
+- 文件：`libs/platform/outbox/observation.go`
+- 作用：只原proofHash幂等重新开旧清理；保留历史lastSealHash，不伪造其它封口。
+
+```go
+func (s *Store) Resume(ctx context.Context, proofHash string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只原proofHash幂等重新开旧清理；保留历史lastSealHash，不伪造其它封口。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.SnapshotStageBinding
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_stage_scope.go`
+- 作用：仅Manager核完整源归档后MigrateStage私有scope可读当前隔离root、targetEpoch和本次host真实sealHash。
+
+```go
+func SnapshotStageBinding(ctx context.Context) (string, string, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅Manager核完整源归档后MigrateStage私有scope可读当前隔离root、targetEpoch和本次host真实sealHash。
+2. 每次重新核实际restoreStaging/barrier/restore/target/opened source与本进程fileOps和safe绑定，不能授权active写或付费。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.PrepareRestoredOutbox
+
+- 级别：参考
+- 文件：`libs/platform/outbox/restore.go`
+- 作用：通过公共SnapshotStageBinding核已认证隔离阶段并用PRAGMA主文件精确核staged路径，源须已有真实outbox表，不创建空历史。
+
+```go
+func PrepareRestoredOutbox(ctx context.Context, db *sql.DB) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 通过公共SnapshotStageBinding核已认证隔离阶段并用PRAGMA主文件精确核staged路径，源须已有真实outbox表，不创建空历史。
+2. 同SQLite事务暂开复制的源gate，未知状态或冒称目标代活动失败；旧代pending/quarantine撤资格且保全原行。
+3. 保持原payload/epoch/费用事实，把gate绑定本次host真实sealHash封口，目标全局activate/Release前不能新发布。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
+- 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：`platform.SnapshotStageBinding`、`platform.ValidatePrivatePath`、`platform.EnsureSchema`
+
+## platform.SealTaskSecret
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_secret.go`
+- 作用：原始秘密≤64KiB，真实固定私有32B key；版本1+原owner/site/epoch/root/purpose canonical AAD。
+
+```go
+func SealTaskSecret(raw []byte, keyRef string, binding TaskSecretBinding) (TaskSecret, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原始秘密≤64KiB，真实固定私有32B key；版本1+原owner/site/epoch/root/purpose canonical AAD。
+2. AES256-GCM随机nonce，返回nonce+ciphertext；库不指定持久位置，不记录秘密，不改变permit有效期。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：只访问固定私有配置引用或处理调用方原始字节；不记录秘密、不调用服务/模型。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：每次独立nonce与AEAD，无共享可写状态。
+- 幂等：Seal每次随机nonce；Open只认证相同完整原任务AAD，不改变任务/准入状态。
+- 依赖：`platform.taskSecretAAD`、`platform.taskSecretCipher`
+
+## platform.OpenTaskSecret
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_secret.go`
+- 作用：核真实固定私有32B key、nonce和密文有界；只相同原binding可认证解密。
+
+```go
+func OpenTaskSecret(secret TaskSecret, keyRef string, binding TaskSecretBinding) ([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核真实固定私有32B key、nonce和密文有界；只相同原binding可认证解密。
+2. 缺key准确503，认证不符Integrity；不延长其中permit，不把解密成功当paid授权。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：只访问固定私有配置引用或处理调用方原始字节；不记录秘密、不调用服务/模型。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：每次独立nonce与AEAD，无共享可写状态。
+- 幂等：Seal每次随机nonce；Open只认证相同完整原任务AAD，不改变任务/准入状态。
+- 依赖：`platform.taskSecretAAD`、`platform.taskSecretCipher`
+
+## platform.taskSecretAAD
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_secret.go`
+- 作用：原任务binding完整合法，版本1+完整binding以公共CanonicalJSON编码。
+
+```go
+func taskSecretAAD(binding TaskSecretBinding) ([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 原任务binding完整合法，版本1+完整binding以公共CanonicalJSON编码。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：只访问固定私有配置引用或处理调用方原始字节；不记录秘密、不调用服务/模型。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：每次独立nonce与AEAD，无共享可写状态。
+- 幂等：Seal每次随机nonce；Open只认证相同完整原任务AAD，不改变任务/准入状态。
+- 依赖：`platform.CanonicalJSON`
+
+## platform.taskSecretCipher
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_secret.go`
+- 作用：固定绝对私有key路径复用ValidatePrivatePath拒链接；文件权限不得group/other，原始精确32B，最多读33B。
+
+```go
+func taskSecretCipher(keyRef string) (cipher.AEAD, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 固定绝对私有key路径复用ValidatePrivatePath拒链接；文件权限不得group/other，原始精确32B，最多读33B。
+2. 装AES256-GCM并清理读取key缓冲；缺配置/文件/尺寸失败503，不打印路径/材料。
+
+**错误**
+
+- `LOCKED`：屏障不允许该活动（可重试）
+- `CONFLICT`：原绑定或真实水位改变（可重试）
+- `INTEGRITY_ERROR`：来源或持久事实矛盾（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：真实权威回调缺失（不可重试）
+
+- 副作用：只访问固定私有配置引用或处理调用方原始字节；不记录秘密、不调用服务/模型。
+- 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
+- 并发：每次独立nonce与AEAD，无共享可写状态。
+- 幂等：Seal每次随机nonce；Open只认证相同完整原任务AAD，不改变任务/准入状态。
+- 依赖：`platform.ValidatePrivatePath`
