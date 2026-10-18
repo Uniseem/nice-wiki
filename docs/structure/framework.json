@@ -3804,6 +3804,11 @@
       "purpose": "本域真实执行链私有事务及HTTP适配；不读取其他域私有表。"
     },
     {
+      "path": "modules/model-gateway/internal/invocation/lookup.go",
+      "kind": "source",
+      "purpose": "原模型调用只读键查询及不可变来源追踪"
+    },
+    {
       "path": "modules/model-gateway/internal/invocation/read.go",
       "kind": "handwritten",
       "purpose": "读取调用状态所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
@@ -3952,6 +3957,11 @@
       "path": "modules/model-gateway/migrations/010_model_catalog.sql",
       "kind": "source",
       "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/migrations/011_invocation_lookup.sql",
+      "kind": "source",
+      "purpose": "原模型调用只读键查询及不可变来源追踪"
     },
     {
       "path": "modules/model-gateway/migrations/migrations.go",
