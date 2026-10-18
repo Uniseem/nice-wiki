@@ -37,3 +37,9 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 login/bootstrap共享账号及所有网络的失败窗、锁和并发。账号5次/每网络20次失败触发锁15分钟；账号未过期pending最多1个、每网络最多8个，30秒后自然释放并发，不自动计失败。过期pending只禁首次authenticated；首次late rejected仍按Finish当前服务时间计失败；aborted只释放不清计数。authenticated只清此账号失败与账号锁，不清任何共享网络失败/锁。终局、失败/清除、锁和回执在同一SQLite事务提交；后续session写入失败不改写口令核验事实。
 
 表中只保存不可逆HMAC、安全操作引用和服务时间，不保存原账号、IP、口令、凭证或HMAC原料。当前只实现登录保护事务与HTTP映射；匿名保留清理、全域barrier/恢复和完整服务装配仍未完成，不能由本包宣称已可上线或已验收。
+
+## 匿名风控运行表（2026-10-18源码，待GitLab）
+
+只追加0003_guard_runtime.sql保存组合准入的匿名主体与current/previous网络别名、双桶、持久permit及网络关联、挑战nonce哈希、AI bans、问题信号、风险引用、FIFO等待引用及内部原安全回执。签名token、问题正文和原始IP不入这些表，签名与预算key只用外部引用。相似度与间隔是可选实测列，缺失SQL NULL；禁止用0冒充观测。现策略回执旧表保留，新完整业务回执使用guard_operation_receipts，不手改历史迁移。
+
+同一site/epoch/caller/操作种类/operationId绑定规范输入摘要；管理回执额外绑定账号，服务报告绑定既有caller及请求引用。回执、状态与outbox同一短事务。桶/并发可复用最外层事务，内层不能单独提交。QA问题信号以可信RootOperationID去重，保留最近最多8条10分钟hash/时间信号，不保留问题正文。

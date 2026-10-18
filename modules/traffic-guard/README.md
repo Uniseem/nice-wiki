@@ -2,7 +2,7 @@
 
 在请求进入高成本或高并发路径前执行频率、并发、挑战及封禁策略，只发准入凭证；model-gateway 仍是唯一实时额度和钱账权威。
 
-状态：R1持续实施第三轮登录保护17函数与追加迁移/生成产物已通过VPS统一编译/生成/结构检查；完整启动仍blocked，业务验收未执行。未创建测试样例，未执行真实接口或模型，本轮未推送远程。产品追踪见[保留矩阵](../../docs/product-preservation.md)。
+状态：2026-10-18集中源码第一批已交付16个既有主要函数，全部待根GitLab检查；既有登录保护和存储证据保留。完整服务仍失败关闭，accepted为0。
 
 - [需求与边界](docs/requirements.md)
 - [架构与依赖](docs/architecture.md)
@@ -19,7 +19,7 @@
 - [openapi](contracts/openapi.json)
 - [events](contracts/events.json)
 
-文件与函数清单及数量见 [docs/files.md](docs/files.md)（由合同生成）。文件仅登记路径，没有创建未来源码。共用规则见 [根文档标准](../../docs/documentation-standard.md)、[一致性](../../docs/consistency.md)。
+文件与函数清单及数量见 [docs/files.md](docs/files.md)（由合同生成）。实际源码、待编译和剩余缺口以本域STATUS/progress/handoff为准。共用规则见 [根文档标准](../../docs/documentation-standard.md)、[一致性](../../docs/consistency.md)。
 
 ## 进度与新会话交接
 

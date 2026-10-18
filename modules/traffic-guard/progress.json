@@ -2,12 +2,12 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "df10b1f98b208e1cd5a28b4bfa925b27133ba96a6c4f9c1ddafafe0f30ce0fcc",
+  "contractSha256": "8b686063ccb5c139670ccb7709c7c4bbdaf0758569953693ce025827e8833c5e",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "持续实施第三轮traffic-guard登录保护",
-  "branch": "main",
-  "baseCommit": "9acad1ab56532521222f592af0d4b3a849792db5",
-  "deliveryCommit": "7fde172e12624a8af4d85f1316b8aeae906a75a1",
+  "assignedSession": "traffic-guard集中policy/ban/匿名信号首批，继续准入许可与挑战",
+  "branch": "codex/traffic-guard-20261018-bulk",
+  "baseCommit": "0a69a5a5d7f903cc411d7556f5c3a6269b5db5c2",
+  "deliveryCommit": "e8d9215",
   "deployment": "not_started",
   "files": [
     {
@@ -23,12 +23,12 @@
     {
       "path": "modules/traffic-guard/internal/policy_store.go",
       "state": "blocked",
-      "implementationCommit": "7fde172e12624a8af4d85f1316b8aeae906a75a1",
+      "implementationCommit": "e8d9215",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
+        "state": "not_run",
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": "本轮打开代次、可信注入、迁移/journal/关闭助手已verified；GetPolicy/UpdatePolicy仍blocked，待下一策略读写工作包"
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/subject.go",
@@ -42,53 +42,53 @@
     },
     {
       "path": "modules/traffic-guard/internal/classification.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/signals.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/risk.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/bucket.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/bucket_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/permit_store.go",
@@ -132,13 +132,13 @@
     },
     {
       "path": "modules/traffic-guard/internal/sweeper.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/challenge.go",
@@ -182,13 +182,13 @@
     },
     {
       "path": "modules/traffic-guard/internal/ban_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/events.go",
@@ -212,13 +212,13 @@
     },
     {
       "path": "modules/traffic-guard/internal/retention.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/barrier.go",
@@ -282,23 +282,23 @@
     },
     {
       "path": "modules/traffic-guard/internal/question_signals.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/session_queue.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/internal/admission_consumption.go",
@@ -363,12 +363,12 @@
     {
       "path": "modules/traffic-guard/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "7fde172e12624a8af4d85f1316b8aeae906a75a1",
+      "implementationCommit": "e8d9215",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
+        "state": "not_run",
+        "evidence": "源码待CI；完整装配仍失败关闭。"
       },
-      "blocker": "已实际构造登录HTTP映射并调用公共完整入口工厂；其他handler、当前用户授权、activation/屏障及后台未齐，按合同拒绝启动"
+      "blocker": "运行写窗口、预算key、完整其他HTTP/后台/恢复装配尚缺。"
     },
     {
       "path": "modules/traffic-guard/internal/transport/server.go",
@@ -532,13 +532,13 @@
     },
     {
       "path": "modules/traffic-guard/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
     },
     {
       "path": "modules/traffic-guard/migrations/0002_login_protection.sql",
@@ -549,6 +549,36 @@
         "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
+    },
+    {
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
+      },
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
+    },
+    {
+      "path": "modules/traffic-guard/internal/http_management.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
+      },
+      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
+    },
+    {
+      "path": "modules/traffic-guard/migrations/0003_guard_runtime.sql",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码待CI；完整装配仍失败关闭。"
+      },
+      "blocker": "新只追加迁移待统一GitLab编译。"
     }
   ],
   "functions": [
@@ -567,23 +597,23 @@
       "id": "traffic-guard.GetPolicy",
       "path": "modules/traffic-guard/internal/policy_store.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": "GET /v1/policies未登记siteId参数，未规定从可信OperationContext推导站点；缺失策略行的错误也未在函数/OpenAPI合同中登记"
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.UpdatePolicy",
       "path": "modules/traffic-guard/internal/policy_store.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": "合同要求identity:checkAuthorization、policy-changed outbox及operationId同输入幂等，但精确签名未提供客户端/存储注入边界；回执表已在迁移预留，绑定函数待契约收口"
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.NormalizePeer",
@@ -610,57 +640,57 @@
     {
       "id": "traffic-guard.ClassifyAction",
       "path": "modules/traffic-guard/internal/classification.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.LoadSignals",
       "path": "modules/traffic-guard/internal/signals.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.ComputeRisk",
       "path": "modules/traffic-guard/internal/risk.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.RefillBucket",
       "path": "modules/traffic-guard/internal/bucket.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.ConsumeBuckets",
       "path": "modules/traffic-guard/internal/bucket_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.AcquireConcurrency",
@@ -742,24 +772,24 @@
     {
       "id": "traffic-guard.ExpireLeases",
       "path": "modules/traffic-guard/internal/sweeper.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.ExpireBans",
       "path": "modules/traffic-guard/internal/sweeper.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.IssueChallenge",
@@ -819,35 +849,35 @@
     {
       "id": "traffic-guard.CreateBan",
       "path": "modules/traffic-guard/internal/ban_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.RevokeBan",
       "path": "modules/traffic-guard/internal/ban_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.ListBans",
       "path": "modules/traffic-guard/internal/ban_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.ConsumeIdentityEvent",
@@ -885,13 +915,13 @@
     {
       "id": "traffic-guard.PurgeAnonymousSignals",
       "path": "modules/traffic-guard/internal/retention.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.EnterBarrier",
@@ -984,24 +1014,24 @@
     {
       "id": "traffic-guard.ReportQuestionSignals",
       "path": "modules/traffic-guard/internal/question_signals.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.QueueSessionAdmission",
       "path": "modules/traffic-guard/internal/session_queue.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.ConsumeAdmission",
@@ -1051,12 +1081,12 @@
       "id": "traffic-guard.BuildApplication",
       "path": "modules/traffic-guard/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "7fde172e12624a8af4d85f1316b8aeae906a75a1",
+      "implementationCommit": "e8d9215",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15集成会话VPS合成快照：linux/amd64 Go1.25.5，GOMAXPROCS=8；make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突。产物已回传；仅格式/编译/结构证据，未运行业务验收、真实服务或SQL临时验证。"
+        "state": "not_run",
+        "evidence": "已将真实管理/信号HTTP map交公共入口；缺其他handler及运行依赖仍失败关闭。"
       },
-      "blocker": "本轮真实登录handler及完整入口门禁已接通；其余handler、identity当前授权、activation/屏障和后台未齐，完整Application仍拒绝启动"
+      "blocker": "运行写窗口、独立预算key、其余完整处理函数、后台及恢复回执仍缺。"
     },
     {
       "id": "traffic-guard.Serve",
@@ -1116,13 +1146,13 @@
     {
       "id": "traffic-guard.ListRiskEvents",
       "path": "modules/traffic-guard/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     },
     {
       "id": "traffic-guard.BeginLoginAttempt",
@@ -1310,6 +1340,127 @@
         "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
       },
       "blocker": null
+    },
+    {
+      "id": "traffic-guard.createNetworkBan",
+      "path": "modules/traffic-guard/internal/ban_store.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+    },
+    {
+      "id": "traffic-guard.WithGuardRuntime",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+    },
+    {
+      "id": "traffic-guard.beginGuardTransaction",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+    },
+    {
+      "id": "traffic-guard.guardTransaction.close",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+    },
+    {
+      "id": "traffic-guard.guardTransaction.commit",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+    },
+    {
+      "id": "traffic-guard.authorizeGuardManagement",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+    },
+    {
+      "id": "traffic-guard.readGuardReceipt",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+    },
+    {
+      "id": "traffic-guard.saveGuardReceipt",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+    },
+    {
+      "id": "traffic-guard.enqueueGuardEvent",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+    },
+    {
+      "id": "traffic-guard.readGuardPolicy",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+    },
+    {
+      "id": "traffic-guard.NewGuardHandlers",
+      "path": "modules/traffic-guard/internal/http_management.go",
+      "state": "blocked",
+      "implementationCommit": "e8d9215",
+      "verification": {
+        "state": "not_run",
+        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+      },
+      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
     }
   ],
   "rule": "持续实施第三轮源码7fde172e12624a8af4d85f1316b8aeae906a75a1：完整新17函数及追加迁移/生成产物已verified，证据为VPS docs/gen、14模块readonly build/vet/gofmt与完整check通过。源码文件含其他planned/blocked职责者保持blocked，整体启动和业务验收未完成。下一项直接按策略读写工作包收口GET站点来源/缺策略错误并实现GetPolicy/UpdatePolicy、identity授权、幂等回执与policy-changed outbox；本轮交付后冻结，不开始后包、不push。"
