@@ -3729,6 +3729,11 @@
       "purpose": "供应方目录字段与纯规则校验"
     },
     {
+      "path": "modules/model-gateway/internal/catalog/refresh.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
       "path": "modules/model-gateway/internal/catalog/task.go",
       "kind": "source",
       "purpose": "超管维护单任务模型覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
@@ -3742,6 +3747,11 @@
       "path": "modules/model-gateway/internal/concurrency/lease.go",
       "kind": "handwritten",
       "purpose": "限制供应方并发所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/events/outbox.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
     },
     {
       "path": "modules/model-gateway/internal/gen/clients.gen.go",
@@ -3759,6 +3769,36 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/model-gateway/internal/invocation/cancel.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/internal/invocation/create.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/internal/invocation/dispatch.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/internal/invocation/execute.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/internal/invocation/fallback.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/internal/invocation/finish.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
       "path": "modules/model-gateway/internal/invocation/http.go",
       "kind": "handwritten",
       "purpose": "本域真实执行链私有事务及HTTP适配；不读取其他域私有表。"
@@ -3767,6 +3807,11 @@
       "path": "modules/model-gateway/internal/invocation/read.go",
       "kind": "handwritten",
       "purpose": "读取调用状态所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/model-gateway/internal/invocation/recovery.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
     },
     {
       "path": "modules/model-gateway/internal/provider/adapter.go",
@@ -3784,14 +3829,29 @@
       "purpose": "映射Gemini协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
+      "path": "modules/model-gateway/internal/provider/images.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
       "path": "modules/model-gateway/internal/provider/rerank.go",
       "kind": "handwritten",
       "purpose": "解析rerank协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
+      "path": "modules/model-gateway/internal/provider/response.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
       "path": "modules/model-gateway/internal/routing/route.go",
       "kind": "source",
       "purpose": "同一次只读快照的任务路线入口"
+    },
+    {
+      "path": "modules/model-gateway/internal/runtime/approval.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
     },
     {
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
@@ -3802,6 +3862,16 @@
       "path": "modules/model-gateway/internal/runtime/invocation.go",
       "kind": "handwritten",
       "purpose": "本域真实执行链私有事务及HTTP适配；不读取其他域私有表。"
+    },
+    {
+      "path": "modules/model-gateway/internal/runtime/relay.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/internal/runtime/retirement.go",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
     },
     {
       "path": "modules/model-gateway/internal/security/credential.go",
@@ -3874,6 +3944,21 @@
       "purpose": "schemaVersion7追加固定路线凭据引用、加密额外头及安全结果hash；不猜填旧引用。"
     },
     {
+      "path": "modules/model-gateway/migrations/008_execution_evidence.sql",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/migrations/009_retired_secrets.sql",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/migrations/010_model_catalog.sql",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
       "path": "modules/model-gateway/migrations/migrations.go",
       "kind": "handwritten",
       "purpose": "内嵌model-gateway只追加SQL迁移（ADR0005），运行时唯一来源"
@@ -3884,9 +3969,54 @@
       "purpose": "model-gateway逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/model-gateway/ui/index.html",
+      "kind": "configuration",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/ui/package.json",
+      "kind": "configuration",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/ui/pnpm-lock.yaml",
+      "kind": "configuration",
+      "purpose": "由GitLab pnpm生成的模型网关依赖锁"
+    },
+    {
       "path": "modules/model-gateway/ui/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/model-gateway/ui/src/main.ts",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/ui/src/views/EditView.vue",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/ui/src/vue.d.ts",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/ui/tsconfig.json",
+      "kind": "configuration",
+      "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/ui/vite.config.ts",
+      "kind": "source",
+      "purpose": "模型网关实际源码、配置与持久迁移"
     },
     {
       "path": "modules/portal/AGENTS.md",
