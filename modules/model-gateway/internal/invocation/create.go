@@ -24,8 +24,8 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 	if !exists || task.Owner != op.CallerService || op.Actor.Kind != "service" || op.Actor.SubjectID != op.CallerService {
 		return CreateInvocationResult{}, platform.NewError(platform.CodeForbidden, false, "模型任务只允许目录owner纯服务执行")
 	}
-	if op.CostClass != platform.CostClassQA && op.CostClass != platform.CostClassBackground {
-		return CreateInvocationResult{}, platform.NewError(platform.CodeForbidden, false, "公开模型创建只接受原QA或后台费用链")
+	if op.CostClass != platform.CostClassQA && op.CostClass != platform.CostClassBackground && !(input.TaskId=="memory.assistant"&&op.CallerService=="memory"&&op.CostClass==platform.CostClassAdminProbe) {
+		return CreateInvocationResult{}, platform.NewError(platform.CodeForbidden, false, "公开模型创建仅原QA/后台或已批准memory.assistant费用链")
 	}
 	if input.TaskId != "localization.suggest" && input.LanguageSuggestionApprovalId != nil {
 		return CreateInvocationResult{}, platform.NewError(platform.CodeValidation, false, "语言建议批准不能用于其他任务")
@@ -201,6 +201,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 
 // AcceptPreparedInvocation共享已批准调用的原子接受与本进程任务启动；入口权限仍由各自调用方完成。
 func AcceptPreparedInvocation(ctx context.Context, op OperationContext, tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, fixed gatewayruntime.FixedRoute, requestRaw []byte, profileRaw []byte, function string, key string, canonical any, options gatewayruntime.ExecutionOptions) (CreateInvocationResult,error){
+ for _,candidate:=range fixed.Candidates{if err:=gatewayruntime.CheckProviderMaterial(ctx,tx.Tx,op,candidate.Provider);err!=nil{return CreateInvocationResult{},err}}
 	invocation:=record.Invocation;id:=invocation.InvocationId;deadline:=time.Time(invocation.Deadline);now:=time.Unix(0,record.CreatedNS).UTC();var result CreateInvocationResult
 	raw, _ := platform.CanonicalJSON(invocation)
 	operationRaw, _ := platform.CanonicalJSON(op)
@@ -219,13 +220,6 @@ func AcceptPreparedInvocation(ctx context.Context, op OperationContext, tx *gate
 			return result, gatewayruntime.ExecutionStorageError(err)
 		}
 		for _, ref := range candidate.Provider.ExtraHeaderSecretRefs {
-			var owned bool
-			if err := tx.Tx.QueryRowContext(tx.Context, `SELECT EXISTS(SELECT 1 FROM header_secrets WHERE ref_id=? AND provider_id=? AND data_epoch=?)`, ref, candidate.Provider.ProviderId, op.DataEpoch).Scan(&owned); err != nil {
-				return result, gatewayruntime.ExecutionStorageError(err)
-			}
-			if !owned {
-				return result, platform.NewError(platform.CodeIntegrityError, false, "渠道额外头引用缺少本域加密材料")
-			}
 			if _, err := tx.Tx.ExecContext(tx.Context, `INSERT OR IGNORE INTO route_header_refs(invocation_id,ref_id) VALUES(?,?)`, id, ref); err != nil {
 				return result, gatewayruntime.ExecutionStorageError(err)
 			}

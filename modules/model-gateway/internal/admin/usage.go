@@ -153,7 +153,8 @@ func readLedgerEntries(ctx context.Context, op OperationContext, tx *sql.Tx, run
 		if metadata.Site != op.Actor.SiteID {
 			return nil, platform.NewError(platform.CodeForbidden, false, "账本条目不属于当前站点")
 		}
-		if metadata.Epoch != op.DataEpoch {
+		projected,e:=gatewayruntime.IsRestoredEpoch(ctx,tx,metadata.Epoch,op.DataEpoch);if e!=nil{return nil,e}
+		if !projected {
 			return nil, platform.NewError(platform.CodeVersionMismatch, false, "账本条目属于其他数据代次")
 		}
 		when, err := platform.ParseTimestamp(created)
@@ -279,7 +280,8 @@ func readRootMetadata(ctx context.Context, op OperationContext, tx *sql.Tx, runt
 		if metadata.Site != op.Actor.SiteID {
 			return nil, platform.NewError(platform.CodeForbidden, false, "费用根不属于当前站点")
 		}
-		if metadata.Epoch != op.DataEpoch {
+		projected,e:=gatewayruntime.IsRestoredEpoch(ctx,tx,metadata.Epoch,op.DataEpoch);if e!=nil{return nil,e}
+		if !projected {
 			return nil, platform.NewError(platform.CodeVersionMismatch, false, "费用根含其他数据代次")
 		}
 		if op.Actor.Kind == "service" && metadata.Owner != op.CallerService && !(op.CallerService == "analytics" && op.Actor.SubjectID == "analytics") {

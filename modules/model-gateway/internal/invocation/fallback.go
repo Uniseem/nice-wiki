@@ -25,7 +25,7 @@ func CreateFallbackAttempt(ctx context.Context, op OperationContext, input Creat
 	if err != nil {
 		return CreateFallbackAttemptResult{}, err
 	}
- if op.CostClass==platform.CostClassAdminProbe{return CreateFallbackAttemptResult{},platform.NewError(platform.CodeForbidden,false,"后台探测不能自动新增收费尝试")}
+ if record.Probe!=nil{return CreateFallbackAttemptResult{},platform.NewError(platform.CodeForbidden,false,"后台探测不能自动新增收费尝试")}
 	if record.CancelRequested {
 		return CreateFallbackAttemptResult{}, platform.NewError(platform.CodeCancelled, false, "已取消调用不能新增付费尝试")
 	}

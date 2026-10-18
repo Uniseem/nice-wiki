@@ -64,6 +64,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	gatewayruntime.InstallStore(store, config.MasterKeyRef)
+ if err=store.SetDataEpoch(ctx,runtimeView.DataEpoch);err!=nil{_ = store.Close();return nil,err}
 	defer store.Close()
 	taskGroup, err := lifecycle.NewTaskGroup(ctx, 256)
 	if err != nil {

@@ -181,7 +181,8 @@ func OpenAttemptHeaders(ctx context.Context, op OperationContext, attemptID stri
 			tx.Close()
 			return nil, credentialStorageError(err)
 		}
-		if stored.Epoch != op.DataEpoch || index >= len(attempt.Provider.ExtraHeaderNames) || stored.Name != attempt.Provider.ExtraHeaderNames[index] || !SecretHeaderName(stored.Name) {
+		projected,e:=gatewayruntime.IsRestoredEpoch(ctx,tx.Tx,stored.Epoch,op.DataEpoch);if e!=nil{tx.Close();return nil,e}
+		if !projected || index >= len(attempt.Provider.ExtraHeaderNames) || stored.Name != attempt.Provider.ExtraHeaderNames[index] || !SecretHeaderName(stored.Name) {
 			tx.Close()
 			return nil, platform.NewError(platform.CodeIntegrityError, false, "额外头引用不属于原渠道或版本")
 		}

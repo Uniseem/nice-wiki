@@ -275,8 +275,9 @@ func readCatalogProviders(ctx context.Context, op OperationContext, tx *sql.Tx) 
 	// 私有附加头secret引用、nonce和ciphertext正文均不选入查询。
 	rows, err := tx.QueryContext(ctx, `SELECT p.provider_id, p.version, p.adapter, p.base_url, p.enabled,
 		p.credential_version, p.connect_timeout_ms, p.request_timeout_ms, p.display_name, p.extra_header_names_json,
-		p.concurrency_limit, p.stream_idle_timeout_ms, p.data_epoch, c.data_epoch, length(c.nonce), length(c.ciphertext)
+		p.concurrency_limit, p.stream_idle_timeout_ms, p.data_epoch, c.data_epoch, length(c.nonce), length(c.ciphertext),r.source_database_hash,r.source_material_hash
 		FROM providers p LEFT JOIN credentials c ON c.provider_id = p.provider_id AND c.credential_version = p.credential_version
+		LEFT JOIN snapshot_material_redactions r ON r.kind='credential' AND r.record_key=p.provider_id||'|'||p.credential_version
 		ORDER BY p.provider_id LIMIT 65`)
 	if err != nil {
 		return nil, adminStorageError(err)
@@ -287,20 +288,22 @@ func readCatalogProviders(ctx context.Context, op OperationContext, tx *sql.Tx) 
 		var provider gen.ProviderSummary
 		var names []byte
 		var epoch string
-		var credentialEpoch sql.NullString
+		var credentialEpoch,redactionDatabase,redactionMaterial sql.NullString
 		var nonceLength, ciphertextLength sql.NullInt64
 		if err := rows.Scan(&provider.ProviderId, &provider.Version, &provider.Adapter, &provider.BaseUrl, &provider.Enabled,
 			&provider.CredentialVersion, &provider.ConnectTimeoutMs, &provider.RequestTimeoutMs, &provider.DisplayName,
-			&names, &provider.ConcurrencyLimit, &provider.StreamIdleTimeoutMs, &epoch, &credentialEpoch, &nonceLength, &ciphertextLength); err != nil {
+			&names, &provider.ConcurrencyLimit, &provider.StreamIdleTimeoutMs, &epoch, &credentialEpoch, &nonceLength, &ciphertextLength,&redactionDatabase,&redactionMaterial); err != nil {
 			return nil, adminStorageError(err)
 		}
 		if epoch != op.DataEpoch || (credentialEpoch.Valid && credentialEpoch.String != op.DataEpoch) {
 			return nil, platform.NewError(platform.CodeVersionMismatch, false, "供应方或凭据代次已变化")
 		}
-		if provider.Version < 1 || provider.Version > 9007199254740991 || json.Unmarshal(names, &provider.ExtraHeaderNames) != nil || provider.ExtraHeaderNames == nil || len(provider.ExtraHeaderNames) > 256 || (credentialEpoch.Valid && (nonceLength.Int64 != 12 || ciphertextLength.Int64 <= 16)) {
+		redacted:=redactionDatabase.Valid&&redactionMaterial.Valid&&platform.ValidHash(redactionDatabase.String)&&platform.ValidHash(redactionMaterial.String)&&nonceLength.Int64==0&&ciphertextLength.Int64==0
+ if (redactionDatabase.Valid||redactionMaterial.Valid)&&!redacted{return nil,platform.NewError(platform.CodeIntegrityError,false,"明确脱密材料的来源摘要损坏")}
+		if provider.Version < 1 || provider.Version > 9007199254740991 || json.Unmarshal(names, &provider.ExtraHeaderNames) != nil || provider.ExtraHeaderNames == nil || len(provider.ExtraHeaderNames) > 256 || (credentialEpoch.Valid && !redacted && (nonceLength.Int64 != 12 || ciphertextLength.Int64 <= 16)) {
 			return nil, platform.NewError(platform.CodeIntegrityError, false, "供应方目录或凭据元数据损坏")
 		}
-		provider.CredentialConfigured = credentialEpoch.Valid
+		provider.CredentialConfigured = credentialEpoch.Valid&&!redacted
 		if len(result) == 64 {
 			return nil, platform.NewError(platform.CodeBudgetExceeded, false, "供应方目录超过响应条目上限")
 		}

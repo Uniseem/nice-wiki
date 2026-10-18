@@ -38,6 +38,7 @@ type ExecutionOptions struct {
 	Validators        map[string]func(json.RawMessage) error
 }
 type ExecutionTransaction struct {
+ write,finalizing bool
 	Tx      *sql.Tx
 	Context context.Context
 	cancel  context.CancelFunc
@@ -192,7 +193,7 @@ func beginExecution(ctx context.Context, op OperationContext, write, finalizing 
 			return nil, platform.NewError(platform.CodeLocked, false, "模型执行被本地屏障阻止")
 		}
 	}
-	return &ExecutionTransaction{Tx: tx, Context: work, cancel: cancel}, nil
+	return &ExecutionTransaction{Tx: tx, Context: work, cancel: cancel,write:write,finalizing:finalizing}, nil
 }
 func (t *ExecutionTransaction) Close()        { _ = t.Tx.Rollback(); t.cancel() }
 func (t *ExecutionTransaction) Commit() error { return ExecutionStorageError(t.Tx.Commit()) }
@@ -223,13 +224,15 @@ func readInvocationRecord(tx *ExecutionTransaction, op OperationContext, id stri
 		return record, ExecutionStorageError(err)
 	}
 	admin := op.CallerService == "portal" && op.Actor.Kind == "admin" && (slices.Contains(op.Actor.Grants, "model.manage") || slices.Contains(op.Actor.Grants, "superadmin"))
-	if site != op.Actor.SiteID || epoch != op.DataEpoch || (!admin && !statistics && owner != op.CallerService) {
+	projected,err:=IsRestoredEpoch(tx.Context,tx.Tx,epoch,op.DataEpoch);if err!=nil{return InvocationRecord{},err}
+ if epoch!=op.DataEpoch&&tx.write&&!(tx.finalizing&&admin&&slices.Contains(op.Actor.Grants,"superadmin")){return InvocationRecord{},platform.NewError(platform.CodeForbidden,false,"原代付费记录仅认证读取或当前超管人工对账，不能复活旧执行")}
+ if site != op.Actor.SiteID || !projected || (!admin && !statistics && owner != op.CallerService) {
 		return InvocationRecord{}, platform.NewError(platform.CodeForbidden, false, "不能读取其他站点或owner的模型调用")
 	}
 	if len(invocationRaw) == 0 || platform.HashBytes(invocationRaw) != hash || json.Unmarshal(invocationRaw, &record.Invocation) != nil || json.Unmarshal(requestRaw, &record.Request) != nil || json.Unmarshal(operationRaw, &record.Operation) != nil {
 		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "模型调用持久快照不完整")
 	}
- if costClass==platform.CostClassAdminProbe{var policy ProbePolicy;if json.Unmarshal(profileRaw,&policy)!=nil||policy.Kind!="admin-probe"||policy.SchemaVersion!=1||policy.ApprovedBy!=record.Operation.Actor.SubjectID||policy.PermissionRevision!=int64(record.Operation.Actor.PermissionRevision)||record.Operation.CallerService!="portal"||record.Operation.Actor.Kind!="admin"{return InvocationRecord{},platform.NewError(platform.CodeIntegrityError,false,"原连接探测人工批准策略损坏")};record.Probe=&policy}else if json.Unmarshal(profileRaw,&record.Profile)!=nil{return InvocationRecord{},platform.NewError(platform.CodeIntegrityError,false,"原AI档位快照损坏")}
+ if costClass==platform.CostClassAdminProbe&&owner=="portal"{var policy ProbePolicy;if json.Unmarshal(profileRaw,&policy)!=nil||policy.Kind!="admin-probe"||policy.SchemaVersion!=1||policy.ApprovedBy!=record.Operation.Actor.SubjectID||policy.PermissionRevision!=int64(record.Operation.Actor.PermissionRevision)||record.Operation.CallerService!="portal"||record.Operation.Actor.Kind!="admin"{return InvocationRecord{},platform.NewError(platform.CodeIntegrityError,false,"原连接探测人工批准策略损坏")};record.Probe=&policy}else if json.Unmarshal(profileRaw,&record.Profile)!=nil{return InvocationRecord{},platform.NewError(platform.CodeIntegrityError,false,"原AI档位快照损坏")}
 	if createKey.Valid && createKey.String != record.Request.IdempotencyKey {
 		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "原创建键与不可变请求不一致")
 	}

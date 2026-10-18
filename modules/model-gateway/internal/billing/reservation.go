@@ -123,7 +123,7 @@ func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayrunt
 		Start int64
 	}
 	budgets := []budget{}
- if record.Operation.CostClass==platform.CostClassAdminProbe{if record.Probe==nil{return platform.NewError(platform.CodeForbidden,false,"诊断费用缺原人工批准策略")};var daily int64;var site,epoch string;err:=tx.Tx.QueryRowContext(tx.Context,`SELECT site_id,data_epoch,daily_probe_limit_micro_usd FROM fee_budget_policy WHERE singleton=1`).Scan(&site,&epoch,&daily);if err!=nil&&err!=sql.ErrNoRows{return gatewayruntime.ExecutionStorageError(err)};if err==nil&&(site!=record.Operation.Actor.SiteID||epoch!=record.Operation.DataEpoch){return platform.NewError(platform.CodeStaleResult,false,"诊断费用策略站点/代际变化")};budgets=append(budgets,budget{daily,"cost_class",platform.CostClassAdminProbe,day})}else{budgets=append(budgets,budget{int64(profile.DailyLimitCost.Micros),"profile_id",profile.ProfileId,day})}
+ if record.Probe!=nil{var daily int64;var site,epoch string;err:=tx.Tx.QueryRowContext(tx.Context,`SELECT site_id,data_epoch,daily_probe_limit_micro_usd FROM fee_budget_policy WHERE singleton=1`).Scan(&site,&epoch,&daily);if err!=nil&&err!=sql.ErrNoRows{return gatewayruntime.ExecutionStorageError(err)};if err==nil&&(site!=record.Operation.Actor.SiteID||epoch!=record.Operation.DataEpoch){return platform.NewError(platform.CodeStaleResult,false,"诊断费用策略站点/代际变化")};budgets=append(budgets,budget{daily,"probe_lane",platform.CostClassAdminProbe,day})}else{budgets=append(budgets,budget{int64(profile.DailyLimitCost.Micros),"profile_id",profile.ProfileId,day})}
 	if record.Operation.CostClass == platform.CostClassQA {
 		if record.Binding == nil {
 			return platform.NewError(platform.CodeForbidden, false, "QA费用缺少已验证签名范围")
@@ -153,7 +153,8 @@ func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayrunt
 		if additional == nil {
 			return platform.NewError(platform.CodeBudgetExceeded, false, "有限作用域额度不能接受本次未知最大费用")
 		}
-		rows, err := tx.Tx.QueryContext(tx.Context, `SELECT amount_micro_usd FROM fee_commitments WHERE site_id=? AND data_epoch=? AND `+bound.Scope+`=? AND (state='held' OR (state='settled' AND created_ns>=?))`, record.Operation.Actor.SiteID, record.Operation.DataEpoch, bound.Value, bound.Start)
+		scope:=bound.Scope+`=?`;if bound.Scope=="probe_lane"{scope=`cost_class=? AND reservation_id IN (SELECT r.reservation_id FROM reservations r JOIN connection_probes p ON p.invocation_id=r.invocation_id)`}
+		rows, err := tx.Tx.QueryContext(tx.Context, `SELECT amount_micro_usd FROM fee_commitments WHERE site_id=? AND data_epoch=? AND `+scope+` AND (state='held' OR (state='settled' AND created_ns>=?))`, record.Operation.Actor.SiteID, record.Operation.DataEpoch, bound.Value, bound.Start)
 		if err != nil {
 			return gatewayruntime.ExecutionStorageError(err)
 		}
