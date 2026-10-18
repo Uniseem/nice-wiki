@@ -157,9 +157,8 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	}, nil
 }
 
-// 未接的新增协议保持生成的未实现响应；完整服务仍不可就绪。
+// 新增归档协议只保留失败关闭，完整服务仍不可就绪。
 type server struct {
-	gen.UnimplementedServer
 	app *Application
 }
 
@@ -251,4 +250,9 @@ func writeProblem(w http.ResponseWriter, r *http.Request, err error) {
 		requestID = platform.NewIdentifier()
 	}
 	_ = problem.WriteProblem(w, problem.FromError(err, requestID))
+}
+
+// ReadSnapshotArchive 的真实归档装配未齐，明确失败关闭。
+func (s *server) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotID gen.Identifier, params gen.ReadSnapshotArchiveParams) {
+	writeUnavailable(w, r)
 }

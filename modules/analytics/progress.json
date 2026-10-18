@@ -2,7 +2,7 @@
   "version": 1,
   "module": "analytics",
   "phase": "implementation",
-  "contractSha256": "e27ca3db08fa8d1983df4187cc1068bf036435be4c8378f3cbadae07d38bf211",
+  "contractSha256": "e67c84c421a7e21f28f094ae80574fafd84eb6399720de1c22afc53e33373fa9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "analytics-20261017-r6（BucketLatency、CheckPrivacyFields 由 pipeline 53 记 verified）",
   "branch": "codex/analytics-20261017-r6",
@@ -1113,6 +1113,17 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "analytics.server.ReadSnapshotArchive",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "仅新增协议失败关闭，真实归档装配尚未完成，不计完整函数"
     }
   ],
   "rule": "本次复核因SQLite/journal内部契约缺失未实施；所有未有实现提交的业务文件/函数保持planned或blocked，不能批量宣称已完成。"

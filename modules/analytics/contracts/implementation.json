@@ -3700,7 +3700,8 @@
             "platform.NewRequestValidator",
             "platform.NewSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
-            "platform.SnapshotManager.WriteWindow"
+            "platform.SnapshotManager.WriteWindow",
+            "analytics.server.ReadSnapshotArchive"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -3962,6 +3963,35 @@
             "site-config.readRuntimeState（site-config本域自身读取）"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "analytics.server.ReadSnapshotArchive",
+          "name": "server.ReadSnapshotArchive",
+          "signature": "func (s *server) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotID gen.Identifier, params gen.ReadSnapshotArchiveParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "新增归档HTTP接口在真实装配前明确失败关闭",
+          "steps": [
+            "尚无实际owner SnapshotManager装配，统一writeUnavailable，不输出归档、不声明已完成；真实业务ReadSnapshotArchive仍planned。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "进程已closed或服务循环不可用",
+              "httpStatus": 503,
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型"
+          },
+          "concurrency": "无锁或原子读取lifecycle；不进行外部调用",
+          "idempotency": "GET只读重复安全",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
