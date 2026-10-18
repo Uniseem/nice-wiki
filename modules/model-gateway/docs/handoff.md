@@ -1,3 +1,15 @@
+# 原键查询与费用更正小批
+
+源码a3c7536：新增业务LookupInvocation及4真实助手RequireInvocationLookupTracking、ReadInvocationSnapshot、ReadStatisticsInvocationRecord、readInvocationRecord，统一model-gateway前缀。13项新/修改函数blocked待GitLab，无提前verified。schema011与lookup.go已登记；根需重生成文档/客户端。
+
+POST /v1/inferences/lookup复用完整CreateInput，原key/owner/site/epoch/root及规范输入核原回执和原持久请求，异输入CONFLICT，返回当前Invocation及真实完整output。孤立回执/原键无回执Integrity；只有真实tracking来源完整且没有未索引/未知归属旧行才404。marker缺失503，不从空库自建证明，Create首次接受也门禁。旧已接受回执仍可观察。真实fresh activation/verified restore来源生产者尚待公共保护，整服务不可启动。
+
+invocation.reconciled/v1与原费用更正/void/原回执同事务outbox，charged才带真实entry/amount，not_charged不造账。sourceDataEpoch仅保原来源，target与envelope一致。QueryUsage新增analytics纯服务同实际site/current epoch安全投影，不扩其他AI owner/root或付费权限。根负责消费者登记。
+
+剩余13原业务项：LoadRuntime、RotateCredential、ReadAdminCatalog、AcquireBarrier、ReleaseBarrier、ExportSnapshot、StageSnapshot、DiscardSnapshot、RefreshModelCatalog、CreateConnectionProbe、main、BuildApplication、Ready。保护/原费用恢复投影/真实tracking及引用tracking需公共snapshot/barrier；probe额度与bundled目录许可待用户答复。未发现可脱离这些前置而完整交付的新原业务项，冻结本域等待根调度；不将恢复设计步骤算源码完成。
+
+无本机Go/pnpm/生成/格式/编译/测试、无真实接口/模型/服务/部署/push。仅本地文档读取与git diff --check。新增调用查询不改原总deadline，不造新付费事实；StartAcceptedInvocation已保留根43d47ba右括号修正。
+
 # 网关集成修正待GitLab
 
 pipeline99前端四套及content编译通过；模型Go因转发依赖未登记缺生成JobsClient，完整检查缺9处依赖映射。现补真实转发/任务入口及动态Body reader依赖，Create通过既有ResolveRoute；删除确无真实调用的2个参考助手ExtendReservation/RedactLog，不新增无意义调用。尚待重跑，完整服务与业务验收未齐。
