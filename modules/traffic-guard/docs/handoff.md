@@ -92,3 +92,42 @@
 消费核验窄修e61d899：VerifyAdmissionHTTP成功响应增加必需admissionId；无token路径也须consumed_request_id=原QA根，未消费行失败关闭。同步types/implementation，仍blocked待CI。
 
 动作/释放窄修2e3074d：qa.ask/qa.followup统一qa次数桶类别，单次问题root不因追问换桶；qa.conversation不签许可。Release核原owner/site/epoch/root，终止/过期/已撤销均已无并发占用，幂等released=true。仍待CI。
+
+
+## 第三批源码f5f036b，冻结待根统一检查
+
+新增6个原有主业务和5个必要挑战助手，累计32个原有主业务源码，全部blocked待CI。本域不再扩功能或push；根统一gen/docs、readonly build/vet/gofmt和完整check。本机仅Git/文本审阅，无Go/SQL/接口/服务/模型调用，未新增依赖、测试、fixture、mock、样例或临时验证程序。
+
+挑战18/22bits、120秒、6次/分钟、2active及5失败上限真实持久；外部适配固定供应方HTTPS并真实校验success/hostname/action/cdata/期限，未实际调用。HTTP可选visitorToken重验原人，passedToken只由平台签10分钟证明。portal需设置nw_visitor HttpOnly/Secure/SameSite=Lax并移除浏览器JSON passedToken；供应方widget action=traffic_guard、cData=challengeId。TurnstileConfig的siteKey/secretRef/expectedHostname与预算keyring/WriteWindow尚需可信启动配置，未装配失败关闭，不把未来完整配置当现有可运行服务。
+
+身份事件载荷通过生成IdentityChanged规格+平台NewPayloadValidator，inbox/最大权限修订同事务，管理仍每次即时查identity。PublishGuardEvents只复用平台RunRelayBatch和NewEventPublisher；ConsumeEvents缺公共窄client与准确退出统计，按根决定保持partial，不造worker假方法或空计数。完整控制恢复/后台装配仍未齐。
+
+根结构审查修复：删除旧NormalizePeer函数/类型/台账，代理链及网络预算由平台唯一实现；CheckBan只保留permit_store.go实际助手，旧空internal/ban.go未来文件合同删除，根framework需同步去除该路径。真实SignGuardSession调用/依赖由VerifyChallenge补齐。
+
+最终保留qa.conversation免费准入动作，owner=qa且执行AI挑战/ban和共享qa次数桶；Consume/Renew仅元数据空token。SignPermit与ValidatePermit只接受qa.ask/followup。ReportQuestionSignals optional banExpiresAt使用omitempty，无ban不再输出空Timestamp。所有直接HTTP结果可选时间字段已按此审阅，EvaluateAdmission仅内部可保留显式null引用。
+
+### 第三批新增待CI精确函数ID
+
+- `traffic-guard.IssueChallenge`
+- `traffic-guard.VerifyChallenge`
+- `traffic-guard.VerifyPoW`
+- `traffic-guard.VerifyExternalChallenge`
+- `traffic-guard.ConsumeIdentityEvent`
+- `traffic-guard.PublishGuardEvents`
+- `traffic-guard.readChallengeRecord`
+- `traffic-guard.readChallengeSnapshot`
+- `traffic-guard.checkIssuedChallenge`
+- `traffic-guard.challengeNonce`
+- `traffic-guard.challengeResult`
+
+### 第三批已修改待重新CI
+
+- `traffic-guard.ClassifyAction`
+- `traffic-guard.ConsumeBuckets`
+- `traffic-guard.SignPermit`
+- `traffic-guard.ValidatePermit`
+- `traffic-guard.ConsumeAdmission`
+- `traffic-guard.RenewPermit`
+- `traffic-guard.OpenPolicyStore`
+- `traffic-guard.NewGuardHandlers`
+- `traffic-guard.ReportQuestionSignals`

@@ -11,3 +11,5 @@ ReportQuestionSignals只收已有前置风险，决策严格allow/deny/challenge
 本机仅阅读和Git差异审阅，未运行Go/gofmt/生成/编译/SQL行为验收/服务/真实接口。未新增测试、fixture、mock、样例或临时验证程序。
 
 第二批源码5b44ea5新增10个原有主业务函数及8个必要参考助手，仍blocked待GitLab：匿名主体、原根准入、并发分配、消费签名、续租释放、原签名/在线验证和HTTP入口。三层频率原子扣减，网络次数字段兼容默认600。先分配空token，只有原根已消费QA可签模型凭证；免费提示永不签模型token。继续挑战与事件，不等完整服务才交CI。
+
+第三批源码f5f036b完成挑战4项及身份通知/转发2项，累计32个原有主业务函数源码。5个必要挑战助手同步实际合同；全部仍blocked待统一GitLab。删除不再使用的NormalizePeer参考合同，CheckBan只保留实际permit_store.go版本。ConsumeEvents公共窄接口/准确统计缺口保持partial；完整启动仍失败关闭。已冻结，由根统一gen/docs/readonly build/vet/gofmt/check与双推，本域不再扩功能。
