@@ -187,9 +187,9 @@ func SaveReceipt(t *Transaction, op OperationContext, function, key string, inpu
 	return StorageError(err)
 }
 
-func ReadPolicy(t *Transaction) (gen.QaPolicy, error) {
+func ReadPolicy(t *Transaction) (gen.TypesQaPolicy, error) {
 	var raw []byte
-	var policy gen.QaPolicy
+	var policy gen.TypesQaPolicy
 	var version int
 	if err := t.Tx.QueryRowContext(t.Context, `SELECT version,policy_json FROM qa_policy WHERE singleton=1`).Scan(&version, &raw); err != nil {
 		return policy, StorageError(err)
@@ -201,8 +201,8 @@ func ReadPolicy(t *Transaction) (gen.QaPolicy, error) {
 }
 func ReadConversation(t *Transaction, op OperationContext, id string, owner bool) (gen.Conversation, error) {
 	var result gen.Conversation
-	var state string
-	err := t.Tx.QueryRowContext(t.Context, `SELECT conversation_id,visitor_subject,language,state,version,history_generation,expires_at FROM conversations WHERE conversation_id=? AND site_id=? AND data_epoch=?`, id, op.Actor.SiteID, op.DataEpoch).Scan(&result.ConversationId, &result.VisitorSubject, &result.Language, &state, &result.Version, &result.HistoryGeneration, &result.ExpiresAt)
+	var state, expiresText string
+	err := t.Tx.QueryRowContext(t.Context, `SELECT conversation_id,visitor_subject,language,state,version,history_generation,expires_at FROM conversations WHERE conversation_id=? AND site_id=? AND data_epoch=?`, id, op.Actor.SiteID, op.DataEpoch).Scan(&result.ConversationId, &result.VisitorSubject, &result.Language, &state, &result.Version, &result.HistoryGeneration, &expiresText)
 	if errors.Is(err, sql.ErrNoRows) {
 		return result, platform.NewError(platform.CodeNotFound, false, "对话不存在")
 	}
@@ -213,11 +213,12 @@ func ReadConversation(t *Transaction, op OperationContext, id string, owner bool
 		return gen.Conversation{}, platform.NewError(platform.CodeForbidden, false, "只能访问自己的对话")
 	}
 	result.State = gen.ConversationState(state)
-	expires, err := platform.ParseTimestamp(result.ExpiresAt)
+	expires, err := platform.ParseTimestamp(expiresText)
 	if err != nil {
 		return gen.Conversation{}, platform.NewError(platform.CodeIntegrityError, false, "对话过期信息损坏")
 	}
-	if state != "active" || !expires.After(time.Now()) {
+	result.ExpiresAt=expires
+ if state != "active" || !expires.After(time.Now()) {
 		return gen.Conversation{}, platform.NewError(platform.CodeGone, false, "对话已过期或删除")
 	}
 	return result, nil
