@@ -1,3 +1,13 @@
+# 第三组源拆分与只读链（2026-10-18，待GitLab CI）
+
+源码35cc93176576b42cbbf3a737bef39758586399db：四个原有函数新代码就绪（SplitTranslationUnits、FetchTranslationSource、ReadTranslationUnits、ListTranslationProgress），同时复核提示/校验/TM/保护继承等旧代码，新增18个实际参考辅助。累计30个既有业务/已改项与52个新增参考辅助，均待GitLab CI，accepted为0。
+
+完整ReadTranslation已有body/bodyHash与双水位读链，但人工保护table父/行换分组的安全旧译投影尚未完成，明确失败关闭并保持真正blocked，不计完整完成；不以原文回退冒充保留手工译文。完整服务与真实付费worker仍未齐。
+
+第三组未本地/SSH编译/生成/格式/测试，未新增测试、fixture、mock、样例或临时验证程序，未真实接口/模型/服务/部署或push。仅git diff --check通过。引用根已新增platform.MemoryContext（TaskID等字段），不再依赖被生成裁剪的gen DTO。
+
+---
+
 # 第二组集中实现（2026-10-18，待统一GitLab CI）
 
 源码5e90f43d6876833467610314722150fc678fe7e6：新增/修改15个既有函数与19个实际参考辅助。两组累计26个既有业务/已改函数、34个参考辅助；全部仍blocked待GitLab CI，完整服务和真实翻译执行尚未完成。

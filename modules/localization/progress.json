@@ -2,12 +2,12 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "4f1ba7fd0ac98da108362f96142e9bc0554d4975bf6198ccc9a3a5f0d3097a3f",
+  "contractSha256": "91f4684bc74327594b0c30f3e201f6651c3c26deb5c8318eb4e11913273b26f1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-15（Codex，集中并行实现）",
   "branch": "codex/localization-20261018-bulk",
   "baseCommit": "f1d4ce0628470eda7b253993366669759dd01cdc",
-  "deliveryCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+  "deliveryCommit": "35cc93176576b42cbbf3a737bef39758586399db",
   "deployment": "not_started",
   "files": [
     {
@@ -102,13 +102,13 @@
     },
     {
       "path": "modules/localization/internal/translation/units.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
     },
     {
       "path": "modules/localization/internal/translation/incremental.go",
@@ -133,12 +133,12 @@
     {
       "path": "modules/localization/internal/translation/prompt.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check；完整服务装配仍未齐"
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
     },
     {
       "path": "modules/localization/internal/translation/execute.go",
@@ -153,12 +153,12 @@
     {
       "path": "modules/localization/internal/translation/validate.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check；完整服务装配仍未齐"
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
     },
     {
       "path": "modules/localization/internal/translation/commit.go",
@@ -182,13 +182,13 @@
     },
     {
       "path": "modules/localization/internal/translation/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
     },
     {
       "path": "modules/localization/internal/human/edit.go",
@@ -403,12 +403,12 @@
     {
       "path": "modules/localization/internal/translation/tm.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check；完整服务装配仍未齐"
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
     },
     {
       "path": "modules/localization/internal/glossary/extract.go",
@@ -533,12 +533,12 @@
     {
       "path": "modules/localization/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check；完整服务装配仍未齐"
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
     },
     {
       "path": "modules/localization/internal/transport/server.go",
@@ -773,22 +773,22 @@
     {
       "path": "modules/localization/internal/translation/plan.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check；完整服务装配仍未齐"
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
     },
     {
       "path": "modules/localization/internal/translation/store.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check；完整服务装配仍未齐"
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
     },
     {
       "path": "modules/localization/internal/translation/edit.go",
@@ -803,12 +803,12 @@
     {
       "path": "modules/localization/internal/translation/http.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check；完整服务装配仍未齐"
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
     },
     {
       "path": "modules/localization/internal/interface/http.go",
@@ -849,6 +849,56 @@
         "evidence": null
       },
       "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check；完整服务装配仍未齐"
+    },
+    {
+      "path": "modules/localization/internal/translation/split.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+    },
+    {
+      "path": "modules/localization/internal/translation/restore.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+    },
+    {
+      "path": "modules/localization/internal/translation/source.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+    },
+    {
+      "path": "modules/localization/internal/translation/progress.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+    },
+    {
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
     }
   ],
   "functions": [
@@ -931,36 +981,36 @@
     },
     {
       "id": "localization.FetchTranslationSource",
-      "path": "modules/localization/internal/source/content.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/localization/internal/translation/source.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.SplitTranslationUnits",
-      "path": "modules/localization/internal/translation/units.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/localization/internal/translation/split.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.PlanIncrementalTranslation",
       "path": "modules/localization/internal/translation/plan.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.ResolveGlossary",
@@ -977,12 +1027,12 @@
       "id": "localization.BuildTranslationPrompt",
       "path": "modules/localization/internal/translation/prompt.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.RunTranslationBatch",
@@ -1010,12 +1060,12 @@
       "id": "localization.ValidateTranslationOutput",
       "path": "modules/localization/internal/translation/validate.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.CommitTranslationBatch",
@@ -1042,35 +1092,35 @@
     {
       "id": "localization.ReadTranslation",
       "path": "modules/localization/internal/translation/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "真实设计/实现阻塞：人工保护table的父/行分组发生变化时尚缺安全旧译投影，明确失败关闭；不计完整完成。其余新body/hash/水位读链待CI。"
     },
     {
       "id": "localization.ListTranslationProgress",
-      "path": "modules/localization/internal/translation/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/localization/internal/translation/progress.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.ReadTranslationUnits",
-      "path": "modules/localization/internal/translation/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/localization/internal/translation/units.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.EditTranslationUnit",
@@ -1384,12 +1434,12 @@
       "id": "localization.ReuseTranslationMemory",
       "path": "modules/localization/internal/translation/tm.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.ExtractAutomaticGlossary",
@@ -1802,12 +1852,12 @@
       "id": "localization.CheckInlineTokens",
       "path": "modules/localization/internal/translation/validate.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.SourceCatalog",
@@ -1868,12 +1918,12 @@
       "id": "localization.ReuseInSnapshot",
       "path": "modules/localization/internal/translation/tm.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.ConfigureExecutionAdapters",
@@ -1901,45 +1951,45 @@
       "id": "localization.objectPath",
       "path": "modules/localization/internal/translation/store.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.ReadObject",
       "path": "modules/localization/internal/translation/store.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.WriteObject",
       "path": "modules/localization/internal/translation/store.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.NewTranslationHandlers",
       "path": "modules/localization/internal/translation/http.go",
       "state": "blocked",
-      "implementationCommit": "5e90f43d6876833467610314722150fc678fe7e6",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     },
     {
       "id": "localization.NewInterfaceHandlers",
@@ -1973,13 +2023,212 @@
         "evidence": null
       },
       "blocker": "第二组代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.VisibleCharacterCount",
+      "path": "modules/localization/internal/translation/validate.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.LatestManifest",
+      "path": "modules/localization/internal/translation/read.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.AppendPath",
+      "path": "modules/localization/internal/translation/split.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.CollectSlots",
+      "path": "modules/localization/internal/translation/split.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.AppendTextSlots",
+      "path": "modules/localization/internal/translation/split.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.AppendSlot",
+      "path": "modules/localization/internal/translation/split.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.WithoutSourceIDs",
+      "path": "modules/localization/internal/translation/split.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.RestoreSourceTree",
+      "path": "modules/localization/internal/translation/restore.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.ParseSlotValues",
+      "path": "modules/localization/internal/translation/restore.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.ReplaceSourceText",
+      "path": "modules/localization/internal/translation/restore.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.ConfigureSourceClient",
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.ValidateSourcePayload",
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.SourceOperation",
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.FetchPublishedSnapshot",
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.FetchCurrentPublishedSnapshot",
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.readPublishedSnapshot",
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.CheckPublication",
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.CursorKey",
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "state": "blocked",
+      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
     }
   ],
-  "rule": "两组共26个既有业务/已修改函数与34个新增实际参考辅助提交，全部blocked待统一GitLab CI；完整服务、模型任务与行为验收未完成。",
+  "rule": "三组累计30个既有业务/已改函数及52个实际参考辅助交付；代码均待统一GitLab CI，ReadTranslation复杂保护表格投影保持真正blocked，不计完整完成。合并时保留根已获CI但本树未回传的未改项证据。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "21c6a196c990d323c73429b769a38895beca7a93",
-      "5e90f43d6876833467610314722150fc678fe7e6"
+      "5e90f43d6876833467610314722150fc678fe7e6",
+      "35cc93176576b42cbbf3a737bef39758586399db"
     ],
     "existingBusinessFunctions": [
       "localization.NormalizeLanguageTag",
@@ -2007,7 +2256,11 @@
       "localization.ReadCacheAnswerTranslation",
       "localization.PublishOutbox",
       "localization.InvokeModel",
-      "localization.LoadRuntime"
+      "localization.LoadRuntime",
+      "localization.SplitTranslationUnits",
+      "localization.FetchTranslationSource",
+      "localization.ReadTranslationUnits",
+      "localization.ListTranslationProgress"
     ],
     "newReferenceHelpers": [
       "localization.rejectLanguageAlias",
@@ -2043,7 +2296,25 @@
       "localization.recoverJournal",
       "localization.Root",
       "localization.ReserveObjectGeneration",
-      "localization.JSONHandler"
+      "localization.JSONHandler",
+      "localization.AppendPath",
+      "localization.CollectSlots",
+      "localization.AppendTextSlots",
+      "localization.AppendSlot",
+      "localization.WithoutSourceIDs",
+      "localization.RestoreSourceTree",
+      "localization.ParseSlotValues",
+      "localization.ReplaceSourceText",
+      "localization.LatestManifest",
+      "localization.VisibleCharacterCount",
+      "localization.ConfigureSourceClient",
+      "localization.ValidateSourcePayload",
+      "localization.SourceOperation",
+      "localization.FetchPublishedSnapshot",
+      "localization.FetchCurrentPublishedSnapshot",
+      "localization.readPublishedSnapshot",
+      "localization.CheckPublication",
+      "localization.CursorKey"
     ],
     "batches": [
       {
@@ -2118,6 +2389,71 @@
           "localization.Root",
           "localization.ReserveObjectGeneration",
           "localization.JSONHandler"
+        ]
+      },
+      {
+        "sourceCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+        "readyFunctions": [
+          "localization.SplitTranslationUnits",
+          "localization.ReadTranslationUnits",
+          "localization.FetchTranslationSource",
+          "localization.ListTranslationProgress",
+          "localization.BuildTranslationPrompt",
+          "localization.objectPath",
+          "localization.ReadObject",
+          "localization.WriteObject",
+          "localization.CheckInlineTokens",
+          "localization.ValidateTranslationOutput",
+          "localization.ReuseTranslationMemory",
+          "localization.ReuseInSnapshot",
+          "localization.PlanIncrementalTranslation",
+          "localization.NewTranslationHandlers"
+        ],
+        "newReferenceHelpers": [
+          "localization.AppendPath",
+          "localization.CollectSlots",
+          "localization.AppendTextSlots",
+          "localization.AppendSlot",
+          "localization.WithoutSourceIDs",
+          "localization.RestoreSourceTree",
+          "localization.ParseSlotValues",
+          "localization.ReplaceSourceText",
+          "localization.LatestManifest",
+          "localization.VisibleCharacterCount",
+          "localization.ConfigureSourceClient",
+          "localization.ValidateSourcePayload",
+          "localization.SourceOperation",
+          "localization.FetchPublishedSnapshot",
+          "localization.FetchCurrentPublishedSnapshot",
+          "localization.readPublishedSnapshot",
+          "localization.CheckPublication",
+          "localization.CursorKey"
+        ],
+        "changedFunctions": [
+          "localization.SplitTranslationUnits",
+          "localization.ReadTranslation",
+          "localization.ReadTranslationUnits",
+          "localization.FetchTranslationSource",
+          "localization.ListTranslationProgress",
+          "localization.BuildTranslationPrompt",
+          "localization.objectPath",
+          "localization.ReadObject",
+          "localization.WriteObject",
+          "localization.CheckInlineTokens",
+          "localization.ValidateTranslationOutput",
+          "localization.ReuseTranslationMemory",
+          "localization.ReuseInSnapshot",
+          "localization.PlanIncrementalTranslation",
+          "localization.NewTranslationHandlers"
+        ],
+        "designBlocked": [
+          "localization.ReadTranslation"
+        ],
+        "newExistingFunctions": [
+          "localization.SplitTranslationUnits",
+          "localization.FetchTranslationSource",
+          "localization.ReadTranslationUnits",
+          "localization.ListTranslationProgress"
         ]
       }
     ]

@@ -1,3 +1,21 @@
+# 第三组交付（2026-10-18）
+
+源码35cc93176576b42cbbf3a737bef39758586399db，其后另提交本记录。依赖首两组及根平台MemoryContext公共类型（TaskID/Language/Text/VersionHash/MappingRevision/ByteSize），本树按根指令直接引用，未复制公共类型。根CI已发现的unused json import及gen.MemoryContext错误同步窄修；若根此前已修，合并时保留该事实，不手改gen。
+
+新增四个原有就绪函数：SplitTranslationUnits、FetchTranslationSource、ReadTranslationUnits、ListTranslationProgress；其余14个本批ready/复核函数与18个新增helper的精确ID均在progress.json.readyAwaitingCI.batches。本批ReadTranslation不计完整完成：保护table分组变化仍缺安全旧人工投影，现返回DEPENDENCY_UNAVAILABLE，根确认保持真实blocked；父块/行保护继承已防止误入机翻，管理页可标review。
+
+源模板保留16类完整树；URL/code/公式不发模型，真实blockId/rowId不改，过大非table/过大行source-only保留并列fallbackBlockIds。目标还原只写固定text/alt路径，验证原值、标签完整性及content schema。源16MiB、聚合64MiB、公开目标16MiB分别检查；控制日志保留代数，不覆盖已付费旧对象，不因失败重算。
+
+ReadResult兼容body/bodyHash已同步types/OpenAPI；root/public-site应优先消费完整body并核对目标hash、源publication/语言/代数，不导入private模板，不把source hash当目标hash。返回前复核远程visibility及本地manifest/glossary。管理分页直接复用平台SignCursor/VerifyCursor，固定稳定actor/site/epoch/source/target generation/glossary/limit，10分钟独立到期，未知/变化STALE_RESULT；未复制加密。
+
+尚未完成：保护表格换分组旧译映射、Create/Execute/Commit/Complete真实翻译任务、估算/批准与UI模型、建议准入、事件/恢复控制与完整启动。标题/SEO/导航翻译的独立元数据表达也仍需后续执行链补齐，当前body职责不等于整站翻译验收。
+
+未本地/SSH工具链、测试、真实接口/模型、服务、部署或push；只有git diff --check通过。根统一GitLab gen/docs/build/vet/check后回传精确生成与证据，不以本记录覆盖已获CI且源码未变的项。
+
+下一步（一项）：按稳定子块/行及原始私有slot建立旧保护table到新分组的安全投影；无法证明归属或标签对应的内容必须保留人工原结果并review，不得机翻覆盖或用原文成功代替。该分支完成前ReadTranslation继续blocked。
+
+---
+
 # 第二组交付（2026-10-18）
 
 源码5e90f43d6876833467610314722150fc678fe7e6（依赖首组21c6a19+49f99b6），其后另提交本记录。新增/修改15个既有函数与19个参考helper。累计ready精确IDs和分批SHA见progress.json.readyAwaitingCI.batches，均blocked待统一GitLab CI，未做业务验收。
