@@ -82,6 +82,14 @@
         "siteId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "服务签名的站点作用域；只取可信op.Actor.SiteID，省略兼容旧system主体，不从浏览器头取"
+        },
+        "networkBudgetScopes": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+          },
+          "description": "portal到traffic-guard的已签名网络预算范围"
         }
       },
       "required": [
@@ -994,6 +1002,53 @@
     },
     "MemoryContext": {
       "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext"
+    },
+    "GuardSessionClaims": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subjectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sessionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "audience": {
+          "type": "string",
+          "const": "portal"
+        }
+      },
+      "required": [
+        "subjectId",
+        "siteId",
+        "sessionId",
+        "dataEpoch",
+        "expiresAt",
+        "audience"
+      ],
+      "description": "十分钟挑战通过证明"
+    },
+    "AdmissionPermit": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit"
+    },
+    "NetAddr": {
+      "type": "object",
+      "x-internal": true,
+      "description": "netip.Addr，可信代理链解析内部句柄"
+    },
+    "PrivateSigningKey": {
+      "type": "object",
+      "x-internal": true,
+      "description": "crypto/ed25519.PrivateKey，仅内存句柄"
     }
   }
 }

@@ -809,6 +809,11 @@
       "purpose": "平台公共库进度台账"
     },
     {
+      "path": "libs/platform/serviceauth/admission.go",
+      "kind": "handwritten",
+      "purpose": "统一风控凭证签名机制"
+    },
+    {
       "path": "libs/platform/serviceauth/assertion.go",
       "kind": "handwritten",
       "purpose": "服务断言签发与验证实现"
