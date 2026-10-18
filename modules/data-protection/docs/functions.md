@@ -465,8 +465,8 @@ func ExportDomainSnapshot(ctx context.Context, op OperationContext, in ExportDom
 2. 只接受固定13个外部owner，核backupId/barrierId/dataEpoch及当前runtime均为同一备份安全截点。
 3. 通过已装配的生成生产方端口调用exportSnapshot，核完整SnapshotRef与request绑定。
 4. 按ObjectRef获取application/x-tar归档，以20GiB上限流式写入本域active/incoming隔离临时文件并核长度与SHA-256。
-5. 在临时文件上调用公共ExtractSnapshotArchive与严格DomainSnapshotManifest校验，核真实manifest的owner/backup/barrier/snapshot/sourceEpoch/schema/watermark/secrets与导出回执一致后才rename和fsync。
-6. 已有同完整引用文件只重核hash；未知文件或manifest不符失败关闭，不把路径、URL或半归档交给Finalize。
+5. 对新接收或缓存的归档均调用公共ExtractSnapshotArchive与严格DomainSnapshotManifest校验，核真实manifest的owner/backup/barrier/snapshot/sourceEpoch/schema/watermark/secrets与本次导出回执一致；新文件通过后才rename和fsync。
+6. 缓存同一ObjectRef只允许复用字节，仍须重核完整hash和真实manifest与本次SnapshotRef；不能因hash相同省略schema/watermark/secrets等回执绑定，未知或不符均失败关闭。
 
 **错误**
 

@@ -1,3 +1,5 @@
+恢复检查复核补充：缓存归档命中仍核完整manifest与本次SnapshotRef的schema、水位和secret声明，不能仅因ObjectRef hash相同跳过回执绑定；此窄修仍待GitLab，完整导出端口与超管任务短委托缺口保留blocked。
+
 根集成静态审阅补充：补齐ExportDomainSnapshotInput/Result的本域手写DTO，与types.json已登记字段一致；它们未被HTTP引用，因此不能假设生成器会产出。此修正仍待GitLab编译，未提高函数状态。
 
 # 2026-10-18单轮快照导出适配候选

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "implementation",
-  "contractSha256": "262e0c152eee54c1fd25856286c2d2ff3631884bade4e55656687681ba479d55",
+  "contractSha256": "6a6e3f6f7f6a6a1b6b193467af8d4deadd5044294422e7af855cc2c11cf7f7a0",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18单轮快照导出适配：源码候选待GitLab恢复检查，业务验收未执行",
   "branch": "codex/protection-20261018-r9",

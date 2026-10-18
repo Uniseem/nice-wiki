@@ -122,42 +122,47 @@ func ExportDomainSnapshot(ctx context.Context, op OperationContext, in ExportDom
 		return ExportDomainSnapshotResult{}, err
 	}
 	final := filepath.Join(base, in.Owner+"-"+exported.Snapshot.SnapshotId+".tar")
+	cached := false
 	if _, statErr := os.Lstat(final); statErr == nil {
 		if _, err = VerifyObjectHash(ctx, op, VerifyObjectHashInput{ObjectPath: final, ExpectedHash: ref.Sha256, ExpectedBytes: int64(ref.ByteSize)}); err != nil {
 			return ExportDomainSnapshotResult{}, err
 		}
-		return ExportDomainSnapshotResult{Result: exported}, nil
+		cached = true
 	} else if !os.IsNotExist(statErr) {
 		return ExportDomainSnapshotResult{}, storageError(statErr)
 	}
-	temporary := final + ".partial-" + platform.NewIdentifier()
-	if err = lifecycle.ValidatePrivatePath(temporary, "regular-file", true); err != nil {
-		return ExportDomainSnapshotResult{}, err
-	}
-	file, err := os.OpenFile(temporary, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-	if err != nil {
-		return ExportDomainSnapshotResult{}, storageError(err)
-	}
-	removeTemporary := true
-	defer func() {
-		if removeTemporary {
-			_ = os.Remove(temporary)
+	temporary := final
+	removeTemporary := false
+	if !cached {
+		temporary = final + ".partial-" + platform.NewIdentifier()
+		if err = lifecycle.ValidatePrivatePath(temporary, "regular-file", true); err != nil {
+			return ExportDomainSnapshotResult{}, err
 		}
-	}()
-	digest := sha256.New()
-	count, copyErr := io.CopyBuffer(io.MultiWriter(file, digest), io.LimitReader(response.Body, int64(ref.ByteSize)+1), make([]byte, 1<<20))
-	if copyErr == nil && (count != int64(ref.ByteSize) || hex.EncodeToString(digest.Sum(nil)) != ref.Sha256) {
-		copyErr = platform.NewError(platform.CodeIntegrityError, false, "拥有者归档长度或hash不符")
-	}
-	if copyErr == nil {
-		copyErr = file.Sync()
-	}
-	closeErr := file.Close()
-	if copyErr != nil {
-		return ExportDomainSnapshotResult{}, storageError(copyErr)
-	}
-	if closeErr != nil {
-		return ExportDomainSnapshotResult{}, storageError(closeErr)
+		file, err := os.OpenFile(temporary, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		if err != nil {
+			return ExportDomainSnapshotResult{}, storageError(err)
+		}
+		removeTemporary = true
+		defer func() {
+			if removeTemporary {
+				_ = os.Remove(temporary)
+			}
+		}()
+		digest := sha256.New()
+		count, copyErr := io.CopyBuffer(io.MultiWriter(file, digest), io.LimitReader(response.Body, int64(ref.ByteSize)+1), make([]byte, 1<<20))
+		if copyErr == nil && (count != int64(ref.ByteSize) || hex.EncodeToString(digest.Sum(nil)) != ref.Sha256) {
+			copyErr = platform.NewError(platform.CodeIntegrityError, false, "拥有者归档长度或hash不符")
+		}
+		if copyErr == nil {
+			copyErr = file.Sync()
+		}
+		closeErr := file.Close()
+		if copyErr != nil {
+			return ExportDomainSnapshotResult{}, storageError(copyErr)
+		}
+		if closeErr != nil {
+			return ExportDomainSnapshotResult{}, storageError(closeErr)
+		}
 	}
 	if _, err = PrivateObjectPath(store, temporary); err != nil {
 		return ExportDomainSnapshotResult{}, err
@@ -191,6 +196,9 @@ func ExportDomainSnapshot(ctx context.Context, op OperationContext, in ExportDom
 	manifest := verified.Manifest
 	if manifest.Format != "nice-wiki.domain-snapshot" || manifest.Owner != in.Owner || manifest.BackupID != in.Request.BackupId || manifest.BarrierID != in.Request.BarrierId || manifest.SnapshotID != exported.Snapshot.SnapshotId || manifest.SourceEpoch != exported.Snapshot.DataEpoch || manifest.DataSchemaVersion != exported.Snapshot.DataSchemaVersion || manifest.RevisionWatermark != int64(exported.Snapshot.RevisionWatermark) || manifest.ContainsSecrets != exported.Snapshot.ContainsSecrets {
 		return ExportDomainSnapshotResult{}, platform.NewError(platform.CodeIntegrityError, false, "拥有者真实归档清单与导出回执不符")
+	}
+	if cached {
+		return ExportDomainSnapshotResult{Result: exported}, nil
 	}
 	if _, statErr := os.Lstat(final); statErr == nil {
 		if _, err = VerifyObjectHash(ctx, op, VerifyObjectHashInput{ObjectPath: final, ExpectedHash: ref.Sha256, ExpectedBytes: int64(ref.ByteSize)}); err != nil {
