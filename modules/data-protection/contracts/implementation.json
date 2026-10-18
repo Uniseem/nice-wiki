@@ -2687,10 +2687,10 @@
           ],
           "purpose": "下载私有备份授权",
           "steps": [
-            "重验已有backup.manage，含secret包核原superadmin",
-            "仅ready",
-            "后台一键操作透明得到120s单用途stream token",
-            "下载源端透明解密封存对象输出portableZIP，不要求用户密码或客户端密钥，不新增审批"
+            "HTTP即时superadmin；内部管理员；仅ready，清单backup/sourceEpoch/hash与目录一致。",
+            "平台SignCursor固定scope data-protection.download.v1，120秒；绑定nonce/backup/manifest/epoch/expiry与稳定主体会话权限摘要，payload至多1024字节。",
+            "control仅存token hash及安全claims/原输入；同操作只复用未消费未过期的同输入token。",
+            "后续真实流在普通当前授权及epoch门禁之后核token和DB hash，并在开始前CAS单用消费；流链尚未完成。"
           ],
           "errors": [
             {
@@ -2706,6 +2706,26 @@
               "httpStatus": 409,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "真实目录、原输入或签名不满足。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "真实目录、原输入或签名不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "condition": "真实目录、原输入或签名不满足。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "真实目录、原输入或签名不满足。",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -2713,13 +2733,15 @@
           ],
           "authorization": {
             "permission": "superadmin",
-            "rule": "backup.manage；含secret包需superadmin原授权上下文"
+            "rule": "既定HTTP即时superadmin；token不替代普通当前权限。"
           },
           "concurrency": "token原文禁止日志/快照/git；消费CAS",
           "idempotency": "operationId幂等复用未消费token",
           "dependencies": [
-            "identity:checkAuthorization",
-            "data-protection.StreamPortableBackup"
+            "data-protection.Catalog",
+            "data-protection.requireAdministrator",
+            "data-protection.decodeBackupManifest",
+            "data-protection.storageError"
           ],
           "resources": [],
           "contract": "binding"
@@ -7309,6 +7331,27 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "data-protection.server.AuthorizeBackupDownload",
+          "name": "server.AuthorizeBackupDownload",
+          "signature": "func (s *server) AuthorizeBackupDownload(w http.ResponseWriter, r *http.Request, id string, params gen.AuthorizeBackupDownloadParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "下载授权HTTP转换",
+          "steps": [
+            "生成边界即时核superadmin；可信op及路径调用真实授权，no-store输出，不记录token。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "平台边界即时backup.manage，只允许portal用户委托。",
+          "concurrency": "本域只读短快照，不发模型或远程Git。",
+          "idempotency": "纯目录投影可重读，无配置时不构造虚假策略。",
+          "dependencies": [
+            "data-protection.AuthorizeBackupDownload"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -8272,6 +8315,12 @@
       "path": "modules/data-protection/migrations/0005_backup_intent.sql",
       "kind": "migration",
       "purpose": "control V3不可变备份任务输入及jobs原回执；不是第二队列。",
+      "functions": []
+    },
+    {
+      "path": "modules/data-protection/migrations/0006_download_grants.sql",
+      "kind": "migration",
+      "purpose": "control V4下载授权hash、安全claim及单用状态，不导出快照。",
       "functions": []
     }
   ],

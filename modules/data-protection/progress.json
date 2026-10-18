@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "implementation",
-  "contractSha256": "cd65b18d7ed182a6723883abf205ed457f1de3234ed7fb801d951971c599e9d5",
+  "contractSha256": "99a219791f2dafe69eeac351b3f558f578d7c1dbdec77c03a22274912ba521c8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1收尾并行：数据保护独占",
   "branch": "codex/finish-20261018-protection",
@@ -92,13 +92,13 @@
     },
     {
       "path": "modules/data-protection/internal/download.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "下载授权待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/internal/restore_validation.go",
@@ -669,6 +669,16 @@
         "evidence": null
       },
       "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/data-protection/migrations/0006_download_grants.sql",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "control V4迁移待统一GitLab CI，未真实执行"
     }
   ],
   "functions": [
@@ -873,13 +883,13 @@
     {
       "id": "data-protection.AuthorizeBackupDownload",
       "path": "modules/data-protection/internal/download.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "下载授权闭环待统一GitLab CI；流式便携包尚未齐"
     },
     {
       "id": "data-protection.ValidateRestore",
@@ -1991,9 +2001,20 @@
         "evidence": null
       },
       "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
+    },
+    {
+      "id": "data-protection.server.AuthorizeBackupDownload",
+      "path": "modules/data-protection/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "下载授权HTTP待统一GitLab CI"
     }
   ],
-  "rule": "累计18既有业务/界面与53实际参考支持代码就绪待统一GitLab CI；备份执行屏障/归档封存与恢复/镜像服务链及完整启动继续实施。",
+  "rule": "累计19既有业务/界面与54实际参考支持待统一GitLab CI；完整归档/备份执行/恢复/镜像链尚未齐。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "88cef9718165e87d431e36b327f23cb207792388",

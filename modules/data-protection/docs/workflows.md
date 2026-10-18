@@ -78,3 +78,5 @@ manifest决定所有域同一个sourceEpoch与backupId，portal无业务数据�
 control V3追加backup_jobs：canonical不可变{backupId}与其真实ObjectRef、原subject/operation/root/site/epoch/inputHash和jobs原回执。原批准与requested状态/outbox同事务持久，再以清portal proof的本域服务身份单次提交jobs；失败保留原意图供相同操作重试，不自建领取/重试队列。requested事件不含尚不存在的manifestHash；只有真实封存ready才必填并显式核验，不依赖生成器单独支持if/then。
 
 ValidateBackupRequest只核管理员/secret额外超管、当前running同epoch、真实本机KEK及隔离目录，valid是基础条件通过，capacityVerified始终false；取得14域完整真实manifest后再按staging/密文/便携总预算与free bytes核容量，并在有界写前维持配额。
+
+control V4下载授权：120秒，复用平台签名固定data-protection.download.v1用途。绑定nonce/backup/manifest/current epoch/expiry与完整稳定身份摘要，1024字节不截断。只存hash及安全claims，不存token原文；原操作仅复用未消费未过期同输入。当前superadmin门禁不变，实际流开始前须核hash并CAS消费；流链尚未完成。
