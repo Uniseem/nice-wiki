@@ -45,6 +45,10 @@ type Application struct {
 	shutdownErr  error
 	httpServer   *http.Server
 	workerCancel context.CancelFunc
+ background []platform.BackgroundTask
+ closeResources func(context.Context)error
+ safePoint func(context.Context)(bool,error)
+ readInitialization func(context.Context)(bool,error)
 }
 
 // NewApplication 创建生命周期容器与匿名健康/就绪路由。只有在本域业务
@@ -102,7 +106,7 @@ func Serve(ctx context.Context, app *Application) error {
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		return Shutdown(shutdownCtx, app)
+		return app.Drain(shutdownCtx)
 	}
 }
 
@@ -112,21 +116,11 @@ func Shutdown(ctx context.Context, app *Application) error {
 	if app == nil || app.httpServer == nil {
 		return platform.NewError(platform.CodeValidation, false, "Application未装配")
 	}
-	app.shutdownOnce.Do(func() {
-		app.state.CompareAndSwap(stateReady, stateDraining)
-		if app.workerCancel != nil {
-			app.workerCancel()
-		}
-		if err := app.httpServer.Shutdown(ctx); err != nil {
-			if errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				app.shutdownErr = platform.NewError(platform.CodeDeadlineExceeded, true, "关闭期限内未能安全停止在途操作")
-				return
-			}
-			app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭HTTP服务失败")
-			return
-		}
-		app.state.Store(stateClosed)
-	})
+ app.shutdownOnce.Do(func(){
+  if err:=app.Drain(ctx);err!=nil{app.shutdownErr=err;return}
+  if app.closeResources!=nil{if err:=app.closeResources(ctx);err!=nil{app.shutdownErr=err;return}}
+  app.state.Store(stateClosed)
+ })
 	return app.shutdownErr
 }
 
@@ -163,19 +157,21 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if activeEpoch == "" {
 		activeEpoch = view.DataEpoch
 	}
-	health, err := Health(ctx, app)
+	if app.safePoint==nil||app.readInitialization==nil{return gen.ServiceReadiness{},platform.NewError(platform.CodeDependencyUnavailable,false,"实际控制安全点未装配")};safePoint,err:=app.safePoint(ctx);if err!=nil{return gen.ServiceReadiness{},err}
+ initialized,err:=app.readInitialization(ctx);if err!=nil{return gen.ServiceReadiness{},err}
+ health, err := Health(ctx, app)
 	if err != nil {
 		return gen.ServiceReadiness{}, err
 	}
 	return gen.ServiceReadiness{
 		Health:                health,
 		ActiveDataEpoch:       stringPointer(activeEpoch),
-		RuntimeRevision:       0,
+		RuntimeRevision:       gen.Revision(view.Revision),
 		Maintenance:           view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
-		Initialized:           false,
+		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning && app.state.Load()==stateReady,
+		Initialized:           initialized,
 		JournalRecovered:      app.journalRecovered,
-		SafePoint:             true,
+		SafePoint:             safePoint,
 	}, nil
 }
 
@@ -214,3 +210,15 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 func writeProblem(w http.ResponseWriter, err error) {
 	_ = problem.WriteProblem(w, problem.FromError(err, platform.NewIdentifier()))
 }
+
+// ConfigureBusiness仅由完整本域启动装配调用，不持有或复制通用任务实现。
+func(a *Application)ConfigureBusiness(handler http.Handler,tasks []platform.BackgroundTask,closeResources func(context.Context)error,safePoint func(context.Context)(bool,error),readInitialization func(context.Context)(bool,error)){
+ mux:=a.httpServer.Handler.(*http.ServeMux);mux.Handle("/",handler);a.background=append([]platform.BackgroundTask{},tasks...);a.closeResources=closeResources;a.safePoint=safePoint;a.readInitialization=readInitialization
+}
+func(a *Application)BackgroundTasks()[]platform.BackgroundTask{return append([]platform.BackgroundTask{},a.background...)}
+// Drain只停HTTP并等在途，等平台RunService取消并等完所有后台之后Shutdown才关私有库。
+func(a *Application)Drain(ctx context.Context)error{
+ a.state.CompareAndSwap(stateReady,stateDraining);if a.workerCancel!=nil{a.workerCancel()}
+ if err:=a.httpServer.Shutdown(ctx);err!=nil{return platform.NormalizeIOError(err,platform.CodeDeadlineExceeded,true,"关闭期限内HTTP在途尚未排空")};return nil
+}
+var _ platform.BackgroundApplication=(*Application)(nil)

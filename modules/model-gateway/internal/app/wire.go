@@ -12,7 +12,6 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/model-gateway/internal/admin"
 	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/catalog"
@@ -39,14 +38,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := ensureDataLayout(config.DataRoot); err != nil {
 		return nil, err
 	}
-	anchors, err := loadTrustAnchors(config.TrustAnchorRef)
-	if err != nil {
-		return nil, err
-	}
-	key, err := loadSigningKey(config.SigningKeyRef)
-	if err != nil {
-		return nil, err
-	}
+	anchors, key, err := lifecycle.LoadServiceIdentity(config)
+	if err != nil { return nil, err }
 
 	runtimeAuthority, err := newRuntimeClient(config, key)
 	if err != nil {
@@ -166,7 +159,7 @@ func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient,
 	if err := validateConfig(config); err != nil {
 		return nil, err
 	}
-	key, err := loadSigningKey(config.SigningKeyRef)
+	_, key, err := lifecycle.LoadServiceIdentity(config)
 	if err != nil {
 		return nil, err
 	}
@@ -206,31 +199,4 @@ func ensureDataLayout(dataRoot string) error {
 		}
 	}
 	return nil
-}
-
-func loadTrustAnchors(ref string) (platform.TrustAnchors, error) {
-	raw, err := os.ReadFile(ref)
-	if err != nil {
-		return platform.TrustAnchors{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务身份信任锚不可读")
-	}
-	var anchors platform.TrustAnchors
-	if err := json.Unmarshal(raw, &anchors); err != nil || len(anchors.Services) == 0 {
-		return platform.TrustAnchors{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务身份信任锚不合法")
-	}
-	return anchors, nil
-}
-
-func loadSigningKey(ref string) (platform.SigningKey, error) {
-	raw, err := os.ReadFile(ref)
-	if err != nil {
-		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名密钥引用不可读")
-	}
-	var key platform.SigningKey
-	if err := json.Unmarshal(raw, &key); err != nil || key.KeyID == "" || !filepath.IsAbs(key.PrivateKeyRef) {
-		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名密钥引用不合法")
-	}
-	if _, err := serviceauth.LoadSigningKey(key); err != nil {
-		return platform.SigningKey{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务签名私钥不可用")
-	}
-	return key, nil
 }
