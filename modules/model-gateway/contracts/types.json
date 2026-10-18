@@ -1523,6 +1523,12 @@
         "admissionPermit": {
           "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
           "description": "qa费用类必需继承同一个已消费的guard签名permit，MG验证签名/audience/epoch/期限/root归属；其他费用类省略。"
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "仅rerank必需的查询；texts是与candidateIds逐项对齐的候选原文，其他能力省略"
         }
       },
       "required": [

@@ -419,6 +419,7 @@ type GatewayMessage struct {
 
 // CreateInvocationInput model-gateway调用请求；字段与生产方types.json一致。
 type CreateInvocationInput struct {
+ Query string `json:"query,omitempty"`
 	TaskID              string           `json:"taskId"`
 	ProfileID           Identifier       `json:"profileId"`
 	Capability          string           `json:"capability"`

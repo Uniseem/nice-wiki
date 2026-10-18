@@ -4175,7 +4175,8 @@
             "3 按能力检查payload与模型声明，vision资源经media授权；canonical hash含task/model/content及已验证admissionId",
             "4 同幂等键同hash返回原调用，不同CONFLICT；此时不派发供应方请求",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-            "5 新调用持久accepted后启动ExecuteInvocation；调用方经resumeInference读取流直到终态"
+            "5 新调用持久accepted后启动ExecuteInvocation；调用方经resumeInference读取流直到终态",
+            "capability=rerank时query非空，texts与candidateIds等长逐项对应；其他能力省略query；不得把查询与候选拼接猜测供应方语义"
           ],
           "errors": [
             {
@@ -4750,7 +4751,8 @@
             "2 规范编码能力payload",
             "3 加供应方支持的幂等键",
             "4 返回只供executor内存消费",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+            "capability=rerank时query非空，texts与candidateIds等长逐项对应；其他能力省略query；不得把查询与候选拼接猜测供应方语义"
           ],
           "errors": [
             {
@@ -12099,7 +12101,8 @@
             "2 无重复且仅既有候选",
             "3 scores有限且排序稳定",
             "4 缺失候选排末不生成正文",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+            "capability=rerank时query非空，texts与candidateIds等长逐项对应；其他能力省略query；不得把查询与候选拼接猜测供应方语义"
           ],
           "errors": [
             {
