@@ -2402,7 +2402,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "model-gateway.embeddingSpaceID"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -2517,7 +2519,7 @@
         {
           "id": "model-gateway.ModelEmbeddingSpace",
           "name": "ModelEmbeddingSpace",
-          "signature": "func ModelEmbeddingSpace(model Model)(EmbeddingSpace,error)",
+          "signature": "func ModelEmbeddingSpace(model Model)(EmbeddingSpace, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域唯一五字段空间权威生产者，保持既有有序JSONhash算法",
@@ -2591,6 +2593,83 @@
           "dependencies": [
             "model-gateway.embeddingSpaceID"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.embeddingSpaceID",
+          "name": "embeddingSpaceID",
+          "signature": "func embeddingSpaceID(model Model) (platform.Hash, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "沿存量有序JSON字段生产空间ID",
+          "steps": [
+            "保留provider/modelVersion/dimensions/preprocessingVersion原有序json.Marshal及SHA256，不修改已有spaceId算法。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。"
+          },
+          "concurrency": "同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。",
+          "idempotency": "只读真实状态与固定原价目，无费用写入。",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -4352,7 +4431,7 @@
         {
           "id": "model-gateway.ReserveCost",
           "name": "ReserveCost",
-          "signature": "func ReserveCost(ctx context.Context,op OperationContext,input ReserveCostInput)(ReserveCostResult,error)",
+          "signature": "func ReserveCost(ctx context.Context, op OperationContext, input ReserveCostInput)(ReserveCostResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -4497,7 +4576,9 @@
             "model-gateway.ReadReservation",
             "model-gateway.SaveAttemptRecord",
             "model-gateway.SaveInvocationRecord",
-            "model-gateway.SaveExecutionReceipt"
+            "model-gateway.SaveExecutionReceipt",
+            "model-gateway.ExecutionTransaction.Close",
+            "model-gateway.ExecutionTransaction.Commit"
           ],
           "resources": [],
           "contract": "reference"
@@ -4505,7 +4586,7 @@
         {
           "id": "model-gateway.ExtendReservation",
           "name": "ExtendReservation",
-          "signature": "func ExtendReservation(ctx context.Context,op OperationContext,input ExtendReservationInput)(ExtendReservationResult,error)",
+          "signature": "func ExtendReservation(ctx context.Context, op OperationContext, input ExtendReservationInput)(ExtendReservationResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -4644,7 +4725,9 @@
             "model-gateway.ReadReservation",
             "model-gateway.ReadInvocationRecord",
             "model-gateway.CheckFeeBudgets",
-            "model-gateway.SaveExecutionReceipt"
+            "model-gateway.SaveExecutionReceipt",
+            "model-gateway.ExecutionTransaction.Close",
+            "model-gateway.ExecutionTransaction.Commit"
           ],
           "resources": [],
           "contract": "reference"
@@ -4652,7 +4735,7 @@
         {
           "id": "model-gateway.ComputeUsageCost",
           "name": "ComputeUsageCost",
-          "signature": "func ComputeUsageCost(price gen.PriceSnapshot,inputTokens,outputTokens int)(*gen.Money,error)",
+          "signature": "func ComputeUsageCost(price gen.PriceSnapshot, inputTokens, outputTokens int)(*gen.Money, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "ComputeUsageCost的本域实际执行职责",
@@ -4730,7 +4813,7 @@
         {
           "id": "model-gateway.ReadReservation",
           "name": "ReadReservation",
-          "signature": "func ReadReservation(tx *gatewayruntime.ExecutionTransaction,id string)(gen.Reservation,error)",
+          "signature": "func ReadReservation(tx *gatewayruntime.ExecutionTransaction, id string)(gen.Reservation, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "ReadReservation的本域实际执行职责",
@@ -4808,7 +4891,7 @@
         {
           "id": "model-gateway.CheckFeeBudgets",
           "name": "CheckFeeBudgets",
-          "signature": "func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction,record gatewayruntime.InvocationRecord,additional int64,now time.Time)error",
+          "signature": "func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, additional int64, now time.Time)error",
           "inputs": [],
           "outputs": [],
           "purpose": "CheckFeeBudgets的本域实际执行职责",
@@ -5220,14 +5303,17 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "model-gateway.OpenAttemptCredential",
+            "model-gateway.OpenAttemptHeaders"
+          ],
           "resources": [],
           "contract": "reference"
         },
         {
           "id": "model-gateway.ClassifyFailure",
           "name": "ClassifyFailure",
-          "signature": "func ClassifyFailure(ctx context.Context,op OperationContext,input ClassifyFailureInput)(ClassifyFailureResult,error)",
+          "signature": "func ClassifyFailure(ctx context.Context, op OperationContext, input ClassifyFailureInput)(ClassifyFailureResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -5381,7 +5467,7 @@
         {
           "id": "model-gateway.AppendStreamEvent",
           "name": "AppendStreamEvent",
-          "signature": "func AppendStreamEvent(ctx context.Context,op OperationContext,input AppendStreamEventInput)(AppendStreamEventResult,error)",
+          "signature": "func AppendStreamEvent(ctx context.Context, op OperationContext, input AppendStreamEventInput)(AppendStreamEventResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -5526,7 +5612,7 @@
         {
           "id": "model-gateway.ResumeStream",
           "name": "ResumeStream",
-          "signature": "func ResumeStream(ctx context.Context,op OperationContext,input ResumeStreamInput)(ResumeStreamResult,error)",
+          "signature": "func ResumeStream(ctx context.Context, op OperationContext, input ResumeStreamInput)(ResumeStreamResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -5755,7 +5841,7 @@
         {
           "id": "model-gateway.RecordUsage",
           "name": "RecordUsage",
-          "signature": "func RecordUsage(ctx context.Context,op OperationContext,input RecordUsageInput)(RecordUsageResult,error)",
+          "signature": "func RecordUsage(ctx context.Context, op OperationContext, input RecordUsageInput)(RecordUsageResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -5901,7 +5987,9 @@
             "model-gateway.ReadInvocationRecord",
             "model-gateway.ReadAttemptRecord",
             "model-gateway.SaveAttemptRecord",
-            "model-gateway.SaveInvocationRecord"
+            "model-gateway.SaveInvocationRecord",
+            "model-gateway.ExecutionTransaction.Close",
+            "model-gateway.ExecutionTransaction.Commit"
           ],
           "resources": [],
           "contract": "reference"
@@ -5987,7 +6075,7 @@
         {
           "id": "model-gateway.ReadUsage",
           "name": "ReadUsage",
-          "signature": "func ReadUsage(tx *gatewayruntime.ExecutionTransaction,attempt gatewayruntime.AttemptRecord,hash string)(RecordUsageInput,error)",
+          "signature": "func ReadUsage(tx *gatewayruntime.ExecutionTransaction, attempt gatewayruntime.AttemptRecord, hash string)(RecordUsageInput, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "ReadUsage的本域实际执行职责",
@@ -6072,7 +6160,7 @@
         {
           "id": "model-gateway.SettleInvocation",
           "name": "SettleInvocation",
-          "signature": "func SettleInvocation(ctx context.Context,op OperationContext,input SettleInvocationInput)(SettleInvocationResult,error)",
+          "signature": "func SettleInvocation(ctx context.Context, op OperationContext, input SettleInvocationInput)(SettleInvocationResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -6216,7 +6304,9 @@
             "model-gateway.ComputeUsageCost",
             "model-gateway.InsertLedgerEntry",
             "model-gateway.EnqueueExecutionEvent",
-            "model-gateway.SaveExecutionReceipt"
+            "model-gateway.SaveExecutionReceipt",
+            "model-gateway.ExecutionTransaction.Close",
+            "model-gateway.ExecutionTransaction.Commit"
           ],
           "resources": [],
           "contract": "reference"
@@ -6224,7 +6314,7 @@
         {
           "id": "model-gateway.InsertLedgerEntry",
           "name": "InsertLedgerEntry",
-          "signature": "func InsertLedgerEntry(tx *gatewayruntime.ExecutionTransaction,entry gen.LedgerEntry,hash string,price gen.PriceSnapshot,supersedes string)error",
+          "signature": "func InsertLedgerEntry(tx *gatewayruntime.ExecutionTransaction, entry gen.LedgerEntry, hash string, price gen.PriceSnapshot, supersedes string)error",
           "inputs": [],
           "outputs": [],
           "purpose": "InsertLedgerEntry的本域实际执行职责",
@@ -6302,7 +6392,7 @@
         {
           "id": "model-gateway.ReadAttemptLedger",
           "name": "ReadAttemptLedger",
-          "signature": "func ReadAttemptLedger(tx *gatewayruntime.ExecutionTransaction,attemptID string)(gen.LedgerEntry,error)",
+          "signature": "func ReadAttemptLedger(tx *gatewayruntime.ExecutionTransaction, attemptID string)(gen.LedgerEntry, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "ReadAttemptLedger的本域实际执行职责",
@@ -6387,7 +6477,7 @@
         {
           "id": "model-gateway.MarkUnknownCharge",
           "name": "MarkUnknownCharge",
-          "signature": "func MarkUnknownCharge(ctx context.Context,op OperationContext,input MarkUnknownChargeInput)(MarkUnknownChargeResult,error)",
+          "signature": "func MarkUnknownCharge(ctx context.Context, op OperationContext, input MarkUnknownChargeInput)(MarkUnknownChargeResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -6527,7 +6617,9 @@
             "model-gateway.ReadReservation",
             "model-gateway.SaveAttemptRecord",
             "model-gateway.SaveInvocationRecord",
-            "model-gateway.EnqueueExecutionEvent"
+            "model-gateway.EnqueueExecutionEvent",
+            "model-gateway.ExecutionTransaction.Close",
+            "model-gateway.ExecutionTransaction.Commit"
           ],
           "resources": [],
           "contract": "reference"
@@ -6535,7 +6627,7 @@
         {
           "id": "model-gateway.ReconcileCharge",
           "name": "ReconcileCharge",
-          "signature": "func ReconcileCharge(ctx context.Context,op OperationContext,input ReconcileChargeInput)(ReconcileChargeResult,error)",
+          "signature": "func ReconcileCharge(ctx context.Context, op OperationContext, input ReconcileChargeInput)(ReconcileChargeResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -6681,7 +6773,9 @@
             "model-gateway.InsertLedgerEntry",
             "model-gateway.SaveAttemptRecord",
             "model-gateway.SaveInvocationRecord",
-            "model-gateway.SaveExecutionReceipt"
+            "model-gateway.SaveExecutionReceipt",
+            "model-gateway.ExecutionTransaction.Close",
+            "model-gateway.ExecutionTransaction.Commit"
           ],
           "resources": [],
           "contract": "binding"
@@ -6805,7 +6899,7 @@
         {
           "id": "model-gateway.GetInvocation",
           "name": "GetInvocation",
-          "signature": "func GetInvocation(ctx context.Context,op OperationContext,input GetInvocationInput)(GetInvocationResult,error)",
+          "signature": "func GetInvocation(ctx context.Context, op OperationContext, input GetInvocationInput)(GetInvocationResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -7075,7 +7169,7 @@
         {
           "id": "model-gateway.ValidateEmbeddingSpace",
           "name": "ValidateEmbeddingSpace",
-          "signature": "func ValidateEmbeddingSpace(ctx context.Context,op OperationContext,input ValidateEmbeddingSpaceInput)(ValidateEmbeddingSpaceResult,error)",
+          "signature": "func ValidateEmbeddingSpace(ctx context.Context, op OperationContext, input ValidateEmbeddingSpaceInput)(ValidateEmbeddingSpaceResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -7211,7 +7305,7 @@
         {
           "id": "model-gateway.AcquireProviderSlot",
           "name": "AcquireProviderSlot",
-          "signature": "func AcquireProviderSlot(ctx context.Context,op OperationContext,input AcquireProviderSlotInput)(AcquireProviderSlotResult,error)",
+          "signature": "func AcquireProviderSlot(ctx context.Context, op OperationContext, input AcquireProviderSlotInput)(AcquireProviderSlotResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -7338,7 +7432,7 @@
         {
           "id": "model-gateway.ReleaseProviderSlot",
           "name": "ReleaseProviderSlot",
-          "signature": "func ReleaseProviderSlot(ctx context.Context,op OperationContext,input ReleaseProviderSlotInput)(ReleaseProviderSlotResult,error)",
+          "signature": "func ReleaseProviderSlot(ctx context.Context, op OperationContext, input ReleaseProviderSlotInput)(ReleaseProviderSlotResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -9789,7 +9883,7 @@
         {
           "id": "model-gateway.RedactLog",
           "name": "RedactLog",
-          "signature": "func RedactLog(ctx context.Context,op OperationContext,input RedactLogInput)(RedactLogResult,error)",
+          "signature": "func RedactLog(ctx context.Context, op OperationContext, input RedactLogInput)(RedactLogResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -13096,7 +13190,7 @@
         {
           "id": "model-gateway.MapAnthropicRequest",
           "name": "MapAnthropicRequest",
-          "signature": "func MapAnthropicRequest(ctx context.Context,op OperationContext,input MapAnthropicRequestInput)(MapAnthropicRequestResult,error)",
+          "signature": "func MapAnthropicRequest(ctx context.Context, op OperationContext, input MapAnthropicRequestInput)(MapAnthropicRequestResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -13308,7 +13402,7 @@
         {
           "id": "model-gateway.ProviderContent",
           "name": "ProviderContent",
-          "signature": "func ProviderContent(message gen.GatewayMessage,images map[string][]byte,protocol string)([]map[string]any,error)",
+          "signature": "func ProviderContent(message gen.GatewayMessage, images map[string][]byte, protocol string)([]map[string]any, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "ProviderContent的真实本域材料处理",
@@ -13395,7 +13489,7 @@
         {
           "id": "model-gateway.MapGeminiRequest",
           "name": "MapGeminiRequest",
-          "signature": "func MapGeminiRequest(ctx context.Context,op OperationContext,input MapGeminiRequestInput)(MapGeminiRequestResult,error)",
+          "signature": "func MapGeminiRequest(ctx context.Context, op OperationContext, input MapGeminiRequestInput)(MapGeminiRequestResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -13536,7 +13630,7 @@
         {
           "id": "model-gateway.ParseRerankResponse",
           "name": "ParseRerankResponse",
-          "signature": "func ParseRerankResponse(ctx context.Context,op OperationContext,input ParseRerankResponseInput)(ParseRerankResponseResult,error)",
+          "signature": "func ParseRerankResponse(ctx context.Context, op OperationContext, input ParseRerankResponseInput)(ParseRerankResponseResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -13864,7 +13958,8 @@
             "model-gateway.NewLedgerHandlers",
             "model-gateway.NewExecutionHandlers",
             "platform.NewTaskGroup",
-            "platform.TaskGroup.Run"
+            "platform.TaskGroup.Run",
+            "model-gateway.InstallExecutionOptions"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -14398,7 +14493,7 @@
         {
           "id": "model-gateway.ExecutionDependencies",
           "name": "ExecutionDependencies",
-          "signature": "func ExecutionDependencies()(ExecutionOptions,error)",
+          "signature": "func ExecutionDependencies()(ExecutionOptions, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "ExecutionDependencies的本域实际执行职责",
@@ -14494,7 +14589,7 @@
         {
           "id": "model-gateway.BeginExecution",
           "name": "BeginExecution",
-          "signature": "func BeginExecution(ctx context.Context,op OperationContext,write bool)(*ExecutionTransaction,error)",
+          "signature": "func BeginExecution(ctx context.Context, op OperationContext, write bool)(*ExecutionTransaction, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "BeginExecution的本域实际执行职责",
@@ -14883,7 +14978,7 @@
         {
           "id": "model-gateway.ReadInvocationRecord",
           "name": "ReadInvocationRecord",
-          "signature": "func ReadInvocationRecord(tx *ExecutionTransaction,op OperationContext,id string)(InvocationRecord,error)",
+          "signature": "func ReadInvocationRecord(tx *ExecutionTransaction, op OperationContext, id string)(InvocationRecord, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "ReadInvocationRecord的本域实际执行职责",
@@ -14981,7 +15076,7 @@
         {
           "id": "model-gateway.SaveInvocationRecord",
           "name": "SaveInvocationRecord",
-          "signature": "func SaveInvocationRecord(tx *ExecutionTransaction,record InvocationRecord)error",
+          "signature": "func SaveInvocationRecord(tx *ExecutionTransaction, record InvocationRecord)error",
           "inputs": [],
           "outputs": [],
           "purpose": "SaveInvocationRecord的本域实际执行职责",
@@ -15077,7 +15172,7 @@
         {
           "id": "model-gateway.ReadAttemptRecord",
           "name": "ReadAttemptRecord",
-          "signature": "func ReadAttemptRecord(tx *ExecutionTransaction,id string)(AttemptRecord,error)",
+          "signature": "func ReadAttemptRecord(tx *ExecutionTransaction, id string)(AttemptRecord, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "ReadAttemptRecord的本域实际执行职责",
@@ -15173,7 +15268,7 @@
         {
           "id": "model-gateway.SaveAttemptRecord",
           "name": "SaveAttemptRecord",
-          "signature": "func SaveAttemptRecord(tx *ExecutionTransaction,record AttemptRecord)error",
+          "signature": "func SaveAttemptRecord(tx *ExecutionTransaction, record AttemptRecord)error",
           "inputs": [],
           "outputs": [],
           "purpose": "SaveAttemptRecord的本域实际执行职责",
@@ -15269,7 +15364,7 @@
         {
           "id": "model-gateway.ReplayExecutionReceipt",
           "name": "ReplayExecutionReceipt",
-          "signature": "func ReplayExecutionReceipt(tx *ExecutionTransaction,op OperationContext,function,key string,input,result any)(bool,error)",
+          "signature": "func ReplayExecutionReceipt(tx *ExecutionTransaction, op OperationContext, function, key string, input, result any)(bool, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "ReplayExecutionReceipt的本域实际执行职责",
@@ -15365,7 +15460,7 @@
         {
           "id": "model-gateway.SaveExecutionReceipt",
           "name": "SaveExecutionReceipt",
-          "signature": "func SaveExecutionReceipt(tx *ExecutionTransaction,op OperationContext,function,key string,input,result any)error",
+          "signature": "func SaveExecutionReceipt(tx *ExecutionTransaction, op OperationContext, function, key string, input, result any)error",
           "inputs": [],
           "outputs": [],
           "purpose": "SaveExecutionReceipt的本域实际执行职责",
@@ -15461,7 +15556,7 @@
         {
           "id": "model-gateway.SaveInvocationEvent",
           "name": "SaveInvocationEvent",
-          "signature": "func SaveInvocationEvent(tx *ExecutionTransaction,record *InvocationRecord,event StreamEvent)error",
+          "signature": "func SaveInvocationEvent(tx *ExecutionTransaction, record *InvocationRecord, event StreamEvent)error",
           "inputs": [],
           "outputs": [],
           "purpose": "SaveInvocationEvent的本域实际执行职责",
@@ -15559,7 +15654,7 @@
         {
           "id": "model-gateway.EnqueueExecutionEvent",
           "name": "EnqueueExecutionEvent",
-          "signature": "func EnqueueExecutionEvent(tx *ExecutionTransaction,op OperationContext,eventType,subject string,revision int,payload any)error",
+          "signature": "func EnqueueExecutionEvent(tx *ExecutionTransaction, op OperationContext, eventType, subject string, revision int, payload any)error",
           "inputs": [],
           "outputs": [],
           "purpose": "EnqueueExecutionEvent的本域实际执行职责",
@@ -15768,7 +15863,7 @@
         {
           "id": "model-gateway.writeExecutionResult",
           "name": "writeExecutionResult",
-          "signature": "func writeExecutionResult(w http.ResponseWriter,op OperationContext,result any,err error)",
+          "signature": "func writeExecutionResult(w http.ResponseWriter, op OperationContext, result any, err error)",
           "inputs": [],
           "outputs": [],
           "purpose": "writeExecutionResult的本域实际执行职责",
@@ -15864,7 +15959,7 @@
         {
           "id": "model-gateway.invocationEventStream.Next",
           "name": "invocationEventStream.Next",
-          "signature": "func(s *invocationEventStream)Next(ctx context.Context)(platform.SSEFrame,error)",
+          "signature": "func(s *invocationEventStream)Next(ctx context.Context)(platform.SSEFrame, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "invocationEventStream.Next的本域实际执行职责",
@@ -16149,7 +16244,7 @@
         {
           "id": "model-gateway.PrepareHeaderSecrets",
           "name": "PrepareHeaderSecrets",
-          "signature": "func PrepareHeaderSecrets(ctx context.Context,op OperationContext,providerID string,providerVersion int,headers []SecretHeader,command any)([]SealedHeader,string,error)",
+          "signature": "func PrepareHeaderSecrets(ctx context.Context, op OperationContext, providerID string, providerVersion int, headers []SecretHeader, command any)([]SealedHeader, string, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "PrepareHeaderSecrets的真实本域材料处理",
@@ -16250,7 +16345,7 @@
         {
           "id": "model-gateway.SaveHeaderSecrets",
           "name": "SaveHeaderSecrets",
-          "signature": "func SaveHeaderSecrets(ctx context.Context,op OperationContext,tx *sql.Tx,providerID string,version int,headers []SealedHeader)error",
+          "signature": "func SaveHeaderSecrets(ctx context.Context, op OperationContext, tx *sql.Tx, providerID string, version int, headers []SealedHeader)error",
           "inputs": [],
           "outputs": [],
           "purpose": "SaveHeaderSecrets的真实本域材料处理",
@@ -16330,7 +16425,7 @@
         {
           "id": "model-gateway.OpenAttemptCredential",
           "name": "OpenAttemptCredential",
-          "signature": "func OpenAttemptCredential(ctx context.Context,op OperationContext,attemptID string)([]byte,error)",
+          "signature": "func OpenAttemptCredential(ctx context.Context, op OperationContext, attemptID string)([]byte, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "OpenAttemptCredential的真实本域材料处理",
@@ -16432,7 +16527,7 @@
         {
           "id": "model-gateway.OpenAttemptHeaders",
           "name": "OpenAttemptHeaders",
-          "signature": "func OpenAttemptHeaders(ctx context.Context,op OperationContext,attemptID string)(http.Header,error)",
+          "signature": "func OpenAttemptHeaders(ctx context.Context, op OperationContext, attemptID string)(http.Header, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "OpenAttemptHeaders的真实本域材料处理",

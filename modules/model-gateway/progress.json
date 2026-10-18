@@ -2,7 +2,7 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "2c6c67a07ddae10839f176cd3cc9363b3b4056aef4e8a0d9f72716be2e3cc85c",
+  "contractSha256": "dcd6ccdcaeedfda561f6ef519ad424f3741f5e0af2613d21cfec12c3c051c830",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1模型网关费用执行及完整启动收尾",
   "branch": "codex/finish-20261018-gateway",
@@ -2389,6 +2389,17 @@
       },
       "blocker": "代码就绪，待GitLab；未做真实供应方/模型验收",
       "path": "modules/model-gateway/internal/security/headers.go"
+    },
+    {
+      "id": "model-gateway.embeddingSpaceID",
+      "path": "modules/model-gateway/internal/catalog/model.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "登记实际既有空间摘要助手，待GitLab"
     }
   ],
   "rule": "费用首批11原有业务及26必要助手共37项源码ready，加2项修改过的既有账本函数重新待CI；全部blocked，不提前implemented/verified。既有未改verified保留原证据；完整生产派发及启动继续实现。"

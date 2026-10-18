@@ -249,8 +249,8 @@ func validModelString(value string) bool {
 }
 
 func validCatalogOrigin(origin gen.ModelCatalogOrigin) bool {
-	switch origin {
-	case gen.Bundled, gen.Remote, gen.Manual:
+	switch string(origin) {
+	case "bundled", "remote", "manual":
 		return true
 	default:
 		return false
