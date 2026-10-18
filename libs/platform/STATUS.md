@@ -1,3 +1,91 @@
+# 公共scope、两阶段屏障与签名清理交付
+
+源码 28882114d22b2df504cdf4101a48a016e385ed7c、68e5e33dc100ef1eca0d179b726b49d2d0bd8827、1904ea07ba2ebd4f20ad524ad9e6e4478d4fb4b2、94cdeeefd7f3436e780db141a0a476075a343d96。本批73个新/修改实际函数blocked待GitLab，其中43个新增登记参考函数（含原有EnsureSchema补登记），不冒称均为新增业务。未动旧verified保留原证据。本机只做Git/文字与隐私审阅，git diff --check通过，无本机/SSH编译生成、无新测试/样例/临时业务程序、无真实接口/模型/部署/push。
+
+精确API、真实SQL水位/CAS、原root/费用/event来源隔离及HTTP/common片段见[屏障与清理范围](docs/barriers.md)。Root须接14域实际ObserveWork/SealWork/ResumeWork/VerifyGlobalSeal与真实HTTP策略/cleanup原对象授权；缺任何实际回调/全域协调证明均保持blocked，不把公共方法当整站safe/Ready。jobs最后封口，冻结收费queued job不运行清零，旧epoch投递撤资格且保全原费用/输入/输出/事件审计。portal仍独立配置gate，不占14有状态owner。
+
+Root须保留工作区外926fd07的WorkerConfig.OnCancellationObserved及真实lease回调，本分支不覆盖。BarrierRequest省略step只prepare，step含prepare/drain/observe/seal/resume-drain；BarrierStatus需observation与sealProofHash可选字段，ROOT统一common/HTTP。cleanupScope带queryHash及可选eventControl，严格原root/site/epoch/costClass；来源/目标/分叉均保持event控制资格，不能变paid root。
+
+完整Capture工具只允许真实safe callback；SQLite VACUUM INTO、普通文件有界copy/hash/fsync、未登记SQLite/链接/未知数据失败关闭。ManifestV2必填真实assets/invocations，V1原canonical不漂移；readSnapshotStageRecord也明确V1/2。PrepareRestoredOutbox只在真实Stage私有scope内迁移源gate并撤旧投递资格，保原行与payload/epoch/费用，目标activate前仍本次host hash封口。
+
+SealTaskSecret/OpenTaskSecret只返回nonce+ciphertext，AES256GCM+固定私有原始32B key与原owner/site/epoch/root/purpose版本化AAD，明文≤64KiB；缺key503，不延长permit，持久/权限/回收由本域实现。新caller须Root在实际localization任务接线。
+
+精确待检查IDs：
+
+- `platform.SignAssertion`
+- `platform.SignOutboundRequest`
+- `platform.BuildOperationContext`
+- `platform.EnsureSchema`
+- `platform.RunRelayBatch`
+- `platform.RunConsumerWithResult`
+- `platform.consumerLoop.start`
+- `platform.consumerLoop.worker`
+- `platform.consumerLoop.queueFor`
+- `platform.consumerLoop.dispatch`
+- `platform.consumerLoop.acknowledge`
+- `platform.consumerLoop.process`
+- `platform.consumerLoop.classify`
+- `platform.consumerLoop.pauseFor`
+- `platform.inbox.readRuntime`
+- `platform.RunWorkerLoopWithResult`
+- `platform.workerLoop.run`
+- `platform.workerLoop.execute`
+- `platform.RunRecoveryLoop`
+- `platform.NewServiceHandler`
+- `platform.readSnapshotStageRecord`
+- `platform.NewTaskGroup`
+- `platform.TaskGroup.Start`
+- `platform.TaskGroup.SetAdmission`
+- `platform.TaskGroup.CancelActive`
+- `platform.TaskGroup.WaitIdle`
+- `platform.DomainSnapshotManifest.MarshalJSON`
+- `platform.validateSnapshotManifestVersion`
+- `platform.validateSnapshotInventory`
+- `platform.NewSnapshotManager`
+- `platform.SnapshotManager.signalLocked`
+- `platform.SnapshotManager.AdmitBusiness`
+- `platform.SnapshotManager.WriteWindow`
+- `platform.SnapshotCleanup.Context`
+- `platform.SnapshotManager.runDrainCallback`
+- `platform.SnapshotManager.EnterBarrier`
+- `platform.SnapshotManager.ReleaseBarrier`
+- `platform.SnapshotManager.AdmitJobClaim`
+- `platform.SnapshotManager.BindJobExecutionScope`
+- `platform.SnapshotManager.PrepareBarrier`
+- `platform.SnapshotManager.DrainBarrier`
+- `platform.SnapshotManager.requireDraining`
+- `platform.SnapshotManager.ObserveBarrier`
+- `platform.SnapshotManager.SealBarrier`
+- `platform.SnapshotManager.ResumeDrain`
+- `platform.validateSnapshotSealProof`
+- `platform.SnapshotManager.Export`
+- `platform.SnapshotManager.Stage`
+- `platform.WithCleanupIssuer`
+- `platform.CleanupIssuerFrom`
+- `platform.WithoutCleanupIssuer`
+- `platform.noCleanupIssuer.IssueCleanup`
+- `platform.MatchCleanupRoute`
+- `platform.CleanupResourceID`
+- `platform.ValidateCleanupScope`
+- `platform.snapshotAdmission.IssueCleanup`
+- `platform.SnapshotManager.ExistingWorkContext`
+- `platform.SnapshotManager.currentBarrierID`
+- `platform.SnapshotManager.newCleanupLocked`
+- `platform.SnapshotManager.AdmitCleanup`
+- `platform.SnapshotManager.AdmitEventBatch`
+- `platform.SnapshotManager.AllowEventDrain`
+- `platform.SnapshotManager.BindOutboxEventScope`
+- `platform.CaptureSnapshotFiles`
+- `platform.Store.Observe`
+- `platform.Store.Seal`
+- `platform.Store.Resume`
+- `platform.SnapshotStageBinding`
+- `platform.PrepareRestoredOutbox`
+- `platform.SealTaskSecret`
+- `platform.OpenTaskSecret`
+- `platform.taskSecretAAD`
+- `platform.taskSecretCipher`
+
 # 原调用未接受专用否证明
 
 源码dcba0de：公共CodeInvocationNotAccepted和404映射，Invoke仅认INVOCATION_NOT_ACCEPTED才可在原paid deadline有效时Create同原键。普通NOT_FOUND可能是旧部署/路由缺失，绝不作为未接受证明；只读Lookup保留专用码，已知ID Get404仍Integrity。待Root common/errors与MG producer统一GitLab，本机未检查/未真实调用，未push。下一项独立落地HTTP/worker/inbox/relay/TaskGroup scope hooks；两阶段全域闭包先向Root提精确协议片段，不把错时采样0当safe。
