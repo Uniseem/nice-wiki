@@ -12,7 +12,7 @@ RelayConfig.AdmitBatch和BindEventScope分别覆盖完整批次及原事件publi
 
 ## prepare、drain、seal
 
-公共API：PrepareBarrier(ctx,SnapshotBarrierInput)、DrainBarrier(ctx,barrierId)、ObserveBarrier(ctx,barrierId)、SealBarrier(ctx,SnapshotSealProof)、ResumeDrain(ctx,barrierId,expectedSealHash)。旧EnterBarrier只转PrepareBarrier。HTTP BarrierRequest.step省略只能prepare；step允许prepare/drain/seal/resume-drain，由ROOT协调HTTP装配，不能省略当safe。
+公共API：PrepareBarrier(ctx,SnapshotBarrierInput)、DrainBarrier(ctx,barrierId)、ObserveBarrier(ctx,barrierId)、SealBarrier(ctx,SnapshotSealProof)、ResumeDrain(ctx,barrierId,expectedSealHash)。旧EnterBarrier只转PrepareBarrier。HTTP BarrierRequest.step省略只能prepare；step允许prepare/drain/observe/seal/resume-drain，由ROOT协调HTTP装配，不能省略当safe。
 
 Prepare持久draining，拒新HTTP/paid/periodic/job claim，取消旧进程租约，BeginDrain仅停止与取消，不等待跨域收尾。所有14域prepare后，Drain才可并行收尾原费用、取消、回执、事件和最后outbox，不运行冻结收费queued job清零。
 
@@ -30,7 +30,7 @@ SnapshotSealProof为{barrierId,dataEpoch,observations,brokerBefore,brokerAfter,n
 
 断言内可选cleanupScope={version:1,barrierId,dataEpoch,deadline,sourceService,targetService,action,resourceId,rootOperationId,siteId,costClass?,queryHash,eventControl?}。queryHash=SHA256实际URL.RawQuery，空串也hash；method/path/bodyHash仍由同一服务断言签名。scope期限严格为min(30秒,ctx期限,原barrier期限,原cleanup期限)，没有时钟偏差延长。
 
-只有活跃原私有执行租约或SnapshotCleanup.Context可发行。后者必须AuthorizeCleanupOrigin从原持久对象核原批准任务，不能用协调器随机root代替。ExistingWorkContext只从尚未release的真实旧执行分叉独立短清理租约，脱离原HTTP取消并清除过期用户proof，不复活原用户身份，不重签/消费模型permit。固定CleanupRoutes按真实method/path/body资源绑定，Control仅明确纯读控制操作；BrokerControl仅持久event/consumer控制根，与paid任务清理根严格分开，eventControl=true随接收/分叉租约保持；目标固定policy.BrokerControl必须全等。
+只有活跃原私有执行租约或SnapshotCleanup.Context可发行。后者必须AuthorizeCleanupOrigin从原持久对象核原批准任务，不能用协调器随机root代替。ExistingWorkContext只从尚未release的真实旧执行分叉独立短清理租约，脱离原HTTP取消并清除过期用户proof，不复活原用户身份；读运行权威用独立2秒只读截止，原付费deadline不改变，不重签/消费模型permit。固定CleanupRoutes按真实method/path/body资源绑定，Control仅明确纯读控制操作；BrokerControl仅持久event/consumer控制根，与paid任务清理根严格分开，eventControl=true随接收/分叉租约保持；目标固定policy.BrokerControl必须全等。
 
 接收方先验证服务签名、原root/site/epoch/class/queryHash，固定CleanupOperations再提取实际path/body资源，与签名全等，并AuthorizeCleanup从本域权威原对象核归属。仅draining和同barrier可AdmitCleanup计独立租约，safe拒新清理。createInvocation/dispatch/createJob/claim/任意业务写不能登记为cleanup。controller标记也不能给写端口免除真实私有lease。
 

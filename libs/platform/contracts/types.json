@@ -1940,6 +1940,60 @@
         "priceSnapshotId"
       ],
       "description": "明确quote冻结模型/原价格快照；旧caller省略。Create/lookup规范请求完整保留原顺序与值。"
+    },
+    "TaskSecretBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "owner",
+        "siteId",
+        "dataEpoch",
+        "rootOperationId",
+        "purpose"
+      ],
+      "description": "只用原持久任务身份作为版本化AAD；不重基旧epoch/root。"
+    },
+    "TaskSecret": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nonce": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "AES-GCM真实随机12B nonce"
+        },
+        "ciphertext": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "认证密文16..65552B，明文≤64KiB"
+        }
+      },
+      "required": [
+        "nonce",
+        "ciphertext"
+      ],
+      "description": "原始byte切片JSON按标准base64编码；持久位置、授权与回收由本域决定，无permit续期语义。"
     }
   }
 }

@@ -20,7 +20,7 @@ func(lease *snapshotAdmission)IssueCleanup(ctx context.Context,request platform.
 }
 // ExistingWorkContext仅从尚未release的真实旧执行分叉独立有界清理租约，原用户proof不被复活。
 func(m *SnapshotManager)ExistingWorkContext(ctx context.Context)(context.Context,func(),error){
- original,ok:=ctx.Value(snapshotAdmissionKey{}).(*snapshotAdmission);if !ok||original.manager!=m{return nil,nil,platform.NewError(platform.CodeLocked,false,"清理缺原私有执行租约")};if err:=m.requireDraining(platform.WithoutCleanupIssuer(context.WithoutCancel(ctx)),m.currentBarrierID());err!=nil{return nil,nil,err}
+ original,ok:=ctx.Value(snapshotAdmissionKey{}).(*snapshotAdmission);if !ok||original.manager!=m{return nil,nil,platform.NewError(platform.CodeLocked,false,"清理缺原私有执行租约")};read,cancelRead:=context.WithTimeout(platform.WithoutCleanupIssuer(platform.WithPortalProof(context.WithoutCancel(ctx),"")),2*time.Second);if op,ok:=platform.OperationContextFrom(read);ok{until,_:=read.Deadline();op.OperationID=platform.NewIdentifier();op.Deadline=until.UTC().Format(time.RFC3339Nano);read=platform.WithOperationContext(read,op)};readErr:=m.requireDraining(read,m.currentBarrierID());cancelRead();if readErr!=nil{return nil,nil,readErr}
  m.mu.Lock();defer m.mu.Unlock();if !original.active||!original.bound||original.purpose=="job_claim"||m.record.Status.State!="draining"{return nil,nil,platform.NewError(platform.CodeLocked,true,"原执行已结束或未绑定")};work,done,err:=m.newCleanupLocked(context.WithoutCancel(ctx),original.operation);if err==nil&&original.purpose=="event_broker"{work.Value(snapshotAdmissionKey{}).(*snapshotAdmission).purpose="event_broker"};return work,done,err
 }
 func(m *SnapshotManager)currentBarrierID()string{m.mu.Lock();defer m.mu.Unlock();if m.record==nil{return ""};return m.record.Input.BarrierID}

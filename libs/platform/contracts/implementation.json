@@ -2901,7 +2901,7 @@
         {
           "id": "platform.consumerLoop.pauseFor",
           "name": "consumerLoop.pauseFor",
-          "signature": "func(c *consumerLoop) pauseFor(ctx context.Context, view platform.RuntimeView) bool",
+          "signature": "func (c *consumerLoop) pauseFor(ctx context.Context, view platform.RuntimeView) bool",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：inbox.pauseFor",
@@ -6035,7 +6035,8 @@
             "platform.CanonicalJSON",
             "platform.integrity",
             "platform.readSnapshotJSON",
-            "platform.snapshotStageID"
+            "platform.snapshotStageID",
+            "platform.validateSnapshotManifestVersion"
           ],
           "resources": [],
           "contract": "reference"
@@ -9928,7 +9929,7 @@
         {
           "id": "platform.eventConsumer.SubscribeEvents",
           "name": "eventConsumer.SubscribeEvents",
-          "signature": "func(c *eventConsumer) SubscribeEvents(ctx context.Context,consumerID,lastID string)(EventStream,error)",
+          "signature": "func (c *eventConsumer) SubscribeEvents(ctx context.Context,consumerID,lastID string)(EventStream,error)",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：eventConsumer.SubscribeEvents",
@@ -9956,7 +9957,7 @@
         {
           "id": "platform.eventConsumer.AcknowledgeEvent",
           "name": "eventConsumer.AcknowledgeEvent",
-          "signature": "func(c *eventConsumer) AcknowledgeEvent(ctx context.Context,consumerID,eventID string)error",
+          "signature": "func (c *eventConsumer) AcknowledgeEvent(ctx context.Context,consumerID,eventID string)error",
           "inputs": [],
           "outputs": [],
           "purpose": "事件消费内部实际助手：eventConsumer.AcknowledgeEvent",
@@ -10567,7 +10568,7 @@
         {
           "id": "platform.DomainSnapshotManifest.MarshalJSON",
           "name": "DomainSnapshotManifest.MarshalJSON",
-          "signature": "func(m DomainSnapshotManifest) MarshalJSON() ([]byte, error)",
+          "signature": "func (m DomainSnapshotManifest) MarshalJSON() ([]byte, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
@@ -10598,6 +10599,51 @@
           ],
           "sideEffects": [
             "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.validateSnapshotManifestVersion",
+          "name": "validateSnapshotManifestVersion",
+          "signature": "func validateSnapshotManifestVersion(manifest DomainSnapshotManifest) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "显式V1/2及真实库存非nil；V2要求assets/invocations，V1不接受新typed refs，不改原hash。",
+          "steps": [
+            "显式V1/2及真实库存非nil；V2要求assets/invocations，V1不接受新typed refs，不改原hash。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "只访问固定私有配置引用或处理调用方原始字节；不记录秘密、不调用服务/模型。"
           ],
           "authorization": {
             "permission": "service",
@@ -11930,7 +11976,8 @@
             "platform.integrity",
             "platform.safeSnapshotRelative",
             "platform.snapshotBudget",
-            "platform.snapshotUnsupported"
+            "platform.snapshotUnsupported",
+            "platform.validateSnapshotManifestVersion"
           ],
           "resources": [],
           "contract": "reference"
@@ -12851,7 +12898,7 @@
         {
           "id": "platform.SnapshotCleanup.Context",
           "name": "SnapshotCleanup.Context",
-          "signature": "func(c *SnapshotCleanup) Context(ctx context.Context) (context.Context, func(), error)",
+          "signature": "func (c *SnapshotCleanup) Context(ctx context.Context) (context.Context, func(), error)",
           "inputs": [],
           "outputs": [],
           "purpose": "仅固定drain回调当次活跃期可签发已有执行清理lease，保留原actor/root/费用归属，清旧Portal proof。",
@@ -13029,7 +13076,7 @@
         {
           "id": "platform.SnapshotManager.EnterBarrier",
           "name": "SnapshotManager.EnterBarrier",
-          "signature": "func(m *SnapshotManager) EnterBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)",
+          "signature": "func (m *SnapshotManager) EnterBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "旧入口只转prepare，不单域直接宣称safe。",
@@ -13214,7 +13261,7 @@
         {
           "id": "platform.SnapshotManager.AdmitJobClaim",
           "name": "SnapshotManager.AdmitJobClaim",
-          "signature": "func(m *SnapshotManager) AdmitJobClaim(ctx context.Context) (context.Context, func(), error)",
+          "signature": "func (m *SnapshotManager) AdmitJobClaim(ctx context.Context) (context.Context, func(), error)",
           "inputs": [],
           "outputs": [],
           "purpose": "新领取仅running且本屏障released可准入。",
@@ -13249,7 +13296,7 @@
         {
           "id": "platform.SnapshotManager.BindJobExecutionScope",
           "name": "SnapshotManager.BindJobExecutionScope",
-          "signature": "func(m *SnapshotManager) BindJobExecutionScope(ctx context.Context, op platform.OperationContext, job platform.ClaimedJob) (context.Context, error)",
+          "signature": "func (m *SnapshotManager) BindJobExecutionScope(ctx context.Context, op platform.OperationContext, job platform.ClaimedJob) (context.Context, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "仅公共worker核真实ClaimedJob与owner factory原op/原root/site/epoch相符后调用。",
@@ -13283,7 +13330,7 @@
         {
           "id": "platform.SnapshotManager.PrepareBarrier",
           "name": "SnapshotManager.PrepareBarrier",
-          "signature": "func(m *SnapshotManager) PrepareBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)",
+          "signature": "func (m *SnapshotManager) PrepareBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "核当前运行权威原barrier/epoch/mode/deadline，原输入hash幂等，持久draining拒新业务。",
@@ -13331,7 +13378,7 @@
         {
           "id": "platform.SnapshotManager.DrainBarrier",
           "name": "SnapshotManager.DrainBarrier",
-          "signature": "func(m *SnapshotManager) DrainBarrier(ctx context.Context, barrierID string) (SnapshotBarrierStatus, error)",
+          "signature": "func (m *SnapshotManager) DrainBarrier(ctx context.Context, barrierID string) (SnapshotBarrierStatus, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "在真实draining保留旧cleanup/inbox/outbox有限收尾，执行真实Drain，不触发冻结收费job。",
@@ -13380,7 +13427,7 @@
         {
           "id": "platform.SnapshotManager.requireDraining",
           "name": "SnapshotManager.requireDraining",
-          "signature": "func(m *SnapshotManager) requireDraining(ctx context.Context, barrierID string) error",
+          "signature": "func (m *SnapshotManager) requireDraining(ctx context.Context, barrierID string) error",
           "inputs": [],
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
@@ -13425,7 +13472,7 @@
         {
           "id": "platform.SnapshotManager.ObserveBarrier",
           "name": "SnapshotManager.ObserveBarrier",
-          "signature": "func(m *SnapshotManager) ObserveBarrier(ctx context.Context, barrierID string) (SnapshotBarrierObservation, error)",
+          "signature": "func (m *SnapshotManager) ObserveBarrier(ctx context.Context, barrierID string) (SnapshotBarrierObservation, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "读真实全部活动outbox/持久工作水位与Watermark，前后进程activityRevision必须相同。",
@@ -13474,7 +13521,7 @@
         {
           "id": "platform.SnapshotManager.SealBarrier",
           "name": "SnapshotManager.SealBarrier",
-          "signature": "func(m *SnapshotManager) SealBarrier(ctx context.Context, proof SnapshotSealProof) (SnapshotBarrierStatus, error)",
+          "signature": "func (m *SnapshotManager) SealBarrier(ctx context.Context, proof SnapshotSealProof) (SnapshotBarrierStatus, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "核14owner唯一排序全覆盖、全部在途0、broker前后同实际revision与0事件pending/lease。",
@@ -13526,7 +13573,7 @@
         {
           "id": "platform.SnapshotManager.ResumeDrain",
           "name": "SnapshotManager.ResumeDrain",
-          "signature": "func(m *SnapshotManager) ResumeDrain(ctx context.Context, barrierID, expectedSealHash string) (SnapshotBarrierStatus, error)",
+          "signature": "func (m *SnapshotManager) ResumeDrain(ctx context.Context, barrierID, expectedSealHash string) (SnapshotBarrierStatus, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "精确原sealHash/barrier/epoch与维护决定绑定，ResumeWork只重开旧清理，不开新业务/付费。",
@@ -14795,7 +14842,7 @@
         {
           "id": "platform.noCleanupIssuer.IssueCleanup",
           "name": "noCleanupIssuer.IssueCleanup",
-          "signature": "func(*noCleanupIssuer) IssueCleanup(context.Context, CleanupRequest) (*CleanupScope, error)",
+          "signature": "func (*noCleanupIssuer) IssueCleanup(context.Context, CleanupRequest) (*CleanupScope, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
@@ -14984,7 +15031,7 @@
         {
           "id": "platform.snapshotAdmission.IssueCleanup",
           "name": "snapshotAdmission.IssueCleanup",
-          "signature": "func(lease *snapshotAdmission) IssueCleanup(ctx context.Context, request platform.CleanupRequest) (*platform.CleanupScope, error)",
+          "signature": "func (lease *snapshotAdmission) IssueCleanup(ctx context.Context, request platform.CleanupRequest) (*platform.CleanupScope, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "真实活跃私有原执行才可发行固定旧资源action，随机claim不能签。",
@@ -15033,13 +15080,14 @@
         {
           "id": "platform.SnapshotManager.ExistingWorkContext",
           "name": "SnapshotManager.ExistingWorkContext",
-          "signature": "func(m *SnapshotManager) ExistingWorkContext(ctx context.Context) (context.Context, func(), error)",
+          "signature": "func (m *SnapshotManager) ExistingWorkContext(ctx context.Context) (context.Context, func(), error)",
           "inputs": [],
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
           "steps": [
             "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。",
-            "保留event_broker来源，不能经分叉变为paid原任务root。"
+            "保留event_broker来源，不能经分叉变为paid原任务root。",
+            "在原op截止过期或ctx已取消时，读取运行权威只使用独立2秒控制截止并保留原root/site/epoch/class；不延长原paid请求。"
           ],
           "errors": [
             {
@@ -15083,7 +15131,7 @@
         {
           "id": "platform.SnapshotManager.currentBarrierID",
           "name": "SnapshotManager.currentBarrierID",
-          "signature": "func(m *SnapshotManager) currentBarrierID() string",
+          "signature": "func (m *SnapshotManager) currentBarrierID() string",
           "inputs": [],
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
@@ -15128,7 +15176,7 @@
         {
           "id": "platform.SnapshotManager.newCleanupLocked",
           "name": "SnapshotManager.newCleanupLocked",
-          "signature": "func(m *SnapshotManager) newCleanupLocked(ctx context.Context, op platform.OperationContext) (context.Context, func(), error)",
+          "signature": "func (m *SnapshotManager) newCleanupLocked(ctx context.Context, op platform.OperationContext) (context.Context, func(), error)",
           "inputs": [],
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
@@ -15175,7 +15223,7 @@
         {
           "id": "platform.SnapshotManager.AdmitCleanup",
           "name": "SnapshotManager.AdmitCleanup",
-          "signature": "func(m *SnapshotManager) AdmitCleanup(ctx context.Context, op platform.OperationContext, scope platform.CleanupScope) (context.Context, func(), error)",
+          "signature": "func (m *SnapshotManager) AdmitCleanup(ctx context.Context, op platform.OperationContext, scope platform.CleanupScope) (context.Context, func(), error)",
           "inputs": [],
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
@@ -15224,7 +15272,7 @@
         {
           "id": "platform.SnapshotManager.AdmitEventBatch",
           "name": "SnapshotManager.AdmitEventBatch",
-          "signature": "func(m *SnapshotManager) AdmitEventBatch(ctx context.Context) (context.Context, func(), error)",
+          "signature": "func (m *SnapshotManager) AdmitEventBatch(ctx context.Context) (context.Context, func(), error)",
           "inputs": [],
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
@@ -15273,7 +15321,7 @@
         {
           "id": "platform.SnapshotManager.AllowEventDrain",
           "name": "SnapshotManager.AllowEventDrain",
-          "signature": "func(m *SnapshotManager) AllowEventDrain(ctx context.Context, view platform.RuntimeView) (bool, error)",
+          "signature": "func (m *SnapshotManager) AllowEventDrain(ctx context.Context, view platform.RuntimeView) (bool, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
@@ -15318,7 +15366,7 @@
         {
           "id": "platform.SnapshotManager.BindOutboxEventScope",
           "name": "SnapshotManager.BindOutboxEventScope",
-          "signature": "func(m *SnapshotManager) BindOutboxEventScope(ctx context.Context, row platform.OutboxRow) (context.Context, func(), error)",
+          "signature": "func (m *SnapshotManager) BindOutboxEventScope(ctx context.Context, row platform.OutboxRow) (context.Context, func(), error)",
           "inputs": [],
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
@@ -15432,7 +15480,7 @@
         {
           "id": "platform.Store.Observe",
           "name": "Store.Observe",
-          "signature": "func(s *Store) Observe(ctx context.Context) (Observation, error)",
+          "signature": "func (s *Store) Observe(ctx context.Context) (Observation, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "真实SQL统一revision读全部未来retry/leased/quarantined活动，未知状态失败，不只due或空队列。",
@@ -15477,7 +15525,7 @@
         {
           "id": "platform.Store.Seal",
           "name": "Store.Seal",
-          "signature": "func(s *Store) Seal(ctx context.Context, revision int64, proofHash string) error",
+          "signature": "func (s *Store) Seal(ctx context.Context, revision int64, proofHash string) error",
           "inputs": [],
           "outputs": [],
           "purpose": "同SQLite事务CAS真实revision+全部活动0并持久proofHash，触发器禁止此后outbox INSERT/UPDATE/DELETE。",
@@ -15522,7 +15570,7 @@
         {
           "id": "platform.Store.Resume",
           "name": "Store.Resume",
-          "signature": "func(s *Store) Resume(ctx context.Context, proofHash string) error",
+          "signature": "func (s *Store) Resume(ctx context.Context, proofHash string) error",
           "inputs": [],
           "outputs": [],
           "purpose": "只原proofHash幂等重新开旧清理；保留历史lastSealHash，不伪造其它封口。",
@@ -15671,6 +15719,206 @@
             "platform.SnapshotStageBinding",
             "platform.ValidatePrivatePath",
             "platform.EnsureSchema"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/task_secret.go",
+      "kind": "handwritten",
+      "purpose": "通用有界异步任务秘密加密，不含业务授权与持久策略",
+      "functions": [
+        {
+          "id": "platform.SealTaskSecret",
+          "name": "SealTaskSecret",
+          "signature": "func SealTaskSecret(raw []byte, keyRef string, binding TaskSecretBinding) (TaskSecret, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "原始秘密≤64KiB，真实固定私有32B key；版本1+原owner/site/epoch/root/purpose canonical AAD。",
+          "steps": [
+            "原始秘密≤64KiB，真实固定私有32B key；版本1+原owner/site/epoch/root/purpose canonical AAD。",
+            "AES256-GCM随机nonce，返回nonce+ciphertext；库不指定持久位置，不记录秘密，不改变permit有效期。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "只访问固定私有配置引用或处理调用方原始字节；不记录秘密、不调用服务/模型。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "每次独立nonce与AEAD，无共享可写状态。",
+          "idempotency": "Seal每次随机nonce；Open只认证相同完整原任务AAD，不改变任务/准入状态。",
+          "dependencies": [
+            "platform.taskSecretAAD",
+            "platform.taskSecretCipher"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.OpenTaskSecret",
+          "name": "OpenTaskSecret",
+          "signature": "func OpenTaskSecret(secret TaskSecret, keyRef string, binding TaskSecretBinding) ([]byte, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核真实固定私有32B key、nonce和密文有界；只相同原binding可认证解密。",
+          "steps": [
+            "核真实固定私有32B key、nonce和密文有界；只相同原binding可认证解密。",
+            "缺key准确503，认证不符Integrity；不延长其中permit，不把解密成功当paid授权。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "只访问固定私有配置引用或处理调用方原始字节；不记录秘密、不调用服务/模型。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "每次独立nonce与AEAD，无共享可写状态。",
+          "idempotency": "Seal每次随机nonce；Open只认证相同完整原任务AAD，不改变任务/准入状态。",
+          "dependencies": [
+            "platform.taskSecretAAD",
+            "platform.taskSecretCipher"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.taskSecretAAD",
+          "name": "taskSecretAAD",
+          "signature": "func taskSecretAAD(binding TaskSecretBinding) ([]byte, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "原任务binding完整合法，版本1+完整binding以公共CanonicalJSON编码。",
+          "steps": [
+            "原任务binding完整合法，版本1+完整binding以公共CanonicalJSON编码。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "只访问固定私有配置引用或处理调用方原始字节；不记录秘密、不调用服务/模型。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "每次独立nonce与AEAD，无共享可写状态。",
+          "idempotency": "Seal每次随机nonce；Open只认证相同完整原任务AAD，不改变任务/准入状态。",
+          "dependencies": [
+            "platform.CanonicalJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.taskSecretCipher",
+          "name": "taskSecretCipher",
+          "signature": "func taskSecretCipher(keyRef string) (cipher.AEAD, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "固定绝对私有key路径复用ValidatePrivatePath拒链接；文件权限不得group/other，原始精确32B，最多读33B。",
+          "steps": [
+            "固定绝对私有key路径复用ValidatePrivatePath拒链接；文件权限不得group/other，原始精确32B，最多读33B。",
+            "装AES256-GCM并清理读取key缓冲；缺配置/文件/尺寸失败503，不打印路径/材料。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "只访问固定私有配置引用或处理调用方原始字节；不记录秘密、不调用服务/模型。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "每次独立nonce与AEAD，无共享可写状态。",
+          "idempotency": "Seal每次随机nonce；Open只认证相同完整原任务AAD，不改变任务/准入状态。",
+          "dependencies": [
+            "platform.ValidatePrivatePath"
           ],
           "resources": [],
           "contract": "reference"

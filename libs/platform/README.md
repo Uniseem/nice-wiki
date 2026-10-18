@@ -61,3 +61,5 @@ owner恢复查询使用`modelclient.ObserveInvocation(ctx,client,op,knownInvocat
 ## 全域屏障与旧执行清理
 
 最新协议见[屏障与清理范围](docs/barriers.md)。`EnterBarrier`现只兼容prepare，不再自行drain或safe。Prepare全部owner后才能并行drain；真实全域稳定水位与逐域CAS封口证明齐全，非jobs先seal、jobs最后seal，才允许完整快照IO。没有域实际回调或全域协调证明保持blocked。
+
+`lifecycle.SealTaskSecret`/`OpenTaskSecret`为异步任务提供固定AES256-GCM有界秘密密文：原始明文≤64KiB、固定私有原始32B key文件，版本1与原owner/site/epoch/root/purpose完整AAD绑定。返回nonce/ciphertext，持久策略仍由本域负责；缺key准确503，不延长permit有效期，不把解密当付费授权。

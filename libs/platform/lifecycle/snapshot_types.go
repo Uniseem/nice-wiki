@@ -117,3 +117,8 @@ type SnapshotBarrierObservation struct{Owner string `json:"owner"`;ActivityRevis
 type SnapshotBrokerObservation struct{Revision int64 `json:"revision"`;PendingDeliveries int64 `json:"pendingDeliveries"`;ActiveLeases int64 `json:"activeLeases"`}
 type SnapshotSealReceipt struct{Owner string `json:"owner"`;SealProofHash string `json:"sealProofHash"`}
 type SnapshotSealProof struct{BarrierID string `json:"barrierId"`;DataEpoch string `json:"dataEpoch"`;Observations []SnapshotBarrierObservation `json:"observations"`;BrokerBefore SnapshotBrokerObservation `json:"brokerBefore"`;BrokerAfter SnapshotBrokerObservation `json:"brokerAfter"`;NonJobsSeals []SnapshotSealReceipt `json:"nonJobsSeals,omitempty"`;NonJobsProofHash string `json:"nonJobsProofHash,omitempty"`}
+
+// validateSnapshotManifestVersion只核持久清单版本与库存存在性，不重基原V1/V2摘要。
+func validateSnapshotManifestVersion(manifest DomainSnapshotManifest)error{
+ if manifest.Format!="nice-wiki.domain-snapshot"||(manifest.SchemaVersion!=1&&manifest.SchemaVersion!=2){return snapshotUnsupported("域清单版本不支持")};if manifest.Files==nil||manifest.Objects==nil||manifest.Publications==nil||manifest.References==nil{return integrity("清单真实库存缺失")};if manifest.SchemaVersion==2{if manifest.Assets==nil||manifest.Invocations==nil{return integrity("V2 typed真实库存缺失")}}else{if len(manifest.Assets)!=0||len(manifest.Invocations)!=0{return integrity("V1不能声明V2库存")};for _,reference:=range manifest.References{if reference.Asset!=nil||reference.Invocation!=nil{return integrity("V1不能声明V2类型引用")}}};return nil
+}
