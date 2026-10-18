@@ -36,6 +36,7 @@ func ReadTranslation(ctx context.Context,op OperationContext,input ReadTranslati
  newest:=map[string]gen.TranslationUnit{};old:=map[string]gen.TranslationUnit{}
  protectedWhole:=map[string]bool{};protectedRows:=map[string]bool{}
  for _,object:=range []TranslationObject{current,previous}{for _,u:=range object.Units{if u.Protected||u.Origin=="human"{parent:=u.UnitId;if u.ParentBlockId!=nil{parent=*u.ParentBlockId};if parent==u.UnitId{protectedWhole[parent]=true}else{protectedRows[parent]=true}}}}
+ for _,id:=range split.FallbackBlockIds{if protectedWhole[id]||protectedRows[id]{return ReadTranslationResult{},platform.NewError(platform.CodeDependencyUnavailable,false,"受保护块超出可恢复模板范围，保留既有译文等待人工处理")}}
  for _,u:=range current.Units{newest[u.UnitId]=u};for _,u:=range previous.Units{old[u.UnitId]=u}
  result:=ReadTranslationResult{Translation:current.Translation,Units:[]gen.TranslationUnit{},Partial:len(split.FallbackBlockIds)>0};result.Translation.Document=input.Document;result.Translation.TargetLanguage=target;result.Translation.Total=len(split.Units)+len(split.FallbackBlockIds);result.Translation.Completed=0
  for i,candidate:=range split.Units{
@@ -44,8 +45,10 @@ func ReadTranslation(ctx context.Context,op OperationContext,input ReadTranslati
   if !exists&&(protectedWhole[parent]||(candidate.UnitId==parent&&protectedRows[parent])){return ReadTranslationResult{},platform.NewError(platform.CodeDependencyUnavailable,false,"保护表格的分组已变化，待安全保留旧人工投影")}
 
   if !exists||chosen.Status=="fallback"{if p,found:=old[candidate.UnitId];found&&p.Status!="fallback"{chosen=p;exists=true}}
+  if exists&&chosen.Status=="fallback"&&(chosen.Protected||chosen.Origin=="human"){return ReadTranslationResult{},platform.NewError(platform.CodeDependencyUnavailable,false,"人工或受保护旧译未形成可恢复正文") }
   if exists&&chosen.Status!="fallback"{
    if _,parseErr:=ParseSlotValues(split.Templates[i].Slots,chosen.TargetText);parseErr==nil{if chosen.SourceHash!=candidate.SourceHash{chosen.Status="review"};result.Units=append(result.Units,chosen);result.Translation.Completed++;continue}
+   if chosen.Protected||chosen.Origin=="human"{return ReadTranslationResult{},platform.NewError(platform.CodeDependencyUnavailable,false,"源模板变化后无法安全恢复人工或受保护译文") }
    priorText:=chosen.TargetText;candidate.PreviousTargetText=&priorText
   }
   candidate.Status="fallback";result.Partial=true;result.Units=append(result.Units,candidate)

@@ -2101,7 +2101,7 @@
             "3 新块无译文显示原文且partial顶栏目标语言提示",
             "4 人工源变保留译文review，撤回文档全部禁止交付。",
             "返回兼容可选body与bodyHash：完整还原目标树绑定当前source publication/targetLanguage/generation，canonical目标hash另算，目标正文≤16MiB；返回前二次核content visibility及本地manifest/glossary。",
-            "父人工/保护table分组改变、旧编号无法安全映射到新row时失败关闭DEPENDENCY_UNAVAILABLE；该复杂分支尚未实现，本函数保持blocked，不以原文fallback假称保留人工旧译。",
+            "人工/保护table父行分组改变、旧编号无法按当前模板解析，或保护父块只能source-only时均失败关闭DEPENDENCY_UNAVAILABLE；原权威对象保留。本复杂投影分支尚未完成，本函数保持blocked，不以原文fallback假称保留人工旧译。",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
@@ -2163,7 +2163,7 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "httpStatus": 503,
               "retryable": false,
-              "meaning": "保护表格分组改变尚缺安全旧译投影，或必需源客户端未装配。"
+              "meaning": "人工或受保护旧译无法安全投影到当前模板、保护块只能source-only，或必需源客户端未装配。"
             }
           ],
           "sideEffects": [

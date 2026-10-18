@@ -1,3 +1,7 @@
+## 第三组保护读链补漏
+
+ReadTranslation补齐两类失败关闭：人工/保护旧文本不能按当前编号模板解析时禁止原文回退；受保护父块进入超大source-only分支时禁止交付原文冒充旧人工译文。旧文件和元数据保留，不新增ready计数，ReadTranslation继续真正blocked。仅静态差异审阅，无本地生成/编译/测试。
+
 # 第三组交付（2026-10-18）
 
 源码35cc93176576b42cbbf3a737bef39758586399db，其后另提交本记录。依赖首两组及根平台MemoryContext公共类型（TaskID/Language/Text/VersionHash/MappingRevision/ByteSize），本树按根指令直接引用，未复制公共类型。根CI已发现的unused json import及gen.MemoryContext错误同步窄修；若根此前已修，合并时保留该事实，不手改gen。
