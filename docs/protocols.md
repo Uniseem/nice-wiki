@@ -79,3 +79,7 @@ guard createAdmission只分配持久元数据，token为空串。qa付费提问�
 创建会话使用原有 `qa.conversation` 人机准入：分配、消费与核验都保留空模型 token，持久创建或原回执返回后幂等释放并发占位。它不调用模型；只有 `qa.ask`、`qa.followup` 已消费许可可签发模型凭证，不能把会话许可换成提问许可。
 
 风险信号响应只有实际禁令存在时才返回可选 `banExpiresAt` 时间；allow/challenge 无禁令时省略，禁止空时间或 null。
+
+## 域快照归档版本1（2026-10-18）
+
+公共 `DomainSnapshotManifest` 为未压缩tar首entry `manifest.json` 的唯一来源，canonical JSON上限16MiB；仅允许声明的 `files/<relativePath>` 普通文件，拒绝链接/特殊节点、重复、路径遍历及未声明内容。总归档20GiB、最多100000文件。域在真实安全截点回调穷尽files、objects、publications与跨域references，未知不能用空数组冒充完整。目标方逐项核长度/哈希/原epoch/格式版本与EOF后暂存，目标epoch只由域迁移回调建立；旧正文块ID和付费结果不重新生成。

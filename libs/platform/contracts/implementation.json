@@ -2375,7 +2375,7 @@
         },
         {
           "id": "platform.consumerLoop.start",
-          "name": "start",
+          "name": "consumerLoop.start",
           "signature": "func(c *consumerLoop) start(ctx context.Context)",
           "inputs": [],
           "outputs": [],
@@ -2405,7 +2405,7 @@
         },
         {
           "id": "platform.consumerLoop.stop",
-          "name": "stop",
+          "name": "consumerLoop.stop",
           "signature": "func(c *consumerLoop) stop()",
           "inputs": [],
           "outputs": [],
@@ -2433,7 +2433,7 @@
         },
         {
           "id": "platform.consumerLoop.worker",
-          "name": "worker",
+          "name": "consumerLoop.worker",
           "signature": "func(c *consumerLoop) worker(ctx context.Context,index int)",
           "inputs": [],
           "outputs": [],
@@ -2463,7 +2463,7 @@
         },
         {
           "id": "platform.consumerLoop.queueFor",
-          "name": "queueFor",
+          "name": "consumerLoop.queueFor",
           "signature": "func(c *consumerLoop) queueFor(subject string)chan EventEnvelope",
           "inputs": [],
           "outputs": [],
@@ -2491,7 +2491,7 @@
         },
         {
           "id": "platform.consumerLoop.operation",
-          "name": "operation",
+          "name": "consumerLoop.operation",
           "signature": "func(c *consumerLoop) operation(ctx context.Context,epoch,root string)(context.Context,context.CancelFunc)",
           "inputs": [],
           "outputs": [],
@@ -2519,7 +2519,7 @@
         },
         {
           "id": "platform.consumerLoop.dispatch",
-          "name": "dispatch",
+          "name": "consumerLoop.dispatch",
           "signature": "func(c *consumerLoop) dispatch(ctx context.Context,stream EventStream,lastID *string)bool",
           "inputs": [],
           "outputs": [],
@@ -2551,7 +2551,7 @@
         },
         {
           "id": "platform.consumerLoop.acknowledge",
-          "name": "acknowledge",
+          "name": "consumerLoop.acknowledge",
           "signature": "func(c *consumerLoop) acknowledge(ctx context.Context,event EventEnvelope,skipped bool)",
           "inputs": [],
           "outputs": [],
@@ -2583,7 +2583,7 @@
         },
         {
           "id": "platform.consumerLoop.process",
-          "name": "process",
+          "name": "consumerLoop.process",
           "signature": "func(c *consumerLoop) process(ctx context.Context,event EventEnvelope)",
           "inputs": [],
           "outputs": [],
@@ -2616,7 +2616,7 @@
         },
         {
           "id": "platform.consumerLoop.classify",
-          "name": "classify",
+          "name": "consumerLoop.classify",
           "signature": "func(c *consumerLoop) classify(ctx context.Context,event EventEnvelope)outcome",
           "inputs": [],
           "outputs": [],
@@ -2648,7 +2648,7 @@
         },
         {
           "id": "platform.inbox.eventKey",
-          "name": "eventKey",
+          "name": "inbox.eventKey",
           "signature": "func eventKey(name string,version int)string",
           "inputs": [],
           "outputs": [],
@@ -2676,7 +2676,7 @@
         },
         {
           "id": "platform.inbox.pauseFor",
-          "name": "pauseFor",
+          "name": "inbox.pauseFor",
           "signature": "func pauseFor(view RuntimeView)bool",
           "inputs": [],
           "outputs": [],
@@ -2704,7 +2704,7 @@
         },
         {
           "id": "platform.inbox.readRuntime",
-          "name": "readRuntime",
+          "name": "inbox.readRuntime",
           "signature": "func readRuntime(ctx context.Context,provider func(context.Context)(RuntimeView,error))(RuntimeView,bool)",
           "inputs": [],
           "outputs": [],
@@ -2732,7 +2732,7 @@
         },
         {
           "id": "platform.inbox.sleep",
-          "name": "sleep",
+          "name": "inbox.sleep",
           "signature": "func sleep(ctx context.Context,d time.Duration)bool",
           "inputs": [],
           "outputs": [],
@@ -2760,7 +2760,7 @@
         },
         {
           "id": "platform.inbox.isConfigRejected",
-          "name": "isConfigRejected",
+          "name": "inbox.isConfigRejected",
           "signature": "func isConfigRejected(err error)bool",
           "inputs": [],
           "outputs": [],
@@ -6699,7 +6699,7 @@
         },
         {
           "id": "platform.eventConsumer.SubscribeEvents",
-          "name": "SubscribeEvents",
+          "name": "eventConsumer.SubscribeEvents",
           "signature": "func(c *eventConsumer) SubscribeEvents(ctx context.Context,consumerID,lastID string)(EventStream,error)",
           "inputs": [],
           "outputs": [],
@@ -6727,7 +6727,7 @@
         },
         {
           "id": "platform.eventConsumer.AcknowledgeEvent",
-          "name": "AcknowledgeEvent",
+          "name": "eventConsumer.AcknowledgeEvent",
           "signature": "func(c *eventConsumer) AcknowledgeEvent(ctx context.Context,consumerID,eventID string)error",
           "inputs": [],
           "outputs": [],

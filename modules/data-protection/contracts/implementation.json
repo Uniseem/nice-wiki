@@ -5497,7 +5497,7 @@
         },
         {
           "id": "data-protection.server.ListBackups",
-          "name": "ListBackups",
+          "name": "server.ListBackups",
           "signature": "func (s *server) ListBackups(w http.ResponseWriter, r *http.Request, params gen.ListBackupsParams)",
           "inputs": [],
           "outputs": [],
@@ -5518,7 +5518,7 @@
         },
         {
           "id": "data-protection.server.ReadBackup",
-          "name": "ReadBackup",
+          "name": "server.ReadBackup",
           "signature": "func (s *server) ReadBackup(w http.ResponseWriter, r *http.Request, id string, params gen.ReadBackupParams)",
           "inputs": [],
           "outputs": [],
@@ -5539,7 +5539,7 @@
         },
         {
           "id": "data-protection.server.ReadMirrorStatus",
-          "name": "ReadMirrorStatus",
+          "name": "server.ReadMirrorStatus",
           "signature": "func (s *server) ReadMirrorStatus(w http.ResponseWriter, r *http.Request)",
           "inputs": [],
           "outputs": [],
@@ -5951,7 +5951,7 @@
         },
         {
           "id": "data-protection.Store.Close",
-          "name": "Close",
+          "name": "Store.Close",
           "signature": "func (s *Store) Close() error",
           "inputs": [],
           "outputs": [],
