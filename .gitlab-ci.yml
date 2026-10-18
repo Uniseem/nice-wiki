@@ -34,6 +34,7 @@ variables:
     - apt-get install -y --no-install-recommends nodejs npm
     - npm install --global pnpm@9.15.9
     - go version
+    - (cd modules/public-site && go mod tidy)
     - git ls-files -z '*.go' | xargs -0 gofmt -w
     - make docs
     - make gen
@@ -73,4 +74,5 @@ variables:
     - if test -s generated.patch; then git apply generated.patch; fi
     - git diff --check
     - make build GO_MODULES="$BUILD_MODULES"
+    - for m in $BUILD_MODULES; do (cd "$m" && GOFLAGS=-mod=readonly go test -p 2 ./...) || exit 1; done
     - if test "$CHECK_DOCS" = 1; then make check; fi

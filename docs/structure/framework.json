@@ -764,6 +764,11 @@
       "purpose": "进程模板实现"
     },
     {
+      "path": "libs/platform/modelclient/client.go",
+      "kind": "handwritten",
+      "purpose": "统一模型网关HTTP端口与原始事件schema适配"
+    },
+    {
       "path": "libs/platform/modelclient/invoke.go",
       "kind": "handwritten",
       "purpose": "模型调用助手实现"
@@ -3414,9 +3419,24 @@
       "purpose": "go.mod 依赖校验锁；由 go mod tidy 生成"
     },
     {
+      "path": "modules/public-site/internal/announcement.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
       "path": "modules/public-site/internal/app/wire.go",
       "kind": "handwritten",
       "purpose": "启动装配；缺处理函数、journal 或换目录回执时不返回可运行应用"
+    },
+    {
+      "path": "modules/public-site/internal/breadcrumbs.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/cache_key.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
     },
     {
       "path": "modules/public-site/internal/gen/clients.gen.go",
@@ -3434,14 +3454,114 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/public-site/internal/hero.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/hreflang.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/html.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/http_language_sitemap.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/http_llms.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/http_llms_root.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/http_navigation.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/http_robots.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/http_root.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/http_sitemap.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
       "path": "modules/public-site/internal/links.go",
       "kind": "handwritten",
       "purpose": "按文档和块 ID 解析当前安全公开链接；水位变化返回 STALE_RESULT"
     },
     {
+      "path": "modules/public-site/internal/llms.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/locale.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/metadata.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/navigation.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/navigation_neighbors.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/sanitize.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
       "path": "modules/public-site/internal/seo.go",
       "kind": "handwritten",
       "purpose": "用已读取的 publicBaseURL 拼接规范地址，不另读配置对象"
+    },
+    {
+      "path": "modules/public-site/internal/sitemap.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/tiptap.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/tiptap_html.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/tiptap_markdown.go",
+      "kind": "handwritten",
+      "purpose": "公开交付本次已实现源码与合同资料"
     },
     {
       "path": "modules/public-site/internal/toc.go",
@@ -4097,11 +4217,6 @@
       "path": "scripts/render_docs.py",
       "kind": "tool",
       "purpose": "标准库生成器：从各域implementation.json生成docs/functions.md与docs/files.md"
-    },
-    {
-      "path": "libs/platform/modelclient/client.go",
-      "kind": "handwritten",
-      "purpose": "统一模型网关HTTP端口与原始事件schema适配"
     }
   ]
 }
