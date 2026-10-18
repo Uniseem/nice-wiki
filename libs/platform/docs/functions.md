@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 114 个函数：约束 20 个，参考 94 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 115 个函数：约束 20 个，参考 95 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1264,6 +1264,38 @@ func claimInbox(ctx context.Context, tx Tx, envelope EventEnvelope) (bool, bool,
 - 幂等：eventId唯一
 - 依赖：`platform.validateEnvelope`
 
+## platform.validateEnvelope
+
+- 级别：参考
+- 文件：`libs/platform/inbox/inbox.go`
+- 作用：校验公共事件信封及JSON载荷基本结构，不代替域schema
+
+```go
+func validateEnvelope(envelope EventEnvelope) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 校验事件ID/生产方/类型/版本/主题/修订/代次、发生时间与JSON格式，载荷schema交已装配消费方。
+
+**错误**
+
+- `INTEGRITY_ERROR`：同eventId异payloadHash（不可重试）
+
+- 副作用：写本域inbox表
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：与业务事务同锁
+- 幂等：eventId唯一
+- 依赖：无
+
 ## platform.RunConsumer
 
 - 级别：约束
@@ -1636,7 +1668,7 @@ func(c *consumerLoop) classify(ctx context.Context,event EventEnvelope)outcome
 - 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
 - 并发：仅运行时自己的分片与原子计数
 - 幂等：确认沿consumerId/eventId稳定幂等键
-- 依赖：`platform.inbox.readRuntime`、`platform.inbox.pauseFor`、`platform.inbox.eventKey`
+- 依赖：`platform.inbox.readRuntime`、`platform.inbox.pauseFor`、`platform.inbox.eventKey`、`platform.validateEnvelope`
 
 ## platform.inbox.eventKey
 
