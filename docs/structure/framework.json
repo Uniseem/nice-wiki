@@ -2574,6 +2574,11 @@
       "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。"
     },
     {
+      "path": "modules/localization/internal/translation/projection.go",
+      "kind": "handwritten",
+      "purpose": "按真实稳定节点和字段段形状保留人工/保护译值，不按全局位置猜映射。"
+    },
+    {
       "path": "modules/localization/internal/translation/prompt.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
