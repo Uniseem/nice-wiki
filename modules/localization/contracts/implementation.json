@@ -4311,11 +4311,10 @@
           ],
           "purpose": "保存显式访客语言偏好",
           "steps": [
-            "1 验证伪名owner",
-            "2 language已启用",
-            "3 保存30天TTL",
-            "4 不保存IP或浏览轨迹",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "核对可信actor.kind=visitor且subjectId等于visitorSubject；不接受服务身份代写任意伪名。",
+            "在当前dataEpoch/屏障与本地事务内核对目标语言已启用，按BCP47规范标签保存，不改写语言配置显示原文。",
+            "保存expiresAt=首次成功事务时刻+30天；幂等重放返回原值/原到期时刻，不读取或持久化国家、时区、浏览器列表、IP或浏览轨迹。",
+            "偏好与七天同主体/函数/幂等键回执同事务写入；未知/禁用语言VALIDATION，SQL故障回滚。"
           ],
           "errors": [
             {
@@ -4359,6 +4358,30 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "语言输入或本域代次/持久状态不可用时失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "语言输入或本域代次/持久状态不可用时失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "语言输入或本域代次/持久状态不可用时失败关闭。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 500,
+              "meaning": "语言输入或本域代次/持久状态不可用时失败关闭。",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -4367,9 +4390,76 @@
           "authorization": "权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "localization.Mutate",
+            "localization.EnabledLanguage",
+            "localization.StorageError"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "localization.NewPreferenceHandlers",
+          "name": "NewPreferenceHandlers",
+          "signature": "func NewPreferenceHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "装配已核请求到访客语言偏好用例",
+          "steps": [
+            "复用JSONHandler装配saveLanguagePreference，不重复结构/服务身份校验。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按本用例来源、CAS或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
+          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
+          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.SaveLanguagePreference",
+            "localization.JSONHandler"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -6856,7 +6946,8 @@
             "localization.NewInterfaceHandlers",
             "localization.NewCacheTranslationHandlers",
             "localization.ConfigureExecutionAdapters",
-            "localization.ConfigureSourceClient"
+            "localization.ConfigureSourceClient",
+            "localization.NewPreferenceHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",

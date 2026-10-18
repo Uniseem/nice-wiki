@@ -153,3 +153,5 @@ control journal只追加记录对象代数预留（object.generation/done，载�
 第三组给schemaVersion=1首个可运行译文对象确定完整编码：SourceTree/Body/BodyHash、FallbackBlockIds和Units随聚合引用激活。Body是完整目标树，BodyHash覆盖其canonical字节，与源publication.contentHash分开；来源树不能被目标正文覆盖。之前该对象写链从未启动或验收，无旧运行正文迁移。将来改变编号/模板格式必须升级本域数据schema并明确迁移，不自动猜测旧文本。
 
 公开ReadTranslationResult新增兼容可选body（content.DocumentBody）与bodyHash；服务写出完整字段，旧units保留来源追溯。private模板含原值和JSON路径，仅供本域还原，不是给模型或public-site的字段。source-only超大块只保留原树、列fallbackBlockIds，所有付费结果/旧对象仍保留，不为预算失败重算。ReadTranslationUnits的签名cursor查询上限同步为平台允许的4096字符，不裁剪签名串。
+
+语言偏好仅按当前站点数据根内的真实伪名visitor_subject保存规范语言标签与expires_at（首次成功写入后30天）。owner来自可信访客身份；不会保存country/timeZone/browserLanguages/IP或访问轨迹。七天命令回执与偏好同事务，重放不延长到期；启用状态只在新选择时核对，不更改语言配置显示原文。

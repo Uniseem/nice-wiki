@@ -20,6 +20,7 @@ import (
 	"nice-wiki/modules/localization/internal/language"
  "nice-wiki/modules/localization/internal/glossary"
  "nice-wiki/modules/localization/internal/translation"
+ "nice-wiki/modules/localization/internal/suggestion"
  interfacecatalog "nice-wiki/modules/localization/internal/interface"
  cacheanswer "nice-wiki/modules/localization/internal/cache-answer"
 	localizationruntime "nice-wiki/modules/localization/internal/runtime"
@@ -105,7 +106,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
 	handlers:=language.NewLanguageHandlers()
- for _,additional:=range []map[string]http.Handler{glossary.NewGlossaryHandlers(),translation.NewTranslationHandlers(),interfacecatalog.NewInterfaceHandlers(),cacheanswer.NewCacheTranslationHandlers()}{for id,handler:=range additional{handlers[id]=handler}}
+ for _,additional:=range []map[string]http.Handler{glossary.NewGlossaryHandlers(),translation.NewTranslationHandlers(),interfacecatalog.NewInterfaceHandlers(),cacheanswer.NewCacheTranslationHandlers(),suggestion.NewPreferenceHandlers()}{for id,handler:=range additional{handlers[id]=handler}}
  _, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -122,7 +123,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"setLanguageEnabled": {"portal"},
 			"listLanguages":      {"portal", "public-site"},
  "putGlossaryTerm":{"portal"},"deleteGlossaryTerm":{"portal"},"listGlossary":{"portal"},"rollbackAutomaticGlossaryBatch":{"portal"},"applyApprovedGlossaryProposal":{"memory"},
- "readTranslation":{"public-site"},"listTranslationProgress":{"portal"},"readTranslationUnits":{"portal"},"editTranslationUnit":{"portal"},"setUnitProtection":{"portal"},"putInterfaceString":{"portal"},"readInterfaceCatalog":{"portal","public-site"},"readCacheAnswerTranslation":{"qa"},
+ "saveLanguagePreference":{"public-site"},"readTranslation":{"public-site"},"listTranslationProgress":{"portal"},"readTranslationUnits":{"portal"},"editTranslationUnit":{"portal"},"setUnitProtection":{"portal"},"putInterfaceString":{"portal"},"readInterfaceCatalog":{"portal","public-site"},"readCacheAnswerTranslation":{"qa"},
 		},
 	}, handlers)
 	if err != nil {
