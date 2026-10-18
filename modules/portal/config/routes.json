@@ -1592,6 +1592,26 @@
       "streaming": false
     },
     {
+      "method": "GET",
+      "path": "/v1/language-suggestion-policy",
+      "owner": "localization",
+      "operationId": "readLanguageSuggestionPolicy",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/language-suggestion-policy",
+      "owner": "localization",
+      "operationId": "putLanguageSuggestionPolicy",
+      "permission": "localization.manage",
+      "admission": null,
+      "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
       "method": "POST",
       "path": "/v1/language-suggestions",
       "owner": "localization",

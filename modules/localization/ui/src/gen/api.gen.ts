@@ -602,6 +602,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/language-suggestion-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取管理员语言建议付费开关
+         * @description 管理员localization.manage明确开启后才产生可用付费许可；MG每个新attempt核同approval/site/epoch，停用或换代即拒绝。无模型或费用调用。
+         */
+        get: operations["readLanguageSuggestionPolicy"];
+        /**
+         * 管理员明确启停语言建议付费许可
+         * @description 管理员localization.manage明确开启后才产生可用付费许可；MG每个新attempt核同approval/site/epoch，停用或换代即拒绝。无模型或费用调用。
+         */
+        put: operations["putLanguageSuggestionPolicy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/language-suggestion-approvals/{approvalId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 供网关核对当前语言建议批准
+         * @description 管理员localization.manage明确开启后才产生可用付费许可；MG每个新attempt核同approval/site/epoch，停用或换代即拒绝。无模型或费用调用。
+         */
+        get: operations["readLanguageSuggestionApproval"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1894,6 +1938,28 @@ export interface components {
             }[];
             /** @description 分页信息 */
             pageInfo: components["schemas"]["PageInfo"];
+        };
+        /** @description 无持久配置时明确disabled/version0且无approvalId；恢复换代不继承旧付费批准。 */
+        LanguageSuggestionPolicy: {
+            enabled: boolean;
+            version: number;
+            approvalId?: components["schemas"]["Identifier"];
+            siteId: components["schemas"]["Identifier"];
+            dataEpoch: components["schemas"]["Identifier"];
+            approvedAt?: components["schemas"]["Timestamp"];
+        };
+        PutLanguageSuggestionPolicyInput: {
+            enabled: boolean;
+            expectedVersion: number;
+            idempotencyKey: components["schemas"]["Identifier"];
+        };
+        ReadLanguageSuggestionApprovalResult: {
+            enabled: boolean;
+            version: number;
+            approvalId: components["schemas"]["Identifier"];
+            siteId: components["schemas"]["Identifier"];
+            dataEpoch: components["schemas"]["Identifier"];
+            approvedAt: components["schemas"]["Timestamp"];
         };
         /**
          * @description 可信服务上下文决定，公开请求不能指定
@@ -4479,6 +4545,243 @@ export interface operations {
             };
             /** @description NOT_FOUND：不存在 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readLanguageSuggestionPolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
+                "X-Request-Id": components["schemas"]["Identifier"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 当前持久许可或明确默认关闭 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageSuggestionPolicy"];
+                };
+            };
+            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；错误code必须来自处理函数集合。 */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    putLanguageSuggestionPolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
+                "X-Request-Id": components["schemas"]["Identifier"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutLanguageSuggestionPolicyInput"];
+            };
+        };
+        responses: {
+            /** @description 当前持久许可或明确默认关闭 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageSuggestionPolicy"];
+                };
+            };
+            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；错误code必须来自处理函数集合。 */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readLanguageSuggestionApproval: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
+                "X-Request-Id": components["schemas"]["Identifier"];
+            };
+            path: {
+                approvalId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 当前持久许可或明确默认关闭 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadLanguageSuggestionApprovalResult"];
+                };
+            };
+            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；错误code必须来自处理函数集合。 */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };

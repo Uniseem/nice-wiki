@@ -175,7 +175,9 @@
           "authorization": "site.read 或 service:portal/public-site/content/media/localization/identity",
           "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
           "idempotency": "只读",
-          "dependencies": [],
+          "dependencies": [
+            "site-config.authorizeConfigRead"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -339,6 +341,52 @@
           "dependencies": [
             "site-config.readConfigAtWatermark"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "site-config.authorizeConfigRead",
+          "name": "authorizeConfigRead",
+          "signature": "func authorizeConfigRead(op OperationContext, object bool) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "落实配置读取和对象读取不同服务白名单",
+          "steps": [
+            "已核纯服务读取SiteConfig允许portal/public-site/content/media/localization/identity/knowledge/model-gateway/memory/qa/analytics/traffic-guard/jobs/data-protection，仅配置公开字段，不给写权限。",
+            "object分支仍只public-site/data-protection；管理员仍当前site.read或superadmin，不扩大对象读取或管理写权限。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "资源不存在或在当前主体作用域中不可见",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "权威文件/COMMITTED/SQL或原始材料不一致",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "活动epoch或expectedRevision已变化",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "site.read 或 service:portal/public-site/content/media/localization/identity",
+          "concurrency": "服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入",
+          "idempotency": "只读",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }

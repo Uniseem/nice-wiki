@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 126 个函数：约束 44 个，参考 82 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 131 个函数：约束 47 个，参考 84 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -3305,7 +3305,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`localization.LoadRuntime`、`localization.RecoverTranslationLeases`、`localization.PublishOutbox`、`localization.ConsumeEvents`、`localization.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`localization.NewGlossaryHandlers`、`localization.NewTranslationHandlers`、`localization.NewInterfaceHandlers`、`localization.NewCacheTranslationHandlers`、`localization.ConfigureExecutionAdapters`、`localization.ConfigureSourceClient`、`localization.NewPreferenceHandlers`
+- 依赖：`site-config:registerActivation`、`localization.LoadRuntime`、`localization.RecoverTranslationLeases`、`localization.PublishOutbox`、`localization.ConsumeEvents`、`localization.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`localization.NewGlossaryHandlers`、`localization.NewTranslationHandlers`、`localization.NewInterfaceHandlers`、`localization.NewCacheTranslationHandlers`、`localization.ConfigureExecutionAdapters`、`localization.ConfigureSourceClient`、`localization.NewPreferenceHandlers`、`localization.NewSuggestionPolicyHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## localization.Serve
@@ -5475,3 +5475,221 @@ func ProtectedAnchorShape(root any) string
 - 并发：固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。
 - 幂等：确定性源模板或只读版本投影，不创建独立收费操作。
 - 依赖：无
+
+## localization.ReadLanguageSuggestionPolicy
+
+- 级别：约束
+- 文件：`modules/localization/internal/language/suggestion_policy.go`
+- 作用：当前管理员读取本域同site/epoch持久付费建议开关，无配置明确disabled/version0，不造批准ID。
+
+```go
+func ReadLanguageSuggestionPolicy(ctx context.Context, op OperationContext, input ReadLanguageSuggestionPolicyInput) (LanguageSuggestionPolicy, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `ReadLanguageSuggestionPolicyInput` | 封闭业务输入；逐字段见types $defs/ListLanguagesInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `LanguageSuggestionPolicy` | 成功结果；逐字段见types $defs/ListLanguagesResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 当前管理员读取本域同site/epoch持久付费建议开关，无配置明确disabled/version0，不造批准ID。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+
+- 副作用：无
+- 授权：permission：localization.manage；rule：管理员操作只portal当前localization.manage；批准只model-gateway纯服务，不能接受访客自报开关。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`localization.ReadData`、`localization.RequireAdministrator`、`localization.readSuggestionPolicy`
+
+## localization.PutLanguageSuggestionPolicy
+
+- 级别：约束
+- 文件：`modules/localization/internal/language/suggestion_policy.go`
+- 作用：当前管理员明确启停，expectedVersion CAS与七天原回执同事务。
+
+```go
+func PutLanguageSuggestionPolicy(ctx context.Context, op OperationContext, input PutLanguageSuggestionPolicyInput) (LanguageSuggestionPolicy, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `PutLanguageSuggestionPolicyInput` | 封闭业务输入；逐字段见types $defs/ListLanguagesInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `LanguageSuggestionPolicy` | 成功结果；逐字段见types $defs/ListLanguagesResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 当前管理员明确启停，expectedVersion CAS与七天原回执同事务。
+2. 每个变更生成新approvalId与固定site/epoch/approvedAt，记录真实approvedBy/permissionRevision/root；原批准行只追加，当前指针CAS更新。
+3. 停用或恢复新dataEpoch后旧批准不再有效；不自动开通、不创建模型或费用任务。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+
+- 副作用：本域批准历史与当前开关CAS、幂等回执同事务
+- 授权：permission：localization.manage；rule：管理员操作只portal当前localization.manage；批准只model-gateway纯服务，不能接受访客自报开关。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`localization.Mutate`、`localization.RequireAdministrator`
+
+## localization.ReadLanguageSuggestionApproval
+
+- 级别：约束
+- 文件：`modules/localization/internal/language/suggestion_policy.go`
+- 作用：仅model-gateway纯服务读取当前同site/epoch的精确approvalId，旧版本/未知404，返回真实enabled/version/approvedAt，供新attempt失败关闭。
+
+```go
+func ReadLanguageSuggestionApproval(ctx context.Context, op OperationContext, input ReadLanguageSuggestionApprovalInput) (ReadLanguageSuggestionApprovalResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `ReadLanguageSuggestionApprovalInput` | 封闭业务输入；逐字段见types $defs/ListLanguagesInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadLanguageSuggestionApprovalResult` | 成功结果；逐字段见types $defs/ListLanguagesResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 仅model-gateway纯服务读取当前同site/epoch的精确approvalId，旧版本/未知404，返回真实enabled/version/approvedAt，供新attempt失败关闭。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：管理员操作只portal当前localization.manage；批准只model-gateway纯服务，不能接受访客自报开关。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`localization.ReadData`、`localization.readSuggestionPolicy`
+
+## localization.readSuggestionPolicy
+
+- 级别：参考
+- 文件：`modules/localization/internal/language/suggestion_policy.go`
+- 作用：从精确site/epoch持久开关读取安全批准投影
+
+```go
+func readSuggestionPolicy(ctx context.Context, tx *sql.Tx, op OperationContext) (LanguageSuggestionPolicy, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 不存在时默认关闭；存在时查询当前指针及不可变批准历史，未知或矛盾不授权。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+
+- 副作用：无
+- 授权：权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：无
+
+## localization.NewSuggestionPolicyHandlers
+
+- 级别：参考
+- 文件：`modules/localization/internal/language/suggestion_policy.go`
+- 作用：装配真实语言建议开关和批准读取HTTP
+
+```go
+func NewSuggestionPolicyHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用JSONHandler绑定严格输入；批准ID由路径写入，幂等头与正文相同；no-store/统一Problem。
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+
+- 副作用：无
+- 授权：权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`localization.JSONHandler`、`localization.ReadLanguageSuggestionPolicy`、`localization.PutLanguageSuggestionPolicy`、`localization.ReadLanguageSuggestionApproval`

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 90 个：手写 70、UI 3、生成 5、配置 10、迁移 2。函数 126 个：约束 44，参考 82。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 92 个：手写 72、UI 3、生成 5、配置 10、迁移 2。函数 131 个：约束 47，参考 84。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -96,3 +96,5 @@
 | `modules/localization/internal/translation/progress.go` | 手写 | 本域完整源模板/只读交付或权威客户端的实际实现。 | `localization.ListTranslationProgress` |
 | `modules/localization/internal/runtime/source_client.go` | 手写 | 本域完整源模板/只读交付或权威客户端的实际实现。 | `localization.ConfigureSourceClient`（参考）、`localization.ValidateSourcePayload`（参考）、`localization.SourceOperation`（参考）、`localization.FetchPublishedSnapshot`（参考）、`localization.FetchCurrentPublishedSnapshot`（参考）、`localization.readPublishedSnapshot`（参考）、`localization.CheckPublication`（参考）、`localization.CursorKey`（参考） |
 | `modules/localization/internal/translation/projection.go` | 手写 | 按真实稳定节点和字段段形状保留人工/保护译值，不按全局位置猜映射。 | `localization.StableSlotKey`（参考）、`localization.CollectSlotFields`（参考）、`localization.BuildProtectedProjection`（参考）、`localization.ProjectProtectedUnit`（参考）、`localization.ProtectedAnchorShape`（参考） |
+| `modules/localization/internal/language/suggestion_policy.go` | 手写 | 管理员明确开启的付费建议批准与网关只读核验 | `localization.ReadLanguageSuggestionPolicy`、`localization.PutLanguageSuggestionPolicy`、`localization.ReadLanguageSuggestionApproval`、`localization.readSuggestionPolicy`（参考）、`localization.NewSuggestionPolicyHandlers`（参考） |
+| `modules/localization/migrations/005_suggestion_policy.sql` | 手写 | 只追加付费建议当前指针与不可变审批历史，不种默认允许 | 无 |

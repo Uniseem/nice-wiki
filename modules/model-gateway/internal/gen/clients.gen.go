@@ -293,6 +293,18 @@ func (c *JobsClient) PublishEvent(ctx context.Context, body any, idempotencyKey 
 	return c.do(ctx, http.MethodPost, "/v1/events", body, idempotencyKey)
 }
 
+// LocalizationClient 调用localization服务（自动附服务断言）。
+type LocalizationClient struct{ *producerClient }
+
+func NewLocalizationClient(baseURL, issuer string, key platform.SigningKey) *LocalizationClient {
+	return &LocalizationClient{newProducerClient("localization", baseURL, issuer, key)}
+}
+
+// ReadLanguageSuggestionApproval GET /v1/language-suggestion-approvals/{approvalId}（localization:readLanguageSuggestionApproval）。
+func (c *LocalizationClient) ReadLanguageSuggestionApproval(ctx context.Context, approvalId string) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/language-suggestion-approvals/"+url.PathEscape(approvalId)+"", nil, "")
+}
+
 // MediaClient 调用media服务（自动附服务断言）。
 type MediaClient struct{ *producerClient }
 

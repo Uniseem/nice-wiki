@@ -921,20 +921,20 @@ func NewIdentifier() Identifier {
 
 // OwnerRecoveryRequest 来自jobs持久任务与失效租约，只用于原任务恢复证明。
 type OwnerRecoveryRequest struct {
- JobID string `json:"jobId"`
- Owner string `json:"owner"`
- Type string `json:"type"`
- InputRef ObjectRef `json:"inputRef"`
- RootOperationID string `json:"rootOperationId"`
- DataEpoch string `json:"dataEpoch"`
- ExpiredFence int64 `json:"expiredFence"`
- WorkerID string `json:"workerId"`
- Attempt int64 `json:"attempt"`
- CancelRequested bool `json:"cancelRequested"`
+	JobID           string    `json:"jobId"`
+	Owner           string    `json:"owner"`
+	Type            string    `json:"type"`
+	InputRef        ObjectRef `json:"inputRef"`
+	RootOperationID string    `json:"rootOperationId"`
+	DataEpoch       string    `json:"dataEpoch"`
+	ExpiredFence    int64     `json:"expiredFence"`
+	WorkerID        string    `json:"workerId"`
+	Attempt         int64     `json:"attempt"`
+	CancelRequested bool      `json:"cancelRequested"`
 }
 
 type OwnerRecoveryResult struct {
- Status string `json:"status"`
- ResultRef *ObjectRef `json:"resultRef,omitempty"`
- PaidResultRefs []string `json:"paidResultRefs"`
+	Status         string     `json:"status"`
+	ResultRef      *ObjectRef `json:"resultRef,omitempty"`
+	PaidResultRefs []string   `json:"paidResultRefs"`
 }
