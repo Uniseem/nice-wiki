@@ -149,7 +149,7 @@
         },
         "fileRef": {
           "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
-          "description": "权威译文对象"
+          "description": "可选真实持久单元权威引用；即时fallback/source-only或保护投影无独立权威unit时省略，不写null、不冒充旧父单元证明。公开交付以body/bodyHash及精确source/target generation绑定。"
         },
         "sourceText": {
           "type": "string",
@@ -173,8 +173,7 @@
         "protected",
         "version",
         "humanGeneration",
-        "status",
-        "fileRef"
+        "status"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },

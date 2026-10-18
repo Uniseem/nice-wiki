@@ -101,3 +101,7 @@ ReadTranslationUnits管理分页使用平台serviceauth.SignCursor/VerifyCursor�
 ### 明确保存语言偏好
 
 public-site转发已核访客请求；本域核对同一伪名owner，在dataEpoch与屏障下确认所选语言已启用，并以一个事务写30天偏好和七天幂等回执。新命令可更改选择；相同命令返回原到期时刻。该链不调用模型、不根据推测信号保存偏好。SuggestLanguage的快速模型缓存分支与全局付费批准边界仍待设计收口，本轮没有以规则降级代替完整模型行为。
+
+### 人工保护的稳定节点投影
+
+整表与真实行分片互换时，先从旧源私有模板解析旧人工译值，再按最深真实稳定blockId/rowId/cellId/itemId/columnId、节点类型及该节点内部text/alt路径对应当前字段。祖先数组序号不参加对应；字段内固定/可译分段必须同形，固定URL/代码永远采用当前源。对应值按新slot编号编码。新增真实子节点原文交付并partial/review且继承父保护；保护父块只能source-only、字段归属或段形状无法证明时失败关闭，保留旧对象待人工处理。新投影没有独立持久unit引用，省略fileRef；真实原单元沿用真实引用。

@@ -2101,7 +2101,8 @@
             "3 新块无译文显示原文且partial顶栏目标语言提示",
             "4 人工源变保留译文review，撤回文档全部禁止交付。",
             "返回兼容可选body与bodyHash：完整还原目标树绑定当前source publication/targetLanguage/generation，canonical目标hash另算，目标正文≤16MiB；返回前二次核content visibility及本地manifest/glossary。",
-            "人工/保护table父行分组改变、旧编号无法按当前模板解析，或保护父块只能source-only时均失败关闭DEPENDENCY_UNAVAILABLE；原权威对象保留。本复杂投影分支尚未完成，本函数保持blocked，不以原文fallback假称保留人工旧译。",
+            "人工/保护旧字段按最深真实blockId/rowId/cellId/itemId/columnId、节点类型与节点内部text/alt路径对应；只在固定/可译段形状一致时复用真实旧译值并重编号，固定URL/code取当前源。新增真实子节点原文partial/review并继承父保护，投影不改旧权威对象。归属/段形状无法证明或保护块只能source-only时失败关闭DEPENDENCY_UNAVAILABLE，不以原文冒充旧人工译文。",
+            "即时fallback及新投影没有独立权威unit时省略fileRef，不写null或借用旧父对象作证明；持久化单元返回真实fileRef。body/bodyHash绑定本次精确source/target generation。",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
@@ -2163,7 +2164,19 @@
               "code": "DEPENDENCY_UNAVAILABLE",
               "httpStatus": 503,
               "retryable": false,
-              "meaning": "人工或受保护旧译无法安全投影到当前模板、保护块只能source-only，或必需源客户端未装配。"
+              "meaning": "人工或受保护旧译归属/段形状无法证明、保护块只能source-only，或必需源客户端未装配。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 409,
+              "meaning": "源/目标正文16MiB或新旧聚合读取64MiB预算超限。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 500,
+              "meaning": "权威对象、摘要或稳定字段身份不一致。",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -2184,7 +2197,9 @@
             "localization.ParseSlotValues",
             "localization.LatestManifest",
             "localization.FetchPublishedSnapshot",
-            "localization.CheckPublication"
+            "localization.CheckPublication",
+            "localization.BuildProtectedProjection",
+            "localization.ProjectProtectedUnit"
           ],
           "resources": [],
           "contract": "binding"
@@ -10573,6 +10588,301 @@
           "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
           "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/translation/projection.go",
+      "kind": "handwritten",
+      "purpose": "按真实稳定节点和字段段形状保留人工/保护译值，不按全局位置猜映射。",
+      "functions": [
+        {
+          "id": "localization.StableSlotKey",
+          "name": "StableSlotKey",
+          "signature": "func StableSlotKey(tree any, path []string) (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "安全人工保护投影的本域参考辅助：StableSlotKey",
+          "steps": [
+            "只用最深真实节点身份及该节点内路径；祖先数组位置不进入对应。无真实锚点/不能定位失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.CollectSlotFields",
+          "name": "CollectSlotFields",
+          "signature": "func CollectSlotFields(tree any, slots []InlineSlot) ([]slotField, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "安全人工保护投影的本域参考辅助：CollectSlotFields",
+          "steps": [
+            "同一text/alt的固定/可译分段聚合；两条原树路径映到同一真实稳定键视为完整性失败，不猜测。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.StableSlotKey"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.BuildProtectedProjection",
+          "name": "BuildProtectedProjection",
+          "signature": "func BuildProtectedProjection(ctx context.Context, op OperationContext, current json.RawMessage, objects []TranslationObject) (ProtectedProjection, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "安全人工保护投影的本域参考辅助：BuildProtectedProjection",
+          "steps": [
+            "只从真实人工/保护旧单元按旧私有模板解析；较新对象同字段优先。保留真实父保护关系；不将未知旧数据补造成新来源。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.SplitTranslationUnits",
+            "localization.ParseSlotValues",
+            "localization.CollectSlotFields"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ProjectProtectedUnit",
+          "name": "ProjectProtectedUnit",
+          "signature": "func ProjectProtectedUnit(projection ProtectedProjection, template UnitTemplate, candidate gen.TranslationUnit) (gen.TranslationUnit, bool, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "安全人工保护投影的本域参考辅助：ProjectProtectedUnit",
+          "steps": [
+            "稳定字段及固定/可译段形状均匹配才复用人工译值；固定值取当前源，输出按新模板重编号。新增节点原文partial/review且继承父保护；无法证明归属继续失败关闭。只构造即时派生，不伪造fileRef或改旧权威对象。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.CollectSlotFields"
+          ],
           "resources": [],
           "contract": "reference"
         }
