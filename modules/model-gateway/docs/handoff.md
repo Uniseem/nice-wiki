@@ -1,3 +1,19 @@
+# 2026-10-18 模型网关费用首批交接
+
+基线770ea1c，分支codex/finish-20261018-gateway，仅modules/model-gateway。源码87a5af0；完整目标是本域剩余48职责全部写完，后续仍继续，不把本批当最终交付。
+
+11个原有业务ready IDs：model-gateway.ReserveCost、ExtendReservation、RecordUsage、SettleInvocation、MarkUnknownCharge、ReconcileCharge、GetInvocation、AppendStreamEvent、ResumeStream、ClassifyFailure、RedactLog（均统一model-gateway前缀）。另26必要事务/证据/HTTP/SSE助手实际逐项登记，合计37新源码ready；readLedgerEntries和QueryUsage修改后重新待CI，全部blocked。
+
+新增runtime/invocation.go统一短事务、原root/owner/site/epoch/costClass核对、哈希快照与付费原回执；invocation/http.go映射真实读取/回放/人工对账并复用平台SSE；006追加attempt/预算投影/收费证据/原凭据引用/更正及不收费证明审计，无旧数据猜填。其余路径沿原合同，root需登记两个新Go路径和006结构。
+
+费用规则根已裁定：maximumCost=0不限；profile日预算site+UTC日+profile，QA额外站点日/会话/网络小时，background独立；全部held含旧日未知保持占用。每attempt价目独立，缺价NULL允许调用且明示未知。人工对账attemptId兼容可省略但只能唯一；charged缺原usage须两个真实token计数，不能伪0；not_charged只证明释放并追加void审计，不造零token账单。新immutable entry引用被更正旧entry；QueryUsage剔除superseded/void旧条目，GetLedger保留审计。
+
+本批仍无CreateInvocation/ExecuteInvocation/DispatchInvocation生产链及完整启动，函数在依赖/输入足够时真实可用但尚未端到端装配。ExecutionOptions写入必须装配平台权威Runtime/WriteWindow，未装配明确失败，非成功存根。根tokenizer专用包、snapshot/barrier公共机制由根独占，不并改。模型embeddingSpace保留五字段/原spaceId算法，预处理默认none，后续变更需新版本身份；readModels可选embeddingSpace待下一批同步知识消费者。
+
+本地只阅读、合同台账同步和Git/diff检查；未运行Go/格式/生成/编译/测试/真实接口/模型/服务，无push。下一项继续原固定路线的accepted生产、供应方派发和取消/未知恢复闭环；每紧密批次提交即交根GitLab，不等全部完工。
+
+---
+
 # 第三轮账本与费用状态只读已交付
 
 更新：2026-10-17。分支codex/model-20261017-r3，基线d760e39194156403e2b82430d5018fa9f4425e19，独占本域。源码提交39b1e33d2f2a0e61298504704f2dd1802fb9d44f。GetLedger/QueryUsage及9项完整助手共11项首次完成函数verified，usage.go、005迁移及两份生成物verified；admin/read.go及完整应用仍partial/blocked，accepted为零。

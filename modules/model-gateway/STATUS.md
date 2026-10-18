@@ -1,3 +1,15 @@
+# 模型网关费用执行首批
+
+更新：2026-10-18。用户授权继续写完剩余代码；不在75%停止。独占modules/model-gateway，分支codex/finish-20261018-gateway，基线770ea1c，源码87a5af0。
+
+- 11个原有费用/状态/流函数及26个实际助手共37项源码ready；旧readLedgerEntries/QueryUsage因attempt价目及更正投影变化重新待CI。全部blocked，未改既有verified保留原证据，业务accepted=0。
+- 真实独立attempt费用预留、扩大、用量证据、整数结算、未知held与人工证明对账；持久状态/SSE只读及严格日志白名单已写，Get/Resume/Reconcile已映射HTTP。006只追加并保留旧数据，不造调用、价目、费用或token用量种子。
+- maximumCost=0不限，日额按site/UTC日/profile；QA另有全站/会话/网络额，background独立。旧unknown held不跨日释放。每attempt固定价目，未知金额省略，人工缺用量必须给真实tokens，不伪0。
+- 完整Create/Execute/Dispatch、供应方适配、凭据引用回收、模型space收口和启动/UI仍继续实施，不能宣称可部署费用入口。根负责tokenizeText专用包与公共snapshot/barrier，本域不并写。
+- 本机仅设计/源码/Git隐私审阅及diff检查；没有Go/gofmt/gen/build/vet/check/测试/真实接口/模型/服务或push。主会话及时GitLab检查后双推。
+
+以下是历史交付记录。
+
 # 第三轮账本与费用状态只读已交付
 
 更新：2026-10-17。分支codex/model-20261017-r3，基线d760e39194156403e2b82430d5018fa9f4425e19，独占本域。源码提交39b1e33d2f2a0e61298504704f2dd1802fb9d44f。GetLedger/QueryUsage及9项完整助手共11项首次完成函数verified，usage.go、005迁移及两份生成物verified；admin/read.go及完整应用仍partial/blocked，accepted为零。
