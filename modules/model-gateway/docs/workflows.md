@@ -117,3 +117,5 @@ Execute领取30秒lease每10秒续租，按全保守输入+最大输出预算预
 取消先同事务cancel_requested/原回执再TaskGroup.Cancel。未派发或明确not_accepted证据才释放；已派发未知保留held，不能把网络取消当免费。新备用只走固定直接后继，原模型结构重试至多一次，总attempt数不超路线+1；已有完整结果不重算，已有文本不能换供应方拼接。所有attempt共享原root及业务截止。
 
 BeginFinalization专供已发生IO后的真实usage/费用/终态/释放，脱离HTTP取消建立最多5秒当前权威记账窗口；只在控制层仍允许draining时收尾，safe/failed后拒active写。它不延长持久原deadline、不创建新预留/attempt、不允许模型IO。若窗口已关闭，保留原事实给恢复，不猜0。RecoverLeases只沿原不可变hash处理；从未派发且原deadline有效才继续，否则只复用持久付费证据或收敛unknown，禁止重发。完整启动、snapshot/barrier与其精确关闭装配仍待下一批，不在本批伪造ready服务。
+
+完整文本结果收口：同次原delta保持有效UTF8、每条16KiB/累计64KiB，SendProviderRequest只在HTTP2xx、Code空且完整协议结束/终态后构造原chat/vision/translation的ModelOutput.Text指针；实际空答复显式空指针，未完整则无Output。沿既有evidence+winning+record同事务，不修改旧付费证据。Get/Lookup核实际winning尝试/调用列表与完整成功原evidence/record全值摘要；未知字段不丢信息读。旧文本只允许单initial ordinal1、真实winner、完整无错证据及从accepted到completed连续原SSE全部证明后免费只读派生；多尝试或缺流/缺来源失败关闭，不伪空/404、不重付，不写旧hash/费用。

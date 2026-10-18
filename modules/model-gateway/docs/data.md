@@ -370,3 +370,5 @@ create_command_key和Create原回执同事务提交；索引缺失、孤立记�
 纯读取只在完整tracking有据且确无原记录时404；marker生产及恢复投影等公共启动，未自造成功来源。
 analytics纯服务只可读同实际site/current epoch的安全QueryUsage，不得调用GetInference读取正文/输出或获得新付费权限。
 invocation.reconciled与原更正/void/回执同事务发outbox，charged才携真实entryId/actualCost，not_charged不造账项/金额。
+
+完整文本结果收口：同次原delta保持有效UTF8、每条16KiB/累计64KiB，SendProviderRequest只在HTTP2xx、Code空且完整协议结束/终态后构造原chat/vision/translation的ModelOutput.Text指针；实际空答复显式空指针，未完整则无Output。沿既有evidence+winning+record同事务，不修改旧付费证据。Get/Lookup核实际winning尝试/调用列表与完整成功原evidence/record全值摘要；未知字段不丢信息读。旧文本只允许单initial ordinal1、真实winner、完整无错证据及从accepted到completed连续原SSE全部证明后免费只读派生；多尝试或缺流/缺来源失败关闭，不伪空/404、不重付，不写旧hash/费用。

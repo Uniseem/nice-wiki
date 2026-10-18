@@ -2351,7 +2351,7 @@
         },
         "output": {
           "$ref": "../../../contracts/common.schema.json#/$defs/ModelOutput",
-          "description": "兼容可选；仅原持久完整有效结构输出，必须与winning attempt/evidence摘要一致，不新调模型/不造事件。"
+          "description": "兼容可选；仅winning完整文本/结构结果与原evidence及record摘要一致；旧单initial完整原SSE可保守只读派生，缺证据不造空/404或重新收费。"
         }
       },
       "required": [
@@ -4971,7 +4971,8 @@
           "type": "boolean"
         },
         "output": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/ModelOutput"
+          "$ref": "../../../contracts/common.schema.json#/$defs/ModelOutput",
+          "description": "原attempt完整成功结果，文本含真实累计Text（显式空指针表示真实空答复），错误/未完整响应没有Output。"
         },
         "completed": {
           "type": "boolean"

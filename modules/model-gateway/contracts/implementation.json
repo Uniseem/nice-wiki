@@ -5709,7 +5709,7 @@
           "outputs": [],
           "purpose": "验证原供应方脱敏终态证据hash",
           "steps": [
-            "验证原供应方脱敏终态证据hash"
+            "核原outcome_json SHA256，再核typed完整canonical仍等原hash；未知/缺失字段不得通过丢信息读取。"
           ],
           "errors": [
             {
@@ -7543,8 +7543,8 @@
           "steps": [
             "按原owner或portal当前model.manage/superadmin、同site/epoch读取安全调用快照",
             "核持久hash、root和costClass一致，返回当前状态及最后序号，不返回prompt/secret",
-            "只读兼容output仅原持久完整有效结构结果，与resultAttemptId的持久evidence全值摘要一致才返回；不以外层费用状态猜结果。",
-            "缺完整输出不填，已有winning但证据损坏为INTEGRITY_ERROR，不当调用不存在来重算。",
+            "只读兼容output为原持久完整文本/结构结果；winning尝试和调用列表精确一致，原evidence Completed/HTTP2xx/accepted/Code空及全值摘要必须与record.Output一致。",
+            "旧完整文本仅单一initial ordinal1/真实winner/无错完整evidence及完整连续accepted→delta/usage→completed原SSE可只读免费派生；多尝试、缺流/缺winning不猜空/404、不重付，不写历史证据/费用/hash。",
             "恢复旧费用仅经当前target权威投影精确读原结果/费用/原hash/winner，旧scope不变成新准入，具体回调待公共snapshot实现后接。"
           ],
           "errors": [
@@ -7656,7 +7656,8 @@
           "outputs": [],
           "purpose": "读取原结果的当前权威快照",
           "steps": [
-            "返回原Invocation；只在winning attempt的完整无错证据与原Output规范摘要相等时携真实output。"
+            "返回原Invocation；完整结果需真实winning attempt与调用列表/派发证明一致，完整HTTP2xx/accepted/Code空evidence全值hash匹配record.Output；未知字段或显式null输出不损失信息读取。",
+            "旧文本只调用ReadLegacyTextResult保守证明，active无结果正常省略，旧成功缺winner明确DependencyUnavailable；不把费用未知当结果失败或让调用方重付。"
           ],
           "errors": [
             {
@@ -7723,7 +7724,91 @@
           "idempotency": "沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。",
           "dependencies": [
             "model-gateway.ReadAttemptEvidence",
-            "model-gateway.ErrorCode"
+            "model-gateway.ErrorCode",
+            "model-gateway.ReadAttemptRecord",
+            "model-gateway.ReadLegacyTextResult"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.ReadLegacyTextResult",
+          "name": "ReadLegacyTextResult",
+          "signature": "func ReadLegacyTextResult(tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, evidence provider.ProviderOutcome) (*platform.ModelOutput, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "保守只读还原旧已付费完整文本",
+          "steps": [
+            "调用方已核真实winning/完整无错HTTP成功evidence；Invocation与实际表都仅一个initial ordinal1 attempt，旧成功终态。",
+            "完整原SSE从1到LastSequence连续，最多65540条/每条1MiB/聚合64MiB；accepted首条、completed末条，同原invocation/root/class/deadline/price/winner；不接受错误/取消/额外完整输出分支。",
+            "每个原delta有效UTF8且≤16KiB，累计≤64KiB；真实OutputStarted与是否有字节一致；全原流无增量且完整证明时才返回显式空文本。",
+            "纯读不改原证据/fee/ledger/paid hash，不填404或0、不重跑；缺任何来源证明明确失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "由已完成owner/site/epoch/root授权的Get或Lookup调用。"
+          },
+          "concurrency": "按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。",
+          "idempotency": "沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。",
+          "dependencies": [
+            "model-gateway.ExecutionStorageError"
           ],
           "resources": [],
           "contract": "reference"
@@ -19563,7 +19648,8 @@
           "outputs": [],
           "purpose": "readInvocationRecord的原调用安全只读职责",
           "steps": [
-            "仅原记录证据或安全费用投影，不创新付费权限或模型IO。"
+            "仅原记录证据或安全费用投影，不创新付费权限或模型IO。",
+            "原terminal_output_json与完整typed ModelOutput规范值必须等hash，拒未知字段/显式null，不把它们默默省略。"
           ],
           "errors": [
             {
@@ -22426,7 +22512,9 @@
           "purpose": "SendProviderRequest的实际本域生产职责",
           "steps": [
             "执行一次固定原attempt HTTP，不重定向/重试；httptrace仅在尚未写headers时证明未发出，错误后费用保守unknown。",
-            "响应JSON32MiB/SSE64MiB，空/断流/超时无可靠终态失败；真实idle timer由收到字节续期，不延长原业务截止；文本delta完整UTF8及64KiB上限。"
+            "响应JSON32MiB/SSE64MiB，空/断流/超时无可靠终态失败；真实idle timer由收到字节续期，不延长原业务截止；文本delta完整UTF8及64KiB上限。",
+            "将同一批原UTF8 delta在既有总64KiB内真实累加；只有HTTP2xx、完整协议结束帧/完整终态、Code空才给原chat/vision/translation能力的ModelOutput.Text指针，显式空文本与没有结果区分。",
+            "累计文本随既有attempt_evidence/resultAttemptId/record.Output同事务持久；不新增收费或改旧证据，SSE缺结束帧即使见过finish_reason也不当完整流。"
           ],
           "errors": [
             {

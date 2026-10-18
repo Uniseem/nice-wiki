@@ -386,6 +386,7 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 		outcome.RequestID = response.Header.Get("request-id")
 	}
 	textBytes := 0
+ var text strings.Builder
 	writeText := func(delta string) error {
 		if delta == "" {
 			return nil
@@ -394,6 +395,7 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 			return platform.NewError(platform.CodeBudgetExceeded, false, "供应方文本输出超过64KiB预算")
 		}
 		textBytes += len(delta)
+  _,_ = text.WriteString(delta)
 		for len(delta) > 0 {
 			end := min(len(delta), 16384)
 			for end < len(delta) && !utf8.RuneStart(delta[end]) {
@@ -468,6 +470,7 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 		if err := consume(); err != nil {
 			return outcome, err
 		}
+  if !done{return outcome,platform.NewError(platform.CodeDependencyUnavailable,false,"供应方流缺完整结束帧，原费用证据保留")}
 	} else {
 		raw, err := io.ReadAll(io.LimitReader(reader, (32<<20)+1))
 		if err != nil {
@@ -491,10 +494,11 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 		return outcome, platform.NewError(platform.CodeDependencyUnavailable, false, "供应方HTTP状态不表示成功")
 	}
 	outcome.AcceptanceProof = "accepted"
-	if !outcome.Completed {
+	if !outcome.Completed || outcome.Code!="" {
 		return outcome, platform.NewError(platform.CodeDependencyUnavailable, false, "供应方没有给出完整终态证据")
 	}
-	return outcome, nil
+ if capability=="chat"||capability=="vision"||capability=="translation"{complete:=text.String();outcome.Output=&platform.ModelOutput{Capability:capability,Text:&complete}}
+ return outcome,nil
 }
 
 type providerIdleReader struct {

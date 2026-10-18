@@ -235,6 +235,7 @@ func readInvocationRecord(tx *ExecutionTransaction, op OperationContext, id stri
 	if len(outputRaw) > 0 && json.Unmarshal(outputRaw, &record.Output) != nil {
 		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "模型调用结构输出损坏")
 	}
+ if len(outputRaw)>0{stored,e:=platform.CanonicalJSON(json.RawMessage(outputRaw));decoded,e2:=platform.CanonicalJSON(record.Output);if record.Output==nil||e!=nil||e2!=nil||platform.HashBytes(stored)!=platform.HashBytes(decoded){return InvocationRecord{},platform.NewError(platform.CodeIntegrityError,false,"原结果JSON含未知字段或显式空值，不能损失信息读取")}}
 	if executionHash == "" || executionHash != ExecutionSnapshotHash(requestRaw, operationRaw, record.Route, profileRaw, record.Binding, record.CreatedNS, owner, site, epoch) {
 		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "不可变调用输入/路线/费用绑定摘要不一致")
 	}
