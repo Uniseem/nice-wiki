@@ -3418,7 +3418,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "maxLength": 512
+              "maxLength": 4096
             },
             "description": "上一页返回的签名游标"
           },
@@ -3480,12 +3480,24 @@
       },
       "StreamEvent": {
         "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
+      },
+      "ContentDocumentBody": {
+        "$ref": "../../content/contracts/types.json#/$defs/DocumentBody"
+      },
+      "ContentReadPublishedRevisionResult": {
+        "$ref": "../../content/contracts/types.json#/$defs/ReadPublishedRevisionResult"
+      },
+      "ContentValidatePublicationsResult": {
+        "$ref": "../../content/contracts/types.json#/$defs/ValidatePublicationsResult"
       }
     }
   },
   "x-runtime-payload-schemas": [
     "CreateInvocationResult",
     "CancelInvocationResult",
-    "StreamEvent"
+    "StreamEvent",
+    "ContentDocumentBody",
+    "ContentReadPublishedRevisionResult",
+    "ContentValidatePublicationsResult"
   ]
 }

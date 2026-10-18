@@ -156,6 +156,10 @@
           "minLength": 0,
           "maxLength": 65536,
           "description": "本源片段的受控模型文本，供对齐/插值/术语校验；服务始终写出，兼容旧消费者为可选"
+        },
+        "parentBlockId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "表格按真实rowId拆分时追溯原blockId；其他单元为本块ID，稳定原树ID不改"
         }
       },
       "required": [
@@ -940,12 +944,53 @@
         },
         "leaseId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "租约"
+          "description": "受信JobExecutionInput.workerId的兼容标识；实际租约/fence由CheckLease校验"
+        },
+        "job": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-internal": true,
+          "description": "由平台JobExecutionInput装配，CheckLease为进程内函数引用；不能由HTTP构造",
+          "properties": {
+            "jobId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "workerId": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "jobType": {
+              "type": "string"
+            },
+            "inputRef": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef"
+            },
+            "fencingToken": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "attempt": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "dataEpoch": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          },
+          "required": [
+            "jobId",
+            "workerId",
+            "jobType",
+            "inputRef",
+            "fencingToken",
+            "attempt",
+            "dataEpoch"
+          ]
         }
       },
       "required": [
         "translationId",
-        "leaseId"
+        "leaseId",
+        "job"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -956,12 +1001,24 @@
         "source": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 65536,
-          "description": "权威正文"
+          "maxLength": 16777216,
+          "description": "content生产方完整canonical DocumentBody JSON；另限UTF8 16MiB，不截断"
         },
         "document": {
           "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
           "description": "源引用"
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "从同一权威发布响应固定的原文语言/标题"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "从同一权威发布响应固定的原文语言/标题"
         }
       },
       "required": [
@@ -981,8 +1038,8 @@
         "source": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 65536,
-          "description": "正文"
+          "maxLength": 16777216,
+          "description": "content生产方完整canonical DocumentBody JSON；另限UTF8 16MiB，不截断"
         },
         "targetLanguage": {
           "type": "string",
@@ -1007,8 +1064,83 @@
           "items": {
             "$ref": "#/$defs/TranslationUnit"
           },
-          "maxItems": 256,
+          "maxItems": 10000,
           "description": "片段模板"
+        },
+        "sourceTree": {
+          "$ref": "../../content/contracts/types.json#/$defs/DocumentBody",
+          "description": "本域私有保留的完整权威源树，禁止整对象原样发模型"
+        },
+        "modelText": {
+          "type": "string",
+          "maxLength": 67108864,
+          "description": "仅文本及编号边界的整篇上下文；不含URL/代码/公式原值"
+        },
+        "fallbackBlockIds": {
+          "type": "array",
+          "maxItems": 10000,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "description": "超大不可拆块或超大表格行，原树保留/source-only，不创建虚构单元ID"
+        },
+        "templates": {
+          "type": "array",
+          "maxItems": 10000,
+          "x-internal": true,
+          "description": "本域私有原树还原模板，模型与外域不接收此字段",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "unitId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+              },
+              "parentBlockId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+              },
+              "slots": {
+                "type": "array",
+                "maxItems": 100000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "index": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "path": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 128
+                    },
+                    "value": {
+                      "type": "string",
+                      "maxLength": 16777216
+                    },
+                    "fixed": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "path",
+                    "value",
+                    "fixed"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "unitId",
+              "parentBlockId",
+              "slots"
+            ]
+          }
         }
       },
       "required": [
@@ -1515,6 +1647,14 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "顶部分译提示key"
+        },
+        "body": {
+          "$ref": "../../content/contracts/types.json#/$defs/DocumentBody",
+          "description": "完整还原目标树，source publication/targetLanguage/generation在translation中；始终由服务新实现写出，兼容字段"
+        },
+        "bodyHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "canonical目标body SHA256，不等于source publication contentHash"
         }
       },
       "required": [

@@ -149,3 +149,7 @@ R1第二组只追加 `004_translation_objects.sql`：translation_units 主键改
 译文对象位于 `active/objects/<规范语言>/<documentId>/<generation>.json`，schemaVersion=1，固定translation元数据、完整原sourceTree及有序units；文件中的unit.fileRef为零引用，激活后的真实聚合ObjectRef由manifest给出。sourceTree规范SHA256必须等于不可变发布引用contentHash，unit目标文本另核targetHash。SQL独立保存任务、状态、人工保护与代数；读取时文本取权威文件，状态/保护取已提交元数据，不以词库失效后的旧文件状态恢复ready。SourceText为兼容可选字段，服务新写入始终提供；旧缺来源的AI/插值分支失败关闭，不拿targetText冒充原文。
 
 control journal只追加记录对象代数预留（object.generation/done，载荷仅语言/文档ID/整数）；每次原子安装前fsync预留，失败事务的代数不会重用。对象先temp/fsync/rename，并同步所有新父目录到active，然后SQL CAS激活manifest。提交失败只留不可见孤儿；已付费结果的旧文件不覆盖，下一次使用更高预留代数。启动恢复只重建最高预留代数，不激活孤儿、不重放模型。
+
+第三组给schemaVersion=1首个可运行译文对象确定完整编码：SourceTree/Body/BodyHash、FallbackBlockIds和Units随聚合引用激活。Body是完整目标树，BodyHash覆盖其canonical字节，与源publication.contentHash分开；来源树不能被目标正文覆盖。之前该对象写链从未启动或验收，无旧运行正文迁移。将来改变编号/模板格式必须升级本域数据schema并明确迁移，不自动猜测旧文本。
+
+公开ReadTranslationResult新增兼容可选body（content.DocumentBody）与bodyHash；服务写出完整字段，旧units保留来源追溯。private模板含原值和JSON路径，仅供本域还原，不是给模型或public-site的字段。source-only超大块只保留原树、列fallbackBlockIds，所有付费结果/旧对象仍保留，不为预算失败重算。ReadTranslationUnits的签名cursor查询上限同步为平台允许的4096字符，不裁剪签名串。

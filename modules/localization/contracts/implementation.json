@@ -1211,122 +1211,7 @@
       "path": "modules/localization/internal/source/content.go",
       "kind": "handwritten",
       "purpose": "读取翻译源所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "localization.FetchTranslationSource",
-          "name": "FetchTranslationSource",
-          "signature": "func FetchTranslationSource(ctx context.Context, op OperationContext, input FetchTranslationSourceInput) (FetchTranslationSourceResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "FetchTranslationSourceInput",
-              "description": "封闭业务输入；逐字段见types $defs/FetchTranslationSourceInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "FetchTranslationSourceResult",
-              "description": "成功结果；逐字段见types $defs/FetchTranslationSourceResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "读取翻译源",
-          "steps": [
-            "1 校验租约",
-            "2 content readPublishedRevision",
-            "3 hash/schema匹配",
-            "4 分块只读不复制草稿",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "私有临时输入引用"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "content:readPublishedRevision"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
+      "functions": []
     },
     {
       "path": "modules/localization/internal/translation/units.go",
@@ -1334,108 +1219,92 @@
       "purpose": "确定性切分翻译单元所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
       "functions": [
         {
-          "id": "localization.SplitTranslationUnits",
-          "name": "SplitTranslationUnits",
-          "signature": "func SplitTranslationUnits(ctx context.Context, op OperationContext, input SplitTranslationUnitsInput) (SplitTranslationUnitsResult, error)",
+          "id": "localization.ReadTranslationUnits",
+          "name": "ReadTranslationUnits",
+          "signature": "func ReadTranslationUnits(ctx context.Context, op OperationContext, input ReadTranslationUnitsInput) (ReadTranslationUnitsResult, error)",
           "inputs": [
             {
               "name": "ctx",
               "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
             },
             {
               "name": "op",
               "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
             },
             {
               "name": "input",
-              "type": "SplitTranslationUnitsInput",
-              "description": "封闭业务输入；逐字段见types $defs/SplitTranslationUnitsInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+              "type": "ReadTranslationUnitsInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
             }
           ],
           "outputs": [
             {
               "name": "result",
-              "type": "SplitTranslationUnitsResult",
-              "description": "成功结果；逐字段见types $defs/SplitTranslationUnitsResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+              "type": "ReadTranslationUnitsResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
             },
             {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
             }
           ],
-          "purpose": "确定性切分翻译单元",
+          "purpose": "按块对齐读取原文与译文供对照编辑",
           "steps": [
-            "1 沿用content稳定blockId与完整块树",
-            "2 inline粗体/链接/代码转编号标签，URL/code值保留在本服务不发模型",
-            "3 code块/公式/嵌入不翻译但image alt/caption翻译",
-            "4 单块超预算仅table按行拆并保留父blockId，最终还原树。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "localization.manage",
+            "经content:readPublishedRevision读取当前源块，与本域译文按blockId对齐",
+            "标注人工保护与需复核单元；编辑经EditTranslationUnit提交",
+            "平台签名keyset游标固定稳定actor/site/epoch/current source/target generation/glossary/limit，10分钟独立到期，不绑定变化的proof ExpiresAt；远程IO后精确水位复核，未知/变化STALE_RESULT。"
           ],
           "errors": [
             {
-              "code": "UNSUPPORTED_SCHEMA",
-              "httpStatus": 422,
-              "meaning": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
               "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "when": "权限不足",
               "retryable": false
             }
           ],
           "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "authorization": {
+            "permission": "localization.manage",
+            "rule": "后台管理员按登记权限"
+          },
+          "concurrency": "只读快照或CAS",
+          "idempotency": "读取幂等；写入按operationId",
+          "dependencies": [
+            "content:readPublishedRevision",
+            "localization.SplitTranslationUnits",
+            "localization.Generation",
+            "localization.ReadData",
+            "localization.RequireAdministrator",
+            "localization.StorageError",
+            "localization.ReadObject",
+            "localization.FetchCurrentPublishedSnapshot",
+            "localization.CheckPublication",
+            "localization.CursorKey",
+            "platform.SignCursor",
+            "platform.VerifyCursor"
+          ],
           "resources": [],
-          "contract": "reference"
+          "contract": "binding"
         }
       ]
     },
@@ -1809,7 +1678,9 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "localization.CheckInlineTokens"
+            "localization.CheckInlineTokens",
+            "localization.NormalizeLanguageTag",
+            "localization.VisibleCharacterCount"
           ],
           "resources": [
             "2026-10-18内部算法实际字段已同步types.json；见workflows第二组，旧缺来源/重试状态不得猜测。"
@@ -1872,6 +1743,78 @@
           "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
           "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
           "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
+          "dependencies": [
+            "localization.ParseSlotValues"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.VisibleCharacterCount",
+          "name": "VisibleCharacterCount",
+          "signature": "func VisibleCharacterCount(text string)int",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 VisibleCharacterCount；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -2157,6 +2100,8 @@
             "2 按当前blockId匹配，新译文未就绪显示上一generation译文但标对应源hash",
             "3 新块无译文显示原文且partial顶栏目标语言提示",
             "4 人工源变保留译文review，撤回文档全部禁止交付。",
+            "返回兼容可选body与bodyHash：完整还原目标树绑定当前source publication/targetLanguage/generation，canonical目标hash另算，目标正文≤16MiB；返回前二次核content visibility及本地manifest/glossary。",
+            "父人工/保护table分组改变、旧编号无法安全映射到新row时失败关闭DEPENDENCY_UNAVAILABLE；该复杂分支尚未实现，本函数保持blocked，不以原文fallback假称保留人工旧译。",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
           ],
           "errors": [
@@ -2213,6 +2158,12 @@
               "httpStatus": 500,
               "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
               "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "retryable": false,
+              "meaning": "保护表格分组改变尚缺安全旧译投影，或必需源客户端未装配。"
             }
           ],
           "sideEffects": [
@@ -2222,159 +2173,94 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "content:validatePublications"
+            "content:validatePublications",
+            "localization.SplitTranslationUnits",
+            "localization.Generation",
+            "localization.EnabledLanguage",
+            "localization.ReadData",
+            "localization.StorageError",
+            "localization.ReadObject",
+            "localization.RestoreSourceTree",
+            "localization.ParseSlotValues",
+            "localization.LatestManifest",
+            "localization.FetchPublishedSnapshot",
+            "localization.CheckPublication"
           ],
           "resources": [],
           "contract": "binding"
         },
         {
-          "id": "localization.ListTranslationProgress",
-          "name": "ListTranslationProgress",
-          "signature": "func ListTranslationProgress(ctx context.Context, op OperationContext, input ListTranslationProgressInput) (ListTranslationProgressResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信操作上下文",
-              "constraints": [
-                "服务边界构建，禁止浏览器自造",
-                "dataEpoch等于site-config当前active epoch"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "ListTranslationProgressInput",
-              "description": "输入",
-              "constraints": [
-                "必须通过对应schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ListTranslationProgressResult",
-              "description": "结果",
-              "constraints": [
-                "无error时有效"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时result无效，返回标准Problem",
-              "constraints": [
-                "只使用登记错误码",
-                "detail不含正文、密钥或IP"
-              ]
-            }
-          ],
-          "purpose": "查看各语言翻译进度",
+          "id": "localization.LatestManifest",
+          "name": "LatestManifest",
+          "signature": "func LatestManifest(ctx context.Context,tx *sql.Tx,op OperationContext,document,target string,completedOnly bool)(manifestWatermark,bool,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 LatestManifest；精确输入输出见实际Go签名。",
           "steps": [
-            "localization.manage",
-            "按语言汇总完成、排队与待复核单元"
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
           ],
           "errors": [
             {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
               "code": "FORBIDDEN",
-              "when": "权限不足",
-              "retryable": false
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
             }
           ],
           "sideEffects": [],
-          "authorization": {
-            "permission": "localization.manage",
-            "rule": "后台管理员按登记权限"
-          },
-          "concurrency": "只读快照或CAS",
-          "idempotency": "读取幂等；写入按operationId",
-          "dependencies": [],
-          "resources": [],
-          "contract": "binding"
-        },
-        {
-          "id": "localization.ReadTranslationUnits",
-          "name": "ReadTranslationUnits",
-          "signature": "func ReadTranslationUnits(ctx context.Context, op OperationContext, input ReadTranslationUnitsInput) (ReadTranslationUnitsResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信操作上下文",
-              "constraints": [
-                "服务边界构建，禁止浏览器自造",
-                "dataEpoch等于site-config当前active epoch"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "ReadTranslationUnitsInput",
-              "description": "输入",
-              "constraints": [
-                "必须通过对应schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ReadTranslationUnitsResult",
-              "description": "结果",
-              "constraints": [
-                "无error时有效"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时result无效，返回标准Problem",
-              "constraints": [
-                "只使用登记错误码",
-                "detail不含正文、密钥或IP"
-              ]
-            }
-          ],
-          "purpose": "按块对齐读取原文与译文供对照编辑",
-          "steps": [
-            "localization.manage",
-            "经content:readPublishedRevision读取当前源块，与本域译文按blockId对齐",
-            "标注人工保护与需复核单元；编辑经EditTranslationUnit提交"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "when": "权限不足",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "localization.manage",
-            "rule": "后台管理员按登记权限"
-          },
-          "concurrency": "只读快照或CAS",
-          "idempotency": "读取幂等；写入按operationId",
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
           "dependencies": [
-            "content:readPublishedRevision"
+            "localization.Generation",
+            "localization.StorageError"
           ],
           "resources": [],
-          "contract": "binding"
+          "contract": "reference"
         }
       ]
     },
@@ -5951,7 +5837,8 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "localization.ReadData",
-            "localization.ReuseInSnapshot"
+            "localization.ReuseInSnapshot",
+            "localization.VisibleCharacterCount"
           ],
           "resources": [
             "2026-10-18内部算法实际字段已同步types.json；见workflows第二组，旧缺来源/重试状态不得猜测。"
@@ -6016,7 +5903,8 @@
           "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
           "dependencies": [
             "localization.StorageError",
-            "localization.ReadObject"
+            "localization.ReadObject",
+            "localization.VisibleCharacterCount"
           ],
           "resources": [],
           "contract": "reference"
@@ -6967,7 +6855,8 @@
             "localization.NewTranslationHandlers",
             "localization.NewInterfaceHandlers",
             "localization.NewCacheTranslationHandlers",
-            "localization.ConfigureExecutionAdapters"
+            "localization.ConfigureExecutionAdapters",
+            "localization.ConfigureSourceClient"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -8652,7 +8541,9 @@
             "localization.StorageError",
             "localization.objectPath",
             "localization.Root",
-            "localization.ReserveObjectGeneration"
+            "localization.ReserveObjectGeneration",
+            "localization.SplitTranslationUnits",
+            "localization.RestoreSourceTree"
           ],
           "resources": [],
           "contract": "reference"
@@ -8951,7 +8842,10 @@
           "dependencies": [
             "localization.EditTranslationUnit",
             "localization.SetUnitProtection",
-            "localization.JSONHandler"
+            "localization.JSONHandler",
+            "localization.ReadTranslation",
+            "localization.ListTranslationProgress",
+            "localization.ReadTranslationUnits"
           ],
           "resources": [],
           "contract": "reference"
@@ -9171,6 +9065,1427 @@
       "kind": "handwritten",
       "purpose": "译文归属证明、复合身份及权威对象manifest的只追加迁移。",
       "functions": []
+    },
+    {
+      "path": "modules/localization/internal/translation/split.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。",
+      "functions": [
+        {
+          "id": "localization.SplitTranslationUnits",
+          "name": "SplitTranslationUnits",
+          "signature": "func SplitTranslationUnits(ctx context.Context,op OperationContext,input SplitTranslationUnitsInput)(SplitTranslationUnitsResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "确定性切分翻译单元",
+          "steps": [
+            "输入来自严格生产方响应或本域已核hash对象；不重复结构schema。保留16MiB完整源，单元65536字符，超大table只按真实rowId拆并保parentBlockId，其他超大块source-only+fallbackBlockIds，不编造ID。",
+            "1 沿用content稳定blockId与完整块树",
+            "2 inline粗体/链接/代码转编号标签，URL/code值保留在本服务不发模型",
+            "3 code块/公式/嵌入不翻译但image alt/caption翻译",
+            "4 单块超预算仅table按行拆并保留父blockId，最终还原树。",
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+          ],
+          "errors": [
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "httpStatus": 422,
+              "meaning": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.NormalizeLanguageTag",
+            "localization.AppendPath",
+            "localization.CollectSlots",
+            "localization.WithoutSourceIDs"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.AppendPath",
+          "name": "AppendPath",
+          "signature": "func AppendPath(path []string,parts ...string)[]string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 AppendPath；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.CollectSlots"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.CollectSlots",
+          "name": "CollectSlots",
+          "signature": "func CollectSlots(node map[string]any,path []string,slots *[]InlineSlot,text *strings.Builder)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 CollectSlots；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.AppendPath",
+            "localization.AppendTextSlots",
+            "localization.AppendSlot"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.AppendTextSlots",
+          "name": "AppendTextSlots",
+          "signature": "func AppendTextSlots(slots *[]InlineSlot,text *strings.Builder,path []string,value string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 AppendTextSlots；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.AppendSlot"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.AppendSlot",
+          "name": "AppendSlot",
+          "signature": "func AppendSlot(slots *[]InlineSlot,text *strings.Builder,path []string,value string,fixed bool)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 AppendSlot；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.WithoutSourceIDs"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.WithoutSourceIDs",
+          "name": "WithoutSourceIDs",
+          "signature": "func WithoutSourceIDs(value any)any",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 WithoutSourceIDs；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/translation/restore.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。",
+      "functions": [
+        {
+          "id": "localization.RestoreSourceTree",
+          "name": "RestoreSourceTree",
+          "signature": "func RestoreSourceTree(source json.RawMessage,templates []UnitTemplate,translated []gen.TranslationUnit)(json.RawMessage,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 RestoreSourceTree；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.ParseSlotValues",
+            "localization.ReplaceSourceText",
+            "localization.ValidateSourcePayload"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ParseSlotValues",
+          "name": "ParseSlotValues",
+          "signature": "func ParseSlotValues(slots []InlineSlot,target string)([]string,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 ParseSlotValues；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ReplaceSourceText",
+          "name": "ReplaceSourceText",
+          "signature": "func ReplaceSourceText(root any,path []string,expected,replacement string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 ReplaceSourceText；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/translation/source.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。",
+      "functions": [
+        {
+          "id": "localization.FetchTranslationSource",
+          "name": "FetchTranslationSource",
+          "signature": "func FetchTranslationSource(ctx context.Context,op OperationContext,input FetchTranslationSourceInput)(FetchTranslationSourceResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取翻译源",
+          "steps": [
+            "受信JobExecutionInput绑定localization.document、inputRef owner/objectId、epoch及workerId兼容leaseId；锁外CheckLease成功后读取本域固定来源，不复制草稿。",
+            "2 content readPublishedRevision",
+            "3 hash/schema匹配",
+            "4 分块只读不复制草稿",
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+          ],
+          "errors": [
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "私有临时输入引用"
+          ],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "content:readPublishedRevision",
+            "localization.ReadData",
+            "localization.StorageError",
+            "localization.FetchPublishedSnapshot"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/translation/progress.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。",
+      "functions": [
+        {
+          "id": "localization.ListTranslationProgress",
+          "name": "ListTranslationProgress",
+          "signature": "func ListTranslationProgress(ctx context.Context, op OperationContext, input ListTranslationProgressInput) (ListTranslationProgressResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ListTranslationProgressInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ListTranslationProgressResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "查看各语言翻译进度",
+          "steps": [
+            "localization.manage",
+            "按语言汇总完成、排队与待复核单元"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "权限不足",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "localization.manage",
+            "rule": "后台管理员按登记权限"
+          },
+          "concurrency": "只读快照或CAS",
+          "idempotency": "读取幂等；写入按operationId",
+          "dependencies": [
+            "localization.NormalizeLanguageTag",
+            "localization.ReadData",
+            "localization.RequireAdministrator",
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。",
+      "functions": [
+        {
+          "id": "localization.ConfigureSourceClient",
+          "name": "ConfigureSourceClient",
+          "signature": "func ConfigureSourceClient(client *gen.ContentClient,validators map[string]func(json.RawMessage)error,key platform.SigningKey)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 ConfigureSourceClient；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ValidateSourcePayload",
+          "name": "ValidateSourcePayload",
+          "signature": "func ValidateSourcePayload(name string,raw json.RawMessage)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 ValidateSourcePayload；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.SourceOperation",
+          "name": "SourceOperation",
+          "signature": "func SourceOperation(ctx context.Context,op OperationContext)context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 SourceOperation；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.FetchPublishedSnapshot",
+          "name": "FetchPublishedSnapshot",
+          "signature": "func FetchPublishedSnapshot(ctx context.Context,op OperationContext,document gen.PublishedRevisionRef)(PublishedSnapshot,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 FetchPublishedSnapshot；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.readPublishedSnapshot"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.FetchCurrentPublishedSnapshot",
+          "name": "FetchCurrentPublishedSnapshot",
+          "signature": "func FetchCurrentPublishedSnapshot(ctx context.Context,op OperationContext,documentID string)(PublishedSnapshot,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 FetchCurrentPublishedSnapshot；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.readPublishedSnapshot"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.readPublishedSnapshot",
+          "name": "readPublishedSnapshot",
+          "signature": "func readPublishedSnapshot(ctx context.Context,op OperationContext,documentID string,expected *gen.PublishedRevisionRef)(PublishedSnapshot,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 readPublishedSnapshot；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.ValidateSourcePayload",
+            "localization.SourceOperation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.CheckPublication",
+          "name": "CheckPublication",
+          "signature": "func CheckPublication(ctx context.Context,op OperationContext,document gen.PublishedRevisionRef,expectedVisibility *int)(int,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 CheckPublication；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [
+            "localization.ValidateSourcePayload",
+            "localization.SourceOperation",
+            "localization.CursorKey"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.CursorKey",
+          "name": "CursorKey",
+          "signature": "func CursorKey()(platform.SigningKey,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持 CursorKey；精确输入输出见实际Go签名。",
+          "steps": [
+            "按已固定源/目标身份完成本域文本模板、只读投影或版本化HTTP适配；不触发模型或改变保护事实。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "STALE_RESULT",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "FORBIDDEN",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "NOT_FOUND",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "when": "按来源/水位/预算或私有IO边界失败关闭"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     }
   ],
   "jobHandlers": {
