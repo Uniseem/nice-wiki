@@ -87,7 +87,7 @@ func ExportDomainSnapshot(ctx context.Context, op OperationContext, in ExportDom
 	if view.Phase != platform.PhaseBackupBarrier || !view.Maintenance || view.BarrierID != in.Request.BarrierId || view.DataEpoch != in.Request.DataEpoch || view.DataEpoch != store.Epoch {
 		return ExportDomainSnapshotResult{}, platform.NewError(platform.CodeLocked, false, "单域导出没有对应备份安全截点")
 	}
-	operationID := "snapshot-export-" + platform.HashBytes([]byte(in.Request.BackupId+"\x00"+in.Owner))[:32]
+	operationID := "snapshot-export-" + platform.HashBytes([]byte(in.Request.BackupId + "\x00" + in.Owner))[:32]
 	exported, err := client.ExportSnapshot(ctx, in.Request, operationID)
 	if err != nil {
 		return ExportDomainSnapshotResult{}, err
