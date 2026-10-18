@@ -172,7 +172,7 @@ knowledge.build与knowledge.extract由两个平台循环按生产方jobTypes筛�
 
 构建冻结raw chunks、首次任务记忆、增强chunks与真实模型嵌入批次。嵌入当前采用固定单块批次（不超过公共64上限），避免部分缓存出现后改变原分组绕unknown；完整检索文本真实BPE，原完整空间与真实模型窗口付费前硬核。向量复用要求完整RetrievalText与完整空间一致并核向量hash/维度。词项写入与代数回验均按同一RetrievalText。背景模型语义使用原整组chunk IDs，即使缓存集合变化也不能换新语义绕过旧unknown。
 
-`POST /v1/jobs/{jobId}/recovery`仅jobs纯服务，路径/正文ID一致，核完整原来源和失效租约。completed只返回本域真实最终结果；新版入口证明从未执行且无阶段事实，或原批准截止仍有效、原模型全已知终态且完整结果hash核对、子任务均终态时才safeToRetry并继续原job/key/冻结阶段计划；已关闭取消写资格且同样终态证明时由jobs直接终止（jobs沿原cancel事实终止）。其余pending/unknown，不猜零费用，不授权新owner或新key。paidResultRefs始终非null完整数组。
+`POST /v1/jobs/{jobId}/recovery`仅jobs纯服务，路径/正文ID一致，核完整原来源和失效租约。completed只返回本域真实最终结果；新版入口证明从未执行且无阶段事实，或原模型全已知终态且完整结果hash核对、子任务均终态并取得完整MG费用证明时才safeToRetry并继续原job/key/冻结阶段计划；原批准过期只供jobs分类，不续付费批准；已关闭取消写资格且同样终态证明时由jobs直接终止（jobs沿原cancel事实终止）。其余pending/unknown，不猜零费用，不授权新owner或新key。paidResultRefs始终非null完整数组。
 
 ### 原模型观察、未发出证明和失败诊断
 
@@ -183,3 +183,12 @@ knowledge.build与knowledge.extract由两个平台循环按生产方jobTypes筛�
 执行失败边界在原worker/fence下保存真实failure_code/state和完整已知invocation refs。已经原子完成则返回真实原成功结果，不因其后取消改写。只jobs真实更高fence新claim且原批准未过期能恢复同一未取消failed对象阶段；续约不复活失败，取消/已完成不复活；控制元数据窗口不延长原模型批准。
 
 QA重排未指定原生档位时从MG真实目录按可信费用类别选fast/chat，不使用未装配空profile；原生档位和管理配置都核QA类别。完整输出消费统一CurrentSnapshot.Text，真实格式不合格才既有一次格式attempt，不因为费用未知或缺输出另开调用。
+
+
+### 后台原请求只读恢复与费用终局
+
+011仅对明确background owner首次prepared/0冻结完整原Create DTO（实际持久key、去AdmissionPermit）；QA正文与许可不持久。原semantic输入/op/root/site/epoch不变。owner锁外调用platform.ObserveInvocation/LookupModelInvocation，仅只读原ID或完整原body/key，不调用可能Create的InvokeModel，不取消模型，也不延付费批准；每次至多16项，完整SQL未决集合仍阻止错误safeToRetry。旧无body且无ID保持pending。
+
+原result_json/hash保留完整paid输出不可变；observation_json/hash保存最新真实对象，费用投影只来自Invocation与全部attempt。Outcome.completed仅是完整结果可消费，即使fee unknown也可免费完成本域业务并保留完整paidRefs。OwnerRecovery.completed不假称结算；safeToRetry额外需要原root完整QueryUsage真实显式windowCoversRoot/allInvocationsFinal、held USD0、空unknown与每条已知价格/actualCost，缺字段、旧epoch或响应超预算均保持pending。跨根已完成缓存只免费复用不新授权，原paidRefs完整保留。
+
+普通NOT_FOUND不是负证明。仅MG专用INVOCATION_NOT_ACCEPTED可保存原scope/inputHash/key/时点的not_accepted观察，dispatch_started仍1；它不证明永久无费、不能批准新owner，原RPC晚提交仍同原key去重。原批准有效才可继续原key/原输入，派发前清除旧时点负证明。观察和费用IO后重核原worker/fence/attempt/cancel及实际租约；原批准过期且无未决副作用的safeToRetry仅供jobs按DEADLINE_EXCEEDED分类，实际worker原付费工厂仍拒绝过期批准。

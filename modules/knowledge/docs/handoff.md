@@ -426,3 +426,28 @@ partial精确ID：`knowledge.ExecuteBuild`, `knowledge.ExecuteExtraction`, `know
 - `knowledge.ReadExtractionJobState`
 
 ReadJobRecovery/ExecuteBuild/ExecuteExtraction/CreateExtraction继续partial，根新授权的owner Observe/Lookup BG原DTO与失败费用证明闭包下一批实施。没有把新必要helpers充原主函数完成数。
+
+
+## 后台原调用只读观察与费用证明f46c115
+
+原后台Create DTO只在prepared/0冻结，QA正文/permit不持久；RPC body使用持久原key，修正公共normalize禁止内外key不一致。owner恢复SQL锁外真实公共Observe/Lookup，不调用InvokeModel/Create/Cancel，不复制fresh观察机制；专用未接受观察仅原时点/原key，不推永久零费或新owner，dispatch_started保留1。完整paid输出独立不可变，最新观察单列保存，真实fee state核全部attempt。
+
+ReadJobRecovery现在对安全重试检查真实完整QueryUsage终局，而completed只需本域最终完整结果；跨根已完成paid缓存免费复用并保完整refs。原批准过期可给无副作用分类证明，但jobs按DEADLINE_EXCEEDED，付费工厂仍不放行过期。所有IO后重核worker/fence/cancel/租约。新011迁移及model/recovery.go、model/fee-proof.go需根framework登记。
+
+源码ready精确ID（全部blocked待根GitLab，共享db54fae/dcba0de及MG0867a87须同批，非业务验收）：
+
+- `knowledge.ReadJobRecovery`
+- `knowledge.InvokeModel`
+- `knowledge.NewModelRuntime`
+- `knowledge.BeginModelStep`
+- `knowledge.CompleteModelStep`
+- `knowledge.MarkModelDispatch`
+- `knowledge.HasCompleteResult`
+- `knowledge.ObserveOwnerModelSteps`
+- `knowledge.RecordModelNonAcceptance`
+- `knowledge.ValidateModelNonAcceptance`
+- `knowledge.RootFeesFinal`
+- `knowledge.OwnerFeesFinal`
+- `knowledge.ModelObservationState`
+
+CreateExtraction仍partial待新明批失败缓存证明；ExecuteBuild/ExecuteExtraction/完整app仍按其真实剩余项，不借必要helpers刷原主函数完成数。继续一次补完Quote/失败缓存/公共scope可用后控制装配，不等本批CI。未本机Go/gen/SQL/模型或新增测试样例。

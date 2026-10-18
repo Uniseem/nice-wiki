@@ -2,12 +2,12 @@
   "version": 1,
   "module": "knowledge",
   "phase": "implementation",
-  "contractSha256": "5bd76b8e3bdfcb35b64a806a6b766a12198552bda6f5b3c9d8c370f8a331b983",
+  "contractSha256": "fe74bdf065cd15a2d8d67fcf27809f81adaec6eef7bafb9077b10c036844eb3a",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "模型当前对象/失败与未外发证据已交，继续owner只读观察与失败缓存费用证明",
+  "assignedSession": "集中补完剩余源码：后台只读恢复已交，继续失败缓存与完整计划报价",
   "branch": "codex/finish-20261018-knowledge",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "e660552",
+  "deliveryCommit": "f46c115",
   "deployment": "not_started",
   "files": [
     {
@@ -593,12 +593,12 @@
     {
       "path": "modules/knowledge/internal/model/client.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+        "evidence": "本批源码待根GitLab，同文件其他partial职责见逐函数。"
       },
-      "blocker": "待CI或同文件partial职责；见函数逐项。"
+      "blocker": "待CI或同文件partial职责。"
     },
     {
       "path": "modules/knowledge/internal/build/execute.go",
@@ -763,12 +763,12 @@
     {
       "path": "modules/knowledge/internal/model/journal.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+        "evidence": "本批源码待根GitLab，同文件其他partial职责见逐函数。"
       },
-      "blocker": "待CI或同文件partial职责；见函数逐项。"
+      "blocker": "待CI或同文件partial职责。"
     },
     {
       "path": "modules/knowledge/migrations/004_model_result_hash.sql",
@@ -873,12 +873,12 @@
     {
       "path": "modules/knowledge/internal/model/provenance.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+        "evidence": "本批源码待根GitLab，同文件其他partial职责见逐函数。"
       },
-      "blocker": "待CI或同文件partial职责；见函数逐项。"
+      "blocker": "待CI或同文件partial职责。"
     },
     {
       "path": "modules/knowledge/migrations/008_actual_context_provenance.sql",
@@ -933,12 +933,12 @@
     {
       "path": "modules/knowledge/internal/runtime/job_recovery.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+        "evidence": "本批源码待根GitLab，同文件其他partial职责见逐函数。"
       },
-      "blocker": "待CI或同文件partial职责；见函数逐项。"
+      "blocker": "待CI或同文件partial职责。"
     },
     {
       "path": "modules/knowledge/internal/build/plan.go",
@@ -1029,6 +1029,36 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/knowledge/internal/model/recovery.go",
+      "state": "blocked",
+      "implementationCommit": "f46c115",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批源码待根GitLab，同文件其他partial职责见逐函数。"
+      },
+      "blocker": "待CI或同文件partial职责。"
+    },
+    {
+      "path": "modules/knowledge/internal/model/fee-proof.go",
+      "state": "blocked",
+      "implementationCommit": "f46c115",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批源码待根GitLab，同文件其他partial职责见逐函数。"
+      },
+      "blocker": "待CI或同文件partial职责。"
+    },
+    {
+      "path": "modules/knowledge/migrations/011_background_model_requests.sql",
+      "state": "blocked",
+      "implementationCommit": "f46c115",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批源码待根GitLab，同文件其他partial职责见逐函数。"
+      },
+      "blocker": "待CI或同文件partial职责。"
     }
   ],
   "functions": [
@@ -2004,23 +2034,23 @@
       "id": "knowledge.InvokeModel",
       "path": "modules/knowledge/internal/model/client.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
       },
-      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
     },
     {
       "id": "knowledge.NewModelRuntime",
       "path": "modules/knowledge/internal/model/client.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
       },
-      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
     },
     {
       "id": "knowledge.WithModelRuntime",
@@ -2433,12 +2463,12 @@
       "id": "knowledge.BeginModelStep",
       "path": "modules/knowledge/internal/model/journal.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
       },
-      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
     },
     {
       "id": "knowledge.SaveModelProgress",
@@ -2455,12 +2485,12 @@
       "id": "knowledge.CompleteModelStep",
       "path": "modules/knowledge/internal/model/journal.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
       },
-      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
     },
     {
       "id": "knowledge.RetrievalText",
@@ -2763,12 +2793,12 @@
       "id": "knowledge.HasCompleteResult",
       "path": "modules/knowledge/internal/model/provenance.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
       },
-      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
     },
     {
       "id": "knowledge.PrepareExtractionPlan",
@@ -2994,12 +3024,12 @@
       "id": "knowledge.ReadJobRecovery",
       "path": "modules/knowledge/internal/runtime/job_recovery.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
       },
-      "blocker": "partial：需锁外有界Observe/Lookup原MG调用，不能永远只等本地旧unknown；根刚确认精确公共只读API，下一批装配。"
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
     },
     {
       "id": "knowledge.ReadBuildPlan",
@@ -3126,12 +3156,12 @@
       "id": "knowledge.MarkModelDispatch",
       "path": "modules/knowledge/internal/model/journal.go",
       "state": "blocked",
-      "implementationCommit": "e660552",
+      "implementationCommit": "f46c115",
       "verification": {
         "state": "not_run",
-        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
       },
-      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
     },
     {
       "id": "knowledge.CompletedText",
@@ -3176,6 +3206,72 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "knowledge.ObserveOwnerModelSteps",
+      "path": "modules/knowledge/internal/model/recovery.go",
+      "state": "blocked",
+      "implementationCommit": "f46c115",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
+    },
+    {
+      "id": "knowledge.RecordModelNonAcceptance",
+      "path": "modules/knowledge/internal/model/recovery.go",
+      "state": "blocked",
+      "implementationCommit": "f46c115",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
+    },
+    {
+      "id": "knowledge.ValidateModelNonAcceptance",
+      "path": "modules/knowledge/internal/model/recovery.go",
+      "state": "blocked",
+      "implementationCommit": "f46c115",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
+    },
+    {
+      "id": "knowledge.RootFeesFinal",
+      "path": "modules/knowledge/internal/model/fee-proof.go",
+      "state": "blocked",
+      "implementationCommit": "f46c115",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
+    },
+    {
+      "id": "knowledge.OwnerFeesFinal",
+      "path": "modules/knowledge/internal/model/fee-proof.go",
+      "state": "blocked",
+      "implementationCommit": "f46c115",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
+    },
+    {
+      "id": "knowledge.ModelObservationState",
+      "path": "modules/knowledge/internal/model/provenance.go",
+      "state": "blocked",
+      "implementationCommit": "f46c115",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原调用Observe/Lookup与QueryUsage完整终局生产方须同根公共API集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab生成、readonly编译/vet/gofmt与完整检查。"
     }
   ],
   "rule": "本轮四批13个原有主业务函数源码就绪，新改及实际助手待统一GitLab保持blocked；原未改证据保留，accepted=0。三个规范化助手为旧实际函数补登记，不计新增原业务。PDF算法未接公共runner不算ExtractPdfText ready；继续剩余27原函数、完整worker/恢复/启动/UI，不在75%停止。"
