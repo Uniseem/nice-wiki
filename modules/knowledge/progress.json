@@ -2,7 +2,7 @@
   "version": 1,
   "module": "knowledge",
   "phase": "implementation",
-  "contractSha256": "440bdd2141dad8540cc4f1ffa6246a637adce5db022aba9d53c85ec0c1d39f32",
+  "contractSha256": "7ca8a1f6283621f3f3e18a4b6e51733a1207236c8145267f1e014dbd7213b40d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "知识可独立业务源码完整交付冻结；公共快照/屏障与完整启动由根接线，转localization连续实施",
   "branch": "codex/finish-20261018-knowledge",
@@ -73,12 +73,12 @@
     {
       "path": "modules/knowledge/internal/extract/create.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/extract/pdf.go",
@@ -133,12 +133,12 @@
     {
       "path": "modules/knowledge/internal/index/staging.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/index/lexical.go",
@@ -363,12 +363,12 @@
     {
       "path": "modules/knowledge/ui/src/views/OverviewView.vue",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/ui/src/views/EditView.vue",
@@ -383,12 +383,12 @@
     {
       "path": "modules/knowledge/internal/chunk/context.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/search/inspect.go",
@@ -473,12 +473,12 @@
     {
       "path": "modules/knowledge/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/go.mod",
@@ -593,22 +593,22 @@
     {
       "path": "modules/knowledge/internal/model/client.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/build/execute.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/gen/openapi.gen.go",
@@ -653,12 +653,12 @@
     {
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/index/repository.go",
@@ -853,12 +853,12 @@
     {
       "path": "modules/knowledge/internal/extract/describe.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/migrations/007_stable_model_semantics.sql",
@@ -933,12 +933,12 @@
     {
       "path": "modules/knowledge/internal/runtime/job_recovery.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/build/plan.go",
@@ -963,12 +963,12 @@
     {
       "path": "modules/knowledge/internal/extract/execute.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/extract/dispatch.go",
@@ -1033,22 +1033,22 @@
     {
       "path": "modules/knowledge/internal/model/recovery.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/model/fee-proof.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/migrations/011_background_model_requests.sql",
@@ -1063,62 +1063,62 @@
     {
       "path": "modules/knowledge/internal/extract/cache.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/index/route.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/migrations/012_recovered_extraction_results.sql",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/model/expectation.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/migrations/013_rebuild_plans.sql",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "modules/knowledge/internal/build/rebuild_cache.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整源码待根GitLab及同源MG/公共生成；同文件其他partial见逐项。"
+        "evidence": null
       },
-      "blocker": "待CI或同文件其他partial装配。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     }
   ],
   "functions": [
@@ -1203,23 +1203,23 @@
       "id": "knowledge.CreateExtraction",
       "path": "modules/knowledge/internal/extract/create.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ExecuteExtraction",
       "path": "modules/knowledge/internal/extract/execute.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ExtractPdfText",
@@ -1291,12 +1291,12 @@
       "id": "knowledge.NewIndexRuntime",
       "path": "modules/knowledge/internal/index/staging.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.WithIndexRuntime",
@@ -1907,12 +1907,12 @@
       "id": "knowledge.EnrichChunkContext",
       "path": "modules/knowledge/internal/chunk/context.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.InspectEvidence",
@@ -2039,12 +2039,12 @@
       "id": "knowledge.NewOperationHandlers",
       "path": "modules/knowledge/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.jsonOperation",
@@ -2094,12 +2094,12 @@
       "id": "knowledge.InvokeModel",
       "path": "modules/knowledge/internal/model/client.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.NewModelRuntime",
@@ -2138,34 +2138,34 @@
       "id": "knowledge.ExecuteBuild",
       "path": "modules/knowledge/internal/build/execute.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.EstimateRebuildPlan",
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ApproveRebuildPlan",
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.BindAdmissionPermit",
@@ -2765,12 +2765,12 @@
       "id": "knowledge.DescribeResource",
       "path": "modules/knowledge/internal/extract/describe.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.DescriptionText",
@@ -2864,23 +2864,23 @@
       "id": "knowledge.PrepareExtractionPlan",
       "path": "modules/knowledge/internal/extract/create.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ReadExtraction",
       "path": "modules/knowledge/internal/extract/create.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.RecoverExtractionTasks",
@@ -2930,12 +2930,12 @@
       "id": "knowledge.PrepareBuildChunks",
       "path": "modules/knowledge/internal/build/execute.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ExecutionLeaseID",
@@ -3084,12 +3084,12 @@
       "id": "knowledge.ReadJobRecovery",
       "path": "modules/knowledge/internal/runtime/job_recovery.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ReadBuildPlan",
@@ -3161,12 +3161,12 @@
       "id": "knowledge.CheckExtractionPlan",
       "path": "modules/knowledge/internal/extract/execute.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.DispatchExtraction",
@@ -3271,12 +3271,12 @@
       "id": "knowledge.ObserveOwnerModelSteps",
       "path": "modules/knowledge/internal/model/recovery.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.RecordModelNonAcceptance",
@@ -3315,12 +3315,12 @@
       "id": "knowledge.OwnerFeesFinal",
       "path": "modules/knowledge/internal/model/fee-proof.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ModelObservationState",
@@ -3337,177 +3337,177 @@
       "id": "knowledge.ReadRebuildDocuments",
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.PrepareRebuildPolicy",
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.CheckRebuildApproval",
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.AddRebuildQuoteRoute",
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.QuoteRebuildComponents",
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.PrepareRebuildSnapshot",
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ReadRebuildSource",
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.FreezeRebuildRoutePrices",
       "path": "modules/knowledge/internal/build/rebuild.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ReadRebuildExtractionCache",
       "path": "modules/knowledge/internal/build/rebuild_cache.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ReadRebuildCachedContext",
       "path": "modules/knowledge/internal/build/rebuild_cache.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.HasRebuildVector",
       "path": "modules/knowledge/internal/build/rebuild_cache.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ReadTaskRoute",
       "path": "modules/knowledge/internal/index/route.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.WithModelExpectations",
       "path": "modules/knowledge/internal/model/expectation.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.InspectFailedExtraction",
       "path": "modules/knowledge/internal/extract/cache.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.SaveRecoveredExtraction",
       "path": "modules/knowledge/internal/extract/cache.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.ValidateRecoveredExtractions",
       "path": "modules/knowledge/internal/extract/cache.go",
       "state": "blocked",
-      "implementationCommit": "7ec22e3",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
+        "evidence": null
       },
-      "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "knowledge.estimateRebuild",
@@ -3541,6 +3541,17 @@
         "evidence": "完整业务源码已交；MG免费路由/整候选与价格CAS、公共ExpectedPriceSnapshot和生成物须根同批GitLab。未本机检查。"
       },
       "blocker": "待根GitLab统一生成、readonly编译/vet/gofmt与完整检查；不是implemented/verified或行为验收。"
+    },
+    {
+      "id": "knowledge.ResolveClaimedJobOperation",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     }
   ],
   "rule": "本轮四批13个原有主业务函数源码就绪，新改及实际助手待统一GitLab保持blocked；原未改证据保留，accepted=0。三个规范化助手为旧实际函数补登记，不计新增原业务。PDF算法未接公共runner不算ExtractPdfText ready；继续剩余27原函数、完整worker/恢复/启动/UI，不在75%停止。"

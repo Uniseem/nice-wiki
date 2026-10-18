@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "2f121f4a63a664a0e75fa12cca8741f983ed5b8a850d05ed6eb2c575b9ea9319",
+  "contractSha256": "c45188e0a18bc15b0738529ff05874206e82e707b309c74fcbb73b2aff3221e0",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "公共快照/恢复与原模型调用只读观察",
   "branch": "codex/finish-20261018-snapshot",
@@ -12,13 +12,13 @@
   "files": [
     {
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "libs/platform/serviceauth/delegation.go",
@@ -32,13 +32,13 @@
     },
     {
       "path": "libs/platform/opctx/context.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "libs/platform/problem/problem.go",
@@ -52,13 +52,13 @@
     },
     {
       "path": "libs/platform/outbox/outbox.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "libs/platform/outbox/relay.go",
@@ -142,13 +142,13 @@
     },
     {
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "libs/platform/lifecycle/service.go",
@@ -303,12 +303,12 @@
     {
       "path": "libs/platform/lifecycle/snapshot_types.go",
       "state": "blocked",
-      "implementationCommit": "afae2edc1544ec3e7eaf0434d81dd8b720330c92",
+      "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+        "evidence": null
       },
-      "blocker": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "libs/platform/lifecycle/snapshot_io.go",
@@ -322,26 +322,96 @@
     },
     {
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "libs/platform/lifecycle/snapshot_archive.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
     },
     {
       "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+    },
+    {
+      "path": "libs/platform/scope.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_capture.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+    },
+    {
+      "path": "libs/platform/outbox/observation.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_stage_scope.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+    },
+    {
+      "path": "libs/platform/outbox/restore.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+    },
+    {
+      "path": "libs/platform/lifecycle/task_secret.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
@@ -355,24 +425,24 @@
     {
       "id": "platform.SignAssertion",
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.VerifyAssertion",
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.VerifyDelegation",
@@ -388,13 +458,13 @@
     {
       "id": "platform.BuildOperationContext",
       "path": "libs/platform/opctx/context.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.WriteProblem",
@@ -410,13 +480,13 @@
     {
       "id": "platform.EnqueueEvent",
       "path": "libs/platform/outbox/outbox.go",
-      "state": "verified",
-      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.RunRelay",
@@ -531,13 +601,13 @@
     {
       "id": "platform.ApplyRestoreSwap",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.RunService",
@@ -718,13 +788,13 @@
     {
       "id": "platform.validLoginScopes",
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "verified",
-      "implementationCommit": "26138c157dc73131fbf4fd68c7819f918ed5ddcf",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第二轮最终实际集成树：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）和完整make check通过（855文件/1012函数/374操作/2211类型）。生成冲突已由唯一契约重新生成；授权、幂等、维护写窗口、持久回执/恢复与控制路径经统一人工复核。未新增或运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表现阶段已有检查。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.NewServiceHandler",
@@ -783,13 +853,13 @@
     },
     {
       "id": "platform.PrivateNetworkScopes",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "libs/platform/serviceauth/assertion.go"
     },
     {
@@ -937,24 +1007,24 @@
     },
     {
       "id": "platform.SignOutboundRequest",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "libs/platform/serviceauth/assertion.go"
     },
     {
       "id": "platform.applyOperationHeaders",
-      "state": "verified",
-      "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "libs/platform/serviceauth/assertion.go"
     },
     {
@@ -1146,35 +1216,35 @@
     },
     {
       "id": "platform.privateNetworkPeer",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "libs/platform/serviceauth/assertion.go"
     },
     {
       "id": "platform.PrivateBudgetNetworkScopes",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "libs/platform/serviceauth/assertion.go"
     },
     {
       "id": "platform.validBudgetScopes",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "libs/platform/serviceauth/assertion.go"
     },
     {
@@ -1267,13 +1337,13 @@
     },
     {
       "id": "platform.LoadSigningKey",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
       "path": "libs/platform/serviceauth/assertion.go"
     },
     {
@@ -1388,17 +1458,6 @@
     },
     {
       "id": "platform.inbox.eventKey",
-      "path": "libs/platform/inbox/consumer.go",
-      "state": "blocked",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
-    },
-    {
-      "id": "platform.inbox.pauseFor",
       "path": "libs/platform/inbox/consumer.go",
       "state": "blocked",
       "implementationCommit": null,
@@ -1653,13 +1712,13 @@
     {
       "id": "platform.ResolveVisitorAddress",
       "path": "libs/platform/serviceauth/assertion.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.LoadPortalDelegation",
@@ -1686,167 +1745,167 @@
     {
       "id": "platform.integrity",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.readSnapshotStageRecord",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.snapshotDirectoryExists",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.snapshotSwapPaths",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.verifySnapshotHash",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.snapshotRename",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.snapshotSwapLog",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.applySnapshotSwitch",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.applySnapshotRollback",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.ReadRestoreSwapState",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.restoreLogState",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.readRestoreLog",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.appendRestoreLog",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.syncDir",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.splitLines",
       "path": "libs/platform/lifecycle/restore_swap.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.snapshotIOError",
@@ -1983,79 +2042,79 @@
     {
       "id": "platform.snapshotCountedReader.Read",
       "path": "libs/platform/lifecycle/snapshot_archive.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.snapshotCountedWriter.Write",
       "path": "libs/platform/lifecycle/snapshot_archive.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.validateSnapshotInventory",
       "path": "libs/platform/lifecycle/snapshot_archive.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.verifySnapshotInventoryTree",
       "path": "libs/platform/lifecycle/snapshot_archive.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.snapshotArchiveByteSize",
       "path": "libs/platform/lifecycle/snapshot_archive.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.BuildSnapshotArchive",
       "path": "libs/platform/lifecycle/snapshot_archive.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.ExtractSnapshotArchive",
       "path": "libs/platform/lifecycle/snapshot_archive.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.NewSnapshotManager",
@@ -2146,17 +2205,6 @@
       "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
-      "id": "platform.SnapshotManager.waitCounts",
-      "path": "libs/platform/lifecycle/snapshot_barrier.go",
-      "state": "blocked",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
-    },
-    {
       "id": "platform.SnapshotManager.EnterBarrier",
       "path": "libs/platform/lifecycle/snapshot_barrier.go",
       "state": "blocked",
@@ -2181,123 +2229,123 @@
     {
       "id": "platform.SnapshotManager.beginFileOperation",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.SnapshotManager.Export",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.SnapshotManager.OpenArchive",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.removeSnapshotTree",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.fingerprintSnapshotTree",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.snapshotStageID",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.verifySnapshotTarget",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.SnapshotManager.Stage",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.SnapshotManager.finishStage",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.SnapshotManager.Discard",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.verifySnapshotExportRecord",
       "path": "libs/platform/lifecycle/snapshot_manager.go",
-      "state": "verified",
-      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     },
     {
       "id": "platform.LookupInference",
@@ -2562,6 +2610,402 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "platform.EnsureSchema",
+      "path": "libs/platform/outbox/outbox.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.consumerLoop.pauseFor",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.DomainSnapshotManifest.MarshalJSON",
+      "path": "libs/platform/lifecycle/snapshot_types.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.PrepareBarrier",
+      "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.DrainBarrier",
+      "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.requireDraining",
+      "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.ObserveBarrier",
+      "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.SealBarrier",
+      "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.ResumeDrain",
+      "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.validateSnapshotSealProof",
+      "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.WithCleanupIssuer",
+      "path": "libs/platform/scope.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.CleanupIssuerFrom",
+      "path": "libs/platform/scope.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.WithoutCleanupIssuer",
+      "path": "libs/platform/scope.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.noCleanupIssuer.IssueCleanup",
+      "path": "libs/platform/scope.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.MatchCleanupRoute",
+      "path": "libs/platform/scope.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.CleanupResourceID",
+      "path": "libs/platform/scope.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.ValidateCleanupScope",
+      "path": "libs/platform/scope.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.snapshotAdmission.IssueCleanup",
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.ExistingWorkContext",
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.currentBarrierID",
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.newCleanupLocked",
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.AdmitCleanup",
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.AdmitEventBatch",
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.AllowEventDrain",
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.BindOutboxEventScope",
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.CaptureSnapshotFiles",
+      "path": "libs/platform/lifecycle/snapshot_capture.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.Store.Observe",
+      "path": "libs/platform/outbox/observation.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.Store.Seal",
+      "path": "libs/platform/outbox/observation.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.Store.Resume",
+      "path": "libs/platform/outbox/observation.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.validateSnapshotManifestVersion",
+      "path": "libs/platform/lifecycle/snapshot_types.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.SnapshotStageBinding",
+      "path": "libs/platform/lifecycle/snapshot_stage_scope.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.PrepareRestoredOutbox",
+      "path": "libs/platform/outbox/restore.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.SealTaskSecret",
+      "path": "libs/platform/lifecycle/task_secret.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.OpenTaskSecret",
+      "path": "libs/platform/lifecycle/task_secret.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.taskSecretAAD",
+      "path": "libs/platform/lifecycle/task_secret.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "platform.taskSecretCipher",
+      "path": "libs/platform/lifecycle/task_secret.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
     }
   ],
   "rule": "公共机制已通过自部署GitLab当前源码/生成/编译/结构检查；完整服务、业务验收和部署按各域未完成项保留。"

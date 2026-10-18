@@ -8211,7 +8211,7 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "platform.RunWorkerLoopWithResult",
-            "knowledge.AdoptClaimedJob",
+            "knowledge.ResolveClaimedJobOperation",
             "knowledge.MirrorExecutionLease",
             "knowledge.RecordExecutionCancellation"
           ],
@@ -11749,7 +11749,7 @@
           "outputs": [],
           "purpose": "只消费平台权威续租回执，同worker/fence/epoch CAS镜像",
           "steps": [
-            "只消费平台权威续租回执，同worker/fence/epoch CAS镜像"
+            "仅真实heartbeat成功且公共worker已一次绑定原私有job执行scope后，使用真实ExpiresAt接管execution_records与同原job/fence镜像；不在只读factory先写，不复制心跳或续付费deadline。"
           ],
           "errors": [],
           "sideEffects": [],
@@ -11760,9 +11760,7 @@
           "concurrency": "本站同代原输入/原拥有者/fence与安全窗口；只读固定快照",
           "idempotency": "原输入/hash/语义身份不变，未知不换key",
           "dependencies": [
-            "knowledge.BeginIndexWrite",
-            "knowledge.LoadExecutionRecord",
-            "knowledge.SaveExecutionMirror"
+            "knowledge.AdoptClaimedJob"
           ],
           "resources": [],
           "contract": "reference"
@@ -11864,6 +11862,31 @@
             "knowledge.LoadExecutionRecord",
             "knowledge.ExecutionLeaseID",
             "knowledge.ReadPaidResultRefs"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.ResolveClaimedJobOperation",
+          "name": "ResolveClaimedJobOperation",
+          "signature": "func ResolveClaimedJobOperation(ctx context.Context,job platform.ClaimedJob)(OperationContext,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "领取factory只读核原批准任务，不在未绑定job_claim内写业务",
+          "steps": [
+            "只读真实原输入/引用/任务owner/root/epoch/op配对，恢复原批准deadline，不续授权；无执行记录或租约镜像写入。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅已授权本域流程组合调用，不扩大调用方权限"
+          },
+          "concurrency": "本站同代原输入/原拥有者/fence与安全窗口；只读固定快照",
+          "idempotency": "原输入/hash/语义身份不变，未知不换key",
+          "dependencies": [
+            "knowledge.RuntimeFromContext",
+            "knowledge.ApprovedJobInput"
           ],
           "resources": [],
           "contract": "reference"

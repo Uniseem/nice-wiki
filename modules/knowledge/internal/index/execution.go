@@ -32,6 +32,16 @@ func ApprovedJobInput(ctx context.Context,tx *sql.Tx,jobType,objectID string)(Ex
 }
 
 // AdoptClaimedJob 认领后同事务接收真实job引用与fence镜像，Start/Heartbeat仍由平台执行。
+func ResolveClaimedJobOperation(ctx context.Context,job platform.ClaimedJob)(OperationContext,error) {
+ runtime,err:=RuntimeFromContext(ctx);if err!=nil {return OperationContext{},err}
+ read,err:=runtime.DB.BeginTx(ctx,&sql.TxOptions{ReadOnly:true});if err!=nil {return OperationContext{},storageError(err)}
+ original,state,jobsOperation,site,_,err:=ApprovedJobInput(ctx,read,job.JobType,job.InputRef.ObjectID);_=read.Rollback();if err!=nil {return OperationContext{},err}
+ if original.InputRef!=job.InputRef||original.Operation.RootOperationID!=job.RootOperationID||original.Operation.DataEpoch!=job.DataEpoch||(original.JobID!=""&&original.JobID!=job.JobID)||(jobsOperation!=""&&jobsOperation!=job.OperationID)||original.Operation.OperationID!=job.OperationID||(state!="dispatching"&&state!="dispatched"&&state!="completed") {return OperationContext{},platform.NewError(platform.CodeIntegrityError,false,"领取任务与原批准输入/root/操作不一致")}
+ if _,err=platform.ParseTimestamp(original.Operation.Deadline);err!=nil {return OperationContext{},platform.NewError(platform.CodeIntegrityError,false,"原批准任务截止损坏")}
+ op:=original.Operation;op.CallerService="knowledge";op.OperationID=job.OperationID;op.RequestID=platform.NewIdentifier();op.Actor=platform.AuthContext{SubjectID:"knowledge",Kind:"service",SiteID:site,ExpiresAt:op.Deadline,Grants:[]string{}}
+ return op,nil
+}
+
 func AdoptClaimedJob(ctx context.Context,job platform.ClaimedJob)(OperationContext,error) {
  runtime,err:=RuntimeFromContext(ctx);if err!=nil {return OperationContext{},err}
  read,err:=runtime.DB.BeginTx(ctx,&sql.TxOptions{ReadOnly:true});if err!=nil {return OperationContext{},storageError(err)}
@@ -105,13 +115,10 @@ func ReadExecutionRecord(ctx context.Context,op OperationContext,input platform.
 
 // MirrorExecutionLease 仅消费平台已核权威回执，不CheckLease递归，不造本域心跳。
 func MirrorExecutionLease(ctx context.Context,op OperationContext,job platform.ClaimedJob,info platform.HeartbeatInfo)error {
- work,tx,cancel,err:=BeginIndexWrite(ctx,op);if err!=nil {return err};defer cancel();defer tx.Rollback()
- record,err:=LoadExecutionRecord(work,tx,job.JobID);if err!=nil {return err}
- if record.JobType!=job.JobType||record.InputRef!=job.InputRef||record.Fence!=job.FencingToken||record.WorkerID!=job.WorkerID||record.Attempt!=job.Attempt||record.Operation.RootOperationID!=job.RootOperationID||record.Operation.OperationID!=job.OperationID||record.Operation.DataEpoch!=op.DataEpoch||record.Operation.Actor.SiteID!=op.Actor.SiteID {return platform.NewError(platform.CodeStaleResult,false,"续约回执与原任务拥有者不一致")}
- if record.CancelRequested {return platform.NewError(platform.CodeCancelled,false,"本域已关闭原任务写资格")}
- if _,err=tx.ExecContext(work,`UPDATE execution_records SET lease_until=? WHERE job_id=? AND fence=? AND worker_id=? AND data_epoch=?`,info.ExpiresAt,job.JobID,job.FencingToken,job.WorkerID,op.DataEpoch);err!=nil {return storageError(err)}
- if err=SaveExecutionMirror(work,tx,job,info.ExpiresAt,false);err!=nil {return err}
- if err=tx.Commit();err!=nil {return storageError(err)};return nil
+ // factory只读核原输入；首次真实续租后，已绑定私有执行scope内才可接管与持久镜像。
+ job.ExpiresAt=info.ExpiresAt
+ _,err:=AdoptClaimedJob(ctx,job)
+ return err
 }
 
 // ReadPaidResultRefs 返回原任务及已关联提取所有已知真实invocation引用，未知无ID仍由阶段状态阻止重派。

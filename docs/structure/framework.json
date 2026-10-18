@@ -759,6 +759,11 @@
       "purpose": "平台公共库类型"
     },
     {
+      "path": "libs/platform/docs/barriers.md",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "libs/platform/docs/files.md",
       "kind": "documentation",
       "purpose": "平台公共库文件目录（生成）"
@@ -849,6 +854,16 @@
       "purpose": "公共真实快照、屏障与完整暂存恢复证明"
     },
     {
+      "path": "libs/platform/lifecycle/snapshot_capture.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_cleanup.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "libs/platform/lifecycle/snapshot_io.go",
       "kind": "source",
       "purpose": "公共真实快照、屏障与完整暂存恢复证明"
@@ -859,6 +874,11 @@
       "purpose": "公共真实快照、屏障与完整暂存恢复证明"
     },
     {
+      "path": "libs/platform/lifecycle/snapshot_stage_scope.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "libs/platform/lifecycle/snapshot_types.go",
       "kind": "source",
       "purpose": "公共真实快照、屏障与完整暂存恢复证明"
@@ -867,6 +887,11 @@
       "path": "libs/platform/lifecycle/task_group.go",
       "kind": "handwritten",
       "purpose": "受监督本进程任务去重、固定原截止与关闭排空"
+    },
+    {
+      "path": "libs/platform/lifecycle/task_secret.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "libs/platform/modelclient/client.go",
@@ -884,6 +909,11 @@
       "purpose": "可信OperationContext构建实现"
     },
     {
+      "path": "libs/platform/outbox/observation.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "libs/platform/outbox/outbox.go",
       "kind": "handwritten",
       "purpose": "事务内outbox登记实现"
@@ -892,6 +922,11 @@
       "path": "libs/platform/outbox/relay.go",
       "kind": "handwritten",
       "purpose": "outbox转发循环实现"
+    },
+    {
+      "path": "libs/platform/outbox/restore.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "libs/platform/platform.go",
@@ -907,6 +942,11 @@
       "path": "libs/platform/progress.json",
       "kind": "documentation",
       "purpose": "平台公共库进度台账"
+    },
+    {
+      "path": "libs/platform/scope.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "libs/platform/serviceauth/admission.go",
@@ -2704,6 +2744,16 @@
       "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
+      "path": "modules/knowledge/internal/build/rebuild.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
+      "path": "modules/knowledge/internal/build/rebuild_cache.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "modules/knowledge/internal/build/validate.go",
       "kind": "handwritten",
       "purpose": "索引检索本次已实现源码与合同资料"
@@ -2747,6 +2797,11 @@
       "path": "modules/knowledge/internal/extract/attachment.go",
       "kind": "implementation",
       "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/cache.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/knowledge/internal/extract/create.go",
@@ -2869,6 +2924,11 @@
       "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
+      "path": "modules/knowledge/internal/index/route.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "modules/knowledge/internal/index/staging.go",
       "kind": "handwritten",
       "purpose": "索引检索本次已实现源码与合同资料"
@@ -2877,6 +2937,11 @@
       "path": "modules/knowledge/internal/model/client.go",
       "kind": "implementation",
       "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/model/expectation.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/knowledge/internal/model/fee-proof.go",
@@ -3065,6 +3130,16 @@
     },
     {
       "path": "modules/knowledge/migrations/011_background_model_requests.sql",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
+      "path": "modules/knowledge/migrations/012_recovered_extraction_results.sql",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
+      "path": "modules/knowledge/migrations/013_rebuild_plans.sql",
       "kind": "implementation",
       "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
@@ -4504,6 +4579,11 @@
       "purpose": "模型网关实际源码、配置与持久迁移"
     },
     {
+      "path": "modules/model-gateway/internal/protection/snapshot.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "modules/model-gateway/internal/provider/adapter.go",
       "kind": "handwritten",
       "purpose": "映射统一调用到供应方协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
@@ -4557,6 +4637,11 @@
       "path": "modules/model-gateway/internal/runtime/relay.go",
       "kind": "source",
       "purpose": "模型网关实际源码、配置与持久迁移"
+    },
+    {
+      "path": "modules/model-gateway/internal/runtime/restore_projection.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/model-gateway/internal/runtime/retirement.go",
@@ -4655,6 +4740,16 @@
     },
     {
       "path": "modules/model-gateway/migrations/013_admin_probe.sql",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
+      "path": "modules/model-gateway/migrations/014_snapshot_authority.sql",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
+      "path": "modules/model-gateway/migrations/015_snapshot_watermark.sql",
       "kind": "implementation",
       "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },

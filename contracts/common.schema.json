@@ -890,6 +890,25 @@
         "deadline": {
           "$ref": "#/$defs/Timestamp",
           "description": "全链路截止；与本地取消取较早值"
+        },
+        "step": {
+          "type": "string",
+          "enum": [
+            "prepare",
+            "drain",
+            "observe",
+            "seal",
+            "resume-drain"
+          ],
+          "default": "prepare",
+          "description": "省略仅prepare，不会自动safe。observe纯读既有屏障事实。"
+        },
+        "sealProof": {
+          "$ref": "#/$defs/SnapshotSealProof"
+        },
+        "expectedSealHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "resume-drain绑定原真实seal，不打开新业务。"
         }
       },
       "required": [
@@ -898,7 +917,70 @@
         "mode",
         "deadline"
       ],
-      "description": "超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging"
+      "description": "超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。",
+      "oneOf": [
+        {
+          "properties": {
+            "step": {
+              "enum": [
+                "prepare",
+                "drain",
+                "observe"
+              ]
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "sealProof"
+                ]
+              },
+              {
+                "required": [
+                  "expectedSealHash"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "step": {
+              "enum": [
+                "seal"
+              ]
+            }
+          },
+          "required": [
+            "step",
+            "sealProof"
+          ],
+          "not": {
+            "required": [
+              "expectedSealHash"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "step": {
+              "enum": [
+                "resume-drain"
+              ]
+            }
+          },
+          "required": [
+            "step",
+            "expectedSealHash"
+          ],
+          "not": {
+            "required": [
+              "sealProof"
+            ]
+          }
+        }
+      ]
     },
     "BarrierStatus": {
       "type": "object",
@@ -928,6 +1010,14 @@
         "revisionWatermark": {
           "$ref": "#/$defs/Revision",
           "description": "BarrierStatus.revisionWatermark；按类型、枚举及required约束使用"
+        },
+        "sealProofHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "safe必须来自真实全域CAS封口；旧兼容响应可省略，不视为新版完整证明。"
+        },
+        "observation": {
+          "$ref": "#/$defs/SnapshotBarrierObservation",
+          "description": "observe操作的真实在途计数/持久水位；未知不填0。"
         }
       },
       "required": [
@@ -1983,6 +2073,245 @@
         "rootOperationId",
         "dataEpoch"
       ]
+    },
+    "CleanupScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "barrierId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "deadline": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "sourceService": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "targetService": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "resourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "rootOperationId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "costClass": {
+          "enum": [
+            "qa",
+            "background",
+            "admin-probe"
+          ]
+        },
+        "queryHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "eventControl": {
+          "type": "boolean",
+          "default": false,
+          "description": "仅签入断言的原event/consumer控制根；必须与目标固定BrokerControl策略全等，不是paid root。"
+        }
+      },
+      "required": [
+        "version",
+        "barrierId",
+        "dataEpoch",
+        "deadline",
+        "sourceService",
+        "targetService",
+        "action",
+        "resourceId",
+        "rootOperationId",
+        "siteId",
+        "queryHash"
+      ],
+      "description": "服务断言唯一来源；固定旧资源清理，30秒与barrier截止双上界，不延长模型授权。queryHash绑定实际URL.RawQuery空串也hash。"
+    },
+    "SnapshotWorkState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "outboxRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "workRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pendingOutbox": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pendingWork": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "outboxRevision",
+        "workRevision",
+        "pendingOutbox",
+        "pendingWork"
+      ],
+      "description": "真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。"
+    },
+    "SnapshotBarrierObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "activityRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "work": {
+          "$ref": "#/$defs/SnapshotWorkState"
+        },
+        "revisionWatermark": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "business": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cleanup": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fileOps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "drainCallbacks": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "owner",
+        "activityRevision",
+        "work",
+        "revisionWatermark",
+        "business",
+        "cleanup",
+        "fileOps",
+        "drainCallbacks"
+      ],
+      "description": "同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。"
+    },
+    "SnapshotBrokerObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pendingDeliveries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "activeLeases": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "revision",
+        "pendingDeliveries",
+        "activeLeases"
+      ],
+      "description": "发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。"
+    },
+    "SnapshotSealReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "sealProofHash": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "owner",
+        "sealProofHash"
+      ],
+      "description": ""
+    },
+    "SnapshotSealProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "barrierId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 14,
+          "maxItems": 14,
+          "items": {
+            "$ref": "#/$defs/SnapshotBarrierObservation"
+          }
+        },
+        "brokerBefore": {
+          "$ref": "#/$defs/SnapshotBrokerObservation"
+        },
+        "brokerAfter": {
+          "$ref": "#/$defs/SnapshotBrokerObservation"
+        },
+        "nonJobsSeals": {
+          "type": "array",
+          "minItems": 13,
+          "maxItems": 13,
+          "items": {
+            "$ref": "#/$defs/SnapshotSealReceipt"
+          }
+        },
+        "nonJobsProofHash": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "barrierId",
+        "dataEpoch",
+        "observations",
+        "brokerBefore",
+        "brokerAfter"
+      ],
+      "description": "14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。"
     }
   }
 }
