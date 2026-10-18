@@ -1,3 +1,11 @@
+审计V2源码 2d251cf79da8e0046b49c4bfff63bd395cb47d89：3既有函数+6支持，累计8既有+20支持待统一GitLab CI；另ConsumeAuditEvent等根订阅装配不计ready。旧SUCCESS输入归一新OK，V1原hash不动；新V2含site/producer/原主体/原时间/原操作/源epoch。新migration0002连续V2，仅实际授权事实，无用户proof续用。
+
+审计V2小批：固定producer历史事实与实时兼容分支共享追加链，3个既有函数和6支持就绪待统一GitLab CI，累计8既有+20支持。ConsumeAuditEvent本体写齐，根统一订阅登记/循环后才计完整入口ready。旧V1 hash只读保留，新V2覆全来源，metadata严格白名单；修readSiteIdentity非法free costClass为空。未本地编译/生成/测试或真实调用。
+
+首批源码 d78c1ee71968f21cea2eb674c0190de58506e4a6：精确5既有函数+14实际支持见progress.readyAwaitingCI，均待统一GitLab CI。依赖root纯服务readSiteConfig/公共loader/ReportingTimeZone字段与统一gen；go.sum只CI更新。未改2既有verified纯函数。
+
+2026-10-18 R1收尾首批：独占codex/finish-20261018-analytics，基线7f75d58。已写真实SQLite/site-config身份读取/严格HTTP边界、完整小时/日报读取、审计签名分页与链核对；5既有函数+14实际支持代码就绪待统一GitLab CI。CSV有代码但导出入口未齐不计ready。保留原2个verified纯函数未改；完整beacon/审计写入/费用聚合/后台/快照/UI仍继续，不伪造Ready。未本地编译/生成/测试或真实业务操作，未push。
+
 # 统计与审计会话交接
 
 ## 集成核对（2026-10-17，pipeline 53）
@@ -93,3 +101,24 @@
 当时的阻塞：`Ready` 会在本域 journal 未恢复时返回 `DEPENDENCY_UNAVAILABLE`；`BuildApplication` 在恢复发生换目录时也拒绝开放入口，避免把未实现的存储或回执当成成功。该次提交只有台账记录，没有业务验收结论。
 
 当时的下一项：由合同所有者先登记 SQLite/journal 切片（目标文件、约束级函数/签名、迁移版本、journal状态机、错误与恢复边界）；登记完成后再按 `data.md`、ADR0003 和该合同实现 `migrations/0001_domain.sql`、私有存储/journal，并回到 `analytics.BuildApplication` 接入。完成条件是失败可恢复、当前 dataEpoch 校验、所有 OpenAPI x-handler 不再依赖失败关闭，并在 Go/VPS 环境通过允许检查。当前下一步以上文 2026-10-17 一节为准。
+
+匿名访问第三批源码 `fb17c9b5990457cc903d28e86edbf638672de683`：新增6个原函数 ValidateBeacon/HashDayToken/ClassifyCrawler/LookupCountry/IngestBeacon/RecordCrawlerAccess，新增7个实际参考支持函数；累计14原函数+27支持待统一GitLab CI。已登记portal私有签名入口，原IP/UA仅内存、离线mmdb固定v1.13.1、日界线持久固定、来源仅域名、独立爬虫幂等计数。FlushBeacons本体与期水位已写但后台/屏障drain未接，不计完整ready；启动整体和快照继续blocked。go.sum和全部生成/格式/编译只统一GitLab，未本机执行。
+本批新增文件 beacon_privacy.go、beacon_store.go、beacon_validation.go、crawler.go、crawler_store.go、geoip.go、http_beacons.go。根须登记新beacon_privacy.go目录。私有ingestTrustedBeacon正文IngestBeaconInput，portal纯服务，4096字节；peerAddress规范IP、userAgent≤1024，公共浏览器正文仍2048。后续接共享Manager安全写门、每5秒flush与最终drain，不得safe之后继续写active；聚合执行镜像只保存真实jobs租约/fence，不另建队列。
+
+小时/日报第四批源码 `4b1ee516ddc0cfe9cc92ab89251c59f09e33f942`：新增3原函数 FlushBeacons/AggregateHourly/AggregateDaily，新增16实际参考支持；累计17原+43支持待统一GitLab CI，原verified2保持。Serve真实周期启动、Shutdown停worker后排空队列；计划固定真实period来源水位、输入字节ObjectRef/原操作/原jobs回执；锁外CheckLease和事务内精确租约镜像CAS；日报总UV与维度UV分开distinct。RunWorker仅hour/day完整，费用两个执行器仍明确不可用，整体/Ready/恢复不计ready。未本机编译/生成/运行接口或测试。
+依赖公共新API worker.RunWorkerLoopWithResult（真实jobs最终完成/失败/取消确认计数）及WorkerConfig.OnCancellationObserved（根926fd07）。原输入定义AggregateJobBody已机器同步；新增aggregate_jobs.go/background.go/worker.go及0003迁移需framework登记。公共Manager安全cut仍未装，屏障HTTP继续503且Ready明确blocked；恢复Migrate必须清旧执行镜像/旧任务授权并保原不可变事实，不得复活旧fence。各域snapshot实际inventory与跨域refs仍不可猜。
+
+问答第五批源码 `e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8`：新增3原函数 ProjectQaTurn/QueryContentGaps/PublishAggregateEvents、2实际支持applyQaCounts/server.QueryContentGaps；累计20原+45支持待统一GitLab CI。QA完整来源修订/inbox同事务，迟到高修订撤旧分类后新计；缺口查询完整可信日历日、额外qa.manage、真实分子分母与双水位，原文不进入analytics。实际QA订阅与outbox周期已接。ConsumeEvents仍有MG精确安全页/审计producer registry缺口，整体不计ready；不确认未知费用事件、不填0。未本机编译/生成/测试。
+新增consumer.go及0004_qa_projection.sql需framework登记；aliases引用MG a3c7536新EventInvocationReconciledPayload，根须先集成该协议。QA V4旧非空无来源汇总拒绝静默迁移。MG QueryUsage仍root必填≤256且无全站固定watermark/cursor，LedgerEntry缺ledgerRevision/operation/class/provider/model等安全统计字段；已给根明确补端口建议，本域不得以event.revision猜ledgerRevision。
+
+导出/保留期第六批源码 `bfaca7b7b881a26f7fd758f7d728ee021173f322`：新增6原函数 QueryUsageStatistics/CreateExport/ValidateCSVCell/PurgeBeacons/PurgeAuditHistory/PurgeExports、1新增绑定OpenExport、18实际参考支持；累计26原+63支持+1新增绑定待统一GitLab CI。固定权限双路由CSV封存/完整核hash下载、过期幂等墓碑、启动journal恢复；真实30天明细/旧日盐/180天审计连续前缀清理已周期可达。费用查询仅已有投影且明确原水位/最后对账，未知不造0；完整MG全站投影与公共快照/Ready仍blocked。未本机编译/生成/运行接口或测试。
+新路径usage_queries.go/exports.go/export_recovery.go/0005_export_journal.sql需framework登记；原计划export.go未落地，已按实际替换为exports.go，PurgeExports实际迁至export_recovery.go，QueryUsageStatistics实际迁至usage_queries.go。静态allowlist CSV直接列安全字段，不调用只允许requestId/errorCode的日志字段检查器，也不改变该既有verified函数。恢复Migrate须使旧导出授权/任务镜像失效，本批不伪造公共恢复完成。
+
+界面封口源码 `96a9091` → 过期明确重建窄修 `1b70c56` → 公共周期复用 `bdddc35`：新增4原函数 LoadStatistics/LoadAuditPage/DownloadAuthorizedExport/mountModuleUI，20实际参考支持（含2后台装配支持）；累计30原业务+83支持+1新增HTTP绑定待统一GitLab CI，既有verified2未变，当前136登记函数。不是行为验收/已部署/全域完成。独立Vue库/固定版本、同源端口、权限失败清空、统一卸载、稳定原操作导出、32MiB有界流及真实链校验已写；审计UTC日期进入SQL和游标绑定。周期回调复用lifecycle.RunRecoveryLoop，worker/consumer真实返回和失败监督，不复制ticker机制。未本机编译/生成/测试，lock仅CI。
+
+当前冻结前阻塞：
+- MG安全统计全站固定水位页尚缺真实ledgerRevision/owner/site/sourceEpoch/root/op/class/provider/model/amountKnown+amount/state/time，FetchUsagePage/ProjectUsage/AggregateUsage/ReconcileUsage/ConsumeAnalyticsEvent以及完整RunWorker/ConsumeEvents不计ready。旧QueryUsage根查询不能替代。
+- 审计producer事件registry/outbox生产适配根统一未齐；ConsumeAuditEvent本体有真实来源V2链但不计完整事件入口ready。
+- 公共Manager快照/屏障/完整inventory/恢复Migrate及target epoch清旧授权未装；Acquire/Release/Create/Stage/Discard、完整BuildApplication/Ready/启动恢复仍blocked，绝不把目录存在当safe/恢复完成。
+- 原布局控制区与active隔离；恢复时不可复活aggregate_jobs旧fence、export旧epoch授权或原日盐，原audit来源/hash不改，付费事实只保真实引用。
+- Root须扩framework登记web/package.json/tsconfig.json/vite.config.ts/src/style.css，CI覆盖新analytics UI并生成lock；另本批函数从Vue参考迁client.ts，合同/进度已按实际同步。

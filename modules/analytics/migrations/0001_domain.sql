@@ -1,0 +1,18 @@
+CREATE TABLE analytics_meta(singleton INTEGER PRIMARY KEY CHECK(singleton=1),schema_version INTEGER NOT NULL,site_id TEXT NOT NULL,data_epoch TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,dropped INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE beacon_inbox(beacon_id TEXT PRIMARY KEY,document_id TEXT NOT NULL,locale TEXT NOT NULL,event_type TEXT NOT NULL,status_class INTEGER NOT NULL,elapsed_bucket TEXT NOT NULL,daily_visitor_hash TEXT NOT NULL,source_domain TEXT NOT NULL,country_code TEXT NOT NULL,occurred_at TEXT NOT NULL,data_epoch TEXT NOT NULL);
+CREATE INDEX beacon_time ON beacon_inbox(occurred_at);
+CREATE TABLE hourly_page_counts(hour TEXT NOT NULL,document_id TEXT NOT NULL,locale TEXT NOT NULL,views INTEGER NOT NULL,visits INTEGER NOT NULL,load_bucket_counts TEXT NOT NULL,data_epoch TEXT NOT NULL,PRIMARY KEY(hour,document_id,locale));
+CREATE TABLE daily_page_dimensions(day TEXT NOT NULL,timezone TEXT NOT NULL,document_id TEXT NOT NULL,locale TEXT NOT NULL,source_domain TEXT NOT NULL,country_code TEXT NOT NULL,views INTEGER NOT NULL,visits INTEGER NOT NULL,data_epoch TEXT NOT NULL,PRIMARY KEY(day,timezone,document_id,locale,source_domain,country_code));
+CREATE TABLE audit_records(seq INTEGER PRIMARY KEY AUTOINCREMENT,audit_id TEXT UNIQUE NOT NULL,event_id TEXT UNIQUE,actor_id TEXT NOT NULL,actor_kind TEXT NOT NULL,action TEXT NOT NULL,resource_ref TEXT NOT NULL,result_code TEXT NOT NULL,occurred_at TEXT NOT NULL,hash TEXT NOT NULL,previous_hash TEXT NOT NULL,metadata TEXT NOT NULL,data_epoch TEXT NOT NULL);
+CREATE TABLE usage_projection(ledger_entry_id TEXT PRIMARY KEY,ledger_revision INTEGER NOT NULL,operation_id TEXT NOT NULL,cost_class TEXT NOT NULL,provider_id TEXT NOT NULL,model_id TEXT NOT NULL,amount_micros INTEGER NOT NULL,currency TEXT NOT NULL,state TEXT NOT NULL,occurred_at TEXT NOT NULL,data_epoch TEXT NOT NULL,payload_hash TEXT NOT NULL);
+CREATE TABLE daily_usage(day TEXT NOT NULL,cost_class TEXT NOT NULL,provider_id TEXT NOT NULL,model_id TEXT NOT NULL,amount_micros INTEGER NOT NULL,entry_count INTEGER NOT NULL,data_epoch TEXT NOT NULL,PRIMARY KEY(day,cost_class,provider_id,model_id));
+CREATE TABLE aggregation_watermarks(source TEXT PRIMARY KEY,revision INTEGER NOT NULL,updated_at TEXT NOT NULL);
+CREATE TABLE crawler_counts(day TEXT NOT NULL,document_id TEXT NOT NULL,locale TEXT NOT NULL,crawler_family TEXT NOT NULL,count INTEGER NOT NULL,data_epoch TEXT NOT NULL,PRIMARY KEY(day,document_id,locale,crawler_family));
+CREATE TABLE qa_turn_counts(day TEXT NOT NULL,locale TEXT NOT NULL,kind TEXT NOT NULL,count INTEGER NOT NULL,data_epoch TEXT NOT NULL,PRIMARY KEY(day,locale,kind));
+CREATE TABLE unanswered_records(record_id TEXT PRIMARY KEY,locale TEXT NOT NULL,occurred_at TEXT NOT NULL,data_epoch TEXT NOT NULL);
+CREATE TABLE export_runs(export_id TEXT PRIMARY KEY,filter_hash TEXT NOT NULL,actor_id TEXT NOT NULL,object_ref TEXT NOT NULL,expires_at TEXT NOT NULL,state TEXT NOT NULL);
+CREATE TABLE operation_receipts(subject_id TEXT NOT NULL,function_id TEXT NOT NULL,operation_id TEXT NOT NULL,request_hash TEXT NOT NULL,result_json TEXT NOT NULL,data_epoch TEXT NOT NULL,expires_at TEXT NOT NULL,PRIMARY KEY(subject_id,function_id,operation_id));
+CREATE TABLE audit_anchors(last_seq INTEGER PRIMARY KEY,hash TEXT NOT NULL,occurred_at TEXT NOT NULL);
+CREATE TABLE aggregate_runs(kind TEXT NOT NULL,period_key TEXT NOT NULL,source_watermark INTEGER NOT NULL,result_json TEXT NOT NULL,PRIMARY KEY(kind,period_key));
+
+CREATE TABLE daily_page_counts(day TEXT NOT NULL,timezone TEXT NOT NULL,document_id TEXT NOT NULL,locale TEXT NOT NULL,views INTEGER NOT NULL,visits INTEGER NOT NULL,data_epoch TEXT NOT NULL,PRIMARY KEY(day,timezone,document_id,locale));

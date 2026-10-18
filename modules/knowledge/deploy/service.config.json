@@ -1,0 +1,16 @@
+{
+  "module": "knowledge",
+  "listen": "0.0.0.0:8106",
+  "dataRoot": "/data/knowledge",
+  "trustAnchorRef": "/run/secrets/trust-anchors.json",
+  "signingKeyRef": "/run/secrets/knowledge-signing-key.json",
+  "dependencies": {
+    "identity": "http://identity:8101",
+    "site-config": "http://site-config:8102",
+    "content": "http://content:8103",
+    "media": "http://media:8104",
+    "model-gateway": "http://model-gateway:8105",
+    "jobs": "http://jobs:8111",
+    "memory": "http://memory:8107"
+  }
+}

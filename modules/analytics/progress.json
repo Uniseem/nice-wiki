@@ -2,23 +2,23 @@
   "version": 1,
   "module": "analytics",
   "phase": "implementation",
-  "contractSha256": "e67c84c421a7e21f28f094ae80574fafd84eb6399720de1c22afc53e33373fa9",
+  "contractSha256": "e595f84beabf00cc3947405c5470d6c37e6720ec485b882b15caf60d8895d178",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "analytics-20261017-r6（BucketLatency、CheckPrivacyFields 由 pipeline 53 记 verified）",
-  "branch": "codex/analytics-20261017-r6",
-  "baseCommit": "9a10eff89c91095670f7d336e84e7a010348adc6",
-  "deliveryCommit": "11014011ce1a008d4a829dfeb388f9328fcfc1c0",
+  "assignedSession": "R1收尾并行：analytics独占",
+  "branch": "codex/finish-20261018-analytics",
+  "baseCommit": "7f75d584be29d0f84d5518c2bb4300241c91fcc4",
+  "deliveryCommit": "bdddc35b6cde0b547226128490238dd4afc910ab",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/analytics/internal/beacon_validation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/buckets.go",
@@ -33,92 +33,92 @@
     {
       "path": "modules/analytics/internal/privacy.go",
       "state": "blocked",
-      "implementationCommit": "11014011ce1a008d4a829dfeb388f9328fcfc1c0",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
       "verification": {
         "state": "not_run",
-        "evidence": "GitLab pipeline 53 已编译本包。CheckPrivacyFields 记 verified。RedactAuditMetadata 仍 blocked。HashDayToken 尚未实现，整文件不能记 implemented 或 verified。"
+        "evidence": null
       },
-      "blocker": "审计动作白名单与 metadata 编码都没有写明，analytics.RedactAuditMetadata 保持 blocked。同文件 analytics.HashDayToken 尚未实现，整文件不能记 implemented。"
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/http_beacons.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/beacon_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bdddc35b6cde0b547226128490238dd4afc910ab",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/aggregation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/query_validation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "真实源码待统一GitLab CI；未本地生成或编译"
     },
     {
       "path": "modules/analytics/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/audit_validation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "审计V2本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/audit_chain.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "审计V2本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/audit_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/usage_validation.go",
@@ -172,53 +172,43 @@
     },
     {
       "path": "modules/analytics/internal/event_handler.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
-    },
-    {
-      "path": "modules/analytics/internal/export.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/csv.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/retention.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/barrier.go",
@@ -252,73 +242,73 @@
     },
     {
       "path": "modules/analytics/web/src/OverviewPanel.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
     },
     {
       "path": "modules/analytics/web/src/AuditExplorer.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
     },
     {
       "path": "modules/analytics/web/src/client.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/crawler.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/geoip.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/crawler_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/content_gaps.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/config/defaults.json",
@@ -332,13 +322,13 @@
     },
     {
       "path": "modules/analytics/migrations/0001_domain.sql",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "真实源码待统一GitLab CI；未本地生成或编译"
     },
     {
       "path": "modules/analytics/cmd/analytics/main.go",
@@ -353,32 +343,32 @@
     {
       "path": "modules/analytics/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "915fc55ecfae3c1d7315f2018aea9d4a32b2a077",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本次复核发现合同缺口：implementation.json未登记本域SQLite打开/迁移执行、control journal恢复、fsync/完整性收敛所需文件与约束级函数，types.json也无对应内部接口；按AGENTS.md停止实现，当前仅按合同保留失败关闭路径"
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "915fc55ecfae3c1d7315f2018aea9d4a32b2a077",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
     },
     {
       "path": "modules/analytics/go.mod",
-      "state": "implemented",
-      "implementationCommit": "915fc55ecfae3c1d7315f2018aea9d4a32b2a077",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "真实源码待统一GitLab CI；未本地生成或编译"
     },
     {
       "path": "modules/analytics/go.sum",
@@ -422,13 +412,13 @@
     },
     {
       "path": "modules/analytics/web/package.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
     },
     {
       "path": "modules/analytics/web/pnpm-lock.yaml",
@@ -442,23 +432,23 @@
     },
     {
       "path": "modules/analytics/web/vite.config.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
     },
     {
       "path": "modules/analytics/web/tsconfig.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
     },
     {
       "path": "modules/analytics/web/index.html",
@@ -472,23 +462,23 @@
     },
     {
       "path": "modules/analytics/web/src/main.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/worker.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI"
     },
     {
       "path": "modules/analytics/internal/gen/openapi.gen.go",
@@ -531,6 +521,166 @@
       "blocker": null
     },
     {
+      "path": "modules/analytics/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/internal/types.go",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/migrations/schema.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/internal/audit_events.go",
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "审计V2本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/migrations/0002_origins_and_periods.sql",
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "审计V2本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/internal/beacon_privacy.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/internal/background.go",
+      "state": "blocked",
+      "implementationCommit": "bdddc35b6cde0b547226128490238dd4afc910ab",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/migrations/0003_aggregate_jobs.sql",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/internal/consumer.go",
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/migrations/0004_qa_projection.sql",
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/internal/export_recovery.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/internal/exports.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/internal/usage_queries.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/migrations/0005_export_journal.sql",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际改动待统一GitLab CI"
+    },
+    {
+      "path": "modules/analytics/web/src/style.css",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本批实际源码与构建配置待统一GitLab CI"
+    },
+    {
       "path": "modules/analytics/internal/snapshot_archive.go",
       "state": "planned",
       "implementationCommit": null,
@@ -545,13 +695,13 @@
     {
       "id": "analytics.ValidateBeacon",
       "path": "modules/analytics/internal/beacon_validation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.BucketLatency",
@@ -566,25 +716,25 @@
     },
     {
       "id": "analytics.HashDayToken",
-      "path": "modules/analytics/internal/privacy.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/analytics/internal/beacon_privacy.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.RedactAuditMetadata",
       "path": "modules/analytics/internal/privacy.go",
       "state": "blocked",
-      "implementationCommit": "11014011ce1a008d4a829dfeb388f9328fcfc1c0",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
       "verification": {
         "state": "not_run",
-        "evidence": "未跑 GitLab CI。函数对任何输入返回 FORBIDDEN，未做行为验收。"
+        "evidence": null
       },
-      "blocker": "审计动作白名单与 metadata 编码都没有写明。不解析 metadata，不编造动作名，原文不进入 safeMetadata 或错误 detail。"
+      "blocker": "历史审计共享链代码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.CheckPrivacyFields",
@@ -600,134 +750,134 @@
     {
       "id": "analytics.IngestBeacon",
       "path": "modules/analytics/internal/http_beacons.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.FlushBeacons",
       "path": "modules/analytics/internal/beacon_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bdddc35b6cde0b547226128490238dd4afc910ab",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.AggregateHourly",
       "path": "modules/analytics/internal/aggregation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.AggregateDaily",
       "path": "modules/analytics/internal/aggregation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.ValidateDateRange",
       "path": "modules/analytics/internal/query_validation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批真实持久/只读代码待统一GitLab CI；完整写入/后台/快照启动仍未齐"
     },
     {
       "id": "analytics.QueryPageStatistics",
       "path": "modules/analytics/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批真实持久/只读代码待统一GitLab CI；完整写入/后台/快照启动仍未齐"
     },
     {
       "id": "analytics.QueryAudits",
       "path": "modules/analytics/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.ReadAudit",
       "path": "modules/analytics/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "历史审计共享链代码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.QueryUsageStatistics",
-      "path": "modules/analytics/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/analytics/internal/usage_queries.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.ValidateAudit",
       "path": "modules/analytics/internal/audit_validation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "历史审计共享链代码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.ComputeAuditHash",
       "path": "modules/analytics/internal/audit_chain.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "历史审计共享链代码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.AppendAudit",
       "path": "modules/analytics/internal/audit_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "历史审计共享链代码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.ValidateUsageEvent",
@@ -797,91 +947,91 @@
     },
     {
       "id": "analytics.ConsumeEvents",
-      "path": "modules/analytics/internal/event_handler.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/analytics/internal/consumer.go",
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "QA/真实计数装配待统一GitLab CI；MG费用缺安全统计页和审计producer registry未齐，完整订阅不计ready"
     },
     {
       "id": "analytics.ProjectQaTurn",
       "path": "modules/analytics/internal/event_handler.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.CreateExport",
-      "path": "modules/analytics/internal/export.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/analytics/internal/exports.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.ValidateCSVCell",
       "path": "modules/analytics/internal/csv.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.PurgeBeacons",
       "path": "modules/analytics/internal/retention.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.PurgeAuditHistory",
       "path": "modules/analytics/internal/retention.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.PurgeExports",
-      "path": "modules/analytics/internal/retention.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/analytics/internal/export_recovery.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.PublishAggregateEvents",
       "path": "modules/analytics/internal/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.EnterBarrier",
@@ -940,80 +1090,80 @@
     },
     {
       "id": "analytics.LoadStatistics",
-      "path": "modules/analytics/web/src/OverviewPanel.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/analytics/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.LoadAuditPage",
-      "path": "modules/analytics/web/src/AuditExplorer.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/analytics/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.DownloadAuthorizedExport",
       "path": "modules/analytics/web/src/client.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.ClassifyCrawler",
       "path": "modules/analytics/internal/crawler.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.LookupCountry",
       "path": "modules/analytics/internal/geoip.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.RecordCrawlerAccess",
       "path": "modules/analytics/internal/crawler_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.QueryContentGaps",
       "path": "modules/analytics/internal/content_gaps.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.main",
@@ -1030,12 +1180,12 @@
       "id": "analytics.BuildApplication",
       "path": "modules/analytics/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "915fc55ecfae3c1d7315f2018aea9d4a32b2a077",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本域业务存储/journal、恢复激活回执、后台任务与事件循环、真实x-handler依赖后续业务工作包；其中SQLite/journal切片缺少机器合同登记，按AGENTS.md不得猜测实现，当前缺项按DEPENDENCY_UNAVAILABLE失败关闭"
+      "blocker": "导出journal和后台装配待统一GitLab CI；完整公共Manager/费用协议仍未齐，不计完整ready"
     },
     {
       "id": "analytics.Serve",
@@ -1051,13 +1201,13 @@
     {
       "id": "analytics.Shutdown",
       "path": "modules/analytics/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "915fc55ecfae3c1d7315f2018aea9d4a32b2a077",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批真实持久/只读代码待统一GitLab CI；完整写入/后台/快照启动仍未齐"
     },
     {
       "id": "analytics.Health",
@@ -1073,35 +1223,970 @@
     {
       "id": "analytics.Ready",
       "path": "modules/analytics/internal/transport/server.go",
-      "state": "implemented",
-      "implementationCommit": "915fc55ecfae3c1d7315f2018aea9d4a32b2a077",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本批真实持久/只读代码待统一GitLab CI；完整写入/后台/快照启动仍未齐"
     },
     {
       "id": "analytics.mountModuleUI",
       "path": "modules/analytics/web/src/main.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.RunWorker",
       "path": "modules/analytics/internal/worker.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "hour/day真实装配待统一GitLab CI；费用聚合/对账执行器待完整MG协议，整体不计ready"
+    },
+    {
+      "id": "analytics.WithRuntime",
+      "path": "modules/analytics/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.OpenStore",
+      "path": "modules/analytics/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.Runtime.Close",
+      "path": "modules/analytics/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.runtimeFrom",
+      "path": "modules/analytics/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.storageError",
+      "path": "modules/analytics/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.syncDirectory",
+      "path": "modules/analytics/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.pageInterval",
+      "path": "modules/analytics/internal/query_validation.go",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.readPageSnapshot",
+      "path": "modules/analytics/internal/queries.go",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.NewApplication",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.NewRuntimeClient",
+      "path": "modules/analytics/internal/app/wire.go",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.readSiteIdentity",
+      "path": "modules/analytics/internal/app/wire.go",
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "历史审计共享链代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.QueryAudits",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.ReadAudit",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.QueryPageStatistics",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.beginWrite",
+      "path": "modules/analytics/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "审计支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.advanceWatermark",
+      "path": "modules/analytics/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "审计支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.auditStateAllowed",
+      "path": "modules/analytics/internal/privacy.go",
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "审计支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.normalizeAuditFact",
+      "path": "modules/analytics/internal/audit_events.go",
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "审计支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.appendTrustedAudit",
+      "path": "modules/analytics/internal/audit_store.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.AppendAudit",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "审计支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.ConsumeAuditEvent",
+      "path": "modules/analytics/internal/audit_events.go",
+      "state": "blocked",
+      "implementationCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件处理源码就绪待统一GitLab CI；根统一producer事件/订阅装配，尚不计入口完整ready"
+    },
+    {
+      "id": "analytics.readReceipt",
+      "path": "modules/analytics/internal/crawler_store.go",
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.RecordCrawlerAccess",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.saveReceipt",
+      "path": "modules/analytics/internal/crawler_store.go",
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.BindReportingTimeZone",
+      "path": "modules/analytics/internal/beacon_privacy.go",
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.trustedPeer",
+      "path": "modules/analytics/internal/geoip.go",
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.IngestTrustedBeacon",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.loadDaySalt",
+      "path": "modules/analytics/internal/beacon_privacy.go",
+      "state": "blocked",
+      "implementationCommit": "fb17c9b5990457cc903d28e86edbf638672de683",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.cancelAggregateLease",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.checkAggregateLease",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.recordAggregateLease",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.backgroundOperation",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.RunPageBackground",
+      "path": "modules/analytics/internal/background.go",
+      "state": "blocked",
+      "implementationCommit": "bdddc35b6cde0b547226128490238dd4afc910ab",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.readAggregate",
+      "path": "modules/analytics/internal/aggregation.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.DrainBeacons",
+      "path": "modules/analytics/internal/background.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.SchedulePageAggregates",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.saveAggregate",
+      "path": "modules/analytics/internal/aggregation.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.admitAggregateScheduling",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.ensureAggregateIntent",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.verifyAggregateLease",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.enqueueAggregate",
+      "path": "modules/analytics/internal/aggregation.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.aggregateJobOperation",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.submitAggregateIntents",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.executePageAggregate",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.applyQaCounts",
+      "path": "modules/analytics/internal/event_handler.go",
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.QueryContentGaps",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.RunRetentionBackground",
+      "path": "modules/analytics/internal/background.go",
+      "state": "blocked",
+      "implementationCommit": "bdddc35b6cde0b547226128490238dd4afc910ab",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.DownloadStatisticsExport",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.downloadExport",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.QueryUsageStatistics",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.createExport",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.DownloadAuditExport",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.RecoverExports",
+      "path": "modules/analytics/internal/export_recovery.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.CreateAuditExport",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.PruneDaySalts",
+      "path": "modules/analytics/internal/retention.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.server.CreateExport",
+      "path": "modules/analytics/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.installPreparedExport",
+      "path": "modules/analytics/internal/exports.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.verifyExportFile",
+      "path": "modules/analytics/internal/exports.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.OpenExport",
+      "path": "modules/analytics/internal/exports.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.insertAuditRecord",
+      "path": "modules/analytics/internal/audit_store.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.ExportKind",
+      "path": "modules/analytics/internal/export_recovery.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.writeCSVRecord",
+      "path": "modules/analytics/internal/exports.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.BackgroundOperation",
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.exportObjectNameValid",
+      "path": "modules/analytics/internal/export_recovery.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.streamExportRows",
+      "path": "modules/analytics/internal/exports.go",
+      "state": "blocked",
+      "implementationCommit": "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.downloadAuditCSV",
+      "path": "modules/analytics/web/src/AuditExplorer.vue",
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.loadAudit",
+      "path": "modules/analytics/web/src/AuditExplorer.vue",
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.unmountAnalytics",
+      "path": "modules/analytics/web/src/main.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.loadOverview",
+      "path": "modules/analytics/web/src/OverviewPanel.vue",
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.launchPageLoop",
+      "path": "modules/analytics/internal/background.go",
+      "state": "blocked",
+      "implementationCommit": "bdddc35b6cde0b547226128490238dd4afc910ab",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.clearOverview",
+      "path": "modules/analytics/web/src/OverviewPanel.vue",
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.problemText",
+      "path": "modules/analytics/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.createAnalyticsClient",
+      "path": "modules/analytics/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.FetchAuditRecord",
+      "path": "modules/analytics/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.clearAudit",
+      "path": "modules/analytics/web/src/AuditExplorer.vue",
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.runAnalyticsPeriodic",
+      "path": "modules/analytics/internal/background.go",
+      "state": "blocked",
+      "implementationCommit": "bdddc35b6cde0b547226128490238dd4afc910ab",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.utcInput",
+      "path": "modules/analytics/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.exportAuditCSV",
+      "path": "modules/analytics/web/src/AuditExplorer.vue",
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.isAccessFailure",
+      "path": "modules/analytics/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.problemCode",
+      "path": "modules/analytics/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.moneyText",
+      "path": "modules/analytics/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.exportOverviewCSV",
+      "path": "modules/analytics/web/src/OverviewPanel.vue",
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.readAuditDetail",
+      "path": "modules/analytics/web/src/AuditExplorer.vue",
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.downloadOverviewCSV",
+      "path": "modules/analytics/web/src/OverviewPanel.vue",
+      "state": "blocked",
+      "implementationCommit": "1b70c56d4eae711e8a3339eaae430494891978b5",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "analytics.RequestExport",
+      "path": "modules/analytics/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码就绪，待统一GitLab CI"
     },
     {
       "id": "analytics.ReadSnapshotArchive",
@@ -1126,5 +2211,197 @@
       "blocker": "仅新增协议失败关闭，真实归档装配尚未完成，不计完整函数"
     }
   ],
-  "rule": "本次复核因SQLite/journal内部契约缺失未实施；所有未有实现提交的业务文件/函数保持planned或blocked，不能批量宣称已完成。"
+  "rule": "累计新增8既有业务与20实际参考支持待统一GitLab CI；ConsumeAuditEvent本体写齐待根事件订阅装配，未计ready；旧2 verified不动。",
+  "readyAwaitingCI": {
+    "sourceCommits": [
+      "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+      "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+      "fb17c9b5990457cc903d28e86edbf638672de683",
+      "4b1ee516ddc0cfe9cc92ab89251c59f09e33f942",
+      "e7368ddeb2b53b7b9e0aa0f9a4e0c098e4138df8",
+      "bfaca7b7b881a26f7fd758f7d728ee021173f322",
+      "96a90914ae5995683d43b0a7e8b2f1f74698ed29",
+      "1b70c56d4eae711e8a3339eaae430494891978b5",
+      "bdddc35b6cde0b547226128490238dd4afc910ab"
+    ],
+    "existingBusinessFunctions": [
+      "analytics.ValidateDateRange",
+      "analytics.ComputeAuditHash",
+      "analytics.QueryPageStatistics",
+      "analytics.QueryAudits",
+      "analytics.ReadAudit",
+      "analytics.RedactAuditMetadata",
+      "analytics.ValidateAudit",
+      "analytics.AppendAudit",
+      "analytics.ValidateBeacon",
+      "analytics.HashDayToken",
+      "analytics.ClassifyCrawler",
+      "analytics.LookupCountry",
+      "analytics.IngestBeacon",
+      "analytics.RecordCrawlerAccess",
+      "analytics.FlushBeacons",
+      "analytics.AggregateHourly",
+      "analytics.AggregateDaily",
+      "analytics.ProjectQaTurn",
+      "analytics.QueryContentGaps",
+      "analytics.PublishAggregateEvents",
+      "analytics.QueryUsageStatistics",
+      "analytics.CreateExport",
+      "analytics.ValidateCSVCell",
+      "analytics.PurgeBeacons",
+      "analytics.PurgeAuditHistory",
+      "analytics.PurgeExports",
+      "analytics.LoadStatistics",
+      "analytics.LoadAuditPage",
+      "analytics.DownloadAuthorizedExport",
+      "analytics.mountModuleUI"
+    ],
+    "newReferenceHelpers": [
+      "analytics.WithRuntime",
+      "analytics.OpenStore",
+      "analytics.Runtime.Close",
+      "analytics.runtimeFrom",
+      "analytics.storageError",
+      "analytics.syncDirectory",
+      "analytics.pageInterval",
+      "analytics.readPageSnapshot",
+      "analytics.NewApplication",
+      "analytics.NewRuntimeClient",
+      "analytics.readSiteIdentity",
+      "analytics.server.QueryAudits",
+      "analytics.server.ReadAudit",
+      "analytics.server.QueryPageStatistics",
+      "analytics.beginWrite",
+      "analytics.advanceWatermark",
+      "analytics.auditStateAllowed",
+      "analytics.normalizeAuditFact",
+      "analytics.appendTrustedAudit",
+      "analytics.server.AppendAudit",
+      "analytics.BindReportingTimeZone",
+      "analytics.loadDaySalt",
+      "analytics.trustedPeer",
+      "analytics.readReceipt",
+      "analytics.saveReceipt",
+      "analytics.server.IngestTrustedBeacon",
+      "analytics.server.RecordCrawlerAccess",
+      "analytics.enqueueAggregate",
+      "analytics.readAggregate",
+      "analytics.saveAggregate",
+      "analytics.SchedulePageAggregates",
+      "analytics.ensureAggregateIntent",
+      "analytics.submitAggregateIntents",
+      "analytics.backgroundOperation",
+      "analytics.aggregateJobOperation",
+      "analytics.recordAggregateLease",
+      "analytics.cancelAggregateLease",
+      "analytics.checkAggregateLease",
+      "analytics.verifyAggregateLease",
+      "analytics.executePageAggregate",
+      "analytics.RunPageBackground",
+      "analytics.DrainBeacons",
+      "analytics.admitAggregateScheduling",
+      "analytics.applyQaCounts",
+      "analytics.server.QueryContentGaps",
+      "analytics.BackgroundOperation",
+      "analytics.insertAuditRecord",
+      "analytics.writeCSVRecord",
+      "analytics.streamExportRows",
+      "analytics.installPreparedExport",
+      "analytics.verifyExportFile",
+      "analytics.RecoverExports",
+      "analytics.ExportKind",
+      "analytics.exportObjectNameValid",
+      "analytics.PruneDaySalts",
+      "analytics.RunRetentionBackground",
+      "analytics.server.QueryUsageStatistics",
+      "analytics.server.CreateExport",
+      "analytics.server.CreateAuditExport",
+      "analytics.server.createExport",
+      "analytics.server.DownloadStatisticsExport",
+      "analytics.server.DownloadAuditExport",
+      "analytics.server.downloadExport",
+      "analytics.problemCode",
+      "analytics.isAccessFailure",
+      "analytics.problemText",
+      "analytics.moneyText",
+      "analytics.utcInput",
+      "analytics.createAnalyticsClient",
+      "analytics.FetchAuditRecord",
+      "analytics.RequestExport",
+      "analytics.clearOverview",
+      "analytics.loadOverview",
+      "analytics.exportOverviewCSV",
+      "analytics.downloadOverviewCSV",
+      "analytics.clearAudit",
+      "analytics.loadAudit",
+      "analytics.readAuditDetail",
+      "analytics.exportAuditCSV",
+      "analytics.downloadAuditCSV",
+      "analytics.unmountAnalytics",
+      "analytics.runAnalyticsPeriodic",
+      "analytics.launchPageLoop"
+    ],
+    "batches": [
+      {
+        "sourceCommit": "d78c1ee71968f21cea2eb674c0190de58506e4a6",
+        "existingBusinessFunctions": [
+          "analytics.ValidateDateRange",
+          "analytics.ComputeAuditHash",
+          "analytics.QueryPageStatistics",
+          "analytics.QueryAudits",
+          "analytics.ReadAudit"
+        ],
+        "newReferenceHelpers": [
+          "analytics.WithRuntime",
+          "analytics.OpenStore",
+          "analytics.Runtime.Close",
+          "analytics.runtimeFrom",
+          "analytics.storageError",
+          "analytics.syncDirectory",
+          "analytics.pageInterval",
+          "analytics.readPageSnapshot",
+          "analytics.NewApplication",
+          "analytics.NewRuntimeClient",
+          "analytics.readSiteIdentity",
+          "analytics.server.QueryAudits",
+          "analytics.server.ReadAudit",
+          "analytics.server.QueryPageStatistics"
+        ],
+        "changedFunctions": [
+          "analytics.BuildApplication",
+          "analytics.Shutdown"
+        ],
+        "notes": "复核并重构R1 c9草稿，不直接合并其台账或旧业务。真实私有库/站点身份/HTTP只读；CSV无入口暂不计ready；依赖root370b8c3,c5a0dcd,bb9c2ee及统一gen。"
+      },
+      {
+        "sourceCommit": "2d251cf79da8e0046b49c4bfff63bd395cb47d89",
+        "existingBusinessFunctions": [
+          "analytics.RedactAuditMetadata",
+          "analytics.ValidateAudit",
+          "analytics.AppendAudit"
+        ],
+        "newReferenceHelpers": [
+          "analytics.beginWrite",
+          "analytics.advanceWatermark",
+          "analytics.auditStateAllowed",
+          "analytics.normalizeAuditFact",
+          "analytics.appendTrustedAudit",
+          "analytics.server.AppendAudit"
+        ],
+        "changedFunctions": [
+          "analytics.ComputeAuditHash",
+          "analytics.ReadAudit",
+          "analytics.OpenStore",
+          "analytics.readSiteIdentity"
+        ],
+        "pendingBindingFunctions": [
+          "analytics.ConsumeAuditEvent"
+        ],
+        "notes": "事件handler代码完整，但等根统一producer事件/订阅装配不计完整入口ready；AuditRecordedPayload为本域确定schema。修首批非法free成本类别清为空。"
+      }
+    ],
+    "newBusinessEntrypoints": [
+      "analytics.OpenExport"
+    ]
+  }
 }

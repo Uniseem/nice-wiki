@@ -21,3 +21,5 @@
 权威边界：content正文及源历史，site-config运行epoch/maintenance，identity账号权限，model-gateway唯一钱账。派生结果缓存不构成授权真相。所有客户端只接受versioned schema；未知能力返回UNSUPPORTED_CAPABILITY，不能猜测兼容。
 
 故障与完整调用步骤见functions及operations。服务注册和网络地址由部署配置注入，不能借当前机器或vps信息推断生产环境。
+
+统计UI库：固定已批准Vue/Vite/TS版本，mountModuleUI只消费portal同源apiClient；同DOM/build/capabilities/端口一致复用，统一nice-wiki:unmount停止控制器/监听/下载并清实例。访问/费用并行但费用不可用明确标记，显示真实双水位/漏数/最后完整对账；不说实时余额、分桶访次非跨桶独立人。审计按action/UTC日期、固定上界签名游标与真实链校验；日期过滤进入服务SQL及游标绑定，权限失效清列表详情。导出固定权限路由、稳定operationId重试、32MiB有界流读取后交浏览器，不把未知kind默认pages，不声明用户最终保存成功。

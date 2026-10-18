@@ -26,9 +26,12 @@
 | GET `/readyz` | `ready` | `analytics.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `analytics.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `analytics.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
-| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `analytics.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 <!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。
 
 屏障请求持久draining并等待真实在途安全点；export要求safe；stage只写restore/<restoreId>/staged，不动active；discard只删本次恢复的暂存或旧目录；切换在进程重启时完成（ADR0003）。
+
+`POST /v1/internal/beacons`仅portal纯服务签名完整IngestBeaconInput，可信IP/UA只内存；正文epoch必须等于op，成功统一204。公共`/v1/beacons`直接到本域仍缺可信元数据失败关闭。
+
+导出：POST `/v1/statistics:export` (pages|usage, stats.read)，POST `/v1/audit-exports` (audits,audit.read)。对应GET `/v1/statistics/exports/{exportId}` 和 `/v1/audit-exports/{exportId}`，仅当前相同权限与原主体/代次、24小时内完整CSV流；未知kind不默认pages。

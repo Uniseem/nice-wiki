@@ -27,7 +27,6 @@
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `knowledge.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | POST `/v1/rebuild-plans` | `estimateRebuildPlan` | `knowledge.EstimateRebuildPlan` | `knowledge.manage` | `EstimateRebuildPlanInput` → 200 `EstimateRebuildPlanResult` | 估算全量重建费用 | `FORBIDDEN` |
 | POST `/v1/rebuild-plans/{planId}:approve` | `approveRebuildPlan` | `knowledge.ApproveRebuildPlan` | `knowledge.manage` | `ApproveRebuildPlanInput` → 200 `ApproveRebuildPlanResult` | 批准全量重建 | `VALIDATION`、`CONFLICT` |
-| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `knowledge.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 <!-- openapi:end -->
 
 完整字段、requestBody/query/path/header、错误HTTP状态和security见openapi.json。请求JSON上限1MiB，UTF8，Content-Type=application/json，拒绝额外字段/null。私网所有请求服务认证；管理写请求Origin/CSRF检查。HTTP202只确认持久接受，后续状态/账单以事件和读取操作为准。

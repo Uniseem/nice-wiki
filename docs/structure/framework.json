@@ -1054,14 +1054,104 @@
       "purpose": "go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建"
     },
     {
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/aggregation.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/analytics/internal/app/wire.go",
       "kind": "handwritten",
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
     },
     {
+      "path": "modules/analytics/internal/audit_chain.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/audit_events.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/audit_store.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/audit_validation.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/background.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/beacon_privacy.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/beacon_store.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/beacon_validation.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/analytics/internal/buckets.go",
       "kind": "handwritten",
       "purpose": "把毫秒耗时分入合同写明的五个闭区间桶"
+    },
+    {
+      "path": "modules/analytics/internal/consumer.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/content_gaps.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/crawler.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/crawler_store.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/csv.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/event_handler.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/export_recovery.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/exports.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/analytics/internal/gen/clients.gen.go",
@@ -1079,9 +1169,44 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/analytics/internal/geoip.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/http_beacons.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/outbox.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/analytics/internal/privacy.go",
       "kind": "handwritten",
       "purpose": "核对日志字段名；审计元数据在动作白名单写明前拒绝"
+    },
+    {
+      "path": "modules/analytics/internal/queries.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/query_validation.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/retention.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/store.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/analytics/internal/transport/server.go",
@@ -1089,14 +1214,104 @@
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"
     },
     {
+      "path": "modules/analytics/internal/types.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/usage_queries.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/internal/worker.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/migrations/0001_domain.sql",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/migrations/0002_origins_and_periods.sql",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/migrations/0003_aggregate_jobs.sql",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/migrations/0004_qa_projection.sql",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/migrations/0005_export_journal.sql",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/migrations/schema.go",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/analytics/progress.json",
       "kind": "contract",
       "purpose": "analytics逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/analytics/web/package.json",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/web/pnpm-lock.yaml",
+      "kind": "generated",
+      "purpose": "analytics前端由GitLab pnpm生成的依赖锁"
+    },
+    {
+      "path": "modules/analytics/web/src/AuditExplorer.vue",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/web/src/OverviewPanel.vue",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/web/src/client.ts",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/analytics/web/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/analytics/web/src/main.ts",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/web/src/style.css",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/web/tsconfig.json",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/analytics/web/vite.config.ts",
+      "kind": "implementation",
+      "purpose": "analytics本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/content/AGENTS.md",
@@ -2299,6 +2514,16 @@
       "purpose": "knowledge分级规格/实现约束/文档索引"
     },
     {
+      "path": "modules/knowledge/Dockerfile",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/Makefile",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/knowledge/README.md",
       "kind": "documentation",
       "purpose": "knowledge分级规格/实现约束/文档索引"
@@ -2307,6 +2532,11 @@
       "path": "modules/knowledge/STATUS.md",
       "kind": "documentation",
       "purpose": "knowledge人类进度摘要，与台账/交接一致"
+    },
+    {
+      "path": "modules/knowledge/cmd/knowledge/main.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/knowledge/contracts/events.json",
@@ -2327,6 +2557,16 @@
       "path": "modules/knowledge/contracts/types.json",
       "kind": "contract",
       "purpose": "knowledge唯一机器types契约，后续先改契约再实现"
+    },
+    {
+      "path": "modules/knowledge/deploy/manifest.json",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/deploy/service.config.json",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/knowledge/docs/acceptance.md",
@@ -2399,9 +2639,19 @@
       "purpose": "索引检索本次已实现源码与合同资料"
     },
     {
+      "path": "modules/knowledge/internal/admin/options.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/knowledge/internal/admin/read.go",
       "kind": "handwritten",
       "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/app/wire.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/knowledge/internal/build/activate.go",
@@ -2409,9 +2659,39 @@
       "purpose": "索引检索本次已实现源码与合同资料"
     },
     {
+      "path": "modules/knowledge/internal/build/cancel.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/build/create.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/build/embedding_plan.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/build/execute.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/build/plan.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/knowledge/internal/build/validate.go",
       "kind": "handwritten",
       "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/chunk/context.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/knowledge/internal/chunk/normalize.go",
@@ -2422,6 +2702,81 @@
       "path": "modules/knowledge/internal/chunk/split.go",
       "kind": "handwritten",
       "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/config/config.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/events/inbox.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/events/outbox.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/events/publication.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/attachment.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/create.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/describe.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/dispatch.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/execute.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/image.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/pdf.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/pdf_worker.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/source.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/video.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/views.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/knowledge/internal/gen/clients.gen.go",
@@ -2439,9 +2794,34 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/knowledge/internal/index/cancellation.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/index/catalog.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/knowledge/internal/index/embedding.go",
       "kind": "handwritten",
       "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/index/execution.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/index/extraction_cancel.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/index/inbox.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/knowledge/internal/index/lexical.go",
@@ -2449,14 +2829,74 @@
       "purpose": "索引检索本次已实现源码与合同资料"
     },
     {
+      "path": "modules/knowledge/internal/index/memory.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/index/publication.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/index/repository.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/index/retire.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/knowledge/internal/index/staging.go",
       "kind": "handwritten",
       "purpose": "索引检索本次已实现源码与合同资料"
     },
     {
-      "path": "modules/knowledge/internal/runtime/model_client.go",
-      "kind": "handwritten",
-      "purpose": "索引检索本次已实现源码与合同资料"
+      "path": "modules/knowledge/internal/model/client.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/model/journal.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/model/provenance.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/model/tokenize.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/runtime/bootstrap.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/runtime/gc.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/runtime/job_recovery.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/runtime/recovery.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/runtime/worker.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/knowledge/internal/search/context.go",
@@ -2499,6 +2939,11 @@
       "purpose": "索引检索本次已实现源码与合同资料"
     },
     {
+      "path": "modules/knowledge/internal/search/source-views.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/knowledge/internal/search/vector.go",
       "kind": "handwritten",
       "purpose": "索引检索本次已实现源码与合同资料"
@@ -2507,6 +2952,31 @@
       "path": "modules/knowledge/internal/search/visibility.go",
       "kind": "handwritten",
       "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/source/blocks.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/source/content.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/source/extraction-view.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/source/material.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/internal/source/media.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/knowledge/internal/transport/server.go",
@@ -2519,14 +2989,109 @@
       "purpose": "索引检索本次已实现源码与合同资料"
     },
     {
+      "path": "modules/knowledge/migrations/002_workflows.sql",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/migrations/003_sources.sql",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/migrations/004_model_result_hash.sql",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/migrations/005_chunk_context.sql",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/migrations/006_extraction_source_views.sql",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/migrations/007_stable_model_semantics.sql",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/migrations/008_actual_context_provenance.sql",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/migrations/009_execution_ownership.sql",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/migrations/010_model_dispatch_proof.sql",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/migrations/migrations.go",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
       "path": "modules/knowledge/progress.json",
       "kind": "contract",
       "purpose": "knowledge逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/knowledge/ui/index.html",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/ui/package.json",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/ui/pnpm-lock.yaml",
+      "kind": "generated",
+      "purpose": "knowledge前端由GitLab pnpm生成的依赖锁"
+    },
+    {
       "path": "modules/knowledge/ui/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/knowledge/ui/src/main.ts",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/ui/src/style.css",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/ui/src/views/EditView.vue",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/ui/src/views/OverviewView.vue",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/ui/tsconfig.json",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
+    },
+    {
+      "path": "modules/knowledge/ui/vite.config.ts",
+      "kind": "implementation",
+      "purpose": "knowledge本轮实际源码、配置或独立界面文件"
     },
     {
       "path": "modules/localization/AGENTS.md",

@@ -537,29 +537,7 @@
           "description": "公共 Identifier 合同，遵守其字段和空值规则"
         },
         "resultCode": {
-          "type": "string",
-          "enum": [
-            "SUCCESS",
-            "VALIDATION",
-            "UNAUTHENTICATED",
-            "FORBIDDEN",
-            "NOT_FOUND",
-            "CONFLICT",
-            "VERSION_MISMATCH",
-            "LOCKED",
-            "UNSUPPORTED_SCHEMA",
-            "UNSUPPORTED_CAPABILITY",
-            "RATE_LIMITED",
-            "BUDGET_EXCEEDED",
-            "CANCELLED",
-            "DEADLINE_EXCEEDED",
-            "DEPENDENCY_UNAVAILABLE",
-            "STALE_RESULT",
-            "INTEGRITY_ERROR",
-            "INTERNAL",
-            "INVOCATION_NOT_ACCEPTED"
-          ],
-          "description": "操作成功或公共错误码，无输入正文"
+          "$ref": "#/$defs/AuditResultCode"
         },
         "occurredAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
@@ -572,6 +550,56 @@
         "previousHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
           "description": "公共 Hash 合同，遵守其字段和空值规则"
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ],
+          "description": "链编码版本；V1原hash只读保留，新事实为V2。"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "producer": {
+          "type": "string",
+          "enum": [
+            "analytics",
+            "content",
+            "data-protection",
+            "identity",
+            "jobs",
+            "knowledge",
+            "localization",
+            "media",
+            "memory",
+            "model-gateway",
+            "portal",
+            "public-site",
+            "qa",
+            "site-config",
+            "traffic-guard"
+          ]
+        },
+        "actorKind": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "visitor",
+            "service"
+          ]
+        },
+        "sourceOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "originEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "metadata": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "只输出经严格白名单重验后的安全canonical JSON；异常旧元数据省略并chainValid=false。"
         }
       },
       "required": [
@@ -971,7 +999,7 @@
         "userAgent": {
           "type": "string",
           "description": "userAgent；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 1024
         },
         "day": {
           "type": "string",
@@ -1056,12 +1084,12 @@
         "peerAddress": {
           "type": "string",
           "description": "peerAddress；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 45
         },
         "userAgent": {
           "type": "string",
           "description": "userAgent；UTF-8；不得为 null",
-          "maxLength": 8192
+          "maxLength": 1024
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -1244,8 +1272,6 @@
         }
       },
       "required": [
-        "from",
-        "to",
         "maxDays"
       ]
     },
@@ -1301,11 +1327,18 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "granularity": {
+          "type": "string",
+          "enum": [
+            "hour",
+            "day"
+          ],
+          "default": "hour",
+          "description": "完整UTC小时桶或可信报表时区日历桶，不把部分桶冒充精确区间。"
         }
       },
       "required": [
-        "from",
-        "to",
         "locale",
         "documentId",
         "actor",
@@ -1335,6 +1368,22 @@
           "minimum": 0,
           "maximum": 9223372036854775807,
           "description": "dropCount 非负 int64；不用浮点数"
+        },
+        "granularity": {
+          "type": "string",
+          "enum": [
+            "hour",
+            "day"
+          ],
+          "description": "实际统计桶粒度。"
+        },
+        "fromUTC": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "实际完整桶区间UTC边界；新服务实际返回。"
+        },
+        "toUTC": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "实际完整桶区间UTC边界；新服务实际返回。"
         }
       },
       "required": [
@@ -1411,15 +1460,12 @@
       "description": "输出允许元数据输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "action": {
-          "type": "string",
-          "description": "action；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "$ref": "#/$defs/AuditAction"
         },
         "metadata": {
           "type": "string",
           "description": "metadata；UTF-8；不得为 null",
-          "maxLength": 2097152
+          "maxLength": 2048
         }
       },
       "required": [
@@ -1493,10 +1539,7 @@
           "minLength": 1
         },
         "action": {
-          "type": "string",
-          "description": "action；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "$ref": "#/$defs/AuditAction"
         },
         "resourceId": {
           "type": "string",
@@ -1505,18 +1548,31 @@
           "minLength": 1
         },
         "resultCode": {
-          "type": "string",
-          "description": "resultCode；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "#/$defs/AuditResultCode"
         },
         "metadata": {
           "type": "string",
-          "description": "metadata；UTF-8；不得为 null",
-          "maxLength": 2097152
+          "description": "严格安全JSON对象字符串，内层满足AuditMetadataV1，原文/凭据禁止。",
+          "maxLength": 2048
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "actorKind": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "visitor",
+            "service"
+          ],
+          "description": "历史事实原主体类别；与occurredAt/sourceOperationId同现。"
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "sourceOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         }
       },
       "required": [
@@ -1527,6 +1583,41 @@
         "resultCode",
         "metadata",
         "dataEpoch"
+      ],
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "actorKind"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "occurredAt"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "sourceOperationId"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "required": [
+                "actorKind",
+                "occurredAt",
+                "sourceOperationId",
+                "actorId"
+              ]
+            }
+          ]
+        }
       ]
     },
     "AppendAuditResult": {
@@ -1561,7 +1652,7 @@
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 500,
+          "maximum": 100,
           "description": "limit 非负 int64；不用浮点数",
           "default": 20
         },
@@ -1578,6 +1669,12 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "from": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "to": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
         }
       },
       "required": [
@@ -2047,7 +2144,12 @@
           "type": "string",
           "description": "kind；UTF-8；不得为 null",
           "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "enum": [
+            "pages",
+            "audits",
+            "usage"
+          ]
         },
         "from": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
@@ -2092,6 +2194,16 @@
         "expiresAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
           "description": "RFC3339 UTC 时间；不含 null"
+        },
+        "kind": {
+          "enum": [
+            "pages",
+            "audits",
+            "usage"
+          ]
+        },
+        "watermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
         }
       },
       "required": [
@@ -2395,6 +2507,21 @@
         "watermark": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "watermark 非负 int64；不用浮点数"
+        },
+        "dropCount": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "fromUTC": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "toUTC": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "usage": {
+          "$ref": "#/$defs/QueryUsageStatisticsResult"
+        },
+        "usageProblem": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode"
         }
       },
       "required": [
@@ -2415,9 +2542,18 @@
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 500,
+          "maximum": 100,
           "description": "limit 非负 int64；不用浮点数",
           "default": 20
+        },
+        "from": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "to": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "action": {
+          "$ref": "#/$defs/AuditAction"
         }
       },
       "required": [
@@ -2461,6 +2597,14 @@
           "description": "exportId；UTF-8；不得为 null",
           "maxLength": 128,
           "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "pages",
+            "audits",
+            "usage"
+          ],
+          "description": "兼容可选；实际UI传本次create原回执kind，不把缺失/未知默认为pages。"
         }
       },
       "required": [
@@ -2474,7 +2618,7 @@
       "properties": {
         "downloaded": {
           "type": "boolean",
-          "description": "downloaded 的明确真假结果，不可 null"
+          "description": "已完整有界读取后交浏览器下载；不证明用户最终完成磁盘保存。"
         }
       },
       "required": [
@@ -2654,6 +2798,26 @@
           },
           "maxItems": 10000,
           "description": "有序列表；空列表表示没有可用项"
+        },
+        "qaTotals": {
+          "$ref": "#/$defs/QaTotals"
+        },
+        "pageWatermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "qaWatermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "updatedAt": {
+          "type": "string",
+          "maxLength": 35,
+          "description": "最近真实问答投影提交时间；空表示尚无已投影事件。"
+        },
+        "fromUTC": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "toUTC": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
         }
       },
       "required": [
@@ -2807,7 +2971,7 @@
     "AppendAuditRequestBody": {
       "type": "object",
       "additionalProperties": false,
-      "description": "已鉴权服务审计事件；不能提交任意message；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
+      "description": "固定生产者写命令：历史三字段同现时纯服务签原提交事实并显式原actorId；旧实时分支actorId只能为当前可信主体，不接受服务身份冒充原用户。",
       "properties": {
         "auditId": {
           "type": "string",
@@ -2816,10 +2980,7 @@
           "minLength": 1
         },
         "action": {
-          "type": "string",
-          "description": "action；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "$ref": "#/$defs/AuditAction"
         },
         "resourceId": {
           "type": "string",
@@ -2828,14 +2989,30 @@
           "minLength": 1
         },
         "resultCode": {
-          "type": "string",
-          "description": "resultCode；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "#/$defs/AuditResultCode"
         },
         "metadata": {
           "type": "string",
-          "description": "metadata；UTF-8；不得为 null",
-          "maxLength": 2097152
+          "description": "严格安全JSON对象字符串，内层满足AuditMetadataV1，原文/凭据禁止。",
+          "maxLength": 2048
+        },
+        "actorKind": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "visitor",
+            "service"
+          ],
+          "description": "历史事实原主体类别；与occurredAt/sourceOperationId同现。"
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "sourceOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "actorId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         }
       },
       "required": [
@@ -2844,6 +3021,41 @@
         "resourceId",
         "resultCode",
         "metadata"
+      ],
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "actorKind"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "occurredAt"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "sourceOperationId"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "required": [
+                "actorKind",
+                "occurredAt",
+                "sourceOperationId",
+                "actorId"
+              ]
+            }
+          ]
+        }
       ]
     },
     "CreateExportRequestBody": {
@@ -2855,7 +3067,11 @@
           "type": "string",
           "description": "kind；UTF-8；不得为 null",
           "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "enum": [
+            "pages",
+            "usage"
+          ]
         },
         "from": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
@@ -3275,6 +3491,568 @@
     "HealthStatus": {
       "$ref": "../../../contracts/common.schema.json#/$defs/HealthStatus",
       "description": "公共健康DTO"
+    },
+    "AuditAction": {
+      "type": "string",
+      "enum": [
+        "analytics.acquireBarrier",
+        "analytics.appendAudit",
+        "analytics.createExport",
+        "analytics.discardSnapshot",
+        "analytics.exportSnapshot",
+        "analytics.ingestBeacon",
+        "analytics.reconcileUsage",
+        "analytics.recordCrawlerAccess",
+        "analytics.releaseBarrier",
+        "analytics.retention",
+        "analytics.stageSnapshot",
+        "content.acquireBarrier",
+        "content.acquireEditLock",
+        "content.createDocument",
+        "content.createPreviewGrant",
+        "content.diffRevisions",
+        "content.discardSnapshot",
+        "content.exportSnapshot",
+        "content.forceReleaseEditLock",
+        "content.moveDocument",
+        "content.publishDocument",
+        "content.purgeDocuments",
+        "content.releaseBarrier",
+        "content.releaseEditLock",
+        "content.renewEditLock",
+        "content.reorderChildren",
+        "content.restoreDocument",
+        "content.rollbackPublishedRevision",
+        "content.saveDraft",
+        "content.stageSnapshot",
+        "content.trashDocument",
+        "content.updateDocumentMetadata",
+        "content.validatePreviewGrant",
+        "content.validatePublications",
+        "content.withdrawDocument",
+        "data-protection.abortRestore",
+        "data-protection.acquireBarrier",
+        "data-protection.authorizeBackupDownload",
+        "data-protection.buildMirror",
+        "data-protection.cleanupRestore",
+        "data-protection.configureRemote",
+        "data-protection.continueRestore",
+        "data-protection.createBackup",
+        "data-protection.createRestore",
+        "data-protection.discardSnapshot",
+        "data-protection.exportSnapshot",
+        "data-protection.importPortableBackup",
+        "data-protection.releaseBarrier",
+        "data-protection.restoreDuringSetup",
+        "data-protection.scheduleLocalBackup",
+        "data-protection.stageSnapshot",
+        "data-protection.syncMirror",
+        "data-protection.validateRestore",
+        "identity.acquireBarrier",
+        "identity.changePassword",
+        "identity.checkAuthorization",
+        "identity.createAccount",
+        "identity.createSession",
+        "identity.discardSnapshot",
+        "identity.exportSnapshot",
+        "identity.refreshSession",
+        "identity.registerFirstSuperadmin",
+        "identity.releaseBarrier",
+        "identity.resetAccountPassword",
+        "identity.revokeSession",
+        "identity.setAccountPermissions",
+        "identity.setAccountStatus",
+        "identity.stageSnapshot",
+        "identity.updatePreferences",
+        "identity.verifySessionCSRF",
+        "jobs.acknowledgeEvent",
+        "jobs.acquireBarrier",
+        "jobs.cancelJob",
+        "jobs.claimJob",
+        "jobs.completeJob",
+        "jobs.coordinateBarrier",
+        "jobs.createJob",
+        "jobs.createSchedule",
+        "jobs.discardSnapshot",
+        "jobs.exportSnapshot",
+        "jobs.failJob",
+        "jobs.heartbeatJob",
+        "jobs.publishEvent",
+        "jobs.releaseBarrier",
+        "jobs.replayDelivery",
+        "jobs.retryJob",
+        "jobs.stageSnapshot",
+        "jobs.startJob",
+        "jobs.updateSchedule",
+        "knowledge.acquireBarrier",
+        "knowledge.approveRebuildPlan",
+        "knowledge.cancelBuild",
+        "knowledge.createBuild",
+        "knowledge.createQueryEmbedding",
+        "knowledge.discardSnapshot",
+        "knowledge.estimateRebuildPlan",
+        "knowledge.exportSnapshot",
+        "knowledge.inspectEvidence",
+        "knowledge.putIndexConfig",
+        "knowledge.readSections",
+        "knowledge.releaseBarrier",
+        "knowledge.searchKnowledge",
+        "knowledge.stageSnapshot",
+        "localization.acquireBarrier",
+        "localization.applyApprovedGlossaryProposal",
+        "localization.approveLanguagePlan",
+        "localization.cancelTranslation",
+        "localization.createTranslation",
+        "localization.deleteGlossaryTerm",
+        "localization.discardSnapshot",
+        "localization.editTranslationUnit",
+        "localization.estimateLanguagePlan",
+        "localization.exportSnapshot",
+        "localization.putGlossaryTerm",
+        "localization.putInterfaceString",
+        "localization.putLanguage",
+        "localization.readTranslation",
+        "localization.releaseBarrier",
+        "localization.requestInterfaceTranslation",
+        "localization.rollbackAutomaticGlossaryBatch",
+        "localization.saveLanguagePreference",
+        "localization.setLanguageEnabled",
+        "localization.setUnitProtection",
+        "localization.stageSnapshot",
+        "localization.suggestLanguage",
+        "localization.translateCachedAnswer",
+        "media.abortUpload",
+        "media.acquireBarrier",
+        "media.acquireResourceReferences",
+        "media.attachImageVariants",
+        "media.beginUpload",
+        "media.buildDeliveryManifest",
+        "media.cancelManualCleanup",
+        "media.completeUpload",
+        "media.confirmManualCleanup",
+        "media.confirmResourceReferences",
+        "media.discardSnapshot",
+        "media.exportSnapshot",
+        "media.proposeManualCleanup",
+        "media.putUploadChunk",
+        "media.readVideoMetadata",
+        "media.releaseBarrier",
+        "media.releaseResourceReferences",
+        "media.stageSnapshot",
+        "memory.acquireBarrier",
+        "memory.appendAssistantMessage",
+        "memory.approveProposal",
+        "memory.archiveEntry",
+        "memory.cancelAssistantRun",
+        "memory.createAssistantRun",
+        "memory.createEntry",
+        "memory.deleteAssistantConversation",
+        "memory.discardSnapshot",
+        "memory.exportSnapshot",
+        "memory.putMapping",
+        "memory.putTaskBudget",
+        "memory.rejectProposal",
+        "memory.releaseBarrier",
+        "memory.removeMapping",
+        "memory.reorderMappings",
+        "memory.resolveContext",
+        "memory.restoreEntry",
+        "memory.stageSnapshot",
+        "memory.updateEntry",
+        "model-gateway.acquireBarrier",
+        "model-gateway.cancelInference",
+        "model-gateway.createConnectionProbe",
+        "model-gateway.createInference",
+        "model-gateway.discardSnapshot",
+        "model-gateway.estimateTokens",
+        "model-gateway.exportSnapshot",
+        "model-gateway.putCredential",
+        "model-gateway.putFeeBudgetPolicy",
+        "model-gateway.putModel",
+        "model-gateway.putProfile",
+        "model-gateway.putProvider",
+        "model-gateway.putTaskAssignment",
+        "model-gateway.quoteCost",
+        "model-gateway.readTaskAvailability",
+        "model-gateway.reconcileCharge",
+        "model-gateway.refreshModelCatalog",
+        "model-gateway.releaseBarrier",
+        "model-gateway.rotateCredential",
+        "model-gateway.stageSnapshot",
+        "portal.access",
+        "portal.acquireBarrier",
+        "portal.releaseBarrier",
+        "portal.updatePreferences",
+        "public-site.acquireBarrier",
+        "public-site.discardSnapshot",
+        "public-site.exportSnapshot",
+        "public-site.issuePreviewToken",
+        "public-site.releaseBarrier",
+        "public-site.resolvePublishedLink",
+        "public-site.stageSnapshot",
+        "qa.acquireBarrier",
+        "qa.approveCacheEntry",
+        "qa.cancelTurn",
+        "qa.createConversation",
+        "qa.createDebugTurn",
+        "qa.deleteConversation",
+        "qa.disableCacheEntry",
+        "qa.discardSnapshot",
+        "qa.exportSnapshot",
+        "qa.proposeCacheEntry",
+        "qa.putQaPolicy",
+        "qa.recordFeedback",
+        "qa.releaseBarrier",
+        "qa.stageSnapshot",
+        "qa.startTurn",
+        "site-config.abortInitialization",
+        "site-config.acquireBarrier",
+        "site-config.discardSnapshot",
+        "site-config.exportSnapshot",
+        "site-config.initializeSite",
+        "site-config.registerActivation",
+        "site-config.releaseBarrier",
+        "site-config.restoreConfigRevision",
+        "site-config.resumeInitialization",
+        "site-config.stageSnapshot",
+        "site-config.transitionRuntimeState",
+        "site-config.updateBanner",
+        "site-config.updateBranding",
+        "site-config.updateFooter",
+        "site-config.updateHome",
+        "site-config.updateSiteConfig",
+        "traffic-guard.acquireBarrier",
+        "traffic-guard.beginLoginAttempt",
+        "traffic-guard.consumeAdmission",
+        "traffic-guard.createAdmission",
+        "traffic-guard.createBan",
+        "traffic-guard.discardSnapshot",
+        "traffic-guard.exportSnapshot",
+        "traffic-guard.finishLoginAttempt",
+        "traffic-guard.issueChallenge",
+        "traffic-guard.queueSessionAdmission",
+        "traffic-guard.releaseAdmission",
+        "traffic-guard.releaseBarrier",
+        "traffic-guard.renewAdmission",
+        "traffic-guard.reportModelRisk",
+        "traffic-guard.revokeBan",
+        "traffic-guard.stageSnapshot",
+        "traffic-guard.updatePolicy",
+        "traffic-guard.verifyAdmission",
+        "traffic-guard.verifyChallenge"
+      ],
+      "description": "固定producer.operationId审计动作；只追加历史动作，不因接口退休删除旧记录含义。"
+    },
+    "AuditResultCode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "OK",
+            "SUCCESS"
+          ]
+        },
+        {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode"
+        }
+      ],
+      "description": "新V2成功标准OK；兼容旧HTTP SUCCESS输入并标准化，不改V1原链。"
+    },
+    "AuditMetadataV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "fromState": {
+          "type": "string",
+          "enum": [
+            "active",
+            "approved",
+            "archived",
+            "backup_barrier",
+            "blocked",
+            "cancelled",
+            "charge_unknown",
+            "completed",
+            "deleted",
+            "disabled",
+            "draft",
+            "draining",
+            "enabled",
+            "expired",
+            "failed",
+            "held",
+            "leased",
+            "pending",
+            "planned",
+            "published",
+            "queued",
+            "ready",
+            "rejected",
+            "released",
+            "requested",
+            "restore_blocked",
+            "restore_rolling_back",
+            "restore_staging",
+            "restore_switching",
+            "restored",
+            "retired",
+            "reversed",
+            "rolled-back",
+            "rolled_back",
+            "rolling-back",
+            "running",
+            "safe",
+            "settled",
+            "staged",
+            "staging",
+            "succeeded",
+            "switched",
+            "switching",
+            "withdrawn"
+          ]
+        },
+        "toState": {
+          "type": "string",
+          "enum": [
+            "active",
+            "approved",
+            "archived",
+            "backup_barrier",
+            "blocked",
+            "cancelled",
+            "charge_unknown",
+            "completed",
+            "deleted",
+            "disabled",
+            "draft",
+            "draining",
+            "enabled",
+            "expired",
+            "failed",
+            "held",
+            "leased",
+            "pending",
+            "planned",
+            "published",
+            "queued",
+            "ready",
+            "rejected",
+            "released",
+            "requested",
+            "restore_blocked",
+            "restore_rolling_back",
+            "restore_staging",
+            "restore_switching",
+            "restored",
+            "retired",
+            "reversed",
+            "rolled-back",
+            "rolled_back",
+            "rolling-back",
+            "running",
+            "safe",
+            "settled",
+            "staged",
+            "staging",
+            "succeeded",
+            "switched",
+            "switching",
+            "withdrawn"
+          ]
+        }
+      },
+      "description": "metadata安全JSON对象，拒重复/未知字段、null、浮点数或原文；编码canonical UTF8。"
+    },
+    "AuditRecordedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "auditId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "actorId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "actorKind": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "service",
+            "visitor"
+          ]
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "sourceOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "action": {
+          "$ref": "#/$defs/AuditAction"
+        },
+        "resourceId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "resultCode": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "OK"
+              ]
+            },
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/ErrorCode"
+            }
+          ]
+        },
+        "metadata": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "安全JSON字符串，严格按AuditMetadataV1。"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "auditId",
+        "actorId",
+        "actorKind",
+        "occurredAt",
+        "sourceOperationId",
+        "siteId",
+        "action",
+        "resourceId",
+        "resultCode",
+        "metadata",
+        "dataEpoch"
+      ],
+      "description": "生产者原事务outbox经jobs中转的历史审计事实；Envelope subjectId=auditId/revision=1，producer决定动作归属。"
+    },
+    "AggregateJobBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "本域持久不可变统计输入schemaVersion1；真实字节构成ObjectRef，非HTTP客户端自报执行权。",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "kind": {
+          "enum": [
+            "hourly",
+            "daily"
+          ]
+        },
+        "period": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 35
+        },
+        "timezone": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "sourceWatermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "period",
+        "timezone",
+        "sourceWatermark",
+        "siteId",
+        "dataEpoch"
+      ]
+    },
+    "QaTotals": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "真实已投影完成/失败与缓存/无答案分类计数；比率以completed为分母，0表示无样本不伪报百分比。",
+      "properties": {
+        "completed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "exactCacheHits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "semanticCacheHits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "unanswered": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      },
+      "required": [
+        "completed",
+        "failed",
+        "exactCacheHits",
+        "semanticCacheHits",
+        "unanswered"
+      ]
+    },
+    "CreateAuditExportRequestBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "已授权过滤范围生成CSV引用，最多10万行；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "kind；UTF-8；不得为 null",
+          "maxLength": 2048,
+          "minLength": 1,
+          "enum": [
+            "audits"
+          ]
+        },
+        "from": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "RFC3339 UTC 时间；不含 null"
+        },
+        "to": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "RFC3339 UTC 时间；不含 null"
+        }
+      },
+      "required": [
+        "kind",
+        "from",
+        "to"
+      ]
     },
     "SnapshotArchiveReadInput": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",

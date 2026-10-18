@@ -2,203 +2,203 @@
   "version": 1,
   "module": "knowledge",
   "phase": "implementation",
-  "contractSha256": "906decbb1bacfcb7336f04754a8e4a7377bfcc407ce9b15d68e9bbd53671b68c",
+  "contractSha256": "5bd76b8e3bdfcb35b64a806a6b766a12198552bda6f5b3c9d8c370f8a331b983",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
-  "branch": "codex/knowledge-20261018-bulk",
-  "baseCommit": "acc9bbcc1fe0cfbeae91d3c2835b09cea5cbe9bd",
-  "deliveryCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+  "assignedSession": "模型当前对象/失败与未外发证据已交，继续owner只读观察与失败缓存费用证明",
+  "branch": "codex/finish-20261018-knowledge",
+  "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
+  "deliveryCommit": "e660552",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/knowledge/internal/runtime/bootstrap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或全文件职责未齐。"
     },
     {
       "path": "modules/knowledge/internal/config/config.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
       },
-      "blocker": null
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
     },
     {
       "path": "modules/knowledge/internal/events/publication.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "c686488",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批新改待GitLab，原未改函数证据保留。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件仍有未完职责。"
     },
     {
       "path": "modules/knowledge/internal/build/create.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/internal/source/content.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "26ee466",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批新增/修改待GitLab；原未改函数证据保留。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件仍未完职责。"
     },
     {
       "path": "modules/knowledge/internal/source/media.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "26ee466",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批新增/修改待GitLab；原未改函数证据保留。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件仍未完职责。"
     },
     {
       "path": "modules/knowledge/internal/extract/create.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/internal/extract/pdf.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或全文件职责未齐。"
     },
     {
       "path": "modules/knowledge/internal/extract/image.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "5328558",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译。"
     },
     {
       "path": "modules/knowledge/internal/extract/video.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或剩余装配。"
     },
     {
       "path": "modules/knowledge/internal/chunk/normalize.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/internal/chunk/split.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "bf29364",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "本批新增/修改待GitLab；原未改函数证据保留。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件仍有未完职责。"
     },
     {
       "path": "modules/knowledge/internal/index/staging.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
       },
-      "blocker": null
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
     },
     {
       "path": "modules/knowledge/internal/index/lexical.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "bde10a9",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "待GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译。"
     },
     {
       "path": "modules/knowledge/internal/index/embedding.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "a913dc1",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "待GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译。"
     },
     {
       "path": "modules/knowledge/internal/build/validate.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/internal/build/activate.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/internal/build/cancel.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/internal/index/retire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/internal/search/query.go",
@@ -252,13 +252,13 @@
     },
     {
       "path": "modules/knowledge/internal/search/rerank.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
       },
-      "blocker": null
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
     },
     {
       "path": "modules/knowledge/internal/search/context.go",
@@ -282,53 +282,53 @@
     },
     {
       "path": "modules/knowledge/internal/admin/read.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": "本轮新增/修改待GitLab，原未改函数证据保留。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件仍有未完职责。"
     },
     {
       "path": "modules/knowledge/internal/events/inbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "c686488",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批新改待GitLab，原未改函数证据保留。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件仍有未完职责。"
     },
     {
       "path": "modules/knowledge/internal/events/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "c686488",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批新改待GitLab，原未改函数证据保留。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件仍有未完职责。"
     },
     {
       "path": "modules/knowledge/internal/runtime/recovery.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/internal/runtime/gc.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/internal/admin/diagnostics.go",
@@ -342,13 +342,13 @@
     },
     {
       "path": "modules/knowledge/internal/search/sections.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "待GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或剩余装配。"
     },
     {
       "path": "modules/knowledge/internal/protection/protocol.go",
@@ -362,33 +362,33 @@
     },
     {
       "path": "modules/knowledge/ui/src/views/OverviewView.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待GitLab Node22安装生成锁、Vue类型检查与构建。"
       },
-      "blocker": null
+      "blocker": "未CI。"
     },
     {
       "path": "modules/knowledge/ui/src/views/EditView.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待GitLab Node22安装生成锁、Vue类型检查与构建。"
       },
-      "blocker": null
+      "blocker": "未CI。"
     },
     {
       "path": "modules/knowledge/internal/chunk/context.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
       },
-      "blocker": null
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
     },
     {
       "path": "modules/knowledge/internal/search/inspect.go",
@@ -402,43 +402,43 @@
     },
     {
       "path": "modules/knowledge/internal/search/query-embedding.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": "a913dc1",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": "待GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译。"
     },
     {
       "path": "modules/knowledge/internal/extract/attachment.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "5328558",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译。"
     },
     {
       "path": "modules/knowledge/internal/runtime/worker.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/deploy/service.config.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "c04abe1",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅源码工程装配，待根GitLab与锁生成；未Docker构建/部署。"
       },
-      "blocker": null
+      "blocker": "待GitLab检查及UI真实锁生成，完整app仍partial。"
     },
     {
       "path": "modules/knowledge/migrations/001_initial.sql",
@@ -452,33 +452,33 @@
     },
     {
       "path": "modules/knowledge/cmd/knowledge/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或全文件职责未齐。"
     },
     {
       "path": "modules/knowledge/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
+        "evidence": "原任务执行/独立提取批待根GitLab。"
       },
-      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
     },
     {
       "path": "modules/knowledge/go.mod",
@@ -502,43 +502,43 @@
     },
     {
       "path": "modules/knowledge/Dockerfile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "c04abe1",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅源码工程装配，待根GitLab与锁生成；未Docker构建/部署。"
       },
-      "blocker": null
+      "blocker": "待GitLab检查及UI真实锁生成，完整app仍partial。"
     },
     {
       "path": "modules/knowledge/Makefile",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "c04abe1",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅源码工程装配，待根GitLab与锁生成；未Docker构建/部署。"
       },
-      "blocker": null
+      "blocker": "待GitLab检查及UI真实锁生成，完整app仍partial。"
     },
     {
       "path": "modules/knowledge/deploy/manifest.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "c04abe1",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "仅源码工程装配，待根GitLab与锁生成；未Docker构建/部署。"
       },
-      "blocker": null
+      "blocker": "待GitLab检查及UI真实锁生成，完整app仍partial。"
     },
     {
       "path": "modules/knowledge/ui/package.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待GitLab Node22安装生成锁、Vue类型检查与构建。"
       },
-      "blocker": null
+      "blocker": "未CI。"
     },
     {
       "path": "modules/knowledge/ui/pnpm-lock.yaml",
@@ -552,63 +552,63 @@
     },
     {
       "path": "modules/knowledge/ui/vite.config.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待GitLab Node22安装生成锁、Vue类型检查与构建。"
       },
-      "blocker": null
+      "blocker": "未CI。"
     },
     {
       "path": "modules/knowledge/ui/tsconfig.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待GitLab Node22安装生成锁、Vue类型检查与构建。"
       },
-      "blocker": null
+      "blocker": "未CI。"
     },
     {
       "path": "modules/knowledge/ui/index.html",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待GitLab Node22安装生成锁、Vue类型检查与构建。"
       },
-      "blocker": null
+      "blocker": "未CI。"
     },
     {
       "path": "modules/knowledge/ui/src/main.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待GitLab Node22安装生成锁、Vue类型检查与构建。"
       },
-      "blocker": null
+      "blocker": "未CI。"
     },
     {
-      "path": "modules/knowledge/internal/runtime/model_client.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "path": "modules/knowledge/internal/model/client.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
       },
-      "blocker": null
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
     },
     {
       "path": "modules/knowledge/internal/build/execute.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
       },
-      "blocker": null
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
     },
     {
       "path": "modules/knowledge/internal/gen/openapi.gen.go",
@@ -661,14 +661,364 @@
       "blocker": null
     },
     {
-      "path": "modules/knowledge/internal/source/tokenize.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/knowledge/internal/index/repository.go",
+      "state": "blocked",
+      "implementationCommit": "bf29364",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批新增/修改待GitLab；原未改函数证据保留。"
       },
-      "blocker": null
+      "blocker": "待编译或同文件仍有未完职责。"
+    },
+    {
+      "path": "modules/knowledge/migrations/002_workflows.sql",
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab生成/编译/完整check。"
+      },
+      "blocker": "待统一GitLab。"
+    },
+    {
+      "path": "modules/knowledge/migrations/migrations.go",
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab生成/编译/完整check。"
+      },
+      "blocker": "待统一GitLab。"
+    },
+    {
+      "path": "modules/knowledge/migrations/003_sources.sql",
+      "state": "blocked",
+      "implementationCommit": "26ee466",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab。"
+      },
+      "blocker": "待统一GitLab。"
+    },
+    {
+      "path": "modules/knowledge/internal/index/inbox.go",
+      "state": "blocked",
+      "implementationCommit": "46d3260",
+      "verification": {
+        "state": "not_run",
+        "evidence": "新改源码待GitLab。"
+      },
+      "blocker": "待编译或同文件未完职责。"
+    },
+    {
+      "path": "modules/knowledge/internal/index/cancellation.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
+      },
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
+    },
+    {
+      "path": "modules/knowledge/internal/admin/options.go",
+      "state": "blocked",
+      "implementationCommit": "46d3260",
+      "verification": {
+        "state": "not_run",
+        "evidence": "新改源码待GitLab。"
+      },
+      "blocker": "待编译或同文件未完职责。"
+    },
+    {
+      "path": "modules/knowledge/internal/index/catalog.go",
+      "state": "blocked",
+      "implementationCommit": "93b6f4c",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab。"
+      },
+      "blocker": "待编译或模型恢复消费未齐。"
+    },
+    {
+      "path": "modules/knowledge/ui/src/style.css",
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab Node22安装生成锁、Vue类型检查与构建。"
+      },
+      "blocker": "未CI。"
+    },
+    {
+      "path": "modules/knowledge/internal/source/blocks.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab。"
+      },
+      "blocker": "待编译或剩余装配。"
+    },
+    {
+      "path": "modules/knowledge/internal/model/journal.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+      },
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
+    },
+    {
+      "path": "modules/knowledge/migrations/004_model_result_hash.sql",
+      "state": "blocked",
+      "implementationCommit": "dc89973",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab。"
+      },
+      "blocker": "待编译。"
+    },
+    {
+      "path": "modules/knowledge/internal/model/tokenize.go",
+      "state": "blocked",
+      "implementationCommit": "bde10a9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab。"
+      },
+      "blocker": "待编译。"
+    },
+    {
+      "path": "modules/knowledge/migrations/005_chunk_context.sql",
+      "state": "blocked",
+      "implementationCommit": "bde10a9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab。"
+      },
+      "blocker": "待编译。"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/source.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab。"
+      },
+      "blocker": "待编译或剩余装配。"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/pdf_worker.go",
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab。"
+      },
+      "blocker": "待编译或全文件职责未齐。"
+    },
+    {
+      "path": "modules/knowledge/internal/search/source-views.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab。"
+      },
+      "blocker": "待编译或剩余装配。"
+    },
+    {
+      "path": "modules/knowledge/internal/source/extraction-view.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab。"
+      },
+      "blocker": "待编译或剩余装配。"
+    },
+    {
+      "path": "modules/knowledge/migrations/006_extraction_source_views.sql",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab。"
+      },
+      "blocker": "待编译或剩余装配。"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/describe.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+      },
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
+    },
+    {
+      "path": "modules/knowledge/migrations/007_stable_model_semantics.sql",
+      "state": "blocked",
+      "implementationCommit": "a913dc1",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab。"
+      },
+      "blocker": "待编译。"
+    },
+    {
+      "path": "modules/knowledge/internal/model/provenance.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+      },
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
+    },
+    {
+      "path": "modules/knowledge/migrations/008_actual_context_provenance.sql",
+      "state": "blocked",
+      "implementationCommit": "93b6f4c",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待GitLab。"
+      },
+      "blocker": "待编译或模型恢复消费未齐。"
+    },
+    {
+      "path": "modules/knowledge/internal/index/publication.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
+      },
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
+    },
+    {
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+      },
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
+    },
+    {
+      "path": "modules/knowledge/internal/index/memory.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
+      },
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
+    },
+    {
+      "path": "modules/knowledge/internal/index/extraction_cancel.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
+      },
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
+    },
+    {
+      "path": "modules/knowledge/internal/runtime/job_recovery.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+      },
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
+    },
+    {
+      "path": "modules/knowledge/internal/build/plan.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
+      },
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
+    },
+    {
+      "path": "modules/knowledge/internal/build/embedding_plan.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+      },
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/execute.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+      },
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/dispatch.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+      },
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
+    },
+    {
+      "path": "modules/knowledge/internal/extract/views.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
+      },
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
+    },
+    {
+      "path": "modules/knowledge/internal/source/material.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
+      },
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
+    },
+    {
+      "path": "modules/knowledge/migrations/009_execution_ownership.sql",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原任务执行/独立提取批待根GitLab。"
+      },
+      "blocker": "待编译或同文件尚有partial职责；见逐项函数。"
+    },
+    {
+      "path": "modules/knowledge/migrations/010_model_dispatch_proof.sql",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "待根GitLab统一来源集成与生成/readonly编译检查。"
+      },
+      "blocker": "待CI或同文件partial职责；见函数逐项。"
     },
     {
       "path": "modules/knowledge/internal/snapshot_archive.go",
@@ -685,156 +1035,156 @@
     {
       "id": "knowledge.LoadRuntime",
       "path": "modules/knowledge/internal/runtime/bootstrap.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "bf29364",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第四批有界真实源/启动清单核验源码待根GitLab生成、readonly build/vet/gofmt及完整check；未本机执行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.PutIndexConfig",
       "path": "modules/knowledge/internal/config/config.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "知识继续实施首批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.ReadIndexConfig",
       "path": "modules/knowledge/internal/config/config.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "知识继续实施首批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.HandlePublication",
       "path": "modules/knowledge/internal/events/publication.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "c686488",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "知识继续实施第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；本机未运行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.CreateBuild",
       "path": "modules/knowledge/internal/build/create.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
       "id": "knowledge.FetchPublishedSource",
       "path": "modules/knowledge/internal/source/content.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "26ee466",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "知识继续实施第二批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；本机未运行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，未提前implemented/verified。"
     },
     {
       "id": "knowledge.ListExtractableAssets",
       "path": "modules/knowledge/internal/source/media.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "26ee466",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "知识继续实施第二批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；本机未运行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，未提前implemented/verified。"
     },
     {
       "id": "knowledge.CreateExtraction",
       "path": "modules/knowledge/internal/extract/create.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "partial：根已确认新明确批准build对失败cache intent的完整费用证明/免费恢复/新owner CAS规则，下一批实写；当前仍保守沿原intent。"
     },
     {
       "id": "knowledge.ExecuteExtraction",
-      "path": "modules/knowledge/internal/extract/create.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/knowledge/internal/extract/execute.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
       },
-      "blocker": null
+      "blocker": "partial：真实正常/当前结果/失败元数据已写；owner只读恢复观察与失败cache新批准规则继续。"
     },
     {
       "id": "knowledge.ExtractPdfText",
       "path": "modules/knowledge/internal/extract/pdf.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
       },
-      "blocker": null
+      "blocker": "待GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.ExtractImageDescription",
       "path": "modules/knowledge/internal/extract/image.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "5328558",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码待GitLab。"
       },
-      "blocker": null
+      "blocker": "待CI；提取创建和执行缓存未齐。"
     },
     {
       "id": "knowledge.ExtractVideoMetadata",
       "path": "modules/knowledge/internal/extract/video.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "视频及原文视图源码待GitLab。"
       },
-      "blocker": null
+      "blocker": "待GitLab编译。"
     },
     {
       "id": "knowledge.NormalizeSource",
       "path": "modules/knowledge/internal/chunk/normalize.go",
-      "state": "implemented",
-      "implementationCommit": "92f883d9e4b311620f1e25eefb5c88941b483293",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": "纯规则实现已提交；JSON 与 git diff --check 通过；check_docs 因根结构登记缺口失败；本机无 Go/gofmt，未编译或行为验收"
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": "本机无 Go/gofmt；未在 VPS 编译"
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
       "id": "knowledge.SplitChunks",
       "path": "modules/knowledge/internal/chunk/split.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "bf29364",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "第四批有界真实源/启动清单核验源码待根GitLab生成、readonly build/vet/gofmt及完整check；未本机执行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.WriteStagingChunks",
@@ -850,13 +1200,13 @@
     {
       "id": "knowledge.NewIndexRuntime",
       "path": "modules/knowledge/internal/index/staging.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
       },
-      "blocker": null
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
     },
     {
       "id": "knowledge.WithIndexRuntime",
@@ -927,46 +1277,46 @@
     {
       "id": "knowledge.ReadGeneration",
       "path": "modules/knowledge/internal/index/staging.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
       "id": "knowledge.BuildLexicalIndex",
       "path": "modules/knowledge/internal/index/lexical.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "bde10a9",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "整篇来源上下文/机器前缀隔离/完整检索文本真实BPE源码待根GitLab生成和编译。"
       },
-      "blocker": null
+      "blocker": "待GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.TokenizeText",
       "path": "modules/knowledge/internal/index/lexical.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "46d3260",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "第五批源码待根GitLab生成/readonly build/vet/gofmt与完整check。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.RequestEmbeddings",
       "path": "modules/knowledge/internal/index/embedding.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "a913dc1",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "稳定模型语义源码待GitLab。"
       },
-      "blocker": null
+      "blocker": "待GitLab。"
     },
     {
       "id": "knowledge.StoreEmbeddings",
@@ -993,57 +1343,57 @@
     {
       "id": "knowledge.ValidateBuild",
       "path": "modules/knowledge/internal/build/validate.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
-      "id": "knowledge.validatePublication",
-      "path": "modules/knowledge/internal/build/validate.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "id": "knowledge.ValidatePublication",
+      "path": "modules/knowledge/internal/index/publication.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
       "id": "knowledge.ActivateBuild",
       "path": "modules/knowledge/internal/build/activate.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
       "id": "knowledge.CancelBuild",
       "path": "modules/knowledge/internal/build/cancel.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
       "id": "knowledge.RetireDocumentIndex",
       "path": "modules/knowledge/internal/index/retire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
       "id": "knowledge.NormalizeQuery",
@@ -1136,24 +1486,24 @@
     {
       "id": "knowledge.RerankCandidates",
       "path": "modules/knowledge/internal/search/rerank.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
       },
-      "blocker": null
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
     },
     {
       "id": "knowledge.requestRerank",
       "path": "modules/knowledge/internal/search/rerank.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
       },
-      "blocker": null
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
     },
     {
       "id": "knowledge.SelectContext",
@@ -1288,15 +1638,15 @@
       "blocker": null
     },
     {
-      "id": "knowledge.authorizeAdmin",
+      "id": "knowledge.AuthorizeAdmin",
       "path": "modules/knowledge/internal/admin/read.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "知识继续实施首批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机运行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.beginAdminRead",
@@ -1311,58 +1661,58 @@
     },
     {
       "id": "knowledge.ConsumeInbox",
-      "path": "modules/knowledge/internal/events/inbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/knowledge/internal/index/inbox.go",
+      "state": "blocked",
+      "implementationCommit": "46d3260",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第五批源码待根GitLab生成/readonly build/vet/gofmt与完整check。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.ConsumeEvents",
       "path": "modules/knowledge/internal/events/inbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "c686488",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "知识继续实施第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；本机未运行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.PublishOutbox",
       "path": "modules/knowledge/internal/events/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "c686488",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "知识继续实施第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；本机未运行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.RecoverBuildLeases",
       "path": "modules/knowledge/internal/runtime/recovery.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
       "id": "knowledge.CollectRetiredIndexes",
       "path": "modules/knowledge/internal/runtime/gc.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
       "id": "knowledge.RedactDiagnostics",
@@ -1378,13 +1728,13 @@
     {
       "id": "knowledge.ReadSections",
       "path": "modules/knowledge/internal/search/sections.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "视频及原文视图源码待GitLab。"
       },
-      "blocker": null
+      "blocker": "待GitLab编译。"
     },
     {
       "id": "knowledge.AcquireBarrier",
@@ -1444,35 +1794,35 @@
     {
       "id": "knowledge.LoadAdminOverview",
       "path": "modules/knowledge/ui/src/views/OverviewView.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实UI源码待Node22 GitLab类型检查与构建。"
       },
-      "blocker": null
+      "blocker": "待CI，不提前implemented/verified。"
     },
     {
       "id": "knowledge.SubmitPrimaryEdit",
       "path": "modules/knowledge/ui/src/views/EditView.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实UI源码待Node22 GitLab类型检查与构建。"
       },
-      "blocker": null
+      "blocker": "待CI，不提前implemented/verified。"
     },
     {
       "id": "knowledge.EnrichChunkContext",
       "path": "modules/knowledge/internal/chunk/context.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "partial：整篇/冻结语义/正常新SSE链真实，完整模型原结果恢复仍待根当前snapshot消费。"
       },
-      "blocker": null
+      "blocker": "partial：整篇/冻结语义/正常新SSE链真实，完整模型原结果恢复仍待根当前snapshot消费。"
     },
     {
       "id": "knowledge.InspectEvidence",
@@ -1488,13 +1838,13 @@
     {
       "id": "knowledge.CreateQueryEmbedding",
       "path": "modules/knowledge/internal/search/query-embedding.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": "a913dc1",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": "稳定模型语义源码待GitLab。"
       },
-      "blocker": null
+      "blocker": "待GitLab。"
     },
     {
       "id": "knowledge.acquireQueryFlight",
@@ -1510,112 +1860,112 @@
     {
       "id": "knowledge.DescribeAttachment",
       "path": "modules/knowledge/internal/extract/attachment.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "5328558",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码待GitLab。"
       },
-      "blocker": null
+      "blocker": "待CI；提取创建和执行缓存未齐。"
     },
     {
       "id": "knowledge.RunWorker",
       "path": "modules/knowledge/internal/runtime/worker.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "partial：1+3真实平台循环已装配，根新TypedWorkerJobsClient/jobTypes生产方筛选尚待共享源码；不能靠本地丢弃已领取类型。"
       },
-      "blocker": null
+      "blocker": "partial：1+3真实平台循环已装配，根新TypedWorkerJobsClient/jobTypes生产方筛选尚待共享源码；不能靠本地丢弃已领取类型。"
     },
     {
       "id": "knowledge.main",
       "path": "modules/knowledge/cmd/knowledge/main.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
       },
-      "blocker": null
+      "blocker": "待GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.BuildApplication",
       "path": "modules/knowledge/internal/app/wire.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "partial：控制/快照、重建quote、UI静态服务与恢复激活回执未齐；当前严格拒绝缺handler容器。"
       },
-      "blocker": null
+      "blocker": "partial：控制/快照、重建quote、UI静态服务与恢复激活回执未齐；当前严格拒绝缺handler容器。"
     },
     {
       "id": "knowledge.Serve",
       "path": "modules/knowledge/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
       },
-      "blocker": null
+      "blocker": "待GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.Shutdown",
       "path": "modules/knowledge/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
       },
-      "blocker": null
+      "blocker": "待GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.Health",
       "path": "modules/knowledge/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
       },
-      "blocker": null
+      "blocker": "待GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.Ready",
       "path": "modules/knowledge/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
       },
-      "blocker": null
+      "blocker": "partial：控制/快照、完整worker/提取及UI静态服务未齐，必要入口门禁拒绝完整容器。"
     },
     {
       "id": "knowledge.NewOperationHandlers",
       "path": "modules/knowledge/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
       },
-      "blocker": null
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
     },
     {
       "id": "knowledge.jsonOperation",
       "path": "modules/knowledge/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "26ee466",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "知识继续实施第二批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；本机未运行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，未提前implemented/verified。"
     },
     {
       "id": "knowledge.operationContext",
@@ -1631,79 +1981,79 @@
     {
       "id": "knowledge.writeResult",
       "path": "modules/knowledge/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "state": "blocked",
+      "implementationCommit": "26ee466",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "知识继续实施第二批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；本机未运行Go。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab，未提前implemented/verified。"
     },
     {
       "id": "knowledge.mountModuleUI",
       "path": "modules/knowledge/ui/src/main.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "真实UI源码待Node22 GitLab类型检查与构建。"
       },
-      "blocker": null
+      "blocker": "待CI，不提前implemented/verified。"
     },
     {
       "id": "knowledge.InvokeModel",
-      "path": "modules/knowledge/internal/runtime/model_client.go",
+      "path": "modules/knowledge/internal/model/client.go",
       "state": "blocked",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "implementationCommit": "e660552",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
       },
-      "blocker": "当前真实结果与同一原键桥接待本批GitLab，后续整体知识执行链继续集成。"
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
     },
     {
       "id": "knowledge.NewModelRuntime",
-      "path": "modules/knowledge/internal/runtime/model_client.go",
+      "path": "modules/knowledge/internal/model/client.go",
       "state": "blocked",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "implementationCommit": "e660552",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
       },
-      "blocker": "当前真实结果与同一原键桥接待本批GitLab，后续整体知识执行链继续集成。"
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
     },
     {
       "id": "knowledge.WithModelRuntime",
-      "path": "modules/knowledge/internal/runtime/model_client.go",
-      "state": "verified",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "path": "modules/knowledge/internal/model/client.go",
+      "state": "blocked",
+      "implementationCommit": "b241838",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-18 自建GitLab pipeline60：生成261、foundation262、content-media263、ai264、前端265全部success；所有Go模块readonly build/vet/gofmt和go test、完整make check通过，public-site Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收；未跑真实业务/模型/部署。"
+        "state": "not_run",
+        "evidence": "ID/签名/行为不变，包拆分后待重新GitLab。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab。"
     },
     {
       "id": "knowledge.CompletedOutput",
-      "path": "modules/knowledge/internal/runtime/model_client.go",
+      "path": "modules/knowledge/internal/model/client.go",
       "state": "blocked",
-      "implementationCommit": "d344a37aaea3df0783ba9babae21b3db8f91768c",
+      "implementationCommit": "e660552",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
       },
-      "blocker": "当前真实结果与同一原键桥接待本批GitLab，后续整体知识执行链继续集成。"
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
     },
     {
       "id": "knowledge.ExecuteBuild",
       "path": "modules/knowledge/internal/build/execute.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "e660552",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
       },
-      "blocker": null
+      "blocker": "partial：真实完整正常链及模型当前结果已写；owner只读恢复观察、失败提取cache费用证明闭包继续。"
     },
     {
       "id": "knowledge.EstimateRebuildPlan",
@@ -1729,25 +2079,1092 @@
     },
     {
       "id": "knowledge.BindAdmissionPermit",
-      "path": "modules/knowledge/internal/runtime/model_client.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "path": "modules/knowledge/internal/model/client.go",
+      "state": "blocked",
+      "implementationCommit": "b241838",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": "ID/签名/行为不变，包拆分后待重新GitLab。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab。"
+    },
+    {
+      "id": "knowledge.validateConfiguredSpace",
+      "path": "modules/knowledge/internal/config/config.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.OpenRepository",
+      "path": "modules/knowledge/internal/index/repository.go",
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
+      "verification": {
+        "state": "not_run",
+        "evidence": "知识继续实施首批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机运行Go。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.BeginIndexWrite",
+      "path": "modules/knowledge/internal/index/repository.go",
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
+      "verification": {
+        "state": "not_run",
+        "evidence": "知识继续实施首批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机运行Go。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.ReadConfig",
+      "path": "modules/knowledge/internal/index/repository.go",
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
+      "verification": {
+        "state": "not_run",
+        "evidence": "知识继续实施首批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机运行Go。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.ReadOperationReceipt",
+      "path": "modules/knowledge/internal/index/repository.go",
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
+      "verification": {
+        "state": "not_run",
+        "evidence": "知识继续实施首批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机运行Go。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.SaveOperationReceipt",
+      "path": "modules/knowledge/internal/index/repository.go",
+      "state": "blocked",
+      "implementationCommit": "13d53c7",
+      "verification": {
+        "state": "not_run",
+        "evidence": "知识继续实施首批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机运行Go。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.QueueBuild",
+      "path": "modules/knowledge/internal/build/create.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.DispatchBuild",
+      "path": "modules/knowledge/internal/build/create.go",
+      "state": "blocked",
+      "implementationCommit": "a5944f7",
+      "verification": {
+        "state": "not_run",
+        "evidence": "原构建恢复与生产请求代次字段源码待根GitLab。"
+      },
+      "blocker": "待CI，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.scanAssetSources",
+      "path": "modules/knowledge/internal/source/media.go",
+      "state": "blocked",
+      "implementationCommit": "26ee466",
+      "verification": {
+        "state": "not_run",
+        "evidence": "知识继续实施第二批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；本机未运行Go。"
+      },
+      "blocker": "待统一GitLab，未提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.extractableMediaType",
+      "path": "modules/knowledge/internal/source/media.go",
+      "state": "blocked",
+      "implementationCommit": "26ee466",
+      "verification": {
+        "state": "not_run",
+        "evidence": "知识继续实施第二批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；本机未运行Go。"
+      },
+      "blocker": "待统一GitLab，未提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.CancelBuildSideEffects",
+      "path": "modules/knowledge/internal/index/cancellation.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.CancelDocumentSideEffects",
+      "path": "modules/knowledge/internal/index/cancellation.go",
+      "state": "blocked",
+      "implementationCommit": "c686488",
+      "verification": {
+        "state": "not_run",
+        "evidence": "知识继续实施第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；本机未运行Go。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.validBoundedText",
+      "path": "modules/knowledge/internal/chunk/normalize.go",
+      "state": "blocked",
+      "implementationCommit": "8800855",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第四批有界真实源/启动清单核验源码待根GitLab生成、readonly build/vet/gofmt及完整check；未本机执行Go。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.canonicalizeLineEndings",
+      "path": "modules/knowledge/internal/chunk/normalize.go",
+      "state": "blocked",
+      "implementationCommit": "8800855",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第四批有界真实源/启动清单核验源码待根GitLab生成、readonly build/vet/gofmt及完整check；未本机执行Go。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.checkContext",
+      "path": "modules/knowledge/internal/chunk/normalize.go",
+      "state": "blocked",
+      "implementationCommit": "8800855",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第四批有界真实源/启动清单核验源码待根GitLab生成、readonly build/vet/gofmt及完整check；未本机执行Go。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.EnsureBuildDiskBudget",
+      "path": "modules/knowledge/internal/index/repository.go",
+      "state": "blocked",
+      "implementationCommit": "bf29364",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第四批有界真实源/启动清单核验源码待根GitLab生成、readonly build/vet/gofmt及完整check；未本机执行Go。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.ReadIndexOptions",
+      "path": "modules/knowledge/internal/admin/options.go",
+      "state": "blocked",
+      "implementationCommit": "46d3260",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五批源码待根GitLab生成/readonly build/vet/gofmt与完整check。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.optionErrorCode",
+      "path": "modules/knowledge/internal/admin/options.go",
+      "state": "blocked",
+      "implementationCommit": "46d3260",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五批源码待根GitLab生成/readonly build/vet/gofmt与完整check。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.ReadModelCatalog",
+      "path": "modules/knowledge/internal/index/catalog.go",
+      "state": "blocked",
+      "implementationCommit": "46d3260",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五批源码待根GitLab生成/readonly build/vet/gofmt与完整check。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.EmbeddingProfile",
+      "path": "modules/knowledge/internal/index/catalog.go",
+      "state": "blocked",
+      "implementationCommit": "46d3260",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第五批源码待根GitLab生成/readonly build/vet/gofmt与完整check。"
+      },
+      "blocker": "待统一GitLab，不提前implemented/verified。"
     },
     {
       "id": "knowledge.TokenizeSource",
-      "path": "modules/knowledge/internal/source/tokenize.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/knowledge/internal/model/tokenize.go",
+      "state": "blocked",
+      "implementationCommit": "bde10a9",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "整篇来源上下文/机器前缀隔离/完整检索文本真实BPE源码待根GitLab生成和编译。"
       },
-      "blocker": null
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.safeCode",
+      "path": "modules/knowledge/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实UI源码待Node22 GitLab类型检查与构建。"
+      },
+      "blocker": "待CI，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.refresh",
+      "path": "modules/knowledge/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实UI源码待Node22 GitLab类型检查与构建。"
+      },
+      "blocker": "待CI，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.createBuild",
+      "path": "modules/knowledge/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实UI源码待Node22 GitLab类型检查与构建。"
+      },
+      "blocker": "待CI，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.cancelBuild",
+      "path": "modules/knowledge/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实UI源码待Node22 GitLab类型检查与构建。"
+      },
+      "blocker": "待CI，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.afterSave",
+      "path": "modules/knowledge/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实UI源码待Node22 GitLab类型检查与构建。"
+      },
+      "blocker": "待CI，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.save",
+      "path": "modules/knowledge/ui/src/views/EditView.vue",
+      "state": "blocked",
+      "implementationCommit": "9a26e81",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实UI源码待Node22 GitLab类型检查与构建。"
+      },
+      "blocker": "待CI，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.BuildSourceBlocks",
+      "path": "modules/knowledge/internal/source/blocks.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "视频及原文视图源码待GitLab。"
+      },
+      "blocker": "待GitLab编译。"
+    },
+    {
+      "id": "knowledge.CollectSourceLeaves",
+      "path": "modules/knowledge/internal/source/blocks.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "视频及原文视图源码待GitLab。"
+      },
+      "blocker": "待GitLab编译。"
+    },
+    {
+      "id": "knowledge.WithModelOwner",
+      "path": "modules/knowledge/internal/model/journal.go",
+      "state": "blocked",
+      "implementationCommit": "dc89973",
+      "verification": {
+        "state": "not_run",
+        "evidence": "付费前空间门禁和模型原步骤持久源码待根GitLab生成/readonly build/vet/gofmt与完整check。"
+      },
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.beginModelWrite",
+      "path": "modules/knowledge/internal/model/journal.go",
+      "state": "blocked",
+      "implementationCommit": "dc89973",
+      "verification": {
+        "state": "not_run",
+        "evidence": "付费前空间门禁和模型原步骤持久源码待根GitLab生成/readonly build/vet/gofmt与完整check。"
+      },
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.BeginModelStep",
+      "path": "modules/knowledge/internal/model/journal.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.SaveModelProgress",
+      "path": "modules/knowledge/internal/model/journal.go",
+      "state": "blocked",
+      "implementationCommit": "dc89973",
+      "verification": {
+        "state": "not_run",
+        "evidence": "付费前空间门禁和模型原步骤持久源码待根GitLab生成/readonly build/vet/gofmt与完整check。"
+      },
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.CompleteModelStep",
+      "path": "modules/knowledge/internal/model/journal.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.RetrievalText",
+      "path": "modules/knowledge/internal/index/lexical.go",
+      "state": "blocked",
+      "implementationCommit": "bde10a9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "整篇来源上下文/机器前缀隔离/完整检索文本真实BPE源码待根GitLab生成和编译。"
+      },
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.ReadContextPrefixes",
+      "path": "modules/knowledge/internal/chunk/context.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.ContextSourceKey",
+      "path": "modules/knowledge/internal/chunk/context.go",
+      "state": "blocked",
+      "implementationCommit": "bde10a9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "整篇来源上下文/机器前缀隔离/完整检索文本真实BPE源码待根GitLab生成和编译。"
+      },
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.ClaimContextIntents",
+      "path": "modules/knowledge/internal/chunk/context.go",
+      "state": "blocked",
+      "implementationCommit": "bde10a9",
+      "verification": {
+        "state": "not_run",
+        "evidence": "整篇来源上下文/机器前缀隔离/完整检索文本真实BPE源码待根GitLab生成和编译。"
+      },
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.ApplyChunkContext",
+      "path": "modules/knowledge/internal/chunk/context.go",
+      "state": "blocked",
+      "implementationCommit": "93b6f4c",
+      "verification": {
+        "state": "not_run",
+        "evidence": "实际winning来源及逐项缓存源码待GitLab。"
+      },
+      "blocker": "待GitLab。"
+    },
+    {
+      "id": "knowledge.TextProfile",
+      "path": "modules/knowledge/internal/index/catalog.go",
+      "state": "blocked",
+      "implementationCommit": "93b6f4c",
+      "verification": {
+        "state": "not_run",
+        "evidence": "实际winning来源及逐项缓存源码待GitLab。"
+      },
+      "blocker": "待GitLab。"
+    },
+    {
+      "id": "knowledge.RunPDFParserChild",
+      "path": "modules/knowledge/internal/extract/pdf.go",
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
+      },
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.FindVideoBlock",
+      "path": "modules/knowledge/internal/extract/video.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "视频及原文视图源码待GitLab。"
+      },
+      "blocker": "待GitLab编译。"
+    },
+    {
+      "id": "knowledge.DownloadExtractionAsset",
+      "path": "modules/knowledge/internal/extract/source.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "视频及原文视图源码待GitLab。"
+      },
+      "blocker": "待GitLab编译。"
+    },
+    {
+      "id": "knowledge.ParsePDFPages",
+      "path": "modules/knowledge/internal/extract/pdf_worker.go",
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
+      },
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.ValidateSectionSources",
+      "path": "modules/knowledge/internal/search/source-views.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "视频及原文视图源码待GitLab。"
+      },
+      "blocker": "待GitLab编译。"
+    },
+    {
+      "id": "knowledge.ValidateSourceRange",
+      "path": "modules/knowledge/internal/search/source-views.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "视频及原文视图源码待GitLab。"
+      },
+      "blocker": "待GitLab编译。"
+    },
+    {
+      "id": "knowledge.ReadExtractionSourceView",
+      "path": "modules/knowledge/internal/source/extraction-view.go",
+      "state": "blocked",
+      "implementationCommit": "9aba9fe",
+      "verification": {
+        "state": "not_run",
+        "evidence": "视频及原文视图源码待GitLab。"
+      },
+      "blocker": "待GitLab编译。"
+    },
+    {
+      "id": "knowledge.NewRuntimeClient",
+      "path": "modules/knowledge/internal/app/wire.go",
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
+      },
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.serviceOperation",
+      "path": "modules/knowledge/internal/app/wire.go",
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
+      },
+      "blocker": "待GitLab，不提前implemented/verified。"
+    },
+    {
+      "id": "knowledge.bindSearchRuntime",
+      "path": "modules/knowledge/internal/app/wire.go",
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
+      },
+      "blocker": "partial：控制/快照、完整worker/提取及UI静态服务未齐，必要入口门禁拒绝完整容器。"
+    },
+    {
+      "id": "knowledge.assembleBackgroundTasks",
+      "path": "modules/knowledge/internal/app/wire.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "partial：完整真实worker类型筛选待根生产方/公共来源集成。"
+      },
+      "blocker": "partial：完整真实worker类型筛选待根生产方/公共来源集成。"
+    },
+    {
+      "id": "knowledge.NewApplication",
+      "path": "modules/knowledge/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "a7f9b4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": "真实main/PDF子入口及服务独立装配源码待根GitLab，未本机Go。"
+      },
+      "blocker": "partial：控制/快照、完整worker/提取及UI静态服务未齐，必要入口门禁拒绝完整容器。"
+    },
+    {
+      "id": "knowledge.SameAsset",
+      "path": "modules/knowledge/internal/extract/describe.go",
+      "state": "blocked",
+      "implementationCommit": "5328558",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码待GitLab。"
+      },
+      "blocker": "待CI；提取创建和执行缓存未齐。"
+    },
+    {
+      "id": "knowledge.DescribeResource",
+      "path": "modules/knowledge/internal/extract/describe.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "partial：真实视觉/文件/文本与冻结计划已写，完整旧调用当前结果恢复仍待根snapshot/output消费。"
+      },
+      "blocker": "partial：真实视觉/文件/文本与冻结计划已写，完整旧调用当前结果恢复仍待根snapshot/output消费。"
+    },
+    {
+      "id": "knowledge.DescriptionText",
+      "path": "modules/knowledge/internal/extract/describe.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.ContextSemanticKey",
+      "path": "modules/knowledge/internal/chunk/context.go",
+      "state": "blocked",
+      "implementationCommit": "a913dc1",
+      "verification": {
+        "state": "not_run",
+        "evidence": "稳定模型语义源码待GitLab。"
+      },
+      "blocker": "待GitLab。"
+    },
+    {
+      "id": "knowledge.FreezeContextPlan",
+      "path": "modules/knowledge/internal/chunk/context.go",
+      "state": "blocked",
+      "implementationCommit": "a913dc1",
+      "verification": {
+        "state": "not_run",
+        "evidence": "稳定模型语义源码待GitLab。"
+      },
+      "blocker": "待GitLab。"
+    },
+    {
+      "id": "knowledge.ContextResultHash",
+      "path": "modules/knowledge/internal/chunk/context.go",
+      "state": "blocked",
+      "implementationCommit": "93b6f4c",
+      "verification": {
+        "state": "not_run",
+        "evidence": "实际winning来源及逐项缓存源码待GitLab。"
+      },
+      "blocker": "待GitLab。"
+    },
+    {
+      "id": "knowledge.ReadTaskAssignment",
+      "path": "modules/knowledge/internal/index/catalog.go",
+      "state": "blocked",
+      "implementationCommit": "93b6f4c",
+      "verification": {
+        "state": "not_run",
+        "evidence": "实际winning来源及逐项缓存源码待GitLab。"
+      },
+      "blocker": "待GitLab。"
+    },
+    {
+      "id": "knowledge.ProfileModelSnapshots",
+      "path": "modules/knowledge/internal/index/catalog.go",
+      "state": "blocked",
+      "implementationCommit": "93b6f4c",
+      "verification": {
+        "state": "not_run",
+        "evidence": "实际winning来源及逐项缓存源码待GitLab。"
+      },
+      "blocker": "待GitLab。"
+    },
+    {
+      "id": "knowledge.WinningModelSnapshot",
+      "path": "modules/knowledge/internal/model/provenance.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.HasCompleteResult",
+      "path": "modules/knowledge/internal/model/provenance.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.PrepareExtractionPlan",
+      "path": "modules/knowledge/internal/extract/create.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.ReadExtraction",
+      "path": "modules/knowledge/internal/extract/create.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.RecoverExtractionTasks",
+      "path": "modules/knowledge/internal/runtime/recovery.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.NewWorkerRuntime",
+      "path": "modules/knowledge/internal/runtime/worker.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.WithWorkerRuntime",
+      "path": "modules/knowledge/internal/runtime/worker.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.WithModelLease",
+      "path": "modules/knowledge/internal/model/client.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.PrepareBuildChunks",
+      "path": "modules/knowledge/internal/build/execute.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.ExecutionLeaseID",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.ApprovedJobInput",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.AdoptClaimedJob",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.SaveExecutionMirror",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.LoadExecutionRecord",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.ReadExecutionRecord",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.MirrorExecutionLease",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.ReadPaidResultRefs",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.CommitExecutionResult",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.RecordExecutionCancellation",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.ResolveTaskMemory",
+      "path": "modules/knowledge/internal/index/memory.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.CancelUnusedExtractions",
+      "path": "modules/knowledge/internal/index/extraction_cancel.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.CancelExtractionSideEffects",
+      "path": "modules/knowledge/internal/index/extraction_cancel.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.ReadJobRecovery",
+      "path": "modules/knowledge/internal/runtime/job_recovery.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "partial：需锁外有界Observe/Lookup原MG调用，不能永远只等本地旧unknown；根刚确认精确公共只读API，下一批装配。"
+    },
+    {
+      "id": "knowledge.ReadBuildPlan",
+      "path": "modules/knowledge/internal/build/plan.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.FreezeBuildPlan",
+      "path": "modules/knowledge/internal/build/plan.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.SetBuildStage",
+      "path": "modules/knowledge/internal/build/plan.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.PrepareEmbeddingPlan",
+      "path": "modules/knowledge/internal/build/embedding_plan.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.ReuseEmbeddingBatch",
+      "path": "modules/knowledge/internal/build/embedding_plan.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.CheckEmbeddingPlan",
+      "path": "modules/knowledge/internal/build/embedding_plan.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.CheckExtractionPlan",
+      "path": "modules/knowledge/internal/extract/execute.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.DispatchExtraction",
+      "path": "modules/knowledge/internal/extract/dispatch.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.BindExtractionViews",
+      "path": "modules/knowledge/internal/extract/views.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.BuildMaterialBlocks",
+      "path": "modules/knowledge/internal/source/material.go",
+      "state": "blocked",
+      "implementationCommit": "76caed2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "本批真实原任务执行与来源闭包源码，待GitLab，不提前implemented/verified。"
+      },
+      "blocker": "待根GitLab生成、格式和编译检查；未本机执行。"
+    },
+    {
+      "id": "knowledge.RecordModelObservation",
+      "path": "modules/knowledge/internal/model/journal.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.MarkModelDispatch",
+      "path": "modules/knowledge/internal/model/journal.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.CompletedText",
+      "path": "modules/knowledge/internal/model/provenance.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.FinishExecutionFailure",
+      "path": "modules/knowledge/internal/index/execution.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
+    },
+    {
+      "id": "knowledge.ReadExtractionJobState",
+      "path": "modules/knowledge/internal/extract/dispatch.go",
+      "state": "blocked",
+      "implementationCommit": "e660552",
+      "verification": {
+        "state": "not_run",
+        "evidence": "当前对象/Text与jobs owner只读须同根共享API/MG生产方来源集成GitLab；未本机检查。"
+      },
+      "blocker": "待根GitLab；必须同公共CurrentSnapshot/Text、MG真实全文producer及jobs owner readJob集成。"
     },
     {
       "id": "knowledge.ReadSnapshotArchive",
@@ -1761,5 +3178,5 @@
       "blocker": null
     }
   ],
-  "rule": "本批54项代码就绪但blocked待GitLab；包含22个既有主业务函数与32个实际内部助手，未将其记implemented/verified。NormalizeSource旧状态保留；完整执行与服务启动尚未完成。"
+  "rule": "本轮四批13个原有主业务函数源码就绪，新改及实际助手待统一GitLab保持blocked；原未改证据保留，accepted=0。三个规范化助手为旧实际函数补登记，不计新增原业务。PDF算法未接公共runner不算ExtractPdfText ready；继续剩余27原函数、完整worker/恢复/启动/UI，不在75%停止。"
 }

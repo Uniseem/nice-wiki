@@ -1,0 +1,5 @@
+ALTER TABLE export_runs ADD COLUMN kind TEXT NOT NULL DEFAULT '';
+ALTER TABLE export_runs ADD COLUMN operation_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE export_runs ADD COLUMN data_epoch TEXT NOT NULL DEFAULT '';
+ALTER TABLE export_runs ADD COLUMN result_json TEXT NOT NULL DEFAULT '';
+ALTER TABLE export_runs ADD COLUMN source_watermark INTEGER NOT NULL DEFAULT 0;

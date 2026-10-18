@@ -16,6 +16,14 @@ type OperationContext = platform.OperationContext
 
 type Runtime struct {
 	DB                          *sql.DB
+ DataRoot string
+ Gateway *gen.ModelGatewayClient
+ InferenceClient platform.GatewayClient
+ Memory *gen.MemoryClient
+ Jobs *gen.JobsClient
+ Media *gen.MediaClient
+ BaseLanguage string
+ Validators map[string]func(json.RawMessage) error
 	Content                     *gen.ContentClient
 	ValidatePublicationResult   func(json.RawMessage) error
 	WriteWindow                 platform.WriteWindowConfig
@@ -29,6 +37,11 @@ func NewIndexRuntime(runtime Runtime) (Runtime, error) {
 		return Runtime{}, err
 	}
 	runtime.ValidatePublicationResult = validator
+ runtime.Validators=map[string]func(json.RawMessage)error{}
+ for _,name:=range []string{"MemoryResolveContextResult","GatewayReadModelsResult","GatewayReadProfilesResult","GatewayReadTaskAssignmentsResult","GatewayTokenizeTextResult","JobsReadJobResult","JobsCreateJobResult","JobsCancelJobResult","JobsAcknowledgeEventResult","ContentReadPublishedRevisionResult","ContentReadPublicTreeResult","MediaReadAssetResult","PublicationChangedPayload","PublicationWithdrawnPayload"} {
+  validate,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),name)
+  if err!=nil { return Runtime{},err };runtime.Validators[name]=validate
+ }
 	return runtime, nil
 }
 func WithIndexRuntime(ctx context.Context, runtime Runtime) context.Context {
@@ -285,7 +298,7 @@ func ReadGeneration(ctx context.Context, tx *sql.Tx, record BuildRecord) ([]Gene
 			return nil, "", platform.NewError(platform.CodeIntegrityError, false, "词项长度不一致")
 		}
 		expected := make(map[string]int)
-		for _, term := range TokenizeText(chunk.Text) {
+		for _, term := range TokenizeText(RetrievalText(chunk)) {
 			expected[term]++
 		}
 		expectedRaw, _ := platform.CanonicalJSON(expected)

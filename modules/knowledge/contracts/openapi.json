@@ -176,6 +176,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "尚未配置入库模型与空间；不返回伪造默认配置",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [],
@@ -2136,6 +2146,101 @@
         }
       }
     },
+    "/v1/index-options": {
+      "get": {
+        "operationId": "readIndexOptions",
+        "summary": "读取知识管理真实选项",
+        "description": "供现有配置和手工构建选择真实档位、完整空间和发布引用，不接受用户手填hash/epoch",
+        "x-handler": "knowledge.ReadIndexOptions",
+        "x-permission": "knowledge.manage",
+        "responses": {
+          "200": {
+            "description": "真实安全选项；单一权威不可达明确unavailable，不捏造空目录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadIndexOptionsResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}/recovery": {
+      "post": {
+        "operationId": "readJobRecovery",
+        "summary": "读取原知识任务恢复证明",
+        "x-handler": "knowledge.ReadJobRecovery",
+        "x-permission": "service",
+        "x-timeout-ms": 5000,
+        "description": "仅jobs纯服务。path/body jobId一致；核原inputRef/root/epoch/worker/fence/attempt及持久取消事实，未知不重派。",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/ReadJobRecoveryInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "真实原任务证明，paidResultRefs始终为完整数组",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadJobRecoveryResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/snapshots/{snapshotId}/archive": {
       "get": {
         "operationId": "readSnapshotArchive",
@@ -2237,11 +2342,74 @@
       "ContentValidatePublicationsResult": {
         "$ref": "../../content/contracts/types.json#/$defs/ValidatePublicationsResult"
       },
+      "GatewayReadModelsResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/ReadModelsResult"
+      },
+      "GatewayReadProfilesResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/ReadProfilesResult"
+      },
+      "JobsCreateJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CreateJobResult"
+      },
+      "JobsCancelJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/RequestCancelResult"
+      },
+      "ContentReadPublishedRevisionResult": {
+        "$ref": "../../content/contracts/types.json#/$defs/ReadPublishedRevisionResult"
+      },
+      "PublicationChangedPayload": {
+        "$ref": "../../content/contracts/types.json#/$defs/PublicationChangedPayload"
+      },
+      "PublicationWithdrawnPayload": {
+        "$ref": "../../content/contracts/types.json#/$defs/PublicationWithdrawnPayload"
+      },
+      "MediaReadAssetResult": {
+        "$ref": "../../media/contracts/types.json#/$defs/ReadAssetResult"
+      },
+      "JobsAcknowledgeEventResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/AcknowledgeEventResult"
+      },
+      "ContentReadPublicTreeResult": {
+        "$ref": "../../content/contracts/types.json#/$defs/ReadPublicTreeResult"
+      },
+      "GatewayTokenizeTextResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/TokenizeTextResult"
+      },
+      "SiteConfigReadSiteConfigResult": {
+        "$ref": "../../site-config/contracts/types.json#/$defs/ReadSiteConfigResult"
+      },
+      "GatewayReadTaskAssignmentsResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/ReadTaskAssignmentsResult"
+      },
+      "JobsClaimJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/ClaimJobResult"
+      },
+      "JobsStartJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/StartJobResult"
+      },
+      "JobsHeartbeatJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/HeartbeatJobResult"
+      },
+      "JobsCheckLeaseResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CheckLeaseResult"
+      },
+      "JobsCompleteJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CompleteJobResult"
+      },
+      "JobsFailJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/FailJobResult"
+      },
+      "MemoryResolveContextResult": {
+        "$ref": "../../memory/contracts/types.json#/$defs/ResolveContextResult"
+      },
       "GetInvocationResult": {
         "$ref": "../../model-gateway/contracts/types.json#/$defs/GetInvocationResult"
       },
       "LookupInvocationResult": {
         "$ref": "../../model-gateway/contracts/types.json#/$defs/LookupInvocationResult"
+      },
+      "JobsReadJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/ReadJobResult"
       }
     }
   },
@@ -2250,7 +2418,28 @@
     "CancelInvocationResult",
     "StreamEvent",
     "ContentValidatePublicationsResult",
+    "GatewayReadModelsResult",
+    "GatewayReadProfilesResult",
+    "JobsCreateJobResult",
+    "JobsCancelJobResult",
+    "ContentReadPublishedRevisionResult",
+    "PublicationChangedPayload",
+    "PublicationWithdrawnPayload",
+    "MediaReadAssetResult",
+    "JobsAcknowledgeEventResult",
+    "ContentReadPublicTreeResult",
+    "GatewayTokenizeTextResult",
+    "SiteConfigReadSiteConfigResult",
+    "GatewayReadTaskAssignmentsResult",
+    "JobsClaimJobResult",
+    "JobsStartJobResult",
+    "JobsHeartbeatJobResult",
+    "JobsCheckLeaseResult",
+    "JobsCompleteJobResult",
+    "JobsFailJobResult",
+    "MemoryResolveContextResult",
     "GetInvocationResult",
-    "LookupInvocationResult"
+    "LookupInvocationResult",
+    "JobsReadJobResult"
   ]
 }

@@ -173,12 +173,9 @@
           ],
           "purpose": "严格匿名输入校验",
           "steps": [
-            "body2048 allowlist",
-            "page-view首次加载sendBeacon一次，navigation-click独立",
-            "来源仅解析合法域名，不含path/query",
-            "延迟0..60000",
-            "已知crawler由服务端UA内存过滤",
-            "没有统计cookie"
+            "原2048字节由公共入口一次控制，不把重编码大小冒充原大小；结构数值范围由严格schema校验。",
+            "事件仅page-view/navigation-click；来源仅合法ASCII域名，不含路径、端口、查询、IP或凭据。",
+            "已知crawler由服务端内存过滤，无统计cookie。"
           ],
           "errors": [
             {
@@ -278,74 +275,6 @@
       "purpose": "IP+User-Agent+当日随机盐访客匿名hash；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "analytics.HashDayToken",
-          "name": "HashDayToken",
-          "signature": "func HashDayToken(ctx context.Context, op OperationContext, in HashDayTokenInput) (HashDayTokenResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "调用取消与deadline；不得携带正文到日志",
-              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
-              "type": "HashDayTokenInput",
-              "description": "IP+User-Agent+当日随机盐访客匿名hash；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "HashDayTokenResult",
-              "description": "IP+User-Agent+当日随机盐访客匿名hash成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "IP+User-Agent+当日随机盐访客匿名hash",
-          "steps": [
-            "只信可信proxy解析peer",
-            "User-Agent仅内存规范化",
-            "HMAC每日随机独立salt/IP/UA/site",
-            "只存daily hash，不存原IP/UA",
-            "日盐每天更换第二天无法关联"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "condition": "PRIVACY_KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 503,
-              "retryable": true,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            }
-          ],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "anonymous",
-            "rule": "anonymous ingress内部"
-          },
-          "concurrency": "salt每日轮换；不跨日关联",
-          "idempotency": "same day/token同hash",
-          "dependencies": [],
-          "resources": [
-            "本地secret日盐容器，入口可信peer中间件"
-          ],
-          "contract": "reference"
-        },
-        {
           "id": "analytics.RedactAuditMetadata",
           "name": "RedactAuditMetadata",
           "signature": "func RedactAuditMetadata(ctx context.Context, op OperationContext, in RedactAuditMetadataInput) (RedactAuditMetadataResult, error)",
@@ -385,9 +314,9 @@
           ],
           "purpose": "输出允许元数据",
           "steps": [
-            "按action白名单仅字段revision/fromState/toState/count",
-            "未知字段直接拒绝而非保留",
-            "不截取正文摘要"
+            "动作必须固定registry登记；metadata≤2048字节、严格UTF8 JSON对象。",
+            "仅revision/count非负int64和登记状态fromState/toState，拒重复/未知/null/浮点/尾随内容，不取原文摘要。",
+            "canonical UTF8安全编码；未知或错误返回零SafeMetadata，不输出输入内容。"
           ],
           "errors": [
             {
@@ -405,7 +334,9 @@
           },
           "concurrency": "纯函数，≤4096bytes",
           "idempotency": "同metadata白名单同结果",
-          "dependencies": [],
+          "dependencies": [
+            "analytics.auditStateAllowed"
+          ],
           "resources": [
             "审计动作登记表"
           ],
@@ -474,6 +405,38 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "analytics.auditStateAllowed",
+          "name": "auditStateAllowed",
+          "signature": "func auditStateAllowed(state string) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "审计/持久参考支持：auditStateAllowed",
+          "steps": [
+            "仅承认机器合同AuditMetadataV1登记的状态闭集，不接受原文。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_AUDIT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service鉴权生产者"
+          },
+          "concurrency": "纯函数，不通过日志修复非法payload",
+          "idempotency": "同audit同结果",
+          "dependencies": [],
+          "resources": [
+            "根contracts/errors.json"
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -522,14 +485,11 @@
           ],
           "purpose": "匿名HTTP接收",
           "steps": [
-            "JS sendBeacon每page加载一次",
-            "验证字段",
-            "内存filter已知UA crawler",
-            "trusted peer+UA日盐hash",
-            "本地GeoIP国家",
-            "来源仅domain",
-            "队列满记漏数后204",
-            "原IP/UA不持久不log"
+            "浏览器公共路由由portal转POST /v1/internal/beacons；固定portal纯服务身份签全部正文，直接analytics公共入口缺可信元数据失败关闭。",
+            "原公开正文入口2048字节，内部正文4096字节；严格结构边界一次验证；正文dataEpoch必须等于可信op。",
+            "ValidateBeacon仅核业务事件/来源域语义；每site当前分钟3000、有界队列4096，超限只计漏数回204。",
+            "已知crawler只内存过滤；同一可信ReportingTimeZone日盐hash/离线国家/时延桶后只保允许字段。",
+            "不读代理头，不持久原IP/UA；GeoIP缺库未知ZZ；队列满不暴露排队结果。"
           ],
           "errors": [
             {
@@ -561,8 +521,7 @@
             "analytics.HashDayToken",
             "analytics.ClassifyCrawler",
             "analytics.LookupCountry",
-            "analytics.BucketLatency",
-            "analytics.CheckPrivacyFields"
+            "analytics.BucketLatency"
           ],
           "resources": [],
           "contract": "binding"
@@ -614,10 +573,9 @@
           ],
           "purpose": "批量持久匿名条目",
           "steps": [
-            "每5秒取≤500",
-            "事务insert ignore beaconId",
-            "每条只保留分桶允许字段",
-            "失败保留队列最多5秒然后漏数计数"
+            "单flush互斥，每批最多500，insert ignore真实beaconId；只对实际新增行计Persisted。",
+            "新增行影响的UTC小时与可信本地日各自更新beacon_period_watermarks，不用全局beacons修订使历史桶失效。",
+            "漏数即使空队列也同事务持久；事务失败条目最多内存保留5秒，超期计漏数；不记录payload。"
           ],
           "errors": [
             {
@@ -644,7 +602,10 @@
           },
           "concurrency": "单flush worker lease；不记录丢弃payload",
           "idempotency": "beaconId唯一幂等",
-          "dependencies": [],
+          "dependencies": [
+            "analytics.advanceWatermark",
+            "analytics.beginWrite"
+          ],
           "resources": [
             "私有SQLite"
           ],
@@ -697,9 +658,10 @@
           ],
           "purpose": "精确重算封闭小时桶",
           "steps": [
-            "选择hour范围当前inbox",
-            "按document/locale group count并dayHash去重",
-            "事务替换该hour派生聚合及watermark"
+            "可信本域worker注入JobExecutionInput与不可变SourceWatermark，HTTP不得自报。",
+            "锁外CheckLease，事务内当前epoch/同job/worker/fence/attempt/expiry；当前period来源必须等原输入，改变则STALE_RESULT，新输入另计划。",
+            "完整已封闭UTC小时按document/locale count与dailyHash distinct，时延分桶；同事务替换桶/真实水位/outbox/原结果，提交前再核镜像截止。",
+            "超过原明细30天且缺原聚合失败关闭，保留历史真实聚合不重建0。"
           ],
           "errors": [
             {
@@ -726,7 +688,13 @@
           },
           "concurrency": "关闭小时后保留24h允许补到；事务replace不会累计重复",
           "idempotency": "hour/sourceWatermark幂等",
-          "dependencies": [],
+          "dependencies": [
+            "analytics.checkAggregateLease",
+            "analytics.verifyAggregateLease",
+            "analytics.readAggregate",
+            "analytics.saveAggregate",
+            "analytics.enqueueAggregate"
+          ],
           "resources": [
             "私有SQLite"
           ],
@@ -772,11 +740,10 @@
           ],
           "purpose": "按站点日聚合",
           "steps": [
-            "按站点IANA时区日边界",
-            "明细同dailyvisitorHash distinct得UV",
-            "group views/UV/热门文档语言/sourceDomain/country/语言分布",
-            "AI Markdown crawler计数独立不混真人",
-            "日汇总长期保存"
+            "唯一可信ReportingTimeZone必须非空且等任务timezone，DST以AddDate日历日完整封闭边界。",
+            "可信worker注入真实执行与不可变来源水位；锁外CheckLease/事务内fence及来源CAS，迟到变化新输入不改旧输入。",
+            "document/locale总UV在所有维度间distinct；source/country维度另表，不SUM维度UV；维度最多100000否则事务失败。",
+            "完整替换日总量/维度与原结果/outbox/真实修订；提交前核租约镜像；原明细已过保留而缺原结果不可重建0。"
           ],
           "errors": [
             {
@@ -804,10 +771,118 @@
           "concurrency": "日分界与DST用IANA时区固定配置revision",
           "idempotency": "day/timezone/sourceWatermark幂等",
           "dependencies": [
-            "analytics.AggregateHourly"
+            "analytics.checkAggregateLease",
+            "analytics.verifyAggregateLease",
+            "analytics.readAggregate",
+            "analytics.saveAggregate",
+            "analytics.enqueueAggregate"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "analytics.enqueueAggregate",
+          "name": "enqueueAggregate",
+          "signature": "func enqueueAggregate(tx *sql.Tx, op OperationContext, revision int64, day, kind string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：enqueueAggregate",
+          "steps": [
+            "与聚合同事务写平台outbox，真实修订；事件只经jobs。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "platform.EnqueueEvent"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.readAggregate",
+          "name": "readAggregate",
+          "signature": "func readAggregate(ctx context.Context, tx *sql.Tx, kind, key string, expected int64, out any) (bool, int64, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：readAggregate",
+          "steps": [
+            "读取对应period来源水位，必须等不可变输入；同已聚合水位返回真实原结果，较新来源要求新任务。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.saveAggregate",
+          "name": "saveAggregate",
+          "signature": "func saveAggregate(ctx context.Context, tx *sql.Tx, kind, key string, source int64, result any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：saveAggregate",
+          "steps": [
+            "与聚合替换/outbox同事务持久来源水位和真实结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -856,10 +931,8 @@
           ],
           "purpose": "规范查询范围",
           "steps": [
-            "RFC3339含zone",
-            "from<to",
-            "最大366日",
-            "按[begin,end)且默认7日"
+            "RFC3339含zone转UTC，左闭右开from<to；省略终点使用当前时间，省略起点用终点前7日。",
+            "MaxDays=0表示366；显式只能1..366，范围超过拒绝，不做整数溢出或静默截断。"
           ],
           "errors": [
             {
@@ -878,6 +951,38 @@
           "concurrency": "纯函数",
           "idempotency": "同range同结果",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.pageInterval",
+          "name": "pageInterval",
+          "signature": "func pageInterval(ctx context.Context, op OperationContext, rt *Runtime, in QueryPageStatisticsInput) (time.Time, time.Time, string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：pageInterval",
+          "steps": [
+            "UTC完整小时或唯一可信部署报表时区完整日历桶，默认7日；日模式按AddDate处理DST，未知时区不可用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [
+            "analytics.ValidateDateRange"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -928,10 +1033,10 @@
           ],
           "purpose": "访问汇总查询",
           "steps": [
-            "check stats.read",
-            "validate range",
-            "只读派生小时/日聚合",
-            "附漏数与去重访次解释"
+            "生成边界一次核stats.read，内部只取受信本域runtime。",
+            "读取真实SQLite一致快照及已聚合pages水位/真实漏数；hour只完整UTC小时，day只唯一部署报表时区日历桶，缺配置不可用。",
+            "默认最近7完整日/168完整UTC小时；显式边界必须对齐，day最多366日历日支持DST；输出实际fromUTC/toUTC/granularity。",
+            "日报UV从独立总表读取，不求和source/country维度distinct；上限10000行超预算错误，不截断。"
           ],
           "errors": [
             {
@@ -957,8 +1062,9 @@
           "concurrency": "SQLite快照读，最多1000聚合行分页",
           "idempotency": "GET幂等",
           "dependencies": [
-            "identity:checkAuthorization",
-            "analytics.ValidateDateRange"
+            "analytics.runtimeFrom",
+            "analytics.pageInterval",
+            "analytics.readPageSnapshot"
           ],
           "resources": [],
           "contract": "binding"
@@ -1003,9 +1109,10 @@
           ],
           "purpose": "审计分页",
           "steps": [
-            "验audit.read",
-            "签名cursor绑定filters/epoch",
-            "limit20 max100按seq稳定分页"
+            "生成边界一次核audit.read；limit默认20最大100。",
+            "复用平台SignCursor/VerifyCursor固定scope，绑定稳定subject/session及修订/site/epoch/action/limit，不绑每次proof expiry。",
+            "首次固定真实seq上界与保留锚；按seq升序keyset，不混入后来追加。锚变化、过期或身份筛选变化STALE_RESULT，不跳过被删页。",
+            "可选from/to必须同现，规范UTC固定区间纳入游标绑定与SQL筛选；不每页用当前时刻重算默认日期。"
           ],
           "errors": [
             {
@@ -1031,7 +1138,9 @@
           "concurrency": "快照读；不跨域查原正文",
           "idempotency": "GET幂等",
           "dependencies": [
-            "identity:checkAuthorization"
+            "analytics.runtimeFrom",
+            "analytics.storageError",
+            "analytics.ValidateDateRange"
           ],
           "resources": [],
           "contract": "binding"
@@ -1076,9 +1185,10 @@
           ],
           "purpose": "读取单条审计",
           "steps": [
-            "验audit.read",
-            "读取safe字段",
-            "计算本条与prev链接一致性，异常标false而不悄悄修复"
+            "生成边界一次核audit.read；同一真实快照读当前安全记录及最近前驱或保留链锚。",
+            "V1链hash使用UTF8前hash十六进制串拼canonical payload，排除自身hash/previousHash，内部metadata参与hash但不作为原文返回。",
+            "hash格式损坏INTEGRITY_ERROR；合法格式的hash或前驱不符返回chainValid=false，不修复。",
+            "读取真实hash_schema_version及来源事实；先按原始存储payload核链，再只输出严格安全metadata，异常省略并chainValid=false。"
           ],
           "errors": [
             {
@@ -1104,65 +1214,23 @@
           "concurrency": "只读",
           "idempotency": "GET幂等",
           "dependencies": [
-            "analytics.ComputeAuditHash",
-            "identity:checkAuthorization"
+            "analytics.runtimeFrom",
+            "analytics.ComputeAuditHash"
           ],
           "resources": [],
           "contract": "binding"
         },
         {
-          "id": "analytics.QueryUsageStatistics",
-          "name": "QueryUsageStatistics",
-          "signature": "func QueryUsageStatistics(ctx context.Context, op OperationContext, in QueryUsageStatisticsInput) (QueryUsageStatisticsResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "调用取消与deadline；不得携带正文到日志",
-              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
-              "type": "QueryUsageStatisticsInput",
-              "description": "费用汇总查询；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "QueryUsageStatisticsResult",
-              "description": "费用汇总查询成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "费用汇总查询",
+          "id": "analytics.readPageSnapshot",
+          "name": "readPageSnapshot",
+          "signature": "func readPageSnapshot(ctx context.Context, tx *sql.Tx, op OperationContext, in QueryPageStatisticsInput, begin, end time.Time, location *time.Location) (QueryPageStatisticsResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：readPageSnapshot",
           "steps": [
-            "验stats.read",
-            "range/class校验",
-            "读取派生汇总与最后对账水位",
-            "显示可能有事件延迟"
+            "同快照读取真实已聚合水位/漏数与完整小时或日总表，10000行预算，空集合只来自真实库。"
           ],
           "errors": [
-            {
-              "code": "FORBIDDEN",
-              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
-              "httpStatus": 403,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
             {
               "code": "VALIDATION",
               "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
@@ -1173,16 +1241,14 @@
           ],
           "sideEffects": [],
           "authorization": {
-            "permission": "stats.read",
-            "rule": "stats.read"
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
           },
-          "concurrency": "只读快照，不作允许模型调用的实时决策",
-          "idempotency": "GET幂等",
-          "dependencies": [
-            "identity:checkAuthorization"
-          ],
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [],
           "resources": [],
-          "contract": "binding"
+          "contract": "reference"
         }
       ]
     },
@@ -1231,10 +1297,9 @@
           ],
           "purpose": "校验审计allowlist",
           "steps": [
-            "action/resultCode注册枚举",
-            "资源只接受不透明ID/修订",
-            "拒body/message/IP/token",
-            "时间允许±5min"
+            "只接受固定动作/生产者归属，origin仅由已核HTTP或EventEnvelope提供的内部字段，不改op.CallerService。",
+            "实时模式原主体必须等于当前可信主体且发生时间±5min；历史允许过去原事实，不允许未来超过5min。",
+            "不透明audit/resource/actor引用、成功OK或兼容SUCCESS/公共错误码；不接任意message。"
           ],
           "errors": [
             {
@@ -1305,9 +1370,9 @@
           ],
           "purpose": "计算审计完整性链",
           "steps": [
-            "JSON字段规范排序",
-            "SHA256(previousHash||canonicalJSON)",
-            "排除链外本地传输时间"
+            "V1固定payload字段auditId/actorId/action/resourceId/resultCode/occurredAt及内部safeMetadata字段metadata（空亦保留）；排除链自身hash和previousHash。",
+            "SHA256(UTF8(previousHash十六进制串)||canonicalJSON(payload))；纯函数，不含本地链外接收时间。",
+            "V2额外完整涵盖schemaVersion/siteId/producer/actorKind/sourceOperationId/originEpoch；版本超过2失败，不改V1原链。"
           ],
           "errors": [
             {
@@ -1376,9 +1441,10 @@
           ],
           "purpose": "追加安全审计",
           "steps": [
-            "服务生产者鉴权",
-            "校验/redact",
-            "事务锁链尾并insert唯一auditId/prevHash/hash"
+            "固定action→producer只允许已验证原owner；历史actorKind/occurredAt/sourceOperationId三字段同现，必须纯服务SubjectID==CallerService，原actorId显式提供。",
+            "旧无三字段分支仍actorId==当前可信主体；部分组合拒绝，不复用过期portal proof，不拿服务主体假冒原用户。",
+            "严格元数据白名单，V2 canonical涵盖原producer/site/epoch/actorKind/sourceOperation/time与结果；HTTP旧SUCCESS标准化OK，V1旧hash只读不改。",
+            "共享appendTrustedAudit在业务事务追加唯一auditId/prevHash/hash；同原事实回原结果，异原事实CONFLICT。生产者异步只能原事务outbox→jobs→消费，不改成直连旁路。"
           ],
           "errors": [
             {
@@ -1406,12 +1472,86 @@
           "concurrency": "单链append事务，禁止更新原审计",
           "idempotency": "auditId+payloadHash幂等",
           "dependencies": [
-            "analytics.ValidateAudit",
-            "analytics.RedactAuditMetadata",
-            "analytics.ComputeAuditHash"
+            "analytics.runtimeFrom",
+            "analytics.normalizeAuditFact",
+            "analytics.appendTrustedAudit"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "analytics.appendTrustedAudit",
+          "name": "appendTrustedAudit",
+          "signature": "func appendTrustedAudit(ctx context.Context, op OperationContext, fact trustedAuditFact, envelope *platform.EventEnvelope) (AppendAuditResult, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "审计/持久参考支持：appendTrustedAudit",
+          "steps": [
+            "同事务平台ClaimInbox与追加原事实；已处理信封不重新插入被保留期清掉的旧记录。",
+            "唯一auditId原摘要不同CONFLICT；链尾和保留锚、hash与全来源事实同事务；固定原事实重放只返回旧真实结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_AUDIT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service鉴权生产者"
+          },
+          "concurrency": "纯函数，不通过日志修复非法payload",
+          "idempotency": "同audit同结果",
+          "dependencies": [
+            "analytics.beginWrite",
+            "analytics.ComputeAuditHash",
+            "analytics.advanceWatermark",
+            "analytics.insertAuditRecord"
+          ],
+          "resources": [
+            "根contracts/errors.json"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.insertAuditRecord",
+          "name": "insertAuditRecord",
+          "signature": "func insertAuditRecord(work context.Context, op OperationContext, tx *sql.Tx, record AuditRecord, historical bool, envelope *platform.EventEnvelope, digest string) (AppendAuditResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：insertAuditRecord",
+          "steps": [
+            "已认证安全审计事实接真实尾hash/锚，写V2原来源事实；允许调用方与保留期锚/删除同事务。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.ComputeAuditHash"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -1910,103 +2050,6 @@
           "contract": "binding"
         },
         {
-          "id": "analytics.ConsumeEvents",
-          "name": "ConsumeEvents",
-          "signature": "func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEventsInput) (ConsumeEventsResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "本域后台worker以服务身份构建的操作上下文，含当前dataEpoch",
-              "constraints": [
-                "callerService为本域",
-                "dataEpoch等于site-config当前active epoch"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "ConsumeEventsInput",
-              "description": "订阅循环参数",
-              "constraints": [
-                "必须通过公共schema",
-                "consumerId等于本域slug"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ConsumeEventsResult",
-              "description": "循环退出时的累计计数",
-              "constraints": [
-                "无error时有效"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时result无效，返回标准Problem",
-              "constraints": [
-                "只使用登记错误码",
-                "detail不含正文、密钥或IP"
-              ]
-            }
-          ],
-          "purpose": "从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认",
-          "steps": [
-            "进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连",
-            "每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未换入该epoch则不确认等待重投，否则视为旧代事件记skipped并确认",
-            "按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入",
-            "处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放",
-            "屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "jobs订阅或确认不可用；重连后续传",
-              "retryable": true
-            },
-            {
-              "code": "VALIDATION",
-              "when": "事件信封或载荷不符合登记schema；隔离并确认",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "同eventId异payloadHash；隔离报警",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "HTTP长连接jobs:subscribeEvents",
-            "调用本域登记的事件处理函数",
-            "HTTP调用jobs:acknowledgeEvent"
-          ],
-          "authorization": {
-            "permission": "service",
-            "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发"
-          },
-          "concurrency": "每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责",
-          "idempotency": "jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认",
-          "dependencies": [
-            "jobs:subscribeEvents",
-            "jobs:acknowledgeEvent",
-            "analytics.ConsumeAnalyticsEvent",
-            "analytics.ProjectQaTurn",
-            "platform.RunConsumer"
-          ],
-          "resources": [],
-          "contract": "binding"
-        },
-        {
           "id": "analytics.ProjectQaTurn",
           "name": "ProjectQaTurn",
           "signature": "func ProjectQaTurn(ctx context.Context, op OperationContext, input EventDelivery) (EventHandled, error)",
@@ -2058,9 +2101,10 @@
           ],
           "purpose": "把问答轮次事件投影为按日计数",
           "steps": [
-            "inbox按eventId+payloadHash去重",
-            "qa.turn.completed按日期/语言累加问答量、缓存命中与answerKind（answered/no_evidence/clarification/out_of_scope）；qa.turn.failed累加失败数与错误码",
-            "只保存ID、计数与分类，不保存问题正文或访客标识"
+            "生产方严格schema边界已验证；只qa v1，epoch/subject==turnId，completed.answerRevision==envelope.revision。",
+            "inbox与turn来源修订同事务：重复不写，低修订跳过，同修订不同完整来源hash冲突；更高修订先撤旧分类再应用新事实。",
+            "日界线唯一可信ReportingTimeZone；失败payload无language时内部locale空仅表示未提供，不假造用户语言。",
+            "只保存turnId、分类、时间与计数，未答引用opaque；不保存问题正文/访客身份。"
           ],
           "errors": [
             {
@@ -2083,93 +2127,38 @@
           ],
           "resources": [],
           "contract": "binding"
-        }
-      ]
-    },
-    {
-      "path": "modules/analytics/internal/export.go",
-      "kind": "handwritten",
-      "purpose": "受权限保护统计导出；同文件职责限本域以下登记函数",
-      "functions": [
+        },
         {
-          "id": "analytics.CreateExport",
-          "name": "CreateExport",
-          "signature": "func CreateExport(ctx context.Context, op OperationContext, in CreateExportInput) (CreateExportResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "调用取消与deadline；不得携带正文到日志",
-              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
-              "type": "CreateExportInput",
-              "description": "受权限保护统计导出；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "CreateExportResult",
-              "description": "受权限保护统计导出成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "受权限保护统计导出",
+          "id": "analytics.applyQaCounts",
+          "name": "applyQaCounts",
+          "signature": "func applyQaCounts(ctx context.Context, tx *sql.Tx, epoch string, fact qaTurnProjection, delta int64) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "问答统计参考支持：applyQaCounts",
           "steps": [
-            "根据kind查stats.read/audit.read",
-            "按固定watermark查询≤100000行",
-            "CSV公式危险前缀加单引号",
-            "生成私有引用24h"
+            "按真实旧/新来源分类撤旧计数或增新；撤旧必须存在正计数，否则完整性失败。"
           ],
           "errors": [
             {
-              "code": "FORBIDDEN",
-              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
-              "httpStatus": 403,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
               "code": "VALIDATION",
-              "condition": "EXPORT_LIMIT：在步骤中的对应校验或依赖失败",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
               "httpStatus": 400,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
             }
           ],
-          "sideEffects": [
-            "写私有导出文件/run"
-          ],
+          "sideEffects": [],
           "authorization": {
-            "permission": "stats.read",
-            "rule": "stats.read或audit.read"
+            "permission": "service",
+            "rule": "仅已验证入口/consumer调用，不接受客户端自报来源。"
           },
-          "concurrency": "内存最多1000行块写；文件temp fsync rename再DB记录",
-          "idempotency": "operationId/filterHash/actor幂等",
-          "dependencies": [
-            "analytics.QueryPageStatistics",
-            "analytics.QueryAudits",
-            "analytics.QueryUsageStatistics",
-            "analytics.ValidateCSVCell",
-            "analytics.CheckPrivacyFields"
+          "concurrency": "本域同事务",
+          "idempotency": "原事件来源事实绑定",
+          "dependencies": [],
+          "resources": [
+            "本域私有SQLite"
           ],
-          "resources": [],
-          "contract": "binding"
+          "contract": "reference"
         }
       ]
     },
@@ -2218,9 +2207,7 @@
           ],
           "purpose": "安全CSV单元格",
           "steps": [
-            "首字符=+@-制表符则加单引号",
-            "双引号倍写",
-            "换行逗号引号用quote包裹"
+            "首字符=+@-或tab/CR/LF加单引号；含逗号/引号/换行按CSV双引号包裹并转义，不接受客户端自定义列。"
           ],
           "errors": [
             {
@@ -2289,11 +2276,9 @@
           ],
           "purpose": "清理短期匿名行",
           "steps": [
-            "默认30天明细已按日汇总后删除",
-            "保留只含日hash的明细仍不可跨天识别人",
-            "每日随机salt替换且旧salt24h删除",
-            "日聚合长期保留",
-            "未聚合异常记漏数后删除"
+            "有界500条，仅真实30天前明细；page-view若小时/日派生来源水位未完整匹配，删前真实漏数+1不双计。",
+            "同事务删原明细/真实漏数/保留水位；不推进period水位使长期聚合失效，不清真实长期日汇总。",
+            "旧日期随机盐新日首次hash前/每分钟独立擦除control，不将原IP/UA或盐进快照。"
           ],
           "errors": [
             {
@@ -2359,9 +2344,9 @@
           ],
           "purpose": "审计保留期清理",
           "steps": [
-            "retention默认180最少30",
-            "创建删除前链锚hash",
-            "删过期记录并追加retention审计"
+            "默认180最少30，固定analytics纯服务策略或当前system.manage；只删除逐条核payload/hash/previousHash的最老连续过期前缀最多10000，乱序晚到旧事实可更久保留。",
+            "同事务写真实最后删除seq/hash锚、删该前缀并追加V2 analytics.retention安全count审计；不按时间删链中间或重算旧hash。",
+            "主体/函数/操作原回执幂等，零删除仍记录真实操作事实；原事件inbox保留避免旧事实重新插入。"
           ],
           "errors": [
             {
@@ -2389,76 +2374,48 @@
           "concurrency": "维护事务锁链，不打断链验证",
           "idempotency": "cutoff/anchor幂等",
           "dependencies": [
-            "analytics.AppendAudit"
+            "analytics.insertAuditRecord",
+            "analytics.ComputeAuditHash",
+            "analytics.readReceipt",
+            "analytics.saveReceipt",
+            "analytics.beginWrite"
           ],
           "resources": [],
           "contract": "reference"
         },
         {
-          "id": "analytics.PurgeExports",
-          "name": "PurgeExports",
-          "signature": "func PurgeExports(ctx context.Context, op OperationContext, in PurgeExportsInput) (PurgeExportsResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "调用取消与deadline；不得携带正文到日志",
-              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
-              "type": "PurgeExportsInput",
-              "description": "清理导出临时对象；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "PurgeExportsResult",
-              "description": "清理导出临时对象成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "清理导出临时对象",
+          "id": "analytics.PruneDaySalts",
+          "name": "PruneDaySalts",
+          "signature": "func PruneDaySalts(ctx context.Context, rt *Runtime, now time.Time) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：PruneDaySalts",
           "steps": [
-            "选择expiresAt≤now已ready",
-            "删除文件后markexpired",
-            "遗留文件扫描按引用回收"
+            "按可信计数当前日，擦除旧日期独立control盐/内存key，目录fsync；新日首次hash前和每分钟运行，不进快照。"
           ],
           "errors": [
             {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "condition": "STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 503,
-              "retryable": true,
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
             }
           ],
           "sideEffects": [
-            "删导出文件/状态"
+            "仅按真实journal/当前epoch执行本域私有状态"
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service worker"
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
           },
-          "concurrency": "文件/DB非单事务，重启扫描可重复补偿",
-          "idempotency": "exportId幂等",
-          "dependencies": [],
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.syncDirectory"
+          ],
           "resources": [
-            "私有对象目录"
+            "本域私有SQLite/exports对象"
           ],
           "contract": "reference"
         }
@@ -2509,9 +2466,8 @@
           ],
           "purpose": "派生事件outbox派发",
           "steps": [
-            "≤100固定eventId",
-            "向jobs.publishEvent",
-            "成功mark delivered，失败有限退避但不重复聚合"
+            "实际本域outbox用平台RunRelayBatch；只装配批次/真实runtime与private写窗口，领取/重试/隔离不复制。",
+            "返回真实Relayed数量，失败不冒接收成功。"
           ],
           "errors": [
             {
@@ -2533,7 +2489,7 @@
           "idempotency": "eventId固定",
           "dependencies": [
             "jobs:publishEvent",
-            "platform.RunRelay"
+            "platform.RunRelayBatch"
           ],
           "resources": [],
           "contract": "binding"
@@ -2979,44 +2935,44 @@
       "purpose": "Vue3模块交互：LoadStatistics；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "analytics.LoadStatistics",
-          "name": "LoadStatistics",
-          "signature": "function LoadStatistics(input: LoadStatisticsInput, signal: AbortSignal): Promise<LoadStatisticsResult>",
-          "inputs": [
-            {
-              "name": "input",
-              "type": "LoadStatisticsInput",
-              "description": "Vue3模块交互：LoadStatistics；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            },
-            {
-              "name": "signal",
-              "type": "AbortSignal",
-              "description": "界面导航及取消信号",
-              "constraints": [
-                "取消后不更新已卸载组件"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "LoadStatisticsResult",
-              "description": "Vue3模块交互：LoadStatistics成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "Problem",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "Vue3模块交互：LoadStatistics",
+          "id": "analytics.clearOverview",
+          "name": "clearOverview",
+          "signature": "function clearOverview(): void",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：clearOverview",
           "steps": [
-            "并发读取访问和费用派生统计，展示漏数/watermark/对账时间，不显示实时可花余额",
-            "处理401重新登录、403清空敏感界面",
-            "按operationId重试不重复提交"
+            "组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.createAnalyticsClient",
+            "analytics.problemText",
+            "analytics.utcInput"
+          ],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.loadOverview",
+          "name": "loadOverview",
+          "signature": "function loadOverview(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：loadOverview",
+          "steps": [
+            "组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。"
           ],
           "errors": [
             {
@@ -3042,17 +2998,125 @@
             }
           ],
           "sideEffects": [
-            "更新组件本地状态；仅明确提交动作调用已授权API"
+            "仅组件内存或明确下载动作"
           ],
           "authorization": {
             "permission": "stats.read",
-            "rule": "stats.read"
+            "rule": "菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。"
           },
-          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
-          "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [],
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.createAnalyticsClient",
+            "analytics.problemText",
+            "analytics.utcInput"
+          ],
           "resources": [
-            "analytics OpenAPI HTTP/JSON/SSE"
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.exportOverviewCSV",
+          "name": "exportOverviewCSV",
+          "signature": "function exportOverviewCSV(kind: 'pages' | 'usage'): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：exportOverviewCSV",
+          "steps": [
+            "组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.createAnalyticsClient",
+            "analytics.problemText",
+            "analytics.utcInput"
+          ],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.downloadOverviewCSV",
+          "name": "downloadOverviewCSV",
+          "signature": "function downloadOverviewCSV(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：downloadOverviewCSV",
+          "steps": [
+            "组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.createAnalyticsClient",
+            "analytics.problemText",
+            "analytics.utcInput"
+          ],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
           ],
           "contract": "reference"
         }
@@ -3064,44 +3128,44 @@
       "purpose": "Vue3模块交互：LoadAuditPage；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "analytics.LoadAuditPage",
-          "name": "LoadAuditPage",
-          "signature": "function LoadAuditPage(input: LoadAuditPageInput, signal: AbortSignal): Promise<LoadAuditPageResult>",
-          "inputs": [
-            {
-              "name": "input",
-              "type": "LoadAuditPageInput",
-              "description": "Vue3模块交互：LoadAuditPage；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            },
-            {
-              "name": "signal",
-              "type": "AbortSignal",
-              "description": "界面导航及取消信号",
-              "constraints": [
-                "取消后不更新已卸载组件"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "LoadAuditPageResult",
-              "description": "Vue3模块交互：LoadAuditPage成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "Problem",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "Vue3模块交互：LoadAuditPage",
+          "id": "analytics.clearAudit",
+          "name": "clearAudit",
+          "signature": "function clearAudit(): void",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：clearAudit",
           "steps": [
-            "按允许action/日期查询安全审计，403清除已加载列表，游标换epoch重置",
-            "处理401重新登录、403清空敏感界面",
-            "按operationId重试不重复提交"
+            "组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "audit.read",
+            "rule": "界面只显示能力；实际审计读/导出由服务即时audit.read核验。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.createAnalyticsClient",
+            "analytics.problemText",
+            "analytics.utcInput"
+          ],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.loadAudit",
+          "name": "loadAudit",
+          "signature": "function loadAudit(next?: boolean): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：loadAudit",
+          "steps": [
+            "组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。"
           ],
           "errors": [
             {
@@ -3127,17 +3191,177 @@
             }
           ],
           "sideEffects": [
-            "更新组件本地状态；仅明确提交动作调用已授权API"
+            "仅组件内存或明确下载动作"
           ],
           "authorization": {
             "permission": "audit.read",
-            "rule": "audit.read"
+            "rule": "界面只显示能力；实际审计读/导出由服务即时audit.read核验。"
           },
-          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
-          "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [],
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.createAnalyticsClient",
+            "analytics.problemText",
+            "analytics.utcInput"
+          ],
           "resources": [
-            "analytics OpenAPI HTTP/JSON/SSE"
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.readAuditDetail",
+          "name": "readAuditDetail",
+          "signature": "function readAuditDetail(id: string): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：readAuditDetail",
+          "steps": [
+            "组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "audit.read",
+            "rule": "界面只显示能力；实际审计读/导出由服务即时audit.read核验。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.createAnalyticsClient",
+            "analytics.problemText",
+            "analytics.utcInput"
+          ],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.exportAuditCSV",
+          "name": "exportAuditCSV",
+          "signature": "function exportAuditCSV(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：exportAuditCSV",
+          "steps": [
+            "组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "audit.read",
+            "rule": "界面只显示能力；实际审计读/导出由服务即时audit.read核验。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.createAnalyticsClient",
+            "analytics.problemText",
+            "analytics.utcInput"
+          ],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.downloadAuditCSV",
+          "name": "downloadAuditCSV",
+          "signature": "function downloadAuditCSV(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：downloadAuditCSV",
+          "steps": [
+            "组件自身输入/原状态动作，旧请求和导出读取有独立AbortController；权限失败清已加载数据，卸载不更新。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "audit.read",
+            "rule": "界面只显示能力；实际审计读/导出由服务即时audit.read核验。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.createAnalyticsClient",
+            "analytics.problemText",
+            "analytics.utcInput"
+          ],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
           ],
           "contract": "reference"
         }
@@ -3184,9 +3408,9 @@
           ],
           "purpose": "Vue3模块交互：DownloadAuthorizedExport",
           "steps": [
-            "重新校验导出权限并下载私有CSV，24小时过期要求重建，同actor绑定",
-            "处理401重新登录、403清空敏感界面",
-            "按operationId重试不重复提交"
+            "kind取本次create真实回执或当前明确输入，不默认pages；按固定当前权限路由请求受控CSV。",
+            "responseType stream逐片最多32MiB，长度不符失败，不用无界blob；完整读完后交浏览器下载，不声称用户最终保存完成。",
+            "401/403清数据，过期要求显式新建，卸载取消读取，URL交浏览器后及时revoke。"
           ],
           "errors": [
             {
@@ -3223,6 +3447,448 @@
           "dependencies": [],
           "resources": [
             "analytics OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.LoadStatistics",
+          "name": "LoadStatistics",
+          "signature": "function LoadStatistics(input: LoadStatisticsInput, signal: AbortSignal): Promise<LoadStatisticsResult>",
+          "inputs": [
+            {
+              "name": "input",
+              "type": "LoadStatisticsInput",
+              "description": "Vue3模块交互：LoadStatistics；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "LoadStatisticsResult",
+              "description": "Vue3模块交互：LoadStatistics成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "Problem",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "Vue3模块交互：LoadStatistics",
+          "steps": [
+            "同源端口并发读访问和费用投影；访问失败返回错误，费用独立不可用用明确usageProblem，不以空/0冒费用成功。",
+            "显示真实漏数/page水位/usage水位/最后完整对账，不显示实时可花余额；分桶访次累加不称独立访客。",
+            "401/403清已加载敏感数据，旧请求/卸载取消，不自动重试写动作。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "stats.read"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [
+            "analytics.isAccessFailure",
+            "analytics.problemCode"
+          ],
+          "resources": [
+            "analytics OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.LoadAuditPage",
+          "name": "LoadAuditPage",
+          "signature": "function LoadAuditPage(input: LoadAuditPageInput, signal: AbortSignal): Promise<LoadAuditPageResult>",
+          "inputs": [
+            {
+              "name": "input",
+              "type": "LoadAuditPageInput",
+              "description": "Vue3模块交互：LoadAuditPage；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            },
+            {
+              "name": "signal",
+              "type": "AbortSignal",
+              "description": "界面导航及取消信号",
+              "constraints": [
+                "取消后不更新已卸载组件"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "LoadAuditPageResult",
+              "description": "Vue3模块交互：LoadAuditPage成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "Problem",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "Vue3模块交互：LoadAuditPage",
+          "steps": [
+            "按允许action及完整from/to日期对查询；page≤100，游标绑定真实身份/权限/epoch/过滤，stale重载。",
+            "401/403清列表和详情，链校验真实展示；原文只安全字段文本，不渲染HTML。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "audit.read",
+            "rule": "audit.read"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "analytics OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.problemCode",
+          "name": "problemCode",
+          "signature": "function problemCode(error: unknown): string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：problemCode",
+          "steps": [
+            "只抽取安全公共错误code，不把原错误详情/输入输出到界面。"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.isAccessFailure",
+          "name": "isAccessFailure",
+          "signature": "function isAccessFailure(error: unknown): boolean",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：isAccessFailure",
+          "steps": [
+            "识别401/403权限失效以清组件已加载数据。"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.problemCode"
+          ],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.problemText",
+          "name": "problemText",
+          "signature": "function problemText(error: unknown): string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：problemText",
+          "steps": [
+            "固定中文安全错误说明，保留stale/过期/预算语义。"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.problemCode"
+          ],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.moneyText",
+          "name": "moneyText",
+          "signature": "function moneyText(micros: number): string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：moneyText",
+          "steps": [
+            "USD整数micros以BigInt拆6位小数，不当实时预算。"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.utcInput",
+          "name": "utcInput",
+          "signature": "function utcInput(value: string): string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：utcInput",
+          "steps": [
+            "明确UTC分钟输入，拒日期自动归一化，发送规范RFC3339。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.createAnalyticsClient",
+          "name": "createAnalyticsClient",
+          "signature": "function createAnalyticsClient(api: ModuleAPIClient): AnalyticsClient",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：createAnalyticsClient",
+          "steps": [
+            "每挂载实例闭包保存同源端口与真实导出kind，不保存凭据或默认未知kind。"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域UI参考支持，不在浏览器授予权限；实际调用按stats.read或audit.read当前入口核验。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [
+            "analytics.LoadStatistics",
+            "analytics.LoadAuditPage",
+            "analytics.FetchAuditRecord",
+            "analytics.RequestExport",
+            "analytics.DownloadAuthorizedExport"
+          ],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.FetchAuditRecord",
+          "name": "FetchAuditRecord",
+          "signature": "function FetchAuditRecord(id: string, signal: AbortSignal): Promise<AuditResult>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：FetchAuditRecord",
+          "steps": [
+            "读真实安全审计详情与链校验，不导入别域业务数据。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.RequestExport",
+          "name": "RequestExport",
+          "signature": "function RequestExport(input: { kind: ExportKind; from: string; to: string; operationId: string }, signal: AbortSignal): Promise<ExportResult>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：RequestExport",
+          "steps": [
+            "选择固定stats/audit当前权限路由，原operationId未知响应续接；kind只取原回执。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
           ],
           "contract": "reference"
         }
@@ -3372,10 +4038,42 @@
           },
           "concurrency": "本地read-onlyDB，启动读version",
           "idempotency": "同DB版本/IP同结果",
-          "dependencies": [],
+          "dependencies": [
+            "analytics.trustedPeer"
+          ],
           "resources": [
             "离线GeoIP数据库"
           ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.trustedPeer",
+          "name": "trustedPeer",
+          "signature": "func trustedPeer(peer string) (netip.Addr, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "匿名统计参考支持：trustedPeer",
+          "steps": [
+            "仅标准netip.ParseAddr，拒端口及zone；Unmap用于HMAC/离线查询统一表示。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "由已验证本域入口调用；不接受客户端自报信任状态。"
+          },
+          "concurrency": "本域锁/事务与可信窗口",
+          "idempotency": "同实际输入保持原事实",
+          "dependencies": [],
+          "resources": [],
           "contract": "reference"
         }
       ]
@@ -3425,11 +4123,9 @@
           ],
           "purpose": "AI Markdown访问独立计数",
           "steps": [
-            "public-site service身份",
-            "family登记",
-            "成功.md请求按文档语言family日计数",
-            "不传IP/UA/prompt",
-            "与浏览器PV/UV表分离"
+            "固定public-site纯服务身份，family必须登记；成功2xx Markdown读取才计数。",
+            "按可信ReportingTimeZone文档/语言/family日计数，与真人PV/UV分离；空时区不可用。",
+            "subject/function/operation复合幂等，同原输入原回执，异原输入CONFLICT；计数/回执/真实水位同事务。"
           ],
           "errors": [
             {
@@ -3456,11 +4152,79 @@
           },
           "concurrency": "事务按crawlerBeaconId去重",
           "idempotency": "crawlerBeaconId幂等",
-          "dependencies": [],
+          "dependencies": [
+            "analytics.readReceipt",
+            "analytics.saveReceipt",
+            "analytics.advanceWatermark"
+          ],
           "resources": [
             "public-site Markdown完成响应"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "analytics.readReceipt",
+          "name": "readReceipt",
+          "signature": "func readReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, function, digest string, out any) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "匿名统计参考支持：readReceipt",
+          "steps": [
+            "subject/function/operation精确绑定原请求哈希/epoch，返回原持久结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "由已验证本域入口调用；不接受客户端自报信任状态。"
+          },
+          "concurrency": "本域锁/事务与可信窗口",
+          "idempotency": "同实际输入保持原事实",
+          "dependencies": [
+            "analytics.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.saveReceipt",
+          "name": "saveReceipt",
+          "signature": "func saveReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, function, digest string, result any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "匿名统计参考支持：saveReceipt",
+          "steps": [
+            "与计数同事务持久原回执，不以外部副作用猜结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "由已验证本域入口调用；不接受客户端自报信任状态。"
+          },
+          "concurrency": "本域锁/事务与可信窗口",
+          "idempotency": "同实际输入保持原事实",
+          "dependencies": [
+            "analytics.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3509,10 +4273,10 @@
           ],
           "purpose": "热门文档与答不出问题联动",
           "steps": [
-            "校验stats.read",
-            "热门文档按语言读取页面统计",
-            "问答量、缓存命中率与无答案比率读取本域ProjectQaTurn投影；问题正文仍只在qa权限页面查看",
-            "显示统计水位与事件延迟说明"
+            "入口stats.read已验证；额外即时identity qa.manage核权，ID跳转正文仍在qa资源权限页面。",
+            "只完整可信日历日与DST边界；同快照热门文档按实际daily总表汇总，访次为各日去重累加不是跨日独立访客。",
+            "同快照返回真实completed/failed/cache/unanswered分子分母及page/qa水位与最近投影时间，0样本不伪报比率。",
+            "无答案只opaque引用，超过10000/计数整数预算失败不截断；来源延迟用不同水位明确。"
           ],
           "errors": [
             {
@@ -3538,7 +4302,9 @@
           "concurrency": "两源固定watermark附更新时间",
           "idempotency": "GET幂等",
           "dependencies": [
-            "analytics.QueryPageStatistics"
+            "analytics.pageInterval",
+            "analytics.readPageSnapshot",
+            "identity:checkAuthorization"
           ],
           "resources": [],
           "contract": "binding"
@@ -3601,7 +4367,8 @@
             "analytics.BuildApplication",
             "analytics.Serve",
             "analytics.Shutdown",
-            "platform.RunService"
+            "platform.RunService",
+            "analytics.NewRuntimeClient"
           ],
           "resources": [],
           "contract": "binding"
@@ -3653,7 +4420,7 @@
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数，并以服务身份经jobs:createSchedule幂等登记本域系统默认schedule；维护期间暂停业务循环",
-            "完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。"
+            "复用公共LoadServiceIdentity；纯服务严格消费readSiteConfig真实siteId，按epoch打开私有库。ReportingTimeZone只取受信部署，空不假设UTC。只读路由真实接通，其他能力未齐Ready仍失败关闭。"
           ],
           "errors": [
             {
@@ -3698,6 +4465,17 @@
             "platform.ReadRuntime",
             "platform.NewSiteConfigClient",
             "platform.NewRequestValidator",
+            "site-config:readSiteConfig",
+            "platform.LoadServiceIdentity",
+            "analytics.OpenStore",
+            "analytics.readSiteIdentity",
+            "analytics.NewApplication",
+            "analytics.BindReportingTimeZone",
+            "analytics.RunPageBackground",
+            "analytics.SchedulePageAggregates",
+            "jobs:createJob",
+            "analytics.BackgroundOperation",
+            "analytics.RecoverExports",
             "platform.NewSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
             "platform.SnapshotManager.WriteWindow",
@@ -3709,6 +4487,70 @@
             "site-config.readRuntimeState（本域site-config读取自身权威）"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "analytics.NewRuntimeClient",
+          "name": "NewRuntimeClient",
+          "signature": "func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：NewRuntimeClient",
+          "steps": [
+            "复用公共身份加载及运行权威客户端，不复制密钥/信任锚解析。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [
+            "platform.LoadServiceIdentity"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.readSiteIdentity",
+          "name": "readSiteIdentity",
+          "signature": "func readSiteIdentity(ctx context.Context, client *gen.SiteConfigClient, epoch string, validate func(json.RawMessage) error) (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：readSiteIdentity",
+          "steps": [
+            "纯服务消费生产方严格ReadSiteConfigResult完整schema，仅取真实siteId，不造默认身份。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [
+            "site-config:readSiteConfig"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3778,7 +4620,8 @@
             "analytics.Shutdown",
             "platform.WatchRuntime",
             "platform.BuildOperationContext",
-            "platform.WriteProblem"
+            "platform.WriteProblem",
+            "analytics.RunPageBackground"
           ],
           "resources": [
             "本域OpenAPI路由"
@@ -3841,7 +4684,9 @@
           },
           "concurrency": "sync.Once启动drain；其他调用等待同一次结果",
           "idempotency": "重复Shutdown返回同一次关闭结果；已closed成功",
-          "dependencies": [],
+          "dependencies": [
+            "analytics.DrainBeacons"
+          ],
           "resources": [
             "本域barrier安全点函数",
             "本域journal/outbox flush"
@@ -3963,6 +4808,543 @@
             "site-config.readRuntimeState（site-config本域自身读取）"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "analytics.NewApplication",
+          "name": "NewApplication",
+          "signature": "func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtime platform.SiteConfigClient, storage *analytics.Runtime, identity *gen.IdentityClient) (*Application, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：NewApplication",
+          "steps": [
+            "完整生成路由通过公共严格服务边界核签名/委托/权限/epoch；控制只DP、crawler只public-site，未实现路由明确不可用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.QueryAudits",
+          "name": "server.QueryAudits",
+          "signature": "func (s *server) QueryAudits(w http.ResponseWriter, r *http.Request, params gen.QueryAuditsParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "受信HTTP转换：QueryAudits",
+          "steps": [
+            "生成边界已严格校验；只用可信op绑定actor/epoch与本域句柄，输出实际JSON，no-store。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_CURSOR：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "audit.read",
+            "rule": "audit.read"
+          },
+          "concurrency": "快照读；不跨域查原正文",
+          "idempotency": "GET幂等",
+          "dependencies": [
+            "analytics.QueryAudits"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.ReadAudit",
+          "name": "server.ReadAudit",
+          "signature": "func (s *server) ReadAudit(w http.ResponseWriter, r *http.Request, auditID string, params gen.ReadAuditParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "受信HTTP转换：ReadAudit",
+          "steps": [
+            "生成边界已严格校验；只用可信op绑定actor/epoch与本域句柄，输出实际JSON，no-store。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "NOT_FOUND",
+              "condition": "AUDIT_NOT_FOUND：在步骤中的对应校验或依赖失败",
+              "httpStatus": 404,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "audit.read",
+            "rule": "audit.read"
+          },
+          "concurrency": "只读",
+          "idempotency": "GET幂等",
+          "dependencies": [
+            "analytics.ReadAudit"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.QueryPageStatistics",
+          "name": "server.QueryPageStatistics",
+          "signature": "func (s *server) QueryPageStatistics(w http.ResponseWriter, r *http.Request, params gen.QueryPageStatisticsParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "受信HTTP转换：QueryPageStatistics",
+          "steps": [
+            "生成边界已严格校验；只用可信op绑定actor/epoch与本域句柄，输出实际JSON，no-store。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "stats.read"
+          },
+          "concurrency": "SQLite快照读，最多1000聚合行分页",
+          "idempotency": "GET幂等",
+          "dependencies": [
+            "analytics.QueryPageStatistics"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.AppendAudit",
+          "name": "server.AppendAudit",
+          "signature": "func (s *server) AppendAudit(w http.ResponseWriter, r *http.Request, params gen.AppendAuditParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "固定来源审计HTTP转换",
+          "steps": [
+            "生成边界已严格校验；只用可信op绑定actor/epoch与本域句柄，输出实际JSON，no-store。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "NOT_FOUND",
+              "condition": "AUDIT_NOT_FOUND：在步骤中的对应校验或依赖失败",
+              "httpStatus": 404,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "audit.read",
+            "rule": "audit.read"
+          },
+          "concurrency": "只读",
+          "idempotency": "GET幂等",
+          "dependencies": [
+            "analytics.AppendAudit"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.IngestTrustedBeacon",
+          "name": "server.IngestTrustedBeacon",
+          "signature": "func (s *server) IngestTrustedBeacon(w http.ResponseWriter, r *http.Request, params gen.IngestTrustedBeaconParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "匿名统计参考支持：server.IngestTrustedBeacon",
+          "steps": [
+            "固定portal纯服务边界已鉴权签完整正文；不读XFF/UA头；调用内部IngestBeacon后统一204。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "由已验证本域入口调用；不接受客户端自报信任状态。"
+          },
+          "concurrency": "本域锁/事务与可信窗口",
+          "idempotency": "同实际输入保持原事实",
+          "dependencies": [
+            "analytics.IngestBeacon"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.RecordCrawlerAccess",
+          "name": "server.RecordCrawlerAccess",
+          "signature": "func (s *server) RecordCrawlerAccess(w http.ResponseWriter, r *http.Request, params gen.RecordCrawlerAccessParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "匿名统计参考支持：server.RecordCrawlerAccess",
+          "steps": [
+            "严格入口解析实际公开交付爬虫计数，调用本域持久链并输出真实结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "由已验证本域入口调用；不接受客户端自报信任状态。"
+          },
+          "concurrency": "本域锁/事务与可信窗口",
+          "idempotency": "同实际输入保持原事实",
+          "dependencies": [
+            "analytics.RecordCrawlerAccess"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.QueryContentGaps",
+          "name": "server.QueryContentGaps",
+          "signature": "func (s *server) QueryContentGaps(w http.ResponseWriter, r *http.Request, params gen.QueryContentGapsParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "问答统计参考支持：server.QueryContentGaps",
+          "steps": [
+            "严格边界已建stats权限，实际缺口查询额外核qa权限，输出真实安全统计与opaque引用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅已验证入口/consumer调用，不接受客户端自报来源。"
+          },
+          "concurrency": "本域同事务",
+          "idempotency": "原事件来源事实绑定",
+          "dependencies": [
+            "analytics.QueryContentGaps"
+          ],
+          "resources": [
+            "本域私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.QueryUsageStatistics",
+          "name": "server.QueryUsageStatistics",
+          "signature": "func (s *server) QueryUsageStatistics(w http.ResponseWriter, r *http.Request, params gen.QueryUsageStatisticsParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：server.QueryUsageStatistics",
+          "steps": [
+            "严格stats.read入口调用已有费用投影查询，返回真实投影水位/对账时间，非实时余额。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.QueryUsageStatistics"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.CreateExport",
+          "name": "server.CreateExport",
+          "signature": "func (s *server) CreateExport(w http.ResponseWriter, r *http.Request, params gen.CreateExportParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：server.CreateExport",
+          "steps": [
+            "固定stats.read入口只pages/usage。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.server.createExport"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.CreateAuditExport",
+          "name": "server.CreateAuditExport",
+          "signature": "func (s *server) CreateAuditExport(w http.ResponseWriter, r *http.Request, params gen.CreateAuditExportParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：server.CreateAuditExport",
+          "steps": [
+            "固定audit.read入口只audits，不增加额外用户流程。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.server.createExport"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.createExport",
+          "name": "server.createExport",
+          "signature": "func (s *server) createExport(w http.ResponseWriter, r *http.Request, audits bool)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：server.createExport",
+          "steps": [
+            "路由决定允许kind，严格输入与当前委托；调用真实原操作journal生成CSV并输出原结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.CreateExport"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.DownloadStatisticsExport",
+          "name": "server.DownloadStatisticsExport",
+          "signature": "func (s *server) DownloadStatisticsExport(w http.ResponseWriter, r *http.Request, exportID string, params gen.DownloadStatisticsExportParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：server.DownloadStatisticsExport",
+          "steps": [
+            "固定stats.read下载，仅pages/usage。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.server.downloadExport"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.DownloadAuditExport",
+          "name": "server.DownloadAuditExport",
+          "signature": "func (s *server) DownloadAuditExport(w http.ResponseWriter, r *http.Request, exportID string, params gen.DownloadAuditExportParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：server.DownloadAuditExport",
+          "steps": [
+            "固定audit.read下载，仅audits。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.server.downloadExport"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.server.downloadExport",
+          "name": "server.downloadExport",
+          "signature": "func (s *server) downloadExport(w http.ResponseWriter, r *http.Request, id string, audits bool)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：server.downloadExport",
+          "steps": [
+            "真实kind匹配固定当前权限路由，OpenExport核原主体/epoch/expiry/hash；no-store/nosniff/固定安全文件名受控流。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.ExportKind",
+            "analytics.OpenExport"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
         },
         {
           "id": "analytics.server.ReadSnapshotArchive",
@@ -4102,11 +5484,42 @@
           },
           "concurrency": "同DOM一个Vue实例，AbortController取消旧请求",
           "idempotency": "同DOM/buildRevision重复挂载复用实例",
-          "dependencies": [],
+          "dependencies": [
+            "analytics.createAnalyticsClient",
+            "analytics.loadOverview",
+            "analytics.loadAudit",
+            "analytics.unmountAnalytics"
+          ],
           "resources": [
             "本域已登记UI页面函数"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "analytics.unmountAnalytics",
+          "name": "unmountAnalytics",
+          "signature": "function unmountAnalytics(): void",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计UI实际支持：unmountAnalytics",
+          "steps": [
+            "统一nice-wiki:unmount取消所有控制器/监听并卸载Vue，清本域挂载实例；不清服务端事实。"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "仅组件内存或明确下载动作"
+          ],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "菜单仅显示能力；实际HTTP当前权限由服务核验，不在浏览器伪造凭据。"
+          },
+          "concurrency": "组件AbortController取消旧请求，卸载停止监听和下载读取",
+          "idempotency": "读取重复安全，导出原operationId重试",
+          "dependencies": [],
+          "resources": [
+            "portal注入同源ModuleAPIClient"
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -4167,10 +5580,9 @@
           ],
           "purpose": "主动领取并执行本域登记的持久任务",
           "steps": [
-            "进程启动后循环调用jobs:claimJob，只领取本域implementation.json jobTypes登记的类型；维护或屏障非released时暂停领取",
-            "领取后调用jobs:startJob确认开始，按jobType调用登记的执行函数；每10秒jobs:heartbeatJob续30秒租约、上报进度并读取cancelRequested",
-            "执行函数写回结果前调用jobs:checkLease核对fence仍有效；成功jobs:completeJob，失败jobs:failJob并给出可重试分类；收到取消在安全点停止并以cancelled结束",
-            "lease过期或fence不符立即停止写入；已派发的模型调用不重放，由网关结算或对账"
+            "仅装配本域登记jobTypes与platform.RunWorkerLoopWithResult；hour/day真实不可变输入执行，费用聚合/对账尚缺完整权威协议仍失败关闭，整体不得记完整ready。",
+            "OperationContext精确取原业务输入/operation/root；OnLeaseRenewed真实续租写镜像，OnCancellationObserved撤同fence。",
+            "completed/failed仅公共jobs完成/失败/取消真实成功回执计数，未知写回不计。"
           ],
           "errors": [
             {
@@ -4190,17 +5602,15 @@
           "concurrency": "每进程一个领取循环，并发不超过maxConcurrency；同一任务只由持有有效fence者写回",
           "idempotency": "jobs按jobId与fence去重；执行函数自身按输入引用幂等",
           "dependencies": [
-            "jobs:claimJob",
-            "jobs:startJob",
-            "jobs:heartbeatJob",
-            "jobs:checkLease",
-            "jobs:completeJob",
-            "jobs:failJob",
+            "analytics.aggregateJobOperation",
+            "analytics.recordAggregateLease",
+            "analytics.cancelAggregateLease",
+            "analytics.executePageAggregate",
+            "platform.RunWorkerLoopWithResult",
             "analytics.AggregateHourly",
             "analytics.AggregateDaily",
             "analytics.AggregateUsage",
-            "analytics.ReconcileUsage",
-            "platform.RunWorkerLoop"
+            "analytics.ReconcileUsage"
           ],
           "resources": [],
           "contract": "binding"
@@ -4229,6 +5639,1869 @@
       "path": "modules/analytics/web/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/internal/store.go",
+      "kind": "handwritten",
+      "purpose": "本域真实持久与只读查询支持。",
+      "functions": [
+        {
+          "id": "analytics.WithRuntime",
+          "name": "WithRuntime",
+          "signature": "func WithRuntime(ctx context.Context, runtime *Runtime) context.Context",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：WithRuntime",
+          "steps": [
+            "只在可信调用链注入本域句柄，不从HTTP反序列化。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.OpenStore",
+          "name": "OpenStore",
+          "signature": "func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.SigningKey) (*Runtime, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：OpenStore",
+          "steps": [
+            "本域私有路径平台校验，逐级fsync；SQLite WAL/FULL/FK/busy3000，单连接短事务V1迁移。",
+            "未知高版本或非空未版本化库拒绝；绑定真实siteId/epoch，不自己生成站点。inbox/outbox复用平台。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [
+            "analytics.syncDirectory",
+            "analytics.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.Runtime.Close",
+          "name": "Runtime.Close",
+          "signature": "func (rt *Runtime) Close() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：Runtime.Close",
+          "steps": [
+            "关闭一次数据库并清内存日盐，不修改权威业务记录。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [
+            "analytics.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.runtimeFrom",
+          "name": "runtimeFrom",
+          "signature": "func runtimeFrom(ctx context.Context, op OperationContext) (*Runtime, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：runtimeFrom",
+          "steps": [
+            "取可信注入句柄并检查已打开site/epoch，缺失或旧代失败。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.storageError",
+          "name": "storageError",
+          "signature": "func storageError(err error) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：storageError",
+          "steps": [
+            "复用平台IO错误归一化，不输出私有路径。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.syncDirectory",
+          "name": "syncDirectory",
+          "signature": "func syncDirectory(path, root string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域参考支持：syncDirectory",
+          "steps": [
+            "逐级目录fsync至可信dataRoot。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信入口已建op；仅执行本域site/epoch/私有存储约束。"
+          },
+          "concurrency": "纯函数",
+          "idempotency": "同range同结果",
+          "dependencies": [
+            "analytics.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.beginWrite",
+          "name": "beginWrite",
+          "signature": "func beginWrite(ctx context.Context, op OperationContext) (context.Context, *Runtime, *sql.Tx, context.CancelFunc, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "审计/持久参考支持：beginWrite",
+          "steps": [
+            "复用platform.NewWriteContext与本域site/epoch，缺窗口失败；不在本域再建屏障。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_AUDIT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service鉴权生产者"
+          },
+          "concurrency": "纯函数，不通过日志修复非法payload",
+          "idempotency": "同audit同结果",
+          "dependencies": [
+            "analytics.runtimeFrom",
+            "analytics.storageError"
+          ],
+          "resources": [
+            "根contracts/errors.json"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.advanceWatermark",
+          "name": "advanceWatermark",
+          "signature": "func advanceWatermark(ctx context.Context, tx *sql.Tx, source string) (int64, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "审计/持久参考支持：advanceWatermark",
+          "steps": [
+            "同业务事务前进真实全局修订和对应来源水位，int64上限失败。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_AUDIT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service鉴权生产者"
+          },
+          "concurrency": "纯函数，不通过日志修复非法payload",
+          "idempotency": "同audit同结果",
+          "dependencies": [
+            "analytics.storageError"
+          ],
+          "resources": [
+            "根contracts/errors.json"
+          ],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/internal/types.go",
+      "kind": "handwritten",
+      "purpose": "与业务合同一致的本域内部DTO，HTTP仍以生成schema为准。",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/migrations/schema.go",
+      "kind": "handwritten",
+      "purpose": "只内嵌本域V1真实迁移，不执行外部脚本。",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/internal/audit_events.go",
+      "kind": "handwritten",
+      "purpose": "安全审计历史事实与事件共享实现。",
+      "functions": [
+        {
+          "id": "analytics.normalizeAuditFact",
+          "name": "normalizeAuditFact",
+          "signature": "func normalizeAuditFact(ctx context.Context, op OperationContext, origin string, payload AuditRecordedPayload, historical bool) (AuditRecord, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "审计/持久参考支持：normalizeAuditFact",
+          "steps": [
+            "共用字段/来源/元数据校验，规范原时间和旧成功别名，不伪actor/epoch。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_AUDIT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service鉴权生产者"
+          },
+          "concurrency": "纯函数，不通过日志修复非法payload",
+          "idempotency": "同audit同结果",
+          "dependencies": [
+            "analytics.ValidateAudit",
+            "analytics.RedactAuditMetadata"
+          ],
+          "resources": [
+            "根contracts/errors.json"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.ConsumeAuditEvent",
+          "name": "ConsumeAuditEvent",
+          "signature": "func ConsumeAuditEvent(ctx context.Context, op OperationContext, input EventDelivery) (EventHandled, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "EventDelivery",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "EventHandled",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "消费原生产者已提交审计事实",
+          "steps": [
+            "公共订阅边界一次校验AuditRecordedPayload；Envelope类型为producer.audit-recorded/v1、subjectId=auditId、revision=1。",
+            "核payload site/epoch与可信本域一致；origin显式取已验证envelope.Producer，不重写op.CallerService。",
+            "共用normalizeAuditFact/appendTrustedAudit，ClaimInbox与追加同事务；失败不确认，重复只applied=false。"
+          ],
+          "errors": [
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "旧代事件",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写问答日计数"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅由本域ConsumeEvents调用"
+          },
+          "concurrency": "日计数行CAS",
+          "idempotency": "eventId去重",
+          "dependencies": [
+            "analytics.runtimeFrom",
+            "analytics.normalizeAuditFact",
+            "analytics.appendTrustedAudit"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/migrations/0002_origins_and_periods.sql",
+      "kind": "migration",
+      "purpose": "V2来源事实/hash版本与计数策略/period水位；旧V1 hash不改。",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/internal/beacon_privacy.go",
+      "kind": "handwritten",
+      "purpose": "可信日界线绑定与不进入快照的独立随机日盐",
+      "functions": [
+        {
+          "id": "analytics.HashDayToken",
+          "name": "HashDayToken",
+          "signature": "func HashDayToken(ctx context.Context, op OperationContext, in HashDayTokenInput) (HashDayTokenResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "HashDayTokenInput",
+              "description": "IP+User-Agent+当日随机盐访客匿名hash；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "HashDayTokenResult",
+              "description": "IP+User-Agent+当日随机盐访客匿名hash成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "IP+User-Agent+当日随机盐访客匿名hash",
+          "steps": [
+            "可信portal签名正文交付规范IP，不读XFF；日界线只取可信ReportingTimeZone，空配置不可用。",
+            "当前代次固定时区；HMAC SHA256每日独立32字节随机盐与canonical[siteId,dataEpoch,day,IP,规范UA]；UA只内存小写折叠空白。",
+            "control/visitor-YYYY-MM-DD.key为0600固定32字节盐，写fsync和目录fsync；残缺旧盐拒绝，不重造；快照不包含control。",
+            "内存跨日清旧盐，旧磁盘日盐由保留任务24h删除；原地址/UA不持久不日志。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "PRIVACY_KEY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "anonymous ingress内部"
+          },
+          "concurrency": "salt每日轮换；不跨日关联",
+          "idempotency": "same day/token同hash",
+          "dependencies": [
+            "analytics.loadDaySalt",
+            "analytics.trustedPeer",
+            "analytics.PruneDaySalts"
+          ],
+          "resources": [
+            "本地secret日盐容器，入口可信peer中间件"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.BindReportingTimeZone",
+          "name": "BindReportingTimeZone",
+          "signature": "func BindReportingTimeZone(ctx context.Context, rt *Runtime, name string, view platform.RuntimeView) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "匿名统计参考支持：BindReportingTimeZone",
+          "steps": [
+            "当前代次持久固定可信IANA日界线；首次只在running且无无法证明时区的旧匿名明细时绑定，维护或不同已绑定时区失败。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "由已验证本域入口调用；不接受客户端自报信任状态。"
+          },
+          "concurrency": "本域锁/事务与可信窗口",
+          "idempotency": "同实际输入保持原事实",
+          "dependencies": [
+            "analytics.advanceWatermark"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.loadDaySalt",
+          "name": "loadDaySalt",
+          "signature": "func loadDaySalt(root, day string) ([]byte, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "匿名统计参考支持：loadDaySalt",
+          "steps": [
+            "固定已验证日期私有control引用，随机32字节，O_EXCL/0600/文件目录fsync；残缺旧盐不重建。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "由已验证本域入口调用；不接受客户端自报信任状态。"
+          },
+          "concurrency": "本域锁/事务与可信窗口",
+          "idempotency": "同实际输入保持原事实",
+          "dependencies": [
+            "analytics.syncDirectory"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/internal/aggregate_jobs.go",
+      "kind": "handwritten",
+      "purpose": "本域统计任务输入/装配参考支持",
+      "functions": [
+        {
+          "id": "analytics.SchedulePageAggregates",
+          "name": "SchedulePageAggregates",
+          "signature": "func SchedulePageAggregates(ctx context.Context, op OperationContext) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：SchedulePageAggregates",
+          "steps": [
+            "每分钟有界扫描真实变动已封闭period及当前应计划空桶；小时封闭5分钟/本地日10分钟后计划，迟到访问新水位产生新不可变输入。",
+            "只保存本域业务输入/提交意图，不领取排队；jobs是唯一调度与租约权威。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "analytics.ensureAggregateIntent",
+            "analytics.submitAggregateIntents",
+            "analytics.admitAggregateScheduling"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.ensureAggregateIntent",
+          "name": "ensureAggregateIntent",
+          "signature": "func ensureAggregateIntent(ctx context.Context, op OperationContext, kind, key, period, zone string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：ensureAggregateIntent",
+          "steps": [
+            "同事务固定真实period/sourceWatermark/schemaVersion1/site/epoch；canonical字节构成真实ObjectRef；同输入哈希确定ID和operation/root，原输入不修改。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "analytics.beginWrite",
+            "analytics.advanceWatermark"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.submitAggregateIntents",
+          "name": "submitAggregateIntents",
+          "signature": "func submitAggregateIntents(ctx context.Context, op OperationContext) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：submitAggregateIntents",
+          "steps": [
+            "有界100原意图经jobs:createJob，固定原dedupeKey/operation/root；未知响应只用原key续接，严格生产响应校验，真实原回执CAS存入。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "jobs:createJob",
+            "analytics.backgroundOperation",
+            "analytics.beginWrite",
+            "analytics.admitAggregateScheduling"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.backgroundOperation",
+          "name": "backgroundOperation",
+          "signature": "func backgroundOperation(ctx context.Context, rt *Runtime, operation, root string, duration time.Duration) (context.Context, context.CancelFunc, OperationContext)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：backgroundOperation",
+          "steps": [
+            "清用户proof，本站纯服务，精确原操作与根，每次IO新截止；免费控制costClass空，不创造free枚举。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.aggregateJobOperation",
+          "name": "aggregateJobOperation",
+          "signature": "func aggregateJobOperation(ctx context.Context, rt *Runtime, job platform.ClaimedJob) (OperationContext, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：aggregateJobOperation",
+          "steps": [
+            "领取必须精确匹配真实本域不可变引用/type/epoch/原operation/root；未知提交回执可以真实claim绑定但不伪创建回执。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "analytics.backgroundOperation"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.recordAggregateLease",
+          "name": "recordAggregateLease",
+          "signature": "func recordAggregateLease(ctx context.Context, op OperationContext, job platform.ClaimedJob, info platform.HeartbeatInfo) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：recordAggregateLease",
+          "steps": [
+            "仅公共OnLeaseRenewed真实回执更新同job/input/op/root/worker/fence/epoch/attempt/expiry；旧fence拒绝，新真实fence可以取代旧已撤执行权。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "analytics.beginWrite"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.cancelAggregateLease",
+          "name": "cancelAggregateLease",
+          "signature": "func cancelAggregateLease(ctx context.Context, op OperationContext, job platform.ClaimedJob) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：cancelAggregateLease",
+          "steps": [
+            "只撤销同job/worker/fence/epoch；不把safePoint当用户取消，不重调CheckLease。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "analytics.beginWrite"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.checkAggregateLease",
+          "name": "checkAggregateLease",
+          "signature": "func checkAggregateLease(ctx context.Context, execution *platform.JobExecutionInput) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：checkAggregateLease",
+          "steps": [
+            "不可逆事务前锁外调用平台真实CheckLease，缺失失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.verifyAggregateLease",
+          "name": "verifyAggregateLease",
+          "signature": "func verifyAggregateLease(ctx context.Context, tx *sql.Tx, op OperationContext, execution *platform.JobExecutionInput) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：verifyAggregateLease",
+          "steps": [
+            "事务内提交前精确CAS本域持久真实租约镜像/expiry，取消/旧fence/epoch拒绝。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.executePageAggregate",
+          "name": "executePageAggregate",
+          "signature": "func executePageAggregate(ctx context.Context, rt *Runtime, execution platform.JobExecutionInput) (platform.JobExecutionResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：executePageAggregate",
+          "steps": [
+            "读取/核对原不可变字节hash/长度/本站schema/代次，按登记hour/day实际执行；不冒费用任务完成。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "analytics.AggregateHourly",
+            "analytics.AggregateDaily"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.admitAggregateScheduling",
+          "name": "admitAggregateScheduling",
+          "signature": "func admitAggregateScheduling(ctx context.Context, rt *Runtime) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "新统计任务提交前读取真实运行权威",
+          "steps": [
+            "每次外部提交前真实runtime确认当前epoch/running/非maintenance；未知或屏障关闭不发新任务。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.BackgroundOperation",
+          "name": "BackgroundOperation",
+          "signature": "func BackgroundOperation(ctx context.Context, rt *Runtime, duration time.Duration) (context.Context, context.CancelFunc, OperationContext)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：BackgroundOperation",
+          "steps": [
+            "受信启动只装配本域纯服务journal恢复上下文，不继承历史用户证明。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.backgroundOperation"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/internal/background.go",
+      "kind": "handwritten",
+      "purpose": "本域统计任务输入/装配参考支持",
+      "functions": [
+        {
+          "id": "analytics.RunPageBackground",
+          "name": "RunPageBackground",
+          "signature": "func RunPageBackground(ctx context.Context, rt *Runtime) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：RunPageBackground",
+          "steps": [
+            "本域每5秒flush/每分钟计划及公共worker并发装配，取消时等循环退出；快照safe还需公共Manager private cleanup集成，未假就绪。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "analytics.SchedulePageAggregates",
+            "analytics.FlushBeacons",
+            "analytics.RunWorker",
+            "analytics.ConsumeEvents",
+            "analytics.PublishAggregateEvents",
+            "analytics.RunRetentionBackground",
+            "analytics.runAnalyticsPeriodic",
+            "analytics.launchPageLoop"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.DrainBeacons",
+          "name": "DrainBeacons",
+          "signature": "func DrainBeacons(ctx context.Context, rt *Runtime) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "统计任务参考支持：DrainBeacons",
+          "steps": [
+            "停止新请求/后台后有界批次排空队列和漏数；仍必须真实平台写窗口，safe后拒普通业务写。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "analytics.FlushBeacons",
+            "analytics.backgroundOperation"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.RunRetentionBackground",
+          "name": "RunRetentionBackground",
+          "signature": "func RunRetentionBackground(ctx context.Context, rt *Runtime) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：RunRetentionBackground",
+          "steps": [
+            "每分钟有限50批过30天明细续清、旧盐擦除；每小时过期导出；每日180天审计前缀，满10000继续下轮，不误称每次500能跟上入口流量。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.PurgeBeacons",
+            "analytics.PurgeAuditHistory",
+            "analytics.PurgeExports",
+            "analytics.PruneDaySalts",
+            "analytics.backgroundOperation",
+            "analytics.runAnalyticsPeriodic"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.runAnalyticsPeriodic",
+          "name": "runAnalyticsPeriodic",
+          "signature": "func runAnalyticsPeriodic(ctx context.Context, rt *Runtime, millis int, run func(context.Context, OperationContext) error) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "装配本域可信操作到公共周期机制",
+          "steps": [
+            "复用lifecycle.RunRecoveryLoop的轮询/运行权威/安全窗口，域只创建每次回调可信op；不复制ticker/重试机制。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [
+            "platform.RunRecoveryLoop",
+            "analytics.backgroundOperation"
+          ],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.launchPageLoop",
+          "name": "launchPageLoop",
+          "signature": "func launchPageLoop(run func(context.Context) error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域后台回调生命周期启动装配",
+          "steps": [
+            "仅在RunPageBackground闭包启动已装配公共循环，首个明确失败取消同组并等待，错误不吞成成功；不负责领取/租约/轮询。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "按职责更新本域私有元数据；所有任务领取仅jobs"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信后台装配，不接受HTTP自报租约。"
+          },
+          "concurrency": "事务精确epoch/fence/CAS；网络租约检查在事务外",
+          "idempotency": "不可变任务输入哈希/原回执绑定",
+          "dependencies": [],
+          "resources": [
+            "私有SQLite"
+          ],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/migrations/0003_aggregate_jobs.sql",
+      "kind": "handwritten",
+      "purpose": "连续V3不可变业务任务输入与真实租约镜像",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/internal/consumer.go",
+      "kind": "handwritten",
+      "purpose": "统一jobs订阅装配；未具备费用精确协议分支保留重投",
+      "functions": [
+        {
+          "id": "analytics.ConsumeEvents",
+          "name": "ConsumeEvents",
+          "signature": "func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEventsInput) (ConsumeEventsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本域后台worker以服务身份构建的操作上下文，含当前dataEpoch",
+              "constraints": [
+                "callerService为本域",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ConsumeEventsInput",
+              "description": "订阅循环参数",
+              "constraints": [
+                "必须通过公共schema",
+                "consumerId等于本域slug"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ConsumeEventsResult",
+              "description": "循环退出时的累计计数",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认",
+          "steps": [
+            "固定consumerId analytics，平台RunConsumerWithResult接真实jobs订阅/确认，所有登记QA/费用事件保留；每次IO新可信site/epoch/op，不复用proof。",
+            "生产schema仅公共订阅边界一次验证；QA转ProjectQaTurn，重复/旧修订明确ErrEventSkipped后实际确认。",
+            "费用缺完整权威安全统计页时不确认，不能填0或猜账项修订；审计producer registry尚未装配，不计完整事件链ready。",
+            "退出返回平台真实Acknowledged/Skipped/Failed，失败未确认等待jobs重投。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs订阅或确认不可用；重连后续传",
+              "retryable": true
+            },
+            {
+              "code": "VALIDATION",
+              "when": "事件信封或载荷不符合登记schema；隔离并确认",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "同eventId异payloadHash；隔离报警",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "HTTP长连接jobs:subscribeEvents",
+            "调用本域登记的事件处理函数",
+            "HTTP调用jobs:acknowledgeEvent"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发"
+          },
+          "concurrency": "每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责",
+          "idempotency": "jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认",
+          "dependencies": [
+            "jobs:subscribeEvents",
+            "jobs:acknowledgeEvent",
+            "analytics.ProjectQaTurn",
+            "platform.RunConsumerWithResult"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/migrations/0004_qa_projection.sql",
+      "kind": "handwritten",
+      "purpose": "V4问答来源修订/日分类；旧非空未知来源汇总拒绝静默迁移",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/internal/exports.go",
+      "kind": "handwritten",
+      "purpose": "本域私有导出/保留期参考支持",
+      "functions": [
+        {
+          "id": "analytics.CreateExport",
+          "name": "CreateExport",
+          "signature": "func CreateExport(ctx context.Context, op OperationContext, in CreateExportInput) (CreateExportResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "CreateExportInput",
+              "description": "受权限保护统计导出；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "CreateExportResult",
+              "description": "受权限保护统计导出成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "受权限保护统计导出",
+          "steps": [
+            "原POST statistics:export严格pages|usage且stats.read；专用POST audit-exports严格audits且audit.read，边界即时当前权限，域不重用过期proof。",
+            "固定当前SQLite读快照和对应来源水位，最多100000行/32MiB；固定列白名单不含正文/IP/凭据，公式前缀防护和CSV标准转义。",
+            "preparing原操作输入hash/actor/site/epoch/原24h期限先持久；完整part fsync与目录fsync后prepared存真实ref/result，再rename目录fsync后ready。prepared后重试不查询重算原字节。",
+            "重试同操作同输入原结果，异输入CONFLICT，过期GONE要求新操作；保留过期幂等墓碑，不因删文件再授24h。未知旧export记录拒绝静默迁移。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "EXPORT_LIMIT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "写私有导出文件/run"
+          ],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "stats.read或audit.read"
+          },
+          "concurrency": "内存最多1000行块写；文件temp fsync rename再DB记录",
+          "idempotency": "operationId/filterHash/actor幂等",
+          "dependencies": [
+            "analytics.ValidateDateRange",
+            "analytics.pageInterval",
+            "analytics.streamExportRows",
+            "analytics.installPreparedExport",
+            "analytics.beginWrite"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "analytics.writeCSVRecord",
+          "name": "writeCSVRecord",
+          "signature": "func writeCSVRecord(ctx context.Context, op OperationContext, writer *exportWriter, cells []string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：writeCSVRecord",
+          "steps": [
+            "固定安全列逐单元公式防护/标准CSV转义，文件IO检查取消；累计字节≤32MiB，不截断成功。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.ValidateCSVCell"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.streamExportRows",
+          "name": "streamExportRows",
+          "signature": "func streamExportRows(ctx context.Context, tx *sql.Tx, op OperationContext, kind string, begin, end time.Time, writer *exportWriter) (int64, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：streamExportRows",
+          "steps": [
+            "固定SQL读快照/来源真实水位，允许列闭集不带元数据原文/正文/IP/凭据；最多100000行，未知费用不导出成0。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.writeCSVRecord"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.installPreparedExport",
+          "name": "installPreparedExport",
+          "signature": "func installPreparedExport(ctx context.Context, op OperationContext, rt *Runtime, id string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：installPreparedExport",
+          "steps": [
+            "只装已prepared完整字节与真实ObjectRef；核part或既有final完整hash，rename/目录fsync后才ready；不查询重算prepared内容。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.verifyExportFile",
+            "analytics.beginWrite",
+            "analytics.syncDirectory",
+            "analytics.exportObjectNameValid"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.verifyExportFile",
+          "name": "verifyExportFile",
+          "signature": "func verifyExportFile(path string, ref platform.ObjectRef) (*os.File, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：verifyExportFile",
+          "steps": [
+            "私有普通文件/精确ObjectRef长度/完整SHA256/32MiB上限，核后seek0供受控流，不接任意请求路径。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.OpenExport",
+          "name": "OpenExport",
+          "signature": "func OpenExport(ctx context.Context, op OperationContext, id, kind string) (*os.File, platform.ObjectRef, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：OpenExport",
+          "steps": [
+            "固定stats.read统计路由或audit.read审计路由已即时核权；存储真实kind必须与路由相容，不以未知默认pages。",
+            "当前本域site/epoch、原actor、固定24h未过期、ready状态及精确引用ID；完整长度/hash核对后才流出，不能跨主体/任意路径。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.verifyExportFile",
+            "analytics.exportObjectNameValid"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/internal/usage_queries.go",
+      "kind": "handwritten",
+      "purpose": "本域私有导出/保留期参考支持",
+      "functions": [
+        {
+          "id": "analytics.QueryUsageStatistics",
+          "name": "QueryUsageStatistics",
+          "signature": "func QueryUsageStatistics(ctx context.Context, op OperationContext, in QueryUsageStatisticsInput) (QueryUsageStatisticsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "QueryUsageStatisticsInput",
+              "description": "费用汇总查询；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "QueryUsageStatisticsResult",
+              "description": "费用汇总查询成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "费用汇总查询",
+          "steps": [
+            "只读本域已持久的账项投影、真实usage水位与最后完整对账时间；不称全站实时余额。",
+            "过滤左闭右开窗/class，同SQL快照最多10000条，USD整数精确累加且不超Money安全整数；未知费用/币种不造0或部分和。",
+            "gateway不可用仍可读已有投影；无已对账时间明确空，不伪造新鲜度。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "stats.read"
+          },
+          "concurrency": "只读快照，不作允许模型调用的实时决策",
+          "idempotency": "GET幂等",
+          "dependencies": [
+            "analytics.ValidateDateRange",
+            "analytics.runtimeFrom"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/internal/export_recovery.go",
+      "kind": "handwritten",
+      "purpose": "本域私有导出/保留期参考支持",
+      "functions": [
+        {
+          "id": "analytics.PurgeExports",
+          "name": "PurgeExports",
+          "signature": "func PurgeExports(ctx context.Context, op OperationContext, in PurgeExportsInput) (PurgeExportsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "PurgeExportsInput",
+              "description": "清理导出临时对象；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PurgeExportsResult",
+              "description": "清理导出临时对象成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "清理导出临时对象",
+          "steps": [
+            "只清真实过期原导出，私有已登记固定对象名，文件删除/目录fsync后标expired并清派生引用。",
+            "保留actor/epoch/原操作输入hash/原到期墓碑，旧操作GONE不得重新授24h；每批500有界。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "删导出文件/状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service worker"
+          },
+          "concurrency": "文件/DB非单事务，重启扫描可重复补偿",
+          "idempotency": "exportId幂等",
+          "dependencies": [
+            "analytics.exportObjectNameValid",
+            "analytics.syncDirectory",
+            "analytics.beginWrite"
+          ],
+          "resources": [
+            "私有对象目录"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.RecoverExports",
+          "name": "RecoverExports",
+          "signature": "func RecoverExports(ctx context.Context, op OperationContext) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：RecoverExports",
+          "steps": [
+            "恢复真实prepared对象，preparing仅清已登记未封存part；ready核完整hash，未知旧记录/目录对象拒绝，不假就绪。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [
+            "analytics.installPreparedExport",
+            "analytics.verifyExportFile",
+            "analytics.exportObjectNameValid"
+          ],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.ExportKind",
+          "name": "ExportKind",
+          "signature": "func ExportKind(ctx context.Context, rt *Runtime, id string) (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：ExportKind",
+          "steps": [
+            "只读真实存储kind供固定权限路由匹配，不把未知/缺失当pages。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.exportObjectNameValid",
+          "name": "exportObjectNameValid",
+          "signature": "func exportObjectNameValid(id string) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "私有导出/保留期支持：exportObjectNameValid",
+          "steps": [
+            "仅服务生成export.+完整64位hash命名，不把SQL损坏ID拼成路径。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "仅按真实journal/当前epoch执行本域私有状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "由精确权限路由/可信本域后台调用；下载必须同原主体/epoch/站点/类型且当前权限。"
+          },
+          "concurrency": "本域exportMu或短SQLite事务；文件与SQLite分别持久journal",
+          "idempotency": "原操作/输入hash/不可变文件；过期不重造授权",
+          "dependencies": [],
+          "resources": [
+            "本域私有SQLite/exports对象"
+          ],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/migrations/0005_export_journal.sql",
+      "kind": "handwritten",
+      "purpose": "V5导出原主体/类型/代次/准备安装journal；旧未知记录拒绝静默迁移",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/web/package.json",
+      "kind": "ui",
+      "purpose": "固定批准版本的独立Vue库构建/样式，不含凭据",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/web/tsconfig.json",
+      "kind": "ui",
+      "purpose": "固定批准版本的独立Vue库构建/样式，不含凭据",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/web/vite.config.ts",
+      "kind": "ui",
+      "purpose": "固定批准版本的独立Vue库构建/样式，不含凭据",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/web/src/style.css",
+      "kind": "ui",
+      "purpose": "固定批准版本的独立Vue库构建/样式，不含凭据",
       "functions": []
     },
     {
@@ -4377,7 +7650,7 @@
     },
     {
       "function": "analytics.PurgeBeacons",
-      "schedule": "每日"
+      "schedule": "每分钟有界续批；仅30天前明细"
     },
     {
       "function": "analytics.PurgeAuditHistory",
@@ -4398,6 +7671,10 @@
     {
       "function": "analytics.RunWorker",
       "schedule": "启动后持续"
+    },
+    {
+      "function": "analytics.SchedulePageAggregates",
+      "schedule": "每分钟，完整封闭小时5分钟/本地日10分钟后，迟到真实period水位修订补新输入"
     }
   ]
 }

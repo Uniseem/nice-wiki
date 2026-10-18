@@ -1,0 +1,21 @@
+{
+  "slug": "knowledge",
+  "image": "nice-wiki-knowledge",
+  "command": ["/knowledge", "--config", "/config/service.config.json"],
+  "httpPort": 8106,
+  "dataVolume": "/data/knowledge",
+  "secrets": [
+    {"name": "trust-anchors", "path": "/run/secrets/trust-anchors.json"},
+    {"name": "knowledge-signing-key", "path": "/run/secrets/knowledge-signing-key.json"}
+  ],
+  "dependencies": [
+    {"module": "identity", "endpoint": "http://identity:8101", "env": "NW_DEP_IDENTITY"},
+    {"module": "site-config", "endpoint": "http://site-config:8102", "env": "NW_DEP_SITE_CONFIG"},
+    {"module": "content", "endpoint": "http://content:8103", "env": "NW_DEP_CONTENT"},
+    {"module": "media", "endpoint": "http://media:8104", "env": "NW_DEP_MEDIA"},
+    {"module": "model-gateway", "endpoint": "http://model-gateway:8105", "env": "NW_DEP_MODEL_GATEWAY"},
+    {"module": "jobs", "endpoint": "http://jobs:8111", "env": "NW_DEP_JOBS"},
+    {"module": "memory", "endpoint": "http://memory:8107", "env": "NW_DEP_MEMORY"}
+  ],
+  "probes": {"healthz": "/healthz", "readyz": "/readyz"}
+}

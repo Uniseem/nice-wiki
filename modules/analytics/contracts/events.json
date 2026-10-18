@@ -64,6 +64,19 @@
       "ordering": "按turnId单调",
       "idempotency": "eventId去重",
       "handler": "analytics.ProjectQaTurn"
+    },
+    {
+      "name": "invocation.reconciled",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/EventInvocationReconciledPayload"
+      },
+      "purpose": "人工证明更正费用原引用，缺权威安全统计页时保持未确认，不猜金额或账项修订。",
+      "delivery": "at-least-once",
+      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
+      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用",
+      "handler": "analytics.ConsumeAnalyticsEvent"
     }
   ]
 }

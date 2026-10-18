@@ -9,3 +9,5 @@
 诊断只输出request/root/object IDs、版本、耗时、状态和公共错误码；禁止secret/prompt/记忆正文/问题正文/IP。业务文本只在授权私有业务表保存。备份对象按ObjectRef SHA256和byteSize验证，schema1以外拒绝；恢复暂存仅在本域restore/<restoreId>目录创建，禁止任意路径导入。
 
 可观测指标：请求量/错误率/延迟、活动lease、outbox积压、屏障状态、stale_result数量；费用显示调用MG queryUsage。健康ready需DB/schema/关键依赖可用，配置未设某AI能力为degraded且明确禁派发。
+
+进程入口main先识别公共隔离PDF自身子进程，分支在服务配置/密钥/DB之前完成，失败只exit1不写PDF或详细错误。普通启动用公共RunService/LoadServiceIdentity/ReadRuntime/ApplyRestoreSwap；只有全部HTTP合同与必要后台入口均完整才返回应用。当前恢复激活回执、域控制/快照、重建quote、完整旧模型结果恢复与UI静态服务仍未齐，完整BuildApplication/Ready保持partial并真实失败关闭。提取/构建/worker真实执行源码已接，1+3独立类型池须与根jobs和公共typed筛选来源同批CI，未检查前不作可运行承诺。HTTP Drain与后台等待先于DB关闭，不在Serve信号处理抢先关库。

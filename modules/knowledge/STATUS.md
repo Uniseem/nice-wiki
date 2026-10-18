@@ -1,3 +1,21 @@
+# 原任务执行与独立提取源码待检查（2026-10-18）
+
+最新源码76caed2与恢复证明窄补f35238c。新增原主函数CreateExtraction源码闭包；ExecuteBuild/ExecuteExtraction正常真实执行链与1+3独立worker已经实写，仍因公共类型筛选/模型当前完整结果恢复来源尚待集成保持partial，不提前算完成。ReadJobRecovery新增jobs-only严格原来源证明；独立提取/阶段计划/真实租约与取消回调/最终业务和原任务结果同事务已有真实caller。完整启动/Ready仍控制、快照、重建quote、恢复激活回执与UI静态服务未齐，不能运行缺handler假容器。
+
+所有新改blocked待根GitLab生成、readonly编译/vet/gofmt及完整check；没有本机运行Go/生成/SQL/模型或业务接口。旧未改verified证据保留；accepted=0，未部署。根正在整合最终模块树，本域继续下一批公共恢复消费与未完链。
+
+以下为历史记录，逐项状态以progress.json和handoff.md最新条目为准。
+
+# 继续完成知识域（2026-10-18）
+
+用户新授权持续写完剩余代码、及时GitLab后双推。独占分支codex/finish-20261018-knowledge，基线770ea1c。首批源码13d53c7完成PutIndexConfig/ReadIndexConfig/CollectRetiredIndexes及必要repository/配置校验助手，全部blocked待GitLab；旧未改证据保留，accepted为0。
+
+开启配置只使用MG readProfiles/readModels返回的权威完整embeddingSpace，不复制spaceId算法；关闭不被MG不可达阻止。首次0→1/后续CAS、原安全回执同事务，空间变化不自动重建。私有SQLite按嵌入迁移打开同代身份，GC至少保留24小时并核活动/未完成任务/模型引用。完整服务、构建提取、worker、恢复和UI继续未完，不按源码存在标ready。
+
+本机未执行Go/gofmt/gen/docs/build/vet/check/pnpm/SQL或真实服务、接口、模型、部署；未新增测试/fixture/mock/样例或临时业务验证程序。根统一CI与推送，本域继续下一批。
+
+以下为历史记录。
+
 # 2026-10-18 第二批集成检查通过并已双推源码
 
 自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。
@@ -26,3 +44,19 @@ pipeline60（生成261、三个Go分片262/263/264、前端265）完整通过，
 - 本地仅做源码/合同阅读、JSON 台账同步与 `git diff --check`；未执行 Go、gofmt、生成、编译、vet、make check、测试、真实接口、模型或服务；不 push。集成会话按用户最新要求立即送 GitLab 检查及处理推送。
 
 精确 ready IDs 与依赖见 [交接](docs/handoff.md) 和 [逐项台账](progress.json)。
+
+继续实施第二批源码26ee466补齐CreateBuild、FetchPublishedSource、ListExtractableAssets及4必要助手，累计本轮6个原业务函数源码，仍blocked待GitLab。原任务inputRef/根/去重键持久、HTTP202真实接受、锁外jobs派发、16MiB完整正文/精确媒体版本与原块映射。GC不删除已付费模型完成结果。继续事件、取消、恢复与提取执行链，不在75%停止。
+
+继续实施第三批c686488补齐发布/撤回、同事务原信封inbox、公共订阅真实统计、outbox单批与取消6原业务函数，累计本轮12原业务源码，全部新改仍blocked待GitLab。取消先关闭staging再锁外请求jobs/MG，未知接受/费用保留原引用，不假清理；完整worker/恢复/启动/UI继续。
+
+包职责窄修b241838解除index→runtime→index循环：模型适配独立internal/model，runtime保留运行编排。原模型函数行为不变但路径/import变更后重新blocked待GitLab。
+
+第四批bf29364及助手同步8800855完成LoadRuntime原函数、真实磁盘低水位与有界NFKC/BPE游标修订，累计本轮13原业务源码；均新改blocked待GitLab。SourceBlock保留真实path/range，256块批次有nextCursor，不能忽略；已核真实token序号与完整UTF8端点。PDF解析算法尚未接公共沙箱，不计主函数ready；继续剩余27原函数。
+
+第五批源码46d3260已交管理真实选项/目录/事件隔离修复；新改均blocked待根GitLab，继续执行器与完整启动/UI，不停止于75%。
+
+UI源码9a26e81完成三原页面入口函数，待根GitLab Node22类型检查/构建与锁生成；提取/执行器/启动继续。
+
+整篇上下文源码bde10a9完成原主函数EnrichChunkContext，原text/证据偏移与机器前缀分离、完整检索文本真实BPE；待GitLab，继续提取/worker/启动。
+
+视频元数据与精确来源视图源码82178c4→9aba9fe已交；PDF真实main入口未齐继续partial，全部新改待GitLab，继续提取生产与worker/入口。

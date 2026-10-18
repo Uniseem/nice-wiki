@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"math"
-	modelruntime "nice-wiki/modules/knowledge/internal/runtime"
+ "strings"
+	modelruntime "nice-wiki/modules/knowledge/internal/model"
 	"time"
 	"unicode/utf8"
 
@@ -121,9 +122,7 @@ func RequestEmbeddings(ctx context.Context, op OperationContext, input RequestEm
 	if err != nil {
 		return RequestEmbeddingsResult{}, err
 	}
-	if runtime.MaximumEmbeddingInputTokens < 1 {
-		return RequestEmbeddingsResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "嵌入模型输入预算未装配")
-	}
+
 	tx, err := runtime.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return RequestEmbeddingsResult{}, storageError(err)
@@ -144,7 +143,12 @@ func RequestEmbeddings(ctx context.Context, op OperationContext, input RequestEm
 	for _, chunk := range chunks {
 		byID[chunk.ChunkId] = chunk
 	}
-	texts := make([]string, 0, len(input.ChunkIDs))
+	_=tx.Rollback()
+ catalog,err:=ReadModelCatalog(ctx,op,runtime)
+ if err!=nil {return RequestEmbeddingsResult{},err}
+ _,selectedModel,err:=EmbeddingProfile(catalog,record.EmbeddingProfileID,op.CostClass,input.Space)
+ if err!=nil {return RequestEmbeddingsResult{},err}
+ texts := make([]string, 0, len(input.ChunkIDs))
 	hashes := make([]string, 0, len(input.ChunkIDs))
 	tokens := 0
 	seen := make(map[string]bool)
@@ -154,20 +158,29 @@ func RequestEmbeddings(ctx context.Context, op OperationContext, input RequestEm
 			return RequestEmbeddingsResult{}, platform.NewError(platform.CodeIntegrityError, false, "嵌入分块重复或不存在")
 		}
 		seen[id] = true
-		if utf8.RuneCountInString(chunk.Text) > 4096 || chunk.TokenCount > runtime.MaximumEmbeddingInputTokens-tokens {
+		text:=RetrievalText(chunk)
+  if utf8.RuneCountInString(text) > 4096 {
 			return RequestEmbeddingsResult{}, platform.NewError(platform.CodeValidation, false, "嵌入输入超过模型或网关预算")
 		}
-		tokens += chunk.TokenCount
-		texts = append(texts, chunk.Text)
-		hashes = append(hashes, chunk.ChunkHash)
+		tokenized,err:=modelruntime.TokenizeSource(ctx,op,modelruntime.TokenizeSourceInput{ModelID:selectedModel.ModelID,Space:input.Space,Text:text})
+  if err!=nil {return RequestEmbeddingsResult{},err}
+  if tokenized.TokenCount>selectedModel.MaximumInputTokens-tokens {return RequestEmbeddingsResult{},platform.NewError(platform.CodeValidation,false,"嵌入批次超过真实模型token预算")}
+  if chunk.EmbeddingTokenCount!=nil&&*chunk.EmbeddingTokenCount!=tokenized.TokenCount {return RequestEmbeddingsResult{},platform.NewError(platform.CodeIntegrityError,false,"已保存完整检索文本token计数不一致")}
+  tokens += tokenized.TokenCount
+		texts = append(texts, text)
+		hashes = append(hashes, platform.HashBytes([]byte(text)))
 	}
-	_ = tx.Rollback()
 	binding, _ := platform.CanonicalJSON(struct {
 		Build       string
 		Space       gen.EmbeddingSpace
 		IDs, Hashes []string
 	}{input.BuildID, input.Space, input.ChunkIDs, hashes})
-	outcome, err := modelruntime.InvokeModel(ctx, op, modelruntime.InvokeModelInput{Request: platform.CreateInvocationInput{TaskID: "knowledge.embed", ProfileID: record.EmbeddingProfileID, Capability: platform.CapabilityEmbedding, Texts: texts, MaximumOutputTokens: 0, IDempotencyKey: "build." + platform.HashBytes(binding)}})
+	_,qualified,_,releaseQualification,err:=BeginBuildWrite(ctx,op,input.BuildID,input.LeaseID)
+ if err!=nil {return RequestEmbeddingsResult{},err};_=qualified.Rollback();releaseQualification()
+ ctx,err=modelruntime.WithModelOwner(ctx,input.BuildID)
+ if err!=nil {return RequestEmbeddingsResult{},err}
+ expected:=&platform.EmbeddingSpace{SpaceID:input.Space.SpaceId,Provider:input.Space.Provider,ModelVersion:input.Space.ModelVersion,Dimensions:int64(input.Space.Dimensions),PreprocessingVersion:input.Space.PreprocessingVersion}
+ outcome, err := modelruntime.InvokeModel(ctx, op, modelruntime.InvokeModelInput{SemanticKey:"embedding."+platform.HashBytes([]byte(strings.Join(input.ChunkIDs,"\x00"))),Request: platform.CreateInvocationInput{TaskID: "knowledge.embed", ProfileID: record.EmbeddingProfileID, Capability: platform.CapabilityEmbedding, ExpectedEmbeddingSpace:expected, Texts: texts, MaximumOutputTokens: 0, IDempotencyKey: "build." + platform.HashBytes(binding)}})
 	if err != nil {
 		return RequestEmbeddingsResult{}, err
 	}

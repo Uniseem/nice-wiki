@@ -2,6 +2,9 @@ package analytics
 
 import (
 	"context"
+ "bytes"
+ "encoding/json"
+ "io"
 
 	"nice-wiki/libs/platform"
 )
@@ -17,7 +20,7 @@ type CheckPrivacyFieldsResult struct {
 	Forbidden []string
 }
 
-// RedactAuditMetadataInput 是审计元数据脱敏输入。metadata 的编码合同未写明。
+// RedactAuditMetadataInput 是严格安全JSON元数据输入。
 type RedactAuditMetadataInput struct {
 	Action   string
 	Metadata string
@@ -70,12 +73,34 @@ func CheckPrivacyFields(ctx context.Context, op OperationContext, in CheckPrivac
 	return CheckPrivacyFieldsResult{Allowed: false, Forbidden: forbidden}, nil
 }
 
-// RedactAuditMetadata 因审计动作白名单与 metadata 编码都没有写明而保持失败关闭。
-// 不猜测 JSON，不编造动作名，也不把原文 metadata 放入 safeMetadata 或错误说明。
-// 对任何输入都返回登记的 FORBIDDEN。
+// RedactAuditMetadata只输出固定动作的安全结构化元数据。
+// metadata采用严格白名单JSON对象；未知字段拒绝，原文不进入输出。
 func RedactAuditMetadata(ctx context.Context, op OperationContext, in RedactAuditMetadataInput) (RedactAuditMetadataResult, error) {
-	_ = ctx
-	_ = op
-	_ = in
-	return RedactAuditMetadataResult{}, platform.NewError(platform.CodeForbidden, false, "审计动作白名单与元数据编码未写明")
+ if _,ok:=auditActionProducer[in.Action];!ok {return RedactAuditMetadataResult{},platform.NewError(platform.CodeForbidden,false,"审计动作未登记")}
+ if len(in.Metadata)>2048 {return RedactAuditMetadataResult{},platform.NewError(platform.CodeValidation,false,"审计元数据超过限制")}
+ decoder:=json.NewDecoder(bytes.NewBufferString(in.Metadata))
+ token,err:=decoder.Token();if err!=nil||token!=json.Delim('{') {return RedactAuditMetadataResult{},platform.NewError(platform.CodeValidation,false,"审计元数据必须为对象")}
+ values:=map[string]any{}
+ for decoder.More(){
+  token,err=decoder.Token();if err!=nil{return RedactAuditMetadataResult{},platform.NewError(platform.CodeValidation,false,"审计元数据不合法")}
+  key:=token.(string)
+  if _,exists:=values[key];exists {return RedactAuditMetadataResult{},platform.NewError(platform.CodeValidation,false,"审计元数据字段重复")}
+  var raw json.RawMessage
+  if err=decoder.Decode(&raw);err!=nil{return RedactAuditMetadataResult{},platform.NewError(platform.CodeValidation,false,"审计元数据不合法")}
+  switch key {
+  case "revision","count":
+   var n int64;if bytes.Equal(bytes.TrimSpace(raw),[]byte("null"))||json.Unmarshal(raw,&n)!=nil||n<0 {return RedactAuditMetadataResult{},platform.NewError(platform.CodeValidation,false,"审计数值不合法")};values[key]=n
+  case "fromState","toState":
+   var state string;if json.Unmarshal(raw,&state)!=nil||!auditStateAllowed(state){return RedactAuditMetadataResult{},platform.NewError(platform.CodeValidation,false,"审计状态未登记")};values[key]=state
+  default:return RedactAuditMetadataResult{},platform.NewError(platform.CodeForbidden,false,"审计元数据字段未登记")
+  }
+ }
+ if _,err=decoder.Token();err!=nil{return RedactAuditMetadataResult{},platform.NewError(platform.CodeValidation,false,"审计元数据不完整")}
+ if _,err=decoder.Token();err!=io.EOF{return RedactAuditMetadataResult{},platform.NewError(platform.CodeValidation,false,"审计元数据包含尾随内容")}
+ safe,err:=platform.CanonicalJSON(values);if err!=nil{return RedactAuditMetadataResult{},err}
+ return RedactAuditMetadataResult{SafeMetadata:string(safe)},nil
+}
+
+func auditStateAllowed(state string) bool {
+ switch state {case "requested","staging","switching","blocked","rolling-back","rolled-back","archived","retired","backup_barrier","restore_staging","restore_switching","restore_rolling_back","restore_blocked","planned","queued","leased","running","succeeded","failed","cancelled","completed","active","disabled","draft","published","withdrawn","deleted","restored","ready","expired","settled","reversed","held","charge_unknown","enabled","pending","approved","rejected","draining","safe","released","staged","switched","rolled_back":return true};return false
 }

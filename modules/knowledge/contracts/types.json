@@ -52,7 +52,7 @@
         },
         "rerankProfileId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "可选重排档位"
+          "description": "兼容可选QA费用类别的原生rerank档位；未配置时按可信QA类别真实fast/chat重排，不能用background档位改记费用"
         }
       },
       "required": [
@@ -198,6 +198,32 @@
           },
           "maxItems": 65536,
           "description": "与text的每个UTF-8字节等长；值是本源块原始UTF-8字节起点，单调且处于byteStart..byteEnd"
+        },
+        "sourcePath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192,
+          "description": "新片段的真实content叶或不可变提取文本路径；缺失兼容旧整块映射，含asset时sourceOffsets映射该提取原文本，不伪装为人工正文"
+        },
+        "contextPrefix": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "机器派生背景，仅检索使用，不当作人工引文或改原偏移"
+        },
+        "contextVersionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "整篇源/任务记忆/模型声明的固定机器背景版本"
+        },
+        "embeddingTokenCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4194304,
+          "description": "contextPrefix+换行+原text经固定空间真实BPE的完整token计数，原tokenCount仍指源片段"
+        },
+        "contextModelSnapshotHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "MG真正resultAttemptId指向的opaque模型快照证明；不从attempt.state猜"
         }
       },
       "required": [
@@ -327,7 +353,7 @@
         "text": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 65536,
+          "maxLength": 8388608,
           "description": "内部文本"
         },
         "contentHash": {
@@ -339,11 +365,17 @@
           "minimum": 0,
           "maximum": 9007199254740991,
           "description": "页数或帧数"
+        },
+        "sourceBlock": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/BlockRef",
+          "description": "平台视频无视频asset，保留实际原块，禁止poster冒视频"
+        },
+        "modelSnapshotHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
         }
       },
       "required": [
         "extractionId",
-        "asset",
         "extractorVersion",
         "state",
         "pageCount"
@@ -674,11 +706,16 @@
         "document": {
           "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
           "description": "发布引用"
+        },
+        "event": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
+          "description": "公共订阅边界按生产schema校验的原始可信信封，禁止重构替代事件"
         }
       },
       "required": [
         "eventId",
-        "document"
+        "document",
+        "event"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -770,8 +807,8 @@
         "source": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 65536,
-          "description": "权威正文UTF8"
+          "maxLength": 16777216,
+          "description": "完整canonical DocumentBody JSON UTF8，字节硬上限16MiB，保留全树稳定ID/属性/块边界，不是扁平纯文本"
         },
         "contentHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
@@ -796,8 +833,8 @@
         "source": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 65536,
-          "description": "权威正文"
+          "maxLength": 16777216,
+          "description": "完整canonical DocumentBody JSON UTF8，字节硬上限16MiB，保留全树稳定ID/属性/块边界，不是扁平纯文本"
         }
       },
       "required": [
@@ -815,12 +852,30 @@
           "items": {
             "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef"
           },
-          "maxItems": 256,
+          "maxItems": 100,
           "description": "去重可提取资源"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AssetSource"
+          },
+          "maxItems": 50000,
+          "description": "每个真实原块来源，允许同资源在不同块多次出现；assets字段去重"
+        },
+        "unsupportedAssets": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef"
+          },
+          "maxItems": 100,
+          "description": "授权读取但类型或大小不支持的精确内容引用，不伪造空提取成功"
         }
       },
       "required": [
-        "assets"
+        "assets",
+        "sources",
+        "unsupportedAssets"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -843,12 +898,24 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "幂等键"
+        },
+        "buildId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "source": {
+          "$ref": "#/$defs/AssetSource"
         }
       },
       "required": [
         "asset",
         "extractorVersion",
-        "idempotencyKey"
+        "idempotencyKey",
+        "buildId",
+        "leaseId",
+        "source"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -881,12 +948,16 @@
         "leaseId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "租约"
+        },
+        "source": {
+          "$ref": "#/$defs/AssetSource"
         }
       },
       "required": [
         "extractionId",
         "asset",
-        "leaseId"
+        "leaseId",
+        "source"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -897,10 +968,18 @@
         "extraction": {
           "$ref": "#/$defs/Extraction",
           "description": "ready或unsupported"
+        },
+        "pages": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/PDFPage"
+          }
         }
       },
       "required": [
-        "extraction"
+        "extraction",
+        "pages"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -916,22 +995,25 @@
           "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
           "description": "图片"
         },
-        "profileId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "视觉档位"
-        },
         "leaseId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "租约"
+        },
+        "source": {
+          "$ref": "#/$defs/AssetSource"
+        },
+        "memory": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext"
         }
       },
       "required": [
         "extractionId",
         "asset",
-        "profileId",
-        "leaseId"
+        "leaseId",
+        "source",
+        "memory"
       ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+      "description": "内部原批准视觉任务；档位由CreateExtraction冻结真实计划，不接受另一个未经冻结的profileId；source/memory完整精确"
     },
     "ExtractImageDescriptionResult": {
       "type": "object",
@@ -952,19 +1034,25 @@
       "additionalProperties": false,
       "properties": {
         "extractionId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "提取"
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         },
-        "asset": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
-          "description": "视频资源"
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+        },
+        "source": {
+          "type": "string",
+          "maxLength": 16777216
+        },
+        "blockId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         }
       },
       "required": [
         "extractionId",
-        "asset"
-      ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+        "document",
+        "source",
+        "blockId"
+      ]
     },
     "ExtractVideoMetadataResult": {
       "type": "object",
@@ -973,10 +1061,19 @@
         "extraction": {
           "$ref": "#/$defs/Extraction",
           "description": "元数据提取"
+        },
+        "metadata": {
+          "$ref": "#/$defs/VideoMetadata"
+        },
+        "transcriptState": {
+          "const": "unsupported",
+          "description": "当前视频schema没有字幕，不自动转写，不以metadata ready冒充transcript ready"
         }
       },
       "required": [
-        "extraction"
+        "extraction",
+        "metadata",
+        "transcriptState"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -987,14 +1084,20 @@
         "source": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 65536,
-          "description": "正文或提取文本"
+          "maxLength": 8388608,
+          "description": "完整真实原文：content叶仍由来源入口限制1Mi Unicode字符/4MiB；机器原页或描述UTF8硬上限8MiB。返回单规范片段仍1Mi字符/4MiB，不把整个大页一次交BPE"
         },
         "preprocessingVersion": {
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
           "description": "固定预处理版本"
+        },
+        "startByte": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8388608,
+          "description": "兼容可选；前次返回的原UTF8稳定NFKC边界，省略从0开始，不接受任意字节游标"
         }
       },
       "required": [
@@ -1009,9 +1112,9 @@
       "properties": {
         "normalized": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 65536,
-          "description": "规范文本"
+          "minLength": 0,
+          "maxLength": 1048576,
+          "description": "有界规范片段：最多1Mi Unicode字符及4MiB UTF8；EOF游标可返回空串"
         },
         "sourceOffsets": {
           "type": "array",
@@ -1020,13 +1123,33 @@
             "minimum": 0,
             "maximum": 9007199254740991
           },
-          "maxItems": 65536,
+          "maxItems": 4194304,
           "description": "规范UTF8到源偏移"
+        },
+        "sourceStartByte": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8388608,
+          "description": "该片段在原叶UTF8的起点"
+        },
+        "sourceByteEnd": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8388608,
+          "description": "本次消耗原叶UTF8排他终点"
+        },
+        "nextByte": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8388608,
+          "description": "仍有内容时的真实稳定NFKC源边界，缺失表示已读尽"
         }
       },
       "required": [
         "normalized",
-        "sourceOffsets"
+        "sourceOffsets",
+        "sourceStartByte",
+        "sourceByteEnd"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -1062,6 +1185,10 @@
             "$ref": "#/$defs/SourceBlock"
           },
           "maxItems": 256
+        },
+        "cursor": {
+          "$ref": "#/$defs/SplitCursor",
+          "description": "兼容可选；上批真实游标，缺失从首片/首token/ordinal0开始"
         }
       },
       "required": [
@@ -1084,6 +1211,10 @@
           },
           "maxItems": 256,
           "description": "确定性分块"
+        },
+        "nextCursor": {
+          "$ref": "#/$defs/SplitCursor",
+          "description": "本批最多256块，缺失表示给定blocks已全部完成，不能忽略非空游标"
         }
       },
       "required": [
@@ -1461,12 +1592,17 @@
         "eventId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "撤回事件"
+        },
+        "event": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
+          "description": "公共订阅边界按生产schema校验的原始可信信封，禁止重构替代事件"
         }
       },
       "required": [
         "documentId",
         "visibilityRevision",
-        "eventId"
+        "eventId",
+        "event"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2028,32 +2164,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "eventId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "事件"
-        },
-        "eventType": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 65536,
-          "description": "已登记类型"
-        },
-        "payloadHash": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "摘要"
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "事件代际"
+        "event": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
+          "description": "公共订阅边界按生产schema校验的原始可信信封，禁止重构替代事件"
         }
       },
       "required": [
-        "eventId",
-        "eventType",
-        "payloadHash",
-        "dataEpoch"
+        "event"
       ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+      "description": "仅内部同事务helper，完整原信封代替不充分的标量原型；SQL事务单独参数不序列化"
     },
     "ConsumeInboxResult": {
       "type": "object",
@@ -2110,7 +2229,7 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991,
-          "description": "待发数"
+          "description": "本批已领取但尚未确认数，不声明全域outbox积压"
         }
       },
       "required": [
@@ -2338,25 +2457,20 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/IndexConfig"
-          },
-          "maxItems": 256,
-          "description": "后台概览条目"
+        "config": {
+          "$ref": "#/$defs/IndexConfig"
         },
-        "nextCursor": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 65536,
-          "description": "下一页"
+        "options": {
+          "$ref": "#/$defs/ReadIndexOptionsResult"
+        },
+        "builds": {
+          "$ref": "#/$defs/ListBuildsResult"
         }
       },
       "required": [
-        "items"
-      ],
-      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+        "options",
+        "builds"
+      ]
     },
     "SubmitPrimaryEditInput": {
       "type": "object",
@@ -2413,14 +2527,14 @@
           "items": {
             "$ref": "#/$defs/Chunk"
           },
-          "maxItems": 256,
+          "maxItems": 16,
           "description": "片段"
         },
         "documentText": {
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
-          "description": "整篇原文"
+          "description": "完整固定发布正文canonical JSON UTF8，hash必须等于PublishedRevisionRef.contentHash；不截断，不当作额外付费摘要"
         },
         "memory": {
           "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext",
@@ -2457,12 +2571,28 @@
         },
         "contextVersionHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "源及任务记忆版本"
+          "description": "兼容的本域原请求计划hash，非实际模型证明；每项actual prefixContextHashes/modelSnapshotHashes才绑定winning来源"
+        },
+        "prefixContextHashes": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+          },
+          "maxItems": 16
+        },
+        "modelSnapshotHashes": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+          },
+          "maxItems": 16
         }
       },
       "required": [
         "prefixes",
-        "contextVersionHash"
+        "contextVersionHash",
+        "prefixContextHashes",
+        "modelSnapshotHashes"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2621,12 +2751,20 @@
         "leaseId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "租约"
+        },
+        "source": {
+          "$ref": "#/$defs/AssetSource"
+        },
+        "memory": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext"
         }
       },
       "required": [
         "extractionId",
         "asset",
-        "leaseId"
+        "leaseId",
+        "source",
+        "memory"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2650,13 +2788,13 @@
       "properties": {
         "workerId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "本域worker"
+          "description": "兼容调用标签，不作为实际jobs租约worker；平台逐进程生成真实worker身份"
         },
         "maximumConcurrentJobs": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991,
-          "description": "默认4范围1..32",
+          "minimum": 4,
+          "maximum": 4,
+          "description": "固定总并发4：build专用1，extract专用3，避免父任务等待占满孩子槽位",
           "default": 4
         }
       },
@@ -3128,7 +3266,7 @@
     "InvokeModelInput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "经模型网关执行一次调用的输入",
+      "description": "模型调用内部输入；额外非序列化SemanticKey仅来自可信执行器的原阶段身份，不是HTTP字段，不受可变配置hash影响。",
       "properties": {
         "request": {
           "$ref": "../../model-gateway/contracts/types.json#/$defs/CreateInvocationInput",
@@ -3169,10 +3307,6 @@
             "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
           },
           "description": "按序号排列的全部流事件"
-        },
-        "currentSnapshot": {
-          "$ref": "../../model-gateway/contracts/types.json#/$defs/GetInvocationResult",
-          "description": "可选；当前真实完整结果，与历史Events和费用终态分别保留；error非nil时仍可含已接受事实。"
         }
       },
       "required": [
@@ -3313,7 +3447,7 @@
         },
         "normalized": {
           "type": "string",
-          "maxLength": 65536
+          "maxLength": 1048576
         },
         "sourceOffsets": {
           "type": "array",
@@ -3322,7 +3456,7 @@
             "minimum": 0,
             "maximum": 9007199254740991
           },
-          "maxItems": 65536,
+          "maxItems": 4194304,
           "description": "与text的每个UTF-8字节等长；值是本源块原始UTF-8字节起点，单调且处于byteStart..byteEnd"
         },
         "sourceByteEnd": {
@@ -3335,16 +3469,29 @@
           "items": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 65536
+            "maximum": 4194304
           },
-          "maxItems": 65536,
-          "description": "所选模型tokenizer的排他UTF8字节边界；严格递增且最后等于normalized字节数"
+          "maxItems": 4194304,
+          "description": "该独立真实源片段经所选模型BPE的排他字节终点；严格递增，可能在UTF8码点内部，最终覆盖完整normalized"
         },
         "contextVersionHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
         },
         "asset": {
           "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef"
+        },
+        "sourceByteStart": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216,
+          "default": 0,
+          "description": "兼容可选0；该真实叶片段在所属原块文本视图或asset提取文本中的起点"
+        },
+        "sourcePath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192,
+          "description": "真实content JSON叶路径或不可变extraction文本路径；相同BlockRef不同路径/真实源范围可各自分块，不生成新块ID"
         }
       },
       "required": [
@@ -3355,7 +3502,375 @@
         "tokenEnds",
         "contextVersionHash"
       ],
-      "description": "可信内部源块，不接受浏览器提供模型分词边界"
+      "description": "可信独立真实叶片段，不声明全块BPE；相同BlockRef允许不同sourcePath/真实范围，sourceOffsets仍映射原块或asset提取原文本，禁止浏览器提供分词边界"
+    },
+    "SourceAssetVersion": {
+      "$ref": "../../media/contracts/types.json#/$defs/AssetVersionRef",
+      "description": "精确媒体不可变版本，不以latest替代"
+    },
+    "AssetSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/SourceAssetVersion"
+        },
+        "block": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/BlockRef"
+        },
+        "supported": {
+          "type": "boolean",
+          "description": "既有MIME白名单且单件不超过50MiB"
+        }
+      },
+      "required": [
+        "asset",
+        "block",
+        "supported"
+      ]
+    },
+    "BuildJobInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "buildId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+        },
+        "config": {
+          "$ref": "#/$defs/IndexConfig"
+        }
+      },
+      "required": [
+        "buildId",
+        "document",
+        "config"
+      ]
+    },
+    "SplitCursor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blockIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "tokenIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4194304
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "blockIndex",
+        "tokenIndex",
+        "ordinal"
+      ],
+      "description": "仅内部对同一固定blocks数组继续有界分块，保留真实token序号及全构建ordinal"
+    },
+    "ReadIndexOptionsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "IndexProfileOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profileId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "tier": {
+          "type": "string",
+          "enum": [
+            "embedding",
+            "rerank",
+            "fast"
+          ]
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "space": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace"
+        },
+        "usable": {
+          "type": "boolean"
+        },
+        "reasonCode": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "profileId",
+        "tier",
+        "costClass",
+        "label",
+        "usable"
+      ]
+    },
+    "IndexDocumentOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "reference": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+        },
+        "visibilityRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        }
+      },
+      "required": [
+        "documentId",
+        "title",
+        "reference",
+        "visibilityRevision"
+      ]
+    },
+    "ReadIndexOptionsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "baseLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "modelsState": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "unavailable"
+          ]
+        },
+        "documentsState": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "unavailable"
+          ]
+        },
+        "modelErrorCode": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "documentErrorCode": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IndexProfileOption"
+          },
+          "maxItems": 256
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IndexDocumentOption"
+          },
+          "maxItems": 10000
+        },
+        "treeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        }
+      },
+      "required": [
+        "baseLanguage",
+        "modelsState",
+        "documentsState",
+        "profiles",
+        "documents"
+      ],
+      "description": "既有知识管理流程的真实安全选项；权威不可达明确unavailable，不能把未知目录伪装为空成功"
+    },
+    "TokenizeSourceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "space": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 1048576
+        }
+      },
+      "required": [
+        "modelId",
+        "space",
+        "text"
+      ]
+    },
+    "TokenizeSourceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tokenEnds": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4194304
+          },
+          "maxItems": 4194304
+        },
+        "tokenCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4194304
+        }
+      },
+      "required": [
+        "tokenEnds",
+        "tokenCount"
+      ]
+    },
+    "SourceCursor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "leafIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "startByte": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4194304
+        }
+      },
+      "required": [
+        "leafIndex",
+        "startByte"
+      ]
+    },
+    "BuildSourceBlocksInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+        },
+        "source": {
+          "type": "string",
+          "maxLength": 16777216
+        },
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "space": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace"
+        },
+        "cursor": {
+          "$ref": "#/$defs/SourceCursor"
+        }
+      },
+      "required": [
+        "document",
+        "source",
+        "modelId",
+        "space"
+      ]
+    },
+    "BuildSourceBlocksResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blocks": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/SourceBlock"
+          }
+        },
+        "next": {
+          "$ref": "#/$defs/SourceCursor"
+        }
+      },
+      "required": [
+        "blocks"
+      ]
+    },
+    "PDFPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 8388608
+        }
+      },
+      "required": [
+        "page",
+        "text"
+      ]
+    },
+    "VideoMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 10000
+        },
+        "sourceKind": {
+          "type": "string",
+          "enum": [
+            "uploaded",
+            "platform"
+          ]
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "sourceKind"
+      ]
+    },
+    "ReadJobRecoveryInput": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryRequest"
+    },
+    "ReadJobRecoveryResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryResult"
     },
     "SnapshotArchiveReadInput": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",

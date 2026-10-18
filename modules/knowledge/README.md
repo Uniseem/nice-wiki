@@ -2,7 +2,7 @@
 
 将content权威发布修订与media授权资源转换为版本化分块、词项和向量索引；只返回经权威可见性校验的材料。
 
-阶段：design。所有业务源文件仅在未来文件manifest登记，本阶段不实现、不运行测试/真实模型、不推送。
+阶段：R1实施。已有检索与索引基础链通过GitLab，继续配置、构建/提取、worker、恢复和界面；本模块仅交付源码，由集成会话统一检查及双推，不运行真实模型或部署。
 
 - [requirements](docs/requirements.md)
 - [architecture](docs/architecture.md)

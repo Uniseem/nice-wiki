@@ -29,14 +29,14 @@ type adminRuntimeKey struct{}
 func WithAdminSigningKey(ctx context.Context, key platform.SigningKey) context.Context {
 	return context.WithValue(ctx, adminRuntimeKey{}, key)
 }
-func authorizeAdmin(op OperationContext) error {
+func AuthorizeAdmin(op OperationContext) error {
 	if op.Actor.Kind != "admin" || op.CallerService != "portal" || !slices.Contains(op.Actor.Grants, "knowledge.manage") {
 		return platform.NewError(platform.CodeForbidden, false, "当前账户没有索引管理权限")
 	}
 	return nil
 }
 func beginAdminRead(ctx context.Context, op OperationContext) (*sql.Tx, error) {
-	if err := authorizeAdmin(op); err != nil {
+	if err := AuthorizeAdmin(op); err != nil {
 		return nil, err
 	}
 	runtime, err := indexer.RuntimeFromContext(ctx)

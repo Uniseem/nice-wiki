@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	indexer "nice-wiki/modules/knowledge/internal/index"
-	qaruntime "nice-wiki/modules/knowledge/internal/runtime"
+	qaruntime "nice-wiki/modules/knowledge/internal/model"
 	"sort"
 
 	"nice-wiki/libs/platform"
@@ -45,7 +45,6 @@ type Runtime struct {
 	Language                  string
 	EmbeddingProfileID        string
 	RerankProfileID           string
-	FastProfileID             string
 	RerankEnabled             bool
 }
 type runtimeKey struct{}

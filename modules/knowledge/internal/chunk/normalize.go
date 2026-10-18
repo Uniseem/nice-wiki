@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	maxNormalizedSourceBytes = 65536
+	maxNormalizedSourceBytes = 4 << 20
+ maxNormalizedSourceRunes = 1 << 20
 	normalizeBudget          = 5 * time.Second
 )
 
@@ -22,6 +23,7 @@ type OperationContext = platform.OperationContext
 type NormalizeSourceInput struct {
 	Source               string `json:"source"`
 	PreprocessingVersion string `json:"preprocessingVersion"`
+ StartByte int64 `json:"startByte,omitempty"`
 }
 
 // NormalizeSourceResult 是规范化文本及其源 UTF-8 字节偏移映射。
@@ -29,9 +31,13 @@ type NormalizeSourceInput struct {
 type NormalizeSourceResult struct {
 	Normalized    string  `json:"normalized"`
 	SourceOffsets []int64 `json:"sourceOffsets"`
+ SourceStartByte int64 `json:"sourceStartByte"`
+ SourceByteEnd int64 `json:"sourceByteEnd"`
+ NextByte *int64 `json:"nextByte,omitempty"`
 }
 
-// NormalizeSource 对索引输入执行固定的 NFKC 规范化和换行统一。
+// NormalizeSource 对真实源叶执行固定NFKC和换行统一，并在稳定源边界返回有界片段。
+// 非空NextByte必须续读，不能把首片冒充整个原叶的规范化结果。
 //
 // 处理只作用于派生的检索文本，不改变 content 的人工正文。规范化按
 // norm.Iter 的稳定边界进行，每个输出字节都保留其来源片段的最早原始
@@ -56,7 +62,7 @@ func NormalizeSource(ctx context.Context, op OperationContext, input NormalizeSo
 	if err := checkContext(ctx); err != nil {
 		return NormalizeSourceResult{}, err
 	}
-	if !validBoundedText(input.Source) {
+	if !validBoundedText(input.Source)||input.StartByte<0||input.StartByte>int64(len(input.Source)) {
 		return NormalizeSourceResult{}, platform.NewError(platform.CodeValidation, false, "规范化正文不合法")
 	}
 	if !validBoundedText(input.PreprocessingVersion) {
@@ -71,7 +77,10 @@ func NormalizeSource(ctx context.Context, op OperationContext, input NormalizeSo
 	var iterator norm.Iter
 	iterator.InitString(norm.NFKC, string(canonical))
 	normalized := make([]byte, 0, len(canonical))
-	offsets := make([]int64, 0, len(canonical))
+	offsets := make([]int64, 0, min(len(canonical),maxNormalizedSourceBytes))
+ sourceEnd:=input.StartByte
+ runeCount:=0
+ var nextByte *int64
 	for !iterator.Done() {
 		if err := checkContext(ctx); err != nil {
 			return NormalizeSourceResult{}, err
@@ -90,16 +99,24 @@ func NormalizeSource(ctx context.Context, op OperationContext, input NormalizeSo
 				sourceOffset = candidate
 			}
 		}
-		if len(normalized) > maxNormalizedSourceBytes-len(segment) {
-			return NormalizeSourceResult{}, platform.NewError(platform.CodeValidation, false, "规范化正文超过大小上限")
-		}
+  rawEnd:=int64(len(input.Source))
+  if end<len(sourceMap) { rawEnd=sourceMap[end] }
+  if rawEnd<=input.StartByte { continue }
+  if sourceOffset<input.StartByte { return NormalizeSourceResult{},platform.NewError(platform.CodeValidation,false,"规范化游标不在真实稳定边界") }
+  segmentRunes:=utf8.RuneCount(segment)
+  if len(normalized)>maxNormalizedSourceBytes-len(segment)||runeCount>maxNormalizedSourceRunes-segmentRunes {
+   if len(normalized)==0 { return NormalizeSourceResult{},platform.NewError(platform.CodeValidation,false,"单规范化段超过有界分词预算") }
+   next:=sourceOffset;nextByte=&next;break
+  }
+  sourceEnd=rawEnd;runeCount+=segmentRunes
+
 		normalized = append(normalized, segment...)
 		for range segment {
 			offsets = append(offsets, sourceOffset)
 		}
 	}
 
-	if len(normalized) == 0 || len(normalized) != len(offsets) || !utf8.Valid(normalized) {
+	if (len(normalized)==0&&input.StartByte!=int64(len(input.Source))) || len(normalized) != len(offsets) || !utf8.Valid(normalized) {
 		return NormalizeSourceResult{}, platform.NewError(platform.CodeUnsupportedSchema, false, "规范化结果不合法")
 	}
 	if err := checkContext(ctx); err != nil {
@@ -108,11 +125,12 @@ func NormalizeSource(ctx context.Context, op OperationContext, input NormalizeSo
 	return NormalizeSourceResult{
 		Normalized:    string(normalized),
 		SourceOffsets: offsets,
+ SourceStartByte:input.StartByte,SourceByteEnd:sourceEnd,NextByte:nextByte,
 	}, nil
 }
 
 func validBoundedText(value string) bool {
-	return len(value) >= 1 && len(value) <= maxNormalizedSourceBytes && utf8.ValidString(value)
+	return len(value) >= 1 && len(value) <= 8<<20 && utf8.ValidString(value)
 }
 
 func canonicalizeLineEndings(source string) ([]byte, []int64, error) {

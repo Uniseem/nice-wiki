@@ -2,7 +2,7 @@
   "version": 1,
   "module": "portal",
   "phase": "implementation",
-  "contractSha256": "b8ce2d83b8fc0cf20925eb15ed28cab89950de3784af4ecbd9b78bcceb4156b6",
+  "contractSha256": "c494fdf2a3c72360ceb5bcf30ffb2f3b930cadddaa48ac2c0a0fed5a602fac8f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "portal EmitAccessAudit 因 appendAudit 请求体映射缺失保持 blocked",
   "branch": "codex/portal-20261017-r6",

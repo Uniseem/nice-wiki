@@ -124,7 +124,7 @@
           {
             "in": "query",
             "name": "from",
-            "required": true,
+            "required": false,
             "schema": {
               "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
               "description": "RFC3339 UTC 时间；不含 null"
@@ -133,7 +133,7 @@
           {
             "in": "query",
             "name": "to",
-            "required": true,
+            "required": false,
             "schema": {
               "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
               "description": "RFC3339 UTC 时间；不含 null"
@@ -171,6 +171,20 @@
               "description": "公共 Identifier 合同，遵守其字段和空值规则"
             },
             "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "hour",
+                "day"
+              ],
+              "default": "hour"
+            },
+            "description": "仅完整统计桶；默认最近7个完整日/168完整UTC小时，显式边界需对齐粒度。"
           }
         ],
         "security": [
@@ -327,7 +341,7 @@
             "schema": {
               "type": "integer",
               "minimum": 1,
-              "maximum": 500,
+              "maximum": 100,
               "description": "limit 非负 int64；不用浮点数",
               "default": 20
             }
@@ -352,6 +366,24 @@
               "description": "公共 Identifier 合同，遵守其字段和空值规则"
             },
             "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+            },
+            "description": "可选from/to必须同现，左闭右开，绑定审计游标。"
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+            },
+            "description": "可选from/to必须同现，左闭右开，绑定审计游标。"
           }
         ],
         "security": [
@@ -1297,6 +1329,412 @@
         ]
       }
     },
+    "/v1/internal/beacons": {
+      "post": {
+        "operationId": "ingestTrustedBeacon",
+        "summary": "可信portal匿名访问转交",
+        "description": "仅portal纯服务签正文；peerAddress为已解析规范IP，不读代理头；原地址与UA只内存使用。204不泄漏排队或爬虫判定。",
+        "x-handler": "analytics.IngestBeacon",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "204": {
+            "description": "204；严格allowlist，未知字段拒绝400，不携带IP/正文"
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共错误；VERSION_MISMATCH",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/IngestBeaconInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": []
+      }
+    },
+    "/v1/audit-exports": {
+      "post": {
+        "operationId": "createAuditExport",
+        "summary": "当前审计权限私有CSV导出",
+        "description": "已授权过滤范围生成CSV引用，最多10万行",
+        "x-handler": "analytics.CreateExport",
+        "x-permission": "audit.read",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "已授权过滤范围生成CSV引用，最多10万行",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/CreateExportResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共错误；FORBIDDEN",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/CreateAuditExportRequestBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "本操作幂等键，同键不同规范body hash返回409"
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      }
+    },
+    "/v1/statistics/exports/{exportId}": {
+      "get": {
+        "operationId": "downloadStatisticsExport",
+        "summary": "当前权限同主体私有CSV下载",
+        "description": "核存储kind、原actor/site/epoch、24h到期、完整hash；流式32MiB上限。",
+        "x-handler": "analytics.OpenExport",
+        "x-permission": "stats.read",
+        "x-data-epoch-required": true,
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exportId",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已授权完整CSV流",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      }
+    },
+    "/v1/audit-exports/{exportId}": {
+      "get": {
+        "operationId": "downloadAuditExport",
+        "summary": "当前权限同主体私有CSV下载",
+        "description": "核存储kind、原actor/site/epoch、24h到期、完整hash；流式32MiB上限。",
+        "x-handler": "analytics.OpenExport",
+        "x-permission": "audit.read",
+        "x-data-epoch-required": true,
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exportId",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已授权完整CSV流",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "公共失败关闭",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      }
+    },
     "/v1/snapshots/{snapshotId}/archive": {
       "get": {
         "operationId": "readSnapshotArchive",
@@ -1384,6 +1822,66 @@
         "name": "X-Admission-Permit",
         "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
+    },
+    "schemas": {
+      "AnalyticsSiteConfigResult": {
+        "$ref": "../../site-config/contracts/types.json#/$defs/ReadSiteConfigResult"
+      },
+      "AuditRecordedPayload": {
+        "$ref": "./types.json#/$defs/AuditRecordedPayload"
+      },
+      "AnalyticsJobsCreateJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CreateJobResult"
+      },
+      "AnalyticsJobsClaimJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/ClaimJobResult"
+      },
+      "AnalyticsJobsStartJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/StartJobResult"
+      },
+      "AnalyticsJobsHeartbeatJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/HeartbeatJobResult"
+      },
+      "AnalyticsJobsCheckLeaseResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CheckLeaseResult"
+      },
+      "AnalyticsJobsCompleteJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CompleteJobResult"
+      },
+      "AnalyticsJobsFailJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/FailJobResult"
+      },
+      "AnalyticsJobsAcknowledgeEventResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/AcknowledgeEventResult"
+      },
+      "AnalyticsQaCompletedPayload": {
+        "$ref": "../../qa/contracts/types.json#/$defs/EventQaTurnCompletedPayload"
+      },
+      "AnalyticsQaFailedPayload": {
+        "$ref": "../../qa/contracts/types.json#/$defs/EventQaTurnFailedPayload"
+      },
+      "AnalyticsSettledPayload": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/EventInvocationSettledPayload"
+      },
+      "AnalyticsReconciledPayload": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/EventInvocationReconciledPayload"
+      }
     }
-  }
+  },
+  "x-runtime-payload-schemas": [
+    "AnalyticsSiteConfigResult",
+    "AuditRecordedPayload",
+    "AnalyticsJobsCreateJobResult",
+    "AnalyticsJobsClaimJobResult",
+    "AnalyticsJobsStartJobResult",
+    "AnalyticsJobsHeartbeatJobResult",
+    "AnalyticsJobsCheckLeaseResult",
+    "AnalyticsJobsCompleteJobResult",
+    "AnalyticsJobsFailJobResult",
+    "AnalyticsJobsAcknowledgeEventResult",
+    "AnalyticsQaCompletedPayload",
+    "AnalyticsQaFailedPayload",
+    "AnalyticsSettledPayload",
+    "AnalyticsReconciledPayload"
+  ]
 }

@@ -1,0 +1,1 @@
+CREATE TABLE qa_turn_projection(turn_id TEXT PRIMARY KEY,source_revision INTEGER NOT NULL,event_type TEXT NOT NULL,payload_hash TEXT NOT NULL,day TEXT NOT NULL,locale TEXT NOT NULL,answer_kind TEXT NOT NULL,cache_hit TEXT NOT NULL,error_code TEXT NOT NULL,occurred_at TEXT NOT NULL,data_epoch TEXT NOT NULL);
