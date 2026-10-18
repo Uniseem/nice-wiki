@@ -2544,6 +2544,11 @@
       "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。"
     },
     {
+      "path": "modules/localization/internal/suggestion/preference.go",
+      "kind": "handwritten",
+      "purpose": "保存显式访客语言偏好所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
       "path": "modules/localization/internal/translation/edit.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
