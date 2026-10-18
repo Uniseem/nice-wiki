@@ -5176,6 +5176,7 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 2. 循环调用model-gateway:resumeInference按lastSequence续读事件直到terminal；stream=true时逐条把delta交给调用方，断线按序号续传
 3. ctx取消或截止到达时调用model-gateway:cancelInference并返回CANCELLED；已派发费用由网关结算，本域不推定免费
 4. completed返回全部事件；failed、charge_unknown按网关Problem返回，不在本域换模型或重放（备用重试由网关负责）
+5. 原受理状态未知或费用未知时只按原完整请求与原幂等键lookupInference观察当前快照，不因原付费deadline已过期新建模型调用；公共观察适配未齐时保持blocked。
 
 **错误**
 
@@ -5198,7 +5199,7 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 - 授权：permission：service；rule：以本服务身份调用网关，费用类别继承可信op
 - 并发：每次调用独立；同一根操作的子调用共享网关费用作用域
 - 幂等：幂等键固定，重试返回原invocation
-- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`、`qa.FromContext`
+- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`、`qa.FromContext`、`model-gateway:lookupInference`
 
 ## qa.ModelText
 

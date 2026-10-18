@@ -513,6 +513,11 @@ func (c *ModelGatewayClient) CreateInference(ctx context.Context, body any) (jso
 	return c.do(ctx, http.MethodPost, "/v1/inferences", body, "")
 }
 
+// LookupInference POST /v1/inferences/lookup（model-gateway:lookupInference）。
+func (c *ModelGatewayClient) LookupInference(ctx context.Context, body any) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodPost, "/v1/inferences/lookup", body, "")
+}
+
 // ReadInference GET /v1/inferences/{invocationId}（model-gateway:readInference）。
 func (c *ModelGatewayClient) ReadInference(ctx context.Context, invocationId string) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/v1/inferences/"+url.PathEscape(invocationId)+"", nil, "")
