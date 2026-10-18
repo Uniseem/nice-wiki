@@ -9,7 +9,7 @@ import (
 
 // QueryUsageStatistics只汇总本域已有已知账项投影，水位与未对账状态明确返回。
 func QueryUsageStatistics(ctx context.Context,op OperationContext,in QueryUsageStatisticsInput)(QueryUsageStatisticsResult,error){
- rt,err:=runtimeFrom(ctx,op);if err!=nil{return QueryUsageStatisticsResult{},err};interval,err:=ValidateDateRange(ctx,op,ValidateDateRangeInput{From:in.From,To:in.To,MaxDays:366});if err!=nil{return QueryUsageStatisticsResult{},err};begin,_:=time.Parse(time.RFC3339Nano,interval.FromUTC);end,_:=time.Parse(time.RFC3339Nano,interval.ToUTC)
+ rt,err:=runtimeFrom(ctx,op);if err!=nil{return QueryUsageStatisticsResult{},err};var complete int;if err=rt.DB.QueryRowContext(ctx,`SELECT COUNT(*) FROM aggregation_watermarks WHERE source='usage-v2-complete'`).Scan(&complete);err!=nil{return QueryUsageStatisticsResult{},storageError(err)};if complete!=1{return QueryUsageStatisticsResult{},platform.NewError(platform.CodeDependencyUnavailable,true,"完整费用上界及未入账负债尚未投影，不把已入账部分或0当全站费用")};interval,err:=ValidateDateRange(ctx,op,ValidateDateRangeInput{From:in.From,To:in.To,MaxDays:366});if err!=nil{return QueryUsageStatisticsResult{},err};begin,_:=time.Parse(time.RFC3339Nano,interval.FromUTC);end,_:=time.Parse(time.RFC3339Nano,interval.ToUTC)
  tx,err:=rt.DB.BeginTx(ctx,&sql.TxOptions{ReadOnly:true});if err!=nil{return QueryUsageStatisticsResult{},storageError(err)};defer tx.Rollback()
  result:=QueryUsageStatisticsResult{Entries:[]UsageEntry{}}
  if err=tx.QueryRowContext(ctx,`SELECT coalesce((SELECT revision FROM aggregation_watermarks WHERE source='usage'),0),coalesce((SELECT updated_at FROM aggregation_watermarks WHERE source='usage-reconciled'),'')`).Scan(&result.Watermark,&result.LastReconciledAt);err!=nil{return QueryUsageStatisticsResult{},storageError(err)}

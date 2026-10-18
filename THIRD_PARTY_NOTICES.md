@@ -31,4 +31,4 @@ OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设�
 
 ## go-git v5.16.3
 
-ADR0005已批准的版本镜像依赖，固定github.com/go-git/go-git/v5 v5.16.3，Apache-2.0；Copyright 2018 Sourced Technologies, S.L.。原许可见[固定版本许可](docs/licenses/go-git-v5.16.3-Apache-2.0.txt)，源为[官方tag](https://github.com/go-git/go-git/tree/v5.16.3)。只通过依赖API使用，不复制业务实现；本轮不执行远程业务镜像同步。
+ADR0005已批准的版本镜像依赖，固定github.com/go-git/go-git/v5 v5.16.3，Apache-2.0；Copyright 2018 Sourced Technologies, S.L.。原许可见[固定版本许可](docs/licenses/go-git-v5.16.3-Apache-2.0.txt)，源为[官方tag](https://github.com/go-git/go-git/tree/v5.16.3)。数据保护独立WIP拟通过依赖API使用，不复制业务实现；本次main尚未引入该依赖，保留固定版本许可登记，未执行远程业务镜像同步。

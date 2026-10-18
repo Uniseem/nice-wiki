@@ -528,6 +528,9 @@
     "schemas": {
       "PortalSiteConfigResponse": {
         "$ref": "./types.json#/$defs/PortalSiteConfigResponse"
+      },
+      "BeaconPublicRequest": {
+        "$ref": "./types.json#/$defs/BeaconPublicRequest"
       }
     }
   },
