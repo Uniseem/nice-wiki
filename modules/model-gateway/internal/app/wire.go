@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"time"
+ "time"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
@@ -16,7 +16,7 @@ import (
 	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
-	"nice-wiki/modules/model-gateway/internal/invocation"
+ "nice-wiki/modules/model-gateway/internal/invocation"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/security"
 	"nice-wiki/modules/model-gateway/internal/tokens"
@@ -39,9 +39,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	anchors, key, err := lifecycle.LoadServiceIdentity(config)
-	if err != nil {
-		return nil, err
-	}
+	if err != nil { return nil, err }
 
 	runtimeAuthority, err := newRuntimeClient(config, key)
 	if err != nil {
@@ -65,36 +63,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	gatewayruntime.InstallStore(store, config.MasterKeyRef)
 	defer store.Close()
-	taskGroup, err := lifecycle.NewTaskGroup(ctx, 256)
-	if err != nil {
-		return nil, err
-	}
-	validators := make(map[string]func(json.RawMessage) error)
-	for _, name := range []string{"MediaReadAssetResult", "LanguageSuggestionApprovalResult", "SiteInitializationStatusResult"} {
-		validator, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
-		if err != nil {
-			return nil, err
-		}
-		validators[name] = validator
-	}
-	mediaClient := gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key)
-	options := gatewayruntime.ExecutionOptions{Anchors: anchors, Tasks: taskGroup, Media: mediaClient, MediaBytes: mediaClient, Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), Validators: validators, WriteWindow: platform.WriteWindowConfig{Runtime: runtimeAuthority.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
-		view, err := runtimeAuthority.ReadRuntimeState(work)
-		if err != nil {
-			return time.Time{}, err
-		}
-		if view.DataEpoch != runtimeView.DataEpoch {
-			return time.Time{}, platform.NewError(platform.CodeStaleResult, false, "模型写窗口代际已变化")
-		}
-		if view.Phase != platform.PhaseRunning && view.Phase != platform.PhaseBackupBarrier && view.Phase != platform.PhaseRestoreStaging {
-			return time.Time{}, platform.NewError(platform.CodeLocked, true, "模型写窗口已关闭")
-		}
-		return time.Time{}, nil
-	}}}
-	if base := config.Dependencies["localization"]; base != "" {
-		options.LanguageApprovals = gen.NewLocalizationClient(base, ModuleSlug, key)
-	}
-	gatewayruntime.InstallExecutionOptions(options)
+ taskGroup,err:=lifecycle.NewTaskGroup(ctx,256);if err!=nil{return nil,err}
+ validators:=make(map[string]func(json.RawMessage)error)
+ for _,name:=range []string{"MediaReadAssetResult","LanguageSuggestionApprovalResult","SiteInitializationStatusResult"}{validator,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),name);if err!=nil{return nil,err};validators[name]=validator}
+ mediaClient:=gen.NewMediaClient(config.Dependencies["media"],ModuleSlug,key)
+ options:=gatewayruntime.ExecutionOptions{Anchors:anchors,Tasks:taskGroup,Media:mediaClient,MediaBytes:mediaClient,Jobs:gen.NewJobsClient(config.Dependencies["jobs"],ModuleSlug,key),Validators:validators,WriteWindow:platform.WriteWindowConfig{Runtime:runtimeAuthority.ReadRuntimeState,WriteWindow:func(work context.Context)(time.Time,error){view,err:=runtimeAuthority.ReadRuntimeState(work);if err!=nil{return time.Time{},err};if view.DataEpoch!=runtimeView.DataEpoch{return time.Time{},platform.NewError(platform.CodeStaleResult,false,"模型写窗口代际已变化")};if view.Phase!=platform.PhaseRunning&&view.Phase!=platform.PhaseBackupBarrier&&view.Phase!=platform.PhaseRestoreStaging{return time.Time{},platform.NewError(platform.CodeLocked,true,"模型写窗口已关闭")};return time.Time{},nil}}}
+ if base:=config.Dependencies["localization"];base!=""{options.LanguageApprovals=gen.NewLocalizationClient(base,ModuleSlug,key)}
+ gatewayruntime.InstallExecutionOptions(options)
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
@@ -109,10 +84,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			seen[task.Owner] = true
 		}
 	}
-	handlers := catalog.NewTaskAvailabilityHandlers(authorize)
-	for operationID, handler := range invocation.NewExecutionHandlers() {
-		handlers[operationID] = handler
-	}
+	usageCallers:=append(append([]string{},assignmentCallers...),"analytics");usageServices:=append(append([]string{},assignmentCallers[1:]...),"analytics")
+ handlers := catalog.NewTaskAvailabilityHandlers(authorize)
+ for operationID,handler:=range invocation.NewExecutionHandlers(){handlers[operationID]=handler}
 	ledgerHandlers, err := admin.NewLedgerHandlers(key)
 	if err != nil {
 		return nil, err
@@ -123,16 +97,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	for operationID, handler := range billing.NewPriceHandlers() {
 		handlers[operationID] = handler
 	}
-	for operationID, handler := range tokens.NewTokenizerHandlers() {
+	for operationID, handler := range tokens.NewTokenizerHandlers() { handlers[operationID] = handler }; for operationID, handler := range tokens.NewTokenHandlers() {
 		handlers[operationID] = handler
 	}
-	for operationID, handler := range tokens.NewTokenHandlers() {
-		handlers[operationID] = handler
-	}
-	for operationID, handler := range catalog.NewCatalogRefreshHandlers() {
-		handlers[operationID] = handler
-	}
-	for operationID, handler := range catalog.NewCatalogHandlers() {
+	for operationID, handler := range catalog.NewCatalogRefreshHandlers() {handlers[operationID]=handler}
+ for operationID, handler := range catalog.NewCatalogHandlers() {
 		handlers[operationID] = handler
 	}
 	for operationID, handler := range admin.NewAdminHandlers(authorize) {
@@ -152,25 +121,27 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		OpenedDataEpoch:     runtimeView.DataEpoch,
 		Authorize:           authorize,
-		ServiceActorCallers: map[string][]string{"tokenizeText": {"knowledge"}, "createInference": assignmentCallers[1:], "cancelInference": assignmentCallers[1:], "queryUsage": assignmentCallers[1:], "readModels": assignmentCallers[1:], "readProfiles": assignmentCallers[1:], "readInference": assignmentCallers[1:], "resumeInference": assignmentCallers[1:]},
+		ServiceActorCallers: map[string][]string{"tokenizeText":{"knowledge"},"lookupInference":assignmentCallers[1:],
+ "createInference":assignmentCallers[1:],"cancelInference":assignmentCallers[1:],"queryUsage": usageServices,"readModels":assignmentCallers[1:],"readProfiles":assignmentCallers[1:],"readInference":assignmentCallers[1:],"resumeInference":assignmentCallers[1:]},
 		AllowedCallers: map[string][]string{
+ "lookupInference":assignmentCallers[1:],
 			"getLedger":            {"portal"},
-			"readInference":        assignmentCallers,
-			"resumeInference":      assignmentCallers,
-			"reconcileCharge":      {"portal"},
-			"createInference":      assignmentCallers[1:],
-			"cancelInference":      assignmentCallers[1:],
-			"queryUsage":           assignmentCallers,
+ "readInference":assignmentCallers,
+ "resumeInference":assignmentCallers,
+ "reconcileCharge":{"portal"},
+ "createInference":assignmentCallers[1:],
+ "cancelInference":assignmentCallers[1:],
+			"queryUsage":           usageCallers,
 			"readTaskAvailability": {"qa"},
 			"getPriceBook":         {"portal"},
 			"quoteCost":            assignmentCallers[1:],
-			"tokenizeText":         {"knowledge"},
-			"estimateTokens":       {"localization"},
+			"tokenizeText":{"knowledge"},
+ "estimateTokens":       {"localization"},
 			"putTaskAssignment":    {"portal"},
 			"putProfile":           {"portal"},
 			"putProvider":          {"portal"},
 			"putModel":             {"portal"},
-			"refreshModelCatalog":  {"portal"},
+ "refreshModelCatalog":{"portal"},
 			"putCredential":        {"portal"},
 			"rotateCredential":     {"portal"},
 			"readTaskAssignments":  assignmentCallers,
@@ -236,21 +207,7 @@ func ensureDataLayout(dataRoot string) error {
 }
 
 // ReadInitializationState只读site-config实际初始化权威，不以epoch推测。
-func ReadInitializationState(ctx context.Context, client *gen.SiteConfigClient, validate func(json.RawMessage) error) (bool, error) {
-	work, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	deadline, _ := work.Deadline()
-	id := platform.NewIdentifier()
-	op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline.UTC().Format(time.RFC3339Nano), Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system", Grants: []string{}, ExpiresAt: deadline.UTC().Format(time.RFC3339Nano)}}
-	raw, err := client.ReadInitializationStatus(platform.WithOperationContext(platform.WithPortalProof(work, ""), op))
-	if err != nil {
-		return false, err
-	}
-	var status struct {
-		Initialized bool `json:"initialized"`
-	}
-	if validate(raw) != nil || json.Unmarshal(raw, &status) != nil {
-		return false, platform.NewError(platform.CodeIntegrityError, false, "站点初始化权威响应不符合合同")
-	}
-	return status.Initialized, nil
+func ReadInitializationState(ctx context.Context,client *gen.SiteConfigClient,validate func(json.RawMessage)error)(bool,error){
+ work,cancel:=context.WithTimeout(ctx,5*time.Second);defer cancel();deadline,_:=work.Deadline();id:=platform.NewIdentifier();op:=platform.OperationContext{RequestID:id,OperationID:id,RootOperationID:id,CallerService:ModuleSlug,Deadline:deadline.UTC().Format(time.RFC3339Nano),Actor:platform.AuthContext{Kind:"service",SubjectID:ModuleSlug,SiteID:"system",Grants:[]string{},ExpiresAt:deadline.UTC().Format(time.RFC3339Nano)}}
+ raw,err:=client.ReadInitializationStatus(platform.WithOperationContext(platform.WithPortalProof(work,""),op));if err!=nil{return false,err};var status struct{Initialized bool `json:"initialized"`};if validate(raw)!=nil||json.Unmarshal(raw,&status)!=nil{return false,platform.NewError(platform.CodeIntegrityError,false,"站点初始化权威响应不符合合同")};return status.Initialized,nil
 }

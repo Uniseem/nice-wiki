@@ -3623,6 +3623,10 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "代际"
+        },
+        "sourceDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "恢复投影原费用epoch；dataEpoch仍当前target，缺失表示同代。"
         }
       },
       "required": [
@@ -3669,6 +3673,10 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "代际"
+        },
+        "sourceDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "恢复投影原费用epoch；dataEpoch仍当前target，缺失表示同代。"
         }
       },
       "required": [
@@ -3710,6 +3718,10 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "代际"
+        },
+        "sourceDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "恢复投影原费用epoch；dataEpoch仍当前target，缺失表示同代。"
         }
       },
       "required": [
@@ -5021,6 +5033,184 @@
         "modelId"
       ],
       "description": "models.dev显式源身份，不是本站渠道ID；不从URL/名称推断。"
+    },
+    "RestoreInvocationProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-internal": true,
+      "description": "仅由已认证源快照Stage产生的当前target只读/费用投影；绝非新付费准入。",
+      "properties": {
+        "targetEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "executionSnapshotHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "restoreId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceBackupId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceBackupEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceArchiveChecksum": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "sourceManifestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "ownerService": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "targetEpoch",
+        "invocationId",
+        "sourceEpoch",
+        "executionSnapshotHash",
+        "restoreId",
+        "sourceBackupId",
+        "sourceBackupEpoch",
+        "sourceArchiveChecksum",
+        "sourceManifestHash",
+        "ownerService",
+        "siteId",
+        "rootOperationId"
+      ]
+    },
+    "EventInvocationReconciledPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass"
+        },
+        "proofHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "proofKind": {
+          "enum": [
+            "charged",
+            "not_charged"
+          ],
+          "type": "string"
+        },
+        "entryId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "actualCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money"
+        },
+        "sourceDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "恢复投影原费用epoch；dataEpoch仍当前target，缺失表示同代。"
+        }
+      },
+      "required": [
+        "invocationId",
+        "attemptId",
+        "rootOperationId",
+        "costClass",
+        "proofHash",
+        "dataEpoch",
+        "proofKind"
+      ],
+      "oneOf": [
+        {
+          "properties": {
+            "proofKind": {
+              "const": "charged"
+            }
+          },
+          "required": [
+            "entryId",
+            "actualCost"
+          ]
+        },
+        {
+          "properties": {
+            "proofKind": {
+              "const": "not_charged"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "entryId"
+                ]
+              },
+              {
+                "required": [
+                  "actualCost"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "description": "原费用人工证明结果，不带原证明正文，not_charged不造账项/金额。"
+    },
+    "LookupInvocationInput": {
+      "$ref": "#/$defs/CreateInvocationInput"
+    },
+    "LookupInvocationResult": {
+      "$ref": "#/$defs/GetInvocationResult"
+    },
+    "InvocationLookupTracking": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-internal": true,
+      "properties": {
+        "formatVersion": {
+          "const": 1
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "proofKind": {
+          "enum": [
+            "fresh_activation",
+            "verified_restore"
+          ]
+        },
+        "proofHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        }
+      },
+      "required": [
+        "formatVersion",
+        "dataEpoch",
+        "proofKind",
+        "proofHash"
+      ],
+      "description": "只有真实fresh owner activation或认证restore回调可建立，本次纯读lookup不生产/写入marker。"
     }
   }
 }

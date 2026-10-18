@@ -97,6 +97,18 @@
       "delivery": "at-least-once",
       "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
       "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
+    },
+    {
+      "name": "invocation.reconciled",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "./types.json#/$defs/EventInvocationReconciledPayload"
+      },
+      "purpose": "同原费用更正/void/回执事务发人工证明结果，不带原文。target dataEpoch与envelope一致，原费用epoch用sourceDataEpoch。",
+      "delivery": "at-least-once",
+      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
+      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
     }
   ]
 }

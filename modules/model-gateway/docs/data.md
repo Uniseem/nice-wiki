@@ -347,3 +347,26 @@ Model.catalogRef={providerId,modelId}是models.dev明确源身份，和任意本
 ## 实际结果模型来源
 
 MG唯一ModelSnapshotHash助手对原固定gen.Model作CanonicalJSON SHA256，覆盖配置版本、模型/预处理/能力/来源元数据，不冒称探测供应方内部权重版本。ReadModels返回权威hash用于比较；每attempt准备时持久自己的hash。只有真实完整有效结果与脱敏evidence同事务写Invocation.resultAttemptId，winner费用仍可charge_unknown。终态/SSE保持该来源，人工对账只改费用不改结果或winning ID。消费者按resultAttemptId选择对应hash，不按state=succeeded猜测、不复制算法；旧缺证据值保持缺失，失败关闭。
+
+## 已批准的历史费用恢复投影（设计，待公共实现）
+
+Stage不能重基原invocation、operation、route、feeBinding、价格或执行hash。
+当前target只对原source身份建立读/费用投影，绑定原ID、hash、owner/site/root、restore与backup证明。
+多次恢复时原费用sourceEpoch可能A，归档active的sourceBackupEpoch可能B，新target C验证B中A原证据和B到A旧合法投影，再建C到A。
+缺任何不可变或归属证明，Stage和Ready失败关闭、保留源数据，不用空数组或空投影冒充成功。
+
+旧unknown held继续占原site/profile/QA scope；当前target统计包含经授权的原费用，用存在性避免重复累计。
+只读复用不恢复旧guard scope为付费许可，也不重新派发旧调用。
+人工对账由当前超管授权，仅结原费用，不改旧结果、winner或blob hash。
+事件envelope.dataEpoch和payload.dataEpoch均当前target，sourceDataEpoch保原费用source；原root/invocation/attempt不变。
+这里只收ROOT裁定与封闭内部类型，没有创建投影或执行通用SQL迁移，不新增ready。
+
+## 原键只读查找与统计观察
+
+lookupInference复用完整CreateInvocationInput，以原owner/site/root/epoch/key核原规范输入及真实回执。
+新的读取deadline不覆盖原paid deadline，不续费、不重新派发，也不以过期准入做新付款。
+create_command_key和Create原回执同事务提交；索引缺失、孤立记录或坏回执失败关闭。
+完整tracking marker只由可信fresh owner activation或认证restore建立；缺失503，空库绝不自行变404证明。
+纯读取只在完整tracking有据且确无原记录时404；marker生产及恢复投影等公共启动，未自造成功来源。
+analytics纯服务只可读同实际site/current epoch的安全QueryUsage，不得调用GetInference读取正文/输出或获得新付费权限。
+invocation.reconciled与原更正/void/回执同事务发outbox，charged才携真实entryId/actualCost，not_charged不造账项/金额。
