@@ -2,12 +2,12 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "287b2b97ce1b2dcf88c53da11416f8e26db05571f86472c6632006b7d3eff994",
+  "contractSha256": "12c28483ed3063b56bb1f00d5b89a407020284c3c2a77d8b37981c055b8ee9d4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "语言配置（pipeline 42 已记 verified；NormalizeLanguageTag 仍 blocked）",
-  "branch": "codex/localization-20261017-r4",
-  "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
-  "deliveryCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+  "assignedSession": "R1-15（Codex，集中并行实现）",
+  "branch": "codex/localization-20261018-bulk",
+  "baseCommit": "f1d4ce0628470eda7b253993366669759dd01cdc",
+  "deliveryCommit": "21c6a196c990d323c73429b769a38895beca7a93",
   "deployment": "not_started",
   "files": [
     {
@@ -23,42 +23,42 @@
     {
       "path": "modules/localization/internal/language/tag.go",
       "state": "blocked",
-      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "语言标签的大小写映射、脚本子标签和私用用法尚未在合同写明。函数只拒绝空标签和超过35的标签，其余输入返回 DEPENDENCY_UNAVAILABLE，不返回改写后的标签或方向。GitLab CI 未跑。"
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
     },
     {
       "path": "modules/localization/internal/language/config.go",
-      "state": "implemented",
-      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
     },
     {
       "path": "modules/localization/internal/language/read.go",
-      "state": "implemented",
-      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
     },
     {
       "path": "modules/localization/internal/language/guard.go",
-      "state": "implemented",
-      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
     },
     {
       "path": "modules/localization/internal/language/http.go",
@@ -222,33 +222,33 @@
     },
     {
       "path": "modules/localization/internal/glossary/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
     },
     {
       "path": "modules/localization/internal/glossary/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
     },
     {
       "path": "modules/localization/internal/glossary/approved.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
     },
     {
       "path": "modules/localization/internal/events/glossary.go",
@@ -422,13 +422,13 @@
     },
     {
       "path": "modules/localization/internal/glossary/rollback.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
     },
     {
       "path": "modules/localization/internal/translation/fallback.go",
@@ -729,6 +729,46 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/localization/internal/language/transaction.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
+    },
+    {
+      "path": "modules/localization/internal/glossary/http.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
+    },
+    {
+      "path": "modules/localization/internal/glossary/change.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
+    },
+    {
+      "path": "modules/localization/migrations/003_glossary_catalog.sql",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮源码已提交，待统一GitLab CI生成/格式/readonly build/vet及make check"
     }
   ],
   "functions": [
@@ -747,45 +787,45 @@
       "id": "localization.NormalizeLanguageTag",
       "path": "modules/localization/internal/language/tag.go",
       "state": "blocked",
-      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "语言标签的大小写映射、脚本子标签和私用用法尚未在合同写明。函数只拒绝空标签和超过35的标签，其余输入返回 DEPENDENCY_UNAVAILABLE，不返回改写后的标签或方向。"
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.PutLanguage",
       "path": "modules/localization/internal/language/config.go",
-      "state": "verified",
-      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.SetLanguageEnabled",
       "path": "modules/localization/internal/language/config.go",
-      "state": "verified",
-      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.ListLanguages",
       "path": "modules/localization/internal/language/read.go",
-      "state": "verified",
-      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "GitLab CI 未跑，未做编译或行为验收。"
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.HandlePublication",
@@ -844,14 +884,14 @@
     },
     {
       "id": "localization.ResolveGlossary",
-      "path": "modules/localization/internal/glossary/resolve.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/localization/internal/glossary/read.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.BuildTranslationPrompt",
@@ -988,57 +1028,57 @@
     {
       "id": "localization.PutGlossaryTerm",
       "path": "modules/localization/internal/glossary/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.DeleteGlossaryTerm",
       "path": "modules/localization/internal/glossary/write.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.ListGlossary",
       "path": "modules/localization/internal/glossary/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.ApplyApprovedGlossaryProposal",
       "path": "modules/localization/internal/glossary/approved.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.HandleGlossaryChange",
-      "path": "modules/localization/internal/events/glossary.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/localization/internal/glossary/change.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.ValidateInterfaceCatalog",
@@ -1285,13 +1325,13 @@
     {
       "id": "localization.RollbackAutomaticGlossaryBatch",
       "path": "modules/localization/internal/glossary/rollback.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.PlanTranslationFallback",
@@ -1479,7 +1519,205 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "localization.rejectLanguageAlias",
+      "path": "modules/localization/internal/language/config.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.acceptStoredTag",
+      "path": "modules/localization/internal/language/guard.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.NormalizeTerm",
+      "path": "modules/localization/internal/glossary/write.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.StoreTerm",
+      "path": "modules/localization/internal/glossary/write.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.AdvanceGeneration",
+      "path": "modules/localization/internal/glossary/write.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.PublishChange",
+      "path": "modules/localization/internal/glossary/write.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.scanTerm",
+      "path": "modules/localization/internal/glossary/read.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.Generation",
+      "path": "modules/localization/internal/glossary/read.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.ReadData",
+      "path": "modules/localization/internal/language/transaction.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.Mutate",
+      "path": "modules/localization/internal/language/transaction.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.RequireAdministrator",
+      "path": "modules/localization/internal/language/transaction.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.EmitReference",
+      "path": "modules/localization/internal/language/transaction.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.StorageError",
+      "path": "modules/localization/internal/language/transaction.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.NewGlossaryHandlers",
+      "path": "modules/localization/internal/glossary/http.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.glossaryJSON",
+      "path": "modules/localization/internal/glossary/http.go",
+      "state": "blocked",
+      "implementationCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     }
   ],
-  "rule": "语言配置写入与列表已实现但未编译、未验收。NormalizeLanguageTag 因归一化规则未写明保持 blocked。BuildApplication 仍因其余依赖失败关闭。accepted 为 0。"
+  "rule": "首组11个既有业务/已修改函数与15个实际参考辅助已提交，全部blocked待统一GitLab CI；其余旧证据按未变范围保留。无行为accepted。",
+  "readyAwaitingCI": {
+    "sourceCommit": "21c6a196c990d323c73429b769a38895beca7a93",
+    "existingBusinessFunctions": [
+      "localization.NormalizeLanguageTag",
+      "localization.PutLanguage",
+      "localization.SetLanguageEnabled",
+      "localization.ListLanguages",
+      "localization.PutGlossaryTerm",
+      "localization.DeleteGlossaryTerm",
+      "localization.ApplyApprovedGlossaryProposal",
+      "localization.RollbackAutomaticGlossaryBatch",
+      "localization.ListGlossary",
+      "localization.ResolveGlossary",
+      "localization.HandleGlossaryChange"
+    ],
+    "newReferenceHelpers": [
+      "localization.rejectLanguageAlias",
+      "localization.acceptStoredTag",
+      "localization.ReadData",
+      "localization.Mutate",
+      "localization.RequireAdministrator",
+      "localization.EmitReference",
+      "localization.StorageError",
+      "localization.NormalizeTerm",
+      "localization.StoreTerm",
+      "localization.AdvanceGeneration",
+      "localization.PublishChange",
+      "localization.NewGlossaryHandlers",
+      "localization.glossaryJSON",
+      "localization.scanTerm",
+      "localization.Generation"
+    ]
+  }
 }

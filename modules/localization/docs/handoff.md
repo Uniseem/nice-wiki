@@ -1,3 +1,21 @@
+# 本轮首组交付（2026-10-18）
+
+独占modules/localization，分支codex/localization-20261018-bulk，基线f1d4ce0628470eda7b253993366669759dd01cdc。源码21c6a196c990d323c73429b769a38895beca7a93，其后另提交此台账。11个既有业务/已修改函数与15个新增参考helper精确IDs见progress.json.readyAwaitingCI，均blocked待统一GitLab CI，未编译/未验收。
+
+已写：规范BCP47及别名冲突、语言权限入口修正；术语增删列表/固定代数解析/人工批准幂等/批次撤销/保护内容review和机翻stale。没有调用模型，不自动重译。003迁移新增软删/活动唯一scope、全站持久代数及批准命令站/根/原结果代数。来源语言未知的旧manifest按target保守失效，保护文本原值不动。
+
+memory批准授权发生点、短期proof过期和撤销重试语义已在workflows明确，实际命令继续核当前本域epoch/维护/expectedGlossaryGeneration/term CAS，终身按proposalId固定命令内容和根站同代。不同内容冲突，成功/拒绝均在本地提交后通过平台outbox发布终态，不反向调memory。
+
+参考级ResolveGlossary/HandleGlossaryChange已登记到其实际glossary实现文件，防止只登记旧路径。新增helper都登记实际签名，不隐瞒函数分母；生成目录未手改，根结构和make docs/gen/check交集成GitLab统一。
+
+本轮仅git diff --check通过；未本地/SSH工具链，未新增或运行业务测试、真实接口/模型、进程、部署或push。其余未改verified保持原证据。
+
+下一步（一项）：读取translation/units/guard相关精确合同，在同域权威译文文件和manifest基础上完成编辑保护、TM、增量与批次上下文/校验链，再及时交付GitLab CI；不得以DB文字索引替代权威正文或绕过人工保护。
+
+下文旧交接不覆盖本轮首组。
+
+---
+
 # 2026-10-17 语言配置交接
 
 - 分支：`codex/localization-20261017-r4`

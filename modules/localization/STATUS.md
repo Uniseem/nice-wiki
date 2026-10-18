@@ -1,3 +1,13 @@
+# 当前集中实现（2026-10-18，首组待GitLab CI）
+
+源码 `21c6a196c990d323c73429b769a38895beca7a93`：11个既有业务/已修改函数与15个实际参考辅助，均blocked待统一GitLab CI。语言原文配置不变，x/text规范化已实现；修正平台入口授权后错误依赖空Grants的问题。术语CRUD/软删/不可回退全站代数/固定代数分页/文档优先解析/自动批撤销/memory批准命令原结果及事件已写，修改与失效/outbox同事务。未发生模型费用，不自动重译。
+
+完整服务仍因其余handler、翻译/事件/任务链未齐失败关闭。未执行本机/SSH的Go/gofmt/build/vet/gen/docs/check或测试，未新增测试/fixture/mock/样例/临时验证程序，未调用真实接口、模型、服务或部署，未push。`git diff --check`通过。精确ready IDs见progress.json.readyAwaitingCI。
+
+下文历史证据不覆盖本轮已修改函数。
+
+---
+
 # 集成检查（2026-10-17）
 
 语言读写已合入 main，GitLab pipeline 42 把本轮函数记为 verified。NormalizeLanguageTag 仍 blocked。下面是合入前的模块记录。

@@ -1371,86 +1371,7 @@
       "path": "modules/localization/internal/glossary/resolve.go",
       "kind": "handwritten",
       "purpose": "取得确定性术语快照所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "localization.ResolveGlossary",
-          "name": "ResolveGlossary",
-          "signature": "func ResolveGlossary(ctx context.Context,op OperationContext,input ResolveGlossaryInput)(ResolveGlossaryResult,error)",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "取得确定性术语快照",
-          "steps": [
-            "1 固定generation读取",
-            "2 document term优先global",
-            "3 原词按长度降序避免短词抢占",
-            "4 相同scope原词冲突拒绝",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "localization.NormalizeLanguageTag",
-            "localization.ReadData",
-            "localization.StorageError",
-            "localization.scanTerm",
-            "localization.Generation"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
+      "functions": []
     },
     {
       "path": "modules/localization/internal/translation/prompt.go",
@@ -3435,6 +3356,84 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "localization.ResolveGlossary",
+          "name": "ResolveGlossary",
+          "signature": "func ResolveGlossary(ctx context.Context,op OperationContext,input ResolveGlossaryInput)(ResolveGlossaryResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "取得确定性术语快照",
+          "steps": [
+            "1 固定generation读取",
+            "2 document term优先global",
+            "3 原词按长度降序避免短词抢占",
+            "4 相同scope原词冲突拒绝",
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.NormalizeLanguageTag",
+            "localization.ReadData",
+            "localization.StorageError",
+            "localization.scanTerm",
+            "localization.Generation"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3568,77 +3567,7 @@
       "path": "modules/localization/internal/events/glossary.go",
       "kind": "handwritten",
       "purpose": "使机翻版本按术语变化失效所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "localization.HandleGlossaryChange",
-          "name": "HandleGlossaryChange",
-          "signature": "func HandleGlossaryChange(ctx context.Context,tx *sql.Tx,op OperationContext,source,target string,generation int)(int,error)",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "使机翻版本按术语变化失效",
-          "steps": [
-            "1 由术语写入函数在同一提交后本地调用，不经事件",
-            "2 只处理更高glossary generation",
-            "3 受影响machine manifest标stale并在后台提示重译估价，不自动产生费用",
-            "4 protected文本保持并给出review提示"
-          ],
-          "errors": [
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "标stale不立即消费模型"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "localization.StorageError"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
+      "functions": []
     },
     {
       "path": "modules/localization/internal/interface/validate.go",
@@ -8134,7 +8063,77 @@
       "path": "modules/localization/internal/glossary/change.go",
       "kind": "handwritten",
       "purpose": "本域术语或既有事务机制的实际参考级支持。",
-      "functions": []
+      "functions": [
+        {
+          "id": "localization.HandleGlossaryChange",
+          "name": "HandleGlossaryChange",
+          "signature": "func HandleGlossaryChange(ctx context.Context,tx *sql.Tx,op OperationContext,source,target string,generation int)(int,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "使机翻版本按术语变化失效",
+          "steps": [
+            "1 由术语写入函数在同一提交后本地调用，不经事件",
+            "2 只处理更高glossary generation",
+            "3 受影响machine manifest标stale并在后台提示重译估价，不自动产生费用",
+            "4 protected文本保持并给出review提示"
+          ],
+          "errors": [
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "标stale不立即消费模型"
+          ],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     },
     {
       "path": "modules/localization/migrations/003_glossary_catalog.sql",
