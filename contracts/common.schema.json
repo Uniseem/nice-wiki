@@ -1622,6 +1622,108 @@
         "references"
       ],
       "description": "版本1未压缩tar的首entry manifest.json，canonical JSON≤16MiB，后续仅files/<path>声明普通文件；完整归档≤20GiB/100000文件。安全截点回调必须穷尽权威对象与跨域引用，未知不能写空列表冒充。精确sourceEpoch保留，staging迁移回调才建立targetDataEpoch。"
+    },
+    "OwnerRecoveryRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "jobId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "owner": {
+          "type": "string",
+          "enum": [
+            "memory",
+            "qa",
+            "knowledge",
+            "public-site",
+            "data-protection",
+            "localization",
+            "analytics",
+            "media"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "inputRef": {
+          "$ref": "#/$defs/ObjectRef"
+        },
+        "rootOperationId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "expiredFence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "workerId": {
+          "anyOf": [
+            {
+              "const": ""
+            },
+            {
+              "$ref": "#/$defs/Identifier"
+            }
+          ]
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cancelRequested": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "jobId",
+        "owner",
+        "type",
+        "inputRef",
+        "rootOperationId",
+        "dataEpoch",
+        "expiredFence",
+        "workerId",
+        "attempt",
+        "cancelRequested"
+      ],
+      "description": "jobs从自己持久任务与失效租约读取，只读owner恢复证明；不得浏览器自报或新建dedupeKey绕过孤立。"
+    },
+    "OwnerRecoveryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "safeToRetry",
+            "pending",
+            "unknown"
+          ]
+        },
+        "resultRef": {
+          "$ref": "#/$defs/ObjectRef"
+        },
+        "paidResultRefs": {
+          "type": "array",
+          "maxItems": 65536,
+          "items": {
+            "$ref": "#/$defs/Identifier"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "paidResultRefs"
+      ],
+      "description": "owner以精确inputRef/root/epoch/fence/attempt匹配原持久事实；不能证明安全则pending/unknown。completed只交原结果，safeToRetry必须能复用原hash/checkpoint/付费结果且无未决派发费用；未知绝不作0或重算。"
     }
   }
 }

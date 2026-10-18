@@ -99,3 +99,7 @@ TaskGroup只监督域已持久接受的本进程操作，Start唯一key去重并
 新处理链必须把ClaimInboxBeforeWrite放在事务首项写入，提供只提交该认领事务的回调；同ID身份/载荷冲突时，先提交隔离再返回完整性错误，不能让外层defer Rollback擦掉隔离。已隔离事件即使旧hash再次投递也不确认。修订水位按producer/eventType/eventVersion/subject隔离，只比较已applied；并发唯一冲突未经核对不确认。旧ClaimInbox保留兼容签名但不承诺替调用方提交隔离。
 
 数据保护部署可配置GitCredentialRefs（最多64个Identifier到规范绝对私有路径），其他域不得配置，加载只校验引用不读秘密。HTTP credentialRef只能选择已配置ID，不能拿请求路径读取私有文件。浏览器API端口仅为恢复只读/恢复取消许可/备份下载提供固定命名token选项，portal只能映射对应data-protection精确操作头，禁止任意headers或URL携token。responseType=stream返回原Response供有界管道下载，不能把20GiB归档统一读Blob。
+
+## 任务owner持久恢复证明
+
+公共OwnerRecoveryRequest/Result来自common.schema，POST `/v1/jobs/{jobId}/recovery`由任务owner提供、operationId=readJobRecovery，仅jobs纯服务。path jobId必须与正文相同，owner必须本域；逐字段匹配原inputRef/root/epoch/expiredFence/worker/attempt及取消事实后才给结果。人工失败终局无租约时workerId可空、fence/attempt可0，绝不伪造当前worker。结果paidResultRefs始终完整数组，超预算失败，不截断。completed仅交真实原持久结果；safeToRetry必须原hash/checkpoint及付费结果可复用、全部尝试有实际未派发/已结账证明，无未知held；pending/unknown/不可达保留orphan。调用方以jobs自己持久记录构造请求、清掉portal委托、固定原root/site/epoch与5秒内截止；该端口不执行任务或模型。具体owner端口/客户端仍由后续实施登记，不把DTO存在算完整恢复。

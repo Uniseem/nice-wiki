@@ -3598,16 +3598,10 @@
       "description": "可信owner恢复检查边界；未接通实际版本化操作时不宣布业务可用"
     },
     "OwnerRecoveryRequest": {
-      "type": "null",
-      "x-internal": true,
-      "x-go-type": "OwnerRecoveryRequest",
-      "description": "可信owner恢复检查边界；未接通实际版本化操作时不宣布业务可用"
+      "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryRequest"
     },
     "OwnerRecoveryResult": {
-      "type": "null",
-      "x-internal": true,
-      "x-go-type": "OwnerRecoveryResult",
-      "description": "可信owner恢复检查边界；未接通实际版本化操作时不宣布业务可用"
+      "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryResult"
     },
     "orphanCandidate": {
       "type": "null",

@@ -1120,6 +1120,12 @@
       "description": "私有有界内存输出与取消信号，不是HTTP DTO",
       "type": "object",
       "additionalProperties": false
+    },
+    "OwnerRecoveryRequest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryRequest"
+    },
+    "OwnerRecoveryResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryResult"
     }
   }
 }

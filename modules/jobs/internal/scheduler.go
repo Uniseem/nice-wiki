@@ -14,26 +14,9 @@ import (
 // 该边界不执行任务或模型。未装配、不可达、pending和unknown都保留orphan。
 type OwnerRecoveryChecker func(context.Context, OperationContext, OwnerRecoveryRequest) (OwnerRecoveryResult, error)
 
-type OwnerRecoveryRequest struct {
-	JobID           string
-	Owner           string
-	Type            string
-	InputRef        ObjectRef
-	RootOperationID string
-	DataEpoch       string
-	ExpiredFence    int64
-	WorkerID        string
-	Attempt         int64
-	CancelRequested bool
-}
+type OwnerRecoveryRequest = platform.OwnerRecoveryRequest
 
-type OwnerRecoveryResult struct {
-	// completed：已持久完成；safeToRetry：已确认无未决费用，复用同根操作及已有阶段安全重试。
-	// pending/unknown：未到可证明的安全状态，不能重跑。
-	Status         string
-	ResultRef      *ObjectRef
-	PaidResultRefs []string
-}
+type OwnerRecoveryResult = platform.OwnerRecoveryResult
 
 type orphanCandidate struct {
 	job     jobRecord
