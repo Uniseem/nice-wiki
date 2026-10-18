@@ -1,3 +1,14 @@
+# 2026-10-18单轮快照导出适配候选
+
+基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，分支 `codex/protection-20261018-r9`，源码候选 `a8abda3097eef31ce8e43d6aaede7d1503d6bd9e`。GitLab只读探测HTTP522，当前源码未做生成、build、vet、gofmt、测试或完整检查；本轮不本机或SSH回退，只保留独立模块提交，不push、不合main。业务accepted仍为0。
+
+- `data-protection.validateSnapshotExportResult` 是唯一源码完整、待GitLab恢复后检查的新增ready ID；只核SnapshotRef/ObjectRef/checksum范围，不代表快照导出闭环。
+- `data-protection.CreateSnapshot` 已调用公共SnapshotManager并核回执，但真实回调与HTTP handler未装配，保持blocked。
+- `data-protection.ExportDomainSnapshot` 已实现ObjectRef流式落盘、20GiB/长度/SHA/USTAR/manifest核验；仍缺13域真实端口和“原持久超管批准→短委托”控制lane，保持端到端blocked。纯service actor被拒绝，原admin/session委托经identity重核当前superadmin。
+- `data-protection.CollectSnapshots`、`ExecuteBackup`及其完整维护/归档协调器未计完成。未新增测试、fixture、mock、样例或临时业务验证程序。
+
+本地只执行合同JSON解析、`make docs`（仅生成本域functions/files）和`git diff --check`。以下为历史记录。
+
 ## 2026-10-18 用户收尾指令
 
 用户要求push后停止，全部代理已冻结。本次集成树已通过GitLab pipeline118源码检查；未完成职责保持逐项台账，不将独立WIP计入main。后续仅在新授权下接续，不自动继续。

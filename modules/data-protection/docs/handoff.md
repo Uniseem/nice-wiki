@@ -1,3 +1,17 @@
+## 2026-10-18单轮快照导出适配
+
+基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，分支 `codex/protection-20261018-r9`，源码候选 `a8abda3097eef31ce8e43d6aaede7d1503d6bd9e`。独占 `modules/data-protection/`；未push、未合main。
+
+本批新增 `internal/snapshot.go`、`internal/snapshot_client.go`，并在`internal/store.go`挂接可选`SnapshotManager`与外部owner端口。`CreateSnapshot`只接受data-protection service actor，委托公共SnapshotManager.Export并核返回DTO；`ExportDomainSnapshot`保持`callerService=data-protection`，要求带session的原admin actor，用原root/site/epoch调用identity重核当前superadmin，不接受纯service actor替换批准者。它按ObjectRef读取`application/x-tar`，有界写入隔离incoming临时文件，核长度/SHA后调用公共USTAR解析和严格DomainSnapshotManifest schema，最后核真实manifest的backup/barrier/snapshot/epoch/schema/watermark/secrets，通过后才rename与fsync。
+
+精确ready ID只有`data-protection.validateSnapshotExportResult`，源码完整、待GitLab恢复后编译检查。该helper仅核SnapshotRef/ObjectRef/checksum范围。`CreateSnapshot`与`ExportDomainSnapshot`均在`progress.json`保持blocked，不计implemented/verified：前者缺真实SnapshotManager回调与HTTP handler装配；后者缺13域真实export/read端口，以及把原持久超管批准安全转换成短期用户委托的公共控制lane。`CollectSnapshots`、`ExecuteBackup`、14域收集、集中索引和完整维护协调器未改、未计完成。
+
+公共缺口：production `exportSnapshot`为service权限，但`readSnapshotArchive`为superadmin；现有jobs任务只持久root/site/epoch等批准事实，没有可交给跨域客户端的安全短proof。不能从`backup_runs.approved_by`或其他字段自造proof，也不能清用户actor。根需统一控制lane后，本域才能装配真实owner端口并重跑检查。
+
+检查：`make docs`仅重写本域生成functions/files；合同JSON和progress JSON可解析；`git diff --check`通过。GitLab只读探测HTTP522，未本机/SSH执行Go、gofmt、build、vet、生成、测试或make check。没有新增测试/fixture/mock/样例/临时业务验证程序，未调用真实接口或部署。
+
+下一步：待GitLab恢复后先对`a8abda3097eef31ce8e43d6aaede7d1503d6bd9e`及模块记录提交做只读build/vet/gofmt/check；在公共任务批准转短委托lane就绪前不把`ExportDomainSnapshot`提升完成。
+
 ## 2026-10-18 用户收尾指令
 
 用户要求push后停止，全部代理已冻结。本次集成树已通过GitLab pipeline118源码检查；未完成职责保持逐项台账，不将独立WIP计入main。后续仅在新授权下接续，不自动继续。
