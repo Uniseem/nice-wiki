@@ -2,12 +2,12 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "995e75279be03bdf81c55e509c2be1d836d02a3ae9301f932545a374d4a3b5c6",
+  "contractSha256": "037625f9cb3f7c0da9631fd87dfbf6d315c1c855341b31fc2d0fd1e2be763c3f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1最终完整文本/安全统计页/目录与探测",
   "branch": "codex/finish-20261018-gateway-final",
   "baseCommit": "ba1925675d6874e298a971cfed9f08d446ab84d4",
-  "deliveryCommit": "26210be2b9f38c2d270c5b6f845ad67b9144c8f3",
+  "deliveryCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
   "deployment": "not_started",
   "files": [
     {
@@ -72,13 +72,13 @@
     },
     {
       "path": "modules/model-gateway/internal/billing/quote.go",
-      "state": "verified",
-      "implementationCommit": "bea6446d28ed38841aa5b2cb4782209324c2135a",
+      "state": "blocked",
+      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI；完整启动/tracking原partial保持"
     },
     {
       "path": "modules/model-gateway/internal/invocation/create.go",
@@ -222,13 +222,13 @@
     },
     {
       "path": "modules/model-gateway/internal/admin/usage.go",
-      "state": "verified",
-      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
+      "state": "blocked",
+      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本批实际改动待统一GitLab CI；完整启动/tracking原partial保持"
     },
     {
       "path": "modules/model-gateway/internal/protection/protocol.go",
@@ -372,13 +372,13 @@
     },
     {
       "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "in_progress",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "state": "blocked",
+      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
       "verification": {
         "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "evidence": null
       },
-      "blocker": "统计与lookup入口接线待CI；完整启动/保护仍未partial。"
+      "blocker": "本批实际改动待统一GitLab CI；完整启动/tracking原partial保持"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
@@ -773,12 +773,12 @@
     {
       "path": "modules/model-gateway/internal/invocation/lookup.go",
       "state": "blocked",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
       "verification": {
         "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "evidence": null
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": "本批实际改动待统一GitLab CI；完整启动/tracking原partial保持"
     },
     {
       "path": "modules/model-gateway/migrations/011_invocation_lookup.sql",
@@ -1190,13 +1190,13 @@
     {
       "id": "model-gateway.QuoteCost",
       "path": "modules/model-gateway/internal/billing/quote.go",
-      "state": "verified",
-      "implementationCommit": "bea6446d28ed38841aa5b2cb4782209324c2135a",
+      "state": "blocked",
+      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "原root完整观察/免费报价窄修源码就绪，待统一GitLab CI"
     },
     {
       "id": "model-gateway.ReadPriceSnapshot",
@@ -1245,13 +1245,13 @@
     {
       "id": "model-gateway.RequirePriceCaller",
       "path": "modules/model-gateway/internal/billing/quote.go",
-      "state": "verified",
-      "implementationCommit": "bea6446d28ed38841aa5b2cb4782209324c2135a",
+      "state": "blocked",
+      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17 GitLab CI流水线23，冻结候选e75c80f63c5424fe67960a875b6f0f70df5c91c1：生成/格式及重复生成job112、三分片job113/114/115均成功，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check。根从job112精确apply并回传本域20个变更路径；此后源码和合同未改。只表示源码/生成/编译/结构检查，未SQL/HTTP行为验收、业务测试、真实接口/模型、业务worker、服务/镜像或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "原root完整观察/免费报价窄修源码就绪，待统一GitLab CI"
     },
     {
       "id": "model-gateway.NewPriceHandlers",
@@ -1784,13 +1784,13 @@
     {
       "id": "model-gateway.QueryUsage",
       "path": "modules/model-gateway/internal/admin/usage.go",
-      "state": "verified",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "state": "blocked",
+      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
       "verification": {
-        "state": "passed",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": "原root完整观察/免费报价窄修源码就绪，待统一GitLab CI"
     },
     {
       "id": "model-gateway.ledgerRuntime",
@@ -2192,12 +2192,12 @@
       "id": "model-gateway.BuildApplication",
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
       "verification": {
         "state": "not_run",
-        "evidence": "源码ready，待GitLab。"
+        "evidence": null
       },
-      "blocker": "完整保护及初始化权威读取待公共交付，不宣称可运行。"
+      "blocker": "完整保护及初始化权威读取待公共交付，不宣称可运行。；本批专用负证明/报价caller变更待统一GitLab CI，原完整阻塞不计ready"
     },
     {
       "id": "model-gateway.Serve",
@@ -3413,12 +3413,12 @@
       "id": "model-gateway.LookupInvocation",
       "path": "modules/model-gateway/internal/invocation/lookup.go",
       "state": "blocked",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码已通过GitLab；可信fresh activation/已验证恢复来源tracking生产者未齐，缺marker拒绝首次接受/404，保持blocked不计完整业务。"
+      "blocker": "源码已通过GitLab；可信fresh activation/已验证恢复来源tracking生产者未齐，缺marker拒绝首次接受/404，保持blocked不计完整业务。；本批专用负证明/报价caller变更待统一GitLab CI，原完整阻塞不计ready"
     },
     {
       "id": "model-gateway.RequireInvocationLookupTracking",
@@ -3490,14 +3490,18 @@
   "rule": "本批完整独立函数通过pipeline101；Create/Lookup/tracking首次来源、完整启动及保护、probe额度/目录数据许可仍按逐项台账阻塞，不计业务验收。",
   "readyAwaitingCI": {
     "sourceCommits": [
-      "26210be2b9f38c2d270c5b6f845ad67b9144c8f3"
+      "26210be2b9f38c2d270c5b6f845ad67b9144c8f3",
+      "0867a87d16a18d72d7eecab197d5d8ca9542283e"
     ],
     "modifiedFunctions": [
       "model-gateway.SendProviderRequest",
       "model-gateway.ReadAttemptEvidence",
       "model-gateway.readInvocationRecord",
       "model-gateway.ReadInvocationSnapshot",
-      "model-gateway.GetInvocation"
+      "model-gateway.GetInvocation",
+      "model-gateway.QueryUsage",
+      "model-gateway.RequirePriceCaller",
+      "model-gateway.QuoteCost"
     ],
     "newReferenceHelpers": [
       "model-gateway.ReadLegacyTextResult"

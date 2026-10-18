@@ -1,3 +1,7 @@
+# 原负证明/费用根观察窄修待GitLab
+
+源码 `0867a87d16a18d72d7eecab197d5d8ca9542283e`：QueryUsage/RequirePriceCaller/QuoteCost 三修改项待统一GitLab CI；Lookup的专用负证明与Build报价caller已写，但原tracking/完整启动仍blocked/partial，不计整项ready。Lookup仅CodeInvocationNotAccepted常量（公共dcba0de）承载真实未接受证明。QueryUsage两可选兼容bool实际始终给：窗覆盖所有root调用创建及全ledger时间；完整原调用/attempt列表和终态/无lease才allFinal，unknown/held另据原字段，不混safeToRetry。portal当前model.manage可免费报价；原AI owners/localization授权保留，knowledge额外纯service+background。需Root合公共常量/错误码与本域新字段统一gen；未本机检查或push。
+
 # 最终完整文本小批待GitLab
 
 源码 `26210be2b9f38c2d270c5b6f845ad67b9144c8f3`：5实际修改函数 SendProviderRequest/ReadAttemptEvidence/readInvocationRecord/ReadInvocationSnapshot/GetInvocation 与1新增实际参考 ReadLegacyTextResult 均blocked待统一GitLab CI，无新原业务完成计数。原delta UTF8/64KiB真实累加，只有2xx/完整协议结束/Code空才给Text（显式空与没有结果分开），沿既有evidence/winner/record原事务。旧文本仅单initial ordinal1/winner/完整证据/连续原SSE纯读免费派生；缺来源不造空/404、不重付，不改历史fee/evidence/hash。
