@@ -4970,7 +4970,8 @@
           "steps": [
             "仅已认证QA；body requestId必须等于可信原RootOperationID",
             "有可选token时调用ValidatePermit验签并逐字段/持久scope核对；否则只核持久owner/root/epoch/active lease及当前网络AI ban",
-            "只返回当前valid/expiry，不代表创建消费或模型费用授权，MG不反向调用此API"
+            "只返回当前valid/expiry，不代表创建消费或模型费用授权，MG不反向调用此API",
+            "无token路径同样要求consumed_request_id等于原QA根，不能把未消费分配查询当已消费核验；所有成功响应包含admissionId供QA精确核对"
           ],
           "errors": [
             {

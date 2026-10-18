@@ -2807,11 +2807,18 @@
         "expiresAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
           "description": "RFC3339 UTC 时间；不含 null"
+        },
+        "admissionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "与原许可路径一致的持久引用"
         }
       },
       "required": [
         "valid",
-        "expiresAt"
+        "expiresAt",
+        "admissionId"
       ]
     },
     "EventTrafficGuardAdmissionDeniedPayload": {
