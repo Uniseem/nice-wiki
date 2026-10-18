@@ -501,7 +501,7 @@
         "byteSize": {
           "type": "integer",
           "minimum": 0,
-          "description": "完整对象字节数，读取结束复核"
+          "description": "完整渲染注入text的UTF8字节数，包含条目说明与分隔，不含JSON元数据；空记忆为0"
         }
       },
       "required": [

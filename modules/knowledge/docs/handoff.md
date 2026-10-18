@@ -1,3 +1,11 @@
+# 2026-10-18 集成检查通过
+
+pipeline60（生成261、三个Go分片262/263/264、前端265）完整通过，精确生成物已回传。逐项台账只把完整待编译清单转verified；partial、完整启动及既有设计阻塞保持blocked。所有Go模块readonly build/vet/gofmt与go test、完整make check通过；public-site前端类型检查及构建通过。go test没有测试文件，不构成业务验收。accepted=0，未部署。
+
+本批源码汇总d344a37，记录提交等待零生成漂移复核后普通双推。持续向75%推进，用户最新要求及时分批检查/推送，历史停止指令不适用于本次授权。
+
+以下为模块原始交付记录，其中“未CI”只描述交付时。
+
 # 索引检索批次交接（2026-10-18）
 
 本批源码提交 `8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2`，基线 `acc9bbcc1fe0cfbeae91d3c2835b09cea5cbe9bd`，分支 `codex/knowledge-20261018-bulk`，只拥有 `modules/knowledge/`。根授权的公共适配 `8c593f3`、原生重排 query `b05944f` 已作为基线分别 cherry-pick 为 `6701308`、`c042a00`，不是本域交付，不要再次作为本域代码合入。

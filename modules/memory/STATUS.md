@@ -1,3 +1,11 @@
+# 2026-10-18 集成检查通过
+
+pipeline60（生成261、三个Go分片262/263/264、前端265）完整通过，精确生成物已回传。逐项台账只把完整待编译清单转verified；partial、完整启动及既有设计阻塞保持blocked。所有Go模块readonly build/vet/gofmt与go test、完整make check通过；public-site前端类型检查及构建通过。go test没有测试文件，不构成业务验收。accepted=0，未部署。
+
+本批源码汇总d344a37，记录提交等待零生成漂移复核后普通双推。持续向75%推进，用户最新要求及时分批检查/推送，历史停止指令不适用于本次授权。
+
+以下为模块原始交付记录，其中“未CI”只描述交付时。
+
 # 长期记忆当前进度
 
 更新：2026-10-18。R1 集中实现；源码 `bb4b678c4c1f78a59b837f9a5bdaeac8b1888ce8` 已提交，39 个既有业务/已修改函数及 52 个新增参考级辅助均记 blocked（待统一 GitLab CI），未提前记 implemented/verified。

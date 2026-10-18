@@ -1582,9 +1582,9 @@
         },
         "text": {
           "type": "string",
-          "minLength": 1,
+          "minLength": 0,
           "maxLength": 65536,
-          "description": "注入正文"
+          "description": "完整注入正文；无匹配记忆时为空串，不生成占位内容"
         },
         "versionHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
@@ -1600,7 +1600,7 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991,
-          "description": "UTF8bytes"
+          "description": "完整注入text的UTF8字节数，包含说明与分隔，不含JSON元数据"
         }
       },
       "required": [

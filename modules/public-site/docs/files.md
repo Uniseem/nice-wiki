@@ -10,9 +10,9 @@
 | `modules/public-site/internal/locale.go` | 手写 | 确定展示语言；同文件职责限本域以下登记函数 | `public-site.SelectLocale`（参考） |
 | `modules/public-site/internal/authority.go` | 手写 | 执行正文公开权威检查；同文件职责限本域以下登记函数 | `public-site.CheckPublication`（参考） |
 | `modules/public-site/internal/content_client.go` | 手写 | 取得同一发布修订完整包；同文件职责限本域以下登记函数 | `public-site.LoadPublishedBundle`（参考） |
-| `modules/public-site/internal/sanitize.go` | 手写 | 移除危险结构及协议；同文件职责限本域以下登记函数 | `public-site.SanitizeHTML`（参考）、`public-site.safeLink`（参考） |
+| `modules/public-site/internal/sanitize.go` | 手写 | 移除危险结构及协议；同文件职责限本域以下登记函数 | `public-site.safeLink`（参考） |
 | `modules/public-site/internal/toc.go` | 手写 | 生成稳定锚点目录；同文件职责限本域以下登记函数 | `public-site.BuildTOC`（参考） |
-| `modules/public-site/internal/links.go` | 手写 | 解析跨文档链接；同文件职责限本域以下登记函数 | `public-site.RewriteInternalLinks`（参考）、`public-site.ResolvePublishedLink` |
+| `modules/public-site/internal/links.go` | 手写 | 解析跨文档链接；同文件职责限本域以下登记函数 | `public-site.RewriteInternalLinks`（参考）、`public-site.ResolvePublishedLink`、`public-site.anchorMissing`（参考） |
 | `modules/public-site/internal/media_client.go` | 手写 | 取得公开资源清单；同文件职责限本域以下登记函数 | `public-site.ResolvePublicMedia`（参考） |
 | `modules/public-site/internal/navigation.go` | 手写 | 构建可访问公开导航树；同文件职责限本域以下登记函数 | `public-site.BuildNavigation`（参考）、`public-site.navigationOrder`（参考） |
 | `modules/public-site/internal/breadcrumbs.go` | 手写 | 生成面包屑；同文件职责限本域以下登记函数 | `public-site.BuildBreadcrumbs`（参考） |

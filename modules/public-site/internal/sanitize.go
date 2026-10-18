@@ -3,7 +3,6 @@ package publicsite
 import (
 	"net/url"
 	"strings"
-
 )
 
 // safeLink 只接受明确协议和单斜杠同源路径；不输出未知资源地址。

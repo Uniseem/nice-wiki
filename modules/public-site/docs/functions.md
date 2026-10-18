@@ -181,47 +181,6 @@ func LoadPublishedBundle(ctx context.Context, op OperationContext, in LoadPublis
 - 幂等：读取无写；不能回退旧正文
 - 依赖：`content:readPublishedRevision`、`localization:readTranslation`、`public-site.ParseTiptapDocument`、`public-site.CheckPublication`
 
-## public-site.SanitizeHTML
-
-- 级别：参考
-- 文件：`modules/public-site/internal/sanitize.go`
-- 作用：移除危险结构及协议
-
-```go
-func SanitizeHTML(ctx context.Context, op OperationContext, in SanitizeHTMLInput) (SanitizeHTMLResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `SanitizeHTMLInput` | 移除危险结构及协议；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SanitizeHTMLResult` | 移除危险结构及协议成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 允许静态排版标签和限定属性
-2. 移除 script/style/事件属性
-3. 链接仅允许 http/https/mailto 和同源根路径
-
-**错误**
-
-- `VALIDATION` / HTTP 400：INVALID_BASE_URL：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：无
-- 授权：permission：service；rule：渲染内部调用
-- 并发：纯函数，无共享 DOM
-- 幂等：同 html/config 同结果
-- 依赖：`public-site.safeLink`
-
 ## public-site.safeLink
 
 - 级别：参考
@@ -391,8 +350,48 @@ func ResolvePublishedLink(ctx context.Context, op OperationContext, input Resolv
 - 授权：permission：service；rule：仅site-config或qa纯服务身份；只解析当前公开发布的精确文档/语言/块，返回publication供调用方再核对
 - 并发：总deadline=min(ctx/op,2500ms)；外域只读快照与最终ref/path/config/language门禁，不宣称跨域单事务；水位变化直接STALE_RESULT/409，不重试
 - 幂等：只读无持久副作用；同输入仅在同权威修订集合下同结果；无需Idempotency-Key，不缓存为后续授权
-- 依赖：`site-config:readSiteConfig`、`content:readPublicTree`、`content:readPublishedRevision`、`content:resolvePublicPath`、`content:validatePublications`、`localization:listLanguages`、`public-site.BuildCanonical`
+- 依赖：`site-config:readSiteConfig`、`content:readPublicTree`、`content:readPublishedRevision`、`content:resolvePublicPath`、`content:validatePublications`、`localization:listLanguages`、`public-site.BuildCanonical`、`public-site.anchorMissing`
 - 其他依赖说明：content.PublicTreeNode.required canonicalPath由根同步producer；裁剪公开树parentId不能代替完整规范路径；冻结i18n/site/editor设计及M06-R006：翻译缺失不改变显式语言URL；已绑定真实ResolvePublishedLink；正文hash按content CanonicalizeBody的键排序、mark类型升序、platform.CanonicalJSON与SHA-256，并受本域2MiB限制。水位变化的HTTP状态以公共错误表409为准。源码未编译
+
+## public-site.anchorMissing
+
+- 级别：参考
+- 文件：`modules/public-site/internal/links.go`
+- 作用：读取精确发布正文并核对稳定块锚点
+
+```go
+func anchorMissing(ctx context.Context, client *gen.ContentClient, ref gen.PublishedRevisionRef, blockID string) (bool, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 精确发布锚点输入 | 可信服务链内使用 |
+| `client` | `ContentClient` | 精确发布锚点输入 | 可信服务链内使用 |
+| `ref` | `PublishedRevisionRef` | 精确发布锚点输入 | 可信服务链内使用 |
+| `blockID` | `string` | 精确发布锚点输入 | 可信服务链内使用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `missing` | `bool` | 缺失标记或安全错误 | 未知来源失败关闭 |
+| `error` | `error` | 缺失标记或安全错误 | 未知来源失败关闭 |
+
+**步骤**
+
+1. 经content:readPublishedRevision读取精确publication，按权威blockId/bodyHash判定锚点缺失，未知不能当有效
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：`content:readPublishedRevision`
 
 ## public-site.ResolvePublicMedia
 

@@ -1,3 +1,13 @@
+# 当前状态（2026-10-18，首批67.6%，GitLab检查通过待双推）
+
+首批 GitLab pipeline60 全部通过，1628 个函数中 1100 个完成（1043 verified、57 implemented，67.6%），planned478、in_progress14、blocked36，accepted为0。公开站点、知识检索、长期记忆及公共模型适配首批已检查；完整服务、复杂译文与资源投影仍未齐。用户最新要求及时检查和push，持续向75%推进；本批生成零漂移复核后普通双推，后续批次不等75%再检查。
+
+- pipeline60：生成261、三个Go分片262/263/264、前端265全部success。所有Go模块readonly build/vet/gofmt、go test与完整make check通过，Vue类型检查及Vite构建通过。go test显示无测试文件，不代表行为验收。
+- pipeline57/58的模型流LastID、生成枚举名和依赖锁失败，以及pipeline59的十项结构映射失败均已修复并完整重跑；未回退本机或SSH编译。
+- 当前工作在隔离CI分支；main仍待本批复核后合入推送。原未跟踪HTML未改。未新增测试、fixture、mock或样例，未跑真实业务/模型/部署。
+
+以下为此前历史记录。
+
 # 当前状态（2026-10-17，第三轮本地合入已由 pipeline 53 编译并双推）
 
 portal 访问审计、统计时延与字段核对、公开目录锚点和上传分块顺序已审核合入。隔离分支 `codex/ci-20261017-r6` 的 pipeline 53（`83a435f322da98035cbe71319aee2ea8914a4534`）生成 job 232 补丁 0 字节，foundation job 233、content-media job 234、ai job 235 全部成功。该提交已普通双推，两个远程 main 都是这个 SHA，old 仍是 `272bddc9b9f023b0bb9b4623e245522d98971b48`。accepted 仍为 0。

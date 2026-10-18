@@ -1,5 +1,7 @@
 # 重建计划
 
+2026-10-18首批：首批 GitLab pipeline60 全部通过，1628 个函数中 1100 个完成（1043 verified、57 implemented，67.6%），planned478、in_progress14、blocked36，accepted为0。公开站点、知识检索、长期记忆及公共模型适配首批已检查；完整服务、复杂译文与资源投影仍未齐。用户最新要求及时检查和push，持续向75%推进；本批生成零漂移复核后普通双推，后续批次不等75%再检查。
+
 当前第三轮本地合入（2026-10-17）：pipeline 53（`83a435f322da98035cbe71319aee2ea8914a4534`）生成补丁为 0，三个编译分片成功，并已普通双推。analytics.BucketLatency、analytics.CheckPrivacyFields、public-site.BuildTOC、media.PutUploadChunk 记 verified。portal.EmitAccessAudit 与 analytics.RedactAuditMetadata 保持 blocked。894/1516 函数完成（836 verified、58 implemented，59.0%），planned 574、blocked 34，accepted 为零。用户要求推送后停止持续编写，R1 仍未完成。本记录提交在隔离检查通过且生成补丁为 0 后双推。
 
 当前第二轮（2026-10-17）：portal.RedactRequest 已由 pipeline 48 记 verified。portal.EmitAccessAudit 已本地合入并保持 blocked：appendAudit 请求体没有写明字段映射。qa.EvaluateCacheEligibility 因指代残留没有可执行判定保持 blocked，不返回 eligible=true。data-protection 启动包已编译，六个启动函数保持 blocked；备份与恢复未实现时失败关闭。public-site 的真实公开链接解析已编译，水位变化用 STALE_RESULT/409；BuildApplication 在缺处理函数时失败关闭并保持 blocked。894/1516 函数完成（832 verified、62 implemented，59.0%），planned 574、blocked 34，accepted 为零。代码证据是 pipeline 48，生成补丁为 0。analytics 的时延分桶、字段名核对、public-site 的目录锚点和 media 的分块顺序调整已本地合入，尚未经新的 GitLab 编译。media.PutUploadChunk 因本次改动从 verified 回到 implemented。
@@ -29,7 +31,7 @@
 | R0-07 | 备份恢复简化（ADR0003） | 用户确认后以“维护→各域暂存→切换决定→各服务重启换目录→全部回执后解除维护”取代在线分阶段提交，保留界面恢复入口 | 规格已修订，make check通过；不等于运行验收 |
 | R0-08 | 流程接线与服务身份（ADR0004） | 除界面外函数全部可达；任务与后台登记；入口准入、模型结果读取与服务断言统一；缺失后台接口补齐 | 规格已修订，make check通过；不等于运行验收 |
 | R0-09 | 工程选型、平台库与部署（ADR0005） | 依赖与许可清单、libs/platform与deploy合同、生成代码统一登记、端口与内存预算 | 规格已建立，make check通过；依赖版本实施时锁定 |
-| R1 | 分域按合同实现业务 | 按下方工作包顺序；约束函数/类型/API与合同一致，参考拆分在交付时同步 | 进行中：第三轮830/1491函数完成（55.7%），候选32和实际集成树33/34/35经GitLab完整通过；最终根汇总pipeline36通过且零漂移，已普通双推并核对共同代码交付cc60a9c，结果记录检查后同步。完整服务、发布/引用、模型费用执行与空间归一化仍未完成，业务验收及部署未开始 |
+| R1 | 分域按合同实现业务 | 按下方工作包顺序；约束函数/类型/API与合同一致，参考拆分在交付时同步 | 进行中：1100/1628（67.6%），pipeline60完整通过，待首批双推；持续向75%推进，R2与部署未开始 |
 | R2 | 分域与集成验收/部署 | 具体运行范围授权且行为通过 | 未开始 |
 
 ## R1 工作包

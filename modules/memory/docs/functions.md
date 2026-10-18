@@ -54,7 +54,7 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory.All`、`memory.Control`、`memory.OpenStore`
+- 依赖：`memory.All`、`memory.Control`、`memory.OpenStore`、`memory.validateEntries`
 
 ## memory.OpenStore
 
@@ -411,7 +411,7 @@ func RestoreEntry(ctx context.Context, op OperationContext, input RestoreEntryIn
 - 作用：本域参考级辅助 PersistVersion；精确参数与返回见签名，调用边界随所属用例固定。
 
 ```go
-func PersistVersion(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx,op OperationContext,e gen.MemoryEntry,previous *int)(gen.MemoryEntry,error)
+func PersistVersion(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx, op OperationContext,e gen.MemoryEntry,previous *int)(gen.MemoryEntry,error)
 ```
 
 **输入**
@@ -1033,55 +1033,6 @@ func SelectContextEntries(entries []gen.MemoryEntry,mappings []gen.TaskMapping,t
 - 依赖：无
 - 其他依赖说明：参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。
 
-## memory.ApplyContextBudget
-
-- 级别：参考
-- 文件：`modules/memory/internal/context/select.go`
-- 作用：确定性截选完整条目
-
-```go
-func ApplyContextBudget(ctx context.Context,op OperationContext,input ApplyContextBudgetInput)(ApplyContextBudgetResult,error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `ApplyContextBudgetInput` | 封闭业务输入；逐字段见types $defs/ApplyContextBudgetInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ApplyContextBudgetResult` | 成功结果；逐字段见types $defs/ApplyContextBudgetResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
-
-**步骤**
-
-1. 精确计算全部选择条目的标题/description/正文边界UTF8bytes
-2. 预算≤5120默认且每entry≤其limit
-3. 超预算INTEGRITY_ERROR拒发不静默截条（写时已preflight）
-4. 保持mapping顺序所有条目不截断。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-
-**错误**
-
-- `VALIDATION` / HTTP 400：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory.RenderText`
-
 ## memory.ReadMappings
 
 - 级别：参考
@@ -1124,7 +1075,7 @@ func ReadMappings(ctx context.Context,q memoryruntime.Queryer,site string)([]gen
 - 作用：生成防混淆记忆上下文
 
 ```go
-func RenderContext(ctx context.Context,op OperationContext,input RenderContextInput)(RenderContextResult,error)
+func RenderContext(ctx context.Context, op OperationContext, input RenderContextInput)(RenderContextResult,error)
 ```
 
 **输入**
@@ -1201,6 +1152,55 @@ func RenderText(entries []gen.MemoryEntry)string
 - 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
 - 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
 - 依赖：`memory.Write`
+
+## memory.ApplyContextBudget
+
+- 级别：参考
+- 文件：`modules/memory/internal/context/render.go`
+- 作用：确定性截选完整条目
+
+```go
+func ApplyContextBudget(ctx context.Context, op OperationContext, input ApplyContextBudgetInput)(ApplyContextBudgetResult,error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `ApplyContextBudgetInput` | 封闭业务输入；逐字段见types $defs/ApplyContextBudgetInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ApplyContextBudgetResult` | 成功结果；逐字段见types $defs/ApplyContextBudgetResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 精确计算全部选择条目的标题/description/正文边界UTF8bytes
+2. 预算≤5120默认且每entry≤其limit
+3. 超预算INTEGRITY_ERROR拒发不静默截条（写时已preflight）
+4. 保持mapping顺序所有条目不截断。
+5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：无
+- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`memory.RenderText`
 
 ## memory.ResolveContext
 
@@ -1393,7 +1393,7 @@ func CreateAssistantRun(ctx context.Context, op OperationContext, input CreateAs
 - 作用：构造只允许提议助手输入
 
 ```go
-func BuildAssistantPrompt(ctx context.Context,op OperationContext,input BuildAssistantPromptInput)(BuildAssistantPromptResult,error)
+func BuildAssistantPrompt(ctx context.Context, op OperationContext, input BuildAssistantPromptInput)(BuildAssistantPromptResult,error)
 ```
 
 **输入**
@@ -1492,7 +1492,7 @@ func RunAssistant(ctx context.Context, op OperationContext, input RunAssistantIn
 - 作用：本域参考级辅助 CheckJobBinding；精确参数与返回见签名，调用边界随所属用例固定。
 
 ```go
-func CheckJobBinding(ctx context.Context,op OperationContext,runID string,job platform.JobExecutionInput)(memoryruntime.AssistantInputRecord,error)
+func CheckJobBinding(ctx context.Context, op OperationContext,runID string,job platform.JobExecutionInput)(memoryruntime.AssistantInputRecord,error)
 ```
 
 **输入**
@@ -1527,7 +1527,7 @@ func CheckJobBinding(ctx context.Context,op OperationContext,runID string,job pl
 - 作用：验证候选提议闭包
 
 ```go
-func ValidateProposal(ctx context.Context,op OperationContext,input ValidateProposalInput)(ValidateProposalResult,error)
+func ValidateProposal(ctx context.Context, op OperationContext, input ValidateProposalInput)(ValidateProposalResult,error)
 ```
 
 **输入**
@@ -1812,7 +1812,7 @@ func ReadProposal(ctx context.Context,q memoryruntime.Queryer,site,id string)(ge
 - 作用：本域参考级辅助 SaveProposal；精确参数与返回见签名，调用边界随所属用例固定。
 
 ```go
-func SaveProposal(ctx context.Context,tx *sql.Tx,op OperationContext,p gen.MemoryProposal)error
+func SaveProposal(ctx context.Context,tx *sql.Tx, op OperationContext,p gen.MemoryProposal)error
 ```
 
 **输入**
@@ -1847,7 +1847,7 @@ func SaveProposal(ctx context.Context,tx *sql.Tx,op OperationContext,p gen.Memor
 - 作用：应用批准的记忆内容
 
 ```go
-func ApplyEntryProposal(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx,op OperationContext,p gen.MemoryProposal,expected int)(ApplyEntryProposalResult,error)
+func ApplyEntryProposal(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx, op OperationContext,p gen.MemoryProposal,expected int)(ApplyEntryProposalResult,error)
 ```
 
 **输入**
@@ -1892,7 +1892,7 @@ func ApplyEntryProposal(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx,op
 - 作用：产生已批准术语命令
 
 ```go
-func EnqueueGlossaryCommand(ctx context.Context,tx *sql.Tx,op OperationContext,p gen.MemoryProposal)(EnqueueGlossaryCommandResult,error)
+func EnqueueGlossaryCommand(ctx context.Context,tx *sql.Tx, op OperationContext,p gen.MemoryProposal)(EnqueueGlossaryCommandResult,error)
 ```
 
 **输入**
@@ -2086,7 +2086,7 @@ func CancelAssistantRun(ctx context.Context, op OperationContext, input CancelAs
 - 作用：本域参考级辅助 CancelRunTransaction；精确参数与返回见签名，调用边界随所属用例固定。
 
 ```go
-func CancelRunTransaction(ctx context.Context,tx *sql.Tx,op OperationContext,runID string)(gen.AssistantRun,error)
+func CancelRunTransaction(ctx context.Context,tx *sql.Tx, op OperationContext,runID string)(gen.AssistantRun,error)
 ```
 
 **输入**
@@ -2121,7 +2121,7 @@ func CancelRunTransaction(ctx context.Context,tx *sql.Tx,op OperationContext,run
 - 作用：恢复助手执行与批准命令
 
 ```go
-func RecoverAssistantLeases(ctx context.Context,op OperationContext,input RecoverAssistantLeasesInput)(RecoverAssistantLeasesResult,error)
+func RecoverAssistantLeases(ctx context.Context, op OperationContext, input RecoverAssistantLeasesInput)(RecoverAssistantLeasesResult,error)
 ```
 
 **输入**
@@ -2687,7 +2687,7 @@ func joinTaskIDs(ids []string)string
 - 作用：本域参考级辅助 EmitContextChanged；精确参数与返回见签名，调用边界随所属用例固定。
 
 ```go
-func EmitContextChanged(ctx context.Context,tx *sql.Tx,op OperationContext,tasks []string)error
+func EmitContextChanged(ctx context.Context,tx *sql.Tx, op OperationContext,tasks []string)error
 ```
 
 **输入**
@@ -3434,7 +3434,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 作用：经模型网关执行一次调用并读取到终态
 
 ```go
-func InvokeModel(ctx context.Context,op OperationContext,input InvokeModelInput)(InvokeModelResult,error)
+func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInput)(InvokeModelResult,error)
 ```
 
 **输入**
@@ -4150,7 +4150,7 @@ func ConfigureAssistantClients(jobs *gen.JobsClient,gateway *gen.ModelGatewayCli
 - 作用：本域参考级辅助 SelectAssistantProfile；精确参数与返回见签名，调用边界随所属用例固定。
 
 ```go
-func SelectAssistantProfile(ctx context.Context,op OperationContext)(string,error)
+func SelectAssistantProfile(ctx context.Context, op OperationContext)(string,error)
 ```
 
 **输入**
@@ -4185,7 +4185,7 @@ func SelectAssistantProfile(ctx context.Context,op OperationContext)(string,erro
 - 作用：本域参考级辅助 SaveAssistantInput；精确参数与返回见签名，调用边界随所属用例固定。
 
 ```go
-func SaveAssistantInput(ctx context.Context,tx *sql.Tx,op OperationContext,snapshot AssistantSnapshot)error
+func SaveAssistantInput(ctx context.Context,tx *sql.Tx, op OperationContext,snapshot AssistantSnapshot)error
 ```
 
 **输入**
@@ -4325,7 +4325,7 @@ func AssistantInput(ctx context.Context,id string)(AssistantInputRecord,error)
 - 作用：本域参考级辅助 ReplayReceipt；精确参数与返回见签名，调用边界随所属用例固定。
 
 ```go
-func ReplayReceipt(ctx context.Context,op OperationContext,functionID,key string,input,result any)(bool,error)
+func ReplayReceipt(ctx context.Context, op OperationContext,functionID,key string,input,result any)(bool,error)
 ```
 
 **输入**

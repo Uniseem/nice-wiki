@@ -15,8 +15,8 @@
 | `modules/memory/internal/mapping/order.go` | 手写 | 稳定重排任务记忆所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ReorderMappings` |
 | `modules/memory/internal/mapping/read.go` | 手写 | 读取任务映射所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ListMappings` |
 | `modules/memory/internal/context/budget.go` | 手写 | 配置任务注入上限所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.PutTaskBudget`、`memory.ReadTaskBudget`（参考）、`memory.ListTaskBudgets` |
-| `modules/memory/internal/context/select.go` | 手写 | 按范围确定注入候选所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.SelectContextEntries`（参考）、`memory.ApplyContextBudget`（参考）、`memory.ReadMappings`（参考） |
-| `modules/memory/internal/context/render.go` | 手写 | 生成防混淆记忆上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.RenderContext`（参考）、`memory.RenderText`（参考） |
+| `modules/memory/internal/context/select.go` | 手写 | 按范围确定注入候选所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.SelectContextEntries`（参考）、`memory.ReadMappings`（参考） |
+| `modules/memory/internal/context/render.go` | 手写 | 生成防混淆记忆上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.RenderContext`（参考）、`memory.RenderText`（参考）、`memory.ApplyContextBudget`（参考） |
 | `modules/memory/internal/context/service.go` | 手写 | 跨服务取得版本化记忆上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ResolveContext`、`memory.allowedCaller`（参考） |
 | `modules/memory/internal/context/manifest.go` | 手写 | 查询版本证据清单所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ReadContextManifest` |
 | `modules/memory/internal/assistant/create.go` | 手写 | 显式运行记忆助手所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.CreateAssistantRun` |
