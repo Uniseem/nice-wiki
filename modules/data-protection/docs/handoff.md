@@ -1,3 +1,5 @@
+远程配置源码 4fc21593670b7171e56d40b874324441c72bdb75：ValidateRemote/ConfigureRemote与HTTP助手就绪，累计12既有业务+37助手待统一GitLab CI。白名单及凭据ID仅可信部署注入，CAS/原回执同事务，无网络或真实Git操作。依赖root新GitCredentialRefs字段，未本地编译生成。
+
 V2源码 5b60328a703a35a6a4dff73965c24c2123364acc；精确新增/改动函数见progress.readyAwaitingCI最新batch。新增3助手，业务ready总数仍10；全部改动待统一GitLab CI。
 
 V2独立vault小批：control目录/对象/journal不随active替换；未知旧对象、旧记录或vault文件维护拒绝不删除。完整索引及完成journal同事务。新增3实际助手，累计10既有业务+36助手待统一GitLab CI，无本地编译/生成/真实操作。
