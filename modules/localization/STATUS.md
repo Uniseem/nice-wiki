@@ -1,3 +1,5 @@
+偏好链源码78097582679cf251b7460eef1f6e861f5b631b9c：SaveLanguagePreference与NewPreferenceHandlers就绪，累计31个既有业务/已改项与53个新增参考辅助，均待GitLab CI。仅保存同伪名的明确选择及30天到期，七天回执重放不延长期限；不存推测信号，不触发模型。SuggestLanguage快速模型缓存分支仍存在授权设计冲突，保持blocked。
+
 人工保护窄修源码0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640：不可恢复编号模板与source-only分支均失败关闭，旧权威对象保留；ReadTranslation仍真正blocked，不新增ready计数，待统一GitLab CI。
 
 # 第三组源拆分与只读链（2026-10-18，待GitLab CI）

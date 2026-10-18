@@ -1,3 +1,9 @@
+## 显式偏好链交付
+
+源码78097582679cf251b7460eef1f6e861f5b631b9c：SaveLanguagePreference核对可信visitor与同一伪名owner，复用Mutate事务和EnabledLanguage规范标签核对，保存30天期限并与七天幂等回执同事务提交。新选择可替换旧值，重放返回原期限，不存country/timeZone/browserLanguages/IP或轨迹。公开HTTP装配NewPreferenceHandlers与public-site来源白名单，OpenAPI补齐公共失败响应。新增1个原有函数及1个实际helper，累计31+53，全部待统一GitLab CI。
+
+根裁定SuggestLanguage的既有快速模型缓存产品规则不擅自改成纯规则完整实现；该模型分支与全局付费批准边界尚未收口，本轮不计完成。无本地编译/生成/格式/测试或真实调用；仅git diff --check。
+
 ## 第三组保护读链补漏
 
 ReadTranslation补齐两类失败关闭：人工/保护旧文本不能按当前编号模板解析时禁止原文回退；受保护父块进入超大source-only分支时禁止交付原文冒充旧人工译文。旧文件和元数据保留，不新增ready计数，ReadTranslation继续真正blocked。仅静态差异审阅，无本地生成/编译/测试。

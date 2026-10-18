@@ -2,12 +2,12 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "fbeea12f085c7fc1ed1ce68ba548f206dbc4850e4818e7e20354656397089f70",
+  "contractSha256": "a292fd88cdc939403714faa4e2ebf5d48a030f7a7b7935a6c7e7b51abdcf1c18",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-15（Codex，集中并行实现）",
   "branch": "codex/localization-20261018-bulk",
   "baseCommit": "f1d4ce0628470eda7b253993366669759dd01cdc",
-  "deliveryCommit": "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640",
+  "deliveryCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
   "deployment": "not_started",
   "files": [
     {
@@ -312,13 +312,13 @@
     },
     {
       "path": "modules/localization/internal/suggestion/preference.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已交付，待统一GitLab CI；完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/cache-answer/create.go",
@@ -533,12 +533,12 @@
     {
       "path": "modules/localization/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "implementationCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "源码已交付，待统一GitLab CI；完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/transport/server.go",
@@ -1279,13 +1279,13 @@
     {
       "id": "localization.SaveLanguagePreference",
       "path": "modules/localization/internal/suggestion/preference.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.TranslateCachedAnswer",
@@ -1543,13 +1543,13 @@
     {
       "id": "localization.BuildApplication",
       "path": "modules/localization/internal/app/wire.go",
-      "state": "in_progress",
-      "implementationCommit": "650a1e208ff8656531aa2764dfd9e2bc4b1965b8",
+      "state": "blocked",
+      "implementationCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "语言配置三个操作已绑定。其余处理器、事件订阅与任务循环缺失，函数仍返回 DEPENDENCY_UNAVAILABLE。GitLab CI 未跑。"
+      "blocker": "偏好链源码就绪，待统一GitLab CI；完整服务装配仍未齐"
     },
     {
       "id": "localization.Serve",
@@ -2221,15 +2221,27 @@
         "evidence": null
       },
       "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "localization.NewPreferenceHandlers",
+      "path": "modules/localization/internal/suggestion/preference.go",
+      "state": "blocked",
+      "implementationCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     }
   ],
-  "rule": "三组累计30个既有业务/已改函数及52个实际参考辅助交付；代码均待统一GitLab CI，ReadTranslation复杂保护表格投影保持真正blocked，不计完整完成。合并时保留根已获CI但本树未回传的未改项证据。",
+  "rule": "累计31个既有业务/已改函数与53个新增实际参考辅助待统一GitLab CI；ReadTranslation人工保护投影与SuggestLanguage模型授权仍真正blocked，完整服务未齐，不提升未核CI状态。合并保留根已核未改项CI证据。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "21c6a196c990d323c73429b769a38895beca7a93",
       "5e90f43d6876833467610314722150fc678fe7e6",
       "35cc93176576b42cbbf3a737bef39758586399db",
-      "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640"
+      "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640",
+      "78097582679cf251b7460eef1f6e861f5b631b9c"
     ],
     "existingBusinessFunctions": [
       "localization.NormalizeLanguageTag",
@@ -2261,7 +2273,8 @@
       "localization.SplitTranslationUnits",
       "localization.FetchTranslationSource",
       "localization.ReadTranslationUnits",
-      "localization.ListTranslationProgress"
+      "localization.ListTranslationProgress",
+      "localization.SaveLanguagePreference"
     ],
     "newReferenceHelpers": [
       "localization.rejectLanguageAlias",
@@ -2315,7 +2328,8 @@
       "localization.FetchCurrentPublishedSnapshot",
       "localization.readPublishedSnapshot",
       "localization.CheckPublication",
-      "localization.CursorKey"
+      "localization.CursorKey",
+      "localization.NewPreferenceHandlers"
     ],
     "batches": [
       {
@@ -2468,6 +2482,22 @@
           "localization.ReadTranslation"
         ],
         "note": "补齐人工旧译模板无法恢复/source-only的失败关闭；不增加就绪函数计数。"
+      },
+      {
+        "sourceCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
+        "existingBusinessFunctions": [
+          "localization.SaveLanguagePreference"
+        ],
+        "newReferenceHelpers": [
+          "localization.NewPreferenceHandlers"
+        ],
+        "changedFunctions": [
+          "localization.BuildApplication"
+        ],
+        "designBlocked": [
+          "localization.SuggestLanguage"
+        ],
+        "note": "快速模型缓存建议和全局付费批准边界待收口；未调用模型，不把纯规则当完整SuggestLanguage。"
       }
     ]
   }
