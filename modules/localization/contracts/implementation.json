@@ -2103,7 +2103,8 @@
             "返回兼容可选body与bodyHash：完整还原目标树绑定当前source publication/targetLanguage/generation，canonical目标hash另算，目标正文≤16MiB；返回前二次核content visibility及本地manifest/glossary。",
             "人工/保护旧字段按最深真实blockId/rowId/cellId/itemId/columnId、节点类型与节点内部text/alt路径对应；只在固定/可译段形状一致时复用真实旧译值并重编号，固定URL/code取当前源。新增真实子节点原文partial/review并继承父保护，投影不改旧权威对象。归属/段形状无法证明或保护块只能source-only时失败关闭DEPENDENCY_UNAVAILABLE，不以原文冒充旧人工译文。",
             "即时fallback及新投影没有独立权威unit时省略fileRef，不写null或借用旧父对象作证明；持久化单元返回真实fileRef。body/bodyHash绑定本次精确source/target generation。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+            "公开units最多10000，与完整content树稳定节点上限及拆分一致；completed仅计无原文回退的实际单元，不超过total；partial为存在原文回退，review不等于fallback。"
           ],
           "errors": [
             {
@@ -10748,7 +10749,8 @@
           "outputs": [],
           "purpose": "安全人工保护投影的本域参考辅助：BuildProtectedProjection",
           "steps": [
-            "只从真实人工/保护旧单元按旧私有模板解析；较新对象同字段优先。保留真实父保护关系；不将未知旧数据补造成新来源。"
+            "只从真实人工/保护旧单元按旧私有模板解析；较新对象同字段优先。保留真实父保护关系；不将未知旧数据补造成新来源。",
+            "字段携带真实origin；仅来源human的旧译值可使投影origin=human，受保护machine不改造来源。"
           ],
           "errors": [
             {
@@ -10822,7 +10824,8 @@
           "outputs": [],
           "purpose": "安全人工保护投影的本域参考辅助：ProjectProtectedUnit",
           "steps": [
-            "稳定字段及固定/可译段形状均匹配才复用人工译值；固定值取当前源，输出按新模板重编号。新增节点原文partial/review且继承父保护；无法证明归属继续失败关闭。只构造即时派生，不伪造fileRef或改旧权威对象。"
+            "稳定字段及固定/可译段形状均匹配才复用人工译值；固定值取当前源，输出按新模板重编号。新增节点原文partial/review且继承父保护；无法证明归属继续失败关闭。只构造即时派生，不伪造fileRef或改旧权威对象。",
+            "逐段编码时核65536 Unicode字符预算，合并旧长译值与新源超限BUDGET_EXCEEDED；保留protected=true，只有复用真实human字段才标origin=human。PreviousTargetText可选：不把重编号结果伪称某个旧父整段原值。"
           ],
           "errors": [
             {

@@ -6,11 +6,12 @@ import (
  "html"
  "strconv"
  "strings"
+ "unicode/utf8"
  "nice-wiki/libs/platform"
  "nice-wiki/modules/localization/internal/gen"
 )
 
-type protectedField struct{Values []string;Fixed []bool}
+type protectedField struct{Values []string;Fixed []bool;Human bool}
 type slotField struct{Key string;Indices []int}
 type ProtectedProjection struct{Tree any;Fields map[string]protectedField;Units map[string]bool;Whole map[string]bool;Rows map[string]bool}
 
@@ -51,7 +52,7 @@ func BuildProtectedProjection(ctx context.Context,op OperationContext,current js
   var tree any;decoder=json.NewDecoder(strings.NewReader(string(object.SourceTree)));decoder.UseNumber();if decoder.Decode(&tree)!=nil{return ProtectedProjection{},platform.NewError(platform.CodeIntegrityError,false,"人工译文原树损坏")}
   for _,template:=range split.Templates{unit,found:=protected[template.UnitId];if !found{continue};if unit.Status=="fallback"{return ProtectedProjection{},platform.NewError(platform.CodeDependencyUnavailable,false,"人工或受保护旧译缺少可恢复结果")}
    values,err:=ParseSlotValues(template.Slots,unit.TargetText);if err!=nil{return ProtectedProjection{},err};fields,err:=CollectSlotFields(tree,template.Slots);if err!=nil{return ProtectedProjection{},err}
-   for _,field:=range fields{if _,newer:=result.Fields[field.Key];newer{continue};value:=protectedField{Values:[]string{},Fixed:[]bool{}}
+   for _,field:=range fields{if _,newer:=result.Fields[field.Key];newer{continue};value:=protectedField{Values:[]string{},Fixed:[]bool{},Human:unit.Origin=="human"}
     for _,index:=range field.Indices{value.Values=append(value.Values,values[index]);value.Fixed=append(value.Fixed,template.Slots[index].Fixed)};result.Fields[field.Key]=value
    }
   }
@@ -63,17 +64,19 @@ func ProjectProtectedUnit(projection ProtectedProjection,template UnitTemplate,c
  fields,err:=CollectSlotFields(projection.Tree,template.Slots);if err!=nil{return gen.TranslationUnit{},false,false,err}
  parent:=template.ParentBlockId;inherited:=projection.Whole[parent]||(template.UnitId==parent&&projection.Rows[parent])
  values:=make([]string,len(template.Slots));for index,slot:=range template.Slots{values[index]=slot.Value}
- reused:=false;partial:=false
+ reused:=false;human:=false;partial:=false
  for _,field:=range fields{old,found:=projection.Fields[field.Key];translatable:=false;for _,index:=range field.Indices{if !template.Slots[index].Fixed{translatable=true}}
   if !translatable{continue};if !found{partial=true;continue}
   if len(old.Values)!=len(field.Indices){return gen.TranslationUnit{},false,false,platform.NewError(platform.CodeDependencyUnavailable,false,"人工字段的URL或代码分段形状已改变")}
-  for position,index:=range field.Indices{slot:=template.Slots[index];if old.Fixed[position]!=slot.Fixed{return gen.TranslationUnit{},false,false,platform.NewError(platform.CodeDependencyUnavailable,false,"人工字段的固定值归属无法证明")};if !slot.Fixed{values[index]=old.Values[position];reused=true}}
+  for position,index:=range field.Indices{slot:=template.Slots[index];if old.Fixed[position]!=slot.Fixed{return gen.TranslationUnit{},false,false,platform.NewError(platform.CodeDependencyUnavailable,false,"人工字段的固定值归属无法证明")};if !slot.Fixed{values[index]=old.Values[position];reused=true;human=human||old.Human}}
  }
  if !reused&&!inherited{
   if projection.Units[candidate.UnitId]{return gen.TranslationUnit{},false,false,platform.NewError(platform.CodeDependencyUnavailable,false,"人工单元仍在当前源但原文本归属无法证明")};return candidate,false,false,nil
  }
- var target strings.Builder
- for index,slot:=range template.Slots{number:=strconv.Itoa(slot.Index);if slot.Fixed{target.WriteString("<v"+number+"/>")}else{target.WriteString("<i"+number+">"+html.EscapeString(values[index])+"</i"+number+">")}}
- candidate.TargetText=target.String();candidate.TargetHash=platform.HashBytes([]byte(candidate.TargetText));candidate.Protected=true;candidate.Status="review";if reused{candidate.Origin="human"}
+ var target strings.Builder;characters:=0
+ for index,slot:=range template.Slots{number:=strconv.Itoa(slot.Index);encoded:="<v"+number+"/>";if !slot.Fixed{encoded="<i"+number+">"+html.EscapeString(values[index])+"</i"+number+">"}
+  characters+=utf8.RuneCountInString(encoded);if characters>65536{return gen.TranslationUnit{},false,false,platform.NewError(platform.CodeBudgetExceeded,false,"保护译文投影超过单元65536字符预算")};target.WriteString(encoded)
+ }
+ candidate.TargetText=target.String();candidate.TargetHash=platform.HashBytes([]byte(candidate.TargetText));candidate.Protected=true;candidate.Status="review";if human{candidate.Origin="human"}
  return candidate,true,partial,nil
 }

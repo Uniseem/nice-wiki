@@ -105,3 +105,5 @@ public-site转发已核访客请求；本域核对同一伪名owner，在dataEpo
 ### 人工保护的稳定节点投影
 
 整表与真实行分片互换时，先从旧源私有模板解析旧人工译值，再按最深真实稳定blockId/rowId/cellId/itemId/columnId、节点类型及该节点内部text/alt路径对应当前字段。祖先数组序号不参加对应；字段内固定/可译分段必须同形，固定URL/代码永远采用当前源。对应值按新slot编号编码。新增真实子节点原文交付并partial/review且继承父保护；保护父块只能source-only、字段归属或段形状无法证明时失败关闭，保留旧对象待人工处理。新投影没有独立持久unit引用，省略fileRef；真实原单元沿用真实引用。
+
+投影来源保持真实：仅复用了真实human字段才标human，受保护machine仍为machine。投影按完整新编号文本逐段限制65536 Unicode字符，超限失败关闭。公开units上限10000与content全树节点/拆分一致；review但全部译值可恢复时completed计完成且partial=false，有新增原文才partial。PreviousTargetText仅可追溯真实旧整段，不要求即时跨分组投影伪造该可选值。

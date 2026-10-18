@@ -1634,8 +1634,8 @@
           "items": {
             "$ref": "#/$defs/TranslationUnit"
           },
-          "maxItems": 256,
-          "description": "可交付旧译文或原文"
+          "maxItems": 10000,
+          "description": "最多10000个真实源单元的可交付旧译文、保护投影或原文；与content全树节点限及SplitTranslationUnits一致"
         },
         "partial": {
           "type": "boolean",
