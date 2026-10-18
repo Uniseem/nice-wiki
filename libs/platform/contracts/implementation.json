@@ -3531,23 +3531,62 @@
           ],
           "purpose": "模型调用助手的通用实现",
           "steps": [
-            "model-gateway:createInference（幂等键=操作ID+步骤名）",
-            "model-gateway:resumeInference按序号读取到终态，流式时逐条回调",
-            "取消或截止时model-gateway:cancelInference",
-            "failed/charge_unknown按网关Problem返回，不在调用方重放",
-            "首次从排他序号0重读已持久事件；已succeeded调用也重读既有付费结果，不按当前lastSequence跳过",
-            "超过4096事件返回BUDGET_EXCEEDED并取消，不静默截断"
+            "先用原完整请求和原键LookupInference，仅真可信tracking证明404且原付费截止有效才Create原键/原input；从不换键重付。",
+            "有原调用只观察同ID。独立5秒fresh只读op保原owner/root/site/epoch/costClass和请求全值，不重签permit或延长付费deadline。",
+            "当前真实winning output与事件历史独立返回CurrentSnapshot，未知费用不抹去完整结果，不伪造SSE或零费用。",
+            "SSE从0排他序号重读已付费事件，最多4096条不截断；每次历史终态或流结束后取当前Get权威，旧charge_unknown/StreamError不遮住后来完整结果。",
+            "所有Create已接受后的错误/取消均保留真实InvocationID/CurrentSnapshot/已收事件；读取故障不伪404或重派。"
           ],
           "errors": [
             {
-              "code": "CANCELLED",
-              "when": "已取消",
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
               "retryable": false
             },
             {
               "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "网关失败",
-              "retryable": true
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -3560,13 +3599,774 @@
           "concurrency": "每次调用独立",
           "idempotency": "幂等键固定",
           "dependencies": [
-            "model-gateway:createInference",
-            "model-gateway:resumeInference",
             "model-gateway:cancelInference",
-            "platform.NewGatewayClient"
+            "model-gateway:createInference",
+            "model-gateway:lookupInference",
+            "model-gateway:readInference",
+            "model-gateway:resumeInference",
+            "platform.GetInference",
+            "platform.LookupInference",
+            "platform.NewGatewayClient",
+            "platform.bindDeadline",
+            "platform.cancelCall",
+            "platform.drain",
+            "platform.finishKnownGatewaySnapshot",
+            "platform.gatewayReadContext",
+            "platform.modelInvokeSleep",
+            "platform.notifyCurrentModelTerminal",
+            "platform.readCurrentGatewaySnapshot"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.gatewayReadContext",
+          "name": "gatewayReadContext",
+          "signature": "func gatewayReadContext(ctx context.Context, op OperationContext) (context.Context, context.CancelFunc)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "保原owner/actor/root/site/epoch/costClass与上下文值，脱离原HTTP/付费取消只给5秒新读取RPC截止与新OperationID，清旧portal proof。",
+          "steps": [
+            "保原owner/actor/root/site/epoch/costClass与上下文值，脱离原HTTP/付费取消只给5秒新读取RPC截止与新OperationID，清旧portal proof。",
+            "不改原op或原body、不重签/续消费permit，仅只读观察与取消原调用控制用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.readCurrentGatewaySnapshot",
+          "name": "readCurrentGatewaySnapshot",
+          "signature": "func readCurrentGatewaySnapshot(ctx context.Context, client CurrentInvocationReader, op OperationContext, outcome *InvokeModelOutcome) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "当前真实Get快照仅同原ID更新CurrentSnapshot，失败保留上次事实。",
+          "steps": [
+            "当前真实Get快照仅同原ID更新CurrentSnapshot，失败保留上次事实。",
+            "已接受ID的Get404为缺失权威Integrity，不当作新付费许可。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.GetInference",
+            "platform.gatewayReadContext"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.finishKnownGatewaySnapshot",
+          "name": "finishKnownGatewaySnapshot",
+          "signature": "func finishKnownGatewaySnapshot(outcome *InvokeModelOutcome, lastSequence int64) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "当前真实完整output直接交付completed，费用状态仍原样保留CurrentSnapshot。",
+          "steps": [
+            "当前真实完整output直接交付completed，费用状态仍原样保留CurrentSnapshot。",
+            "旧完整文本无output时只可从原持久事件序号读到当前LastSequence和真实completed证据完成，不伪造CurrentSnapshot.Output。",
+            "终态当前证据不全时Integrity而不404或新键补算。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.terminalOf"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.modelEventTerminal",
+          "name": "modelEventTerminal",
+          "signature": "func modelEventTerminal(event StreamEvent) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "原模型调用的严格当前只读观察或接受事实保留",
+          "steps": [
+            "只使用原键、原主体和原root/site/epoch/costClass读真实生产方证据，不重签准入、不换键重付、不伪造事件。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.terminalOf"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.notifyCurrentModelTerminal",
+          "name": "notifyCurrentModelTerminal",
+          "signature": "func notifyCurrentModelTerminal(input InvokeModelRequest, outcome InvokeModelOutcome) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只回调与刚Get的当前状态/结果来源兼容的原始真实终态事件。",
+          "steps": [
+            "只回调与刚Get的当前状态/结果来源兼容的原始真实终态事件。",
+            "旧StreamError/charge_unknown过时不作当前终态回调，但原样保留Events；不构造合成SSE。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.drain",
+          "name": "drain",
+          "signature": "func drain(ctx context.Context, client GatewayClient, stream ModelEventStream, input InvokeModelRequest, outcome *InvokeModelOutcome, lastSequence *int64) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按原排他序号逐条保留真实事件，重复可跳过、缺号Integrity，超4096取消而不静默截断。",
+          "steps": [
+            "按原排他序号逐条保留真实事件，重复可跳过、缺号Integrity，超4096取消而不静默截断。",
+            "非终态可实时OnEvent；历史终态先回外层Get当前权威再决定回调。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.cancelCall",
+            "platform.modelEventTerminal"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.terminalOf",
+          "name": "terminalOf",
+          "signature": "func terminalOf(state string) (string, bool)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "原模型调用的严格当前只读观察或接受事实保留",
+          "steps": [
+            "只使用原键、原主体和原root/site/epoch/costClass读真实生产方证据，不重签准入、不换键重付、不伪造事件。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.cancelCall",
+          "name": "cancelCall",
+          "signature": "func cancelCall(ctx context.Context, client GatewayClient, invocationID Identifier, idempotencyKey string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只取消已知原ID，原root/owner/site/epoch/costClass的独立5秒控制RPC设有效截止，不伸长付费任务截止。",
+          "steps": [
+            "只取消已知原ID，原root/owner/site/epoch/costClass的独立5秒控制RPC设有效截止，不伸长付费任务截止。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.CancelInference",
+            "platform.gatewayReadContext"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.bindDeadline",
+          "name": "bindDeadline",
+          "signature": "func bindDeadline(ctx context.Context, op OperationContext) (context.Context, context.CancelFunc, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "把原付费op.Deadline与ctx取较早值，坏截止失败关闭不弃截止付费。",
+          "steps": [
+            "把原付费op.Deadline与ctx取较早值，坏截止失败关闭不弃截止付费。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.modelInvokeSleep",
+          "name": "modelInvokeSleep",
+          "signature": "func modelInvokeSleep(ctx context.Context, d time.Duration) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "原模型调用的严格当前只读观察或接受事实保留",
+          "steps": [
+            "只使用原键、原主体和原root/site/epoch/costClass读真实生产方证据，不重签准入、不换键重付、不伪造事件。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -7332,7 +8132,8 @@
           ],
           "purpose": "启动要求CreateInvocationResult/CancelInvocationResult/StreamEvent校验器并复制映射；不执行RPC",
           "steps": [
-            "启动要求CreateInvocationResult/CancelInvocationResult/StreamEvent校验器并复制映射；不执行RPC"
+            "要求CreateInvocationResult/CancelInvocationResult/StreamEvent/GetInvocationResult/LookupInvocationResult五个真实生产方严格校验器，拷贝映射，构造不调RPC。",
+            "旧RawGatewayClient三方法不破坏，读端口经可选RawCurrentGatewayClient/RawLookupGatewayClient获取；Invoke缺此能力失败关闭。"
           ],
           "errors": [
             {
@@ -7349,8 +8150,10 @@
           "concurrency": "无共享可变业务状态；每次RPC独立上下文",
           "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
           "dependencies": [
-            "platform.CreateInference",
             "platform.CancelInference",
+            "platform.CreateInference",
+            "platform.GetInference",
+            "platform.LookupInference",
             "platform.ResumeInference"
           ],
           "resources": [],
@@ -7487,7 +8290,8 @@
           "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
           "dependencies": [
             "model-gateway:createInference",
-            "platform.decodeInvocation"
+            "platform.decodeInvocation",
+            "platform.normalizeGatewayInput"
           ],
           "resources": [],
           "contract": "reference"
@@ -7543,7 +8347,8 @@
           "purpose": "生产方body仅invocationId/reason/idempotencyKey，路径与body一致",
           "steps": [
             "生产方body仅invocationId/reason/idempotencyKey，路径与body一致",
-            "严格响应校验并核取消对象"
+            "严格响应校验并核取消对象",
+            "成功回执还必须与原root/costClass相同，无原可信op不发送取消。"
           ],
           "errors": [
             {
@@ -7693,7 +8498,9 @@
           },
           "concurrency": "无共享可变业务状态；每次RPC独立上下文",
           "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
-          "dependencies": [],
+          "dependencies": [
+            "platform.validateModelOutput"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -7757,6 +8564,384 @@
             {
               "code": "VALIDATION",
               "when": "客户端或六个校验器缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.LookupInference",
+          "name": "LookupInference",
+          "signature": "func (c *gatewayClient) LookupInference(ctx context.Context, key string, input CreateInvocationInput) (GatewayInvocationSnapshot, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "使用可选RawLookupGatewayClient的原lookupInference操作，原键和完整规范输入与Create同一编码，不写任何费用。",
+          "steps": [
+            "使用可选RawLookupGatewayClient的原lookupInference操作，原键和完整规范输入与Create同一编码，不写任何费用。",
+            "严格LookupInvocationResult后核原root/costClass和结果能力，错误不伪404。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.decodeGatewaySnapshot",
+            "platform.normalizeGatewayInput",
+            "model-gateway:lookupInference"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.GetInference",
+          "name": "GetInference",
+          "signature": "func (c *gatewayClient) GetInference(ctx context.Context, id string) (GatewayInvocationSnapshot, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "使用可选RawCurrentGatewayClient.ReadInference只读当前权威。",
+          "steps": [
+            "使用可选RawCurrentGatewayClient.ReadInference只读当前权威。",
+            "严格GetInvocationResult后核原ID/root/costClass，不替换原调用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.decodeGatewaySnapshot",
+            "model-gateway:readInference"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.normalizeGatewayInput",
+          "name": "normalizeGatewayInput",
+          "signature": "func normalizeGatewayInput(key string, input CreateInvocationInput) (CreateInvocationInput, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "有值的body键与原步骤键不一致则CONFLICT；同键编码保留全部原输入与可选批准字段，三个必需空集合显式[]。",
+          "steps": [
+            "有值的body键与原步骤键不一致则CONFLICT；同键编码保留全部原输入与可选批准字段，三个必需空集合显式[]。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.decodeGatewaySnapshot",
+          "name": "decodeGatewaySnapshot",
+          "signature": "func (c *gatewayClient) decodeGatewaySnapshot(name string, raw JSONBytes) (GatewayInvocationSnapshot, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "真实生产方校验器先核完整UTF8/schema再解码，不定义影子成功结构。",
+          "steps": [
+            "真实生产方校验器先核完整UTF8/schema再解码，不定义影子成功结构。",
+            "output必须有当前Invocation内真实winning attempt ID，不以费用状态猜结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.validateModelOutput"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.validateModelOutput",
+          "name": "validateModelOutput",
+          "signature": "func validateModelOutput(output *ModelOutput) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "chat/vision/translation必须有Text指针，真实空串合法，≤64KiB UTF8，与空间/向量/排序互斥。",
+          "steps": [
+            "chat/vision/translation必须有Text指针，真实空串合法，≤64KiB UTF8，与空间/向量/排序互斥。",
+            "embedding空间/逐维长度/有限值一致；rerank不混Text/向量。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_CAPABILITY",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
               "retryable": false
             }
           ],

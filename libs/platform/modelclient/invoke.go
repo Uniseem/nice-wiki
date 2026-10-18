@@ -1,165 +1,119 @@
-// Package modelclient 实现模型调用助手的通用机制。
-//
-// createInference只返回受理；本包按序号读取resumeInference直到终态，
-// 流式时逐条回调；取消或截止时cancelInference；失败与备用重试由
-// 网关负责，调用方不换模型、不重放。
+// Package modelclient只用原键观察真实模型事实，不重放付费或伪造历史事件。
 package modelclient
 
 import (
-	"context"
-	"errors"
-	"io"
-	"time"
-
-	"nice-wiki/libs/platform"
+ "context"
+ "errors"
+ "io"
+ "time"
+ "nice-wiki/libs/platform"
 )
+const(maxEvents=4096;resumeRetryPause=time.Second;cancelBudget=5*time.Second;maxIdempotency=256)
 
-// 事件与轮询参数边界。
-const (
-	maxEvents        = 4096
-	resumeRetryPause = time.Second
-	cancelBudget     = 5 * time.Second
-	maxIdempotency   = 256
-)
-
-// InvokeModel 执行一次模型调用并读取到终态：
-// createInference（幂等键由调用方按操作ID+步骤名给出）→按序号
-// 读取resumeInference到终态（stream时逐条回调）→取消或截止时
-// cancelInference；failed/charge_unknown以终态返回，不在调用方重放。
-func InvokeModel(ctx context.Context, client platform.GatewayClient, op platform.OperationContext, input platform.InvokeModelRequest) (platform.InvokeModelOutcome, error) {
-	if client == nil || input.IDempotencyKey == "" || len(input.IDempotencyKey) > maxIdempotency {
-		return platform.InvokeModelOutcome{}, platform.NewError(platform.CodeValidation, false, "模型调用请求不完整")
-	}
-	ctx = platform.WithOperationContext(ctx, op)
-	ctx, cancelDeadline := bindDeadline(ctx, op)
-	defer cancelDeadline()
-	invocation, err := client.CreateInference(ctx, input.IDempotencyKey, input.Request)
-	if err != nil {
-		return platform.InvokeModelOutcome{}, err
-	}
-	outcome := platform.InvokeModelOutcome{InvocationID: invocation.InvocationID}
-	if state, terminal := terminalOf(invocation.State); terminal && invocation.State != platform.InvocationSucceeded {
-		outcome.State = state
-		return outcome, nil
-	}
-	// HTTP游标为排他序号；首次从0重读持久事件，不按当前水位跳过已付费结果。
-	var lastSequence int64 = 0
-	for {
-		if err := ctx.Err(); err != nil {
-			_ = cancelCall(ctx, client, invocation.InvocationID, input.IDempotencyKey)
-			return platform.InvokeModelOutcome{}, platform.NewError(platform.CodeCancelled, false, "模型调用已取消或到达截止")
-		}
-		stream, err := client.ResumeInference(ctx, invocation.InvocationID, lastSequence)
-		if err != nil {
-			if ctx.Err() != nil {
-				_ = cancelCall(ctx, client, invocation.InvocationID, input.IDempotencyKey)
-				return platform.InvokeModelOutcome{}, platform.NewError(platform.CodeCancelled, false, "模型调用已取消或到达截止")
-			}
-			if !sleep(ctx, resumeRetryPause) {
-				_ = cancelCall(ctx, client, invocation.InvocationID, input.IDempotencyKey)
-				return platform.InvokeModelOutcome{}, platform.NewError(platform.CodeCancelled, false, "模型调用已取消或到达截止")
-			}
-			continue
-		}
-		finished, err := drain(ctx, client, stream, input, &outcome, &lastSequence)
-		_ = stream.Close()
-		if finished {
-			return outcome, err
-		}
-		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, context.Canceled) {
-			// 流中断：按序号重连续读，直到终态或截止。
-			if !sleep(ctx, resumeRetryPause) {
-				_ = cancelCall(ctx, client, invocation.InvocationID, input.IDempotencyKey)
-				return platform.InvokeModelOutcome{}, platform.NewError(platform.CodeCancelled, false, "模型调用已取消或到达截止")
-			}
-		}
-	}
+func InvokeModel(ctx context.Context,client platform.GatewayClient,op platform.OperationContext,input platform.InvokeModelRequest)(platform.InvokeModelOutcome,error){
+ outcome:=platform.InvokeModelOutcome{Events:[]platform.StreamEvent{}}
+ if client==nil||input.IDempotencyKey==""||len(input.IDempotencyKey)>maxIdempotency{return outcome,platform.NewError(platform.CodeValidation,false,"模型调用请求不完整")}
+ lookup,ok:=client.(platform.InvocationLookupReader);if !ok{return outcome,platform.NewError(platform.CodeUnsupportedCapability,false,"模型客户端缺原键只读查找，禁止盲目重新创建")}
+ current,ok:=client.(platform.CurrentInvocationReader);if !ok{return outcome,platform.NewError(platform.CodeUnsupportedCapability,false,"模型客户端缺当前结果权威读取")}
+ original:=platform.WithOperationContext(ctx,op)
+ paid,cancelPaid,err:=bindDeadline(original,op);if err!=nil{return outcome,err};defer cancelPaid()
+ read,cancelRead:=gatewayReadContext(original,op);snapshot,lookupErr:=lookup.LookupInference(read,input.IDempotencyKey,input.Request);cancelRead()
+ if lookupErr==nil{outcome.InvocationID=snapshot.Invocation.InvocationID;outcome.CurrentSnapshot=&snapshot}else{
+  var problem *platform.Error;if !errors.As(lookupErr,&problem)||problem.Code!=platform.CodeNotFound{return outcome,lookupErr}
+  if err=paid.Err();err!=nil{return outcome,platform.NormalizeIOError(err,platform.CodeDeadlineExceeded,false,"原付费截止已到或调用已取消，未创建新模型调用")}
+  invocation,createErr:=client.CreateInference(paid,input.IDempotencyKey,input.Request)
+  if createErr!=nil{
+   // 传输失败可能发生在真实接受之后；只查同原输入/原键，不再次Create。
+   read,cancelRead=gatewayReadContext(original,op);snapshot,lookupErr=lookup.LookupInference(read,input.IDempotencyKey,input.Request);cancelRead()
+   if lookupErr!=nil{var failure *platform.Error;if !errors.As(lookupErr,&failure)||failure.Code!=platform.CodeNotFound{return outcome,lookupErr};return outcome,createErr};outcome.InvocationID=snapshot.Invocation.InvocationID;outcome.CurrentSnapshot=&snapshot
+  }else{
+   outcome.InvocationID=invocation.InvocationID;outcome.CurrentSnapshot=&platform.GatewayInvocationSnapshot{Invocation:invocation}
+   if err=readCurrentGatewaySnapshot(original,current,op,&outcome);err!=nil{return outcome,err}
+  }
+ }
+ var lastSequence int64
+ for{
+  complete,err:=finishKnownGatewaySnapshot(&outcome,lastSequence);if err!=nil{return outcome,err};if complete{return outcome,nil}
+  if err=paid.Err();err!=nil{
+   _=cancelCall(original,client,outcome.InvocationID,input.IDempotencyKey)
+   _=readCurrentGatewaySnapshot(original,current,op,&outcome)
+   return outcome,platform.NormalizeIOError(err,platform.CodeCancelled,false,"模型原调用已取消或到达截止，保留已接受事实")
+  }
+  stream,streamErr:=client.ResumeInference(paid,outcome.InvocationID,lastSequence)
+  terminal:=false
+  if streamErr==nil{terminal,streamErr=drain(paid,client,stream,input,&outcome,&lastSequence);_=stream.Close()}
+  // 历史终态和EOF都不足以覆盖后来对账或完整结果，必须读当前权威。
+  if err=readCurrentGatewaySnapshot(original,current,op,&outcome);err!=nil{return outcome,err}
+  if terminal&&streamErr==nil{
+   if err=notifyCurrentModelTerminal(input,outcome);err!=nil{_=cancelCall(original,client,outcome.InvocationID,input.IDempotencyKey);_=readCurrentGatewaySnapshot(original,current,op,&outcome);return outcome,err}
+  }
+  var problem *platform.Error
+  if streamErr!=nil&&errors.As(streamErr,&problem)&&!problem.Retryable{
+   return outcome,streamErr
+  }
+  if terminal&&streamErr!=nil&&!errors.Is(streamErr,io.EOF){return outcome,streamErr}
+  complete,err=finishKnownGatewaySnapshot(&outcome,lastSequence);if err!=nil{return outcome,err};if complete{return outcome,nil}
+  if !modelInvokeSleep(paid,resumeRetryPause){continue}
+ }
 }
 
-// drain 读取流内事件直到终态；返回是否已到终态。
-func drain(ctx context.Context, client platform.GatewayClient, stream platform.ModelEventStream, input platform.InvokeModelRequest, outcome *platform.InvokeModelOutcome, lastSequence *int64) (bool, error) {
-	for {
-		event, err := stream.Next(ctx)
-		if err != nil {
-			return false, err
-		}
-		if event.Sequence <= *lastSequence {
-			continue
-		}
-		*lastSequence = event.Sequence
-		if len(outcome.Events) >= maxEvents {
-			_ = cancelCall(ctx, client, outcome.InvocationID, input.IDempotencyKey)
-			return true, platform.NewError(platform.CodeBudgetExceeded, false, "模型持久结果超过读取事件上限")
-		}
-		outcome.Events = append(outcome.Events, event)
-		if input.Stream && input.OnEvent != nil {
-			if err := input.OnEvent(event); err != nil {
-				_ = cancelCall(ctx, client, outcome.InvocationID, input.IDempotencyKey)
-				return true, platform.NewError(platform.CodeCancelled, false, "调用方中止模型事件回调")
-			}
-		}
-		if event.Invocation != nil {
-			if state, terminal := terminalOf(event.Invocation.State); terminal {
-				outcome.State = state
-				return true, nil
-			}
-		}
-		switch event.Event {
-		case platform.StreamCompleted:
-			outcome.State = "completed"
-			return true, nil
-		case platform.StreamCancelled:
-			outcome.State = "cancelled"
-			return true, nil
-		case platform.StreamError:
-			outcome.State = "failed"
-			return true, nil
-		}
-	}
+// gatewayReadContext只给原根的只读观察/取消新的短RPC截止，不更改原业务op或付费请求。
+func gatewayReadContext(ctx context.Context,op platform.OperationContext)(context.Context,context.CancelFunc){
+ work,cancel:=context.WithTimeout(context.WithoutCancel(platform.WithPortalProof(ctx,"")),cancelBudget)
+ deadline,_:=work.Deadline();op.Deadline=deadline.UTC().Format(time.RFC3339Nano);op.OperationID=platform.NewIdentifier()
+ return platform.WithOperationContext(work,op),cancel
 }
-
-// terminalOf 把网关调用终态映射为结果终态。
-func terminalOf(state string) (string, bool) {
-	switch state {
-	case platform.InvocationSucceeded:
-		return "completed", true
-	case platform.InvocationFailed:
-		return "failed", true
-	case platform.InvocationCancelled:
-		return "cancelled", true
-	case platform.InvocationChargeUnknown:
-		return "charge_unknown", true
-	}
-	return "", false
+func readCurrentGatewaySnapshot(ctx context.Context,client platform.CurrentInvocationReader,op platform.OperationContext,outcome *platform.InvokeModelOutcome)error{
+ read,cancel:=gatewayReadContext(ctx,op);defer cancel();snapshot,err:=client.GetInference(read,outcome.InvocationID)
+ if err!=nil{var problem *platform.Error;if errors.As(err,&problem)&&problem.Code==platform.CodeNotFound{return platform.NewError(platform.CodeIntegrityError,false,"已接受调用的当前权威记录缺失，禁止重新付费")};return err}
+ if snapshot.Invocation.InvocationID!=outcome.InvocationID{return platform.NewError(platform.CodeIntegrityError,false,"当前模型读取更换了原调用ID")}
+ outcome.CurrentSnapshot=&snapshot;return nil
 }
-
-// cancelCall 取消网关调用；使用独立短超时上下文，确保退出路径可完成。
-func cancelCall(ctx context.Context, client platform.GatewayClient, invocationID platform.Identifier, idempotencyKey string) error {
-	cancelCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cancelBudget)
-	defer cancel()
-	return client.CancelInference(cancelCtx, idempotencyKey+":cancel", invocationID, "调用方取消或截止")
+func finishKnownGatewaySnapshot(outcome *platform.InvokeModelOutcome,lastSequence int64)(bool,error){
+ if outcome.CurrentSnapshot==nil{return false,nil};snapshot:=outcome.CurrentSnapshot
+ if snapshot.Output!=nil{outcome.State="completed";return true,nil}
+ state,terminal:=terminalOf(snapshot.Invocation.State)
+ if !terminal{return false,nil}
+ if state!="completed"&&snapshot.Invocation.ResultAttemptID==nil{outcome.State=state;return true,nil}
+ if lastSequence<snapshot.Invocation.LastSequence{return false,nil}
+ // 兼容旧完整文本只有原持久SSE的情况，仍不伪造CurrentSnapshot.Output。
+ for i:=len(outcome.Events)-1;i>=0;i--{event:=outcome.Events[i];if event.Event!=platform.StreamCompleted{continue};if event.Invocation!=nil&&event.Invocation.ResultAttemptID!=nil&&snapshot.Invocation.ResultAttemptID!=nil&&*event.Invocation.ResultAttemptID!=*snapshot.Invocation.ResultAttemptID{continue};outcome.State="completed";return true,nil}
+ return false,platform.NewError(platform.CodeIntegrityError,false,"原终态缺完整输出或已登记持久完成事实，不能重派补算")
 }
-
-// bindDeadline 把操作截止并入ctx；取两者较早值。
-func bindDeadline(ctx context.Context, op platform.OperationContext) (context.Context, context.CancelFunc) {
-	if op.Deadline == "" {
-		return context.WithCancel(ctx)
-	}
-	deadline, err := platform.ParseTimestamp(op.Deadline)
-	if err != nil {
-		return context.WithCancel(ctx)
-	}
-	return context.WithDeadline(ctx, deadline)
+func modelEventTerminal(event platform.StreamEvent)bool{
+ if event.Invocation!=nil{if _,terminal:=terminalOf(event.Invocation.State);terminal{return true}}
+ return event.Event==platform.StreamCompleted||event.Event==platform.StreamError||event.Event==platform.StreamCancelled
 }
-
-// sleep 等待d或ctx取消；返回false表示已取消。
-func sleep(ctx context.Context, d time.Duration) bool {
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-		return false
-	case <-timer.C:
-		return true
-	}
+// notifyCurrentModelTerminal只回调仍与当前事实相容的真实终态，旧错误仍原样保留Events。
+func notifyCurrentModelTerminal(input platform.InvokeModelRequest,outcome platform.InvokeModelOutcome)error{
+ if !input.Stream||input.OnEvent==nil||len(outcome.Events)==0||outcome.CurrentSnapshot==nil{return nil}
+ event:=outcome.Events[len(outcome.Events)-1];snapshot:=outcome.CurrentSnapshot
+ compatible:=false
+ switch event.Event{
+ case platform.StreamCompleted:compatible=snapshot.Output!=nil||snapshot.Invocation.State==platform.InvocationSucceeded||snapshot.Invocation.ResultAttemptID!=nil
+ case platform.StreamError:compatible=snapshot.Output==nil&&snapshot.Invocation.ResultAttemptID==nil&&(snapshot.Invocation.State==platform.InvocationFailed||snapshot.Invocation.State==platform.InvocationChargeUnknown||snapshot.Invocation.State=="reconciled")
+ case platform.StreamCancelled:compatible=snapshot.Output==nil&&snapshot.Invocation.ResultAttemptID==nil&&snapshot.Invocation.State==platform.InvocationCancelled
+ default:compatible=event.Invocation!=nil&&event.Invocation.State==snapshot.Invocation.State
+ }
+ if compatible&&event.Invocation!=nil&&event.Invocation.ResultAttemptID!=nil&&snapshot.Invocation.ResultAttemptID!=nil&&*event.Invocation.ResultAttemptID!=*snapshot.Invocation.ResultAttemptID{compatible=false};if compatible{if err:=input.OnEvent(event);err!=nil{return platform.NewError(platform.CodeCancelled,false,"调用方中止模型事件回调")}}
+ return nil
 }
+func drain(ctx context.Context,client platform.GatewayClient,stream platform.ModelEventStream,input platform.InvokeModelRequest,outcome *platform.InvokeModelOutcome,lastSequence *int64)(bool,error){
+ for{
+  event,err:=stream.Next(ctx);if err!=nil{return false,err}
+  if event.Sequence<=*lastSequence{continue}
+  if event.Sequence!=*lastSequence+1{return true,platform.NewError(platform.CodeIntegrityError,false,"模型持久事件序号缺失，不能拼接不完整结果")}
+  if len(outcome.Events)>=maxEvents{_=cancelCall(ctx,client,outcome.InvocationID,input.IDempotencyKey);return true,platform.NewError(platform.CodeBudgetExceeded,false,"模型持久结果超过读取事件上限")}
+  *lastSequence=event.Sequence;outcome.Events=append(outcome.Events,event)
+  if modelEventTerminal(event){return true,nil}
+  if input.Stream&&input.OnEvent!=nil{if err=input.OnEvent(event);err!=nil{_=cancelCall(ctx,client,outcome.InvocationID,input.IDempotencyKey);return true,platform.NewError(platform.CodeCancelled,false,"调用方中止模型事件回调")}}
+ }
+}
+func terminalOf(state string)(string,bool){switch state{case platform.InvocationSucceeded:return "completed",true;case platform.InvocationFailed,"reconciled":return "failed",true;case platform.InvocationCancelled:return "cancelled",true;case platform.InvocationChargeUnknown:return "charge_unknown",true};return "",false}
+func cancelCall(ctx context.Context,client platform.GatewayClient,invocationID platform.Identifier,idempotencyKey string)error{
+ op,ok:=platform.OperationContextFrom(ctx);if !ok{return platform.NewError(platform.CodeDependencyUnavailable,false,"取消原模型调用缺可信根")};work,cancel:=gatewayReadContext(ctx,op);defer cancel();return client.CancelInference(work,idempotencyKey+":cancel",invocationID,"调用方取消或截止")
+}
+func bindDeadline(ctx context.Context,op platform.OperationContext)(context.Context,context.CancelFunc,error){
+ deadline,err:=platform.ParseTimestamp(op.Deadline);if err!=nil{return nil,nil,platform.NewError(platform.CodeIntegrityError,false,"原模型付费截止不合法")};work,cancel:=context.WithDeadline(ctx,deadline);return work,cancel,nil
+}
+func modelInvokeSleep(ctx context.Context,d time.Duration)bool{timer:=time.NewTimer(d);defer timer.Stop();select{case<-ctx.Done():return false;case<-timer.C:return true}}

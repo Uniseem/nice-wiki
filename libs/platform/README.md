@@ -33,3 +33,13 @@ ServiceConfig的可选`masterKeyRef`（环境覆盖`NW_MASTER_KEY_REF`）只传�
 `ApplyRestoreSwap`在开放入口前核完整stage、原输入、源清单、目标整树和精确Runtime决定。prepared-switch先固定原active树；active→before与staged→active每一步fsync双方父目录后再写对应完整日志；换回反向同机制。旧`restore-log.jsonl`仍是权威，追加通过有界完整文件fsync和原子替换防半行。只有与持久阶段精确相容的物理组合可续接，不删除、覆盖或猜测未知目录。`ReadRestoreSwapState`只读该真实日志与完整stage及目录组合，中间态不给删除许可。进入切换直至激活回执前，业务域不得引入未登记的active业务变化。
 
 `Discard`仅在当前权威允许的原restore staging、全域换回后的running HostEpoch、或全域完成后的running TargetEpoch清对应staged/before；先持久discarding意图再删除/fsync/记discarded。未知记录、代次、日志或目录不清理。外部身份与schema只在既有HTTP边界校验，以上内部API不引入新的业务权限。
+
+## 原模型调用只读观察
+
+标准`modelclient.NewGatewayClient`的`GatewayResponseValidators`必须有`CreateInvocationResult`、`CancelInvocationResult`、`StreamEvent`、`GetInvocationResult`、`LookupInvocationResult`五个真实生产方schema校验器。旧`RawGatewayClient`三方法接口保持；可选`RawLookupGatewayClient.LookupInference(ctx,body)`和`RawCurrentGatewayClient.ReadInference(ctx,id)`提供只读端口。公共可选`InvocationLookupReader.LookupInference(ctx,key,input)`与`CurrentInvocationReader.GetInference(ctx,id)`返回`GatewayInvocationSnapshot{Invocation,Output?}`。
+
+`InvokeModel`先以原完整请求和原幂等键查找。只有可信tracking证明真实404，且原付费截止仍有效才Create相同原键/原输入；缺tracking、孤立记录或读取失败不当作不存在，不更换键。原付费deadline只约束原Create/执行，过期后仍可用独立5秒的只读RPC截止观察；原owner、actor、root、site、epoch、qa/background费用类别及完整body保持，不重签/续消费permit。取消同原ID也用独立短控制截止，不能把过期付费op直接送去导致取消被拒。
+
+`InvokeModelOutcome.CurrentSnapshot`只保留真实已观察的当前权威，与`Events`独立；错误或取消仍保留已接受ID、最后有效快照和已收事件，调用方不得丢弃这些事实。完整winning output可直接交付；`ModelOutput.Text`指针区分真实空文本与缺失，文本不超过64KiB UTF8，chat/vision/translation与embedding/rerank字段互斥。未知费用不抹去完整结果，也不伪造零账单。
+
+首次历史读取从排他序号0开始，最多4096条，缺号或超限失败而不静默拼接。历史终态、断流及EOF后都读当前权威；过时的StreamError/charge_unknown仍保留在Events，但不作为当前终态回调，不掩盖后来完整结果。不会合成SSE事件。旧完整文本若只有真实持久事件，仍按原序号读完并保留；缺完整证据失败关闭，不将旧付费结果当404重派。当前实际Get/Lookup故障均不能触发新模型费用。

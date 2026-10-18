@@ -460,6 +460,7 @@ type GatewayMessage struct {
 
 // CreateInvocationInput model-gateway调用请求；字段与生产方types.json一致。
 type CreateInvocationInput struct {
+ LanguageSuggestionApprovalID string `json:"languageSuggestionApprovalId,omitempty"`
 	Query                  string           `json:"query,omitempty"`
 	TaskID                 string           `json:"taskId"`
 	ProfileID              Identifier       `json:"profileId"`
@@ -552,8 +553,9 @@ type InvokeModelRequest struct {
 	OnEvent func(StreamEvent) error `json:"-"`
 }
 
-// InvokeModelOutcome 模型调用终态；无error时有效。
+// InvokeModelOutcome保留原接受事实；error非nil时已有ID/快照/事件仍为真实事实。
 type InvokeModelOutcome struct {
+ CurrentSnapshot *GatewayInvocationSnapshot `json:"currentSnapshot,omitempty"`
 	InvocationID Identifier    `json:"invocationId"`
 	State        string        `json:"state"`
 	Events       []StreamEvent `json:"events"`
@@ -788,6 +790,11 @@ type JobsClient interface {
 	EventConsumerClient
 	PublishEvent(ctx context.Context, envelope EventEnvelope) error
 }
+
+// GatewayInvocationSnapshot为当前真实权威，与历史Events独立，不从费用状态推断输出。
+type GatewayInvocationSnapshot struct {Invocation Invocation `json:"invocation"`;Output *ModelOutput `json:"output,omitempty"`}
+type CurrentInvocationReader interface {GetInference(context.Context, Identifier)(GatewayInvocationSnapshot,error)}
+type InvocationLookupReader interface {LookupInference(context.Context,string,CreateInvocationInput)(GatewayInvocationSnapshot,error)}
 
 // GatewayClient model-gateway服务的调用接口；实现自动附服务断言。
 type GatewayClient interface {

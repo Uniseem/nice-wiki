@@ -524,7 +524,7 @@
     "InvokeModelOutcome": {
       "type": "object",
       "additionalProperties": false,
-      "description": "模型调用终态",
+      "description": "错误/取消仍保留已知接受ID/当前权威/真实事件，不伪造缺失事实。",
       "properties": {
         "invocationId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -545,7 +545,10 @@
           "items": {
             "$ref": "../../../modules/model-gateway/contracts/types.json#/$defs/StreamEvent"
           },
-          "description": "全部事件"
+          "description": "本次实际读取的原始事件，与当前快照独立；直接交付真实完整output时可为空数组，不代表原调用无历史。"
+        },
+        "currentSnapshot": {
+          "$ref": "#/$defs/GatewayInvocationSnapshot"
         }
       },
       "required": [
@@ -995,7 +998,7 @@
     "GatewayResponseValidators": {
       "type": "object",
       "x-internal": true,
-      "description": "map[string]func(json.RawMessage)error，CreateInvocationResult/CancelInvocationResult/StreamEvent严格生产方schema"
+      "description": "CreateInvocationResult/CancelInvocationResult/StreamEvent/GetInvocationResult/LookupInvocationResult五个真实生产方严格响应校验器。"
     },
     "gatewayClient": {
       "type": "object",
@@ -1560,6 +1563,34 @@
         "action",
         "at"
       ]
+    },
+    "GatewayInvocationSnapshot": {
+      "$ref": "../../../modules/model-gateway/contracts/types.json#/$defs/GetInvocationResult",
+      "description": "当前权威Invocation和真实完整winning output，与原始SSE事件列表独立。"
+    },
+    "CurrentInvocationReader": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "description": "进程内可选纯只读端口，不序列化，不扩旧端口所需方法。"
+    },
+    "InvocationLookupReader": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "description": "进程内可选纯只读端口，不序列化，不扩旧端口所需方法。"
+    },
+    "RawCurrentGatewayClient": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "description": "进程内可选纯只读端口，不序列化，不扩旧端口所需方法。"
+    },
+    "RawLookupGatewayClient": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "description": "进程内可选纯只读端口，不序列化，不扩旧端口所需方法。"
     }
   }
 }
