@@ -784,6 +784,11 @@
       "purpose": "服务配置加载实现"
     },
     {
+      "path": "libs/platform/lifecycle/identity.go",
+      "kind": "handwritten",
+      "purpose": "统一服务身份启动加载"
+    },
+    {
       "path": "libs/platform/lifecycle/parser_process.go",
       "kind": "handwritten",
       "purpose": "有界隔离解析子入口"

@@ -7217,6 +7217,77 @@
       "kind": "handwritten",
       "purpose": "浏览器非序列化模块API端口与bootstrap类型，不暴露HttpOnly秘密",
       "functions": []
+    },
+    {
+      "path": "libs/platform/lifecycle/identity.go",
+      "kind": "handwritten",
+      "purpose": "各域启动服务身份描述与本站签名公钥匹配共用边界",
+      "functions": [
+        {
+          "id": "platform.LoadServiceIdentity",
+          "name": "LoadServiceIdentity",
+          "signature": "func LoadServiceIdentity(config ServiceConfig) (TrustAnchors, SigningKey, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只读可信部署服务身份描述文件，1MiB预算、严格单个JSON、未知字段拒绝；不读模型或业务配置。",
+          "steps": [
+            "只读可信部署服务身份描述文件，1MiB预算、严格单个JSON、未知字段拒绝；不读模型或业务配置。",
+            "复用serviceauth.LoadSigningKey验证私钥，核本Module/KeyID登记公钥精确匹配，错误不带私有路径或材料。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "配置不合法",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "读取可信服务身份描述，私钥加载仅现有平台缓存"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动时调用一次",
+          "idempotency": "纯函数",
+          "dependencies": [
+            "platform.readIdentityConfig",
+            "platform.LoadSigningKey"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.readIdentityConfig",
+          "name": "readIdentityConfig",
+          "signature": "func readIdentityConfig(ref string, target any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "有界读取并严格解码单个身份JSON描述，不记录文件路径或内容。",
+          "steps": [
+            "有界读取并严格解码单个身份JSON描述，不记录文件路径或内容。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "配置不合法",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "读取可信服务身份描述，私钥加载仅现有平台缓存"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动时调用一次",
+          "idempotency": "纯函数",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     }
   ],
   "jobTypes": [],

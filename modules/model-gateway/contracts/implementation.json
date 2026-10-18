@@ -13963,7 +13963,8 @@
             "platform.NewTaskGroup",
             "platform.TaskGroup.Run",
             "model-gateway.InstallExecutionOptions",
-            "model-gateway.NewTokenizerHandlers"
+            "model-gateway.NewTokenizerHandlers",
+            "platform.LoadServiceIdentity"
           ],
           "resources": [
             "本域implementation全部x-handler",

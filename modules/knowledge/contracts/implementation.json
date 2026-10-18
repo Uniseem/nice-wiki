@@ -7786,7 +7786,8 @@
             "knowledge.WithIndexRuntime",
             "knowledge.NewSearchRuntime",
             "knowledge.WithSearchRuntime",
-            "knowledge.WithAdminSigningKey"
+            "knowledge.WithAdminSigningKey",
+            "platform.LoadServiceIdentity"
           ],
           "resources": [
             "本域implementation全部x-handler",
