@@ -49,7 +49,7 @@ func CreateInvocation(ctx context.Context,op OperationContext,input CreateInvoca
  if profileVersion!=route.Resolved.Profile.Version||assignmentVersion!=route.Resolved.Assignment.Version{return result,platform.NewError(platform.CodeStaleResult,false,"模型路线读取期间配置已变化")}
  for index,candidate:=range route.Candidates{
   var modelVersion int;if err:=tx.Tx.QueryRowContext(tx.Context,`SELECT version FROM models WHERE model_id=? AND data_epoch=?`,candidate.Model.ModelId,op.DataEpoch).Scan(&modelVersion);err!=nil{return result,gatewayruntime.ExecutionStorageError(err)};provider,err:=ReadDispatchProvider(tx,op,candidate.Model.ProviderId);if err!=nil{return result,err}
-  if modelVersion!=candidate.Model.Version||provider.Version!=candidate.ProviderVersion||provider.CredentialVersion!=candidate.CredentialVersion{return result,platform.NewError(platform.CodeStaleResult,false,"模型/渠道/凭据在固定路线期间变化")};fixed.Candidates[index].Provider=provider
+  if modelVersion!=candidate.Model.Version||provider.Version!=candidate.ProviderVersion||provider.CredentialVersion!=candidate.CredentialVersion{return result,platform.NewError(platform.CodeStaleResult,false,"模型/渠道/凭据在固定路线期间变化")};if index==0{if err:=ValidateInputModel(input,candidate.Model,string(provider.Adapter));err!=nil{return result,err}};fixed.Candidates[index].Provider=provider
  }
  deadline,err:=platform.ParseTimestamp(op.Deadline);if err!=nil{return result,platform.NewError(platform.CodeIntegrityError,false,"可信原调用截止损坏")};now:=time.Now().UTC();id:=platform.NewIdentifier();if binding!=nil{binding.InvocationID=id}
  invocation:=gen.Invocation{InvocationId:id,RootOperationId:op.RootOperationID,CostClass:gen.CostClass(op.CostClass),State:gen.InvocationState("accepted"),Deadline:deadline,PriceSnapshotId:fixed.Candidates[0].Price.PriceSnapshotId,Attempts:make([]gen.Attempt,0)}
@@ -72,6 +72,7 @@ func CanonicalInvocationInput(op OperationContext,input CreateInvocationInput)an
  return struct{Owner,Site,Epoch,Root,CostClass string;Input CreateInvocationInput}{op.CallerService,op.Actor.SiteID,op.DataEpoch,op.RootOperationID,op.CostClass,input}
 }
 func ValidateInvocationPayload(input CreateInvocationInput)error{
+ for _,message:=range input.Messages{if message.Parts!=nil{for _,part:=range *message.Parts{if part.Kind!="text"{if input.Capability!="vision"||message.Role!="user"{return platform.NewError(platform.CodeUnsupportedCapability,false,"非文本媒体只允许vision用户消息")};if _,err:=provider.MediaPartAsset(part);err!=nil{return err}}}}}
  if input.ExpectedEmbeddingSpace!=nil&&input.Capability!="embedding"{return platform.NewError(platform.CodeValidation,false,"只有embedding调用可声明固定向量空间")}
  switch string(input.Capability){
  case "embedding":if len(input.Texts)==0||len(input.Texts)>64||len(input.Messages)!=0||len(input.CandidateIds)!=0||input.MaximumOutputTokens!=0||input.Query!=nil{return platform.NewError(platform.CodeValidation,false,"嵌入只接受最多64段文本及0输出预算")}
@@ -85,4 +86,9 @@ func ReadDispatchProvider(tx *gatewayruntime.ExecutionTransaction,op OperationCo
  err:=tx.Tx.QueryRowContext(tx.Context,`SELECT provider_id,version,adapter,base_url,enabled,credential_version,connect_timeout_ms,request_timeout_ms,display_name,extra_header_names_json,extra_header_secret_refs_json,concurrency_limit,stream_idle_timeout_ms,data_epoch FROM providers WHERE provider_id=?`,id).Scan(&provider.ProviderId,&provider.Version,&provider.Adapter,&provider.BaseUrl,&provider.Enabled,&provider.CredentialVersion,&provider.ConnectTimeoutMs,&provider.RequestTimeoutMs,&provider.DisplayName,&names,&refs,&provider.ConcurrencyLimit,&provider.StreamIdleTimeoutMs,&epoch);if err==sql.ErrNoRows{return provider,platform.NewError(platform.CodeNotFound,false,"固定路线渠道不存在")};if err!=nil{return provider,gatewayruntime.ExecutionStorageError(err)}
  if epoch!=op.DataEpoch{return provider,platform.NewError(platform.CodeStaleResult,false,"固定路线渠道代际已变化")}
  if json.Unmarshal(names,&provider.ExtraHeaderNames)!=nil||json.Unmarshal(refs,&provider.ExtraHeaderSecretRefs)!=nil||len(provider.ExtraHeaderNames)!=len(provider.ExtraHeaderSecretRefs){return provider,platform.NewError(platform.CodeIntegrityError,false,"固定路线渠道头映射损坏")};return provider,nil
+}
+
+// ValidateInputModel每个主/备用尝试在预留和派发前核原模型真实媒体能力。
+func ValidateInputModel(input CreateInvocationInput,model gen.Model,adapter string)error{
+ for _,message:=range input.Messages{if message.Parts==nil{continue};for _,part:=range *message.Parts{if part.Kind=="text"{continue};if !slices.Contains(model.Capabilities,"vision")||model.MaxInputTokens<1{return platform.NewError(platform.CodeUnsupportedCapability,false,"媒体模型必须明确vision能力及完整输入窗口")};if part.Kind=="file"&&(!slices.Contains(model.Capabilities,"file")||!slices.Contains([]string{"openai_chat","anthropic_messages","gemini"},adapter)){return platform.NewError(platform.CodeUnsupportedCapability,false,"PDF模型必须明确file与vision能力")}}};return nil
 }
