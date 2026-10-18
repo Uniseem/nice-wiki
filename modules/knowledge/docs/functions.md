@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 96 个函数：约束 32 个，参考 64 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 97 个函数：约束 32 个，参考 65 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1144,7 +1144,7 @@ func TokenizeText(text string) []string
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:tokenizeText`
+- 依赖：无
 
 ## knowledge.RequestEmbeddings
 
@@ -4251,7 +4251,7 @@ func ExecuteBuild(ctx context.Context, op OperationContext, input JobExecutionIn
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：同document/space一次只运行一个build；所有写入核lease与epoch
 - 幂等：按document/revision/space/generation唯一
-- 依赖：`knowledge.FetchPublishedSource`、`knowledge.ListExtractableAssets`、`knowledge.CreateExtraction`、`knowledge.NormalizeSource`、`knowledge.SplitChunks`、`knowledge.EnrichChunkContext`、`knowledge.WriteStagingChunks`、`knowledge.BuildLexicalIndex`、`knowledge.RequestEmbeddings`、`knowledge.StoreEmbeddings`、`knowledge.ValidateBuild`、`knowledge.ActivateBuild`
+- 依赖：`knowledge.FetchPublishedSource`、`knowledge.ListExtractableAssets`、`knowledge.CreateExtraction`、`knowledge.NormalizeSource`、`knowledge.SplitChunks`、`knowledge.EnrichChunkContext`、`knowledge.WriteStagingChunks`、`knowledge.BuildLexicalIndex`、`knowledge.RequestEmbeddings`、`knowledge.StoreEmbeddings`、`knowledge.ValidateBuild`、`knowledge.ActivateBuild`、`knowledge.TokenizeSource`
 
 ## knowledge.EstimateRebuildPlan
 
@@ -4337,3 +4337,42 @@ func ApproveRebuildPlan(ctx context.Context, op OperationContext, input ApproveR
 - 并发：只读快照或CAS
 - 幂等：读取幂等；写入按operationId
 - 依赖：`knowledge.CreateBuild`
+
+## knowledge.TokenizeSource
+
+- 级别：参考
+- 文件：`modules/knowledge/internal/source/tokenize.go`
+- 作用：从固定模型免费BPE端口取得真实字节token边界
+
+```go
+func TokenizeSource(ctx context.Context, op OperationContext, input TokenizeSourceInput) (TokenizeSourceResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取model-gateway:tokenizeText完整同代space/tokenizerVersion/textHash/真实byteTokenEnds，逐项匹配固定构建输入；该函数尚待模块源码，不与本地全文词项TokenizeText混淆。
+
+**错误**
+
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：无
+- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`model-gateway:tokenizeText`

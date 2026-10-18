@@ -3,8 +3,12 @@ export interface ModuleAPIRequest {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   signal?: AbortSignal;
-  responseType?: "json" | "blob" | "text";
+  responseType?: "json" | "blob" | "text" | "stream";
   idempotencyKey?: string;
+  // 只由portal映射至data-protection对应固定操作的单个头；不开放任意headers。
+  restoreProgressToken?: string;
+  restoreControlGrant?: string;
+  backupDownloadToken?: string;
 }
 
 export interface ModuleAPIClient {

@@ -555,6 +555,7 @@ type InvokeModelOutcome struct {
 
 // ServiceConfig 通用服务配置；secret只保存引用路径。
 type ServiceConfig struct {
+	GitCredentialRefs map[string]string `json:"gitCredentialRefs,omitempty"`
 	AllowedGitHosts   []string          `json:"allowedGitHosts,omitempty"`
 	Module            string            `json:"module"`
 	Listen            string            `json:"listen"`

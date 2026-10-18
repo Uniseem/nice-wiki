@@ -2,7 +2,7 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "0cea732a44e4d2c8f81263dd57c730599b9c82ee31537647f4065308ad0fad52",
+  "contractSha256": "1eefc8ba4bd7bb8495db9c1c7a552e396c002786ad776c66cee6c9d21338362c",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1模型网关费用执行及完整启动收尾",
   "branch": "codex/finish-20261018-gateway",
@@ -1148,24 +1148,24 @@
     {
       "id": "model-gateway.ReserveCost",
       "path": "modules/model-gateway/internal/billing/reservation.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "有限预算未知金额修正或可信凭据索引新源码待GitLab复检"
     },
     {
       "id": "model-gateway.ExtendReservation",
       "path": "modules/model-gateway/internal/billing/reservation.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "有限预算未知金额修正或可信凭据索引新源码待GitLab复检"
     },
     {
       "id": "model-gateway.ComputeUsageCost",
@@ -1191,13 +1191,13 @@
     },
     {
       "id": "model-gateway.CheckFeeBudgets",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
       "verification": {
-        "state": "passed",
-        "evidence": "GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null,
+      "blocker": "有限预算未知金额修正或可信凭据索引新源码待GitLab复检",
       "path": "modules/model-gateway/internal/billing/reservation.go"
     },
     {

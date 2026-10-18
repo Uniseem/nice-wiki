@@ -52,6 +52,14 @@ func LoadServiceConfig(args []string, env []string) (platform.ServiceConfig, err
 		return platform.ServiceConfig{}, err
 	}
 	applyFlags(flags, &config)
+	if len(config.GitCredentialRefs)>64 || (len(config.GitCredentialRefs)>0 && config.Module!="data-protection") {
+		return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation,false,"Git凭据索引只能由数据保护可信配置提供")
+	}
+	for id, ref := range config.GitCredentialRefs {
+		if !platform.ValidIdentifier(id) || !filepath.IsAbs(ref) || filepath.Clean(ref)!=ref {
+			return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation,false,"Git凭据索引必须绑定标识符与规范绝对私有路径")
+		}
+	}
 	if len(config.AllowedGitHosts) > 64 || (len(config.AllowedGitHosts) > 0 && config.Module != "data-protection") {
 		return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "Git主机allowlist只能由数据保护可信配置提供")
 	}
