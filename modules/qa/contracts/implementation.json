@@ -1997,11 +1997,11 @@
           ],
           "purpose": "创建伪名访客会话",
           "steps": [
-            "1 验证guard签名action与subject",
-            "2 不保存IP",
-            "3 生成会话ID及30天过期",
-            "4 同visitor/key返回同会话",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "仅portal委托的原伪名访客创建；免费qa.conversation元数据绑定原RootOperationID、subject、site/epoch且token为空",
+            "首次创建由ValidateAdmission消费并verify已消费的免费元数据；免费消费后仍无模型token，不调用模型",
+            "事务生成会话ID及30天过期与同visitor/key原回执，不保存IP",
+            "本地提交或原回执读取结束后，按原root/owner/site/epoch调用guard releaseAdmission空RequestBody释放占位；重放幂等补释放，不占首问并发位",
+            "释放未知或Released=false返回依赖失败但保留原会话和回执；同输入重试不再次消费或创建"
           ],
           "errors": [
             {
@@ -2097,7 +2097,11 @@
             "qa.ValidateAdmission",
             "qa.Transaction.Close",
             "qa.Transaction.Commit",
-            "qa.StorageError"
+            "qa.StorageError",
+            "qa.FromContext",
+            "qa.DecodeResponse",
+            "qa.ServiceReadContext",
+            "traffic-guard:releaseAdmission"
           ],
           "resources": [],
           "contract": "binding"
@@ -2423,10 +2427,11 @@
           ],
           "purpose": "检查准入绑定",
           "steps": [
-            "1 原mint仅分配元数据可token空；检查动作、原匿名subject、本站epoch、audience与原QA RootOperationID（兼容字段requestId）绑定，过期拒绝",
-            "2 清除旧portal proof，以qa纯服务调用consumeAdmission；body.requestId=op.RootOperationID，消费签名与桶控制归guard",
-            "3 严格校验消费permit非空token和有效expiry；其他不可变元数据与原分配保持一致；verify已消费状态，不把mint当可付款许可",
-            "4 返回消费后的permit供本轮持久化和全部下游复用，不改subject为服务ID，不重消费或重扣桶"
+            "仅接受qa.conversation、qa.ask、qa.followup动作；核原subject、稳定RootOperationID、本站epoch、audience及有效expiry",
+            "qa纯服务调用consumeAdmission，body.requestId为原RootOperationID；消费去重、桶和签名归guard",
+            "qa.conversation输入及消费回执token必须为空；qa.ask/followup消费回执必须非空签名token；两者都需Consumed=true及有效expiry",
+            "其他不可变元数据与原分配一致，再在线verify已消费状态与原root，不改原subject为服务ID",
+            "返回原消费回执；仅付费签名许可向knowledge/MG传播，免费创建由用例提交后释放占位"
           ],
           "errors": [
             {

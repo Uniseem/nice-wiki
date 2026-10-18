@@ -229,7 +229,7 @@
 
 `migrations/001_initial.sql` 是新域 schemaVersion 1。`qa_identity` 固定站点和恢复代次；普通短事务通过平台 `NewWriteContext`，SQL 内再核本域身份。`qa_receipts` 按站点/代次/主体/函数/键保存七天完整原回执和输入/结果 SHA-256，同键异输入冲突。私有策略、轮次、引用和缓存 JSON 在持久读取边界按生成 schema 校验，不把缺字段或 null 当默认成功。control、inbox/outbox 结构仍由平台机制维护。
 
-会话30天过期，过期/已删除读取为 GONE/410；消息按 ordinal 签名 keyset，签名绑定访客、代次、会话、历史代数及分页数量。准入只在线核对/消费 guard 原签名许可，request/action/subject/epoch/audience及原完整许可必须与消费回执一致，不保存原始IP。外部请求不能提交可信Planner字段。
+会话30天过期，过期/已删除读取为 GONE/410；消息按 ordinal 签名 keyset，签名绑定访客、代次、会话、历史代数及分页数量。准入在线核对/消费guard原分配元数据；免费qa.conversation消费前后无模型token，付费qa.ask/followup消费后必须有签名token；原request/action/subject/epoch/audience等不可变元数据必须与消费回执一致，不保存原始IP。外部请求不能提交可信Planner字段。
 
 流事件与 Turn.lastSequence 同事务递增；来自模型的内部追加可携 sourceStep/sourceSequence，唯一键为 turnId+sourceStep+sourceSequence。同源同内容返回原序号，异内容失败关闭。只有终态用例能把 completed/error/cancelled 事件与 Turn 终态一并写入。SSE 排他回放，15秒非持久心跳，24小时保留期后410，不重新运行模型；单连接基础设施上限5分钟，断线以原序号续读，不创建新轮次。慢客户端每次输出受5秒写截止保护。
 
@@ -241,7 +241,7 @@
 
 ## 2026-10-18 第二批消费者与窄修
 
-准入 `requestId` 兼容字段实际绑定原问题稳定 `RootOperationID`，不是 trace RequestID。mint 只有分配元数据、token可空；先消费，再接受 guard 返回的非空签名 permit及expiry，其他不可变字段必须对应原分配。元数据不能当模型许可；内部 `ValidateAdmissionResult.permit` 是唯一后续应持久化/传播的许可。根/原匿名subject不改成服务ID，知识请求body原样携带该许可，bodyHash由服务断言保护。`normal/suspicious/abusive` 分别报告 `normal/suspicious/abuse`；没有相似度/时间间隔观测就省略字段，不伪填0。guard严格allow/deny/challenge；challenge返回公共CHALLENGE_REQUIRED，沿现有issueChallenge明确领挑战，不能从错误文案猜ID。
+准入 `requestId` 兼容字段实际绑定原问题稳定 `RootOperationID`，不是 trace RequestID。mint 只有分配元数据、token可空；先消费：qa.ask/followup必须返回非空签名permit，qa.conversation仍为空token；expiry有效，其他不可变字段对应原分配。元数据不能当模型许可；内部 `ValidateAdmissionResult.permit` 是唯一后续应持久化/传播的许可。根/原匿名subject不改成服务ID，知识请求body原样携带该许可，bodyHash由服务断言保护。`normal/suspicious/abusive` 分别报告 `normal/suspicious/abuse`；没有相似度/时间间隔观测就省略字段，不伪填0。guard严格allow/deny/challenge；challenge返回公共CHALLENGE_REQUIRED，沿现有issueChallenge明确领挑战，不能从错误文案猜ID。
 
 所有服务间改变body的调用均清旧portal proof；读取公开权威使用qa纯服务主体保留本站/根/截止，模型调用继承可信费用及原签名许可。模型请求、续读与取消仍全部走平台，文本消费只取成功持久调用；单次模型文本超过64KiB失败关闭。每个格式修复是独立attempt，不重放费用未知或取消请求。
 
@@ -260,3 +260,5 @@
 CompleteTurn内部输入明确answerKind及真实tokenCount，不能从引用数量猜类型或把字符数当token；completion_hash固定原输入且排除会变化的lease，原assistant消息/终态事件/outbox同事务。guard释放在提交后执行，失败不会回滚已完成答案，原终态回放补做释放且不再调用模型。取消也是先提交唯一cancelled事件和回执，再按持久原root依次取消job/MG、删同请求排队引用、释放slot；重复请求继续清理副作用，不改模型费用事实。
 
 会话删除及保留清理只清正文：messages、summary、feedback、流正文、compaction、当前页和plan；turn保留无正文IDs/状态/root/MG调用引用，permit内容清空并记redacted。所有正文读取在反序列化前对redacted返回GONE，管理列表不展示已清除记录。删除先完整取消原活动/待清理轮次再CAS式复核无活动；后台按持久expires_at且无活动turn清理，debug按7日expires_ns、SSE仅终态超过24小时，单类最多limit，保留cache审核及费用引用。
+
+免费会话仍需人机验证、消费及verify已消费原root。CreateConversation在本地提交及同输入原回执读取后，按原准入ID/root/owner/site/epoch幂等释放占位；释放失败保留会话回执供重放补做，不等待30秒超时阻塞首问，从不调用模型。

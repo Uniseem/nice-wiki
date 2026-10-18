@@ -19,7 +19,7 @@
         "x-handler": "qa.CreateConversation",
         "x-permission": "anonymous",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 免费qa.conversation仍须人机验证和准入持久消费，消费前后token均为空；会话提交或回放后幂等释放原并发占位，不调用模型。",
         "parameters": [
           {
             "name": "Idempotency-Key",

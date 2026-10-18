@@ -1198,20 +1198,20 @@
         },
         "conversationId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "会话"
+          "description": "已有会话的内部关联提示，新建时缺失，owner由调用用例核对"
         },
         "action": {
           "type": "string",
           "enum": [
-            "qa.turn",
-            "qa.conversation"
+            "qa.conversation",
+            "qa.ask",
+            "qa.followup"
           ],
-          "description": "动作"
+          "description": "免费会话或付费提问/追问，动作不可互换"
         }
       },
       "required": [
         "admission",
-        "conversationId",
         "action"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
@@ -1230,7 +1230,7 @@
         },
         "permit": {
           "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
-          "description": "只能是ConsumeAdmission回执的非空模型签名许可，不能回传mint元数据代替"
+          "description": "原ConsumeAdmission消费回执：qa.conversation的token为空，qa.ask/followup非空签名；mint元数据不能代替消费回执"
         }
       },
       "required": [
