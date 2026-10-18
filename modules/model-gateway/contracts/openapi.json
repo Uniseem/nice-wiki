@@ -3316,7 +3316,7 @@
         "operationId": "quoteCost",
         "summary": "计算可保守预留的最大费用",
         "x-handler": "model-gateway.QuoteCost",
-        "x-permission": "service",
+        "x-permission": "model.manage",
         "x-timeout-ms": 5000,
         "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 同代只读真实价目，manual优先且缺项不回退；报价不写额度或账本。",
         "parameters": [
@@ -4626,7 +4626,7 @@
             }
           },
           "404": {
-            "description": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
+            "description": "仅INVOCATION_NOT_ACCEPTED表示真实tracking确认原键/root/site/epoch/body未被接受；普通路由NOT_FOUND不构成负证明。",
             "content": {
               "application/problem+json": {
                 "schema": {

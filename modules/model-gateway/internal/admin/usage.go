@@ -344,7 +344,9 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 	evidence := map[string]bool{}
 	inWindow := map[string]bool{}
 	safeToRetry := true
+ windowCoversRoot,allInvocationsFinal:=true,true
 	for _, record := range metadata {
+  if record.CreatedAt.Before(input.From)||!record.CreatedAt.Before(input.Until){windowCoversRoot=false}
 		var safeRaw []byte
 		var safeHash, initialized sql.NullString
 		var dispatched, attemptUnknown bool
@@ -353,6 +355,7 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 		}
 		if len(safeRaw) == 0 || !safeHash.Valid || !initialized.Valid || initialized.String == "" {
 			safeToRetry = false
+   allInvocationsFinal=false
 		} else {
 			var snapshot gen.Invocation
 			if platform.HashBytes(safeRaw) != safeHash.String || json.Unmarshal(safeRaw, &snapshot) != nil || snapshot.InvocationId != record.Id || snapshot.RootOperationId != input.RootOperationId || string(snapshot.State) != record.State {
@@ -379,11 +382,16 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 			if count != len(proof.Invocation.Attempts) {
 				return QueryUsageResult{}, platform.NewError(platform.CodeIntegrityError, false, "原root尝试列表与持久证据不完整")
 			}
+   if proof.TerminalNS<=0||proof.LeaseID!=""||proof.LeaseUntilNS!=0||!slices.Contains([]string{"succeeded","failed","cancelled","reconciled"},string(proof.Invocation.State)){allInvocationsFinal=false}
+   seenAttempts:=map[string]bool{}
 			for _, item := range proof.Invocation.Attempts {
 				stored, err := gatewayruntime.ReadAttemptRecord(execution, item.AttemptId)
 				if err != nil {
 					return QueryUsageResult{}, err
 				}
+    actual,_:=platform.CanonicalJSON(stored.Attempt);listed,_:=platform.CanonicalJSON(item)
+    if seenAttempts[item.AttemptId]||stored.Attempt.InvocationId!=record.Id||platform.HashBytes(actual)!=platform.HashBytes(listed){return QueryUsageResult{},platform.NewError(platform.CodeIntegrityError,false,"原root尝试完整身份列表与持久事实矛盾")};seenAttempts[item.AttemptId]=true
+    if !slices.Contains([]string{"succeeded","failed","reconciled"},string(stored.Attempt.State)){allInvocationsFinal=false}
 				if stored.DispatchedNS > 0 {
 					safeToRetry = false
 				}
@@ -406,6 +414,8 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 			}
 		}
 	}
+ var outside bool
+ if err:=tx.QueryRowContext(ctx,`SELECT EXISTS(SELECT 1 FROM ledger_entries l JOIN invocations i ON i.invocation_id=l.invocation_id WHERE i.root_operation_id=? AND (`+ledgerTimeKey+`<? OR `+ledgerTimeKey+`>=?))`,input.RootOperationId,input.From.UTC().Format(ledgerTimeLayout),input.Until.UTC().Format(ledgerTimeLayout)).Scan(&outside);err!=nil{return QueryUsageResult{},adminStorageError(err)};if outside{windowCoversRoot=false}
 	entries, err := readLedgerEntries(ctx, op, tx, runtime, `i.root_operation_id=? AND NOT EXISTS(SELECT 1 FROM ledger_entries n WHERE n.supersedes_entry_id=l.entry_id) AND NOT EXISTS(SELECT 1 FROM ledger_voids v WHERE v.entry_id=l.entry_id) AND `+ledgerTimeKey+`>=? AND `+ledgerTimeKey+`<?`, []any{input.RootOperationId, input.From.UTC().Format(ledgerTimeLayout), input.Until.UTC().Format(ledgerTimeLayout)}, 257)
 	if err != nil {
 		return QueryUsageResult{}, err
@@ -473,7 +483,7 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 	if len(unknown) > 256 {
 		return QueryUsageResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "完整未知调用集合超过响应预算")
 	}
-	result := QueryUsageResult{Entries: entries, UnknownInvocationIds: make([]string, 0, len(unknown)), SafeToRetry: &safeToRetry}
+	result := QueryUsageResult{Entries: entries, UnknownInvocationIds: make([]string, 0, len(unknown)), SafeToRetry: &safeToRetry,WindowCoversRoot:&windowCoversRoot,AllInvocationsFinal:&allInvocationsFinal}
 	for id := range unknown {
 		result.UnknownInvocationIds = append(result.UnknownInvocationIds, id)
 	}

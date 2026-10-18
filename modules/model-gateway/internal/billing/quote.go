@@ -9,6 +9,7 @@ import (
 	"errors"
 	"math/big"
 	"net/http"
+ "slices"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -150,6 +151,8 @@ func ReadPriceSnapshot(ctx context.Context, op OperationContext, modelID string,
 }
 
 func RequirePriceCaller(ctx context.Context, op OperationContext) error {
+ if op.CallerService=="portal"&&op.Actor.Kind=="admin"&&(slices.Contains(op.Actor.Grants,"model.manage")||slices.Contains(op.Actor.Grants,"superadmin")){return nil}
+ if op.CallerService=="knowledge"&&(op.Actor.Kind!="service"||op.Actor.SubjectID!="knowledge"||op.CostClass!=platform.CostClassBackground){return platform.NewError(platform.CodeForbidden,false,"知识估价只允许原后台计划纯服务上下文")}
 	if op.Actor.Kind == "service" && op.Actor.SubjectID == op.CallerService {
 		for _, task := range gen.AITaskCatalog {
 			if task.Owner == op.CallerService {

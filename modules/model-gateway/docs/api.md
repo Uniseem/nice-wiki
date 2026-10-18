@@ -79,3 +79,5 @@ readFeeBudgetPolicy/putFeeBudgetPolicy仅portal当前guard.manage管理员，全
 ## 免费固定分词
 
 POST /v1/tokenizations仅knowledge纯服务。输入modelId与原始text，最多1048576 Unicode字符及4MiB字节；返回同代模型完整embeddingSpace、原文textHash、真实tokenCount与byteTokenEnds。结束偏移可落在Unicode字符内部，消费者保留原token序号选择合法字符边界。模型preprocessorVersion须明确为`none;tiktoken-go@v0.7.0;cl100k_base`或`none;tiktoken-go@v0.7.0;o200k_base`；未声明/不支持失败，不推测模型、按字符替代或联网。声明属于既有不可变空间身份，改声明须新模型ID。该操作不创建invocation、不收取费用、不存正文。
+
+消费者费用安全窄修：Lookup只有真实tracking+原key/root/site/epoch/body确未接受时专用INVOCATION_NOT_ACCEPTED/404；普通NOT_FOUND或旧部署路由404不授权Create。QueryUsage实际始终给兼容可选windowCoversRoot（窗覆盖原root全部调用创建及所有历史ledger时间）与allInvocationsFinal（原记录/尝试列表完整、真实终态/无执行lease且每attempt终局），旧缺事实false/严格失败；不把safeToRetry当新付费审批。报价portal用当前model.manage，原AI owners/localization免费能力保留，knowledge额外纯service+background；免费多模型估价不扩Create/fee。

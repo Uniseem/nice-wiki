@@ -67,7 +67,7 @@ func LookupInvocation(ctx context.Context, op OperationContext, input LookupInvo
 		if err := RequireInvocationLookupTracking(tx, op); err != nil {
 			return LookupInvocationResult{}, err
 		}
-		return LookupInvocationResult{}, platform.NewError(platform.CodeNotFound, false, "完整tracking确认原键尚无已接受调用")
+		return LookupInvocationResult{}, platform.NewError(platform.CodeInvocationNotAccepted, false, "完整tracking确认原键尚无已接受调用")
 	}
 	record, err := gatewayruntime.ReadInvocationRecord(tx, op, receipt.Invocation.InvocationId)
 	if err != nil {

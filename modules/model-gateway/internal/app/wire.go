@@ -155,7 +155,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		OpenedDataEpoch: runtimeView.DataEpoch,
 		Authorize:       authorize,
 		ServiceActorCallers: map[string][]string{"tokenizeText": {"knowledge"}, "lookupInference": assignmentCallers[1:],
-			"createInference": assignmentCallers[1:], "cancelInference": assignmentCallers[1:], "queryUsage": usageServices, "readModels": assignmentCallers[1:], "readProfiles": assignmentCallers[1:], "readInference": assignmentCallers[1:], "resumeInference": assignmentCallers[1:]},
+			"createInference": assignmentCallers[1:], "quoteCost": assignmentCallers[1:], "cancelInference": assignmentCallers[1:], "queryUsage": usageServices, "readModels": assignmentCallers[1:], "readProfiles": assignmentCallers[1:], "readInference": assignmentCallers[1:], "resumeInference": assignmentCallers[1:]},
 		AllowedCallers: map[string][]string{
 			"lookupInference":      assignmentCallers[1:],
 			"getLedger":            {"portal"},
@@ -167,7 +167,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"queryUsage":           usageCallers,
 			"readTaskAvailability": {"qa"},
 			"getPriceBook":         {"portal"},
-			"quoteCost":            assignmentCallers[1:],
+			"quoteCost":            assignmentCallers,
 			"tokenizeText":         {"knowledge"},
 			"estimateTokens":       {"localization"},
 			"putTaskAssignment":    {"portal"},

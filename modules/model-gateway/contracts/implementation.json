@@ -4148,7 +4148,10 @@
             }
           ],
           "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "authorization": {
+            "permission": "model.manage",
+            "rule": "portal当前model.manage，或精确根目录AI owner纯服务只读；knowledge必须background，不扩大任何付费准入。"
+          },
           "concurrency": "同一次严格当前epoch只读SQL快照，无外部IO；免费报价不受业务写屏障拦截，不做额度准入。",
           "idempotency": "读取固定不可变价目全值；未配置unknown身份由持久模型版本/updated_at/epoch确定，不生成随机ID或新写。",
           "dependencies": [
@@ -4571,7 +4574,8 @@
           ],
           "purpose": "仅根AI任务目录owner纯服务可读取免费报价",
           "steps": [
-            "仅根AI任务目录owner纯服务可读取免费报价"
+            "portal当前model.manage管理员由公共边界即时授权；原已登记AI task owners纯服务免费读价能力保留（含localization）。",
+            "knowledge额外Subject==CallerService==knowledge且可信costClass=background，按实际多模型计划只读固定模型/价目，不因此取得新Create/额度/费用权限。"
           ],
           "errors": [
             {
@@ -10491,7 +10495,10 @@
             "某组任一金额未知则整项heldCost或settledCost省略，禁止返回部分已知和冒充总额；unknownInvocationIds包括窗内当前charge_unknown调用、未知held和未知账单，完整去重排序；已知空集合显式0仅表示实际空的已知组。 窗内charge_unknown调用必须有实际held行或未知金额账单证明；缺任一必要证据503，不返回无证据held=0。",
             "返回每条账单原固定priceSnapshot全值，不按当前价重算；只读且无模型、额度、预留、账本或审计副作用。",
             "恢复旧费用仅经当前target权威投影精确读原结果/费用/原hash/winner，旧scope不变成新准入，具体回调待公共snapshot实现后接。",
-            "analytics纯服务可读同实际site/current epoch安全用量，不限AI owner原root归属，只返统计DTO不带正文/输出/秘密。其他AI owner仍只读自己全root，不扩新付费权限。"
+            "analytics纯服务可读同实际site/current epoch安全用量，不限AI owner原root归属，只返统计DTO不带正文/输出/秘密。其他AI owner仍只读自己全root，不扩新付费权限。",
+            "兼容可选windowCoversRoot实际必给：当前SQL快照窗覆盖全部原root调用创建时间与所有账本时间（含已superseded/voided历史）才true。",
+            "兼容可选allInvocationsFinal实际必给：完整原调用/尝试记录hash及列表精确一致，原TerminalNS真实且无活动lease，outer succeeded仍须全部attempt succeeded/failed/reconciled；缺事实false或严格原错误。",
+            "两标记仅当前原root观察，不把safeToRetry/held0/零金额替新批准收费；消费者另需unknown空、held显式0、所有ledger金额已知及明确新用户批准。"
           ],
           "errors": [
             {
@@ -23408,7 +23415,7 @@
             "严格生产方schema消费原完整CreateInvocationInput和key，按原规范请求摘要比原创建回执，异输入CONFLICT。",
             "只读实际当前Invocation/完整真实output，对原持久请求再核键/语义hash，不改原paid deadline，不重验过期准入来付款。",
             "回执存在但原记录缺失，或创建键有原行但无回执，均Integrity不伪404。",
-            "只有当前epoch完整tracking真实来源，且无未索引/未知归属/待恢复投影旧行时才确认无原调用返回404；marker缺失503，纯读不建证明。"
+            "只有当前epoch完整tracking真实来源，且无未索引/未知归属/待恢复投影旧行，原key/root/site/body确未接受才INVOCATION_NOT_ACCEPTED（HTTP404）；普通NOT_FOUND/旧部署路由404绝非负证明，marker缺失503，纯读不建证明。"
           ],
           "errors": [
             {
@@ -23482,6 +23489,12 @@
               "httpStatus": 409,
               "meaning": "代次或分页水位变化。",
               "retryable": true
+            },
+            {
+              "code": "INVOCATION_NOT_ACCEPTED",
+              "httpStatus": 404,
+              "meaning": "完整可信tracking证明原键/完整输入在当前root/site/epoch尚未接受；不同于普通NOT_FOUND路由或旧部署404。",
+              "retryable": false
             }
           ],
           "sideEffects": [],

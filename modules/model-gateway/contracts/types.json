@@ -2853,6 +2853,14 @@
         "safeToRetry": {
           "type": "boolean",
           "description": "兼容可选，实际生产始终给；仅完整原root全部调用accepted/reserved且全部attempt未派发为true；旧证据不完整/未知/成功结果/零金额都不表示可重算。仅继续原输入hash阶段，仍须原paidRefs与费用准入。"
+        },
+        "windowCoversRoot": {
+          "type": "boolean",
+          "description": "兼容可选，实际本实现始终给。当前严格SQL快照查询窗同时覆盖原root全部调用createdAt及全部ledger行时间（含已superseded/voided历史）才true；不能用缺字段默认true。"
+        },
+        "allInvocationsFinal": {
+          "type": "boolean",
+          "description": "兼容可选，实际本实现始终给。原root完整调用/真实attempt列表匹配且全部终局、无活动执行lease才true；外层succeeded不证明unknown/仍活动attempt已终局，旧缺事实false或严格失败。不等于safeToRetry或新付费准入。"
         }
       },
       "required": [
