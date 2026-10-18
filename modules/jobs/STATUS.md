@@ -1,3 +1,7 @@
+# 类型筛选与真实租约HTTP接线待GitLab
+
+Root补claimJob可选jobTypes真实SQL筛选，六个租约HTTP映射及纯owner固定白名单；知识build/extract并发隔离由各域装配。ClaimJob与新NewLeaseHandlers待统一GitLab，完整jobs存储安装、恢复/后台仍未齐。不本机编译、无新增测试或真实接口。
+
 # 集成检查（2026-10-17）
 
 定时调度已合入 main，GitLab pipeline 42 把本轮函数记为 verified。jobs.schedule-changed.v1 已进入生成目录。完整启动仍 blocked。下面是合入前的模块记录。

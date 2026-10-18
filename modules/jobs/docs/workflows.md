@@ -83,3 +83,5 @@ AI任务归属及上限由根contracts/ai-tasks.json唯一登记；各AI owner�
 第二轮事件核心：producer outbox以固定eventId提交，jobs同事务保存完整信封/hash、全局eventSeq、所有登记consumer的queued投递与回执后确认。consumer只领取自己的订阅，30秒内完成本域inbox/业务事务后ack；ack推进连续水位，传输Last-Event-ID不能替代它。到期重排只改对应consumer，死信保留并阻塞相同producer/subject后序，需按具体生产方管理权限重放原投递。
 
 jobs自身outbox同样经RelayOutbox→平台RunRelay→版本化self publishEvent，不能直接跳过持久接收。durable流逐次拉取、单事件背压并可取消；浏览器ephemeral等待独立安全投影，当前明确不可用，不以空列表或全量payload广播冒充。
+
+claimJob可选jobTypes真实SQL筛选且只本owner登记类型；用于分开父构建/子提取worker执行名额，禁止领取后本地丢弃。省略保留旧全owner语义。六个worker租约HTTP入口只绑定已严格校验输入，epoch来自可信op，维护期间仅原heartbeat/check/complete/fail收尾由原租约权威裁定。完整服务装配仍未齐。

@@ -782,6 +782,7 @@
           "purpose": "领取待执行任务",
           "steps": [
             "校验service所属owner，读取可信runtime与control屏障；维护/屏障拒绝领取，输入/op/runtime代次必须相同",
+            "可选jobTypes每项必须命中registeredJobTypes的owner/type配对；在queued候选SQL按真实type筛选，领取回执原输入绑定集合，省略保持旧全owner领取。",
             "同owner/epoch/claim operationId按inputHash读取原批次，同键不同输入返回CONFLICT；重放不续租",
             "limit省略时显式归一化为10，不依赖生成器填default；精确读取未到期的leased/running/cancel-requested数量；实际批次为min(limit,10,max(0,8-owner在途数))",
             "只在本owner/epoch的queued任务中按notBefore/createdAt/jobId排序，过滤未来notBefore",
@@ -1640,6 +1641,42 @@
           "concurrency": "复用调用方串行SQLite事务及资源锁",
           "idempotency": "由调用方决定事务提交与幂等边界",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.NewLeaseHandlers",
+          "name": "NewLeaseHandlers",
+          "signature": "func NewLeaseHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "EventHandlers",
+              "description": "仅createJob的真实HTTP映射，复用本域处理器map内部类型",
+              "constraints": "只交统一NewServiceHandler，不独立裸挂"
+            }
+          ],
+          "purpose": "只装配已统一鉴权和严格校验的worker六个租约HTTP请求",
+          "steps": [
+            "claim正文绑定可选真实jobTypes；start/heartbeat/complete/fail从已校验路径取jobId，dataEpoch只取可信op。",
+            "checkLease只读取已校验workerId/fencingToken查询；调用原领域函数，不复制身份、租约和CAS规则。",
+            "只返回原领域真实结果与安全Problem；完整jobs装配仍缺失时不宣称服务已就绪。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "信任严格入口已验证上下文；不新增通用身份/schema/截止校验",
+          "concurrency": "沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定",
+          "idempotency": "显式延迟属于去重材料，原成功不重新分配时刻",
+          "dependencies": [
+            "jobs.ClaimJob",
+            "jobs.StartJob",
+            "jobs.HeartbeatJob",
+            "jobs.CheckLease",
+            "jobs.CompleteJob",
+            "jobs.FailJob",
+            "jobs.writeEventResponse"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -6718,7 +6755,8 @@
             "jobs.OpenDatabase",
             "jobs.Store.Close",
             "jobs.NewQueueHandlers",
-            "jobs.NewScheduleHandlers"
+            "jobs.NewScheduleHandlers",
+            "jobs.NewLeaseHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "51243ba6654ae6eb45e58631f2003b43bd96ea1b1f83fca8f69515dbb6811451",
+  "contractSha256": "84ffb4739a5433ad38e1f225343e001a7547f7dbe341d0ccd58aff8f65f402ec",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "定时调度（pipeline 42 已记 verified；完整启动仍 blocked）",
   "branch": "codex/jobs-20261017-r4",
@@ -618,13 +618,13 @@
     {
       "id": "jobs.ClaimJob",
       "path": "modules/jobs/internal/leases.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "真实按类型领取与HTTP接线待GitLab"
     },
     {
       "id": "jobs.StartJob",
@@ -1835,6 +1835,17 @@
         "evidence": "2026-10-16第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，最终make docs/gen、14模块readonly build/vet/gofmt与完整make check通过（872/1332/379/2297）。首次HTTP业务DTO被裁剪编译失败及随后公共FromError未登记可达失败均已修正并完整重跑；仅现阶段检查，无业务验收/真实接口模型/服务部署。"
       },
       "blocker": null
+    },
+    {
+      "id": "jobs.NewLeaseHandlers",
+      "path": "modules/jobs/internal/leases.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "真实worker六租约HTTP接线待GitLab"
     }
   ],
   "rule": "2026-10-17定时调度：ValidateCron、NextFireAt、CreateSchedule、UpdateSchedule、ListSchedules、TickSchedules、lastDueTick、NewScheduleHandlers记implemented，未编译不记verified，accepted未推进。SaveSchedule仍planned。BuildApplication与main仍blocked。未写明的步长、周字段编号、日周组合和名称宏按非法表达式失败关闭。未跑GitLab CI，不push。更早轮次记录保留在STATUS与handoff。"

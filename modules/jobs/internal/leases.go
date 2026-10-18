@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"sort"
+	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -30,6 +33,7 @@ type LeaseRuntimeView struct {
 type LeaseRuntimeProvider = func(context.Context) (LeaseRuntimeView, error)
 
 type ClaimJobInput struct {
+	JobTypes []string `json:"jobTypes,omitempty"`
 	Owner     string
 	WorkerID  string
 	Limit     int
@@ -62,6 +66,9 @@ type CheckLeaseResult = gen.CheckLeaseResult
 func ClaimJob(ctx context.Context, op OperationContext, in ClaimJobInput) (ClaimJobResult, error) {
 	if op.CallerService != in.Owner {
 		return ClaimJobResult{}, platform.NewError(platform.CodeForbidden, false, "只能领取本服务的任务")
+	}
+	for _, jobType := range in.JobTypes {
+		if _, allowed := registeredJobTypes[in.Owner][jobType]; !allowed { return ClaimJobResult{}, platform.NewError(platform.CodeForbidden, false, "不能领取本owner未登记的任务类型") }
 	}
 	if in.Limit == 0 {
 		in.Limit = claimBatchLimit
@@ -337,9 +344,15 @@ type claimCandidate struct {
 }
 
 func (work *leaseOperation) claimCandidates(ctx context.Context, in ClaimJobInput) ([]claimCandidate, error) {
-	rows, err := work.tx.QueryContext(ctx, `SELECT job_id,operation_id,root_operation_id,type,immutable_input_ref,attempt,fencing_counter,
-		revision,not_before,created_at FROM jobs WHERE owner=? AND data_epoch=? AND state='queued' AND root_operation_id<>'' AND cancel_requested=0
-		AND julianday(not_before)<=julianday(?)`, in.Owner, in.DataEpoch, work.now.Format(time.RFC3339Nano))
+	query := `SELECT job_id,operation_id,root_operation_id,type,immutable_input_ref,attempt,fencing_counter,
+ revision,not_before,created_at FROM jobs WHERE owner=? AND data_epoch=? AND state='queued' AND root_operation_id<>'' AND cancel_requested=0
+ AND julianday(not_before)<=julianday(?)`
+ args := []any{in.Owner, in.DataEpoch, work.now.Format(time.RFC3339Nano)}
+ if len(in.JobTypes) > 0 {
+  query += " AND type IN (" + strings.TrimSuffix(strings.Repeat("?,",len(in.JobTypes)),",") + ")"
+  for _, jobType := range in.JobTypes { args = append(args, jobType) }
+ }
+ rows, err := work.tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, mapQueueDBError(err)
 	}
@@ -457,4 +470,39 @@ func (work *leaseOperation) countActiveLeases(ctx context.Context, in ClaimJobIn
 		}
 	}
 	return active, mapQueueDBError(rows.Err())
+}
+
+// NewLeaseHandlers 只做统一鉴权与严格结构校验之后的字段装配。
+func NewLeaseHandlers() map[string]http.Handler {
+ return map[string]http.Handler{
+ "claimJob": http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+  op,_:=platform.OperationContextFrom(r.Context());var input ClaimJobInput
+  if json.NewDecoder(r.Body).Decode(&input)!=nil { writeEventResponse(w,op.RequestID,nil,platform.NewError(platform.CodeValidation,false,"领取请求绑定失败"),0);return }
+  input.DataEpoch=op.DataEpoch;result,err:=ClaimJob(r.Context(),op,input);writeEventResponse(w,op.RequestID,result,err,http.StatusOK)
+ }),
+ "startJob": http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+  op,_:=platform.OperationContextFrom(r.Context());var input StartJobInput
+  if json.NewDecoder(r.Body).Decode(&input)!=nil { writeEventResponse(w,op.RequestID,nil,platform.NewError(platform.CodeValidation,false,"启动请求绑定失败"),0);return }
+  input.JobID=r.PathValue("jobId");input.DataEpoch=op.DataEpoch;result,err:=StartJob(r.Context(),op,input);writeEventResponse(w,op.RequestID,result,err,http.StatusOK)
+ }),
+ "heartbeatJob": http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+  op,_:=platform.OperationContextFrom(r.Context());var input HeartbeatJobInput
+  if json.NewDecoder(r.Body).Decode(&input)!=nil { writeEventResponse(w,op.RequestID,nil,platform.NewError(platform.CodeValidation,false,"续租请求绑定失败"),0);return }
+  input.JobID=r.PathValue("jobId");input.DataEpoch=op.DataEpoch;result,err:=HeartbeatJob(r.Context(),op,input);writeEventResponse(w,op.RequestID,result,err,http.StatusOK)
+ }),
+ "checkLease": http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+  op,_:=platform.OperationContextFrom(r.Context());fence,_:=strconv.ParseInt(r.URL.Query().Get("fencingToken"),10,64)
+  result,err:=CheckLease(r.Context(),op,CheckLeaseInput{JobID:r.PathValue("jobId"),WorkerID:r.URL.Query().Get("workerId"),FencingToken:fence,DataEpoch:op.DataEpoch});writeEventResponse(w,op.RequestID,result,err,http.StatusOK)
+ }),
+ "completeJob": http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+  op,_:=platform.OperationContextFrom(r.Context());var input CompleteJobInput
+  if json.NewDecoder(r.Body).Decode(&input)!=nil { writeEventResponse(w,op.RequestID,nil,platform.NewError(platform.CodeValidation,false,"完成请求绑定失败"),0);return }
+  input.JobID=r.PathValue("jobId");input.DataEpoch=op.DataEpoch;result,err:=CompleteJob(r.Context(),op,input);writeEventResponse(w,op.RequestID,result,err,http.StatusOK)
+ }),
+ "failJob": http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+  op,_:=platform.OperationContextFrom(r.Context());var input FailJobInput
+  if json.NewDecoder(r.Body).Decode(&input)!=nil { writeEventResponse(w,op.RequestID,nil,platform.NewError(platform.CodeValidation,false,"失败请求绑定失败"),0);return }
+  input.JobID=r.PathValue("jobId");input.DataEpoch=op.DataEpoch;result,err:=FailJob(r.Context(),op,input);writeEventResponse(w,op.RequestID,result,err,http.StatusOK)
+ }),
+ }
 }

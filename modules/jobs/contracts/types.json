@@ -1005,6 +1005,18 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "jobTypes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "description": "可选实际领取类型集合；必须全部属于调用owner已登记类型，SQL筛选，不得领后丢弃。省略保留旧全owner语义。"
         }
       },
       "required": [
@@ -2639,6 +2651,18 @@
           "maximum": 10,
           "description": "省略时默认10；显式值1～10；实际还受owner在途上限8限制",
           "default": 10
+        },
+        "jobTypes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "description": "可选实际领取类型集合；必须全部属于调用owner已登记类型，SQL筛选，不得领后丢弃。省略保留旧全owner语义。"
         }
       },
       "required": [
