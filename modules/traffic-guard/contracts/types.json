@@ -1086,7 +1086,7 @@
           "type": "string",
           "enum": [
             "qa.ask",
-            "qa.conversation",
+            "qa.followup",
             "localization.suggest"
           ],
           "description": "可信入口从已登记路由映射出的固定动作。"

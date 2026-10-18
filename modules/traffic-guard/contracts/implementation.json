@@ -960,7 +960,7 @@
           ],
           "purpose": "选择可信风控动作",
           "steps": [
-            "只接受qa.ask、qa.conversation、localization.suggest三种可信入口动作；未知返回VALIDATION",
+            "只接受qa.ask、qa.followup、localization.suggest三种可信入口动作；未知返回VALIDATION",
             "两个QA动作ownerCaller=qa且执行AI挑战/ban；免费语言提示ownerCaller=localization，仅速率/并发，不创建费用授权"
           ],
           "errors": [
@@ -1255,7 +1255,8 @@
             "qaPerNetworkPerMinute缺失明确取兼容默认600，与站点默认相同，不采用费用5倍关系",
             "当前/前期网络别名共同代表同一网络，逐别名检查与扣减保持窗口轮换连续性",
             "补充整数千分令牌；时钟倒退补0且不倒退持久水位；三层及所有别名均足够才写入，否则全部不扣并返回最大等待",
-            "正结果回执去重；负结果不锁死原请求，复用准入外层事务并发失败整体回滚；没有金额状态"
+            "正结果回执去重；负结果不锁死原请求，复用准入外层事务并发失败整体回滚；没有金额状态",
+            "qa.ask和qa.followup共享同一qa频率桶类别，防止两动作分别计数使额度翻倍；permit动作仍保留单次原问题语义"
           ],
           "errors": [
             {
@@ -1519,7 +1520,8 @@
           "steps": [
             "验服务绑定",
             "CAS active→released",
-            "不返还已经消耗的频率令牌"
+            "不返还已经消耗的频率令牌",
+            "核原owner/site/epoch/root；终止、过期、已撤销都已不占并发，幂等Released=true，不能使QA完成或取消重放永久失败"
           ],
           "errors": [
             {

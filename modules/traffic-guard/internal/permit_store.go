@@ -123,12 +123,12 @@ func ReleasePermit(ctx context.Context,op OperationContext,in ReleasePermitInput
  defer t.close()
  row,err:=readPermitRecord(t,in.AdmissionID)
  if err!=nil { return ReleasePermitResult{},err }
- if in.CallerService!=op.CallerService||row.owner!=op.CallerService { return ReleasePermitResult{},platform.NewError(platform.CodeForbidden,false,"仅原拥有者可释放许可") }
+ if in.CallerService!=op.CallerService||row.owner!=op.CallerService||row.requestID!=op.RootOperationID { return ReleasePermitResult{},platform.NewError(platform.CodeForbidden,false,"仅原拥有者可释放许可") }
  var result ReleasePermitResult
  found,err:=readGuardReceipt(t,"permit.release",in,&result)
  if err!=nil { return ReleasePermitResult{},err }
  if found { return result,nil }
- result.Released=row.state=="released"||row.state=="active"
+ result.Released=true
  if row.state=="active" {
   _,err=t.tx.ExecContext(t.ctx,`UPDATE guard_permits SET state='released',revision=revision+1 WHERE admission_id=? AND site_id=? AND data_epoch=? AND state='active' AND revision=?`,row.admissionID,t.site,op.DataEpoch,row.revision)
   if err!=nil { return ReleasePermitResult{},loginDBError() }
