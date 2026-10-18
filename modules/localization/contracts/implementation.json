@@ -2104,7 +2104,8 @@
             "人工/保护旧字段按最深真实blockId/rowId/cellId/itemId/columnId、节点类型与节点内部text/alt路径对应；只在固定/可译段形状一致时复用真实旧译值并重编号，固定URL/code取当前源。新增真实子节点原文partial/review并继承父保护，投影不改旧权威对象。归属/段形状无法证明或保护块只能source-only时失败关闭DEPENDENCY_UNAVAILABLE，不以原文冒充旧人工译文。",
             "即时fallback及新投影没有独立权威unit时省略fileRef，不写null或借用旧父对象作证明；持久化单元返回真实fileRef。body/bodyHash绑定本次精确source/target generation。",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-            "公开units最多10000，与完整content树稳定节点上限及拆分一致；completed仅计无原文回退的实际单元，不超过total；partial为存在原文回退，review不等于fallback。"
+            "公开units最多10000，与完整content树稳定节点上限及拆分一致；completed仅计无原文回退的实际单元，不超过total；partial为存在原文回退，review不等于fallback。",
+            "同一稳定anchor内无ID inline字段/数组结构变化或全部可译slot消失时失败关闭，禁止content/0/text误匹配新插入文本。"
           ],
           "errors": [
             {
@@ -10602,12 +10603,13 @@
         {
           "id": "localization.StableSlotKey",
           "name": "StableSlotKey",
-          "signature": "func StableSlotKey(tree any, path []string) (string, error)",
+          "signature": "func StableSlotKey(tree any, path []string) (string, any, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "安全人工保护投影的本域参考辅助：StableSlotKey",
           "steps": [
-            "只用最深真实节点身份及该节点内路径；祖先数组位置不进入对应。无真实锚点/不能定位失败关闭。"
+            "只用最深真实节点身份及该节点内路径；祖先数组位置不进入对应。无真实锚点/不能定位失败关闭。",
+            "只认content声明的真实节点ID属性，不把link mark等引用attrs.blockId误认成本节点身份；同时返回原稳定节点供非稳定结构签名。"
           ],
           "errors": [
             {
@@ -10677,7 +10679,8 @@
           "outputs": [],
           "purpose": "安全人工保护投影的本域参考辅助：CollectSlotFields",
           "steps": [
-            "同一text/alt的固定/可译分段聚合；两条原树路径映到同一真实稳定键视为完整性失败，不猜测。"
+            "同一text/alt的固定/可译分段聚合；两条原树路径映到同一真实稳定键视为完整性失败，不猜测。",
+            "每个真实稳定anchor缓存非稳定子树结构签名；插入无ID inline/text/hardBreak等改变字段或数组形状不得沿旧路径复用。"
           ],
           "errors": [
             {
@@ -10736,7 +10739,8 @@
           "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
           "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
           "dependencies": [
-            "localization.StableSlotKey"
+            "localization.StableSlotKey",
+            "localization.ProtectedAnchorShape"
           ],
           "resources": [],
           "contract": "reference"
@@ -10750,7 +10754,8 @@
           "purpose": "安全人工保护投影的本域参考辅助：BuildProtectedProjection",
           "steps": [
             "只从真实人工/保护旧单元按旧私有模板解析；较新对象同字段优先。保留真实父保护关系；不将未知旧数据补造成新来源。",
-            "字段携带真实origin；仅来源human的旧译值可使投影origin=human，受保护machine不改造来源。"
+            "字段携带真实origin；仅来源human的旧译值可使投影origin=human，受保护machine不改造来源。",
+            "同一anchor只取最新人工/保护来源的完整字段集，禁止从更旧对象补已移除字段；遍历当前真实节点，即使已无可译slot仍核旧保护anchor节点类型/非稳定形状，变化失败关闭。"
           ],
           "errors": [
             {
@@ -10811,7 +10816,8 @@
           "dependencies": [
             "localization.SplitTranslationUnits",
             "localization.ParseSlotValues",
-            "localization.CollectSlotFields"
+            "localization.CollectSlotFields",
+            "localization.ProtectedAnchorShape"
           ],
           "resources": [],
           "contract": "reference"
@@ -10825,7 +10831,8 @@
           "purpose": "安全人工保护投影的本域参考辅助：ProjectProtectedUnit",
           "steps": [
             "稳定字段及固定/可译段形状均匹配才复用人工译值；固定值取当前源，输出按新模板重编号。新增节点原文partial/review且继承父保护；无法证明归属继续失败关闭。只构造即时派生，不伪造fileRef或改旧权威对象。",
-            "逐段编码时核65536 Unicode字符预算，合并旧长译值与新源超限BUDGET_EXCEEDED；保留protected=true，只有复用真实human字段才标origin=human。PreviousTargetText可选：不把重编号结果伪称某个旧父整段原值。"
+            "逐段编码时核65536 Unicode字符预算，合并旧长译值与新源超限BUDGET_EXCEEDED；保留protected=true，只有复用真实human字段才标origin=human。PreviousTargetText可选：不把重编号结果伪称某个旧父整段原值。",
+            "同一真实anchor的非稳定子树签名必须一致，新增无独立ID文本不能借content数组索引假称对应；新真实稳定子节点方可按原文partial处理。"
           ],
           "errors": [
             {
@@ -10886,6 +10893,25 @@
           "dependencies": [
             "localization.CollectSlotFields"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ProtectedAnchorShape",
+          "name": "ProtectedAnchorShape",
+          "signature": "func ProtectedAnchorShape(root any) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "计算真实稳定节点内部无ID树形签名以拒绝inline数组误对应",
+          "steps": [
+            "只保留节点type和字段/数组形状，不含文本及URL实际值；真实稳定子节点另行定锚。用于证明同一anchor内text/alt路径未因无ID节点增删而改变。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
+          "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
+          "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
