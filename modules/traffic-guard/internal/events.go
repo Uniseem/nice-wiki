@@ -41,7 +41,7 @@ func ConsumeIdentityEvent(ctx context.Context, op OperationContext, in ConsumeId
 		return ConsumeIdentityEventResult{}, err
 	}
 	defer t.close()
-	claimed, err := inbox.ClaimInbox(t.tx, in.Event)
+	claimed, err := inbox.ClaimInboxBeforeWrite(ctx, t.tx, in.Event, t.commit)
 	if err != nil {
 		return ConsumeIdentityEventResult{}, err
 	}

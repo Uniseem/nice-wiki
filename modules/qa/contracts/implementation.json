@@ -6352,7 +6352,8 @@
             "接收原EventEnvelope，核epoch；按登记的content发布/撤回、index退役、memory变更schema解析真实来源",
             "发布/撤回失效对应文档引用与无引用公开集合答案；index退役只失效受影响文档；memory事件仅处理qa.answer，按实际cache语言读取当前memory hash",
             "在同事务ClaimInbox；重复/旧事件不再变更。仅active缓存转stale、版本递增、删除可命中向量、写qa.cache.invalidated outbox",
-            "memory只使curated=false且旧hash不等当前值的缓存失效，curated豁免；保留审核和账单引用；回答模型变化不触发本函数"
+            "memory只使curated=false且旧hash不等当前值的缓存失效，curated豁免；保留审核和账单引用；回答模型变化不触发本函数",
+            "事件认领为事务首项写入，统一ClaimInboxBeforeWrite只提交冲突隔离，不把业务错误回滚成未隔离。"
           ],
           "errors": [
             {
@@ -6449,7 +6450,7 @@
             "qa.SaveCache",
             "qa.EmitCacheInvalidated",
             "qa.ResolveTaskMemory",
-            "platform.ClaimInbox"
+            "platform.ClaimInboxBeforeWrite"
           ],
           "resources": [],
           "contract": "binding"

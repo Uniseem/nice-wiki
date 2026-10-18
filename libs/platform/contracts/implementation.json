@@ -2167,12 +2167,9 @@
               ]
             }
           ],
-          "purpose": "事件处理函数的inbox去重",
+          "purpose": "兼容旧inbox事务入口，隔离需调用方提交；新处理使用ClaimInboxBeforeWrite",
           "steps": [
-            "按eventId查inbox；同ID同hash返回false",
-            "同ID异hash返回INTEGRITY_ERROR并隔离",
-            "同subject低于已处理revision返回false",
-            "首次则插入inbox行并返回true"
+            "委托实际claimInbox，保留旧签名；同eventId身份/载荷冲突或已隔离均完整性失败，隔离需调用方提交。"
           ],
           "errors": [
             {
@@ -2190,9 +2187,77 @@
           },
           "concurrency": "与业务事务同锁",
           "idempotency": "eventId唯一",
-          "dependencies": [],
+          "dependencies": [
+            "platform.claimInbox"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.ClaimInboxBeforeWrite",
+          "name": "ClaimInboxBeforeWrite",
+          "signature": "func ClaimInboxBeforeWrite(ctx context.Context, tx Tx, envelope EventEnvelope, commitClaim func() error) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事务首项写入认领；本次新增隔离时只提交隔离再返回原完整性错误，禁止在已有业务修改后使用；提交失败不确认事件。",
+          "steps": [
+            "事务首项写入认领；本次新增隔离时只提交隔离再返回原完整性错误，禁止在已有业务修改后使用；提交失败不确认事件。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "同eventId异payloadHash",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写本域inbox表"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "与业务事务同锁",
+          "idempotency": "eventId唯一",
+          "dependencies": [
+            "platform.claimInbox"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.claimInbox",
+          "name": "claimInbox",
+          "signature": "func claimInbox(ctx context.Context, tx Tx, envelope EventEnvelope) (bool, bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同eventId核载荷hash与生产方/类型/版本/主题/修订；quarantined始终失败关闭。",
+          "steps": [
+            "同eventId核载荷hash与生产方/类型/版本/主题/修订；quarantined始终失败关闭。",
+            "低修订只比较同生产方、类型、版本、主题的applied行；不跨事件流跳过。并发唯一冲突返回可重投冲突而非冒认重复。",
+            "只本事务更新隔离并返回隔离标记，不自动提交调用方任意业务写入。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "同eventId异payloadHash",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写本域inbox表"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "与业务事务同锁",
+          "idempotency": "eventId唯一",
+          "dependencies": [
+            "platform.validateEnvelope"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },

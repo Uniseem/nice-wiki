@@ -151,7 +151,7 @@ func InvalidateCache(ctx context.Context, op OperationContext, input InvalidateC
 		return InvalidateCacheResult{}, err
 	}
 	defer tx.Close()
-	claimed, err := inbox.ClaimInbox(tx.Tx, envelope)
+	claimed, err := inbox.ClaimInboxBeforeWrite(ctx, tx.Tx, envelope, tx.Commit)
 	if err != nil {
 		return InvalidateCacheResult{}, err
 	}

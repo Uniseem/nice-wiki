@@ -26,7 +26,7 @@ const SchemaSQL = `CREATE TABLE IF NOT EXISTS nw_inbox (
 	state         TEXT NOT NULL DEFAULT 'applied',
 	processed_at  TEXT NOT NULL
 )`
-const schemaIndexSQL = `CREATE INDEX IF NOT EXISTS idx_nw_inbox_subject ON nw_inbox (subject_id, revision)`
+const schemaIndexSQL = `CREATE INDEX IF NOT EXISTS idx_nw_inbox_stream ON nw_inbox (producer, event_type, event_version, subject_id, state, revision)`
 
 // EnsureSchema 创建inbox表与索引；幂等。
 func EnsureSchema(ctx context.Context, db *sql.DB) error {
@@ -39,55 +39,55 @@ func EnsureSchema(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-const lookupSQL = `SELECT payload_hash, state FROM nw_inbox WHERE event_id = ?`
-const maxRevisionSQL = `SELECT MAX(revision) FROM nw_inbox WHERE subject_id = ?`
+const lookupSQL = `SELECT payload_hash, state, event_type, event_version, producer, subject_id, revision FROM nw_inbox WHERE event_id = ?`
+const maxRevisionSQL = `SELECT MAX(revision) FROM nw_inbox WHERE producer = ? AND event_type = ? AND event_version = ? AND subject_id = ? AND state = 'applied'`
 const insertSQL = `INSERT INTO nw_inbox
 	(event_id, event_type, event_version, producer, subject_id, revision, payload_hash, state, processed_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, 'applied', ?)`
 const quarantineSQL = `UPDATE nw_inbox SET state = 'quarantined' WHERE event_id = ?`
 
-// ClaimInbox 事件处理函数的inbox去重，与业务写入同一事务提交：
-// 同eventId同hash返回false；同eventId异hash返回INTEGRITY_ERROR并隔离；
-// 同subject低于已处理revision返回false；首次插入并返回true。
+// ClaimInbox 兼容旧事务接口。冲突隔离仅在调用方提交事务后持久；
+// 新业务处理应在任何业务写入前调用ClaimInboxBeforeWrite。
 func ClaimInbox(tx platform.Tx, envelope platform.EventEnvelope) (bool, error) {
-	if err := validateEnvelope(envelope); err != nil {
-		return false, err
-	}
-	payloadHash := platform.HashBytes(envelope.Payload)
-	ctx := context.Background()
-	var existingHash, state string
-	err := tx.QueryRowContext(ctx, lookupSQL, envelope.EventID).Scan(&existingHash, &state)
-	switch {
-	case err == nil:
-		if existingHash != payloadHash {
-			if state != "quarantined" {
-				if _, qerr := tx.ExecContext(ctx, quarantineSQL, envelope.EventID); qerr != nil {
-					return false, platform.NewError(platform.CodeInternal, true, "隔离inbox行失败")
-				}
-			}
-			return false, platform.NewError(platform.CodeIntegrityError, false, "同eventId的事件载荷不一致")
-		}
-		return false, nil
-	case !errors.Is(err, sql.ErrNoRows):
-		return false, platform.NewError(platform.CodeInternal, true, "读取inbox失败")
-	}
-	var maxRevision sql.NullInt64
-	if err := tx.QueryRowContext(ctx, maxRevisionSQL, envelope.SubjectID).Scan(&maxRevision); err != nil {
-		return false, platform.NewError(platform.CodeInternal, true, "读取inbox修订失败")
-	}
-	if maxRevision.Valid && envelope.Revision < maxRevision.Int64 {
-		return false, nil
-	}
-	if _, err := tx.ExecContext(ctx, insertSQL,
-		envelope.EventID, envelope.EventType, envelope.EventVersion, envelope.Producer,
-		envelope.SubjectID, envelope.Revision, payloadHash, platform.Now()); err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			// 并发首次投递同eventId：视为重复。
-			return false, nil
-		}
-		return false, platform.NewError(platform.CodeInternal, true, "写入inbox失败")
-	}
-	return true, nil
+ fresh,_,err:=claimInbox(context.Background(),tx,envelope)
+ return fresh,err
+}
+
+// ClaimInboxBeforeWrite 必须是事务中的首项写操作；commitClaim只能提交此隔离写入。
+// 隔离成功先提交再返回原完整性错误，避免通常的错误回滚把隔离标记抹掉。
+func ClaimInboxBeforeWrite(ctx context.Context, tx platform.Tx, envelope platform.EventEnvelope, commitClaim func() error) (bool,error) {
+ if commitClaim==nil { return false,platform.NewError(platform.CodeValidation,false,"缺少事件隔离提交回调") }
+ fresh,quarantined,err:=claimInbox(ctx,tx,envelope)
+ if quarantined { if commitErr:=commitClaim();commitErr!=nil{return false,commitErr} }
+ return fresh,err
+}
+
+func claimInbox(ctx context.Context,tx platform.Tx,envelope platform.EventEnvelope)(bool,bool,error) {
+ if err:=validateEnvelope(envelope);err!=nil{return false,false,err}
+ payloadHash:=platform.HashBytes(envelope.Payload)
+ var existingHash,state,eventType,producer,subject string
+ var version,revision int64
+ err:=tx.QueryRowContext(ctx,lookupSQL,envelope.EventID).Scan(&existingHash,&state,&eventType,&version,&producer,&subject,&revision)
+ switch {
+ case err==nil:
+  if state=="quarantined" { return false,false,platform.NewError(platform.CodeIntegrityError,false,"事件已隔离，不能确认或继续处理") }
+  if state!="applied" { return false,false,platform.NewError(platform.CodeIntegrityError,false,"事件处理状态损坏") }
+  if existingHash!=payloadHash || eventType!=envelope.EventType || version!=int64(envelope.EventVersion) || producer!=envelope.Producer || subject!=envelope.SubjectID || revision!=envelope.Revision {
+   if _,err:=tx.ExecContext(ctx,quarantineSQL,envelope.EventID);err!=nil{return false,false,platform.NewError(platform.CodeInternal,true,"隔离inbox行失败")}
+   return false,true,platform.NewError(platform.CodeIntegrityError,false,"同eventId的事件身份或载荷不一致")
+  }
+  return false,false,nil
+ case !errors.Is(err,sql.ErrNoRows):return false,false,platform.NewError(platform.CodeInternal,true,"读取inbox失败")
+ }
+ var maxRevision sql.NullInt64
+ if err:=tx.QueryRowContext(ctx,maxRevisionSQL,envelope.Producer,envelope.EventType,envelope.EventVersion,envelope.SubjectID).Scan(&maxRevision);err!=nil{return false,false,platform.NewError(platform.CodeInternal,true,"读取inbox修订失败")}
+ if maxRevision.Valid&&envelope.Revision<maxRevision.Int64{return false,false,nil}
+ if _,err:=tx.ExecContext(ctx,insertSQL,envelope.EventID,envelope.EventType,envelope.EventVersion,envelope.Producer,envelope.SubjectID,envelope.Revision,payloadHash,platform.Now());err!=nil{
+  // 并发冲突不能未经核对就确认；保留原事件，交由jobs下一次投递读取完整身份。
+  if strings.Contains(err.Error(),"UNIQUE constraint failed"){return false,false,platform.NewError(platform.CodeConflict,true,"事件并发认领尚未确认")}
+  return false,false,platform.NewError(platform.CodeInternal,true,"写入inbox失败")
+ }
+ return true,false,nil
 }
 
 // validateEnvelope 校验信封字段与载荷；载荷schema由消费方配置校验。

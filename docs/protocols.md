@@ -93,3 +93,7 @@ TaskGroup只监督域已持久接受的本进程操作，Start唯一key去重并
 ## 受控解析子进程
 
 平台lifecycle.RunBoundedParser只执行当前二进制固定`--nw-isolated-parser=<kind>`入口，清空继承配置/密钥环境，管道输入最多50MiB、输出16MiB、最早父ctx或60秒，超输出立即取消杀进程。域main在读配置/密钥/数据库前调用RunParserChild；回调仅处理内存。Linux amd64先设CPU30秒、数据段512MiB、GOMEMLIMIT384MiB及禁core/文件输出，再用NO_NEW_PRIVS与seccomp TSYNC封闭允许集；拒绝文件打开、网络、新程序、非线程clone、io_uring、跨进程读取和提升资源限额。其他架构明确不可用，不降级在主进程解析。知识域仍负责PDF50MiB/500页/8MiB文本等业务限制；编译不是隔离行为验收。
+
+## Inbox冲突隔离提交
+
+新处理链必须把ClaimInboxBeforeWrite放在事务首项写入，提供只提交该认领事务的回调；同ID身份/载荷冲突时，先提交隔离再返回完整性错误，不能让外层defer Rollback擦掉隔离。已隔离事件即使旧hash再次投递也不确认。修订水位按producer/eventType/eventVersion/subject隔离，只比较已applied；并发唯一冲突未经核对不确认。旧ClaimInbox保留兼容签名但不承诺替调用方提交隔离。

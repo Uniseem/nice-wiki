@@ -3458,7 +3458,8 @@
             "验证生产方为已登记content、活动epoch，并用平台校验器核与pin相同的完整来源身份和引用schema；空集合也必须带sourceOperationId/siteId/sourceObjectId/sourceRevisionId/sourceVersion/referenceDigest，另保留eventId",
             "同一事务调用platform.ClaimInbox按eventId与subject修订去重；sourceVersion低于当前水位只确认不覆写",
             "事务把完整快照写入既有reference_heads/reference_entries并做history分类，提升generation，只取消已经存在的相交人工清理计划",
-            "已经明确终止sealed的同源修订不得由迟到事件复活；与持久终止来源矛盾时INTEGRITY_ERROR，保留原引用保护"
+            "已经明确终止sealed的同源修订不得由迟到事件复活；与持久终止来源矛盾时INTEGRITY_ERROR，保留原引用保护",
+            "事件认领为事务首项写入，统一ClaimInboxBeforeWrite只提交冲突隔离，不把业务错误回滚成未隔离。"
           ],
           "errors": [
             {
@@ -3484,7 +3485,7 @@
           "concurrency": "sourceOperation→sourceObject→asset升序→store→SQL",
           "idempotency": "eventId唯一+sourceversion单调",
           "dependencies": [
-            "platform.ClaimInbox",
+            "platform.ClaimInboxBeforeWrite",
             "media.mediaWriteContext",
             "media.lockReferenceKey",
             "media.lockReferenceAssets",

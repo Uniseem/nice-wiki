@@ -724,16 +724,8 @@ func (s *localBlobStore) commitReferenceEvent(ctx context.Context, op OperationC
 		return ApplyReferenceEventResult{}, mapMediaDBError(err, "开始引用事件事务失败")
 	}
 	defer tx.Rollback()
-	fresh, err := inbox.ClaimInbox(tx, envelope)
-	if err != nil {
-		var claim *platform.Error
-		if errors.As(err, &claim) && claim.Code == platform.CodeIntegrityError {
-			if commitErr := tx.Commit(); commitErr != nil {
-				return ApplyReferenceEventResult{}, mapMediaDBError(commitErr, "提交事件隔离失败")
-			}
-		}
-		return ApplyReferenceEventResult{}, err
-	}
+ fresh, err := inbox.ClaimInboxBeforeWrite(ctx, tx, envelope, tx.Commit)
+ if err != nil { return ApplyReferenceEventResult{}, err }
 	if !fresh {
 		generation, err := objectReferenceGeneration(ctx, tx, op, material.SiteId, material.SourceObjectId)
 		if err != nil {

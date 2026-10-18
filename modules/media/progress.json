@@ -2,7 +2,7 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "5ed6490bb39a3a9cfca4cfe0ef66f133f86e63edf9fd0dff928e69d7c72a2af4",
+  "contractSha256": "47cc8f3759519fce7d0f3293f097dc9924a97c657c769a721d933e5724bc23ce",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "PutUploadChunk 准备决定先于水位截尾（pipeline 53 记 verified）",
   "branch": "codex/media-20261017-r6",
@@ -132,13 +132,13 @@
     },
     {
       "path": "modules/media/internal/reference_repository.go",
-      "state": "implemented",
+      "state": "blocked",
       "implementationCommit": "ff91d6aa27a8783c262b07932bbdb85bb0e4ee23",
       "verification": {
         "state": "not_run",
-        "evidence": "此前Acquire/Confirm范围在9647d143173e336dee465e7c5163a4b1d95d96b3通过阶段检查，该证据不覆盖本次ApplyReferenceEvent。本次源码ff91d6aa27a8783c262b07932bbdb85bb0e4ee23已实现事件快照；未跑CI、编译、gofmt与make check，整文件不记verified。"
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "事件隔离与流修订修正待GitLab"
     },
     {
       "path": "modules/media/internal/reference_reader.go",
@@ -763,13 +763,13 @@
     {
       "id": "media.ApplyReferenceEvent",
       "path": "modules/media/internal/reference_repository.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "ff91d6aa27a8783c262b07932bbdb85bb0e4ee23",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "事件隔离与流修订修正待GitLab"
     },
     {
       "id": "media.ReadAssetReferences",

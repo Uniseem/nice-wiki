@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "9cc12473dfefa9d4947ec54a0fd1566fce678132d79a78ca4aa6be01faad0d14",
+  "contractSha256": "66ac8caad806ce5a13d86d6e31612cc14a3efb8cd20fc171028e0adb2b58a3b1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "风控三批源码交付冻结，由根统一GitLab与双推",
   "branch": "codex/traffic-guard-20261018-bulk",
@@ -186,9 +186,9 @@
       "implementationCommit": "f5f036b",
       "verification": {
         "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "evidence": null
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": "事件隔离与流修订修正待GitLab"
     },
     {
       "path": "modules/traffic-guard/internal/outbox.go",
@@ -861,13 +861,13 @@
     {
       "id": "traffic-guard.ConsumeIdentityEvent",
       "path": "modules/traffic-guard/internal/events.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "事件隔离与流修订修正待GitLab"
     },
     {
       "id": "traffic-guard.ConsumeEvents",
