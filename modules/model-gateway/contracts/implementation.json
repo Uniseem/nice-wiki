@@ -7253,7 +7253,8 @@
           "steps": [
             "必须已派发且当前尝试预留仍held，固定原providerRequestId及原根",
             "attempt标charge_unknown；若是当前attempt则调用同标；全部原held不释放",
-            "同事务写invocation.charge_unknown和reconciliation.requested，只有ID/原因/范围无正文"
+            "同事务写invocation.charge_unknown和reconciliation.requested，只有ID/原因/范围无正文",
+            "晚到费用未知只改attempt事实，terminal_ns已持久不回退已完成/取消原结果。"
           ],
           "errors": [
             {
@@ -7682,7 +7683,9 @@
           "purpose": "读取调用状态",
           "steps": [
             "按原owner或portal当前model.manage/superadmin、同site/epoch读取安全调用快照",
-            "核持久hash、root和costClass一致，返回当前状态及最后序号，不返回prompt/secret"
+            "核持久hash、root和costClass一致，返回当前状态及最后序号，不返回prompt/secret",
+            "只读兼容output仅原持久完整有效结构结果，与resultAttemptId的持久evidence全值摘要一致才返回；不以外层费用状态猜结果。",
+            "缺完整输出不填，已有winning但证据损坏为INTEGRITY_ERROR，不当调用不存在来重算。"
           ],
           "errors": [
             {
@@ -7776,7 +7779,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "model-gateway.BeginExecution",
+            "model-gateway.ErrorCode",
             "model-gateway.ExecutionTransaction.Close",
+            "model-gateway.ReadAttemptEvidence",
             "model-gateway.ReadInvocationRecord"
           ],
           "resources": [],
@@ -19433,7 +19438,8 @@
           "outputs": [],
           "purpose": "ReleaseResolvedReferences的实际本域生产职责",
           "steps": [
-            "只对已终态且全部attempt无held/charge_unknown的原调用释放route credential/header与attempt引用，不删除仍被引用密文。"
+            "只对已终态且全部attempt无held/charge_unknown的原调用释放route credential/header与attempt引用，不删除仍被引用密文。",
+            "还要排除未更正/未void的price_unknown账单及未人工reconciled用量冲突，不按outer成功退休未解决费用的密钥。"
           ],
           "errors": [
             {

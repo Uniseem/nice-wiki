@@ -2348,6 +2348,10 @@
         "invocation": {
           "$ref": "#/$defs/Invocation",
           "description": "状态"
+        },
+        "output": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ModelOutput",
+          "description": "兼容可选；仅原持久完整有效结构输出，必须与winning attempt/evidence摘要一致，不新调模型/不造事件。"
         }
       },
       "required": [
