@@ -1,3 +1,21 @@
+# R1第二批：私有分片AEAD与journal（2026-10-18）
+
+源码6a115d0e1c710454ed07b746c6fd71e9430d5902：EncryptBackupObject、DecryptForValidation、RecoverProtectionJournal及15个实际参考助手交付代码，累计7个既有业务函数+28助手；本批全部待统一GitLab CI，accepted=0。Root通知首批pipeline75 Go/普通test/前端已过，4条name修正同步；不把旧证据套本批改动。
+
+精确格式在crypto-format.md及CryptoMetaV1/CryptoHeaderV1。32-byte可信KEK只包装独立随机DEK；1MiB有界AEAD数据帧和强制终帧，完整EOF/源hash/密文hash后才激活隔离明文。原输入摘要/回执、control FULL同步journal、文件及目录fsync到dataRoot、原子安装和active索引有真实顺序；未知key不接任意路径，未知journal/认证文件缺失不会假称controlReady。未完成真实切换决定只保持维护，不推断外域已safe/已switched。ready备份缺域或密文时真实failed+安全outbox，同步revision；不清除旧完整对象。
+
+完整启动、公共快照传输/屏障、全备份/恢复/镜像/UI仍未齐；未真实执行备份恢复/接口/服务/部署或push，未本地Go/gofmt/gen/测试/完整check，只做Git差异及源合同静态审阅。普通test由CI执行且当前无测试文件，不等于验收。
+
+## 下一项与公共接装配
+
+根已明确common DomainSnapshotManifest（8332b6c）：未压缩tar，首manifest.json canonical≤16MiB，其余files/<path>；真实files/objects/publications/references回调枚举。下一项按该公共格式实现ManifestV1/跨域引用与便携ZIP校验，缺真实引用报告失败，不填空数组冒未知。
+
+root会提供公共serveSnapshotArchive、屏障inflight/安全点/归档导入工具及RuntimeView可信revision；不在本域复制。安全截点需排除当前controller产生的archive/运行记录，冻结历史ready catalog；当前crypto vault在active/objects，own CreateSnapshot回调不得把当前operation新对象混进已固定目录水位。若公共safe门禁严格禁止全部active写，需按根给controller窗口或vault布局统一接装配，不能自行放松。Root索引框架须登记新增docs/crypto-format.md。
+
+工作区提交后干净。所有本批精确ready/改动函数及实际新增助手见progress；root合入时保留pipeline75未改项证据。本域未自行push，无临时业务验证程序、fixture、mock、样例或新增测试。
+
+---
+
 # 2026-10-18 继续全部剩余代码：首批检查通过
 
 用户新授权继续三个子代理，目标完成全部剩余代码，及时GitLab检查后普通双推；此前75%停止仅为历史。GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。
