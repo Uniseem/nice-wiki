@@ -1,3 +1,11 @@
+# 最终完整文本小批待GitLab
+
+源码 `26210be2b9f38c2d270c5b6f845ad67b9144c8f3`：5实际修改函数 SendProviderRequest/ReadAttemptEvidence/readInvocationRecord/ReadInvocationSnapshot/GetInvocation 与1新增实际参考 ReadLegacyTextResult 均blocked待统一GitLab CI，无新原业务完成计数。原delta UTF8/64KiB真实累加，只有2xx/完整协议结束/Code空才给Text（显式空与没有结果分开），沿既有evidence/winner/record原事务。旧文本仅单initial ordinal1/winner/完整证据/连续原SSE纯读免费派生；缺来源不造空/404、不重付，不改历史fee/evidence/hash。
+
+基线ba19256，独占codex/finish-20261018-gateway-final；未本机Go/gofmt/gen/pnpm/编译/测试、未真实接口/模型/部署/push。用户新批准probe日额度默认0不限、QA/background/admin-probe单独记账，以及models.dev MIT固定编译数据；后续继续安全统计生产页与目录/probe独立链。Create/Lookup tracking、保护/完整启动仍按原具体阻塞，未以本批编译预期记完成。
+
+以下为历史记录。
+
 # 2026-10-18网关后续源码检查通过
 
 GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。
