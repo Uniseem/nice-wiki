@@ -80,6 +80,19 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return lifecycle.ReadRuntime(ctx, runtimeAuthority)
 	}, WriteWindow: func(context.Context) (time.Time, error) { return time.Time{}, nil }}
 	store.Authorize = apivalidate.NewIdentityAuthorizer(identity)
+	if endpoint := config.Dependencies["model-gateway"]; endpoint != "" {
+		validateUsagePage, e := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "AnalyticsUsageStatisticsPageResult")
+		if e != nil {
+			_ = store.Close()
+			return nil, e
+		}
+		store.UsageGateway = &analytics.UsageGateway{
+			Reader:       gen.NewModelGatewayClient(endpoint, ModuleSlug, key),
+			ValidatePage: validateUsagePage,
+			SiteID:       siteID,
+			DataEpoch:    view.DataEpoch,
+		}
+	}
 	recovery, cancelRecovery, recoveryOp := analytics.BackgroundOperation(ctx, store, 30*time.Second)
 	if err = analytics.RecoverExports(recovery, recoveryOp); err != nil {
 		cancelRecovery()

@@ -2887,7 +2887,7 @@
     "EventInvocationSettledPayload": {
       "type": "object",
       "additionalProperties": false,
-      "description": "仅账项引用；收到后调用gateway.queryUsage拉权威安全ledger投影，不猜金额；实际envelope见公共EventEnvelope，payload严格字段，无null/任意对象",
+      "description": "仅账项引用；收到后按固定历史水位收齐model-gateway V2安全统计页，不采用事件金额或修订；实际envelope见公共EventEnvelope，payload严格字段，无null/任意对象",
       "properties": {
         "invocationId": {
           "type": "string",
@@ -4061,6 +4061,137 @@
     "SnapshotArchiveReadResult": {
       "x-internal": true,
       "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
+    },
+    "UsageGatewayFetchInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "从afterRevision开始收齐固定V2上界的只读范围；watermark=0只在首请求选定当前上界。cursor由函数内部顺序续接，不能以半途页冒完整范围。",
+      "properties": {
+        "afterRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "watermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "afterRevision",
+        "watermark",
+        "dataEpoch"
+      ]
+    },
+    "UsageGatewaySnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "仅全部页已收齐且末页nextCursor为空时返回。保留每页原始hash/游标和全部posted/inflight事实；afterRevision非零时只表示该增量范围完整，不能单独冒全站基线。完整来源不表示金额均已知。 全范围原始HTTP页JSON累计最多32MiB，单页最多2MiB；超过预算失败关闭，不截断或标完整。",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 2
+        },
+        "afterRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "watermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "throughRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "pages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/UsageGatewayPage"
+          }
+        },
+        "feeCoverage": {
+          "type": "string",
+          "const": "posted-and-inflight"
+        },
+        "completeFeeCoverage": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "afterRevision",
+        "watermark",
+        "throughRevision",
+        "pages",
+        "feeCoverage",
+        "completeFeeCoverage"
+      ]
+    },
+    "UsageGatewayPage": {
+      "$ref": "../../model-gateway/contracts/types.json#/$defs/ReadUsageStatisticsPageResult"
+    },
+    "UsageLedgerChange": {
+      "$ref": "../../model-gateway/contracts/types.json#/$defs/UsageLedgerChange"
+    },
+    "UsageObservation": {
+      "$ref": "../../model-gateway/contracts/types.json#/$defs/UsageObservation"
+    },
+    "UsageObservationOrigin": {
+      "$ref": "../../model-gateway/contracts/types.json#/$defs/UsageObservationOrigin"
+    },
+    "UsageInvocationFact": {
+      "$ref": "../../model-gateway/contracts/types.json#/$defs/UsageInvocationFact"
+    },
+    "UsageAttemptFact": {
+      "$ref": "../../model-gateway/contracts/types.json#/$defs/UsageAttemptFact"
+    },
+    "UsageReservationFact": {
+      "$ref": "../../model-gateway/contracts/types.json#/$defs/UsageReservationFact"
+    },
+    "UsageStatisticsPageReader": {
+      "type": "object",
+      "x-internal": true,
+      "description": "Go窄接口：ReadUsageStatisticsPage(context.Context, ...url.Values) (json.RawMessage,error)。由本域*gen.ModelGatewayClient满足，仅走model-gateway:readUsageStatisticsPage版本化HTTP端口；传输层复用平台服务断言，不导入外域internal。",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "UsageGateway": {
+      "type": "object",
+      "x-internal": true,
+      "description": "可信启动注入Reader UsageStatisticsPageReader、ValidatePage func(json.RawMessage) error与真实SiteID/DataEpoch。ValidatePage由apivalidate.NewPayloadValidator按本域OpenAPI x-runtime-payload-schemas登记的AnalyticsUsageStatisticsPageResult构建；读取边界一次校验生产方V2 schema，仅依赖容器，不序列化为HTTP输入。",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "UsageProjectionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "参考级ProjectUsageInput；只接已核验完整V2范围。DataEpoch是当前操作代次，每个原事实的sourceDataEpoch仍保留生产方认证历史值。",
+      "properties": {
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "changes": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/UsageLedgerChange"
+          }
+        },
+        "observations": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/UsageObservation"
+          }
+        }
+      },
+      "required": [
+        "dataEpoch",
+        "changes",
+        "observations"
+      ]
     }
   }
 }

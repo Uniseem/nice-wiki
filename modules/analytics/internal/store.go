@@ -22,6 +22,7 @@ import (
 // Runtime只由可信启动装配；公开请求不能构造句柄、站点或密钥。
 type Runtime struct {
 	Consumer            platform.EventConsumerClient
+	UsageGateway        *UsageGateway
 	Jobs                platform.WorkerJobsClient
 	Submitter           JobSubmitter
 	ValidateCreateJob   func(json.RawMessage) error
@@ -95,7 +96,7 @@ func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.Sig
 	if err = db.QueryRowContext(ctx, `PRAGMA user_version`).Scan(&version); err != nil {
 		return nil, storageError(err)
 	}
-	if version > 5 {
+	if version > 6 {
 		return nil, platform.NewError(platform.CodeUnsupportedSchema, false, "统计schema高于当前版本")
 	}
 	if version == 0 {
@@ -211,14 +212,40 @@ func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.Sig
 			return nil, storageError(e)
 		}
 	}
-	if _, err = db.ExecContext(ctx, `INSERT OR IGNORE INTO analytics_meta(singleton,schema_version,site_id,data_epoch) VALUES(1,5,?,?)`, siteID, epoch); err != nil {
+	if version < 6 {
+		tx, e := db.BeginTx(ctx, nil)
+		if e != nil {
+			return nil, storageError(e)
+		}
+		defer tx.Rollback()
+		var old int64
+		if e = tx.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM usage_projection)+(SELECT count(*) FROM daily_usage)+(SELECT count(*) FROM aggregation_watermarks WHERE source LIKE 'usage%')`).Scan(&old); e != nil {
+			return nil, storageError(e)
+		}
+		if old != 0 {
+			return nil, platform.NewError(platform.CodeUnsupportedSchema, false, "旧费用投影缺完整V2权威来源，须先明确隔离或迁移，不静默升级")
+		}
+		if _, e = tx.ExecContext(ctx, migrations.UsageStatisticsV2); e != nil {
+			return nil, storageError(e)
+		}
+		if _, e = tx.ExecContext(ctx, `UPDATE analytics_meta SET schema_version=6 WHERE singleton=1`); e != nil {
+			return nil, storageError(e)
+		}
+		if _, e = tx.ExecContext(ctx, `PRAGMA user_version=6`); e != nil {
+			return nil, storageError(e)
+		}
+		if e = tx.Commit(); e != nil {
+			return nil, storageError(e)
+		}
+	}
+	if _, err = db.ExecContext(ctx, `INSERT OR IGNORE INTO analytics_meta(singleton,schema_version,site_id,data_epoch) VALUES(1,6,?,?)`, siteID, epoch); err != nil {
 		return nil, storageError(err)
 	}
 	var storedSite, storedEpoch string
 	if err = db.QueryRowContext(ctx, `SELECT schema_version,site_id,data_epoch FROM analytics_meta WHERE singleton=1`).Scan(&version, &storedSite, &storedEpoch); err != nil {
 		return nil, storageError(err)
 	}
-	if version != 5 {
+	if version != 6 {
 		return nil, platform.NewError(platform.CodeUnsupportedSchema, false, "统计schema标记未知")
 	}
 	if storedSite != siteID || storedEpoch != epoch {

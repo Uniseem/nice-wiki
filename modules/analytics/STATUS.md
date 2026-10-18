@@ -1,10 +1,18 @@
+# 2026-10-18 费用 V2 消费小闭环候选（GitLab blocked）
+
+分支 `codex/analytics-20261018-r9`，基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，修正源码 `7e72ff26892494393d52e2200382697078100343`。GitLab 只读探测 HTTP 522（Cloudflare 无法连接源站），本轮未本机/SSH回退 Go/gofmt/build/vet/gen，也未执行真实接口、模型或部署。
+
+候选业务函数仅 `analytics.FetchUsagePage`、`analytics.ProjectUsage`、`analytics.ConsumeAnalyticsEvent`，准确状态均为 blocked。实现收齐 model-gateway V2 固定水位 changes/observations，单页与全范围分别以 2MiB/32MiB 原始 JSON 预算失败关闭；每页先由生成 `apivalidate` schema 校验，再仅删除 `pageHash` 核完整 canonical hash，随后无损解码并核共享时间线与原引用。V6 保留原 owner/site/sourceEpoch/root/op/class/provider/model、独立 change/ledger revision、amountKnown/真实金额、state/time/captureKind 和无账项 invocation/attempt/held 事实；inbox首写与投影同事务。未猜费用0或ledgerRevision。
+
+`AnalyticsUsageStatisticsPageResult` 已登记在 analytics OpenAPI 的 `x-runtime-payload-schemas`，指向 model-gateway V2机器类型；`gen.PayloadValidationSpec` 尚待统一 `make gen`。`ConsumeEvents`、`OpenStore`、`BuildApplication` 只作必要接线且仍 blocked。`AggregateUsage`、`ReconcileUsage`、费用查询、完整worker、真实scope/订阅循环和服务ready仍未完成。未新增测试/fixture/mock/样例、未push、未合main。
+
+以下为历史记录。
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
 
 本域本次明确完整清单109项更新verified，准确ID见progress.json；其余blocked/planned保留，整体服务和全域保护未完成。用户要求push后停止，代理已冻结，不自动启动下一批。
-
-以下为历史记录。
 
 审计V2源码 2d251cf79da8e0046b49c4bfff63bd395cb47d89：3既有函数+6支持，累计8既有+20支持待统一GitLab CI；另ConsumeAuditEvent等根订阅装配不计ready。旧SUCCESS输入归一新OK，V1原hash不动；新V2含site/producer/原主体/原时间/原操作/源epoch。新migration0002连续V2，仅实际授权事实，无用户proof续用。
 

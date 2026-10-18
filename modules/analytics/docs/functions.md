@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 138 个函数：约束 33 个，参考 105 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 147 个函数：约束 33 个，参考 114 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -905,54 +905,48 @@ func insertAuditRecord(work context.Context, op OperationContext, tx *sql.Tx, re
 ## analytics.ValidateUsageEvent
 
 - 级别：参考
-- 文件：`modules/analytics/internal/usage_validation.go`
-- 作用：校验gateway钱账引用
+- 文件：`modules/analytics/internal/usage_store.go`
+- 作用：校验V2账项金额与状态语义
 
 ```go
-func ValidateUsageEvent(ctx context.Context, op OperationContext, in ValidateUsageEventInput) (ValidateUsageEventResult, error)
+func ValidateUsageEvent(change UsageLedgerChange) error
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `ValidateUsageEventInput` | 校验gateway钱账引用；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `change` | `UsageLedgerChange` | 已通过生成schema的V2权威账项 | 只核金额known与状态语义，不重复字段/enum schema校验 |
 
 **输出**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `ValidateUsageEventResult` | 校验gateway钱账引用成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+| `error` | `error` | 金额或状态关系矛盾 | 成功nil；失败INTEGRITY_ERROR |
 
 **步骤**
 
-1. 只允许model-gateway签名生产者
-2. class qa/background/admin-probe
-3. currency USD整数micros≥0
-4. entryrevision单增
+1. amountKnown与amount严格同现；已知金额必须USD非负安全整数。
+2. price_unknown不得带已知金额；settled/reconciled/price_unknown状态须与ledgerStatus一致，superseded/voided/deleted保留原状态。
 
 **错误**
 
-- `VALIDATION` / HTTP 400：INVALID_USAGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `INTEGRITY_ERROR` / HTTP 422：金额known/值或state与ledgerStatus关系矛盾（不可重试）；调用方不持久半事实
 
 - 副作用：无
-- 授权：permission：service；rule：service model-gateway
+- 授权：permission：service；rule：仅本域已核验V2页/投影链
 - 并发：纯校验；不接受任意服务报告扣款
-- 幂等：同event同结果
-- 依赖：`model-gateway:queryUsage`
+- 幂等：同change同结果
+- 依赖：无
 
 ## analytics.ProjectUsage
 
 - 级别：参考
 - 文件：`modules/analytics/internal/usage_store.go`
-- 作用：更新派生费用行
+- 作用：在独立事务持久已核验的完整V2费用事实
 
 ```go
-func ProjectUsage(ctx context.Context, op OperationContext, in ProjectUsageInput) (ProjectUsageResult, error)
+func ProjectUsage(ctx context.Context, op OperationContext, in UsageProjectionInput) (ProjectUsageResult, error)
 ```
 
 **输入**
@@ -961,7 +955,7 @@ func ProjectUsage(ctx context.Context, op OperationContext, in ProjectUsageInput
 |---|---|---|---|
 | `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
 | `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `ProjectUsageInput` | 更新派生费用行；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `in` | `UsageProjectionInput` | 已核验完整V2 changes与observations；当前DataEpoch与每个原事实sourceDataEpoch分别保留 | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
 
 **输出**
 
@@ -972,20 +966,149 @@ func ProjectUsage(ctx context.Context, op OperationContext, in ProjectUsageInput
 
 **步骤**
 
-1. 查event inbox
-2. 相同entry revision hash相同跳过
-3. 更新高修订settled/reversed及watermark，低修订忽略
+1. 核当前站点/代次与schemaVersion6；账项和未入账观察逐事实保存原owner/site/sourceDataEpoch/root/op/class/provider/model独立revision、amountKnown/USD微额/state/time/captureKind，unknown/hold不补0。
+2. 按dataEpoch+changeRevision将每个原时间线修订无损写入事实表；同修订异事实、同实体修订不同时间线/事实冲突拒绝，旧修订只留历史，不使当前投影倒退。
+3. 仅新事实更新ledger/observation当前投影与真实最大changeRevision水位；不建立usage-v2-complete，不激活V1查询，不猜旧行来源。
+4. 事件入口必须调用ProjectUsageTx并复用inbox首写后的同一事务；本参考函数独立开启安全写事务时同样全部成功提交、任一失败回滚。
 
 **错误**
 
 - `CONFLICT` / HTTP 409：USAGE_CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
-- 副作用：写projection/inbox
+- 副作用：写V2与历史费用事实、当前投影和真实changeRevision水位；不写inbox（由事件入口同事务调用）
 - 授权：permission：service；rule：service model-gateway事件
-- 并发：事务按ledgerEntryId revision CAS
-- 幂等：entryId/revision/hash幂等
-- 依赖：`analytics.ValidateUsageEvent`
+- 并发：单SQLite短事务；按全局/实体修订与payload hash冲突校验收紧，事务内旧修订不覆盖新投影
+- 幂等：completePage/changeRevision/originalFactHash幂等
+- 依赖：`analytics.ProjectUsageTx`、`platform.CanonicalJSON`
+
+## analytics.ProjectUsageTx
+
+- 级别：参考
+- 文件：`modules/analytics/internal/usage_store.go`
+- 作用：供事件入口把inbox首写与费用投影纳入同一事务
+
+```go
+func ProjectUsageTx(ctx context.Context, op OperationContext, tx *sql.Tx, in UsageProjectionInput) (ProjectUsageResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核schema/site/epoch后逐事实幂等持久；任一冲突返回错误，不提交。
+
+**错误**
+
+- `CONFLICT` / HTTP 409：同修订或同实体对应不同原事实（不可重试）；由调用方回滚事务
+
+- 副作用：在调用方事务内写V2事实、投影与水位
+- 授权：permission：service；rule：仅本域可信事件处理链
+- 并发：不创建事务，由调用方串行短事务控制
+- 幂等：changeRevision与原始事实hash幂等
+- 依赖：`analytics.recordUsageFact`、`analytics.projectUsageLedger`、`analytics.projectUsageObservation`、`analytics.ValidateUsageEvent`
+
+## analytics.recordUsageFact
+
+- 级别：参考
+- 文件：`modules/analytics/internal/usage_store.go`
+- 作用：按时间线修订无损保存费用事实并检测冲突
+
+```go
+func recordUsageFact(ctx context.Context, tx *sql.Tx, epoch string, fact usageStoredFact) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同修订同hash跳过，同修订或同实体修订异事实拒绝；乱序旧修订只留历史。
+
+**错误**
+
+- `CONFLICT` / HTTP 409：原事实修订或hash冲突（不可重试）；由调用方回滚事务
+
+- 副作用：写usage_facts_v2
+- 授权：permission：service；rule：仅本域事务内
+- 并发：单事务
+- 幂等：changeRevision+payloadHash幂等
+- 依赖：无
+
+## analytics.projectUsageLedger
+
+- 级别：参考
+- 文件：`modules/analytics/internal/usage_store.go`
+- 作用：更新费用账项当前投影且不倒退
+
+```go
+func projectUsageLedger(ctx context.Context, tx *sql.Tx, epoch string, change UsageLedgerChange, fact usageStoredFact) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保存完整原账项字段；仅更高ledgerRevision覆盖当前行，unknown金额保持NULL。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：金额known与原字段不一致（不可重试）；由调用方回滚事务
+
+- 副作用：upsert usage_projection_v2
+- 授权：permission：service；rule：仅本域事务内
+- 并发：按ledgerRevision单调
+- 幂等：更高修订CAS
+- 依赖：无
+
+## analytics.projectUsageObservation
+
+- 级别：参考
+- 文件：`modules/analytics/internal/usage_store.go`
+- 作用：更新无账项原观察当前投影且不倒退
+
+```go
+func projectUsageObservation(ctx context.Context, tx *sql.Tx, epoch string, observation UsageObservation, fact usageStoredFact) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保留完整嵌套原事实；仅更高entityRevision覆盖当前行，held/unknown不折算金额。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：预留金额known与字段不一致（不可重试）；由调用方回滚事务
+
+- 副作用：upsert usage_observations_v2
+- 授权：permission：service；rule：仅本域事务内
+- 并发：按entityRevision单调
+- 幂等：更高实体修订CAS
+- 依赖：无
 
 ## analytics.AggregateUsage
 
@@ -1034,10 +1157,10 @@ func AggregateUsage(ctx context.Context, op OperationContext, in AggregateUsageI
 
 - 级别：参考
 - 文件：`modules/analytics/internal/gateway_client.go`
-- 作用：取得权威账本投影输入
+- 作用：经可注入生成HTTP端口收齐固定V2费用上界，保留原事实供隔离投影
 
 ```go
-func FetchUsagePage(ctx context.Context, op OperationContext, in FetchUsagePageInput) (FetchUsagePageResult, error)
+func FetchUsagePage(ctx context.Context, op OperationContext, in UsageGatewayFetchInput) (UsageGatewaySnapshot, error)
 ```
 
 **输入**
@@ -1046,30 +1169,172 @@ func FetchUsagePage(ctx context.Context, op OperationContext, in FetchUsagePageI
 |---|---|---|---|
 | `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
 | `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `FetchUsagePageInput` | 取得权威账本投影输入；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `in` | `UsageGatewayFetchInput` | 原起点、可选固定上界与当前代次；不接受半途cursor作为完整范围 | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
 
 **输出**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `result` | `FetchUsagePageResult` | 取得权威账本投影输入成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
+| `result` | `UsageGatewaySnapshot` | 固定范围收齐后的全部V2原页；每页保留hash/游标、账项变更及无账项观察，错误返回零值 | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
 | `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
 
 **步骤**
 
-1. 按model-gateway:readUsageStatisticsPage固定watermark/throughRevision共享changes与observations顺序分页；完整pageHash与源范围核验后仅在完整上界收齐才激活隔离投影。
-2. 此消费者源码尚未实现，保持planned；不得把posted账项或未收齐分页当全站费用，unknown/held不补0。
+1. 从可信WithUsageGateway读取生成端口；未装配失败关闭。固定SiteID/DataEpoch须与可信op和输入一致，op必须为analytics纯服务；不创建或续用用户证明。
+2. 从原afterRevision起点，以limit=100调用model-gateway:readUsageStatisticsPage；首请求watermark=0时采用首响应上界，之后每页固定该watermark与原afterRevision，仅续原nextCursor。总调用60s、单页2.5s，context继续传给HTTP。 累计每页原始HTTP JSON字节数，完整范围最多32MiB，单页最多2MiB；超限返回BUDGET_EXCEEDED并丢弃全部页，不截断或返回部分范围。
+3. readUsageGatewayPage先对完整原JSON仅删pageHash后CanonicalJSON作SHA256核原摘要，再以生成的自部署OpenAPI x-runtime-payload-schemas回调一次校验生产方V2 schema；严格解码拒未知字段/额外JSON，并核本地模型canonical与完整原页一致，不转换原时间或补字段。
+4. validateUsageGatewayPage核schemaVersion=2、两数组非null且合计不超100、feeCoverage=posted-and-inflight及completeFeeCoverage=true；跨页watermark固定、throughRevision单调不越界，两类事实按changeRevision共享时间线，不重复、不倒退、不漏分页进度。
+5. 原账项独立ledgerRevision、原owner/site/sourceDataEpoch/root/op/class/provider/model/金额状态/原时间/captureKind和全部观察事实无损保留。unknown不补0，原sourceDataEpoch不改当前代次；网关已认证恢复投影的历史来源代次允许保留。
+6. 保留每页原hash/游标和完整changes/observations；仅nextCursor为空且throughRevision等于watermark才返回完整范围。游标重复、schema/hash/epoch/上界/网络错误均返回零值，无投影写入和部分激活；afterRevision非零只表示增量范围完整，不能冒完整全站基线。
 
 **错误**
 
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：GATEWAY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `VALIDATION` / HTTP 400：WATERMARK_CHANGED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：端口或校验未装配、生产方不可达；原生产方Problem保持失败（可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `VALIDATION` / HTTP 400：请求固定上界早于原起点或负修订（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `FORBIDDEN` / HTTP 403：不是analytics纯服务（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `VERSION_MISMATCH` / HTTP 409：注入的真实site/epoch与当前操作或输入不一致，或生产方拒绝旧epoch（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `UNSUPPORTED_SCHEMA` / HTTP 422：不是完整V2 posted-and-inflight页或未知观察种类（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `INTEGRITY_ERROR` / HTTP 422：原hash/schema/无损模型/共享时间线顺序/原事实关联/金额已知状态/末页封口矛盾（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `STALE_RESULT` / HTTP 409：固定上界改变或分页水位越界/倒退，或生产方游标过期（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `BUDGET_EXCEEDED` / HTTP 429：单页超过2MiB、完整范围原始HTTP JSON累计超过32MiB，或生产方预算失败；不截断、不返回部分范围（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `CANCELLED` / HTTP 409：上游取消中止HTTP读取（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `DEADLINE_EXCEEDED` / HTTP 504：总任务或单页IO截止（可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
 
 - 副作用：HTTP只读
-- 授权：permission：service；rule：service analytics
-- 并发：每页2.5s，总任务deadline60s；继续cursor不重建模型请求
-- 幂等：watermark/cursor可重试
-- 依赖：`model-gateway:readUsageStatisticsPage`
+- 授权：permission：service；rule：本域可信注入真实site/epoch与analytics纯服务操作；服务断言由生成客户端/平台负责，原来源epoch由生产方认证
+- 并发：每页2.5s，总调用60s；顺序读取固定上界；与调用方ctx共享取消，不重试或重建模型请求；单页2MiB，全部返回原始HTTP JSON累计32MiB，超限不截断
+- 幂等：固定afterRevision/watermark只读；每次从原起点完整收齐，不保存或激活半页
+- 依赖：`model-gateway:readUsageStatisticsPage`、`analytics.WithUsageGateway`、`analytics.readUsageGatewayPage`、`analytics.validateUsageGatewayPage`、`platform.CanonicalJSON`、`platform.NewPayloadValidator`
+- 其他依赖说明：UsageStatisticsPageReader（由*gen.ModelGatewayClient满足）；UsageGateway.ValidatePage（AnalyticsUsageStatisticsPageResult生产方V2 schema）
+
+## analytics.WithUsageGateway
+
+- 级别：参考
+- 文件：`modules/analytics/internal/gateway_client.go`
+- 作用：注入本域可信只读费用端口
+
+```go
+func WithUsageGateway(ctx context.Context, gateway *UsageGateway) context.Context
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信调用上下文 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
+| `gateway` | `*UsageGateway` | 真实站点/当前代次与生成读取端口 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 包含只读端口的调用上下文 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
+
+**步骤**
+
+1. 将UsageGateway指针放入私有context key，继承已有取消和授权；不创建身份、用户证明、HTTP请求或默认配置。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信调用链装配或FetchUsagePage响应边界使用
+- 并发：无共享可变状态；纯本地操作
+- 幂等：相同输入产生相同结果
+- 依赖：无
+
+## analytics.readUsageGatewayPage
+
+- 级别：参考
+- 文件：`modules/analytics/internal/gateway_client.go`
+- 作用：核生产方V2 schema、完整原JSON摘要与无损模型
+
+```go
+func readUsageGatewayPage(raw json.RawMessage, validate func(json.RawMessage) error) (UsageGatewayPage, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 限制原响应2MiB，并以wire装配的生产方V2 schema校验原始JSON一次。
+2. 对原JSON只删除pageHash字段后调用platform.CanonicalJSON与SHA256核原摘要；严格解码拒未知字段/额外JSON，再核本地模型canonical不损失原字段和空数组语义。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：端口或校验未装配、生产方不可达；原生产方Problem保持失败（可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `VALIDATION` / HTTP 400：请求固定上界早于原起点或负修订（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `FORBIDDEN` / HTTP 403：不是analytics纯服务（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `VERSION_MISMATCH` / HTTP 409：注入的真实site/epoch与当前操作或输入不一致，或生产方拒绝旧epoch（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `UNSUPPORTED_SCHEMA` / HTTP 422：不是完整V2 posted-and-inflight页或未知观察种类（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `INTEGRITY_ERROR` / HTTP 422：原hash/schema/无损模型/共享时间线顺序/原事实关联/金额已知状态/末页封口矛盾（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `STALE_RESULT` / HTTP 409：固定上界改变或分页水位越界/倒退，或生产方游标过期（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `BUDGET_EXCEEDED` / HTTP 429：单页超过2MiB、完整范围原始HTTP JSON累计超过32MiB，或生产方预算失败；不截断、不返回部分范围（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `CANCELLED` / HTTP 409：上游取消中止HTTP读取（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `DEADLINE_EXCEEDED` / HTTP 504：总任务或单页IO截止（可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信调用链装配或FetchUsagePage响应边界使用
+- 并发：无共享可变状态；纯本地操作
+- 幂等：相同输入产生相同结果
+- 依赖：`platform.CanonicalJSON`、`platform.NewPayloadValidator`
+
+## analytics.validateUsageGatewayPage
+
+- 级别：参考
+- 文件：`modules/analytics/internal/gateway_client.go`
+- 作用：核共享时间线进度及原费用关联
+
+```go
+func validateUsageGatewayPage(page UsageGatewayPage, siteID string, upper, through int64) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `page` | `UsageGatewayPage` | 已核schema/hash的原页 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
+| `siteID` | `string` | 可信当前站点 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
+| `upper` | `int64` | 本轮固定上界 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
+| `through` | `int64` | 上一页已读取水位 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 成功nil；失败返回公共安全错误且不带半页 | 可信内部依赖；不接受浏览器构造，错误说明不含原业务数据 |
+
+**步骤**
+
+1. 核schema2/完整覆盖标记/空数组与两类事实合计≤100；水位不退不越界且上界固定。
+2. 分别核原账项/观察顺序和来源site；保留认证历史sourceDataEpoch，不以当前配置或事件修订补历史。核已知金额仅带真实USD微额，未知金额与未知预留不带金额；保留原独立版本和全部in-flight事实。
+3. 按changeRevision合并两数组，拒重复/倒序/越界；有cursor必须有真实进度且未到上界；无cursor必须throughRevision=watermark。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：端口或校验未装配、生产方不可达；原生产方Problem保持失败（可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `VALIDATION` / HTTP 400：请求固定上界早于原起点或负修订（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `FORBIDDEN` / HTTP 403：不是analytics纯服务（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `VERSION_MISMATCH` / HTTP 409：注入的真实site/epoch与当前操作或输入不一致，或生产方拒绝旧epoch（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `UNSUPPORTED_SCHEMA` / HTTP 422：不是完整V2 posted-and-inflight页或未知观察种类（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `INTEGRITY_ERROR` / HTTP 422：原hash/schema/无损模型/共享时间线顺序/原事实关联/金额已知状态/末页封口矛盾（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `STALE_RESULT` / HTTP 409：固定上界改变或分页水位越界/倒退，或生产方游标过期（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `BUDGET_EXCEEDED` / HTTP 429：单页超过2MiB、完整范围原始HTTP JSON累计超过32MiB，或生产方预算失败；不截断、不返回部分范围（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `CANCELLED` / HTTP 409：上游取消中止HTTP读取（不可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+- `DEADLINE_EXCEEDED` / HTTP 504：总任务或单页IO截止（可重试）；只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信调用链装配或FetchUsagePage响应边界使用
+- 并发：无共享可变状态；纯本地操作
+- 幂等：相同输入产生相同结果
+- 依赖：`analytics.ValidateUsageEvent`
 
 ## analytics.ReconcileUsage
 
@@ -1141,21 +1406,21 @@ func ConsumeAnalyticsEvent(ctx context.Context, op OperationContext, in ConsumeA
 
 **步骤**
 
-1. 验证model-gateway invocation.settled信封与dataEpoch
-2. inbox按eventId+payloadHash去重
-3. settled只携引用，调用model-gateway:queryUsage按固定watermark取得账项整数金额
-4. ProjectUsage在同一事务持久后返回成功，由analytics.ConsumeEvents确认；失败返回错误不确认，等待重投
+1. 仅接受model-gateway invocation.settled/invocation.reconciled v1；核事件/载荷dataEpoch、subject=invocationId、settled entryId及reconciled proofKind原引用，事件actualCost不作为账项真相。
+2. FetchUsagePage从原起点收齐固定V2上界并核每页pageHash、完整来源闭包与32MiB总预算；settled必须找到同entry原事实，not_charged必须找到同attempt原观察，引用/来源epoch不符或未收齐均不确认。
+3. beginWrite后以inbox.ClaimInboxBeforeWrite作为首项写入，同eventId+payloadHash幂等；同ID异hash严格隔离，低修订跳过，旧dataEpoch拒绝。
+4. Claim成功后在同一事务调用ProjectUsageTx持久完整changes/observations与真实watermark，更新V2事件水位后提交；提交成功才返回accepted=true，由analytics.ConsumeEvents确认。失败返回错误等待重投，不公开半页或猜金额。
 
 **错误**
 
 - `VALIDATION` / HTTP 400：INVALID_EVENT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
-- 副作用：写inbox/audit/projection
+- 副作用：写platform inbox、V2费用事实/当前投影和真实事件水位
 - 授权：permission：service；rule：service白名单
-- 并发：按subject/entry修订取max，乱序不回退
-- 幂等：eventId/revision/hash幂等
-- 依赖：`model-gateway:queryUsage`、`analytics.ProjectUsage`、`platform.ClaimInbox`
+- 并发：权威页读取在事务外；inbox首写后费用事实投影同SQLite事务提交，按changeRevision不回退
+- 幂等：eventId/payloadHash/changeRevision/originalFactHash幂等
+- 依赖：`analytics.FetchUsagePage`、`analytics.parseUsageEventReference`、`analytics.validateUsageEventReference`、`analytics.ProjectUsageTx`、`platform.ClaimInboxBeforeWrite`
 
 ## analytics.ProjectQaTurn
 
@@ -2690,6 +2955,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数，并以服务身份经jobs:createSchedule幂等登记本域系统默认schedule；维护期间暂停业务循环
 7. 复用公共LoadServiceIdentity；纯服务严格消费readSiteConfig真实siteId，按epoch打开私有库。ReportingTimeZone只取受信部署，空不假设UTC。只读路由真实接通，其他能力未齐Ready仍失败关闭。
+8. model-gateway地址存在时，以apivalidate.NewPayloadValidator(gen.PayloadValidationSpec, AnalyticsUsageStatisticsPageResult)装配UsageGateway.ValidatePage；生成物未包含该登记时失败关闭。
 
 **错误**
 
@@ -2701,7 +2967,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`site-config:readSiteConfig`、`platform.LoadServiceIdentity`、`analytics.OpenStore`、`analytics.readSiteIdentity`、`analytics.NewApplication`、`analytics.BindReportingTimeZone`、`analytics.RunPageBackground`、`analytics.SchedulePageAggregates`、`jobs:createJob`、`analytics.BackgroundOperation`、`analytics.RecoverExports`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`analytics.server.ReadSnapshotArchive`、`jobs:checkLease`、`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:completeJob`、`jobs:failJob`
+- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`site-config:readSiteConfig`、`platform.LoadServiceIdentity`、`analytics.OpenStore`、`analytics.readSiteIdentity`、`analytics.NewApplication`、`analytics.BindReportingTimeZone`、`analytics.RunPageBackground`、`analytics.SchedulePageAggregates`、`jobs:createJob`、`analytics.BackgroundOperation`、`analytics.RecoverExports`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`analytics.server.ReadSnapshotArchive`、`jobs:checkLease`、`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:completeJob`、`jobs:failJob`、`platform.NewPayloadValidator`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## analytics.NewRuntimeClient
@@ -5052,3 +5318,67 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 - 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
 - 幂等：同完整引用只读复用，不生成或重算归档
 - 依赖：`platform.SnapshotManager.OpenArchive`
+
+## analytics.parseUsageEventReference
+
+- 级别：参考
+- 文件：`modules/analytics/internal/usage_events.go`
+- 作用：核费用事件生产者、类型、代次与证明种类引用
+
+```go
+func parseUsageEventReference(event platform.EventEnvelope, epoch string) (usageEventReference, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. settled必须有entryId；reconciled charged必须有entryId，not_charged不得有；subject须等于invocationId。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信费用消费链；不接受浏览器构造。
+- 并发：无共享可变状态。
+- 幂等：相同已核验输入产生相同结果。
+- 依赖：无
+
+## analytics.validateUsageEventReference
+
+- 级别：参考
+- 文件：`modules/analytics/internal/usage_events.go`
+- 作用：把事件引用绑定到完整权威V2页原事实
+
+```go
+func validateUsageEventReference(ref usageEventReference, siteID string, changes []UsageLedgerChange, observations []UsageObservation) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 账项入口必须匹配entry/invocation/attempt/root/class/site/sourceEpoch；not_charged只匹配原attempt观察。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信费用消费链；不接受浏览器构造。
+- 并发：无共享可变状态。
+- 幂等：相同已核验输入产生相同结果。
+- 依赖：无

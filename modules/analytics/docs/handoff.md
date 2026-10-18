@@ -1,10 +1,20 @@
+# 2026-10-18 费用 V2 消费小闭环候选
+
+独占 worktree `/private/tmp/nice-wiki-analytics-20261018-r9`，分支 `codex/analytics-20261018-r9`。基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，修正源码 `7e72ff26892494393d52e2200382697078100343`。GitLab 只读探测 HTTP 522，全部生成/编译/vet/gofmt/make check 保持 blocked，未回退本机或SSH。
+
+本轮准确候选业务ID仅 `analytics.FetchUsagePage`、`analytics.ProjectUsage`、`analytics.ConsumeAnalyticsEvent`。`FetchUsagePage`经生成 `*gen.ModelGatewayClient`收齐完整V2上界；OpenAPI `x-runtime-payload-schemas` 新增 `AnalyticsUsageStatisticsPageResult`，wire以 `apivalidate.NewPayloadValidator`装配每页唯一一次生产schema校验。读取边界再对完整原始JSON仅删除 `pageHash` 后算 canonical SHA256，严格解码拒未知/额外字段；单页2MiB、全范围原始JSON累计32MiB，超限不截断。`ProjectUsageTx`按dataEpoch/changeRevision和实体修订幂等保存完整账项与观察，unknown/held不补0。`ConsumeAnalyticsEvent`以事件为引用，`ClaimInboxBeforeWrite`与投影同一事务，成功提交后才允许consumer确认。
+
+尚未完成：统一 `make gen` 后 `gen.PayloadValidationSpec` 实际覆盖新 alias；GitLab 生成/编译/检查；`AggregateUsage`、`ReconcileUsage`、usage query、完整worker、真实scope/订阅循环和service ready。未新增测试/fixture/mock/样例，未运行真实接口/模型，未push、未合main。
+
+下一项：GitLab恢复后从该分支统一运行 `make gen/docs` 并回传生成物，确认新 schema alias 与页面校验接线后，按三个Go分片覆盖16模块、完整`make check`及前端；失败先修源，不把blocked候选改verified。
+
+以下为历史记录。
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
 
 本域本次明确完整清单109项更新verified，准确ID见progress.json；其余blocked/planned保留，整体服务和全域保护未完成。用户要求push后停止，代理已冻结，不自动启动下一批。
-
-以下为历史记录。
 
 审计V2源码 2d251cf79da8e0046b49c4bfff63bd395cb47d89：3既有函数+6支持，累计8既有+20支持待统一GitLab CI；另ConsumeAuditEvent等根订阅装配不计ready。旧SUCCESS输入归一新OK，V1原hash不动；新V2含site/producer/原主体/原时间/原操作/源epoch。新migration0002连续V2，仅实际授权事实，无用户proof续用。
 

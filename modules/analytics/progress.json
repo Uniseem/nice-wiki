@@ -2,12 +2,12 @@
   "version": 1,
   "module": "analytics",
   "phase": "implementation",
-  "contractSha256": "6b5a2c618f17e954bd76f4884e7b40d2c825fdc2ff613d2b7f9456ea1b1c82cc",
+  "contractSha256": "3b7531432987db2d63d777da77d8683a9a8588d0607038117d423fd9d9219bb4",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "用户要求push后停止；源码已通过GitLab，未完成项保留blocked/planned，不自动继续。",
-  "branch": "codex/finish-20261018-analytics",
-  "baseCommit": "7f75d584be29d0f84d5518c2bb4300241c91fcc4",
-  "deliveryCommit": "bdddc35b6cde0b547226128490238dd4afc910ab",
+  "assignedSession": "单轮 analytics 费用 V2 安全统计消费小闭环；未 push。",
+  "branch": "codex/analytics-20261018-r9",
+  "baseCommit": "1f1e1b08cc047fe5be826cbc2bb51547a3779c02",
+  "deliveryCommit": "7e72ff26892494393d52e2200382697078100343",
   "deployment": "not_started",
   "files": [
     {
@@ -121,24 +121,14 @@
       "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
-      "path": "modules/analytics/internal/usage_validation.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "path": "modules/analytics/internal/usage_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
     },
     {
       "path": "modules/analytics/internal/usage_aggregation.go",
@@ -152,13 +142,13 @@
     },
     {
       "path": "modules/analytics/internal/gateway_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
     },
     {
       "path": "modules/analytics/internal/reconciliation.go",
@@ -173,12 +163,12 @@
     {
       "path": "modules/analytics/internal/event_handler.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
     },
     {
       "path": "modules/analytics/internal/csv.go",
@@ -343,12 +333,12 @@
     {
       "path": "modules/analytics/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
     },
     {
       "path": "modules/analytics/internal/transport/server.go",
@@ -523,12 +513,12 @@
     {
       "path": "modules/analytics/internal/store.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
     },
     {
       "path": "modules/analytics/internal/types.go",
@@ -543,12 +533,12 @@
     {
       "path": "modules/analytics/migrations/schema.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
     },
     {
       "path": "modules/analytics/internal/audit_events.go",
@@ -613,12 +603,12 @@
     {
       "path": "modules/analytics/internal/consumer.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
     },
     {
       "path": "modules/analytics/migrations/0004_qa_projection.sql",
@@ -689,6 +679,46 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/analytics/internal/usage_gateway_types.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
+    },
+    {
+      "path": "modules/analytics/internal/usage_models.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
+    },
+    {
+      "path": "modules/analytics/internal/usage_events.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
+    },
+    {
+      "path": "modules/analytics/migrations/0006_usage_statistics_v2.sql",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。"
     }
   ],
   "functions": [
@@ -881,25 +911,25 @@
     },
     {
       "id": "analytics.ValidateUsageEvent",
-      "path": "modules/analytics/internal/usage_validation.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/analytics/internal/usage_store.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
     },
     {
       "id": "analytics.ProjectUsage",
       "path": "modules/analytics/internal/usage_store.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
     },
     {
       "id": "analytics.AggregateUsage",
@@ -915,13 +945,13 @@
     {
       "id": "analytics.FetchUsagePage",
       "path": "modules/analytics/internal/gateway_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
     },
     {
       "id": "analytics.ReconcileUsage",
@@ -937,24 +967,24 @@
     {
       "id": "analytics.ConsumeAnalyticsEvent",
       "path": "modules/analytics/internal/event_handler.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
     },
     {
       "id": "analytics.ConsumeEvents",
       "path": "modules/analytics/internal/consumer.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
     },
     {
       "id": "analytics.ProjectQaTurn",
@@ -1180,12 +1210,12 @@
       "id": "analytics.BuildApplication",
       "path": "modules/analytics/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
     },
     {
       "id": "analytics.Serve",
@@ -1267,13 +1297,13 @@
     {
       "id": "analytics.OpenStore",
       "path": "modules/analytics/internal/store.go",
-      "state": "verified",
-      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
     },
     {
       "id": "analytics.Runtime.Close",
@@ -2209,9 +2239,108 @@
         "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
       "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
+    },
+    {
+      "id": "analytics.WithUsageGateway",
+      "path": "modules/analytics/internal/gateway_client.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
+    },
+    {
+      "id": "analytics.readUsageGatewayPage",
+      "path": "modules/analytics/internal/gateway_client.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
+    },
+    {
+      "id": "analytics.validateUsageGatewayPage",
+      "path": "modules/analytics/internal/gateway_client.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
+    },
+    {
+      "id": "analytics.ProjectUsageTx",
+      "path": "modules/analytics/internal/usage_store.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
+    },
+    {
+      "id": "analytics.recordUsageFact",
+      "path": "modules/analytics/internal/usage_store.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
+    },
+    {
+      "id": "analytics.projectUsageLedger",
+      "path": "modules/analytics/internal/usage_store.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
+    },
+    {
+      "id": "analytics.projectUsageObservation",
+      "path": "modules/analytics/internal/usage_store.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
+    },
+    {
+      "id": "analytics.parseUsageEventReference",
+      "path": "modules/analytics/internal/usage_events.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
+    },
+    {
+      "id": "analytics.validateUsageEventReference",
+      "path": "modules/analytics/internal/usage_events.go",
+      "state": "blocked",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522（Cloudflare 无法连接源站），本轮生成与 Go 编译/vet/gofmt/make check 均未执行；不得标 implemented/verified。AnalyticsUsageStatisticsPageResult 尚待统一 make gen 写入 gen.PayloadValidationSpec；完整费用 scope、worker、订阅循环和服务启动仍未齐。 该项仅登记源码候选，不计完成。"
     }
   ],
-  "rule": "逐项verified仅代表对应源码检查通过；accepted0；完整应用、全域保护、费用完整消费与部署未完成。",
+  "rule": "逐项blocked表示源码候选已落盘但GitLab HTTP 522未检查；不得视为implemented/verified。accepted为0，完整费用scope、worker、订阅循环与服务仍未完成。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "d78c1ee71968f21cea2eb674c0190de58506e4a6",
@@ -2253,7 +2382,10 @@
       "analytics.LoadStatistics",
       "analytics.LoadAuditPage",
       "analytics.DownloadAuthorizedExport",
-      "analytics.mountModuleUI"
+      "analytics.mountModuleUI",
+      "analytics.FetchUsagePage",
+      "analytics.ProjectUsage",
+      "analytics.ConsumeAnalyticsEvent"
     ],
     "newReferenceHelpers": [
       "analytics.WithRuntime",
@@ -2338,7 +2470,16 @@
       "analytics.downloadAuditCSV",
       "analytics.unmountAnalytics",
       "analytics.runAnalyticsPeriodic",
-      "analytics.launchPageLoop"
+      "analytics.launchPageLoop",
+      "analytics.WithUsageGateway",
+      "analytics.readUsageGatewayPage",
+      "analytics.validateUsageGatewayPage",
+      "analytics.ProjectUsageTx",
+      "analytics.recordUsageFact",
+      "analytics.projectUsageLedger",
+      "analytics.projectUsageObservation",
+      "analytics.parseUsageEventReference",
+      "analytics.validateUsageEventReference"
     ],
     "batches": [
       {
@@ -2397,6 +2538,60 @@
           "analytics.ConsumeAuditEvent"
         ],
         "notes": "事件handler代码完整，但等根统一producer事件/订阅装配不计完整入口ready；AuditRecordedPayload为本域确定schema。修首批非法free成本类别清为空。"
+      },
+      {
+        "sourceCommit": "7e72ff26892494393d52e2200382697078100343",
+        "existingBusinessFunctions": [
+          "analytics.FetchUsagePage",
+          "analytics.ProjectUsage",
+          "analytics.ConsumeAnalyticsEvent"
+        ],
+        "changedSupportFunctions": [
+          "analytics.ValidateUsageEvent",
+          "analytics.ConsumeEvents",
+          "analytics.OpenStore",
+          "analytics.BuildApplication"
+        ],
+        "newReferenceHelpers": [
+          "analytics.WithUsageGateway",
+          "analytics.readUsageGatewayPage",
+          "analytics.validateUsageGatewayPage",
+          "analytics.ProjectUsageTx",
+          "analytics.recordUsageFact",
+          "analytics.projectUsageLedger",
+          "analytics.projectUsageObservation",
+          "analytics.parseUsageEventReference",
+          "analytics.validateUsageEventReference"
+        ],
+        "verification": "blocked",
+        "notes": "model-gateway V2固定水位页、同事务inbox首写与持久投影小闭环；GitLab HTTP 522，未本机/SSH回退编译。完整worker/scope/服务未完成。"
+      },
+      {
+        "sourceCommit": "7e72ff26892494393d52e2200382697078100343",
+        "existingBusinessFunctions": [
+          "analytics.FetchUsagePage",
+          "analytics.ProjectUsage",
+          "analytics.ConsumeAnalyticsEvent"
+        ],
+        "changedSupportFunctions": [
+          "analytics.ValidateUsageEvent",
+          "analytics.ConsumeEvents",
+          "analytics.OpenStore",
+          "analytics.BuildApplication"
+        ],
+        "newReferenceHelpers": [
+          "analytics.WithUsageGateway",
+          "analytics.readUsageGatewayPage",
+          "analytics.validateUsageGatewayPage",
+          "analytics.ProjectUsageTx",
+          "analytics.recordUsageFact",
+          "analytics.projectUsageLedger",
+          "analytics.projectUsageObservation",
+          "analytics.parseUsageEventReference",
+          "analytics.validateUsageEventReference"
+        ],
+        "verification": "blocked",
+        "notes": "model-gateway V2固定水位页、同事务inbox首写与持久投影小闭环；GitLab HTTP 522，未本机/SSH回退编译。完整worker/scope/服务未完成。"
       }
     ],
     "newBusinessEntrypoints": [
