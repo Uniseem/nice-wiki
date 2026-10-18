@@ -209,3 +209,5 @@ QA重排未指定原生档位时从MG真实目录按可信费用类别选fast/ch
 MG免费resolveTaskRoute只读HTTP复用其统一路由，知识不筛eligible或复制route/model hash。候选同快照给真实opaque modelSnapshotHash，embeddingSpace五字段由MG权威产生。明批保存原routeVersion与expectedPriceSnapshots；所有相关Create传期望，由MG接受事务重新核整候选（包括disabled→enabled）和当前价格CAS，客户端预读只诊断，不冒原子门禁。未知总价可在明确提示后由管理员显式批准，仍按实际额度规则执行，不自动补总价/重估或换原批准。
 
 批准先核即时knowledge.manage、原管理员/本站同代、24小时和quoteHash，锁外重新核完整来源/配置/模型/记忆/报价/缓存；变化CONFLICT。安全写事务中一次创建全原集合force新代数和原明批策略/批准人/root/时点/回执，任一失败全回滚；锁外仅派发已提交原任务。原批准后漂移CONFLICT，不新key绕过。旧active保留至新代数真实核验并激活。
+
+拥有者安全证明前，免费恢复artifact必须逐hash核原真实模型结果、实际winning模型、完整文字和原asset/块来源。完整免费缓存不要求旧任务执行回执，但不伪造旧jobs completed；原paidRefs完整保留。跨根已完成缓存可免费续用，同根费用仍由完整RootFeesFinal涵盖，不因artifact存在推零费。

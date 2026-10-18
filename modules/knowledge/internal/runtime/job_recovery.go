@@ -9,6 +9,7 @@ import (
  "nice-wiki/libs/platform"
  indexer "nice-wiki/modules/knowledge/internal/index"
  modelruntime "nice-wiki/modules/knowledge/internal/model"
+ "nice-wiki/modules/knowledge/internal/extract"
 )
 
 type ReadJobRecoveryInput = platform.OwnerRecoveryRequest
@@ -40,6 +41,7 @@ func ReadJobRecovery(ctx context.Context,op OperationContext,input ReadJobRecove
   if record.LeaseUntil.After(time.Now()) {return result,nil}
   // 只读MG必须锁外，完成后重开SQL快照并重新核fence/cancel；不只等待本地旧unknown。
   _=tx.Rollback()
+  if err=extract.ValidateRecoveredExtractions(ctx,op,record.ObjectID);err!=nil {return result,err}
   if err=modelruntime.ObserveOwnerModelSteps(ctx,op,record.ObjectID);err!=nil {return result,err}
   tx,err=runtime.DB.BeginTx(ctx,&sql.TxOptions{ReadOnly:true});if err!=nil {return result,platform.NormalizeIOError(err,platform.CodeInternal,false,"模型观察后恢复快照不可读")};defer tx.Rollback()
   record,err=indexer.LoadExecutionRecord(ctx,tx,input.JobID);if err!=nil {return result,err}
@@ -48,11 +50,11 @@ func ReadJobRecovery(ctx context.Context,op OperationContext,input ReadJobRecove
   if record.State=="completed"&&record.ResultRef!=nil {result.Status="completed";result.ResultRef=record.ResultRef;return result,nil}
   if record.LeaseUntil.After(time.Now()) {return result,nil}
   var unsettled int
-  err=tx.QueryRowContext(ctx,`SELECT (SELECT count(*) FROM model_steps WHERE site_id=? AND data_epoch=? AND (owner_id=? OR owner_id IN (SELECT o.extraction_id FROM extraction_origins o WHERE o.build_id=? AND NOT EXISTS(SELECT 1 FROM execution_records f WHERE f.object_id=o.extraction_id AND f.job_type='knowledge.extract' AND f.state='completed' AND f.result_ref_json IS NOT NULL))) AND dispatch_started=1 AND (state NOT IN ('completed','failed','cancelled','not_accepted') OR (state='not_accepted' AND (not_accepted_json IS NULL OR not_accepted_hash='')) OR (state<>'not_accepted' AND result_json IS NULL)))+(SELECT count(*) FROM extraction_dispatches d WHERE d.extraction_id IN (SELECT extraction_id FROM extraction_origins WHERE build_id=?) AND d.dispatch_state NOT IN ('completed','cancelled'))`,site,input.DataEpoch,record.ObjectID,record.ObjectID,record.ObjectID).Scan(&unsettled)
+  err=tx.QueryRowContext(ctx,`SELECT (SELECT count(*) FROM model_steps WHERE site_id=? AND data_epoch=? AND (owner_id=? OR owner_id IN (SELECT o.extraction_id FROM extraction_origins o WHERE o.build_id=? AND NOT EXISTS(SELECT 1 FROM execution_records f WHERE f.object_id=o.extraction_id AND f.job_type='knowledge.extract' AND f.state='completed' AND f.result_ref_json IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM extraction_recovered_results r WHERE r.extraction_id=o.extraction_id))) AND dispatch_started=1 AND (state NOT IN ('completed','failed','cancelled','not_accepted') OR (state='not_accepted' AND (not_accepted_json IS NULL OR not_accepted_hash='')) OR (state<>'not_accepted' AND result_json IS NULL)))+(SELECT count(*) FROM extraction_dispatches d WHERE d.extraction_id IN (SELECT extraction_id FROM extraction_origins WHERE build_id=?) AND d.dispatch_state NOT IN ('completed','cancelled') AND NOT EXISTS(SELECT 1 FROM extraction_recovered_results r WHERE r.extraction_id=d.extraction_id))`,site,input.DataEpoch,record.ObjectID,record.ObjectID,record.ObjectID).Scan(&unsettled)
   if err!=nil {return result,platform.NormalizeIOError(err,platform.CodeInternal,false,"原费用及子任务恢复事实不可读")}
   if unsettled==0 {
    // 最终paid结果hash逐项回验；不以终态字符串代替原结果完整性。
-   rows,err:=tx.QueryContext(ctx,`SELECT state,result_json,result_hash,not_accepted_json,not_accepted_hash,owner_id,step_key,operation_id,input_hash,COALESCE((SELECT operation_json FROM build_dispatches WHERE build_id=model_steps.owner_id),(SELECT operation_json FROM extraction_dispatches WHERE extraction_id=model_steps.owner_id)) FROM model_steps WHERE site_id=? AND data_epoch=? AND (owner_id=? OR owner_id IN (SELECT o.extraction_id FROM extraction_origins o WHERE o.build_id=? AND NOT EXISTS(SELECT 1 FROM execution_records f WHERE f.object_id=o.extraction_id AND f.job_type='knowledge.extract' AND f.state='completed' AND f.result_ref_json IS NOT NULL))) AND dispatch_started=1`,site,input.DataEpoch,record.ObjectID,record.ObjectID)
+   rows,err:=tx.QueryContext(ctx,`SELECT state,result_json,result_hash,not_accepted_json,not_accepted_hash,owner_id,step_key,operation_id,input_hash,COALESCE((SELECT operation_json FROM build_dispatches WHERE build_id=model_steps.owner_id),(SELECT operation_json FROM extraction_dispatches WHERE extraction_id=model_steps.owner_id)) FROM model_steps WHERE site_id=? AND data_epoch=? AND (owner_id=? OR owner_id IN (SELECT o.extraction_id FROM extraction_origins o WHERE o.build_id=? AND NOT EXISTS(SELECT 1 FROM execution_records f WHERE f.object_id=o.extraction_id AND f.job_type='knowledge.extract' AND f.state='completed' AND f.result_ref_json IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM extraction_recovered_results r WHERE r.extraction_id=o.extraction_id))) AND dispatch_started=1`,site,input.DataEpoch,record.ObjectID,record.ObjectID)
    if err!=nil {return result,platform.NormalizeIOError(err,platform.CodeInternal,false,"原模型结果证明不可读")}
    for rows.Next(){var state,hash,negativeHash,owner,key,operation,inputHash string;var body,negative,metadata []byte
     if err=rows.Scan(&state,&body,&hash,&negative,&negativeHash,&owner,&key,&operation,&inputHash,&metadata);err!=nil {rows.Close();return result,platform.NormalizeIOError(err,platform.CodeInternal,false,"原模型结果证明不可读")}

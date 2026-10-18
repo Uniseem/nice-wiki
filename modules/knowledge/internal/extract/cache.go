@@ -80,3 +80,19 @@ func SaveRecoveredExtraction(ctx context.Context,tx *sql.Tx,op OperationContext,
  if err=tx.QueryRowContext(ctx,`SELECT artifact_json,artifact_hash FROM extraction_recovered_results WHERE extraction_id=?`,resolution.PreviousID).Scan(&saved,&savedHash);err!=nil {return platform.NormalizeIOError(err,platform.CodeInternal,false,"原paid免费恢复回执不可读")}
  if savedHash!=platform.HashBytes(raw)||savedHash!=platform.HashBytes(saved) {return platform.NewError(platform.CodeConflict,false,"原paid免费恢复已有不同结果")};return nil
 }
+
+// ValidateRecoveredExtractions 在拥有者安全证明前逐项核免费恢复原artifact及真正paid输出，存在行不代替完整证据。
+func ValidateRecoveredExtractions(ctx context.Context,op OperationContext,objectID string)error {
+ runtime,err:=indexer.RuntimeFromContext(ctx);if err!=nil {return err}
+ rows,err:=runtime.DB.QueryContext(ctx,`SELECT r.extraction_id,r.artifact_json,r.artifact_hash,r.model_result_hash,m.result_json,m.result_hash,e.source_json FROM extraction_recovered_results r JOIN extractions e ON e.extraction_id=r.extraction_id LEFT JOIN model_steps m ON m.site_id=e.site_id AND m.data_epoch=e.data_epoch AND m.owner_id=e.extraction_id AND m.step_key=r.model_step_key WHERE e.site_id=? AND e.data_epoch=? AND (e.extraction_id=? OR e.extraction_id IN (SELECT extraction_id FROM extraction_origins WHERE build_id=?)) LIMIT 102`,op.Actor.SiteID,op.DataEpoch,objectID,objectID)
+ if err!=nil {return platform.NormalizeIOError(err,platform.CodeInternal,false,"免费恢复完整证据不可读")};defer rows.Close();count:=0
+ for rows.Next(){count++;if count>101 {return platform.NewError(platform.CodeBudgetExceeded,false,"免费恢复完整证据超过原资源数量预算")};var id,artifactHash,modelHash string;var raw,modelRaw,originRaw []byte;var savedModelHash sql.NullString
+  if err=rows.Scan(&id,&raw,&artifactHash,&modelHash,&modelRaw,&savedModelHash,&originRaw);err!=nil {return platform.NormalizeIOError(err,platform.CodeInternal,false,"免费恢复完整证据不可读")}
+  var artifact ExtractionArtifact;var outcome modelruntime.InvokeModelResult;var origin source.AssetSource
+  if artifactHash!=platform.HashBytes(raw)||!savedModelHash.Valid||savedModelHash.String!=modelHash||modelHash!=platform.HashBytes(modelRaw)||json.Unmarshal(raw,&artifact)!=nil||json.Unmarshal(modelRaw,&outcome)!=nil||json.Unmarshal(originRaw,&origin)!=nil {return platform.NewError(platform.CodeIntegrityError,false,"免费恢复原artifact或paid结果hash损坏")}
+  text,err:=DescriptionText(outcome);if err!=nil {return err};snapshot,err:=modelruntime.WinningModelSnapshot(outcome);if err!=nil {return err}
+  value:=artifact.Extraction
+  if value.ExtractionID!=id||value.State!="ready"||value.Text==nil||*value.Text!=text||value.ContentHash==nil||*value.ContentHash!=platform.HashBytes([]byte(text))||value.ModelSnapshotHash==nil||*value.ModelSnapshotHash!=snapshot||value.Asset==nil||!SameAsset(*value.Asset,origin)||value.SourceBlock==nil||*value.SourceBlock!=origin.Block||len(artifact.Pages)!=0 {return platform.NewError(platform.CodeIntegrityError,false,"免费恢复artifact与原真实paid输出不一致")}
+ }
+ if err=rows.Err();err!=nil {return platform.NormalizeIOError(err,platform.CodeInternal,false,"免费恢复完整证据读取失败")};return nil
+}

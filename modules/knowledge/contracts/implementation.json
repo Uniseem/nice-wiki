@@ -11977,7 +11977,8 @@
             "prepared且dispatch_started=0仅证明未RPC；1仍可能收费，只有专用INVOCATION_NOT_ACCEPTED时点观察可继续同原key，不推永久零费或新owner",
             "本域全部未完成模型调用真实终局且结果hash/专用观察完整，子任务全完成/取消；再读取MG完整原root窗口、显式终局/held/unknown/逐账单价格证明；任一缺失/旧epoch/超预算保持pending",
             "上游IO后重新核原worker/fence/attempt/cancel及真实租约；workflowVersion1才safeToRetry，原批准过期仅供jobs按DEADLINE_EXCEEDED分类，不续付费或复活原批准；取消依原事实终止",
-            "新版完全未执行且无执行/模型/孩子/分块事实可证明从未执行；其余pending/unknown，不推零费用或新owner；原paidRefs始终保留"
+            "新版完全未执行且无执行/模型/孩子/分块事实可证明从未执行；其余pending/unknown，不推零费用或新owner；原paidRefs始终保留",
+            "免费恢复完整artifact必须逐hash/原真实paid输出/原资源与winning回验；只把业务完整缓存作为可免费使用结果，不伪造旧jobs完成；跨根无需其fee已结算，同根仍全root费用证明"
           ],
           "errors": [
             {
@@ -12042,7 +12043,8 @@
             "knowledge.ReadPaidResultRefs",
             "knowledge.ObserveOwnerModelSteps",
             "knowledge.ValidateModelNonAcceptance",
-            "knowledge.OwnerFeesFinal"
+            "knowledge.OwnerFeesFinal",
+            "knowledge.ValidateRecoveredExtractions"
           ],
           "resources": [],
           "contract": "binding"
@@ -12825,6 +12827,34 @@
           "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
           "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.ValidateRecoveredExtractions",
+          "name": "ValidateRecoveredExtractions",
+          "signature": "func ValidateRecoveredExtractions(ctx context.Context,op OperationContext,objectID string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "拥有者恢复前逐项核免费恢复artifact与真正paid输出/hash/原asset块/文字/真实winning一致，存在行不代替完整证据",
+          "steps": [
+            "最多原100资源及自身完整证据，逐hash回验原artifact/model结果/来源；不从恢复缓存存在推零费",
+            "跨根完整免费缓存不再等旧任务执行回执，同根仍由完整RootFeesFinal涵盖费用，原paidRefs完整保留"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅原拥有者恢复证明内部组合，不新增批准"
+          },
+          "concurrency": "固定本站同代原SQL快照",
+          "idempotency": "相同不可变证据相同结果，损坏失败关闭",
+          "dependencies": [
+            "knowledge.RuntimeFromContext",
+            "knowledge.DescriptionText",
+            "knowledge.WinningModelSnapshot",
+            "knowledge.SameAsset"
+          ],
           "resources": [],
           "contract": "reference"
         }
