@@ -2,9 +2,10 @@
 
 更新：2026-10-18。R1 实施，业务验收与部署均未开始。
 
-- 本批分支 `codex/qa-20261018-bulk`，基线 `82179b907d25a546e9f470a1fb9cf1584ab45088`。源码 `fea4204`，全部代码就绪条目仍 `blocked` 待根及时送 GitLab 统一生成/格式/编译检查。
-- 已编写17个原有业务函数（含共享迁移的 NormalizeQuestion、设计解阻的 EvaluateCacheEligibility）与43个实际私有事务、权威验证、回执及HTTP/SSE助手，共60项。没有把未运行的检查记为完成。
-- 已有真实私有 SQL/原回执、准入在线验证消费、会话创建读取、流事件持久回放、精选候选/停用、精确缓存与权威有效性、反馈失效、管理列表/校准/策略和公开配置能力读取、平台模型网关装配，以及对应真实HTTP/SSE映射。
-- NormalizeQuestion 共享纯算法迁到 `internal/normalize/question.go`，避免未来 turn→cache→turn 包环；取消通用截止/ctx检查，符合纯函数约定，需新编译证据。Eligibility只接受可信Planner的 resolvedReferences，缺失false，不扫描关键词或接受浏览器自报。
-- 完整轮次创建/执行、缓存批准/自动保存/语义与翻译、模型前置/回答、压缩、恢复和完整服务启动尚未完成。本批仅对应函数就绪，含未完成函数的文件保持部分职责 blocked。
-- 本机仅阅读、JSON/合同台账同步、Git审阅与 `git diff --check`；未运行Go/gofmt/gen/build/vet/check、测试、真实接口、模型、服务或推送。后续继续本域第二批，根负责及时GitLab检查和推送。
+- 本分支 `codex/qa-20261018-bulk`，基线 `82179b907d25a546e9f470a1fb9cf1584ab45088`。首批源码 `fea4204`，第二批源码 `358fe68`。逐函数台账统一 `blocked` 待根 GitLab 生成、格式、readonly build/vet 及完整 make check。
+- 累计29个原有业务函数与48个实际助手，共77项代码就绪，合同114函数。第二批新增12个原有业务函数及5个助手；没有把未运行的检查记为完成。
+- 已有真实会话/缓存/反馈/SSE持久事务；第二批补上独立任务记忆、可信 Planner 结构输出及风险报告、查询向量与完整证据读取、白名单引用与真实公开链接核对、自动缓存写入、管理记录与隔离诊断读取、压缩CAS提交、平台outbox转发。
+- 原准入按稳定 RootOperationID 绑定；mint只含分配元数据，消费取得非空签名许可后在线验证，返回该消费许可供付费链继承。不存在启动静态访客许可。挑战使用 CHALLENGE_REQUIRED，过期使用 GONE/410。
+- 同步首批 CI 窄修：生成策略类型 TypesQaPolicy、Timestamp按time.Time消费、内部 QuestionPlan 共享类型；游标排除瞬时委托到期，SSE统一复用平台心跳与背压机制。implementation.phase保持design；progress.phase为implementation。
+- 完整StartTurn/ExecuteTurn、模型回答与审查、语义缓存/精选批准、压缩生产与执行、取消/终态/恢复/后台任务和完整服务启动仍未完成。真实消费者函数完成不等于完整业务入口已可部署。
+- 本机仅阅读、合同台账同步、Git隐私审阅及 git diff --check；未运行Go/gofmt/gen/build/vet/check、测试、真实接口、模型、服务或推送。根负责及时GitLab检查和双推，本域继续下一批。

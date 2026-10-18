@@ -1,3 +1,30 @@
+# 2026-10-18 问答第二批交接
+
+- 独占范围仅 `modules/qa/`，分支 `codex/qa-20261018-bulk`。第二批源码 `358fe68`；首批源码 `fea4204`、台账 `489bf1a`。共享公共 cherry-pick `28614ed` / `e7d621d` 已由根持有，不应重复合入。
+- 新增原有业务 ready IDs（全部待GitLab，不是implemented）：`qa.ResolveTurnContext`、`qa.BuildAnswerPrompt`、`qa.AcquireQueryEmbedding`、`qa.ValidateCitation`、`qa.RetrieveEvidence`、`qa.PlanQuestion`、`qa.WriteAutomaticCache`、`qa.ReadDebugTurn`、`qa.ListTurnRecords`、`qa.ReadTurnRecord`、`qa.PublishOutbox`、`qa.CommitCompaction`。
+- 新增实际助手：`qa.ResolveTaskMemory`、`qa.CursorActor`、`qa.ModelText`、`qa.answerEventStream.Next`、`qa.answerEventStream.Close`。累计29个原业务与48个助手，共77项源码ready，合同114项。
+- 核心新文件：turn/context、context/preflight、answer/retrieve/prompt/citation、cache/query-embedding/automatic、admin/records、debug/read、history/commit、events/outbox。源提交内也同步contracts/types/OpenAPI/data/workflows及首批窄修。
+
+## 实际边界
+
+Planner从真实模型结构输出读取resolvedReferences，缺失false；不用关键词扫描。独立读取qa.preflight记忆，失败结构仅一次格式重试且新步骤幂等key，不重试未知付费调用。风险仅发送签名许可既有scopes与真实模型判断，abusive显式转abuse，不伪造similarity/interval；严格allow/deny/challenge。
+
+qa.answer记忆按task与language独立读取，byteSize是完整渲染text的UTF8字节数，允许空文本0B。回答提示只消费上游已按真实token规则裁剪的材料，完整窗口裁剪/模型回答链仍planned，不用字符数伪造tokenizer。
+
+查询向量复用knowledge真实API，传原消费签名permit并严格核对空间、逐维有限、向量hash/问题hash/epoch。检索只接受最多8块及真实token预算，ReadSections对完整来源与偏移/文本hash逐项一致；引用调用content及public-site当前语言权威，不伪造href。knowledge三个内部输入的admissionPermit增补由根负责。
+
+自动cache只来源当前持久completed轮次、可信eligibility、原答案与引用，负反馈后不写；空引用保留公开发布集合摘要，ID确定且不延长已有TTL。读取记录保留引用来源，已知失效显式标false，权威unknown整次失败。压缩提交只接受原固定连续范围/原摘要hash、有效租约与historyGeneration CAS，旧代标superseded，原消息不删。
+
+## CI与后续
+
+本批未执行本机Go/gofmt/gen/build/vet/check/测试/真实接口/模型/服务；只Git审阅和diff检查。全部ready函数blocked待GitLab。生成器需收齐新增运行schema、memory空text合同、guard可选测量字段与严格decision；根集成公共变更后统一生成docs/gen。没有手改生成目录或go.sum，没有新依赖。
+
+已包含根首批CI修复同义改动：gen.TypesQaPolicy、ReadConversation SQL文本expiry转time.Time、内部runtime.QuestionPlan共享，合并冲突保留实际正确版本。契约implementation.phase必须design，不等于进度phase。
+
+下一批继续原业务：会话轮次生产/终态/取消/删除、缓存审查与压缩生产执行等。完整worker需要平台CheckLease在外部调用前后验证，并在本地提交核对epoch/fence；不得把外部模型IO错误绑定到不会续的本地30秒until，也不能自动重派unknown模型调用。本批尚未宣称完整BuildApplication、ExecuteTurn或RunWorker就绪。
+
+---
+
 # 2026-10-18 QA 第一批交接
 
 源码 `fea42043fea9c83681573a1f8ba770ec019a26b9`；分支 `codex/qa-20261018-bulk`；基线 `82179b907d25a546e9f470a1fb9cf1584ab45088`。根公共 GONE/410 的 `fc22dda` 作为基线 cherry-pick 为 `28614ed`，不要当成本域代码再次合入。独占修改仅 `modules/qa/`。
