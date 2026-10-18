@@ -1,3 +1,5 @@
+UI源码 351f17e936549171d39759a3b28c3912dc6da085：3既定面板与mount入口及13实际助手就绪，累计16既有业务/界面+50助手待统一GitLab CI。后端备份/恢复/镜像大链尚未齐，503真实显示；不声称系统可服务。固定token header/stream依赖root770b93c及portal；卸载nice-wiki:unmount取消轮询。lock只CI生成；大型下载需浏览器File System Access，未做行为验收。
+
 远程配置源码 4fc21593670b7171e56d40b874324441c72bdb75：ValidateRemote/ConfigureRemote与HTTP助手就绪，累计12既有业务+37助手待统一GitLab CI。白名单及凭据ID仅可信部署注入，CAS/原回执同事务，无网络或真实Git操作。依赖root新GitCredentialRefs字段，未本地编译生成。
 
 V2源码 5b60328a703a35a6a4dff73965c24c2123364acc；精确新增/改动函数见progress.readyAwaitingCI最新batch。新增3助手，业务ready总数仍10；全部改动待统一GitLab CI。

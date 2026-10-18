@@ -7,7 +7,7 @@
   "assignedSession": "R1收尾并行：数据保护独占",
   "branch": "codex/finish-20261018-protection",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "4fc21593670b7171e56d40b874324441c72bdb75",
+  "deliveryCommit": "351f17e936549171d39759a3b28c3912dc6da085",
   "deployment": "not_started",
   "files": [
     {
@@ -293,7 +293,7 @@
     {
       "path": "modules/data-protection/web/src/BackupPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -303,7 +303,7 @@
     {
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -313,7 +313,7 @@
     {
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -483,7 +483,7 @@
     {
       "path": "modules/data-protection/web/package.json",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -503,7 +503,7 @@
     {
       "path": "modules/data-protection/web/vite.config.ts",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -513,7 +513,7 @@
     {
       "path": "modules/data-protection/web/tsconfig.json",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -523,7 +523,7 @@
     {
       "path": "modules/data-protection/web/index.html",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -533,7 +533,7 @@
     {
       "path": "modules/data-protection/web/src/main.ts",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -842,7 +842,7 @@
       "id": "data-protection.ReadMirrorStatus",
       "path": "modules/data-protection/internal/queries.go",
       "state": "verified",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "passed",
         "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
@@ -1216,7 +1216,7 @@
       "id": "data-protection.RequestBackup",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1227,7 +1227,7 @@
       "id": "data-protection.ApproveFullRestore",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1238,7 +1238,7 @@
       "id": "data-protection.RequestMirrorSync",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1381,7 +1381,7 @@
       "id": "data-protection.mountModuleUI",
       "path": "modules/data-protection/web/src/main.ts",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1810,7 +1810,7 @@
       "id": "data-protection.failBackup",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1821,7 +1821,7 @@
       "id": "data-protection.loadBackups",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1832,7 +1832,7 @@
       "id": "data-protection.submitBackup",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1843,7 +1843,7 @@
       "id": "data-protection.downloadBackup",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1854,7 +1854,7 @@
       "id": "data-protection.failRestore",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1865,7 +1865,7 @@
       "id": "data-protection.validateRestore",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1876,7 +1876,7 @@
       "id": "data-protection.refreshRestoreProgress",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1887,7 +1887,7 @@
       "id": "data-protection.submitRestore",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1898,7 +1898,7 @@
       "id": "data-protection.failMirror",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1909,7 +1909,7 @@
       "id": "data-protection.loadMirrorSettings",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1920,7 +1920,7 @@
       "id": "data-protection.saveRemote",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1931,7 +1931,7 @@
       "id": "data-protection.buildMirror",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1942,7 +1942,7 @@
       "id": "data-protection.submitSync",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "351f17e936549171d39759a3b28c3912dc6da085",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1958,7 +1958,8 @@
       "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
       "1ce78c9cc5c9327a1eb5888e1cdf8842840be048",
       "5b60328a703a35a6a4dff73965c24c2123364acc",
-      "4fc21593670b7171e56d40b874324441c72bdb75"
+      "4fc21593670b7171e56d40b874324441c72bdb75",
+      "351f17e936549171d39759a3b28c3912dc6da085"
     ],
     "existingBusinessFunctions": [
       "data-protection.ListBackups",
@@ -1972,7 +1973,11 @@
       "data-protection.BuildManifest",
       "data-protection.ValidateCrossDomainRefs",
       "data-protection.ValidateRemote",
-      "data-protection.ConfigureRemote"
+      "data-protection.ConfigureRemote",
+      "data-protection.RequestBackup",
+      "data-protection.ApproveFullRestore",
+      "data-protection.RequestMirrorSync",
+      "data-protection.mountModuleUI"
     ],
     "newReferenceHelpers": [
       "data-protection.NewApplication",
@@ -2011,7 +2016,20 @@
       "data-protection.rejectLegacyVault",
       "data-protection.rejectLegacyControllerRows",
       "data-protection.verifyVaultInventory",
-      "data-protection.server.ConfigureRemote"
+      "data-protection.server.ConfigureRemote",
+      "data-protection.failBackup",
+      "data-protection.loadBackups",
+      "data-protection.submitBackup",
+      "data-protection.downloadBackup",
+      "data-protection.failRestore",
+      "data-protection.validateRestore",
+      "data-protection.refreshRestoreProgress",
+      "data-protection.submitRestore",
+      "data-protection.failMirror",
+      "data-protection.loadMirrorSettings",
+      "data-protection.saveRemote",
+      "data-protection.buildMirror",
+      "data-protection.submitSync"
     ],
     "batches": [
       {
@@ -2110,6 +2128,34 @@
           "data-protection.NewApplication"
         ],
         "notes": "依赖root AllowedGitHosts与GitCredentialRefs受信配置字段；不读凭据、不做DNS/网络/Git操作。"
+      },
+      {
+        "sourceCommit": "351f17e936549171d39759a3b28c3912dc6da085",
+        "existingBusinessFunctions": [
+          "data-protection.RequestBackup",
+          "data-protection.ApproveFullRestore",
+          "data-protection.RequestMirrorSync",
+          "data-protection.mountModuleUI"
+        ],
+        "newReferenceHelpers": [
+          "data-protection.failBackup",
+          "data-protection.loadBackups",
+          "data-protection.submitBackup",
+          "data-protection.downloadBackup",
+          "data-protection.failRestore",
+          "data-protection.validateRestore",
+          "data-protection.refreshRestoreProgress",
+          "data-protection.submitRestore",
+          "data-protection.failMirror",
+          "data-protection.loadMirrorSettings",
+          "data-protection.saveRemote",
+          "data-protection.buildMirror",
+          "data-protection.submitSync"
+        ],
+        "changedFunctions": [
+          "data-protection.ReadMirrorStatus"
+        ],
+        "notes": "需root770b93c固定token/stream端口与portal统一装配；兼容progressToken/ExpiresAt与mirrorId，lock只GitLab生成。大型下载File System Access流式写，非支持浏览器明确不可用，不Blob整包。"
       }
     ]
   }
