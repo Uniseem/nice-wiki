@@ -17,3 +17,6 @@ OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设�
 
 - github.com/alecthomas/chroma/v2 v2.20.0（MIT，ADR0005已选）：公开代码高亮，来源 https://github.com/alecthomas/chroma/tree/v2.20.0 ，仅依赖不复制业务代码。
 - vue-tsc 3.1.1（MIT，Vue官方language-tools）：前端类型检查，来源 https://github.com/vuejs/language-tools ，仅开发构建依赖。
+
+- github.com/tiktoken-go/tokenizer v0.7.0（MIT，Copyright (c) 2023 tiktoken-go）：经2026-10-18用户明确批准，用于模型网关显式绑定编码的离线BPE；固定来源 https://github.com/tiktoken-go/tokenizer/tree/v0.7.0 ，原许可 https://github.com/tiktoken-go/tokenizer/blob/v0.7.0/LICENSE 。仅Go模块依赖，不复制实现；发布程序保留依赖原LICENSE。
+- github.com/ledongthuc/pdf v0.0.0-20260907135840-6c8c28e0e8a0（BSD-3-Clause，Copyright 2009 The Go Authors）：同次用户批准的PDF项目，实际固定版本为BSD三条款，非最初提问误称的MIT。来源 https://github.com/ledongthuc/pdf/tree/6c8c28e0e8a0 ，原许可 https://github.com/ledongthuc/pdf/blob/6c8c28e0e8a0/LICENSE 。用于有界隔离提取，仅模块依赖；保留原版权、许可与免责声明，不复制业务实现。

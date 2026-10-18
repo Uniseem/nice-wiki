@@ -72,3 +72,7 @@ putCredential/rotateCredential仅portal当前superadmin委托；HTTP核providerI
 readProfiles/readModels允许根任务目录owner纯服务，portal管理员通过映射即时model.manage。profiles纯服务只读可信op.costClass，未知费用类拒绝；管理员全量。目录固定同代SQL快照、稳定ID排序，不静默截断响应上限。ReadAdminCatalog使用ProviderSummary四目录真实投影，最近probe权威生产者与投影仍未交付；ReadModels完整space分支亦未齐，两个整函数保持partial。
 
 readFeeBudgetPolicy/putFeeBudgetPolicy仅portal当前guard.manage管理员，全部no-store。Put核非空Idempotency-Key与正文一致；首次expectedVersion0或已配置dailyQaLimit变化另当前superadmin，普通账号保留日额度仅改小时设置。无policy返回NOT_FOUND，不合成默认美元。公共边界当前guard.manage授权先于所有原回放。
+
+## 免费固定分词
+
+POST /v1/tokenizations仅knowledge纯服务。输入modelId与原始text，最多1048576 Unicode字符及4MiB字节；返回同代模型完整embeddingSpace、原文textHash、真实tokenCount与byteTokenEnds。结束偏移可落在Unicode字符内部，消费者保留原token序号选择合法字符边界。模型preprocessorVersion须明确为`none;tiktoken-go@v0.7.0;cl100k_base`或`none;tiktoken-go@v0.7.0;o200k_base`；未声明/不支持失败，不推测模型、按字符替代或联网。声明属于既有不可变空间身份，改声明须新模型ID。该操作不创建invocation、不收取费用、不存正文。

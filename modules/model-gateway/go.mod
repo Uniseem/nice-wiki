@@ -3,6 +3,7 @@ module nice-wiki/modules/model-gateway
 go 1.25.0
 
 require (
+	github.com/tiktoken-go/tokenizer v0.7.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/oapi-codegen/runtime v1.1.2
 	modernc.org/sqlite v1.59.0

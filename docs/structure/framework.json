@@ -3564,6 +3564,11 @@
       "purpose": "超管维护单任务模型覆盖所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
     },
     {
+      "path": "modules/model-gateway/internal/catalog/tokenizer.go",
+      "kind": "handwritten",
+      "purpose": "分词只读模型身份"
+    },
+    {
       "path": "modules/model-gateway/internal/concurrency/lease.go",
       "kind": "handwritten",
       "purpose": "限制供应方并发所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
@@ -3652,6 +3657,11 @@
       "path": "modules/model-gateway/internal/tokens/budget.go",
       "kind": "source",
       "purpose": "免费文本令牌预算与已登记嵌入空间函数"
+    },
+    {
+      "path": "modules/model-gateway/internal/tokens/tokenize.go",
+      "kind": "handwritten",
+      "purpose": "知识纯服务免费固定BPE分词"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",

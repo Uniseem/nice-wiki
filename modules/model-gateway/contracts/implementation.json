@@ -13959,7 +13959,8 @@
             "model-gateway.NewExecutionHandlers",
             "platform.NewTaskGroup",
             "platform.TaskGroup.Run",
-            "model-gateway.InstallExecutionOptions"
+            "model-gateway.InstallExecutionOptions",
+            "model-gateway.NewTokenizerHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -16634,6 +16635,234 @@
       "kind": "handwritten",
       "purpose": "schemaVersion7追加固定路线凭据引用、加密额外头及安全结果hash；不猜填旧引用。",
       "functions": []
+    },
+    {
+      "path": "modules/model-gateway/internal/tokens/tokenize.go",
+      "kind": "handwritten",
+      "purpose": "固定版本免费真实BPE分词与知识服务HTTP入口",
+      "functions": [
+        {
+          "id": "model-gateway.TokenizeText",
+          "name": "TokenizeText",
+          "signature": "func TokenizeText(ctx context.Context, op OperationContext, input TokenizeTextInput) (TokenizeTextResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "TokenizeTextInput",
+              "description": "封闭分词输入",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "TokenizeTextResult",
+              "description": "原文真实BPE偏移和固定空间身份",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "校验本函数知识纯服务权限和4MiB字节预算；字符数由生成入口校验。",
+          "steps": [
+            "校验本函数知识纯服务权限和4MiB字节预算；字符数由生成入口校验。",
+            "ReadTokenizerModel读取已启用同代嵌入模型，ModelEmbeddingSpace保持原五字段身份算法。",
+            "仅支持不可变preprocessorVersion精确none;tiktoken-go@v0.7.0;cl100k_base或o200k_base；不进行隐式正规化、猜模型编码或fallback。",
+            "使用已批准固定MIT依赖本地Encode，逐片验证覆盖原文并给出真实字节结束偏移；计算原文SHA256，无记录正文、供应方或费用IO。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "当前模型或有效历史价目不存在。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "持久代次与当前代次不一致。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "价目规范材料或完整性损坏。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "持久存储暂不可用；图像预算尚无确认算法时不可重试。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅知识纯服务从已验证入口调用，不接受用户自报空间或编码。"
+          },
+          "concurrency": "纯计算跟随调用者；只读模型与运行代次从同一SQL语句取得，无收费或业务写入。",
+          "idempotency": "相同模型不可变声明与相同输入返回相同BPE字节偏移。",
+          "dependencies": [
+            "model-gateway.ReadTokenizerModel",
+            "model-gateway.ModelEmbeddingSpace"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "model-gateway.NewTokenizerHandlers",
+          "name": "NewTokenizerHandlers",
+          "signature": "func NewTokenizerHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "handlers",
+              "type": "TokenHandlers",
+              "description": "真实文本预算HTTP映射",
+              "constraints": "失败时结果不可用，不含秘密或正文"
+            }
+          ],
+          "purpose": "绑定tokenizeText真实HTTP映射；可信边界严格校验，统一Problem、no-store，不记录正文。",
+          "steps": [
+            "绑定tokenizeText真实HTTP映射；可信边界严格校验，统一Problem、no-store，不记录正文。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅知识纯服务从已验证入口调用，不接受用户自报空间或编码。"
+          },
+          "concurrency": "纯计算跟随调用者；只读模型与运行代次从同一SQL语句取得，无收费或业务写入。",
+          "idempotency": "相同模型不可变声明与相同输入返回相同BPE字节偏移。",
+          "dependencies": [
+            "model-gateway.TokenizeText"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/tokenizer.go",
+      "kind": "handwritten",
+      "purpose": "免费分词读取同代模型固定身份",
+      "functions": [
+        {
+          "id": "model-gateway.ReadTokenizerModel",
+          "name": "ReadTokenizerModel",
+          "signature": "func ReadTokenizerModel(ctx context.Context, op OperationContext, modelID string) (Model, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "modelID",
+              "type": "Identifier",
+              "description": "固定模型ID",
+              "constraints": "入口已验证标识符"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "model",
+              "type": "Model",
+              "description": "同代模型不可变身份",
+              "constraints": "非嵌入或停用拒绝"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "公共错误",
+              "constraints": "失败结果不可用"
+            }
+          ],
+          "purpose": "一次只读SQL取得已启用模型身份与实际runtime_meta代次，拒绝非同代或非嵌入模型。",
+          "steps": [
+            "一次只读SQL取得已启用模型身份与实际runtime_meta代次，拒绝非同代或非嵌入模型。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅知识纯服务从已验证入口调用，不接受用户自报空间或编码。"
+          },
+          "concurrency": "纯计算跟随调用者；只读模型与运行代次从同一SQL语句取得，无收费或业务写入。",
+          "idempotency": "相同模型不可变声明与相同输入返回相同BPE字节偏移。",
+          "dependencies": [
+            "model-gateway.CurrentStore"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     }
   ],
   "jobHandlers": {
