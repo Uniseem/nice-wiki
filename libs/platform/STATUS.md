@@ -1,3 +1,9 @@
+# 按登记类型领取公共小补
+
+源码3f17df5：新增platform.ClaimJobTypes实际适配与TypedWorkerJobsClient可选能力，旧ClaimJob保留无筛选兼容；循环必须有typed能力并实际传config.JobTypes到原jobs:claimJob，缺能力失败关闭，不在领取后丢弃任务假筛选。四新/改函数blocked待根GitLab及生产方jobTypes/SQL同时检查。无本机Go/生成/格式/编译/测试、无真实任务/业务/模型/部署/push。
+
+公共Portal加载源码2759c93、台账0d05ca0已独立交根。继续同包SnapshotManager真实归档与stage/swap证明，不改其它模块。
+
 # Portal委托身份公共加载小补
 
 源码2759c93，新增platform.LoadPortalDelegation，复用严格身份描述读取与私钥Loader，仅portal可调用，核本站委托公钥全值。仅源码ready，blocked待GitLab，未读取真实密钥、未本机Go/生成/格式/编译/测试、未部署/push。
