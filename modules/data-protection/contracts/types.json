@@ -3810,18 +3810,15 @@
       "description": "读取备份与镜像设置的结果；不含密钥",
       "properties": {
         "schedule": {
-          "$ref": "#/$defs/ScheduleLocalBackupInput",
-          "description": "当前定时备份设置"
+          "$ref": "#/$defs/ProtectionScheduleSettings",
+          "description": "仅实际已保存定时策略时返回；未配置省略，不伪造actor或空schedule"
         },
         "remote": {
           "$ref": "#/$defs/RemoteSettings",
           "description": "远程仓库（不含凭据）"
         }
       },
-      "required": [
-        "schedule",
-        "remote"
-      ]
+      "required": []
     },
     "RemoteSettings": {
       "type": "object",
@@ -3841,17 +3838,12 @@
         "expectedRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "expectedRevision 非负 int64；不用浮点数"
-        },
-        "actor": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/AuthContext",
-          "description": "公共 AuthContext 合同，遵守其字段和空值规则"
         }
       },
       "required": [
         "url",
         "branch",
-        "expectedRevision",
-        "actor"
+        "expectedRevision"
       ]
     },
     "CryptoMetaV1": {
@@ -3943,6 +3935,40 @@
         "wrappedDEK"
       ],
       "description": "私有NWBAE001容器header；canonical UTF8 JSON≤16384字节；逐帧及终帧精确编码见crypto-format.md"
+    },
+    "ProtectionScheduleSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "keepCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "default": 20
+        },
+        "includeSecrets": {
+          "type": "boolean"
+        },
+        "scheduleId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        }
+      },
+      "required": [
+        "timezone",
+        "keepCount",
+        "includeSecrets",
+        "scheduleId",
+        "revision"
+      ],
+      "description": "保存后安全只读策略，批准身份在私有记录，不返回AuthContext或凭据。"
     }
   }
 }

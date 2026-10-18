@@ -378,7 +378,7 @@ func (s *server) ValidateRestore(w http.ResponseWriter, r *http.Request, _ gen.V
 }
 
 func (s *server) ReadProtectionSettings(w http.ResponseWriter, r *http.Request) {
-	writeUnavailable(w, r)
+ op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信操作上下文"));return};result,err:=protection.ReadProtectionSettings(r.Context(),op,protection.ReadProtectionSettingsInput{});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) RestoreDuringSetup(w http.ResponseWriter, r *http.Request, _ gen.RestoreDuringSetupParams) {

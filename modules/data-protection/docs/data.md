@@ -29,3 +29,5 @@ R1实现收口：active/protection.db保存备份/对象/镜像目录、remote�
 目录分页由created_at/backup_id倒序keyset和目录revision绑定，平台签名游标固定稳定身份/会话/权限修订/epoch/limit，10分钟过期；水位变化拒绝混页。未配置镜像或不存在备份返回NOT_FOUND，不用空成功伪造历史。
 
 分片私有密文格式见[crypto-format.md](crypto-format.md)与CryptoMetaV1/CryptoHeaderV1；配置MasterKeyRef只接受32字节私有KEK，启动keyring按指纹绑定路径，不从恢复输入推断路径。stored_objects只保存密文安全元数据，wrappedDEK仅在私有header。控制journal保存原输入摘要与真实完整引用/解密源摘要；备份历史/已付费对象不因失败清掉，未认证明文temp不得交付。源码只实现协议，不执行真实备份或恢复。
+
+设置读取使用独立安全DTO：schedule/remote均兼容可选，未配置即省略。schedule只给实际保存的timezone、keepCount、includeSecrets、scheduleId及revision；remote只给无凭据URL、branch及CAS修订。不返回原批准AuthContext或credentialRef，不使用当前读者伪造原策略批准事实。

@@ -2270,79 +2270,6 @@
           ],
           "resources": [],
           "contract": "binding"
-        },
-        {
-          "id": "data-protection.ReadProtectionSettings",
-          "name": "ReadProtectionSettings",
-          "signature": "func ReadProtectionSettings(ctx context.Context, op OperationContext, input ReadProtectionSettingsInput) (ReadProtectionSettingsResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信操作上下文",
-              "constraints": [
-                "服务边界构建，禁止浏览器自造",
-                "dataEpoch等于site-config当前active epoch"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "ReadProtectionSettingsInput",
-              "description": "输入",
-              "constraints": [
-                "必须通过对应schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ReadProtectionSettingsResult",
-              "description": "结果",
-              "constraints": [
-                "无error时有效"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时result无效，返回标准Problem",
-              "constraints": [
-                "只使用登记错误码",
-                "detail不含正文、密钥或IP"
-              ]
-            }
-          ],
-          "purpose": "读取备份与镜像设置",
-          "steps": [
-            "backup.manage",
-            "返回定时备份设置、保留份数、是否包含密钥与远程仓库地址（不含凭据）"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "when": "权限不足",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "backup.manage",
-            "rule": "后台管理员"
-          },
-          "concurrency": "只读快照",
-          "idempotency": "只读",
-          "dependencies": [],
-          "resources": [],
-          "contract": "binding"
         }
       ]
     },
@@ -6241,7 +6168,8 @@
           "dependencies": [
             "data-protection.server.ListBackups",
             "data-protection.server.ReadBackup",
-            "data-protection.server.ReadMirrorStatus"
+            "data-protection.server.ReadMirrorStatus",
+            "data-protection.server.ReadProtectionSettings"
           ],
           "resources": [],
           "contract": "reference"
@@ -6305,6 +6233,27 @@
           "idempotency": "只读目录固定快照；不制造历史或成功状态。",
           "dependencies": [
             "data-protection.ReadMirrorStatus"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.server.ReadProtectionSettings",
+          "name": "server.ReadProtectionSettings",
+          "signature": "func (s *server) ReadProtectionSettings(w http.ResponseWriter, r *http.Request)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "将已核后台请求转换为安全配置读取",
+          "steps": [
+            "从平台可信op调用安全DTO读取，未配置字段省略，响应no-store。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "平台边界即时backup.manage，只允许portal用户委托。",
+          "concurrency": "本域只读短快照，不发模型或远程Git。",
+          "idempotency": "纯目录投影可重读，无配置时不构造虚假策略。",
+          "dependencies": [
+            "data-protection.ReadProtectionSettings"
           ],
           "resources": [],
           "contract": "reference"
@@ -6999,6 +6948,91 @@
       "kind": "handwritten",
       "purpose": "内嵌本域active/control迁移",
       "functions": []
+    },
+    {
+      "path": "modules/data-protection/internal/settings.go",
+      "kind": "handwritten",
+      "purpose": "安全只读设置，未配置不伪造事实。",
+      "functions": [
+        {
+          "id": "data-protection.ReadProtectionSettings",
+          "name": "ReadProtectionSettings",
+          "signature": "func ReadProtectionSettings(ctx context.Context, op OperationContext, input ReadProtectionSettingsInput) (ReadProtectionSettingsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadProtectionSettingsInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadProtectionSettingsResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "读取备份与镜像设置",
+          "steps": [
+            "平台已核backup.manage，内部只核管理员主体种类。",
+            "在同一私有快照读取实际schedule与remote；未配置字段省略，不填当前读取人的AuthContext。",
+            "安全DTO仅timezone/保留数/includeSecrets/scheduleId/revision与无凭据URL/branch/revision；不返回actor/credentialRef/secret，不隐式创建计划。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "权限不足",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "后台管理员"
+          },
+          "concurrency": "只读快照",
+          "idempotency": "只读",
+          "dependencies": [
+            "data-protection.Catalog",
+            "data-protection.requireAdministrator",
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
     }
   ],
   "jobTypes": [
