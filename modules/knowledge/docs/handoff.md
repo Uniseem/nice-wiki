@@ -451,3 +451,55 @@ ReadJobRecovery现在对安全重试检查真实完整QueryUsage终局，而comp
 - `knowledge.ModelObservationState`
 
 CreateExtraction仍partial待新明批失败缓存证明；ExecuteBuild/ExecuteExtraction/完整app仍按其真实剩余项，不借必要helpers刷原主函数完成数。继续一次补完Quote/失败缓存/公共scope可用后控制装配，不等本批CI。未本机Go/gen/SQL/模型或新增测试样例。
+
+
+## 集中收口全量估价与原资源恢复a3ff249→7ec22e3
+
+已交源码树基于323ff42：a3ff249为Quote/cache/source整组，7ec22e3为免费恢复artifact参与owner完整证据的窄修。Root可按最新知识committed tree语义合并；保留Root自己的新增14归档API和公共scope依赖，不覆盖Root生成物/锁。后续本域冻结，接localization，不等CI或公共屏障。
+
+新功能真实闭包：Quote免费读取完整发布正文/真实BPE/合法缓存、MG同快照eligible路由与逐候选真实价格；未知资源文字chunkCountKnown=false且总价省略，明确提示后仍可明批。24小时/hash/源配置模型记忆价格重核，原集合force任务/策略/批准回执一个事务；HTTP/UI均连真实函数，按原planId/hash提交，旧active保留。原路由/价格字段纳入模型原语义hash；Create携expectedRouteVersion和每候选expectedPriceSnapshots，真正整候选和价格CAS由MG接受事务拥有，客户端预读只诊断。
+
+原失败cache意图改稳定资源语义，旧真实输入hash核回ApprovedJobInput，不以记忆/模型变更绕旧unknown。完整paid输出可免费派生独立恢复artifact，不伪造旧jobs完成；原结果/hash/winning/文字/资源/块逐项核。不同根完整缓存免费可用，同根仍全root费用门禁。只有新明批build、无可用原完整结果、旧jobs真终局和完整费用无未决才CAS新owner；已外发缺接受ID（即使时点notaccepted）禁止换owner。
+
+Root须同批提供：MG resolveTaskRoute纯服务HTTP、ResolveRouteResult候选同快照modelSnapshotHash和可选embeddingSpace；MG Create事务expectedRouteVersion/expectedPriceSnapshots整候选及当前价CAS；公共CreateInvocationInput两个字段与ExpectedPriceSnapshot。精确消费已按Root定版，alias GatewayResolveTaskRouteResult→MG ResolveRouteResult，GatewayQuoteCostResult→QuoteCostResult。gen未手改，锁只CI。新framework路径index/route.go、model/expectation.go、extract/cache.go、build/rebuild.go与rebuild_cache.go、012/013迁移。
+
+本批ready IDs（全部blocked待统一GitLab，不提前implemented/verified；必要helpers不充原主函数数）：
+
+- `knowledge.EstimateRebuildPlan`
+- `knowledge.ApproveRebuildPlan`
+- `knowledge.ReadRebuildDocuments`
+- `knowledge.PrepareRebuildPolicy`
+- `knowledge.CheckRebuildApproval`
+- `knowledge.AddRebuildQuoteRoute`
+- `knowledge.QuoteRebuildComponents`
+- `knowledge.PrepareRebuildSnapshot`
+- `knowledge.ReadRebuildSource`
+- `knowledge.FreezeRebuildRoutePrices`
+- `knowledge.ReadRebuildExtractionCache`
+- `knowledge.ReadRebuildCachedContext`
+- `knowledge.HasRebuildVector`
+- `knowledge.ReadTaskRoute`
+- `knowledge.WithModelExpectations`
+- `knowledge.InspectFailedExtraction`
+- `knowledge.SaveRecoveredExtraction`
+- `knowledge.ValidateRecoveredExtractions`
+- `knowledge.CreateExtraction`
+- `knowledge.PrepareExtractionPlan`
+- `knowledge.ReadExtraction`
+- `knowledge.ExecuteBuild`
+- `knowledge.PrepareBuildChunks`
+- `knowledge.ExecuteExtraction`
+- `knowledge.CheckExtractionPlan`
+- `knowledge.DescribeResource`
+- `knowledge.EnrichChunkContext`
+- `knowledge.InvokeModel`
+- `knowledge.NewIndexRuntime`
+- `knowledge.NewOperationHandlers`
+- `knowledge.ReadJobRecovery`
+- `knowledge.ObserveOwnerModelSteps`
+- `knowledge.OwnerFeesFinal`
+- `knowledge.estimateRebuild`
+- `knowledge.approveRebuild`
+- `knowledge.formatQuoteMoney`
+
+Root继续partial：完整BuildApplication/Ready/NewApplication/bindSearchRuntime/assembleBackgroundTasks及6快照/屏障约束函数；RunWorker新公共Admit/BindExecutionScope回调由Root按2888211接manager，现1+3真实循环及原typed生产筛选源码保留，不把缺hook当可运行。完整HTTP容器仍缺任一路由就拒绝，不上503占位。未本机Go/gofmt/gen/SQL/模型/接口或新增测试样例。

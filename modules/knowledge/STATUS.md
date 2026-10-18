@@ -1,3 +1,9 @@
+# 最新源码交付（2026-10-18，待GitLab，不记完成）
+
+源码 `f46c115`、`a3ff249`、`7ec22e3` 已补后台原调用纯读恢复、真实费用终局证明、稳定资源意图/免费paid缓存恢复、全量真实估价与明确批准及UI。所有新改仍blocked待根GitLab，同源MG resolveTaskRoute/路由和价格接受事务CAS及公共ExpectedPriceSnapshot须统一生成。未本机Go/生成/测试、未真实模型/接口/服务/部署，无新增测试样例。
+
+本域可独立业务源码本轮冻结；公共快照/屏障、完整app/worker scope回调和UI资产最终接线由集成会话继续。函数逐项与ready清单见progress及handoff，不借必要助手数量宣称原主函数全部完成。以下历史记录保留。
+
 # 原任务执行与独立提取源码待检查（2026-10-18）
 
 最新源码76caed2与恢复证明窄补f35238c。新增原主函数CreateExtraction源码闭包；ExecuteBuild/ExecuteExtraction正常真实执行链与1+3独立worker已经实写，仍因公共类型筛选/模型当前完整结果恢复来源尚待集成保持partial，不提前算完成。ReadJobRecovery新增jobs-only严格原来源证明；独立提取/阶段计划/真实租约与取消回调/最终业务和原任务结果同事务已有真实caller。完整启动/Ready仍控制、快照、重建quote、恢复激活回执与UI静态服务未齐，不能运行缺handler假容器。
