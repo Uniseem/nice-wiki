@@ -1,3 +1,22 @@
+# 2026-10-18 语言计划源码候选待GitLab
+
+- 分支：`codex/localization-20261018-r9`
+- 基线：`1f1e1b08cc047fe5be826cbc2bb51547a3779c02`
+- 源码候选：`98c02a0666572f9ec011eea0040fe4e947aa6853`
+- ready IDs（仅源码候选，GitLab前保持 blocked）：`localization.EstimateLanguagePlan`、`localization.ApproveLanguagePlan`
+
+合同完整性已补齐：`language_plan.go` 的20个private helper、runtime六项计划适配、`ReadPublicTree`、`LanguageForTag` 与 `WriteData` 共29个新增参考函数均进入 `implementation.json` 和逐项 blocked 台账；实际 private structs 及客户端/事务类型进入 `contracts/types.json`。模块合同当前为95文件、184类型、162函数，依赖图从两个HTTP入口及 `BuildApplication` 可达这些 helper。未以空 inputs/outputs 隐藏这些真实类型。
+
+已实现免费估价和明确批准的函数本体。估价读取公开树、逐篇发布正文、翻译记忆和界面缺项；调用 `resolveTaskRoute`、`estimateTokens`、`quoteCost`，不调用模型、不预留或扣减额度。计划固定公开树/文档revision、术语与界面代数、document/UI routeVersion、模型与价目快照、quoteHash和24小时expiresAt。
+
+批准时重新核对公开树与全部任务revision，免费重查route与quoteCost；routeVersion不包含价目，因此任何PriceSnapshot或报价变化都会使计划失败。首次批准把完整OperationContext及原root/主体/epoch/deadline持久冻结；后续重试只沿原scope和未延长截止。任务意图以稳定ObjectRef、完整input hash和`planId + input hash` dedupeKey保存，所有jobs持久接受后才CAS批准并启用自动翻译。失败保留pending意图，不返回假成功。
+
+公共缺口（只登记，不在本轮修改）：Portal 当前没有按 `estimateLanguagePlan` / `approveLanguagePlan` 注入可信 `background` costClass 的代理装配，与knowledge估价同类；不能由浏览器自报。完整HTTP链仍blocked。
+
+GitLab当前为HTTP 522（Cloudflare无法连源站），未执行gen、readonly build/vet/gofmt、迁移或make check，因此未提前记 implemented/verified。翻译执行/付费worker、完整服务启动、真实接口/模型和部署均未完成；未新增测试、fixture、mock、样例或临时验证程序。
+
+下一轮唯一前置：先由根/Portal装配可信 background costClass，再在GitLab恢复后执行生成、三分片源码检查与完整check。
+
 ## 2026-10-18 用户收尾指令
 
 用户要求push后停止，全部代理已冻结。本次集成树已通过GitLab pipeline118源码检查；未完成职责保持逐项台账，不将独立WIP计入main。后续仅在新授权下接续，不自动继续。

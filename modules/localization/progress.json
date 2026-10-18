@@ -2,12 +2,12 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "129034f35bf2f06fde18419d0cd39ef4506e8318c70d1dea3ff316311c63036e",
+  "contractSha256": "e109924f0fe2fef0f14f3486f8307e03639ec1f8be7d93afd9a77700ac46890a",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-18持续收尾：第三批GitLab检查通过，业务验收未执行",
-  "branch": "codex/finish-20261018-policy",
-  "baseCommit": "f1d4ce0628470eda7b253993366669759dd01cdc",
-  "deliveryCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
+  "assignedSession": "2026-10-18 localization 免费估价与明确批准：源码候选 blocked 待 GitLab",
+  "branch": "codex/localization-20261018-r9",
+  "baseCommit": "1f1e1b08cc047fe5be826cbc2bb51547a3779c02",
+  "deliveryCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
   "deployment": "not_started",
   "files": [
     {
@@ -681,14 +681,24 @@
       "blocker": null
     },
     {
-      "path": "modules/localization/internal/language/plan.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/localization/internal/language/plan_enable.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "GitLab HTTP 522 无法生成/编译；完整服务仍未装配。"
+    },
+    {
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "信任op函数本体待GitLab生成/编译；Portal background costClass装配、完整HTTP链与翻译worker仍未完成。"
     },
     {
       "path": "modules/localization/internal/gen/openapi.gen.go",
@@ -929,6 +939,16 @@
         "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
       "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
+    },
+    {
+      "path": "modules/localization/migrations/006_language_plan.sql",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "GitLab HTTP 522 无法生成/编译或执行迁移；只有源码结构审阅，不代表SQL已运行。"
     },
     {
       "path": "modules/localization/internal/snapshot_archive.go",
@@ -1670,25 +1690,36 @@
     },
     {
       "id": "localization.EstimateLanguagePlan",
-      "path": "modules/localization/internal/language/plan.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "信任op函数本体已写并仅经源码审阅；GitLab HTTP 522，生成客户端/schema、readonly build/vet/gofmt与完整make check均未运行。"
     },
     {
       "id": "localization.ApproveLanguagePlan",
-      "path": "modules/localization/internal/language/plan.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "信任op函数本体已写并仅经源码审阅；GitLab HTTP 522，Portal background costClass、完整HTTP链与翻译worker仍未完成。"
+    },
+    {
+      "id": "localization.EnableLanguageForPlan",
+      "path": "modules/localization/internal/language/plan_enable.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "语言计划最终启用支持已写并仅经源码审阅；GitLab HTTP 522，未编译或执行迁移。"
     },
     {
       "id": "localization.rejectLanguageAlias",
@@ -2393,6 +2424,325 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "localization.estimateDocumentPlan",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.readInterfacePlan",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.conservativeOutputTokens",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.combineLanguagePlanQuotes",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.planRouteFromRuntime",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.checkedInt",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.saveLanguagePlan",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.readPlanResult",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.checkLanguagePlanForApproval",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.selectApprovalOperation",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.checkLanguagePlanRevisions",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.loadLanguagePlan",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.ensureLanguagePlanJobs",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.ensureLanguagePlanJob",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.loadLanguagePlanJobs",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.samePlanDocuments",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.samePlanRoute",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.sameApprovalOperation",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.planJobType",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.planJobIdempotencyKey",
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.ConfigurePlanAdapters",
+      "path": "modules/localization/internal/runtime/model_client.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.validatePlanPayload",
+      "path": "modules/localization/internal/runtime/model_client.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.ResolvePlanTaskRoute",
+      "path": "modules/localization/internal/runtime/model_client.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.EstimatePlanTextTokens",
+      "path": "modules/localization/internal/runtime/model_client.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.QuotePlanCost",
+      "path": "modules/localization/internal/runtime/model_client.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.CreatePlanJob",
+      "path": "modules/localization/internal/runtime/model_client.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.ReadPublicTree",
+      "path": "modules/localization/internal/runtime/source_client.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.LanguageForTag",
+      "path": "modules/localization/internal/language/read.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.WriteData",
+      "path": "modules/localization/internal/language/transaction.go",
+      "state": "blocked",
+      "implementationCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
     }
   ],
   "rule": "累计32个既有业务/已改函数与58个新增实际参考辅助交付；最终复核窄修待统一GitLab CI，不冒称verified。根通知旧批已过pipeline69 Go编译，保留根已核未改项证据。新无ID结构/来源/预算修复后冻结，不扩新包；SuggestLanguage授权及其余未写链仍blocked。",
@@ -2406,7 +2756,8 @@
       "8743c9fefb9688373328fdcda16f520afa045072",
       "33cd264a55df396f038d693f45c8d661e2eb0cb1",
       "4a1e596d499a9ba387a7294d77b443c986e4f7d5",
-      "60d2172bd00f973bc5dd3c7cc6b6c27d05677231"
+      "60d2172bd00f973bc5dd3c7cc6b6c27d05677231",
+      "98c02a0666572f9ec011eea0040fe4e947aa6853"
     ],
     "existingBusinessFunctions": [
       "localization.NormalizeLanguageTag",
@@ -2728,6 +3079,51 @@
         "note": "只读复核窄修：10000单元响应、真实origin、65536投影预算；同一稳定anchor无ID形状变化失败关闭，当前全部text消失亦核。保留原CI未改项证据，本批待统一CI。"
       }
     ],
+    "languagePlanBatch": {
+      "sourceCommit": "98c02a0666572f9ec011eea0040fe4e947aa6853",
+      "state": "blocked",
+      "readyFunctions": [
+        "localization.EstimateLanguagePlan",
+        "localization.ApproveLanguagePlan"
+      ],
+      "newReferenceHelpers": [
+        "localization.ConfigurePlanAdapters",
+        "localization.CreatePlanJob",
+        "localization.EnableLanguageForPlan",
+        "localization.EstimatePlanTextTokens",
+        "localization.LanguageForTag",
+        "localization.QuotePlanCost",
+        "localization.ReadPublicTree",
+        "localization.ResolvePlanTaskRoute",
+        "localization.WriteData",
+        "localization.checkLanguagePlanForApproval",
+        "localization.checkLanguagePlanRevisions",
+        "localization.checkedInt",
+        "localization.combineLanguagePlanQuotes",
+        "localization.conservativeOutputTokens",
+        "localization.ensureLanguagePlanJob",
+        "localization.ensureLanguagePlanJobs",
+        "localization.estimateDocumentPlan",
+        "localization.loadLanguagePlan",
+        "localization.loadLanguagePlanJobs",
+        "localization.planJobIdempotencyKey",
+        "localization.planJobType",
+        "localization.planRouteFromRuntime",
+        "localization.readInterfacePlan",
+        "localization.readPlanResult",
+        "localization.sameApprovalOperation",
+        "localization.samePlanDocuments",
+        "localization.samePlanRoute",
+        "localization.saveLanguagePlan",
+        "localization.selectApprovalOperation",
+        "localization.validatePlanPayload"
+      ],
+      "changedFunctions": [
+        "localization.BuildApplication",
+        "localization.NewTranslationHandlers"
+      ],
+      "blocker": "GitLab HTTP 522；未生成客户端/schema，未执行readonly build/vet/gofmt或完整check。Portal background costClass装配缺失，完整HTTP链与翻译worker未完成。"
+    },
     "verifiedBy": "pipeline70/71；仅精确交付清单，未通过业务验收"
   }
 }

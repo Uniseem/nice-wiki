@@ -57,6 +57,9 @@ type Store struct {
 	publisher            platform.EventPublisher
 	content              *gen.ContentClient
 	sourceValidators     map[string]func(json.RawMessage) error
+	planGateway          *gen.ModelGatewayClient
+	planJobs             *gen.JobsClient
+	planValidators       map[string]func(json.RawMessage) error
 	cursorKey            platform.SigningKey
 	root                 string
 	db                   *sql.DB
@@ -371,6 +374,9 @@ func validateSchema(ctx context.Context, db *sql.DB) error {
 		"operation_receipts":        {"site_id", "actor_id", "function_id", "input_hash"},
 		"runtime_meta":              {"singleton", "data_epoch", "updated_at"},
 		"local_barrier":             {"singleton", "state", "data_epoch"},
+		"language_plans":            {"plan_id", "snapshot_hash", "expires_at", "state", "approval_operation_json", "approval_root_operation_id", "approval_actor_id", "approval_deadline"},
+		"language_plan_documents":   {"plan_id", "document_id", "reference_hash"},
+		"language_plan_jobs":        {"plan_id", "kind", "input_hash", "dedupe_key", "state"},
 	}
 	for table, columns := range required {
 		if err := checkContext(ctx); err != nil {

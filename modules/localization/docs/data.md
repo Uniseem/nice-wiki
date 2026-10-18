@@ -22,6 +22,12 @@
 
 - language_preferences(visitor_subject,language,expires_at)
 
+- language_plans(plan_id,language,site_id,data_epoch,snapshot_hash,quote_hash,expires_at,state,approval_operation_json)
+
+- language_plan_documents(plan_id,document_id,reference_hash,unit_count,input_tokens)
+
+- language_plan_jobs(plan_id,kind,document_id,input_ref_json,input_hash,dedupe_key,state,job_id)
+
 - approved_proposals(proposal_id,proposal_hash,state,term_id)
 
 - cache_answer_translations(translation_id,cache_id,answer_revision,source_hash,target_language,state)
@@ -157,3 +163,7 @@ control journal只追加记录对象代数预留（object.generation/done，载�
 语言偏好仅按当前站点数据根内的真实伪名visitor_subject保存规范语言标签与expires_at（首次成功写入后30天）。owner来自可信访客身份；不会保存country/timeZone/browserLanguages/IP或访问轨迹。七天命令回执与偏好同事务，重放不延长到期；启用状态只在新选择时核对，不更改语言配置显示原文。
 
 TranslationUnit.fileRef改为兼容可选：实际持久单元读写仍总返回真实权威对象引用；即时新源fallback与保护分组投影没有对应持久unit时省略，禁止null/零引用及借用旧父单元证明。即时派生依赖本次完整body/bodyHash与精确source publication、targetLanguage、target generation，不修改旧权威文件。
+
+R1语言计划只追加 `006_language_plan.sql`。计划快照固定公开树与每篇发布revision、术语/界面代数、document/UI两类routeVersion、主模型快照、input/output token上限和现价quote。首次批准开始把完整OperationContext及原root/主体/deadline固化在计划行；后续任务提交只能沿线重放。逐任务意图保存完整input hash、与planId绑定的dedupeKey和稳定ObjectRef；jobs全部接受前计划保持pending，不能以部分回执返回成功。
+
+批准时免费重查route和quoteCost；routeVersion不含价目，因此原始quote与当前PriceSnapshot必须逐项一致，否则计划失效并要求重新估价。原24小时expiresAt不续期，任务输入继续携带该时刻；现有执行/付费worker尚未消费该任务输入，相关函数保持blocked。

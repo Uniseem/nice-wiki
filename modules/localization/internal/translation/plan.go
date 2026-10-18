@@ -3,6 +3,7 @@ package translation
 import (
 	"context"
 	"database/sql"
+
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/localization/internal/gen"
 	"nice-wiki/modules/localization/internal/language"

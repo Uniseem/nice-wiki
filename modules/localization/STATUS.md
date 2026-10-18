@@ -1,3 +1,11 @@
+# 2026-10-18 语言计划源码候选待GitLab
+
+分支 `codex/localization-20261018-r9`，基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，源码候选 `98c02a0666572f9ec011eea0040fe4e947aa6853`。本轮实现 `EstimateLanguagePlan`、`ApproveLanguagePlan` 及必需支持：公开树/翻译记忆与界面缺项免费统计、文档/UI统一token来源、免费route与quote快照、24小时计划、批准revision/价目重核、原OperationContext冻结、planId+完整输入hash任务意图、jobs接受回执后CAS启用自动翻译。
+
+合同已同步实际拆分：95文件、184类型、162函数。`language_plan.go` 的20个private helper、runtime计划适配6函数、公开树读取、语言查找和事务写法均已逐项登记，所有新增参考函数仍为 blocked，不计完成。
+
+GitLab 当前 HTTP 522，未生成客户端/schema，未执行 Go build/vet/gofmt、迁移或完整make check；两个约束函数与迁移均记 `blocked`，不记 implemented/verified。Portal 尚未为这两个操作装配可信 `background` costClass，完整浏览器HTTP链不可运行；翻译执行/付费worker及完整服务仍未完成。未调用真实接口、模型或部署，未新增测试、fixture、mock或样例。
+
 ## 2026-10-18 用户收尾指令
 
 用户要求push后停止，全部代理已冻结。本次集成树已通过GitLab pipeline118源码检查；未完成职责保持逐项台账，不将独立WIP计入main。后续仅在新授权下接续，不自动继续。

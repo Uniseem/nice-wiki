@@ -4420,6 +4420,581 @@
     "SnapshotArchiveReadResult": {
       "x-internal": true,
       "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
+    },
+    "Tx": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "本域SQLite事务句柄；只在本函数调用栈内使用，不序列化、不跨域。",
+      "x-internal": true,
+      "properties": {},
+      "required": []
+    },
+    "RawMessage": {
+      "description": "已由拥有服务严格schema校验、仍保持原始JSON字节的内部载荷；不绕过拥有服务边界。",
+      "x-internal": true,
+      "oneOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "array"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "PlanValidators": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "外部生产方负载名到严格响应校验器的内部映射。",
+      "x-internal": true
+    },
+    "ModelGatewayClient": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成的model-gateway服务客户端；构造时只持连接与签名参数。",
+      "x-internal": true,
+      "properties": {},
+      "required": []
+    },
+    "JobsClient": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "生成的jobs服务客户端；构造时只持连接与签名参数。",
+      "x-internal": true,
+      "properties": {},
+      "required": []
+    },
+    "TxWriter": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "在单个本域SQLite事务内执行写回的回调；不跨事务保存。",
+      "x-internal": true,
+      "properties": {},
+      "required": []
+    },
+    "LanguagePlanQuote": {
+      "$ref": "../../model-gateway/contracts/types.json#/$defs/QuoteCostResult",
+      "description": "网关纯读quoteCost的封闭结果；包含固定PriceSnapshot与缺价警告。"
+    },
+    "PlanTaskRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "免费任务路由主候选内部快照。",
+      "x-internal": true,
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "description": "根AI任务目录ID"
+        },
+        "profileId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "当前生效档位"
+        },
+        "costClass": {
+          "$ref": "#/$defs/CostClass",
+          "description": "可信费用类别"
+        },
+        "routeVersion": {
+          "$ref": "#/$defs/Hash",
+          "description": "eligible候选与配置版本摘要"
+        },
+        "modelId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "当前主模型"
+        },
+        "modelSnapshotHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "主模型完整配置摘要"
+        }
+      },
+      "required": [
+        "taskId",
+        "profileId",
+        "costClass",
+        "routeVersion",
+        "modelId",
+        "modelSnapshotHash"
+      ]
+    },
+    "PublicTreeDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "content公开树中的已校验文档引用。",
+      "x-internal": true,
+      "properties": {
+        "documentId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "content文档"
+        },
+        "reference": {
+          "$ref": "#/$defs/PublishedRevisionRef",
+          "description": "精确公开发布"
+        }
+      },
+      "required": [
+        "documentId",
+        "reference"
+      ]
+    },
+    "PublicTreeSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "一次固定公开树revision的完整引用集合。",
+      "x-internal": true,
+      "properties": {
+        "treeRevision": {
+          "type": "integer",
+          "description": "公开树水位"
+        },
+        "documents": {
+          "type": "array",
+          "description": "完整公开文档引用",
+          "items": {
+            "$ref": "#/$defs/PublicTreeDocument",
+            "description": "PublicTreeDocument"
+          },
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "treeRevision",
+        "documents"
+      ]
+    },
+    "languagePlanRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "语言计划中持久固定的document或ui路由。",
+      "x-internal": true,
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "description": "AI任务ID"
+        },
+        "profileId": {
+          "type": "string",
+          "description": "档位"
+        },
+        "costClass": {
+          "type": "string",
+          "description": "费用类别"
+        },
+        "routeVersion": {
+          "$ref": "#/$defs/Hash",
+          "description": "路由版本"
+        },
+        "modelId": {
+          "type": "string",
+          "description": "主模型"
+        },
+        "modelSnapshotHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "模型快照"
+        }
+      },
+      "required": [
+        "taskId",
+        "profileId",
+        "costClass",
+        "routeVersion",
+        "modelId",
+        "modelSnapshotHash"
+      ]
+    },
+    "languagePlanDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "单篇文档的免费估价摘要。",
+      "x-internal": true,
+      "properties": {
+        "documentId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "文档"
+        },
+        "reference": {
+          "$ref": "#/$defs/PublishedRevisionRef",
+          "description": "源发布"
+        },
+        "unitCount": {
+          "type": "integer",
+          "description": "需新译单元"
+        },
+        "inputTokens": {
+          "type": "integer",
+          "description": "免费估算输入token"
+        }
+      },
+      "required": [
+        "documentId",
+        "reference",
+        "unitCount",
+        "inputTokens"
+      ]
+    },
+    "languagePlanSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "免费语言估价和批准revision的完整持久快照。",
+      "x-internal": true,
+      "properties": {
+        "language": {
+          "type": "string",
+          "description": "规范目标语言"
+        },
+        "languageVersion": {
+          "type": "integer",
+          "description": "批准前语言配置版本"
+        },
+        "profileId": {
+          "type": "string",
+          "description": "翻译档位"
+        },
+        "glossaryGeneration": {
+          "type": "integer",
+          "description": "术语代数"
+        },
+        "catalogGeneration": {
+          "type": "integer",
+          "description": "界面字典代数"
+        },
+        "interfaceSourceHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "固定界面源hash"
+        },
+        "treeRevision": {
+          "type": "integer",
+          "description": "公开树水位"
+        },
+        "batchOutputTokens": {
+          "type": "integer",
+          "description": "每批输出上限"
+        },
+        "documentCount": {
+          "type": "integer",
+          "description": "需翻译文档数"
+        },
+        "unitCount": {
+          "type": "integer",
+          "description": "需新译单元数"
+        },
+        "interfaceKeyCount": {
+          "type": "integer",
+          "description": "需翻译界面key数"
+        },
+        "documentInputTokens": {
+          "type": "integer",
+          "description": "文档输入token"
+        },
+        "interfaceInputTokens": {
+          "type": "integer",
+          "description": "界面输入token"
+        },
+        "documentOutputTokens": {
+          "type": "integer",
+          "description": "文档保守输出上限"
+        },
+        "interfaceOutputTokens": {
+          "type": "integer",
+          "description": "界面保守输出上限"
+        },
+        "documentRoute": {
+          "$ref": "#/$defs/languagePlanRoute",
+          "description": "文档路由"
+        },
+        "interfaceRoute": {
+          "$ref": "#/$defs/languagePlanRoute",
+          "description": "界面路由"
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/languagePlanDocument",
+            "description": "languagePlanDocument"
+          },
+          "maxItems": 10000
+        },
+        "quote": {
+          "$ref": "#/$defs/LanguagePlanQuote",
+          "description": "固定价目"
+        }
+      },
+      "required": [
+        "language",
+        "languageVersion",
+        "profileId",
+        "glossaryGeneration",
+        "catalogGeneration",
+        "interfaceSourceHash",
+        "treeRevision",
+        "batchOutputTokens",
+        "documentCount",
+        "unitCount",
+        "interfaceKeyCount",
+        "documentInputTokens",
+        "interfaceInputTokens",
+        "documentOutputTokens",
+        "interfaceOutputTokens",
+        "documentRoute",
+        "interfaceRoute",
+        "documents",
+        "quote"
+      ]
+    },
+    "storedLanguagePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "本域持久语言计划及原批准事实。",
+      "x-internal": true,
+      "properties": {
+        "planId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "计划"
+        },
+        "language": {
+          "type": "string",
+          "description": "目标语言"
+        },
+        "siteId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "站点"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier",
+          "description": "代次"
+        },
+        "actorId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "估价主体"
+        },
+        "operationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "估价操作"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/languagePlanSnapshot",
+          "description": "固定快照"
+        },
+        "snapshotHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "快照摘要"
+        },
+        "result": {
+          "$ref": "#/$defs/EstimateLanguagePlanResult",
+          "description": "公开估价结果"
+        },
+        "quoteHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "批准hash"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "原过期时刻"
+        },
+        "state": {
+          "type": "string",
+          "description": "pending/approved/superseded"
+        },
+        "approvalStartedAt": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "首次批准开始"
+        },
+        "approvalOperation": {
+          "$ref": "#/$defs/OperationContext",
+          "description": "冻结原批准scope"
+        },
+        "approvedResult": {
+          "$ref": "#/$defs/ApproveLanguagePlanResult",
+          "description": "原批准结果"
+        }
+      },
+      "required": [
+        "planId",
+        "language",
+        "siteId",
+        "dataEpoch",
+        "actorId",
+        "operationId",
+        "snapshot",
+        "snapshotHash",
+        "result",
+        "quoteHash",
+        "expiresAt",
+        "state"
+      ]
+    },
+    "languagePlanJobPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "jobs不可变输入载荷。",
+      "x-internal": true,
+      "properties": {
+        "planId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "计划"
+        },
+        "language": {
+          "type": "string",
+          "description": "语言"
+        },
+        "kind": {
+          "type": "string",
+          "description": "document/ui"
+        },
+        "treeRevision": {
+          "type": "integer",
+          "description": "公开树水位"
+        },
+        "document": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublishedRevisionRef",
+              "description": "文档源"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unitCount": {
+          "type": "integer",
+          "description": "单元数"
+        },
+        "interfaceKeyCount": {
+          "type": "integer",
+          "description": "界面key数"
+        },
+        "quoteHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "批准hash"
+        },
+        "originalExpiresAt": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "不延长的原过期时刻"
+        },
+        "batchOutputTokens": {
+          "type": "integer",
+          "description": "输出上限"
+        },
+        "route": {
+          "$ref": "#/$defs/languagePlanRoute",
+          "description": "固定路由"
+        },
+        "expectedPriceSnapshots": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "$ref": "../../model-gateway/contracts/types.json#/$defs/ExpectedPriceSnapshot",
+            "description": "固定价目快照"
+          }
+        }
+      },
+      "required": [
+        "planId",
+        "language",
+        "kind",
+        "treeRevision",
+        "document",
+        "unitCount",
+        "interfaceKeyCount",
+        "quoteHash",
+        "originalExpiresAt",
+        "batchOutputTokens",
+        "route",
+        "expectedPriceSnapshots"
+      ]
+    },
+    "storedLanguagePlanJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "本域持久任务意图与真实jobs回执。",
+      "x-internal": true,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "document/ui"
+        },
+        "documentId": {
+          "type": "string",
+          "description": "文档ID，ui为空"
+        },
+        "inputRef": {
+          "$ref": "#/$defs/ObjectRef",
+          "description": "稳定输入对象"
+        },
+        "inputHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "完整输入hash"
+        },
+        "dedupeKey": {
+          "type": "string",
+          "description": "绑定planId和输入hash"
+        },
+        "state": {
+          "type": "string",
+          "description": "pending/accepted"
+        },
+        "jobId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "jobs ID"
+        },
+        "operationId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "jobs原操作ID"
+        }
+      },
+      "required": [
+        "kind",
+        "documentId",
+        "inputRef",
+        "inputHash",
+        "dedupeKey",
+        "state"
+      ]
+    },
+    "interfacePlanData": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "界面缺项免费估价摘要。",
+      "x-internal": true,
+      "properties": {
+        "sourceHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "固定界面源hash"
+        },
+        "catalogGeneration": {
+          "type": "integer",
+          "description": "界面代数"
+        },
+        "texts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "缺项目标源文本"
+          }
+        },
+        "keyCount": {
+          "type": "integer",
+          "description": "缺项数"
+        }
+      },
+      "required": [
+        "sourceHash",
+        "catalogGeneration",
+        "texts",
+        "keyCount"
+      ]
     }
   }
 }

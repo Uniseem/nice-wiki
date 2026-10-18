@@ -100,16 +100,29 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 		validators[name] = validator
 	}
-	gateway, gatewayErr := modelclient.NewGatewayClient(gen.NewModelGatewayClient(config.Dependencies["model-gateway"], ModuleSlug, key), validators)
+	rawGateway := gen.NewModelGatewayClient(config.Dependencies["model-gateway"], ModuleSlug, key)
+	gateway, gatewayErr := modelclient.NewGatewayClient(rawGateway, validators)
 	if gatewayErr != nil {
 		return nil, gatewayErr
 	}
-	publisher := outbox.NewEventPublisher(gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key))
+	jobsClient := gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)
+	publisher := outbox.NewEventPublisher(jobsClient)
 	if err = localizationruntime.ConfigureExecutionAdapters(gateway, publisher); err != nil {
 		return nil, err
 	}
+	planValidators := map[string]func(json.RawMessage) error{}
+	for _, name := range []string{"GatewayResolveTaskRouteResult", "GatewayEstimateTokensResult", "GatewayQuoteCostResult", "JobsCreateJobResult"} {
+		validator, validationErr := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
+		if validationErr != nil {
+			return nil, validationErr
+		}
+		planValidators[name] = validator
+	}
+	if err = localizationruntime.ConfigurePlanAdapters(rawGateway, jobsClient, planValidators); err != nil {
+		return nil, err
+	}
 	sourceValidators := map[string]func(json.RawMessage) error{}
-	for _, name := range []string{"ContentDocumentBody", "ContentReadPublishedRevisionResult", "ContentValidatePublicationsResult"} {
+	for _, name := range []string{"ContentDocumentBody", "ContentReadPublishedRevisionResult", "ContentValidatePublicationsResult", "ContentReadPublicTreeResult"} {
 		validator, validationErr := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if validationErr != nil {
 			return nil, validationErr
@@ -144,6 +157,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		AllowedCallers: map[string][]string{"readLanguageSuggestionPolicy": {"portal"}, "putLanguageSuggestionPolicy": {"portal"}, "readLanguageSuggestionApproval": {"model-gateway"},
 			"putLanguage":        {"portal"},
 			"setLanguageEnabled": {"portal"},
+			"estimateLanguagePlan": {"portal"},
+			"approveLanguagePlan":  {"portal"},
 			"listLanguages":      {"portal", "public-site"},
 			"putGlossaryTerm":    {"portal"}, "deleteGlossaryTerm": {"portal"}, "listGlossary": {"portal"}, "rollbackAutomaticGlossaryBatch": {"portal"}, "applyApprovedGlossaryProposal": {"memory"},
 			"saveLanguagePreference": {"public-site"}, "readTranslation": {"public-site"}, "listTranslationProgress": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "readCacheAnswerTranslation": {"qa"},

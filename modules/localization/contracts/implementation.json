@@ -780,6 +780,55 @@
       ]
     },
     {
+      "path": "modules/localization/internal/language/plan_enable.go",
+      "kind": "handwritten",
+      "purpose": "语言计划最终启用事务。",
+      "functions": [
+        {
+          "id": "localization.EnableLanguageForPlan",
+          "name": "EnableLanguageForPlan",
+          "signature": "func EnableLanguageForPlan(ctx context.Context, tx *sql.Tx, op OperationContext, tag string, expectedVersion int) (gen.Language, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在语言计划最终CAS事务内启用已有语言的自动翻译并发布language.changed。",
+          "steps": [
+            "原站/代次/版本/profile必须仍匹配；只把enabled与automatic置true，版本加一并与outbox同事务提交"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "语言不存在或没有翻译档位"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "when": "计划已启用自动翻译"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "when": "语言版本或代次在批准期间变化"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "私有事务写入失败"
+            }
+          ],
+          "sideEffects": [
+            "更新语言配置并写language.changed outbox"
+          ],
+          "authorization": "仅由ApproveLanguagePlan在同一已核管理员事务内调用。",
+          "concurrency": "语言原version CAS；失败整次回滚。",
+          "idempotency": "由语言计划pending→approved CAS保证只生效一次。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
       "path": "modules/localization/internal/language/read.go",
       "kind": "handwritten",
       "purpose": "读取当前代次语言配置；不返回模型密钥，不连接翻译正文。",
@@ -889,6 +938,82 @@
           "dependencies": [],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "localization.LanguageForTag",
+          "name": "LanguageForTag",
+          "signature": "func LanguageForTag(ctx context.Context, tx Tx, op OperationContext, tag string) (Language, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "本域事务",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tag",
+              "type": "string",
+              "description": "目标语言",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "Language",
+              "description": "语言配置",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "在同一快照按规范BCP47查找语言配置。",
+          "steps": [
+            "规范解析输入",
+            "比较所有当前代次配置且拒绝别名重复"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.NormalizeLanguageTag"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -6979,7 +7104,8 @@
             "platform.SnapshotManager.AdmitBusiness",
             "platform.SnapshotManager.WriteWindow",
             "model-gateway:readInference",
-            "model-gateway:lookupInference"
+            "model-gateway:lookupInference",
+            "localization.ConfigurePlanAdapters"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -7644,13 +7770,438 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "localization.ConfigurePlanAdapters",
+          "name": "ConfigurePlanAdapters",
+          "signature": "func ConfigurePlanAdapters(gateway *ModelGatewayClient, jobs *JobsClient, validators PlanValidators) error",
+          "inputs": [
+            {
+              "name": "gateway",
+              "type": "ModelGatewayClient",
+              "description": "MG客户端",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "jobs",
+              "type": "JobsClient",
+              "description": "jobs客户端",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "validators",
+              "type": "PlanValidators",
+              "description": "严格响应校验器",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "装配免费路由、token、报价与任务提交端口。",
+          "steps": [
+            "要求客户端与四类严格响应校验器齐全",
+            "只保存端口，不发起网络调用"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.validatePlanPayload",
+          "name": "validatePlanPayload",
+          "signature": "func validatePlanPayload(name string, raw RawMessage) error",
+          "inputs": [
+            {
+              "name": "name",
+              "type": "string",
+              "description": "登记响应名",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "raw",
+              "type": "RawMessage",
+              "description": "原始JSON",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "对计划依赖响应执行生产方strict schema校验。",
+          "steps": [
+            "校验器必须已装配",
+            "未知名称失败关闭"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ResolvePlanTaskRoute",
+          "name": "ResolvePlanTaskRoute",
+          "signature": "func ResolvePlanTaskRoute(ctx context.Context, op OperationContext, taskID string) (PlanTaskRoute, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "taskID",
+              "type": "string",
+              "description": "AI任务ID",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PlanTaskRoute",
+              "description": "主候选快照",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "免费读取当前eligible主候选。",
+          "steps": [
+            "使用localization纯服务scope",
+            "核对task/costClass/profile/routeVersion及主模型快照"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.SourceOperation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.EstimatePlanTextTokens",
+          "name": "EstimatePlanTextTokens",
+          "signature": "func EstimatePlanTextTokens(ctx context.Context, op OperationContext, modelID string, texts []string) (int64, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "modelID",
+              "type": "string",
+              "description": "模型",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "texts",
+              "type": "[]string",
+              "description": "完整待估文本",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "int64",
+              "description": "保守token总数",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "按接口上限分批调用免费token估算。",
+          "steps": [
+            "每片至多4096字符且不截断",
+            "每批至多256片并累加严格响应"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.SourceOperation",
+            "localization.validatePlanPayload"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.QuotePlanCost",
+          "name": "QuotePlanCost",
+          "signature": "func QuotePlanCost(ctx context.Context, op OperationContext, modelID string, inputTokens, maximumOutputTokens int64) (LanguagePlanQuote, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "modelID",
+              "type": "string",
+              "description": "模型",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "inputTokens",
+              "type": "int64",
+              "description": "输入token",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "maximumOutputTokens",
+              "type": "int64",
+              "description": "输出上限",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "LanguagePlanQuote",
+              "description": "真实免费报价",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "读取固定价目计算保守费用。",
+          "steps": [
+            "按纯服务scope调用quoteCost",
+            "缺价保留unknown，不写额度/账本"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.SourceOperation",
+            "localization.validatePlanPayload"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.CreatePlanJob",
+          "name": "CreatePlanJob",
+          "signature": "func CreatePlanJob(ctx context.Context, op OperationContext, input any, idempotencyKey string) (AcceptedJob, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "input",
+              "type": "any",
+              "description": "已持久任务请求",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "idempotencyKey",
+              "type": "string",
+              "description": "jobs幂等键",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "AcceptedJob",
+              "description": "持久接受回执",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "沿原scope提交并严格校验一条jobs任务。",
+          "steps": [
+            "请求体为owner/type/inputRef/dedupeKey/dataEpoch",
+            "严格核对queued回执与operationId"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.SourceOperation",
+            "localization.validatePlanPayload"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
     {
-      "path": "modules/localization/internal/language/plan.go",
+      "path": "modules/localization/internal/translation/language_plan.go",
       "kind": "handwritten",
-      "purpose": "启用语言前估算全量翻译费用",
+      "purpose": "增量规划与启用前免费估价、明确批准和持久任务意图",
       "functions": [
         {
           "id": "localization.EstimateLanguagePlan",
@@ -7704,12 +8255,13 @@
           ],
           "purpose": "启用语言前估算全量翻译费用",
           "steps": [
-            "localization.languages权限；NormalizeLanguageTag；语言未启用或automatic=false",
+            "localization.languages权限；NormalizeLanguageTag；语言未启用或automatic=false且必须有可用翻译档位",
             "content:readPublicTree列出已发布文档，逐篇content:readPublishedRevision后SplitTranslationUnits与ReuseTranslationMemory统计需新译单元；统计界面字符串缺项",
+            "model-gateway:resolveTaskRoute只读localization.document与localization.ui的真实当前档位、主候选与routeVersion；两者必须属于语言配置的同一档位且可形成一个保守价目快照",
             "按接口限制分批把实际待估单元文本交model-gateway:estimateTokens，禁止截断或在本域复制token算法；再调用model-gateway:quoteCost分别估localization.document与localization.ui任务，缺价保留price_unknown警告，不伪造0",
             "免费估算以localization纯服务调用：清除原portal proof与用户委托，保留本站/dataEpoch/rootOperationId/费用类别及更早截止；本域先核当前localization.languages，估算不调用模型、不预留或扣减额度",
             "使用libs/platform统一签名siteId传递已核本站；清除原portal proof并建立localization纯服务actor，不能回退未声明的system作用域、发送未签名站点或保留原proof绕过纯服务边界",
-            "保存计划（文档修订集合、单元数、quoteHash、24小时过期），只读不调用模型"
+            "保存计划（公开树revision、每篇发布revision、术语/界面代数、任务routeVersion、模型快照、价目快照、quoteHash、24小时过期），只读不调用模型；固定过期时刻不因估算重放延长"
           ],
           "errors": [
             {
@@ -7733,11 +8285,26 @@
           "concurrency": "同语言同时一个有效计划，新估价替换旧计划",
           "idempotency": "同语言与源集合重复估价返回同一计划",
           "dependencies": [
+            "localization.RequireAdministrator",
             "localization.NormalizeLanguageTag",
+            "localization.ReadData",
+            "localization.LanguageForTag",
+            "localization.readInterfacePlan",
+            "localization.ResolvePlanTaskRoute",
+            "localization.ReadPublicTree",
+            "localization.estimateDocumentPlan",
+            "localization.EstimatePlanTextTokens",
+            "localization.conservativeOutputTokens",
+            "localization.QuotePlanCost",
+            "localization.combineLanguagePlanQuotes",
+            "localization.planRouteFromRuntime",
+            "localization.checkedInt",
+            "localization.saveLanguagePlan",
             "content:readPublicTree",
             "content:readPublishedRevision",
             "localization.SplitTranslationUnits",
             "localization.ReuseTranslationMemory",
+            "model-gateway:resolveTaskRoute",
             "model-gateway:quoteCost",
             "model-gateway:estimateTokens"
           ],
@@ -7796,9 +8363,12 @@
           ],
           "purpose": "批准估价后启用语言并创建全量翻译任务",
           "steps": [
-            "localization.languages权限；计划未过期且quoteHash一致",
-            "SetLanguageEnabled启用该语言（automatic=true），记录批准人与估价",
-            "为计划内每篇文档创建localization.document任务（按source/target/generation去重），另建一个localization.ui任务",
+            "localization.languages权限；计划未过期且quoteHash一致；公开树revision、文档发布revision、语言配置、术语/界面代数与两类routeVersion必须仍等于估价快照",
+            "免费调用model-gateway:quoteCost重核原输入token、输出上限与价目；routeVersion不含价目，因此quote/priceSnapshot变化必须使计划失效，不重新估价或替用户接受新价格",
+            "首次批准开始持久冻结完整OperationContext、原rootOperationId、批准主体、dataEpoch与deadline；进程失败后只沿该scope与未延长截止重放，不能换root/主体或延长付费许可",
+            "先持久保存逐文档与UI任务意图（固定object ref、完整任务输入hash、绑定planId的dedupeKey和原approved plan/price快照）；进程失败后复用同一完整输入和幂等键",
+            "为计划内每篇文档创建localization.document任务（按source/target/generation去重），另建一个localization.ui任务；任一任务未获持久接受时计划保持pending且不返回成功",
+            "全部jobs接受后在同一本域事务CAS pending→approved，启用该语言automatic=true并记录批准人与估价；不生成新quote、不延长原expiresAt",
             "翻译完成前公开页面按旧译或原文回退并提示"
           ],
           "errors": [
@@ -7810,6 +8380,21 @@
             {
               "code": "CONFLICT",
               "when": "计划已被批准",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "调用方不是语言管理员或费用类别不是background",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "公开树、模型路由或jobs不可用；持久意图与已接受回执可安全重试",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原批准OperationContext截止已过；不得用新请求deadline延长",
               "retryable": false
             }
           ],
@@ -7824,11 +8409,1390 @@
           "concurrency": "计划CAS pending→approved",
           "idempotency": "同planId重复批准返回原结果",
           "dependencies": [
-            "localization.SetLanguageEnabled",
+            "localization.RequireAdministrator",
+            "localization.checkLanguagePlanForApproval",
+            "localization.selectApprovalOperation",
+            "localization.checkLanguagePlanRevisions",
+            "localization.ensureLanguagePlanJobs",
+            "localization.loadLanguagePlanJobs",
+            "localization.CreatePlanJob",
+            "localization.planJobType",
+            "localization.planJobIdempotencyKey",
+            "localization.Mutate",
+            "localization.loadLanguagePlan",
+            "localization.sameApprovalOperation",
+            "localization.EnableLanguageForPlan",
+            "model-gateway:resolveTaskRoute",
+            "model-gateway:quoteCost",
             "jobs:createJob"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "localization.estimateDocumentPlan",
+          "name": "estimateDocumentPlan",
+          "signature": "func estimateDocumentPlan(ctx context.Context, op OperationContext, target string, document PublicTreeDocument, modelID string, minimumCharacters int) (languagePlanDocument, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "target",
+              "type": "string",
+              "description": "目标语言",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "document",
+              "type": "PublicTreeDocument",
+              "description": "公开文档引用",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "modelID",
+              "type": "string",
+              "description": "主模型",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "minimumCharacters",
+              "type": "int",
+              "description": "TM最小字符数",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "languagePlanDocument",
+              "description": "文档估价摘要",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "统计单篇文档免费估价。",
+          "steps": [
+            "读取精确发布正文并拆分单元",
+            "复用翻译记忆后仅统计真实新译文本",
+            "完整分批调用网关免费token估算"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.FetchPublishedSnapshot",
+            "localization.NormalizeLanguageTag",
+            "localization.SplitTranslationUnits",
+            "localization.ReadData",
+            "localization.ReuseInSnapshot",
+            "localization.EstimatePlanTextTokens"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.readInterfacePlan",
+          "name": "readInterfacePlan",
+          "signature": "func readInterfacePlan(ctx context.Context, tx Tx, op OperationContext, target string) (interfacePlanData, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "本域事务",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "target",
+              "type": "string",
+              "description": "目标语言",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "interfacePlanData",
+              "description": "界面缺项摘要",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "统计固定界面源相对目标字典的缺项。",
+          "steps": [
+            "校验固定源目录并按key排序",
+            "读取当前目标字典，仅选择非protected缺项或源hash变化项",
+            "返回源hash、代数和完整待估文本"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.StorageError",
+            "localization.SourceCatalog"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.conservativeOutputTokens",
+          "name": "conservativeOutputTokens",
+          "signature": "func conservativeOutputTokens(count, perBatch int64) (int64, error)",
+          "inputs": [
+            {
+              "name": "count",
+              "type": "int64",
+              "description": "任务数量",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "perBatch",
+              "type": "int64",
+              "description": "每批输出上限",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "int64",
+              "description": "保守输出上限",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "计算不溢出的保守输出token上限。",
+          "steps": [
+            "数量乘以每批上限，0保持0，超int64失败"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.combineLanguagePlanQuotes",
+          "name": "combineLanguagePlanQuotes",
+          "signature": "func combineLanguagePlanQuotes(documentQuote, interfaceQuote LanguagePlanQuote) (LanguagePlanQuote, error)",
+          "inputs": [
+            {
+              "name": "documentQuote",
+              "type": "LanguagePlanQuote",
+              "description": "文档报价",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "interfaceQuote",
+              "type": "LanguagePlanQuote",
+              "description": "界面报价",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "LanguagePlanQuote",
+              "description": "合并报价",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "合并文档与界面任务的同一价目快照。",
+          "steps": [
+            "两边PriceSnapshot必须完全一致",
+            "已知价求和；任一未知价保留price_unknown"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.planRouteFromRuntime",
+          "name": "planRouteFromRuntime",
+          "signature": "func planRouteFromRuntime(route PlanTaskRoute) languagePlanRoute",
+          "inputs": [
+            {
+              "name": "route",
+              "type": "PlanTaskRoute",
+              "description": "运行时主候选",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "languagePlanRoute",
+              "description": "持久路由",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            }
+          ],
+          "purpose": "转换主候选为持久计划路由。",
+          "steps": [
+            "逐字段复制，不筛选或推断候选"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.checkedInt",
+          "name": "checkedInt",
+          "signature": "func checkedInt(value int64) int",
+          "inputs": [
+            {
+              "name": "value",
+              "type": "int64",
+              "description": "非负计数",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "int",
+              "description": "平台整数",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            }
+          ],
+          "purpose": "把已核非负int64转换为平台int。",
+          "steps": [
+            "值必须在当前平台int范围"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.saveLanguagePlan",
+          "name": "saveLanguagePlan",
+          "signature": "func saveLanguagePlan(ctx context.Context, op OperationContext, snapshot languagePlanSnapshot, snapshotRaw []byte, quoteHash Hash, expiresAt Timestamp, result *EstimateLanguagePlanResult) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "snapshot",
+              "type": "languagePlanSnapshot",
+              "description": "固定快照",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "snapshotRaw",
+              "type": "bytes",
+              "description": "规范JSON字节",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "quoteHash",
+              "type": "Hash",
+              "description": "批准hash",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "expiresAt",
+              "type": "Timestamp",
+              "description": "原过期时刻",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "result",
+              "type": "EstimateLanguagePlanResult",
+              "description": "公开结果",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "持久保存新计划或复用同快照未过期计划。",
+          "steps": [
+            "同语言、源集合和hash未过期时返回原计划",
+            "未开始批准的新旧pending计划替换",
+            "计划与逐文档revision快照同事务写入"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.WriteData",
+            "localization.readPlanResult",
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.readPlanResult",
+          "name": "readPlanResult",
+          "signature": "func readPlanResult(ctx context.Context, tx Tx, planID string, result *EstimateLanguagePlanResult) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "本域事务",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "planID",
+              "type": "string",
+              "description": "计划",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "result",
+              "type": "EstimateLanguagePlanResult",
+              "description": "输出",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "读取既有计划原估价结果。",
+          "steps": [
+            "严格解析已保存result_json"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.checkLanguagePlanForApproval",
+          "name": "checkLanguagePlanForApproval",
+          "signature": "func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, input ApproveLanguagePlanInput) (storedLanguagePlan, ApproveLanguagePlanResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "input",
+              "type": "ApproveLanguagePlanInput",
+              "description": "批准输入",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "plan",
+              "type": "storedLanguagePlan",
+              "description": "持久计划",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "approved",
+              "type": "ApproveLanguagePlanResult",
+              "description": "原批准结果或零值",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "在批准前核计划hash、期限和本域revision。",
+          "steps": [
+            "计划必须属于当前站点和代次",
+            "hash、语言、期限、语言配置、术语/界面代数必须一致",
+            "已批准返回原结果"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.loadLanguagePlan",
+            "localization.NormalizeLanguageTag",
+            "localization.LanguageForTag",
+            "localization.readInterfacePlan",
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.selectApprovalOperation",
+          "name": "selectApprovalOperation",
+          "signature": "func selectApprovalOperation(ctx context.Context, current OperationContext, plan storedLanguagePlan) (OperationContext, Context, CancelFunc, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "current",
+              "type": "OperationContext",
+              "description": "当前已核请求",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "plan",
+              "type": "storedLanguagePlan",
+              "description": "持久计划",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "operation",
+              "type": "OperationContext",
+              "description": "原批准scope",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "workCtx",
+              "type": "Context",
+              "description": "受原截止约束上下文",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "cancel",
+              "type": "CancelFunc",
+              "description": "取消函数",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "冻结并选择首次或重试批准scope。",
+          "steps": [
+            "首次使用当前普通管理员scope",
+            "已开始必须由原主体沿原root/epoch/deadline重放",
+            "原截止已过失败关闭"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.checkLanguagePlanRevisions",
+          "name": "checkLanguagePlanRevisions",
+          "signature": "func checkLanguagePlanRevisions(ctx context.Context, op OperationContext, plan storedLanguagePlan) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "plan",
+              "type": "storedLanguagePlan",
+              "description": "持久计划",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "批准前免费重核公开树、路由与价目revision。",
+          "steps": [
+            "公开树和全部文档引用必须一致",
+            "document/ui routeVersion与主模型快照必须一致",
+            "quoteCost必须产生完全相同的PriceSnapshot和总价"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.ReadPublicTree",
+            "localization.ResolvePlanTaskRoute",
+            "localization.QuotePlanCost",
+            "localization.combineLanguagePlanQuotes",
+            "localization.samePlanDocuments",
+            "localization.samePlanRoute"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.loadLanguagePlan",
+          "name": "loadLanguagePlan",
+          "signature": "func loadLanguagePlan(ctx context.Context, tx Tx, op OperationContext, planID string) (storedLanguagePlan, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "本域事务",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "planID",
+              "type": "string",
+              "description": "计划",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "storedLanguagePlan",
+              "description": "完整持久计划",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "读取并校验语言计划、scope与批准回执。",
+          "steps": [
+            "严格解析snapshot/result/approved JSON",
+            "校验snapshot hash、quote hash、root/actor/deadline和站点代次"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ensureLanguagePlanJobs",
+          "name": "ensureLanguagePlanJobs",
+          "signature": "func ensureLanguagePlanJobs(ctx context.Context, op OperationContext, plan *storedLanguagePlan) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "plan",
+              "type": "storedLanguagePlan",
+              "description": "计划",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "首次冻结原批准scope并持久全部jobs任务意图。",
+          "steps": [
+            "首次批准原子保存operation_json/root/actor/deadline与started时间",
+            "每篇需翻译文档生成一个document意图并总生成一个ui意图",
+            "重试只加载原意图，不换ObjectRef或输入"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.WriteData",
+            "localization.loadLanguagePlan",
+            "localization.ensureLanguagePlanJob",
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.ensureLanguagePlanJob",
+          "name": "ensureLanguagePlanJob",
+          "signature": "func ensureLanguagePlanJob(ctx context.Context, tx Tx, op OperationContext, plan storedLanguagePlan, kind, documentID string, document *PublishedRevisionRef) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "本域事务",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "plan",
+              "type": "storedLanguagePlan",
+              "description": "计划",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "document/ui",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "documentID",
+              "type": "string",
+              "description": "文档ID",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "document",
+              "type": "PublishedRevisionRef",
+              "description": "文档源",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "生成或复用单条不可变jobs任务意图。",
+          "steps": [
+            "任务输入固定planId、quoteHash、原expiresAt、route与价目快照",
+            "dedupeKey绑定planId和完整输入hash",
+            "同计划重试必须复用原ObjectRef"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.loadLanguagePlanJobs",
+          "name": "loadLanguagePlanJobs",
+          "signature": "func loadLanguagePlanJobs(ctx context.Context, op OperationContext, planID string) ([]storedLanguagePlanJob, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "planID",
+              "type": "string",
+              "description": "计划",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "storedLanguagePlanJob",
+              "description": "持久任务意图集合",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "按稳定顺序读取计划任务意图和真实jobs回执。",
+          "steps": [
+            "document先于ui并按documentId排序",
+            "核ObjectRef、input hash与完整JSON"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.ReadData",
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.samePlanDocuments",
+          "name": "samePlanDocuments",
+          "signature": "func samePlanDocuments(snapshot languagePlanSnapshot, tree PublicTreeSnapshot) bool",
+          "inputs": [
+            {
+              "name": "snapshot",
+              "type": "languagePlanSnapshot",
+              "description": "估价快照",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tree",
+              "type": "PublicTreeSnapshot",
+              "description": "当前公开树",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "bool",
+              "description": "是否完全一致",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            }
+          ],
+          "purpose": "比较公开树水位与完整文档引用集合。",
+          "steps": [
+            "treeRevision必须一致",
+            "按documentId排序后每个PublishedRevisionRef逐项相等"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.samePlanRoute",
+          "name": "samePlanRoute",
+          "signature": "func samePlanRoute(expected, current languagePlanRoute) bool",
+          "inputs": [
+            {
+              "name": "expected",
+              "type": "languagePlanRoute",
+              "description": "原路由",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "current",
+              "type": "languagePlanRoute",
+              "description": "当前路由",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "bool",
+              "description": "是否完全一致",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            }
+          ],
+          "purpose": "比较完整持久路由字段。",
+          "steps": [
+            "逐字段相等"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.sameApprovalOperation",
+          "name": "sameApprovalOperation",
+          "signature": "func sameApprovalOperation(expected, current OperationContext) bool",
+          "inputs": [
+            {
+              "name": "expected",
+              "type": "OperationContext",
+              "description": "冻结scope",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "current",
+              "type": "OperationContext",
+              "description": "待比较scope",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "bool",
+              "description": "规范JSON是否相同",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            }
+          ],
+          "purpose": "比较完整原批准OperationContext。",
+          "steps": [
+            "规范JSON逐字相同"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.planJobType",
+          "name": "planJobType",
+          "signature": "func planJobType(kind string) string",
+          "inputs": [
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "document/ui",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "string",
+              "description": "jobs任务类型",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            }
+          ],
+          "purpose": "映射计划任务类型。",
+          "steps": [
+            "document→localization.document，其他→localization.ui"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.planJobIdempotencyKey",
+          "name": "planJobIdempotencyKey",
+          "signature": "func planJobIdempotencyKey(planID, kind, documentID string) string",
+          "inputs": [
+            {
+              "name": "planID",
+              "type": "string",
+              "description": "计划",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "kind",
+              "type": "string",
+              "description": "任务类型",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "documentID",
+              "type": "string",
+              "description": "文档ID",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "string",
+              "description": "jobs幂等键",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            }
+          ],
+          "purpose": "生成计划内稳定jobs幂等键。",
+          "steps": [
+            "对planId/kind/documentId规范分隔取SHA-256并截取稳定前缀"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -8163,6 +10127,68 @@
           "authorization": "功能权限由平台入口建立，内部仅落实本函数人工主体与命令来源特有规则。",
           "concurrency": "固定调用方事务/快照；失败回滚。",
           "idempotency": "沿用所属用例原回执或不可变输入，不创建独立付费操作。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.WriteData",
+          "name": "WriteData",
+          "signature": "func WriteData(ctx context.Context, op OperationContext, write TxWriter) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "write",
+              "type": "TxWriter",
+              "description": "事务写回调",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "在本域代次和已释放屏障下执行内部写事务。",
+          "steps": [
+            "打开语言事务并核屏障",
+            "回调成功后提交，失败整体回滚"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -10611,6 +12637,71 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "localization.ReadPublicTree",
+          "name": "ReadPublicTree",
+          "signature": "func ReadPublicTree(ctx context.Context, op OperationContext) (PublicTreeSnapshot, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PublicTreeSnapshot",
+              "description": "公开树快照",
+              "constraints": "成功返回值必须与实际持久快照一致"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效",
+              "constraints": "使用登记公共错误码"
+            }
+          ],
+          "purpose": "读取content公开树并固定完整文档引用集合。",
+          "steps": [
+            "纯服务调用并校验生产方schema",
+            "treeRevision非负、documentId唯一且引用同代"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
+          "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
+          "dependencies": [
+            "localization.SourceOperation",
+            "localization.ValidateSourcePayload"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -11447,6 +13538,12 @@
       "path": "modules/localization/migrations/005_suggestion_policy.sql",
       "kind": "handwritten",
       "purpose": "只追加付费建议当前指针与不可变审批历史，不种默认允许",
+      "functions": []
+    },
+    {
+      "path": "modules/localization/migrations/006_language_plan.sql",
+      "kind": "handwritten",
+      "purpose": "只追加语言估价计划、发布revision快照、原批准scope与逐任务持久意图",
       "functions": []
     },
     {
