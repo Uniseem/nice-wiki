@@ -37,6 +37,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 	if err != nil {
 		return CreateInvocationResult{}, err
 	}
+if options.SiteID==""||op.Actor.SiteID!=options.SiteID{return CreateInvocationResult{},platform.NewError(platform.CodeForbidden,false,"新调用必须绑定当前实际站点")}
 	canonical := CanonicalInvocationInput(op, input)
 	read, err := gatewayruntime.BeginExecution(ctx, op, false)
 	if err != nil {
@@ -154,6 +155,8 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 	if err := RequireInvocationLookupTracking(tx, op); err != nil {
 		return result, err
 	}
+ currentRoute,err:=catalog.SelectCandidatesInTransaction(tx.Context,op,tx.Tx,routing.ResolveRouteInput{TaskId:input.TaskId,CostClass:op.CostClass});if err!=nil{return result,err};if currentRoute.RouteVersion!=route.RouteVersion||(input.ExpectedRouteVersion!=nil&&*input.ExpectedRouteVersion!=currentRoute.RouteVersion){return result,platform.NewError(platform.CodeStaleResult,false,"实际接受事务完整路线不同于原固定/批准路线")}
+ if input.ExpectedPriceSnapshots!=nil{expected:=*input.ExpectedPriceSnapshots;if len(expected)!=len(route.Candidates){return result,platform.NewError(platform.CodeStaleResult,false,"批准报价未完整覆盖实际有序候选")};seen:=map[string]bool{};for i,item:=range expected{if seen[item.ModelId]{return result,platform.NewError(platform.CodeValidation,false,"批准报价模型身份不能重复")};seen[item.ModelId]=true;if item.ModelId!=route.Candidates[i].Model.ModelId||item.PriceSnapshotId!=fixed.Candidates[i].Price.PriceSnapshotId{return result,platform.NewError(platform.CodeStaleResult,false,"批准模型/价目与实际候选顺序不同")}}}
 	var profileVersion, assignmentVersion int
 	if err := tx.Tx.QueryRowContext(tx.Context, `SELECT version FROM profiles WHERE profile_id=? AND data_epoch=?`, route.Resolved.Profile.ProfileId, op.DataEpoch).Scan(&profileVersion); err != nil {
 		return result, gatewayruntime.ExecutionStorageError(err)
@@ -164,6 +167,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 	if profileVersion != route.Resolved.Profile.Version || assignmentVersion != route.Resolved.Assignment.Version {
 		return result, platform.NewError(platform.CodeStaleResult, false, "模型路线读取期间配置已变化")
 	}
+ for index,candidate:=range route.Candidates{price,e:=billing.ReadPriceSnapshotInTransaction(tx.Context,op,tx.Tx,candidate.Model.ModelId,time.Now().UTC(),true);if e!=nil{return result,e};if price.PriceSnapshotId!=fixed.Candidates[index].Price.PriceSnapshotId{return result,platform.NewError(platform.CodeStaleResult,false,"接受事务实际价目已变化，不能挪用旧报价")}}
 	for index, candidate := range route.Candidates {
 		var modelVersion int
 		if err := tx.Tx.QueryRowContext(tx.Context, `SELECT version FROM models WHERE model_id=? AND data_epoch=?`, candidate.Model.ModelId, op.DataEpoch).Scan(&modelVersion); err != nil {

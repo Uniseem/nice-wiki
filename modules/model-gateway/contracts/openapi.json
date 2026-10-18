@@ -4857,6 +4857,123 @@
           }
         ]
       }
+    },
+    "/v1/task-routes:resolve": {
+      "post": {
+        "operationId": "resolveTaskRoute",
+        "summary": "免费读取当前任务真实固定路线",
+        "description": "固定task owner纯服务与原可信costClass，免费读取真实routeVersion、全候选不透明Model快照hash和embedding空间；不创建调用/费用/QA许可。",
+        "x-handler": "model-gateway.ResolveTaskRoute",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "同一权威SQL快照的真实固定候选，不创建费用或任务",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ResolveRouteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/ResolveRouteInput"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

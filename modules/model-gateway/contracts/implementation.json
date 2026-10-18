@@ -3814,7 +3814,8 @@
             "2 遍历完整至多256项派生配置，readRouteCandidate核同代模型/供应方/当前凭据引用，仅过滤缺模型、停用、有效能力不符或凭据未配；未知SQL/损坏/异代失败关闭。",
             "3 embedding全部eligible候选须同一现有embeddingSpaceID，发现异空间INTEGRITY_ERROR，不能混用或静默跳过；先核完整候选再取16项。",
             "4 保序返回至多16项模型/供应方版本/凭据版本；无候选DEPENDENCY_UNAVAILABLE。routeVersion为epoch、真实解析配置与最终候选的固定JSON字段顺序SHA256。",
-            "5 不解密、不读主密钥/价目/余额、不调用供应方、不获取派发引用；费用配置仅声明，执行、费用预留与最后引用释放仍由未来执行链保证。"
+            "5 不解密、不读主密钥/价目/余额、不调用供应方、不获取派发引用；费用配置仅声明，执行、费用预留与最后引用释放仍由未来执行链保证。",
+            "routeVersion包含全eligible列表，响应保序16项；不能只对已选项CAS漏掉原不eligible变可用。"
           ],
           "errors": [
             {
@@ -3936,7 +3937,8 @@
             "读取完整模型安全元数据及供应方enabled/version/credentialVersion/epoch和附加头引用元数据，不SELECT供应方URL或密文正文。",
             "缺模型、停用、有效能力不符、active凭据版本0或材料缺行返回eligible=false；模型/供应方/凭据异代VERSION_MISMATCH、缺供应方或损坏字段/长度INTEGRITY_ERROR、SQL未知失败关闭。",
             "凭据只查data_epoch和nonce/ciphertext长度，12字节nonce与大于16字节密文仅表示材料具备；不表示能解密、供应方在线或派发引用已持久获取。",
-            "明确源身份的公开目录实际更新，manualOverride优先，不猜接口/凭据/空间。catalogRef双列同步读写，旧空值不猜填，固定路线快照保留源引用。"
+            "明确源身份的公开目录实际更新，manualOverride优先，不猜接口/凭据/空间。catalogRef双列同步读写，旧空值不猜填，固定路线快照保留源引用。",
+            "生产方给完整Model不透明快照hash；仅embedding附真实五字段空间；明确脱密的缺key模型不eligible，普通坏材料仍失败。"
           ],
           "errors": [
             {
@@ -3993,9 +3995,94 @@
           "concurrency": "同一严格当前epoch只读SQL事务；纯计算不检查ctx，不做网络IO。",
           "idempotency": "纯读取/计算可重复，无回执或费用写入。",
           "dependencies": [
-            "model-gateway.availabilityReadError"
+            "model-gateway.availabilityReadError",
+            "model-gateway.ModelSnapshotHash",
+            "model-gateway.ModelEmbeddingSpace",
+            "model-gateway.IsRedactedMaterial"
           ],
           "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.SelectCandidatesInTransaction",
+          "name": "SelectCandidatesInTransaction",
+          "signature": "func SelectCandidatesInTransaction(ctx context.Context, op OperationContext, tx *sql.Tx, input ResolveRouteInput) (ResolveRouteResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "生产方免费固定路线及接受事务一致性支持",
+          "steps": [
+            "仅task真实owner纯服务/原可信costClass和当前epoch读取，不产生费用；在同一真实SQL快照解析完整eligible列表，返回原opaque Model hash与embedding真实空间。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。"
+          },
+          "concurrency": "单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接",
+          "idempotency": "固定watermark/cursor重放原历史页，新写不失效原上界",
+          "dependencies": [
+            "model-gateway.ResolveProfile",
+            "model-gateway.readRouteCandidate"
+          ],
+          "resources": [
+            "本域append-only统计历史/原冻结调用和尝试"
+          ],
           "contract": "reference"
         }
       ]
@@ -4106,6 +4193,194 @@
             "model-gateway.SelectCandidates"
           ],
           "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.ResolveTaskRoute",
+          "name": "ResolveTaskRoute",
+          "signature": "func ResolveTaskRoute(ctx context.Context, op OperationContext, input ResolveRouteInput) (ResolveRouteResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "ResolveRouteInput",
+              "description": "封闭业务输入；逐字段见types $defs/CreateInvocationInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ResolveRouteResult",
+              "description": "成功结果；逐字段见types $defs/CreateInvocationResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "生产方免费固定路线及接受事务一致性支持",
+          "steps": [
+            "仅task真实owner纯服务/原可信costClass和当前epoch读取，不产生费用；在同一真实SQL快照解析完整eligible列表，返回原opaque Model hash与embedding真实空间。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "页大小不在1至100。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "不是analytics纯服务或当前实际站点不匹配。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "固定统计上界/签名游标不存在、过期或绑定已改变。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只允许AITaskCatalog已登记owner纯服务；TaskID owner及body costClass等可信op，免费读取不扩收费授权。"
+          },
+          "concurrency": "单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接",
+          "idempotency": "固定watermark/cursor重放原历史页，新写不失效原上界",
+          "dependencies": [
+            "model-gateway.ResolveRoute"
+          ],
+          "resources": [
+            "本域append-only统计历史/原冻结调用和尝试"
+          ],
+          "contract": "binding"
+        },
+        {
+          "id": "model-gateway.NewRouteHandlers",
+          "name": "NewRouteHandlers",
+          "signature": "func NewRouteHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "生产方免费固定路线及接受事务一致性支持",
+          "steps": [
+            "仅task真实owner纯服务/原可信costClass和当前epoch读取，不产生费用；在同一真实SQL快照解析完整eligible列表，返回原opaque Model hash与embedding真实空间。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。"
+          },
+          "concurrency": "单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接",
+          "idempotency": "固定watermark/cursor重放原历史页，新写不失效原上界",
+          "dependencies": [
+            "model-gateway.ResolveTaskRoute"
+          ],
+          "resources": [
+            "本域append-only统计历史/原冻结调用和尝试"
+          ],
           "contract": "reference"
         }
       ]
@@ -4849,7 +5124,8 @@
             "恢复历史投影只读及人工费用结算，不新派发旧调用或恢复旧准入scope。",
             "原创建键索引和accepted/回执同事务；新创建前也核完整tracking，避旧SDK绕过lookup重付。",
             "共享AcceptPreparedInvocation原子接受持久化，不改变原task owner/QA/background/route授权与tracking门禁。",
-            "保留既有memory.assistant+owner memory的已明确批准admin-probe AI任务；仍用真实profile，不当私有portal连接probe。其他公开创建仍仅原QA/background owner，不扩大匿名或scope。"
+            "保留既有memory.assistant+owner memory的已明确批准admin-probe AI任务；仍用真实profile，不当私有portal连接probe。其他公开创建仍仅原QA/background owner，不扩大匿名或scope。",
+            "若expectedRouteVersion/expectedPriceSnapshots提供，接受写事务内完整重算含此前被过滤/禁用项的eligible列表并比较真实routeVersion；同事务逐候选复读真实当前priceSnapshotId，期待列表必须非空唯一并与整有序候选一一同序相同。预读和仅选中CAS不替此条件。"
           ],
           "errors": [
             {
@@ -4936,7 +5212,9 @@
             "model-gateway.ValidateInputModel",
             "model-gateway.ResolveRoute",
             "model-gateway.RequireInvocationLookupTracking",
-            "model-gateway.AcceptPreparedInvocation"
+            "model-gateway.AcceptPreparedInvocation",
+            "model-gateway.SelectCandidatesInTransaction",
+            "model-gateway.ReadPriceSnapshotInTransaction"
           ],
           "resources": [],
           "contract": "binding"
@@ -17221,7 +17499,8 @@
             "model-gateway.ReadGatewaySiteID",
             "model-gateway.ReadUsageStatisticsPage",
             "model-gateway.Store.SetDataEpoch",
-            "model-gateway.GatewaySnapshotConfig"
+            "model-gateway.GatewaySnapshotConfig",
+            "model-gateway.NewRouteHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",

@@ -87,3 +87,5 @@ POST /v1/tokenizations仅knowledge纯服务。输入modelId与原始text，最�
 公开目录来源收口：本次用户已批准models.dev MIT原始公开JSON固定编译快照，内容版本sha256:80a19a3c78de1a7b0eb0a72e13e44df21180f0681d6cdf1dbd4c4c345fae3fb6。远端不可用优先保最近当前代持久源，无持久源才使用bundled；响应source/sourceVersion及降级fallback明确实际来源。人工覆盖优先、无catalogRef旧行保留；没有每次固定费用事实仍未知，不补0。原许可与精确来源随模块，第三方总登记由根统一。
 
 连接探测由当前superadmin明确按钮批准一次，独立admin-probe lane和dailyProbeLimit（日界UTC，缺失按本次用户明确默认0不限），QA/background分别记账。内部request_json仅固定诊断内容，不造AI task/profile/guard许可；profile_json以kind=admin-probe/schemaVersion=1保存已批准主体/权限修订，原executionHash完整覆盖。TaskGroup与原invocation/attempt/费用/引用/evidence链复用，一模型一attempt，无任何自动收费重试；未知费用继续held。ReadAdminCatalog.lastProbe仅真实最近原调用/冻结版本/实际响应耗时，无历史省略。
+
+免费POST /v1/task-routes:resolve仅真实task owner纯服务/当前实际site+epoch读取。RouteCandidate包含生产方opaque ModelSnapshotHash和embedding真实五字段空间。Create可选expectedRouteVersion和同序完整expectedPriceSnapshots；接受写事务完整重新解析eligible（含原不eligible变可用），再同事务复读各候选真实价目ID；不匹配STALE_RESULT，不先付费或自动替换批准事实。

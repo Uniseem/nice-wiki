@@ -17,6 +17,7 @@ import (
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	"nice-wiki/modules/model-gateway/internal/invocation"
+ "nice-wiki/modules/model-gateway/internal/routing"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/security"
 	"nice-wiki/modules/model-gateway/internal/tokens"
@@ -114,6 +115,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	usageCallers := append(append([]string{}, assignmentCallers...), "analytics")
 	usageServices := append(append([]string{}, assignmentCallers[1:]...), "analytics")
 	handlers := catalog.NewTaskAvailabilityHandlers(authorize)
+ for operationID,handler:=range routing.NewRouteHandlers(){handlers[operationID]=handler}
 	for operationID, handler := range invocation.NewExecutionHandlers() {
 		handlers[operationID] = handler
 	}
@@ -156,9 +158,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		OpenedDataEpoch: runtimeView.DataEpoch,
 		Authorize:       authorize,
-		ServiceActorCallers: map[string][]string{"tokenizeText": {"knowledge"}, "lookupInference": assignmentCallers[1:],
+		ServiceActorCallers: map[string][]string{"resolveTaskRoute": assignmentCallers[1:],"tokenizeText": {"knowledge"}, "lookupInference": assignmentCallers[1:],
 			"createInference": assignmentCallers[1:], "readUsageStatisticsPage": {"analytics"}, "quoteCost": assignmentCallers[1:], "cancelInference": assignmentCallers[1:], "queryUsage": usageServices, "readModels": assignmentCallers[1:], "readProfiles": assignmentCallers[1:], "readInference": assignmentCallers[1:], "resumeInference": assignmentCallers[1:]},
 		AllowedCallers: map[string][]string{
+ "resolveTaskRoute": assignmentCallers[1:],
    "readUsageStatisticsPage": {"analytics"},
 			"lookupInference":      assignmentCallers[1:],
 			"getLedger":            {"portal"},

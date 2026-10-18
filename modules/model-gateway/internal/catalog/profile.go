@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sort"
 	"time"
+ "strconv"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/outbox"
@@ -41,6 +42,8 @@ type RouteCandidate struct {
 	Model             Model `json:"model"`
 	ProviderVersion   int   `json:"providerVersion"`
 	CredentialVersion int   `json:"credentialVersion"`
+ ModelSnapshotHash string `json:"modelSnapshotHash"`
+ EmbeddingSpace *EmbeddingSpace `json:"embeddingSpace,omitempty"`
 }
 
 type ResolveRouteResult struct {
@@ -359,12 +362,19 @@ func SelectCandidates(ctx context.Context, op OperationContext, input ResolveRou
 		return ResolveRouteResult{}, err
 	}
 	defer snapshot.tx.Rollback()
+ return SelectCandidatesInTransaction(ctx,op,snapshot.tx,input)
+}
+
+// SelectCandidatesInTransaction供实际接受写事务重算完整候选资格，避免预读过滤结果发生变化。
+func SelectCandidatesInTransaction(ctx context.Context,op OperationContext,tx *sql.Tx,input ResolveRouteInput)(ResolveRouteResult,error){
+ snapshot:=&availabilitySnapshot{tx:tx,epoch:op.DataEpoch}
 	resolved, err := ResolveProfile(ctx, op, snapshot, input)
 	if err != nil {
 		return ResolveRouteResult{}, err
 	}
 	result := ResolveRouteResult{Resolved: resolved, Candidates: make([]RouteCandidate, 0, 16)}
 	var spaceID platform.Hash
+ eligibleCandidates:=[]RouteCandidate{}
 	for _, modelID := range resolved.OrderedModelIds {
 		candidate, eligible, err := readRouteCandidate(ctx, snapshot, modelID, resolved.RequiredCapabilities)
 		if err != nil {
@@ -383,6 +393,7 @@ func SelectCandidates(ctx context.Context, op OperationContext, input ResolveRou
 			}
 			spaceID = candidateSpace
 		}
+		eligibleCandidates=append(eligibleCandidates,candidate)
 		// 后续候选仍须完成同代/完整性与嵌入空间检查，不能先截断配置。
 		if len(result.Candidates) < 16 {
 			result.Candidates = append(result.Candidates, candidate)
@@ -395,7 +406,7 @@ func SelectCandidates(ctx context.Context, op OperationContext, input ResolveRou
 		DataEpoch  platform.Identifier  `json:"dataEpoch"`
 		Resolved   ResolveProfileResult `json:"resolved"`
 		Candidates []RouteCandidate     `json:"candidates"`
-	}{snapshot.epoch, resolved, result.Candidates})
+	}{snapshot.epoch, resolved, eligibleCandidates})
 	if err != nil {
 		return ResolveRouteResult{}, platform.NewError(platform.CodeInternal, false, "路线版本摘要编码失败")
 	}
@@ -485,11 +496,10 @@ func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, mod
 	if credentialEpoch != snapshot.epoch {
 		return RouteCandidate{}, false, platform.NewError(platform.CodeVersionMismatch, false, "凭据引用代次已变化")
 	}
-	if nonceBytes != 12 || ciphertextBytes <= 16 {
-		return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "凭据引用材料不完整")
-	}
+	if nonceBytes != 12 || ciphertextBytes <= 16 {redacted,e:=gatewayruntime.IsRedactedMaterial(ctx,snapshot.tx,"credential",model.ProviderId+"|"+strconv.FormatInt(credentialVersion.Int64,10));if e!=nil{return RouteCandidate{},false,e};if redacted&&nonceBytes==0&&ciphertextBytes==0{return RouteCandidate{},false,nil};return RouteCandidate{},false,platform.NewError(platform.CodeIntegrityError,false,"凭据引用材料不完整")}
 	candidate.ProviderVersion = int(providerVersion.Int64)
 	candidate.CredentialVersion = int(credentialVersion.Int64)
+candidate.ModelSnapshotHash,err=gatewayruntime.ModelSnapshotHash(candidate.Model);if err!=nil{return RouteCandidate{},false,err};if hasGrant(model.Capabilities,"embedding"){space,e:=ModelEmbeddingSpace(candidate.Model);if e!=nil{return RouteCandidate{},false,e};candidate.EmbeddingSpace=&space}
 	return candidate, true, nil
 }
 

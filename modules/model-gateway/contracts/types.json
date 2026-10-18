@@ -1457,7 +1457,7 @@
         },
         "routeVersion": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "epoch、解析配置和最终候选版本按固定JSON字段顺序SHA256"
+          "description": "epoch/完整解析配置/全eligible候选冻结版本的规范hash；返回候选仍按保序最多16，配置资格变化接受事务严格检测"
         }
       },
       "required": [
@@ -1606,6 +1606,19 @@
         "languageSuggestionApprovalId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "仅localization.suggest+background必需，其他任务禁止。每次新attempt前与派发前读取localization持久管理员批准，停用/换版失败关闭。"
+        },
+        "expectedRouteVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "批准计划的实际routeVersion；接受事务完整重算eligible候选，缺省兼容旧调用"
+        },
+        "expectedPriceSnapshots": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/ExpectedPriceSnapshot"
+          },
+          "description": "按完整实际ordered candidates一一同序固定原报价，接受事务复读原真实priceSnapshotId相等；modelId唯一"
         }
       },
       "required": [
@@ -4498,12 +4511,21 @@
           "minimum": 1,
           "maximum": 9007199254740991,
           "description": "active凭据版本，仅元数据引用"
+        },
+        "modelSnapshotHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "生产方既有不透明完整Model规范快照hash，消费者不可自行推导"
+        },
+        "embeddingSpace": {
+          "$ref": "#/$defs/EmbeddingSpace",
+          "description": "embedding实际五字段空间；非embedding省略"
         }
       },
       "required": [
         "model",
         "providerVersion",
-        "credentialVersion"
+        "credentialVersion",
+        "modelSnapshotHash"
       ],
       "description": "免费路线候选；未获取持久派发引用，不表示凭据可解密。"
     },
@@ -5509,6 +5531,22 @@
         "modelVersion",
         "credentialVersion",
         "createdAt"
+      ]
+    },
+    "ExpectedPriceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "priceSnapshotId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "modelId",
+        "priceSnapshotId"
       ]
     }
   }
