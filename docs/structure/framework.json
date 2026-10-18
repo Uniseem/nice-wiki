@@ -634,6 +634,11 @@
       "purpose": "首批并行实施、实际GitLab检查与待推送记录"
     },
     {
+      "path": "docs/push-log/2026-10-18-0002.md",
+      "kind": "documentation",
+      "purpose": "75%阶段目标、GitLab检查与源码双推实际记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"

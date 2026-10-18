@@ -1,3 +1,11 @@
+# 2026-10-18 第二批集成检查通过并已双推源码
+
+自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。
+
+本域本轮精确清单90项记verified，模块当前91 verified、1 implemented；accepted=0。源码交付 `3deb8ba9cd394ec43274999eaf4f5e0484e224ae` 已普通双推并核对两个远程main一致；本结果记录在同次授权下复查同步。完整服务装配、恢复与其余具体未完项继续按台账blocked/planned，不以编译通过代替业务验收。模块代理均已冻结。
+
+以下为历史记录，其中待CI/真实设计阻塞以最新逐项台账为准。
+
 最终只读复核窄修（2026-10-18）：源码4a1e596d499a9ba387a7294d77b443c986e4f7d5与60d2172bd00f973bc5dd3c7cc6b6c27d05677231。修复ReadTranslationResult.units应为10000、受保护machine不得冒称human、重编号投影65536字符预算，以及稳定anchor下无ID inline插入导致旧数组路径误归属。当前真实保护节点即使全部text消失仍核非稳定树形，不从更旧对象补最新anchor已移除字段。新增1个实际helper ProtectedAnchorShape，总计32个既有/修改业务函数+58助手；本批待统一GitLab CI。body/bodyHash经canonical目标还原与16MiB限制；completed仅计无原文回退单元，review但完整翻译允许completed且partial=false，partial有对应noticeKey；fileRef只写真权威引用，即时派生省略；PreviousTargetText可选，投影不伪造旧父整段。仅Git差异/源码与合同只读复核，无本地Go/gen/检查/测试/真实调用。继续冻结。
 
 ## 冻结交付：稳定节点保护投影

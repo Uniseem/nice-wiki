@@ -1,3 +1,11 @@
+# 2026-10-18 第二批集成检查通过并已双推源码
+
+自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。
+
+本域本轮精确清单88项记verified，模块当前88 verified、0 implemented；accepted=0。源码交付 `3deb8ba9cd394ec43274999eaf4f5e0484e224ae` 已普通双推并核对两个远程main一致；本结果记录在同次授权下复查同步。完整服务装配、恢复与其余具体未完项继续按台账blocked/planned，不以编译通过代替业务验收。模块代理均已冻结。
+
+以下为历史记录，其中待CI/真实设计阻塞以最新逐项台账为准。
+
 # 免费会话准入冻结窄修
 
 源码 `77c450c`：qa.conversation仍需guard人机验证/分配/持久消费/verify原root，但输入及消费回执token均为空；qa.ask/followup必须消费非空签名token，付费分支不放松。CreateConversation核原root/owner/site/epoch，首次提交与同输入回放均在结束事务后幂等释放原guard占位；释放失败保留原会话回执，重放补释放而不重新消费或创建。没有模型调用，没有新增命名助手，仍88项ready。

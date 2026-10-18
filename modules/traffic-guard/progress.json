@@ -7,178 +7,178 @@
   "assignedSession": "风控三批源码交付冻结，由根统一GitLab与双推",
   "branch": "codex/traffic-guard-20261018-bulk",
   "baseCommit": "0a69a5a5d7f903cc411d7556f5c3a6269b5db5c2",
-  "deliveryCommit": "f5f036b",
+  "deliveryCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
   "deployment": "not_started",
   "files": [
     {
       "path": "modules/traffic-guard/internal/policy.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "含待编译或尚planned职责，完整服务仍失败关闭。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/subject.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "含待编译或尚planned职责，完整服务仍失败关闭。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/classification.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/signals.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/risk.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/bucket.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/bucket_store.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/permit_store.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/permit_sign.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "含待编译或尚planned职责，完整服务仍失败关闭。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/http_admission.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "含待编译或尚planned职责，完整服务仍失败关闭。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/sweeper.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/challenge.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/pow.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/captcha.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/ban_store.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/events.go",
@@ -192,23 +192,23 @@
     },
     {
       "path": "modules/traffic-guard/internal/outbox.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/retention.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/barrier.go",
@@ -272,43 +272,43 @@
     },
     {
       "path": "modules/traffic-guard/internal/question_signals.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/session_queue.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "含待编译或尚planned职责，完整服务仍失败关闭。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/admission_consumption.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/http_verify.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "含待编译或尚planned职责，完整服务仍失败关闭。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/config/defaults.json",
@@ -522,13 +522,13 @@
     },
     {
       "path": "modules/traffic-guard/internal/queries.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第一批源码待统一GitLab；同文件旧未改函数保留既有验证。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；文件内若有剩余planned职责仍不代表完整服务。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/migrations/0002_login_protection.sql",
@@ -542,23 +542,23 @@
     },
     {
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "含待编译或尚planned职责，完整服务仍失败关闭。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/internal/http_management.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待统一GitLab；同文件旧未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待编译；完整服务及仍planned职责不计完成。"
+      "blocker": null
     },
     {
       "path": "modules/traffic-guard/migrations/0003_guard_runtime.sql",
@@ -575,299 +575,299 @@
     {
       "id": "traffic-guard.ValidatePolicy",
       "path": "modules/traffic-guard/internal/policy.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.GetPolicy",
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.UpdatePolicy",
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.DeriveSubject",
       "path": "modules/traffic-guard/internal/subject.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ClassifyAction",
       "path": "modules/traffic-guard/internal/classification.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.LoadSignals",
       "path": "modules/traffic-guard/internal/signals.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ComputeRisk",
       "path": "modules/traffic-guard/internal/risk.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.RefillBucket",
       "path": "modules/traffic-guard/internal/bucket.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ConsumeBuckets",
       "path": "modules/traffic-guard/internal/bucket_store.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.AcquireConcurrency",
       "path": "modules/traffic-guard/internal/permit_store.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.RenewPermit",
       "path": "modules/traffic-guard/internal/permit_store.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ReleasePermit",
       "path": "modules/traffic-guard/internal/permit_store.go",
-      "state": "blocked",
-      "implementationCommit": "2e3074d",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.SignPermit",
       "path": "modules/traffic-guard/internal/permit_sign.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ValidatePermit",
       "path": "modules/traffic-guard/internal/permit_sign.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.EvaluateAdmission",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.HandleAdmission",
       "path": "modules/traffic-guard/internal/http_admission.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ExpireLeases",
       "path": "modules/traffic-guard/internal/sweeper.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ExpireBans",
       "path": "modules/traffic-guard/internal/sweeper.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.IssueChallenge",
       "path": "modules/traffic-guard/internal/challenge.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.VerifyChallenge",
       "path": "modules/traffic-guard/internal/challenge.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.VerifyPoW",
       "path": "modules/traffic-guard/internal/pow.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.VerifyExternalChallenge",
       "path": "modules/traffic-guard/internal/captcha.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.CheckBan",
       "path": "modules/traffic-guard/internal/permit_store.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.CreateBan",
       "path": "modules/traffic-guard/internal/ban_store.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.RevokeBan",
       "path": "modules/traffic-guard/internal/ban_store.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ListBans",
       "path": "modules/traffic-guard/internal/ban_store.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ConsumeIdentityEvent",
       "path": "modules/traffic-guard/internal/events.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ConsumeEvents",
@@ -883,24 +883,24 @@
     {
       "id": "traffic-guard.PublishGuardEvents",
       "path": "modules/traffic-guard/internal/outbox.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.PurgeAnonymousSignals",
       "path": "modules/traffic-guard/internal/retention.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.EnterBarrier",
@@ -993,46 +993,46 @@
     {
       "id": "traffic-guard.ReportQuestionSignals",
       "path": "modules/traffic-guard/internal/question_signals.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.QueueSessionAdmission",
       "path": "modules/traffic-guard/internal/session_queue.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.ConsumeAdmission",
       "path": "modules/traffic-guard/internal/admission_consumption.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.VerifyAdmissionHTTP",
       "path": "modules/traffic-guard/internal/http_verify.go",
-      "state": "blocked",
-      "implementationCommit": "e61d899",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.All",
@@ -1125,13 +1125,13 @@
     {
       "id": "traffic-guard.ListRiskEvents",
       "path": "modules/traffic-guard/internal/queries.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.BeginLoginAttempt",
@@ -1158,13 +1158,13 @@
     {
       "id": "traffic-guard.OpenPolicyStore",
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.WithPolicyStore",
@@ -1323,255 +1323,255 @@
     {
       "id": "traffic-guard.createNetworkBan",
       "path": "modules/traffic-guard/internal/ban_store.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.WithGuardRuntime",
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.beginGuardTransaction",
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.guardTransaction.close",
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.guardTransaction.commit",
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.authorizeGuardManagement",
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.readGuardReceipt",
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.saveGuardReceipt",
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.enqueueGuardEvent",
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "2026-10-18第一批源码交付，等待根统一GitLab生成/格式/readonly build/vet/check；未本机运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待根统一GitLab编译与结构检查，未记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.readGuardPolicy",
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.NewGuardHandlers",
       "path": "modules/traffic-guard/internal/http_management.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.networkPolicyRate",
       "path": "modules/traffic-guard/internal/policy.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.deriveSessionScopes",
       "path": "modules/traffic-guard/internal/subject.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.readPermitRecord",
       "path": "modules/traffic-guard/internal/permit_store.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.permitMetadata",
       "path": "modules/traffic-guard/internal/permit_store.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.recordAdmissionDenial",
       "path": "modules/traffic-guard/internal/admission.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.admissionRateError.Error",
       "path": "modules/traffic-guard/internal/http_admission.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.admissionRateError.Unwrap",
       "path": "modules/traffic-guard/internal/http_admission.go",
-      "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab；未提前implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.readChallengeRecord",
       "path": "modules/traffic-guard/internal/challenge.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.readChallengeSnapshot",
       "path": "modules/traffic-guard/internal/challenge.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.checkIssuedChallenge",
       "path": "modules/traffic-guard/internal/challenge.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.challengeNonce",
       "path": "modules/traffic-guard/internal/challenge.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     },
     {
       "id": "traffic-guard.challengeResult",
       "path": "modules/traffic-guard/internal/challenge.go",
-      "state": "blocked",
-      "implementationCommit": "f5f036b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第三批源码待根GitLab gen/docs、readonly build/vet/gofmt及完整check；未本机执行Go或真实接口。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "待统一GitLab，不提前记implemented/verified。"
+      "blocker": null
     }
   ],
   "rule": "三批累计32个原有主业务函数已有完整源码；ConsumeEvents因公共窄接口及准确退出统计缺口保持partial，未用NormalizePeer参考助手已删除，CheckBan合并为唯一实际函数。所有本轮新增/修改仍blocked待根GitLab，旧未改证据保留。完整启动/恢复装配与业务验收未齐，accepted为0。按根要求冻结，不扩功能、不push。"

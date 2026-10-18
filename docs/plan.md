@@ -1,5 +1,7 @@
 # 重建计划
 
+2026-10-18最终批次：1774个函数中1342个完成（1288 verified、54 implemented，75.6%）；planned386、in_progress13、blocked33，accepted=0。 源码3deb8ba9cd394ec43274999eaf4f5e0484e224ae已通过pipeline70/71并普通双推；本结果记录复查后同步。75%阶段目标已达到，停止本轮新功能扩展。R1仍未整体完成，业务验收及部署未开始。
+
 2026-10-18首批：首批 GitLab pipeline60 全部通过，1628 个函数中 1100 个完成（1043 verified、57 implemented，67.6%），planned478、in_progress14、blocked36，accepted为0。公开站点、知识检索、长期记忆及公共模型适配首批已检查；完整服务、复杂译文与资源投影仍未齐。用户最新要求及时检查和push，持续向75%推进；本批生成零漂移复核后普通双推，后续批次不等75%再检查。
 
 当前第三轮本地合入（2026-10-17）：pipeline 53（`83a435f322da98035cbe71319aee2ea8914a4534`）生成补丁为 0，三个编译分片成功，并已普通双推。analytics.BucketLatency、analytics.CheckPrivacyFields、public-site.BuildTOC、media.PutUploadChunk 记 verified。portal.EmitAccessAudit 与 analytics.RedactAuditMetadata 保持 blocked。894/1516 函数完成（836 verified、58 implemented，59.0%），planned 574、blocked 34，accepted 为零。用户要求推送后停止持续编写，R1 仍未完成。本记录提交在隔离检查通过且生成补丁为 0 后双推。
@@ -56,7 +58,7 @@
 | R1-15 | localization | R1-12、R1-13 | 启用估价、增量翻译、人工保护、术语、界面字符串、语言建议 |
 | R1-16 | qa | R1-14、R1-15 | 准入后问答、缓存、引用、压缩、调试台、问答记录 |
 
-实现尺度按ADR0006（2026-10-15用户确认）：边界一次校验、内部信任输入、不写防御性冗余、默认不写测试。libs/platform已提供统一请求校验中间件`apivalidate.NewRequestValidator`（kin-openapi，基于生成代码内嵌规格）与运行状态客户端`lifecycle.NewSiteConfigClient`；各域HTTP绑定工作包在transport装配校验中间件，不在函数内逐个补schema校验。Go代码记implemented前须`make build`通过，合并前集成会话在VPS编译并逐个审查逻辑；VPS不可用则blocked，未经用户当次授权不回退本机。
+实现尺度按ADR0006（2026-10-15用户确认）：边界一次校验、内部信任输入、不写防御性冗余、默认不写测试。libs/platform已提供统一请求校验中间件`apivalidate.NewRequestValidator`（kin-openapi，基于生成代码内嵌规格）与运行状态客户端`lifecycle.NewSiteConfigClient`；各域HTTP绑定工作包在transport装配校验中间件，不在函数内逐个补schema校验。Go代码记implemented前须`make build`通过，合并前集成会话通过自部署GitLab三个并行分片执行16个Go模块readonly build/vet/gofmt、普通测试与完整make check，并逐个审查逻辑；GitLab不可用则blocked，未经用户当次授权不回退本机或SSH编译。
 
 每个包：先读根与模块规格并核对 Git 事实；只做本包所有权内文件；新增或修改测试、真实接口与模型调用、部署均按 AGENTS 另行确认；交付提交同步合同、台账与交接。
 

@@ -7,7 +7,7 @@
   "assignedSession": "R1-QA语义缓存及轮次终态第三批",
   "branch": "codex/qa-20261018-bulk",
   "baseCommit": "82179b907d25a546e9f470a1fb9cf1584ab45088",
-  "deliveryCommit": "77c450c9d8f0a210137a811a75c046a8591ecc7b",
+  "deliveryCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
   "deployment": "not_started",
   "files": [
     {
@@ -32,23 +32,23 @@
     },
     {
       "path": "modules/qa/internal/conversation/create.go",
-      "state": "blocked",
-      "implementationCommit": "77c450c9d8f0a210137a811a75c046a8591ecc7b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "免费准入及提交后释放窄修已提交，待根GitLab验证"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab及guard同批免费动作合同"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/conversation/read.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/turn/start.go",
@@ -62,83 +62,83 @@
     },
     {
       "path": "modules/qa/internal/admission/permit.go",
-      "state": "blocked",
-      "implementationCommit": "77c450c9d8f0a210137a811a75c046a8591ecc7b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "免费准入及提交后释放窄修已提交，待根GitLab验证"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab及guard同批免费动作合同"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/normalize/question.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/turn/context.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/cache/exact.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/cache/semantic.go",
-      "state": "blocked",
-      "implementationCommit": "5fce957fbffda993224616ab448129aec4baa171",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/cache/validate.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/answer/retrieve.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/answer/prompt.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/answer/generate.go",
@@ -152,63 +152,63 @@
     },
     {
       "path": "modules/qa/internal/answer/citation.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/stream/store.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/stream/read.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/turn/complete.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/turn/cancel.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/feedback/feedback.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/cache/curation.go",
@@ -232,23 +232,23 @@
     },
     {
       "path": "modules/qa/internal/cache/invalidate.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/admin/cache.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/cache/translation.go",
@@ -272,13 +272,13 @@
     },
     {
       "path": "modules/qa/internal/history/commit.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/debug/create.go",
@@ -292,23 +292,23 @@
     },
     {
       "path": "modules/qa/internal/debug/read.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/conversation/delete.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/runtime/recovery.go",
@@ -322,23 +322,23 @@
     },
     {
       "path": "modules/qa/internal/events/outbox.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/runtime/prune.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/protection/protocol.go",
@@ -382,33 +382,33 @@
     },
     {
       "path": "modules/qa/internal/context/preflight.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/cache/eligibility.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/cache/query-embedding.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/answer/inspect.go",
@@ -422,13 +422,13 @@
     },
     {
       "path": "modules/qa/internal/cache/automatic.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/cache/localized.go",
@@ -442,13 +442,13 @@
     },
     {
       "path": "modules/qa/internal/admin/calibration.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/runtime/worker.go",
@@ -632,13 +632,13 @@
     },
     {
       "path": "modules/qa/internal/runtime/model_client.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/turn/execute.go",
@@ -692,23 +692,23 @@
     },
     {
       "path": "modules/qa/internal/admin/records.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     },
     {
       "path": "modules/qa/internal/admin/policy.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": null
     }
   ],
   "functions": [
@@ -726,276 +726,276 @@
     {
       "id": "qa.NewRuntime",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.WithRuntime",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.FromContext",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.DecodeResponse",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.StorageError",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.RequireAdmin",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.Transaction.Close",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.Transaction.Commit",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.BeginRead",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.BeginWrite",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.beginTransaction",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ReplayReceipt",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.SaveReceipt",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ReadPolicy",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ReadConversation",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ReadTurn",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.IsTerminal",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.CheckTurnLease",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.SaveTurn",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ServiceReadContext",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ReadPublishedDocument",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ValidateCitations",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.PublicationFingerprint",
       "path": "modules/qa/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ResolveTaskMemory",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/runtime/bootstrap.go"
     },
     {
       "id": "qa.CursorActor",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/runtime/bootstrap.go"
     },
     {
@@ -1012,24 +1012,24 @@
     {
       "id": "qa.CreateConversation",
       "path": "modules/qa/internal/conversation/create.go",
-      "state": "blocked",
-      "implementationCommit": "77c450c9d8f0a210137a811a75c046a8591ecc7b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "免费会话窄修源码已提交；仅Git审阅和diff检查，等待根GitLab统一生成、格式、readonly build/vet及make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab；guard需同步免费qa.conversation消费保持空token及幂等释放"
+      "blocker": null
     },
     {
       "id": "qa.GetConversation",
       "path": "modules/qa/internal/conversation/read.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.StartTurn",
@@ -1045,233 +1045,233 @@
     {
       "id": "qa.ValidateAdmission",
       "path": "modules/qa/internal/admission/permit.go",
-      "state": "blocked",
-      "implementationCommit": "77c450c9d8f0a210137a811a75c046a8591ecc7b",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "免费会话窄修源码已提交；仅Git审阅和diff检查，等待根GitLab统一生成、格式、readonly build/vet及make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab；guard需同步免费qa.conversation消费保持空token及幂等释放"
+      "blocker": null
     },
     {
       "id": "qa.NormalizeQuestion",
       "path": "modules/qa/internal/normalize/question.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.validInputText",
       "path": "modules/qa/internal/normalize/question.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.normalizeWhitespace",
       "path": "modules/qa/internal/normalize/question.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.foldNaturalCase",
       "path": "modules/qa/internal/normalize/question.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.isProtectedToken",
       "path": "modules/qa/internal/normalize/question.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.hasSignificantUppercase",
       "path": "modules/qa/internal/normalize/question.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.extractAnchors",
       "path": "modules/qa/internal/normalize/question.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.isAnchorToken",
       "path": "modules/qa/internal/normalize/question.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ResolveTurnContext",
       "path": "modules/qa/internal/turn/context.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.LookupExactCache",
       "path": "modules/qa/internal/cache/exact.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ScopeHash",
       "path": "modules/qa/internal/cache/exact.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ReadCache",
       "path": "modules/qa/internal/cache/exact.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.SaveCache",
       "path": "modules/qa/internal/cache/exact.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.InsertCache",
       "path": "modules/qa/internal/cache/exact.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.EmitCacheChanged",
       "path": "modules/qa/internal/cache/exact.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.LookupSemanticCache",
       "path": "modules/qa/internal/cache/semantic.go",
-      "state": "blocked",
-      "implementationCommit": "5fce957fbffda993224616ab448129aec4baa171",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码字段拼写窄修已提交；等待根GitLab生成、readonly build/vet/gofmt及make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.cosineSimilarity",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/cache/semantic.go"
     },
     {
       "id": "qa.ValidateCachedAnswer",
       "path": "modules/qa/internal/cache/validate.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.RetrieveEvidence",
       "path": "modules/qa/internal/answer/retrieve.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.BuildAnswerPrompt",
       "path": "modules/qa/internal/answer/prompt.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.GenerateAnswer",
@@ -1287,123 +1287,123 @@
     {
       "id": "qa.ValidateCitation",
       "path": "modules/qa/internal/answer/citation.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.AppendAnswerEvent",
       "path": "modules/qa/internal/stream/store.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.SaveEvent",
       "path": "modules/qa/internal/stream/store.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ResumeAnswerStream",
       "path": "modules/qa/internal/stream/read.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.CompleteTurn",
       "path": "modules/qa/internal/turn/complete.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.replayCompletedTurn",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/turn/complete.go"
     },
     {
       "id": "qa.releaseTurnPermit",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/turn/complete.go"
     },
     {
       "id": "qa.CancelTurn",
       "path": "modules/qa/internal/turn/cancel.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.cancelTurnDependencies",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/turn/cancel.go"
     },
     {
       "id": "qa.RecordFeedback",
       "path": "modules/qa/internal/feedback/feedback.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ProposeCacheEntry",
       "path": "modules/qa/internal/cache/curation.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ApproveCacheEntry",
@@ -1419,13 +1419,13 @@
     {
       "id": "qa.DisableCacheEntry",
       "path": "modules/qa/internal/cache/curation.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.BuildCacheEmbedding",
@@ -1441,35 +1441,35 @@
     {
       "id": "qa.InvalidateCache",
       "path": "modules/qa/internal/cache/invalidate.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.EmitCacheInvalidated",
       "path": "modules/qa/internal/cache/invalidate.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ListCacheEntries",
       "path": "modules/qa/internal/admin/cache.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.TranslateCacheEntry",
@@ -1507,13 +1507,13 @@
     {
       "id": "qa.CommitCompaction",
       "path": "modules/qa/internal/history/commit.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.CreateDebugTurn",
@@ -1529,24 +1529,24 @@
     {
       "id": "qa.ReadDebugTurn",
       "path": "modules/qa/internal/debug/read.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.DeleteConversation",
       "path": "modules/qa/internal/conversation/delete.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.RecoverTurns",
@@ -1562,34 +1562,34 @@
     {
       "id": "qa.PublishOutbox",
       "path": "modules/qa/internal/events/outbox.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.PruneExpiredRecords",
       "path": "modules/qa/internal/runtime/prune.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.RedactConversation",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/runtime/prune.go"
     },
     {
@@ -1683,46 +1683,46 @@
     {
       "id": "qa.PlanQuestion",
       "path": "modules/qa/internal/context/preflight.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.EvaluateCacheEligibility",
       "path": "modules/qa/internal/cache/eligibility.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ineligible",
       "path": "modules/qa/internal/cache/eligibility.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.AcquireQueryEmbedding",
       "path": "modules/qa/internal/cache/query-embedding.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.InspectEvidence",
@@ -1738,13 +1738,13 @@
     {
       "id": "qa.WriteAutomaticCache",
       "path": "modules/qa/internal/cache/automatic.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.StoreLocalizedCacheAnswer",
@@ -1760,13 +1760,13 @@
     {
       "id": "qa.ReadCacheCalibration",
       "path": "modules/qa/internal/admin/calibration.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.RunWorker",
@@ -1848,78 +1848,78 @@
     {
       "id": "qa.NewOperationHandlers",
       "path": "modules/qa/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.jsonOperation",
       "path": "modules/qa/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.operationContext",
       "path": "modules/qa/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.writeResult",
       "path": "modules/qa/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.serveAnswerStream",
       "path": "modules/qa/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.answerEventStream.Next",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/transport/server.go"
     },
     {
       "id": "qa.answerEventStream.Close",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/transport/server.go"
     },
     {
@@ -1947,23 +1947,23 @@
     {
       "id": "qa.InvokeModel",
       "path": "modules/qa/internal/runtime/model_client.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ModelText",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/runtime/model_client.go"
     },
     {
@@ -1980,45 +1980,45 @@
     {
       "id": "qa.ListTurnRecords",
       "path": "modules/qa/internal/admin/records.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ReadTurnRecord",
       "path": "modules/qa/internal/admin/records.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ReadQaPolicy",
       "path": "modules/qa/internal/admin/policy.go",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": null
     },
     {
       "id": "qa.ReadPublicCapability",
-      "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "state": "verified",
+      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收",
+      "blocker": null,
       "path": "modules/qa/internal/admin/policy.go"
     }
   ],
