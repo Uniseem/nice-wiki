@@ -1,3 +1,11 @@
+# R1收尾：保护目录首批（2026-10-18）
+
+源码88cef9718165e87d431e36b327f23cb207792388，基线770ea1c。4个既有业务函数（ListBackups、ReadBackup、ReadMirrorStatus、VerifyObjectHash）和13个实际参考支持已写，均blocked待统一GitLab CI。active/control独立SQLite迁移及目录查询已接真实受信HTTP；游标签名复用platform，目录不存在真实NOT_FOUND，不伪造备份成功。原启动入口仍因journal/备份恢复/快照协议未齐blocked，accepted=0。
+
+只改本域，未push；未本地或SSH编译/格式/gen/测试/完整check、无真实接口/备份恢复/部署。git diff --check通过。复用仓库已批准modernc.org/sqlite v1.59.0，go.sum由统一GitLab命令生成，未手写。
+
+---
+
 # 数据保护当前进度
 
 更新：2026-10-17。阶段：implementation。启动入口已由 pipeline 48 编译，尚未验收，尚未部署。

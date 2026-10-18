@@ -2,12 +2,12 @@
   "version": 1,
   "module": "data-protection",
   "phase": "implementation",
-  "contractSha256": "97a61469c575aea0e0c3c341b8c8a70e358c8f480782de68e15a237a7df20c1f",
+  "contractSha256": "9c5ee1feca33c64e69181c1c193fc28598850910424c9ba3819bdf7821da13f6",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "data-protection启动（pipeline 48 已编译；备份协议未齐，启动函数仍 blocked）",
-  "branch": "codex/data-protection-20261017-r5",
-  "baseCommit": "a3e6af980d5288e42bc8d023410faf8923ff21e8",
-  "deliveryCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
+  "assignedSession": "R1收尾并行：数据保护独占",
+  "branch": "codex/finish-20261018-protection",
+  "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
+  "deliveryCommit": "88cef9718165e87d431e36b327f23cb207792388",
   "deployment": "not_started",
   "files": [
     {
@@ -62,13 +62,13 @@
     },
     {
       "path": "modules/data-protection/internal/integrity.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已交付，待统一GitLab CI生成/依赖锁定及readonly build/vet；完整服务未齐"
     },
     {
       "path": "modules/data-protection/internal/crypto.go",
@@ -82,13 +82,13 @@
     },
     {
       "path": "modules/data-protection/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已交付，待统一GitLab CI生成/依赖锁定及readonly build/vet；完整服务未齐"
     },
     {
       "path": "modules/data-protection/internal/download.go",
@@ -393,12 +393,12 @@
     {
       "path": "modules/data-protection/migrations/0001_domain.sql",
       "state": "blocked",
-      "implementationCommit": null,
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "implementation.json 只登记迁移文件用途，没有迁移执行器的约束级函数、签名和错误。缺合同就不猜测 SQL，本轮也没有打开私有库。"
+      "blocker": "源码已交付，待统一GitLab CI生成/依赖锁定及readonly build/vet；完整服务未齐"
     },
     {
       "path": "modules/data-protection/cmd/data-protection/main.go",
@@ -413,32 +413,32 @@
     {
       "path": "modules/data-protection/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。私有库迁移执行器、journal、激活回执所需的 stageId 与 manifestHash、outbox、事件订阅和 RunWorker 都未实现。换目录以及备份、恢复、镜像路由失败关闭，不用占位成功冒充联调。"
+      "blocker": "源码已交付，待统一GitLab CI生成/依赖锁定及readonly build/vet；完整服务未齐"
     },
     {
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。HTTP 监听和重复启动冲突已写。RunWorker 与 ExecuteBackup、ExecuteRestore 未实现，不启动会假装执行备份的循环。"
+      "blocker": "源码已交付，待统一GitLab CI生成/依赖锁定及readonly build/vet；完整服务未齐"
     },
     {
       "path": "modules/data-protection/go.mod",
-      "state": "implemented",
-      "implementationCommit": "b7eb1ce57bba8997a3fb6fa35fd705d3281df243",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第二轮根统一自部署GitLab CI pipeline 48，候选24ff6942329d68e0ff81d7f71d59e9b7e499c228：生成/格式/重复生成job212补丁0字节，三个并行编译分片job213/214/215全部success，覆盖本次新增的 data-protection 与 public-site 以及既有 Go 模块的 -mod=readonly build/vet/gofmt，foundation 分片运行完整 make check。pipeline 47 在 a50f4c4315f40c36b21ea45b7026236513ed0c80 编译通过，生成补丁 10300 字节已回传为父提交。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已交付，待统一GitLab CI生成/依赖锁定及readonly build/vet；完整服务未齐"
     },
     {
       "path": "modules/data-protection/go.sum",
@@ -589,6 +589,36 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/data-protection/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码已交付，待统一GitLab CI生成/依赖锁定及readonly build/vet；完整服务未齐"
+    },
+    {
+      "path": "modules/data-protection/migrations/0002_control.sql",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码已交付，待统一GitLab CI生成/依赖锁定及readonly build/vet；完整服务未齐"
+    },
+    {
+      "path": "modules/data-protection/migrations/embed.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码已交付，待统一GitLab CI生成/依赖锁定及readonly build/vet；完整服务未齐"
     }
   ],
   "functions": [
@@ -705,13 +735,13 @@
     {
       "id": "data-protection.VerifyObjectHash",
       "path": "modules/data-protection/internal/integrity.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "data-protection.ValidateCrossDomainRefs",
@@ -749,35 +779,35 @@
     {
       "id": "data-protection.ListBackups",
       "path": "modules/data-protection/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "data-protection.ReadBackup",
       "path": "modules/data-protection/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "data-protection.ReadMirrorStatus",
       "path": "modules/data-protection/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "data-protection.ReadProtectionSettings",
@@ -1256,12 +1286,12 @@
       "id": "data-protection.BuildApplication",
       "path": "modules/data-protection/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。私有库迁移执行器、journal、激活回执所需的 stageId 与 manifestHash、outbox、事件订阅和 RunWorker 都未实现。换目录以及备份、恢复、镜像路由失败关闭，不用占位成功冒充联调。"
+      "blocker": "本轮装配真实目录/关闭句柄；完整journal与备份恢复协议仍未齐，不能计完整就绪"
     },
     {
       "id": "data-protection.Serve",
@@ -1278,12 +1308,12 @@
       "id": "data-protection.Shutdown",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "blocked",
-      "implementationCommit": "d03bad4debb9ddb6ec830baa37794f4330396277",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "源码在 d03bad4debb9ddb6ec830baa37794f4330396277。pipeline 48 已编译该包。协议未齐，仍不记 implemented 或 verified。HTTP 优雅关闭已写。本阶段没有数据库、journal 或 outbox；关闭时不删除 control 记录，也不把未实现费用记为免费。"
+      "blocker": "本轮装配真实目录/关闭句柄；完整journal与备份恢复协议仍未齐，不能计完整就绪"
     },
     {
       "id": "data-protection.Health",
@@ -1328,7 +1358,176 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "id": "data-protection.NewApplication",
+      "path": "modules/data-protection/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.server.ListBackups",
+      "path": "modules/data-protection/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.server.ReadBackup",
+      "path": "modules/data-protection/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.server.ReadMirrorStatus",
+      "path": "modules/data-protection/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.OpenCatalog",
+      "path": "modules/data-protection/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.openDatabase",
+      "path": "modules/data-protection/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.applyMigration",
+      "path": "modules/data-protection/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.Store.Close",
+      "path": "modules/data-protection/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.InstallCatalog",
+      "path": "modules/data-protection/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.Catalog",
+      "path": "modules/data-protection/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.storageError",
+      "path": "modules/data-protection/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.requireAdministrator",
+      "path": "modules/data-protection/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "data-protection.PrivateObjectPath",
+      "path": "modules/data-protection/internal/store.go",
+      "state": "blocked",
+      "implementationCommit": "88cef9718165e87d431e36b327f23cb207792388",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     }
   ],
-  "rule": "启动入口与部署配置已提交，Go 函数因未编译保持 blocked，不得记 verified。accepted 保持 0。备份、恢复和镜像业务仍是 planned。"
+  "rule": "本轮首批4个既有业务函数和13个实际参考支持代码就绪待统一GitLab CI；完整备份/恢复/镜像及启动继续blocked/planned，不将目录空库或未实现路由误认为备份成功。保留根未改项既有CI证据。",
+  "readyAwaitingCI": {
+    "sourceCommits": [
+      "88cef9718165e87d431e36b327f23cb207792388"
+    ],
+    "existingBusinessFunctions": [
+      "data-protection.ListBackups",
+      "data-protection.ReadBackup",
+      "data-protection.ReadMirrorStatus",
+      "data-protection.VerifyObjectHash"
+    ],
+    "newReferenceHelpers": [
+      "data-protection.NewApplication",
+      "data-protection.server.ListBackups",
+      "data-protection.server.ReadBackup",
+      "data-protection.server.ReadMirrorStatus",
+      "data-protection.OpenCatalog",
+      "data-protection.openDatabase",
+      "data-protection.applyMigration",
+      "data-protection.Store.Close",
+      "data-protection.InstallCatalog",
+      "data-protection.Catalog",
+      "data-protection.storageError",
+      "data-protection.requireAdministrator",
+      "data-protection.PrivateObjectPath"
+    ]
+  }
 }

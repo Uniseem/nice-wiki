@@ -1,3 +1,19 @@
+# R1收尾：保护目录首批（2026-10-18）
+
+源码88cef9718165e87d431e36b327f23cb207792388，基线770ea1c。4个既有业务函数（ListBackups、ReadBackup、ReadMirrorStatus、VerifyObjectHash）和13个实际参考支持已写，均blocked待统一GitLab CI。active/control独立SQLite迁移及目录查询已接真实受信HTTP；游标签名复用platform，目录不存在真实NOT_FOUND，不伪造备份成功。原启动入口仍因journal/备份恢复/快照协议未齐blocked，accepted=0。
+
+只改本域，未push；未本地或SSH编译/格式/gen/测试/完整check、无真实接口/备份恢复/部署。git diff --check通过。复用仓库已批准modernc.org/sqlite v1.59.0，go.sum由统一GitLab命令生成，未手写。
+
+## 公共缺口及下一项
+
+根已接统一serveSnapshotArchive/平台屏障归档协议请求；SnapshotExportResult现无归档流获取能力，不能把ObjectRef猜成路径/URL。根批准32-byte本地可信KEK与1MiB分片AEAD容器V1，下一项在crypto.go与本域合同写精确格式后实现流封存/完整验证，不复制外部crypto源码。不以缺失refs返回valid=true；ManifestV1与各域真实归档引用格式待根统一。
+
+数据库：active/protection.db含目录/对象/镜像/配置与revision；control/protection-control.db含restore_runs/decisions/domain_stages/barrier/journal，永不随active恢复替换。每库user_version=1事务迁移，nw_inbox/outbox复用平台EnsureSchema。HTTP只实际开放已写目录函数，其余具体失败关闭；Ready仍明确未完成。query游标绑定稳定身份/session/权限修订/epoch/limit及目录revision，10分钟过期。
+
+精确ready IDs见progress.json.readyAwaitingCI。Git工作区此记录提交后应干净；根集成后执行gen/docs/依赖锁定与三分片检查，未过CI不得提升verified。
+
+---
+
 # 数据保护会话交接
 
 ## 本次事实
