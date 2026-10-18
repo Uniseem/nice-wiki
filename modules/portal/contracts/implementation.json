@@ -1090,7 +1090,8 @@
             "仅静态identity POST四操作适配认证；浏览器刷新严格空对象，从nw_refresh构造内部秘密正文后重算bytes/hash，匿名refresh不签用户proof",
             "登录/首次注册只用platform.PrivateNetworkScopes从真实socket及受信CIDR代理链派生当前+前一UTC日网络HMAC，更新受信op后由服务断言签入LoginNetworkScopes；不记录地址或接受浏览器scope",
             "认证响应统一Cache-Control:no-store；成功raw tokens只进入Secure HttpOnly SameSite=Strict host-only Path=/ cookie，浏览器body只保安全session/account/nextRoute；失败和敏感回执冲突不改已有cookie",
-            "当前设备撤销只用ResolveAuthContext的权威sessionId传入响应适配；非当前设备不删除cookie"
+            "当前设备撤销只用ResolveAuthContext的权威sessionId传入响应适配；非当前设备不删除cookie",
+            "匿名traffic-guard调用只从真实连接/部署信任链生成站点隔离30日预算范围；当前/前期预算key最多两把，未配置站点/key失败关闭，不用HTTP签名key默默替代预算pepper"
           ],
           "errors": [
             {
@@ -1146,7 +1147,8 @@
             "portal.EmitAccessAudit",
             "platform.PrivateNetworkScopes",
             "portal.authenticationOperation",
-            "portal.prepareAuthenticationRequest"
+            "portal.prepareAuthenticationRequest",
+            "platform.PrivateBudgetNetworkScopes"
           ],
           "resources": [],
           "contract": "binding"

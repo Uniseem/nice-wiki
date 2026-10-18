@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "8b686063ccb5c139670ccb7709c7c4bbdaf0758569953693ce025827e8833c5e",
+  "contractSha256": "8152133813eb3619443becc6b2a93c50df13ee575a580d7b67e8b824213a70e9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "traffic-guard集中policy/ban/匿名信号首批，继续准入许可与挑战",
   "branch": "codex/traffic-guard-20261018-bulk",

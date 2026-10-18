@@ -849,7 +849,9 @@
           },
           "concurrency": "pepper 外部密钥容器，30 日轮换同时检查前一 epoch 未过期 ban",
           "idempotency": "同 keyEpoch 同输入同主体",
-          "dependencies": [],
+          "dependencies": [
+            "platform.VerifyGuardSession"
+          ],
           "resources": [
             "identity visitor token verifier"
           ],
@@ -1547,7 +1549,9 @@
           },
           "concurrency": "只读密钥容器与 admission 快照",
           "idempotency": "同 admission 可重复生成等价 token",
-          "dependencies": [],
+          "dependencies": [
+            "platform.SignAdmissionPermit"
+          ],
           "resources": [
             "外部签名密钥"
           ],
@@ -1629,7 +1633,8 @@
           "idempotency": "只读重复验证",
           "dependencies": [
             "traffic-guard.GetPolicy",
-            "traffic-guard.CheckBan"
+            "traffic-guard.CheckBan",
+            "platform.VerifyAdmissionPermit"
           ],
           "resources": [],
           "contract": "reference"
@@ -2853,7 +2858,8 @@
           "idempotency": "重复成功不再次授予，返回 CONFLICT",
           "dependencies": [
             "traffic-guard.VerifyPoW",
-            "traffic-guard.VerifyExternalChallenge"
+            "traffic-guard.VerifyExternalChallenge",
+            "platform.SignGuardSession"
           ],
           "resources": [],
           "contract": "binding"

@@ -128,6 +128,13 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		}
 		proof = proofResult.Proof
 	}
+ if route.Definition.Owner=="traffic-guard" && route.Definition.Permission.Permission=="anonymous" {
+  if runtime.SiteID=="" || len(runtime.NetworkScopeKeys)==0 || len(runtime.NetworkScopeKeys)>2 {return ProxyRequestResult{},platform.NewError(platform.CodeDependencyUnavailable,true,"风控站点或预算密钥尚未装配")}
+  scopes:=[]platform.Hash{}
+  for _,key:=range runtime.NetworkScopeKeys {values,err:=serviceauth.PrivateBudgetNetworkScopes(key,runtime.Request.RemoteAddr,strings.Join(runtime.Request.Header.Values("X-Forwarded-For"),","),runtime.TrustedProxyCIDRs,runtime.SiteID,time.Now());if err!=nil{return ProxyRequestResult{},err};scopes=append(scopes,values...)}
+  op.Actor.SiteID=runtime.SiteID;op.NetworkBudgetScopes=scopes
+  ctx=platform.WithOperationContext(ctx,op)
+ }
 	if route.Definition.Admission != "" {
 		return ProxyRequestResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "公开准入服务尚未装配")
 	}

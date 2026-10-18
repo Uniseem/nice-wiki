@@ -2,7 +2,7 @@
   "version": 1,
   "module": "portal",
   "phase": "implementation",
-  "contractSha256": "675b37335181011b0f83cd99fc0a24a2fa32f085d54d940a538d8d96ca9cc87b",
+  "contractSha256": "266b16e4220d82ce11d36e634ef58bf877f53f6f4ab481403f63b936da1c35d3",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "portal EmitAccessAudit 因 appendAudit 请求体映射缺失保持 blocked",
   "branch": "codex/portal-20261017-r6",
@@ -530,10 +530,10 @@
       "state": "blocked",
       "implementationCommit": "a5dbc2f28c74872a0bf7ef498cd522eb51460326",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 根统一合成快照VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：make docs/gen、14个现有Go模块make build（-mod=readonly build/vet/gofmt）、完整make check全部通过（856文件/1047函数/374操作/2222类型），0并发冲突；生成/格式已回传。已人工复读四个浏览器安全session结果及refresh空对象DTO。verified只表示现阶段检查，未运行业务测试/验收、真实接口/模型、服务、部署或push。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "本轮认证cookie/可信网络作用域/当前会话撤销适配已通过VPS；完整binding仍缺traffic-guard createAdmission与访问审计，缺口失败关闭，不声明整条代理业务完成。"
+      "blocker": "新增可信网络预算范围转发，预算key/完整准入装配仍未齐，待GitLab编译"
     },
     {
       "id": "portal.LoadBootstrap",
