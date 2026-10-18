@@ -54,9 +54,13 @@ func LoadServiceConfig(args []string, env []string) (platform.ServiceConfig, err
 		return platform.ServiceConfig{}, err
 	}
 	applyFlags(flags, &config)
-	if config.ReportingTimeZone!="" {
-		if config.Module!="analytics" {return platform.ServiceConfig{},platform.NewError(platform.CodeValidation,false,"报表时区只供统计域可信部署配置")}
-		if _,err:=time.LoadLocation(config.ReportingTimeZone);err!=nil {return platform.ServiceConfig{},platform.NewError(platform.CodeValidation,false,"报表时区必须为有效IANA名称")}
+	if config.ReportingTimeZone != "" {
+		if config.Module != "analytics" {
+			return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "报表时区只供统计域可信部署配置")
+		}
+		if _, err := time.LoadLocation(config.ReportingTimeZone); err != nil {
+			return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "报表时区必须为有效IANA名称")
+		}
 	}
 	if len(config.GitCredentialRefs) > 64 || (len(config.GitCredentialRefs) > 0 && config.Module != "data-protection") {
 		return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "Git凭据索引只能由数据保护可信配置提供")

@@ -432,7 +432,7 @@ func (s *server) ConfigureRemote(w http.ResponseWriter, r *http.Request, _ gen.C
 		writeProblem(w, r, platform.NewError(platform.CodeValidation, false, "远程配置正文不可读"))
 		return
 	}
-	result, err := protection.ConfigureRemote(r.Context(), op, protection.ConfigureRemoteInput{URL: body.Url, Branch: body.Branch, CredentialRef: body.CredentialRef, ExpectedRevision: body.ExpectedRevision, Actor: op.Actor})
+	result, err := protection.ConfigureRemote(r.Context(), op, protection.ConfigureRemoteInput{URL: body.Url, Branch: body.Branch, CredentialRef: body.CredentialRef, ExpectedRevision: int64(body.ExpectedRevision), Actor: op.Actor})
 	if err != nil {
 		writeProblem(w, r, err)
 		return

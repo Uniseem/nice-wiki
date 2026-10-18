@@ -4039,7 +4039,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 - 授权：平台NewServiceHandler固定caller白名单及即时identity授权，内部使用可信op。
 - 并发：上下文传给本域IO；不发起隐式备份或模型。
 - 幂等：只读目录固定快照；不制造历史或成功状态。
-- 依赖：`data-protection.server.ListBackups`、`data-protection.server.ReadBackup`、`data-protection.server.ReadMirrorStatus`、`data-protection.server.ReadProtectionSettings`
+- 依赖：`data-protection.server.ListBackups`、`data-protection.server.ReadBackup`、`data-protection.server.ReadMirrorStatus`、`data-protection.server.ReadProtectionSettings`、`data-protection.server.ConfigureRemote`、`data-protection.server.CreateBackup`、`data-protection.server.AuthorizeBackupDownload`
 
 ## data-protection.server.ListBackups
 

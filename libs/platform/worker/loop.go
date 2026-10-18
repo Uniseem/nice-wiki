@@ -9,7 +9,7 @@ import (
 	"errors"
 	"strconv"
 	"sync"
- "sync/atomic"
+	"sync/atomic"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -29,13 +29,13 @@ const (
 // 每10秒续租、上报进度并读取取消；写回前核对租约，成功completeJob，
 // 失败failJob；租约过期立即停止写入，不重放已派发模型调用。
 func RunWorkerLoop(ctx context.Context, client platform.WorkerJobsClient, config platform.WorkerConfig, executors platform.JobExecutorRegistry) error {
- _,err:=RunWorkerLoopWithResult(ctx,client,config,executors)
- return err
+	_, err := RunWorkerLoopWithResult(ctx, client, config, executors)
+	return err
 }
 
 // RunWorkerLoopWithResult 仅累计实际jobs回执；不把未确认的在途/取消算成终局。
 func RunWorkerLoopWithResult(ctx context.Context, client platform.WorkerJobsClient, config platform.WorkerConfig, executors platform.JobExecutorRegistry) (platform.WorkerRunResult, error) {
-	if client == nil || len(config.JobTypes)==0 || config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes || config.OperationContext == nil || config.Runtime == nil {
+	if client == nil || len(config.JobTypes) == 0 || config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes || config.OperationContext == nil || config.Runtime == nil {
 		return platform.WorkerRunResult{}, platform.NewError(platform.CodeValidation, false, "worker配置不合法")
 	}
 	registered := map[string]bool{}
@@ -48,9 +48,9 @@ func RunWorkerLoopWithResult(ctx context.Context, client platform.WorkerJobsClie
 		}
 		registered[jobType] = true
 	}
-	work,cancel:=context.WithCancel(ctx)
- defer cancel()
- loop := &workerLoop{cancel:cancel,client: client, config: config, registered: registered, executors: executors}
+	work, cancel := context.WithCancel(ctx)
+	defer cancel()
+	loop := &workerLoop{cancel: cancel, client: client, config: config, registered: registered, executors: executors}
 	var wg sync.WaitGroup
 	for i := 0; i < config.MaxConcurrency; i++ {
 		wg.Add(1)
@@ -60,18 +60,18 @@ func RunWorkerLoopWithResult(ctx context.Context, client platform.WorkerJobsClie
 		}(i)
 	}
 	wg.Wait()
-	return platform.WorkerRunResult{Claimed:loop.claimed.Load(),Completed:loop.completed.Load(),Failed:loop.failed.Load(),Cancelled:loop.cancelled.Load()},loop.err
+	return platform.WorkerRunResult{Claimed: loop.claimed.Load(), Completed: loop.completed.Load(), Failed: loop.failed.Load(), Cancelled: loop.cancelled.Load()}, loop.err
 }
 
 type workerLoop struct {
- claimed,completed,failed,cancelled atomic.Int64
- cancel context.CancelFunc
- errMu sync.Mutex
- err error
-	client     platform.WorkerJobsClient
-	config     platform.WorkerConfig
-	registered map[string]bool
-	executors  platform.JobExecutorRegistry
+	claimed, completed, failed, cancelled atomic.Int64
+	cancel                                context.CancelFunc
+	errMu                                 sync.Mutex
+	err                                   error
+	client                                platform.WorkerJobsClient
+	config                                platform.WorkerConfig
+	registered                            map[string]bool
+	executors                             platform.JobExecutorRegistry
 }
 
 func (l *workerLoop) run(ctx context.Context, index int) {
@@ -103,7 +103,12 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 				return
 			}
 			if isConfigRejected(err) {
- l.errMu.Lock();if l.err==nil {l.err=err};l.errMu.Unlock();l.cancel()
+				l.errMu.Lock()
+				if l.err == nil {
+					l.err = err
+				}
+				l.errMu.Unlock()
+				l.cancel()
 				return
 			}
 			if !sleep(ctx, idlePause) {
@@ -154,11 +159,13 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 	if renewExecutionLease(jobCtx, lease, false) != nil {
 		return
 	}
-	heartbeatDone:=make(chan struct{})
- go func(){defer close(heartbeatDone);l.heartbeat(jobCtx,lease)}()
- defer func(){cancelJob(nil);<-heartbeatDone}()
+	heartbeatDone := make(chan struct{})
+	go func() { defer close(heartbeatDone); l.heartbeat(jobCtx, lease) }()
+	defer func() { cancelJob(nil); <-heartbeatDone }()
 	executor := l.executors.Executor(job.JobType)
- if !l.registered[job.JobType]{executor=nil}
+	if !l.registered[job.JobType] {
+		executor = nil
+	}
 	var result platform.JobExecutionResult
 	if executor == nil {
 		result = platform.JobExecutionResult{State: platform.JobFailed, ErrorCode: platform.CodeValidation}
@@ -212,13 +219,21 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 	}
 	switch result.State {
 	case platform.JobSucceeded:
-		if l.client.CompleteJob(workerControlContext(finalCtx, op), job.JobID, workerID, job.FencingToken, result.ResultRef, result.PaidResultRefs)==nil {l.completed.Add(1)}
+		if l.client.CompleteJob(workerControlContext(finalCtx, op), job.JobID, workerID, job.FencingToken, result.ResultRef, result.PaidResultRefs) == nil {
+			l.completed.Add(1)
+		}
 	default:
 		errorCode := result.ErrorCode
 		if errorCode == "" {
 			errorCode = platform.CodeInternal
 		}
-		if l.client.FailJob(workerControlContext(finalCtx, op), job.JobID, workerID, job.FencingToken, errorCode, result.PaidResultRefs)==nil {if errorCode==platform.CodeCancelled{l.cancelled.Add(1)}else{l.failed.Add(1)}}
+		if l.client.FailJob(workerControlContext(finalCtx, op), job.JobID, workerID, job.FencingToken, errorCode, result.PaidResultRefs) == nil {
+			if errorCode == platform.CodeCancelled {
+				l.cancelled.Add(1)
+			} else {
+				l.failed.Add(1)
+			}
+		}
 	}
 }
 

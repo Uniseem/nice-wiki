@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-		"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform"
 	"nice-wiki/modules/data-protection/internal/gen"
 )
 

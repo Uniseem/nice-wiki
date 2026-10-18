@@ -497,7 +497,7 @@ type Invocation struct {
 	PriceSnapshotID   Identifier     `json:"priceSnapshotId"`
 	LastSequence      int64          `json:"lastSequence"`
 	Attempts          []ModelAttempt `json:"attempts"`
-	ResultAttemptID   *Identifier     `json:"resultAttemptId,omitempty"`
+	ResultAttemptID   *Identifier    `json:"resultAttemptId,omitempty"`
 }
 
 // 调用终态与StreamEvent事件名。
@@ -946,8 +946,8 @@ type OwnerRecoveryResult struct {
 
 // WorkerRunResult 只累计已领取及jobs已确认的终局，不把仍在途/孤立视为失败或取消。
 type WorkerRunResult struct {
- Claimed int64 `json:"claimed"`
- Completed int64 `json:"completed"`
- Failed int64 `json:"failed"`
- Cancelled int64 `json:"cancelled"`
+	Claimed   int64 `json:"claimed"`
+	Completed int64 `json:"completed"`
+	Failed    int64 `json:"failed"`
+	Cancelled int64 `json:"cancelled"`
 }

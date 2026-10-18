@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 29 个：手写 27、生成 1、配置 1。函数 117 个：约束 20，参考 97。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 29 个：手写 27、生成 1、配置 1。函数 118 个：约束 21，参考 97。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -14,7 +14,7 @@
 | `libs/platform/outbox/relay.go` | 手写 | outbox转发循环 | `platform.RunRelay`、`platform.NewEventPublisher`（参考）、`platform.PublishEvent`（参考）、`platform.relayWriteContext`（参考）、`platform.RunRelayBatch`（参考） |
 | `libs/platform/inbox/inbox.go` | 手写 | 事件inbox去重 | `platform.ClaimInbox`、`platform.ClaimInboxBeforeWrite`（参考）、`platform.claimInbox`（参考）、`platform.validateEnvelope`（参考） |
 | `libs/platform/inbox/consumer.go` | 手写 | 事件订阅循环 | `platform.RunConsumer`、`platform.RunConsumerWithResult`、`platform.consumerLoop.start`（参考）、`platform.consumerLoop.stop`（参考）、`platform.consumerLoop.worker`（参考）、`platform.consumerLoop.queueFor`（参考）、`platform.consumerLoop.operation`（参考）、`platform.consumerLoop.dispatch`（参考）、`platform.consumerLoop.acknowledge`（参考）、`platform.consumerLoop.process`（参考）、`platform.consumerLoop.classify`（参考）、`platform.inbox.eventKey`（参考）、`platform.inbox.pauseFor`（参考）、`platform.inbox.readRuntime`（参考）、`platform.inbox.sleep`（参考）、`platform.inbox.isConfigRejected`（参考） |
-| `libs/platform/worker/loop.go` | 手写 | 任务领取循环 | `platform.RunWorkerLoop`、`platform.workerControlContext`（参考）、`platform.newExecutionLease`（参考）、`platform.expireExecutionLease`（参考）、`platform.executionLeaseContext`（参考）、`platform.renewExecutionLease`（参考） |
+| `libs/platform/worker/loop.go` | 手写 | 任务领取循环 | `platform.RunWorkerLoop`、`platform.workerControlContext`（参考）、`platform.newExecutionLease`（参考）、`platform.expireExecutionLease`（参考）、`platform.executionLeaseContext`（参考）、`platform.renewExecutionLease`（参考）、`platform.RunWorkerLoopWithResult` |
 | `libs/platform/modelclient/invoke.go` | 手写 | 模型调用助手 | `platform.InvokeModel` |
 | `libs/platform/lifecycle/config.go` | 手写 | 服务配置加载 | `platform.LoadServiceConfig`、`platform.NormalizePublicURL`（参考）、`platform.CanonicalPublicOrigin`（参考）、`platform.ValidatePrivatePath`（参考） |
 | `libs/platform/lifecycle/runtime.go` | 手写 | 运行状态读取与监视 | `platform.ReadRuntime`、`platform.WatchRuntime`、`platform.NewSiteConfigClient`、`platform.NewWriteContext`（参考）、`platform.RunRecoveryLoop`（参考） |

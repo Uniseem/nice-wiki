@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 117 个函数：约束 20 个，参考 97 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 118 个函数：约束 21 个，参考 97 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1857,20 +1857,7 @@ func RunWorkerLoop(ctx context.Context, client WorkerJobsClient, config WorkerCo
 
 **步骤**
 
-1. 每次领取先读当前runtime，维护或空epoch暂停；以owner纯服务system建立30秒或更早父截止、独立op/root和当前epoch，清原用户proof；领取不访问本站业务对象，领取后由域factory读取真实站点/任务授权
-2. jobs:claimJob只领取登记类型；维护期间暂停
-3. jobs:startJob后调用执行函数；每10秒jobs:heartbeatJob续租、上报进度并读取取消
-4. 写回前jobs:checkLease；成功jobs:completeJob，失败jobs:failJob
-5. lease过期立即停止写入，不重放已派发模型调用
-6. 写回前CheckLease同时传jobId、workerId与fencingToken，防止同owner的其他worker借用租约
-7. Complete/Fail携带workerId、完整可空结果引用与paidResultRefs；executor错误不得忽略；用户取消与失去租约分开，取消仍可在有效租约内确认并保存已付费结果
-8. WorkerConfig.operationContext从本域权威任务读取获准主体/预算/截止；核operationId/rootOperationId/dataEpoch与领取结果一致，任务入口一次设置ctx期限，不借启动上下文生成新付费根操作
-9. 每次start/heartbeat/check/complete/fail使用独立子OperationID，同一请求传输重试保同ID；executor仍用原业务操作；取消信号不能覆盖owner已成功结果，也不能代替owner明确安全取消确认
-10. runtime必须装配，权威读取失败或维护均暂停领取；不得将未知状态视为允许
-11. 向executor传完整ObjectRef、JobID、WorkerID与fence；进程内CheckLease回调在不可逆决定前锁外串行读取HeartbeatJob当前取消/安全点及有效期，再核CheckLease；取消/未知/过期均失败关闭
-12. 领取后即建立独立本地租约到期定时器；start/续租/检查RPC截止不超过已知租约。续租回执只在旧租约仍有效且新截止有效时更新定时器，续租与不可逆前检查共用串行通道，拒绝旧回执覆盖新截止；领域仍负责短事务CAS和持久恢复决定
-13. executor返回后占用同一控制互斥排空在途心跳，显式核本地租约仍有效；最终check/complete/fail均用当前本地expiry截止，不提前取消抢占leaseLost原因；只有原业务已持久成功才能报告成功
-14. start成功后先真实Heartbeat并调用可选OnLeaseRenewed；以后每次权威续租成功更新本域镜像，回调失败取消执行。同worker/fence/epoch本地CAS，不在域内另造心跳或递归CheckLease。
+1. 兼容旧签名，委托RunWorkerLoopWithResult并返回真实错误，不复制循环机制。
 
 **错误**
 
@@ -1880,7 +1867,7 @@ func RunWorkerLoop(ctx context.Context, client WorkerJobsClient, config WorkerCo
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：并发≤maxConcurrency
 - 幂等：jobs按jobId与fence去重
-- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`platform.workerControlContext`、`platform.newExecutionLease`、`platform.executionLeaseContext`、`platform.renewExecutionLease`、`platform.ClaimJob`、`platform.StartJob`、`platform.HeartbeatJob`、`platform.CheckLease`、`platform.CompleteJob`、`platform.FailJob`
+- 依赖：`platform.RunWorkerLoopWithResult`
 
 ## platform.workerControlContext
 
@@ -2080,6 +2067,48 @@ func renewExecutionLease(ctx context.Context, lease *ExecutionLease, verify bool
 - 幂等：不生成或重放业务副作用；每次控制RPC独立子操作
 - 依赖：`jobs:heartbeatJob`、`jobs:checkLease`、`platform.executionLeaseContext`、`platform.workerControlContext`
 
+## platform.RunWorkerLoopWithResult
+
+- 级别：约束
+- 文件：`libs/platform/worker/loop.go`
+- 作用：返回真实领取及jobs已确认终局累计的公共worker循环
+
+```go
+func RunWorkerLoopWithResult(ctx context.Context, client WorkerJobsClient, config WorkerConfig, executors JobExecutorRegistry) (WorkerRunResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 进程生命周期 | 取消即退出 |
+| `client` | `WorkerJobsClient` | jobs客户端 | 带服务断言 |
+| `config` | `WorkerConfig` | 本域jobTypes与并发 | 来自implementation.json |
+| `executors` | `JobExecutorRegistry` | jobType→执行函数 | 与jobTypes一致 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `WorkerRunResult` | 真实累计统计，出错时保留已确认事实 | 不得据此假定所有claimed都已终结 |
+| `error` | `error` | 失败原因；调用方映射为公共Problem | 不含密钥、正文或IP |
+
+**步骤**
+
+1. 配置验证及共享owner worker流程保持原权限、epoch、fence和租约；永久配置拒绝返回真实错误并停止同组worker。
+2. Claim真实成功累计claimed；CompleteJob成功回执才completed；FailJob成功回执后仅明确CANCELLED计cancelled，其余failed，任何未确认终局不计。
+3. 正常ctx退出等待所有worker及其heartbeat goroutine排空后返完整累计；不包装伪客户端、不造0统计或新任务。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：jobs不可用（可重试）
+
+- 副作用：HTTP调用jobs租约接口
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：并发≤maxConcurrency
+- 幂等：jobs按jobId与fence去重
+- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`platform.workerControlContext`、`platform.newExecutionLease`、`platform.executionLeaseContext`、`platform.renewExecutionLease`、`platform.ClaimJob`、`platform.StartJob`、`platform.HeartbeatJob`、`platform.CheckLease`、`platform.CompleteJob`、`platform.FailJob`
+
 ## platform.InvokeModel
 
 - 级别：约束
@@ -2160,6 +2189,7 @@ func LoadServiceConfig(args []string, env []string) (ServiceConfig, error)
 6. 读取trustedProxyCIDRs及逗号分隔NW_TRUSTED_PROXY_CIDRS；空值清空信任；最多32条规范IP网段，拒绝host位或IPv4映射CIDR；默认不信任任何代理
 7. 读取可选masterKeyRef与NW_MASTER_KEY_REF覆盖；非空必须绝对路径，仅传递引用，不打开密钥；免费读取不强制主密钥可用
 8. GitCredentialRefs只data-protection可信配置，最多64个Identifier到规范绝对私有路径；加载不读取秘密，业务HTTP只接受已配ID。
+9. ReportingTimeZone只analytics可信部署允许非空并按IANA校验，未配不默认UTC；标准tzdata随程序保留，不依赖部署机本地时区。
 
 **错误**
 
