@@ -269,7 +269,7 @@
           "concurrency": "启动时单连接迁移；错误逆序关闭资源",
           "idempotency": "已应用编号/名称不重复迁移，未知版本拒绝",
           "dependencies": [
-            "model-gateway.runMigrations"
+            "model-gateway.Store.runMigrations"
           ],
           "resources": [],
           "contract": "reference"
@@ -448,8 +448,8 @@
           "contract": "reference"
         },
         {
-          "id": "model-gateway.runMigrations",
-          "name": "runMigrations",
+          "id": "model-gateway.Store.runMigrations",
+          "name": "Store.runMigrations",
           "signature": "func (s *Store) runMigrations() error",
           "inputs": [],
           "outputs": [
