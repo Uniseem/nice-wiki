@@ -1,3 +1,37 @@
+# 原模型调用只读观察小批
+
+源码7ccc81f，前置Text字段7d37126，说明/精确依赖同步12810da与2278a56。21项新/修改函数blocked待GitLab，其中15实际新登记reference含原先已有未登记drain/terminalOf/cancelCall/bindDeadline，不冒称15新业务。原InvokeModel绑定行为完成源码，未真实接口/模型联调或部署。
+
+API：platform.GatewayInvocationSnapshot{Invocation Invocation,Output *ModelOutput}；InvokeModelOutcome.CurrentSnapshot *GatewayInvocationSnapshot。可选CurrentInvocationReader.GetInference(ctx,id)、InvocationLookupReader.LookupInference(ctx,key,input)，Raw读接口ReadInference(ctx,id)/LookupInference(ctx,body)与真实生成端口一致。NewGatewayClient要求五校验器CreateInvocationResult、CancelInvocationResult、StreamEvent、GetInvocationResult、LookupInvocationResult，Root负责QA/knowledge/memory/localization真实alias及工厂装配。
+
+先原键+完整原请求Lookup，仅可信tracking真404且原paid deadline有效才Create一次同键/同输入；Create失败也只lookup，不换键重付。5秒fresh只读/取消截止只用于控制RPC，保原owner/actor/root/site/epoch/costClass，不重签permit。CreateInput兼容LanguageSuggestionApprovalID；真实Text指针区分空/缺失。当前完整winning输出独立于Events，未知费用不抹结果、不编零账单。接受后错误/取消保真实ID/最后快照/已收事件；历史终态/EOF刷新Get，过时终态不回调成当前终态但原样保Events，不伪造SSE。旧无output文本只能按原持久序号和完成事实复用，证据不足Integrity而不404/重派。
+
+无本机或SSH Go/gofmt/gen/build/vet/check/pnpm，无新增测试/fixture/mock/样例或临时业务验证程序，无真实模型/接口/业务服务/部署/push。已有本地git diff --check通过。下一步按Root GitLab反馈窄修本切片，恢复/14域闭环继续按上一节具体阻塞，不提前标verified。
+
+精确待检查IDs：
+
+- `platform.InvokeModel`
+- `platform.NewGatewayClient`
+- `platform.CreateInference`
+- `platform.CancelInference`
+- `platform.decodeInvocation`
+- `platform.validatedModelNext`
+- `platform.LookupInference`
+- `platform.GetInference`
+- `platform.normalizeGatewayInput`
+- `platform.decodeGatewaySnapshot`
+- `platform.validateModelOutput`
+- `platform.gatewayReadContext`
+- `platform.readCurrentGatewaySnapshot`
+- `platform.finishKnownGatewaySnapshot`
+- `platform.modelEventTerminal`
+- `platform.notifyCurrentModelTerminal`
+- `platform.drain`
+- `platform.terminalOf`
+- `platform.cancelCall`
+- `platform.bindDeadline`
+- `platform.modelInvokeSleep`
+
 # 2026-10-18 公共机制第五批检查通过
 
 GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。
