@@ -6,7 +6,7 @@
 
 - 费用统计实际集成候选5a5947eef42f6b2cf8b345f2ca9360b56644c4ae经pipeline153全部通过：生成595，Go三分片596/597/598，前端599；生成精确补丁163371字节已回传并提交b3cc1afd。
 - 语言计划合入隔离集成分支，25306493补最终批准事务的本域版本核对与实际Go签名；pipeline154生成/重复生成完成，但job600因产物上传502失败，重试生成job605成功，foundation601/content-media602/前端604通过；ai603发现ExpiresAt生成类型为time.Time，已按实际生成类型修正并回传117749字节补丁，下一流水线复检。没有把该失败当通过。修正版d724593d经pipeline155生成606、Go三分片607/608/609和前端610全部通过，生成补丁为0字节。
-- 数据保护在独立候选dea93657补缓存归档仍核完整manifest与本次SnapshotRef；在pipeline155通过后顺序合入b4e039c7。pipeline156重复生成补丁比较失败，首轮产物只有snapshot_client.go的一行gofmt差异（1040字节补丁），已精确回传并提交后重新检查；该次没有进入编译，不记通过。
+- 数据保护在独立候选dea93657补缓存归档仍核完整manifest与本次SnapshotRef；在pipeline155通过后顺序合入b4e039c7。pipeline156重复生成补丁比较失败，首轮产物只有snapshot_client.go的一行gofmt差异（1040字节补丁），已精确回传并提交后重新检查；该次没有进入编译，不记通过。后续pipeline157重复生成0字节，foundation617/ai619/前端620通过；content-media618发现严格JSON校验回调需从func(json.RawMessage)适配到平台func([]byte)，已补无损薄适配后继续完整复检。
 - 所有Go/gofmt/gen/readonly build/vet、已有普通测试、完整make check及前端类型/构建均仅通过GitLab。未新增测试/fixture/mock/样例，未运行真实业务接口/模型或部署。
 
 以下为恢复前交接，后续以本节实际CI结论为准。

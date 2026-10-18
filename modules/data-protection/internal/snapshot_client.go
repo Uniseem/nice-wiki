@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"io"
 	"mime"
 	"net/http"
@@ -189,7 +190,9 @@ func ExportDomainSnapshot(ctx context.Context, op OperationContext, in ExportDom
 		MediaType: ref.MediaType,
 		ByteSize:  int64(ref.ByteSize),
 	}
-	verified, err := lifecycle.ExtractSnapshotArchive(ctx, archive, verifyRoot, expected, validator)
+	verified, err := lifecycle.ExtractSnapshotArchive(ctx, archive, verifyRoot, expected, func(raw []byte) error {
+		return validator(json.RawMessage(raw))
+	})
 	if err != nil {
 		return ExportDomainSnapshotResult{}, err
 	}
