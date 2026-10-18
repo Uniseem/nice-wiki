@@ -816,6 +816,79 @@
             "受控Ed25519密钥引用"
           ],
           "contract": "reference"
+        },
+        {
+          "id": "platform.ResolveVisitorAddress",
+          "name": "ResolveVisitorAddress",
+          "signature": "func ResolveVisitorAddress(remoteAddr string, forwardedFor string, trustedProxyCIDRs []string) (string, error)",
+          "inputs": [
+            {
+              "name": "remoteAddr",
+              "type": "string",
+              "description": "真实HTTP连接对端",
+              "constraints": [
+                "由HTTP服务器提供"
+              ]
+            },
+            {
+              "name": "forwardedFor",
+              "type": "string",
+              "description": "HTTP转发链",
+              "constraints": [
+                "仅受信代理链使用"
+              ]
+            },
+            {
+              "name": "trustedProxyCIDRs",
+              "type": "[]string",
+              "description": "可信部署代理网段",
+              "constraints": [
+                "配置边界已验证"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "address",
+              "type": "string",
+              "description": "规范Unmap后IP，仅内存使用",
+              "constraints": [
+                "不日志、不持久"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "无合法真实地址则失败关闭",
+              "constraints": []
+            }
+          ],
+          "purpose": "从唯一可信代理链解析返回规范访客地址，仅在内存处理并由入口服务断言绑定",
+          "steps": [
+            "复用privateNetworkPeer唯一代理链解析，不另写XFF或地址规则。",
+            "只返回Unmap后规范地址；调用方仅用于受签名内部beacon正文，不记录原IP。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "实际连接或所需转发链不合法",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "私有摘要密钥不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅受信portal入口调用；原IP不跨服务",
+          "concurrency": "无可写业务状态，可并发",
+          "idempotency": "同密钥、规范网络地址和UTC日返回相同HMAC；前一日重叠覆盖短窗口",
+          "dependencies": [
+            "platform.privateNetworkPeer"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },

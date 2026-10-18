@@ -449,3 +449,12 @@ func validBudgetScopes(claims platform.AssertionClaims) bool {
 	}
 	return true
 }
+
+// ResolveVisitorAddress 复用唯一可信代理链；结果只可在内存转交受签名内部请求。
+func ResolveVisitorAddress(remoteAddr, forwardedFor string, trustedProxyCIDRs []string) (string, error) {
+	peer, err := privateNetworkPeer(remoteAddr, forwardedFor, trustedProxyCIDRs)
+	if err != nil {
+		return "", err
+	}
+	return peer.String(), nil
+}
