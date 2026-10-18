@@ -432,7 +432,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "真实worker统计/排空或报表时区新代码待GitLab"
+      "blocker": "控制请求费用类别与可信时区收口待GitLab复检"
     },
     {
       "id": "platform.ReadRuntime",

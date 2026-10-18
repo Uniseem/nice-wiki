@@ -132,7 +132,7 @@ func submitBackupJob(ctx context.Context, op OperationContext, store *Store, id 
 	serviceOp.RootOperationID = rootID
 	serviceOp.CallerService = "data-protection"
 	serviceOp.Actor = platform.AuthContext{Kind: "service", SubjectID: "data-protection", SiteID: siteID}
-	serviceOp.CostClass = "free"
+	serviceOp.CostClass = ""
 	callCtx := platform.WithOperationContext(platform.WithPortalProof(ctx, ""), serviceOp)
 	raw, err := store.Jobs.CreateJob(callCtx, map[string]any{"owner": "data-protection", "type": "data-protection.backup", "inputRef": ref, "dedupeKey": "backup:" + id}, "backup-"+id)
 	if err != nil {

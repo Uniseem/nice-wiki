@@ -1989,7 +1989,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "备份持久意图链待统一GitLab CI；全备份执行尚未齐"
+      "blocker": "控制请求费用类别与可信时区收口待GitLab复检"
     },
     {
       "id": "data-protection.server.CreateBackup",

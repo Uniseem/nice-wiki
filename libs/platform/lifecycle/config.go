@@ -55,8 +55,8 @@ func LoadServiceConfig(args []string, env []string) (platform.ServiceConfig, err
 	}
 	applyFlags(flags, &config)
 	if config.ReportingTimeZone != "" {
-		if config.Module != "analytics" {
-			return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "报表时区只供统计域可信部署配置")
+		if config.Module != "analytics" || config.ReportingTimeZone == "Local" {
+			return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "报表时区只供统计域可信部署配置且不能使用宿主本地时区")
 		}
 		if _, err := time.LoadLocation(config.ReportingTimeZone); err != nil {
 			return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "报表时区必须为有效IANA名称")
