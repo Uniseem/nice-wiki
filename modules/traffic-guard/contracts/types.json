@@ -2589,14 +2589,12 @@
           ]
         },
         "banExpiresAt": {
-          "type": "string",
-          "description": "banExpiresAt；UTF-8；不得为 null",
-          "maxLength": 8192
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "仅实际AI禁令存在时返回真实恢复时刻；无禁令省略，不用空字符串或null。"
         }
       },
       "required": [
-        "decision",
-        "banExpiresAt"
+        "decision"
       ]
     },
     "QueueSessionAdmissionInput": {

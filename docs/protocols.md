@@ -77,3 +77,5 @@ guard createAdmission只分配持久元数据，token为空串。qa付费提问�
 需人机验证时返回CHALLENGE_REQUIRED/429且retryable=false，由调用方沿既有issueChallenge领取挑战，不在Problem中藏ID。纯频率为RATE_LIMITED，ban按原FORBIDDEN。挑战通过的十分钟session证明使用独立用途，不能充当模型许可。
 
 创建会话使用原有 `qa.conversation` 人机准入：分配、消费与核验都保留空模型 token，持久创建或原回执返回后幂等释放并发占位。它不调用模型；只有 `qa.ask`、`qa.followup` 已消费许可可签发模型凭证，不能把会话许可换成提问许可。
+
+风险信号响应只有实际禁令存在时才返回可选 `banExpiresAt` 时间；allow/challenge 无禁令时省略，禁止空时间或 null。
