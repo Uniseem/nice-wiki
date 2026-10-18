@@ -1644,7 +1644,7 @@
         {
           "id": "analytics.ProjectUsage",
           "name": "ProjectUsage",
-          "signature": "func ProjectUsage(ctx context.Context, op OperationContext, in ProjectUsageInput) (ProjectUsageResult, error)",
+          "signature": "func ProjectUsage(ctx context.Context, op OperationContext, in UsageProjectionInput) (ProjectUsageResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -1660,8 +1660,8 @@
             },
             {
               "name": "in",
-              "type": "ProjectUsageInput",
-              "description": "更新派生费用行；字段见本域types.json对应$defs",
+              "type": "UsageProjectionInput",
+              "description": "已核验完整V2 changes与observations；当前DataEpoch与每个原事实sourceDataEpoch分别保留",
               "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
             }
           ],
@@ -1679,11 +1679,12 @@
               "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
             }
           ],
-          "purpose": "更新派生费用行",
+          "purpose": "在独立事务持久已核验的完整V2费用事实",
           "steps": [
-            "查event inbox",
-            "相同entry revision hash相同跳过",
-            "更新高修订settled/reversed及watermark，低修订忽略"
+            "核当前站点/代次与schemaVersion6；账项和未入账观察逐事实保存原owner/site/sourceDataEpoch/root/op/class/provider/model独立revision、amountKnown/USD微额/state/time/captureKind，unknown/hold不补0。",
+            "按dataEpoch+changeRevision将每个原时间线修订无损写入事实表；同修订异事实、同实体修订不同时间线/事实冲突拒绝，旧修订只留历史，不使当前投影倒退。",
+            "仅新事实更新ledger/observation当前投影与真实最大changeRevision水位；不建立usage-v2-complete，不激活V1查询，不猜旧行来源。",
+            "事件入口必须调用ProjectUsageTx并复用inbox首写后的同一事务；本参考函数独立开启安全写事务时同样全部成功提交、任一失败回滚。"
           ],
           "errors": [
             {
@@ -1702,17 +1703,188 @@
             }
           ],
           "sideEffects": [
-            "写projection/inbox"
+            "写V2与历史费用事实、当前投影和真实changeRevision水位；不写inbox（由事件入口同事务调用）"
           ],
           "authorization": {
             "permission": "service",
             "rule": "service model-gateway事件"
           },
-          "concurrency": "事务按ledgerEntryId revision CAS",
-          "idempotency": "entryId/revision/hash幂等",
+          "concurrency": "单SQLite短事务；按全局/实体修订与payload hash冲突校验收紧，事务内旧修订不覆盖新投影",
+          "idempotency": "completePage/changeRevision/originalFactHash幂等",
           "dependencies": [
-            "analytics.ValidateUsageEvent"
+            "analytics.ProjectUsageTx",
+            "platform.CanonicalJSON"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.ProjectUsageTx",
+          "name": "ProjectUsageTx",
+          "signature": "func ProjectUsageTx(ctx context.Context, op OperationContext, tx *sql.Tx, in UsageProjectionInput) (ProjectUsageResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "已绑定本域可信写窗口的context",
+              "constraints": "由beginWrite建立"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信事件操作",
+              "constraints": "站点与代次必须与runtime一致"
+            },
+            {
+              "name": "tx",
+              "type": "*sql.Tx",
+              "description": "调用方持有的安全写事务",
+              "constraints": "本函数不提交或回滚"
+            },
+            {
+              "name": "in",
+              "type": "UsageProjectionInput",
+              "description": "已核验完整V2事实",
+              "constraints": "changes/observations不得为null"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ProjectUsageResult",
+              "description": "是否写入新事实",
+              "constraints": "失败返回零值"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "事务内失败",
+              "constraints": "调用方不得提交"
+            }
+          ],
+          "purpose": "供事件入口把inbox首写与费用投影纳入同一事务",
+          "steps": [
+            "核schema/site/epoch后逐事实幂等持久；任一冲突返回错误，不提交。"
+          ],
+          "errors": [
+            {
+              "code": "CONFLICT",
+              "condition": "同修订或同实体对应不同原事实",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "由调用方回滚事务"
+            }
+          ],
+          "sideEffects": [
+            "在调用方事务内写V2事实、投影与水位"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信事件处理链"
+          },
+          "concurrency": "不创建事务，由调用方串行短事务控制",
+          "idempotency": "changeRevision与原始事实hash幂等",
+          "dependencies": [
+            "analytics.recordUsageFact",
+            "analytics.projectUsageLedger",
+            "analytics.projectUsageObservation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.recordUsageFact",
+          "name": "recordUsageFact",
+          "signature": "func recordUsageFact(ctx context.Context, tx *sql.Tx, epoch string, fact usageStoredFact) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按时间线修订无损保存费用事实并检测冲突",
+          "steps": [
+            "同修订同hash跳过，同修订或同实体修订异事实拒绝；乱序旧修订只留历史。"
+          ],
+          "errors": [
+            {
+              "code": "CONFLICT",
+              "condition": "原事实修订或hash冲突",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "由调用方回滚事务"
+            }
+          ],
+          "sideEffects": [
+            "写usage_facts_v2"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域事务内"
+          },
+          "concurrency": "单事务",
+          "idempotency": "changeRevision+payloadHash幂等",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.projectUsageLedger",
+          "name": "projectUsageLedger",
+          "signature": "func projectUsageLedger(ctx context.Context, tx *sql.Tx, epoch string, change UsageLedgerChange, fact usageStoredFact) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "更新费用账项当前投影且不倒退",
+          "steps": [
+            "保存完整原账项字段；仅更高ledgerRevision覆盖当前行，unknown金额保持NULL。"
+          ],
+          "errors": [
+            {
+              "code": "INVALID_USAGE",
+              "condition": "金额known与原字段不一致",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "由调用方回滚事务"
+            }
+          ],
+          "sideEffects": [
+            "upsert usage_projection_v2"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域事务内"
+          },
+          "concurrency": "按ledgerRevision单调",
+          "idempotency": "更高修订CAS",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.projectUsageObservation",
+          "name": "projectUsageObservation",
+          "signature": "func projectUsageObservation(ctx context.Context, tx *sql.Tx, epoch string, observation UsageObservation, fact usageStoredFact) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "更新无账项原观察当前投影且不倒退",
+          "steps": [
+            "保留完整嵌套原事实；仅更高entityRevision覆盖当前行，held/unknown不折算金额。"
+          ],
+          "errors": [
+            {
+              "code": "INVALID_USAGE",
+              "condition": "预留金额known与字段不一致",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "由调用方回滚事务"
+            }
+          ],
+          "sideEffects": [
+            "upsert usage_observations_v2"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域事务内"
+          },
+          "concurrency": "按entityRevision单调",
+          "idempotency": "更高实体修订CAS",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -1808,7 +1980,7 @@
         {
           "id": "analytics.FetchUsagePage",
           "name": "FetchUsagePage",
-          "signature": "func FetchUsagePage(ctx context.Context, op OperationContext, in FetchUsagePageInput) (FetchUsagePageResult, error)",
+          "signature": "func FetchUsagePage(ctx context.Context, op OperationContext, in UsageGatewayFetchInput) (UsageGatewaySnapshot, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -1824,16 +1996,16 @@
             },
             {
               "name": "in",
-              "type": "FetchUsagePageInput",
-              "description": "取得权威账本投影输入；字段见本域types.json对应$defs",
+              "type": "UsageGatewayFetchInput",
+              "description": "原起点、可选固定上界与当前代次；不接受半途cursor作为完整范围",
               "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
             }
           ],
           "outputs": [
             {
               "name": "result",
-              "type": "FetchUsagePageResult",
-              "description": "取得权威账本投影输入成功结果；字段见types.json",
+              "type": "UsageGatewaySnapshot",
+              "description": "固定范围收齐后的全部V2原页；每页保留hash/游标、账项变更及无账项观察，错误返回零值",
               "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
             },
             {
@@ -1843,25 +2015,85 @@
               "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
             }
           ],
-          "purpose": "取得权威账本投影输入",
+          "purpose": "经可注入生成HTTP端口收齐固定V2费用上界，保留原事实供隔离投影",
           "steps": [
-            "按model-gateway:readUsageStatisticsPage固定watermark/throughRevision共享changes与observations顺序分页；完整pageHash与源范围核验后仅在完整上界收齐才激活隔离投影。",
-            "此消费者源码尚未实现，保持planned；不得把posted账项或未收齐分页当全站费用，unknown/held不补0。"
+            "从可信WithUsageGateway读取生成端口；未装配失败关闭。固定SiteID/DataEpoch须与可信op和输入一致，op必须为analytics纯服务；不创建或续用用户证明。",
+            "从原afterRevision起点，以limit=100调用model-gateway:readUsageStatisticsPage；首请求watermark=0时采用首响应上界，之后每页固定该watermark与原afterRevision，仅续原nextCursor。总调用60s、单页2.5s，context继续传给HTTP。 累计每页原始HTTP JSON字节数，完整范围最多32MiB，单页最多2MiB；超限返回BUDGET_EXCEEDED并丢弃全部页，不截断或返回部分范围。",
+            "readUsageGatewayPage先对完整原JSON仅删pageHash后CanonicalJSON作SHA256核原摘要，再按model-gateway V2机器类型显式核验required字段、非null数组、金额省略语义；严格解码拒未知字段/额外JSON，并核本地模型canonical与完整原页一致，不转换原时间或补字段。",
+            "validateUsageGatewayPage核schemaVersion=2、两数组非null且合计不超100、feeCoverage=posted-and-inflight及completeFeeCoverage=true；跨页watermark固定、throughRevision单调不越界，两类事实按changeRevision共享时间线，不重复、不倒退、不漏分页进度。",
+            "原账项独立ledgerRevision、原owner/site/sourceDataEpoch/root/op/class/provider/model/金额状态/原时间/captureKind和全部观察事实无损保留。unknown不补0，原sourceDataEpoch不改当前代次；网关已认证恢复投影的历史来源代次允许保留。",
+            "保留每页原hash/游标和完整changes/observations；仅nextCursor为空且throughRevision等于watermark才返回完整范围。游标重复、schema/hash/epoch/上界/网络错误均返回零值，无投影写入和部分激活；afterRevision非零只表示增量范围完整，不能冒完整全站基线。"
           ],
           "errors": [
             {
               "code": "DEPENDENCY_UNAVAILABLE",
-              "condition": "GATEWAY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "condition": "端口或校验未装配、生产方不可达；原生产方Problem保持失败",
               "httpStatus": 503,
               "retryable": true,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
             },
             {
               "code": "VALIDATION",
-              "condition": "WATERMARK_CHANGED：在步骤中的对应校验或依赖失败",
+              "condition": "请求固定上界早于原起点或负修订",
               "httpStatus": 400,
               "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "不是analytics纯服务",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "注入的真实site/epoch与当前操作或输入不一致，或生产方拒绝旧epoch",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "condition": "不是完整V2 posted-and-inflight页或未知观察种类",
+              "httpStatus": 422,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "原hash/schema/无损模型/共享时间线顺序/原事实关联/金额已知状态/末页封口矛盾",
+              "httpStatus": 422,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "固定上界改变或分页水位越界/倒退，或生产方游标过期",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "condition": "单页超过2MiB、完整范围原始HTTP JSON累计超过32MiB，或生产方预算失败；不截断、不返回部分范围",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "CANCELLED",
+              "condition": "上游取消中止HTTP读取",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "condition": "总任务或单页IO截止",
+              "httpStatus": 504,
+              "retryable": true,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
             }
           ],
           "sideEffects": [
@@ -1869,13 +2101,414 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "service analytics"
+            "rule": "本域可信注入真实site/epoch与analytics纯服务操作；服务断言由生成客户端/平台负责，原来源epoch由生产方认证"
           },
-          "concurrency": "每页2.5s，总任务deadline60s；继续cursor不重建模型请求",
-          "idempotency": "watermark/cursor可重试",
+          "concurrency": "每页2.5s，总调用60s；顺序读取固定上界；与调用方ctx共享取消，不重试或重建模型请求；单页2MiB，全部返回原始HTTP JSON累计32MiB，超限不截断",
+          "idempotency": "固定afterRevision/watermark只读；每次从原起点完整收齐，不保存或激活半页",
           "dependencies": [
-            "model-gateway:readUsageStatisticsPage"
+            "model-gateway:readUsageStatisticsPage",
+            "analytics.WithUsageGateway",
+            "analytics.readUsageGatewayPage",
+            "analytics.validateUsageGatewayPage",
+            "platform.CanonicalJSON"
           ],
+          "resources": [
+            "UsageStatisticsPageReader（由*gen.ModelGatewayClient满足）"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.WithUsageGateway",
+          "name": "WithUsageGateway",
+          "signature": "func WithUsageGateway(ctx context.Context, gateway *UsageGateway) context.Context",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信调用上下文",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            },
+            {
+              "name": "gateway",
+              "type": "*UsageGateway",
+              "description": "真实站点/当前代次与生成读取端口",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "包含只读端口的调用上下文",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            }
+          ],
+          "purpose": "注入本域可信只读费用端口",
+          "steps": [
+            "将UsageGateway指针放入私有context key，继承已有取消和授权；不创建身份、用户证明、HTTP请求或默认配置。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信调用链装配或FetchUsagePage响应边界使用"
+          },
+          "concurrency": "无共享可变状态；纯本地操作",
+          "idempotency": "相同输入产生相同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.readUsageGatewayPage",
+          "name": "readUsageGatewayPage",
+          "signature": "func readUsageGatewayPage(raw json.RawMessage) (UsageGatewayPage, error)",
+          "inputs": [
+            {
+              "name": "raw",
+              "type": "json.RawMessage",
+              "description": "完整原始HTTP页",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "page",
+              "type": "UsageGatewayPage",
+              "description": "无损V2原页",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败返回公共安全错误且不带半页",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            }
+          ],
+          "purpose": "核完整原JSON摘要、显式V2结构与无损模型",
+          "steps": [
+            "限制原响应2MiB；required字段必须存在且不得为null，changes/observations必须为非null数组；对原JSON只删除pageHash字段后调用平台CanonicalJSON和SHA256，核原摘要。",
+            "显式核验账项与三类观察的required字段、金额known/省略、预留maximum/held同现，严格解码拒未知字段/额外JSON，再核本地模型canonical不损失任何原字段和null/空集合语义。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "端口或校验未装配、生产方不可达；原生产方Problem保持失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "请求固定上界早于原起点或负修订",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "不是analytics纯服务",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "注入的真实site/epoch与当前操作或输入不一致，或生产方拒绝旧epoch",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "condition": "不是完整V2 posted-and-inflight页或未知观察种类",
+              "httpStatus": 422,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "原hash/schema/无损模型/共享时间线顺序/原事实关联/金额已知状态/末页封口矛盾",
+              "httpStatus": 422,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "固定上界改变或分页水位越界/倒退，或生产方游标过期",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "condition": "单页超过2MiB、完整范围原始HTTP JSON累计超过32MiB，或生产方预算失败；不截断、不返回部分范围",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "CANCELLED",
+              "condition": "上游取消中止HTTP读取",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "condition": "总任务或单页IO截止",
+              "httpStatus": 504,
+              "retryable": true,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信调用链装配或FetchUsagePage响应边界使用"
+          },
+          "concurrency": "无共享可变状态；纯本地操作",
+          "idempotency": "相同输入产生相同结果",
+          "dependencies": [
+            "platform.CanonicalJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.validateUsageGatewayPage",
+          "name": "validateUsageGatewayPage",
+          "signature": "func validateUsageGatewayPage(page UsageGatewayPage, siteID string, upper, through int64) error",
+          "inputs": [
+            {
+              "name": "page",
+              "type": "UsageGatewayPage",
+              "description": "已核schema/hash的原页",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            },
+            {
+              "name": "siteID",
+              "type": "string",
+              "description": "可信当前站点",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            },
+            {
+              "name": "upper",
+              "type": "int64",
+              "description": "本轮固定上界",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            },
+            {
+              "name": "through",
+              "type": "int64",
+              "description": "上一页已读取水位",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "成功nil；失败返回公共安全错误且不带半页",
+              "constraints": "可信内部依赖；不接受浏览器构造，错误说明不含原业务数据"
+            }
+          ],
+          "purpose": "核共享时间线进度及原费用关联",
+          "steps": [
+            "核schema2/完整覆盖标记/空数组与两类事实合计≤100；水位不退不越界且上界固定。",
+            "分别核原账项/观察顺序和来源site；保留认证历史sourceDataEpoch，不以当前配置或事件修订补历史。核已知金额仅带真实USD微额，未知金额与未知预留不带金额；保留原独立版本和全部in-flight事实。",
+            "按changeRevision合并两数组，拒重复/倒序/越界；有cursor必须有真实进度且未到上界；无cursor必须throughRevision=watermark。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "端口或校验未装配、生产方不可达；原生产方Problem保持失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "请求固定上界早于原起点或负修订",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "不是analytics纯服务",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "注入的真实site/epoch与当前操作或输入不一致，或生产方拒绝旧epoch",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "condition": "不是完整V2 posted-and-inflight页或未知观察种类",
+              "httpStatus": 422,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "原hash/schema/无损模型/共享时间线顺序/原事实关联/金额已知状态/末页封口矛盾",
+              "httpStatus": 422,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "STALE_RESULT",
+              "condition": "固定上界改变或分页水位越界/倒退，或生产方游标过期",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "condition": "单页超过2MiB、完整范围原始HTTP JSON累计超过32MiB，或生产方预算失败；不截断、不返回部分范围",
+              "httpStatus": 429,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "CANCELLED",
+              "condition": "上游取消中止HTTP读取",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "condition": "总任务或单页IO截止",
+              "httpStatus": 504,
+              "retryable": true,
+              "rollback": "只读操作无持久副作用；丢弃全部内存页并返回零值，不激活半结果"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信调用链装配或FetchUsagePage响应边界使用"
+          },
+          "concurrency": "无共享可变状态；纯本地操作",
+          "idempotency": "相同输入产生相同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.validateUsageGatewayRawShape",
+          "name": "validateUsageGatewayRawShape",
+          "signature": "func validateUsageGatewayRawShape(fields map[string]json.RawMessage) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核V2页required字段与非null数组",
+          "steps": [
+            "固定全部顶层/账项/观察required字段；amount与reservation已知金额仅在known时同现。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
+          },
+          "concurrency": "无共享可变状态。",
+          "idempotency": "相同已核验输入产生相同结果。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.requireUsageJSONFields",
+          "name": "requireUsageJSONFields",
+          "signature": "func requireUsageJSONFields(fields map[string]json.RawMessage, names ...string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "要求JSON对象字段存在且非null",
+          "steps": [
+            "逐字段检查存在性和显式null。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
+          },
+          "concurrency": "无共享可变状态。",
+          "idempotency": "相同已核验输入产生相同结果。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.isJSONNull",
+          "name": "isJSONNull",
+          "signature": "func isJSONNull(raw json.RawMessage) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "判断required/optional机器JSON值是否显式null",
+          "steps": [
+            "去除ASCII空白后与null比较。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
+          },
+          "concurrency": "无共享可变状态。",
+          "idempotency": "相同已核验输入产生相同结果。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.validInvocationState",
+          "name": "validInvocationState",
+          "signature": "func validInvocationState(value string) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核费用观察调用状态枚举",
+          "steps": [
+            "只接受model-gateway V2登记状态。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
+          },
+          "concurrency": "无共享可变状态。",
+          "idempotency": "相同已核验输入产生相同结果。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.validAttemptState",
+          "name": "validAttemptState",
+          "signature": "func validAttemptState(value string) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核费用观察独立尝试状态枚举",
+          "steps": [
+            "只接受model-gateway V2登记状态。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
+          },
+          "concurrency": "无共享可变状态。",
+          "idempotency": "相同已核验输入产生相同结果。",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -2011,10 +2644,10 @@
           ],
           "purpose": "消费安全审计和费用事件",
           "steps": [
-            "验证model-gateway invocation.settled信封与dataEpoch",
-            "inbox按eventId+payloadHash去重",
-            "settled只携引用，调用model-gateway:queryUsage按固定watermark取得账项整数金额",
-            "ProjectUsage在同一事务持久后返回成功，由analytics.ConsumeEvents确认；失败返回错误不确认，等待重投"
+            "仅接受model-gateway invocation.settled/invocation.reconciled v1；核事件/载荷dataEpoch、subject=invocationId、settled entryId及reconciled proofKind原引用，事件actualCost不作为账项真相。",
+            "FetchUsagePage从原起点收齐固定V2上界并核每页pageHash、完整来源闭包与32MiB总预算；settled必须找到同entry原事实，not_charged必须找到同attempt原观察，引用/来源epoch不符或未收齐均不确认。",
+            "beginWrite后以inbox.ClaimInboxBeforeWrite作为首项写入，同eventId+payloadHash幂等；同ID异hash严格隔离，低修订跳过，旧dataEpoch拒绝。",
+            "Claim成功后在同一事务调用ProjectUsageTx持久完整changes/observations与真实watermark，更新V2事件水位后提交；提交成功才返回accepted=true，由analytics.ConsumeEvents确认。失败返回错误等待重投，不公开半页或猜金额。"
           ],
           "errors": [
             {
@@ -2033,18 +2666,20 @@
             }
           ],
           "sideEffects": [
-            "写inbox/audit/projection"
+            "写platform inbox、V2费用事实/当前投影和真实事件水位"
           ],
           "authorization": {
             "permission": "service",
             "rule": "service白名单"
           },
-          "concurrency": "按subject/entry修订取max，乱序不回退",
-          "idempotency": "eventId/revision/hash幂等",
+          "concurrency": "权威页读取在事务外；inbox首写后费用事实投影同SQLite事务提交，按changeRevision不回退",
+          "idempotency": "eventId/payloadHash/changeRevision/originalFactHash幂等",
           "dependencies": [
-            "model-gateway:queryUsage",
-            "analytics.ProjectUsage",
-            "platform.ClaimInbox"
+            "analytics.FetchUsagePage",
+            "analytics.parseUsageEventReference",
+            "analytics.validateUsageEventReference",
+            "analytics.ProjectUsageTx",
+            "platform.ClaimInboxBeforeWrite"
           ],
           "resources": [],
           "contract": "binding"
@@ -7621,6 +8256,77 @@
         }
       ],
       "kind": "handwritten"
+    },
+    {
+      "path": "modules/analytics/internal/usage_gateway_types.go",
+      "kind": "handwritten",
+      "purpose": "model-gateway V2安全统计页、完整范围和可信注入窄接口的本域无损类型；HTTP机器来源仍引用生产方types",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/internal/usage_events.go",
+      "kind": "handwritten",
+      "purpose": "费用事件原引用解析与权威页绑定；不接受事件金额或修订为账项真相",
+      "functions": [
+        {
+          "id": "analytics.parseUsageEventReference",
+          "name": "parseUsageEventReference",
+          "signature": "func parseUsageEventReference(event platform.EventEnvelope, epoch string) (usageEventReference, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核费用事件生产者、类型、代次与证明种类引用",
+          "steps": [
+            "settled必须有entryId；reconciled charged必须有entryId，not_charged不得有；subject须等于invocationId。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
+          },
+          "concurrency": "无共享可变状态。",
+          "idempotency": "相同已核验输入产生相同结果。",
+          "dependencies": [
+            "platform.EventEnvelope"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "analytics.validateUsageEventReference",
+          "name": "validateUsageEventReference",
+          "signature": "func validateUsageEventReference(ref usageEventReference, siteID string, changes []UsageLedgerChange, observations []UsageObservation) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "把事件引用绑定到完整权威V2页原事实",
+          "steps": [
+            "账项入口必须匹配entry/invocation/attempt/root/class/site/sourceEpoch；not_charged只匹配原attempt观察。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域可信费用消费链；不接受浏览器构造。"
+          },
+          "concurrency": "无共享可变状态。",
+          "idempotency": "相同已核验输入产生相同结果。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/analytics/internal/usage_models.go",
+      "kind": "handwritten",
+      "purpose": "model-gateway V2费用账项、观察和投影输入的单一本域无损事实模型",
+      "functions": []
+    },
+    {
+      "path": "modules/analytics/migrations/0006_usage_statistics_v2.sql",
+      "kind": "handwritten",
+      "purpose": "连续V6完整费用事实、账项/观察当前投影；不改写V1旧费用表",
+      "functions": []
     }
   ],
   "jobTypes": [

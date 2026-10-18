@@ -15,6 +15,58 @@ type qaTurnProjection struct {
 	EventType, Hash, Day, Locale, AnswerKind, CacheHit, Code, At string
 }
 
+// ConsumeAnalyticsEvent只把事件当作原费用引用，完整读取权威V2页后再原子提交。
+// 事件hash、重复、低修订与同ID冲突隔离均交给platform inbox，成功返回后才允许确认。
+func ConsumeAnalyticsEvent(ctx context.Context, op OperationContext, in ConsumeAnalyticsEventInput) (ConsumeAnalyticsEventResult, error) {
+	rt, err := runtimeFrom(ctx, op)
+	if err != nil {
+		return ConsumeAnalyticsEventResult{}, err
+	}
+	ref, err := parseUsageEventReference(in.Event, rt.Epoch)
+	if err != nil {
+		return ConsumeAnalyticsEventResult{}, err
+	}
+	// 从头收齐固定上界，包含未入账attempt/held事实；不把事件修订当作账项水位。
+	snapshot, err := FetchUsagePage(ctx, op, UsageGatewayFetchInput{DataEpoch: rt.Epoch})
+	if err != nil {
+		return ConsumeAnalyticsEventResult{}, err
+	}
+	projection := UsageProjectionInput{DataEpoch: rt.Epoch, Changes: []UsageLedgerChange{}, Observations: []UsageObservation{}}
+	for _, page := range snapshot.Pages {
+		projection.Changes = append(projection.Changes, page.Changes...)
+		projection.Observations = append(projection.Observations, page.Observations...)
+	}
+	work, _, tx, cancel, err := beginWrite(ctx, op)
+	if err != nil {
+		return ConsumeAnalyticsEventResult{}, err
+	}
+	defer cancel()
+	defer tx.Rollback()
+	// 必须是事务首项写入；冲突时只提交平台隔离标记，不能被错误回滚抹掉。
+	claimed, err := inbox.ClaimInboxBeforeWrite(work, tx, in.Event, func() error { return storageError(tx.Commit()) })
+	if err != nil {
+		return ConsumeAnalyticsEventResult{}, err
+	}
+	if !claimed {
+		return ConsumeAnalyticsEventResult{}, storageError(tx.Commit())
+	}
+	if err = validateUsageEventReference(ref, rt.SiteID, projection.Changes, projection.Observations); err != nil {
+		return ConsumeAnalyticsEventResult{}, err
+	}
+	if _, err = ProjectUsageTx(work, op, tx, projection); err != nil {
+		return ConsumeAnalyticsEventResult{}, err
+	}
+	// 此水位只描述已持久的完整V2来源范围，不启用仍读V1表的统计查询。
+	_, err = tx.ExecContext(work, `INSERT INTO aggregation_watermarks(source,revision,updated_at) VALUES('usage-v2-events',?,?) ON CONFLICT(source) DO UPDATE SET revision=excluded.revision,updated_at=excluded.updated_at WHERE excluded.revision>aggregation_watermarks.revision`, snapshot.Watermark, time.Now().UTC().Format(analyticsTimeLayout))
+	if err != nil {
+		return ConsumeAnalyticsEventResult{}, storageError(err)
+	}
+	if err = tx.Commit(); err != nil {
+		return ConsumeAnalyticsEventResult{}, storageError(err)
+	}
+	return ConsumeAnalyticsEventResult{Accepted: true}, nil
+}
+
 // ProjectQaTurn在同一事务去重/单调修订，替换事实时撤旧分类，绝不累计重复事件。
 func ProjectQaTurn(ctx context.Context, op OperationContext, input EventDelivery) (EventHandled, error) {
 	event := input.Envelope

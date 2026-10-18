@@ -16,7 +16,7 @@ type ConsumeEventsResult struct {
 	Failed       int64 `json:"failed"`
 }
 
-// ConsumeEvents保持所有已登记事件，费用投影缺精确安全页时不确认该分支。
+// ConsumeEvents将费用事件交给权威页投影入口，提交成功后由平台确认。
 func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEventsInput) (ConsumeEventsResult, error) {
 	rt, err := runtimeFrom(ctx, op)
 	if err != nil {
@@ -36,8 +36,16 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 		}
 		return err
 	}
-	usage := func(context.Context, EventDelivery) error {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "费用事件等待权威安全统计页，不确认或猜账务字段")
+	usage := func(ctx context.Context, event EventDelivery) error {
+		call, ok := platform.OperationContextFrom(ctx)
+		if !ok {
+			return platform.NewError(platform.CodeUnauthenticated, false, "订阅上下文缺失")
+		}
+		result, err := ConsumeAnalyticsEvent(WithUsageGateway(WithRuntime(ctx, rt), rt.UsageGateway), call, ConsumeAnalyticsEventInput{Event: event.Envelope})
+		if err == nil && !result.Accepted {
+			return inbox.ErrEventSkipped
+		}
+		return err
 	}
 	counts, err := inbox.RunConsumerWithResult(ctx, rt.Consumer, platform.ConsumerConfig{SiteID: rt.SiteID, ConsumerID: "analytics", Events: []string{"qa.turn.completed@1", "qa.turn.failed@1", "invocation.settled@1", "invocation.reconciled@1"}, MaxInFlight: input.MaxInFlight, Runtime: rt.Window.Runtime, ValidatePayload: rt.ValidateEvent}, platform.EventHandlerRegistry{"qa.turn.completed": qa, "qa.turn.failed": qa, "invocation.settled": usage, "invocation.reconciled": usage})
 	return ConsumeEventsResult{Acknowledged: counts.Acknowledged, Skipped: counts.Skipped, Failed: counts.Failed}, err

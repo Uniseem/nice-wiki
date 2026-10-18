@@ -27,3 +27,8 @@ var QaProjection string
 //
 //go:embed 0005_export_journal.sql
 var ExportJournal string
+
+// UsageStatisticsV2保存完整安全账项及未入账观察，V1历史不改写。
+//
+//go:embed 0006_usage_statistics_v2.sql
+var UsageStatisticsV2 string
