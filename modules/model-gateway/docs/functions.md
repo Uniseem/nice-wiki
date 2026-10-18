@@ -2255,7 +2255,7 @@ func ReadReservation(tx *gatewayruntime.ExecutionTransaction, id string)(gen.Res
 - 作用：CheckFeeBudgets的本域实际执行职责
 
 ```go
-func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, additional int64, now time.Time)error
+func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, additional *gen.Money, now time.Time) error
 ```
 
 **输入**
@@ -2268,8 +2268,10 @@ func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayrunt
 
 **步骤**
 
-1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
-2. 算法、证据与副作用边界见本域data/workflows及源码注释
+1. 只在调用方费用预留短写事务内核固定档位单请求与UTC日额度；单请求合计原invocation全部held/settled尝试，不仅当前attempt。
+2. QA另核真实已消费许可scope的全站日/会话小时/网络小时额度；后台不占QA额度；旧日held仍占原scope。
+3. additional为nil表示本次最大金额真实未知，既有amount_micro_usd为NULL表示范围内未知；任一适用额度有限时两者均失败关闭，不按零累计。
+4. 额度值0明确不限；只有所有实际适用额度均不限时才允许未知预留；不释放既有held，不篡改未知金额；已知整数用big.Int求和防溢出。
 
 **错误**
 
@@ -2284,9 +2286,9 @@ func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayrunt
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 
 - 副作用：无
-- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
-- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
-- 幂等：只读真实状态与固定原价目，无费用写入。
+- 授权：permission：service；rule：仅ReserveCost/ExtendReservation已核原调用owner、site、epoch和原QA许可范围的费用链路，不获取新付费权限。
+- 并发：调用方SQLite同一短写事务内读取范围并持久预留，禁止检查后另事务插入。
+- 幂等：纯额度核对；预留由调用方同事务命令回执幂等。
 - 依赖：无
 
 ## model-gateway.DispatchInvocation
