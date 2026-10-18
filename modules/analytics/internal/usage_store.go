@@ -146,7 +146,7 @@ func ProjectUsageTx(ctx context.Context, op OperationContext, tx *sql.Tx, in Usa
 
 type usageStoredFact struct {
 	Kind, EntityID, SiteID, SourceDataEpoch, Hash, JSON string
-	EntityRevision, ChangeRevision                    int64
+	EntityRevision, ChangeRevision                      int64
 }
 
 // recordUsageFact保留每个完整历史修订，因此迟到旧修订也不能绕过同修订hash冲突。

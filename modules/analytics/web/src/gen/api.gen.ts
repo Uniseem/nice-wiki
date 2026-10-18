@@ -437,6 +437,7 @@ export interface components {
         AnalyticsQaFailedPayload: components["schemas"]["EventQaTurnFailedPayload"];
         AnalyticsSettledPayload: components["schemas"]["EventInvocationSettledPayload"];
         AnalyticsReconciledPayload: components["schemas"]["EventInvocationReconciledPayload"];
+        AnalyticsUsageStatisticsPageResult: components["schemas"]["ReadUsageStatisticsPageResult"];
         /**
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
@@ -1420,6 +1421,123 @@ export interface components {
             /** @constant */
             proofKind?: "not_charged";
         });
+        /** @description 纯安全posted账项变更；只真实entry，不把held/未知attempt伪成entry。冻结provider/model来自原attempt与执行路线，不查当前配置。 */
+        UsageLedgerChange: {
+            ledgerEntryId: components["schemas"]["Identifier"];
+            invocationId: components["schemas"]["Identifier"];
+            attemptId: components["schemas"]["Identifier"];
+            operationId: components["schemas"]["Identifier"];
+            rootOperationId: components["schemas"]["Identifier"];
+            ownerService: components["schemas"]["Identifier"];
+            siteId: components["schemas"]["Identifier"];
+            sourceDataEpoch: components["schemas"]["Identifier"];
+            providerId: components["schemas"]["Identifier"];
+            modelId: components["schemas"]["Identifier"];
+            changeRevision: components["schemas"]["Revision"];
+            /**
+             * Format: int64
+             * @description 本统计捕获账项独立修订；真实初次baseline观察为1，后续实际写/改/supersede/void/delete递增，不冒原事件修订。
+             */
+            ledgerRevision: number;
+            providerVersion: number;
+            modelVersion: number;
+            modelSnapshotHash: components["schemas"]["Hash"];
+            costClass: components["schemas"]["CostClass"];
+            amountKnown: boolean;
+            /** @description 只实际已知金额时存在；未知省略，不造0。 */
+            amount?: components["schemas"]["Money"];
+            /** @enum {unknown} */
+            state: "settled" | "reconciled" | "price_unknown" | "superseded" | "voided" | "deleted";
+            /** @enum {unknown} */
+            ledgerStatus: "settled" | "reconciled" | "price_unknown";
+            /** @description 原账本真实createdAt，非观察/分页时间。 */
+            occurredAt: components["schemas"]["Timestamp"];
+            observedAt: components["schemas"]["Timestamp"];
+            /** @enum {unknown} */
+            captureKind: "baseline" | "change";
+        } & unknown;
+        UsageObservationOrigin: {
+            invocationId: components["schemas"]["Identifier"];
+            operationId: components["schemas"]["Identifier"];
+            rootOperationId: components["schemas"]["Identifier"];
+            ownerService: components["schemas"]["Identifier"];
+            siteId: components["schemas"]["Identifier"];
+            sourceDataEpoch: components["schemas"]["Identifier"];
+            costClass: components["schemas"]["CostClass"];
+        };
+        UsageInvocationFact: {
+            /** @enum {string} */
+            state: "accepted" | "reserved" | "dispatching" | "streaming" | "cancel_requested" | "cancelled" | "failed" | "succeeded" | "charge_unknown" | "reconciled";
+            createdAt: components["schemas"]["Timestamp"];
+            terminal: boolean;
+            /** @description 该原观察仍有持久执行租约；过期也保守占用，不表示旧代可复活执行 */
+            activeExecution: boolean;
+            attemptCount: number;
+            /** @description 同一原数据库快照真实所有attempt皆succeeded/failed/reconciled，不仅outer succeeded */
+            allAttemptsFinal: boolean;
+        };
+        UsageAttemptFact: {
+            attemptId: components["schemas"]["Identifier"];
+            /** @enum {string} */
+            state: "reserved" | "dispatching" | "streaming" | "failed" | "succeeded" | "charge_unknown" | "reconciled";
+            providerId: components["schemas"]["Identifier"];
+            providerVersion: number;
+            modelId: components["schemas"]["Identifier"];
+            modelVersion: number;
+            modelSnapshotHash: components["schemas"]["Hash"];
+            priceSnapshotId: components["schemas"]["Identifier"];
+            dispatched: boolean;
+        };
+        UsageReservationFact: {
+            reservationId: components["schemas"]["Identifier"];
+            attemptId: components["schemas"]["Identifier"];
+            /** @enum {string} */
+            state: "held" | "settled" | "released";
+            version: number;
+            amountKnown: boolean;
+            maximumCost?: components["schemas"]["Money"];
+            heldCost?: components["schemas"]["Money"];
+            unknownUsageCount: number;
+        } & unknown;
+        UsageObservation: {
+            changeRevision: number;
+            entityRevision: number;
+            /** @enum {string} */
+            kind: "invocation" | "attempt" | "reservation";
+            entityId: components["schemas"]["Identifier"];
+            origin: components["schemas"]["UsageObservationOrigin"];
+            deleted: boolean;
+            observedAt: components["schemas"]["Timestamp"];
+            invocation?: components["schemas"]["UsageInvocationFact"];
+            attempt?: components["schemas"]["UsageAttemptFact"];
+            reservation?: components["schemas"]["UsageReservationFact"];
+        } & ({
+            /** @constant */
+            kind?: "invocation";
+        } | {
+            /** @constant */
+            kind?: "attempt";
+        } | {
+            /** @constant */
+            kind?: "reservation";
+        });
+        /** @description V2完整posted及inflight来源闭包不表示金额均已知；未知金额必须显式unknown，禁止部分已知和冒全站总额。调用和attempt原财务权威不删除，reservation held禁止删除；已关闭reservation删改真实留历史。 */
+        ReadUsageStatisticsPageResult: {
+            /** @constant */
+            schemaVersion: 2;
+            watermark: components["schemas"]["Revision"];
+            throughRevision: components["schemas"]["Revision"];
+            changes: components["schemas"]["UsageLedgerChange"][];
+            nextCursor: string;
+            /** @constant */
+            feeCoverage: "posted-and-inflight";
+            /** @constant */
+            completeFeeCoverage: true;
+            /** @description 无账项真实invocation/attempt/held闭包，与changes共用同一timeline上界；两数组合计最多100，按changeRevision合并排序 */
+            observations: components["schemas"]["UsageObservation"][];
+            /** @description 对该响应其余全部字段（含固定上界、所有原事实及nextCursor）的完整canonical JSON UTF8作SHA256；仅计算时省略pageHash，不截断或另猜源hash。 */
+            pageHash: components["schemas"]["Hash"];
+        };
     };
     responses: never;
     parameters: never;

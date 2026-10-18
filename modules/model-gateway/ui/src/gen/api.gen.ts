@@ -688,7 +688,7 @@ export interface paths {
         };
         /**
          * analytics专用固定水位安全账本变更页
-         * @description 仅analytics纯服务当前真实site/epoch，单页最多100且2.5s；固定历史watermark/签名游标，兼容60s任务续接。仅posted账本，不宣称无账项未知/held完整。
+         * @description 仅analytics纯服务当前真实site/epoch，schemaVersion=2；单页changes与observations合计最多100项且2.5秒。统一timeline固定watermark/throughRevision与24小时签名游标，完整覆盖posted及无账项invocation/attempt/held来源；completeFeeCoverage表示来源覆盖，不表示金额已知，未知金额必须保留unknown，禁止部分已知和冒充全站总额。pageHash绑定省略自身后的完整响应canonical JSON。
          */
         get: operations["readUsageStatisticsPage"];
         put?: never;
