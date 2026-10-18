@@ -4,10 +4,10 @@ package tokens
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"net/http"
- "math"
- "slices"
- "nice-wiki/modules/model-gateway/internal/catalog"
+	"nice-wiki/modules/model-gateway/internal/catalog"
+	"slices"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/problem"
@@ -28,7 +28,7 @@ type EstimateTokensResult struct {
 // EstimateTokens 使用已确认的UTF8回退规则；文本无内置tokenizer；非文本用模型明确完整输入窗口保守预留。
 func EstimateTokens(ctx context.Context, op OperationContext, input EstimateTokensInput) (EstimateTokensResult, error) {
 	size := 0
- hasMedia,hasFile:=false,false
+	hasMedia, hasFile := false, false
 	for _, text := range input.Texts {
 		size += len(text)
 	}
@@ -39,13 +39,28 @@ func EstimateTokens(ctx context.Context, op OperationContext, input EstimateToke
 		size += len(message.Content)
 		if message.Parts != nil {
 			for _, part := range *message.Parts {
-				if part.Kind != "text" {hasMedia=true;if part.Kind=="file"{hasFile=true};continue}
+				if part.Kind != "text" {
+					hasMedia = true
+					if part.Kind == "file" {
+						hasFile = true
+					}
+					continue
+				}
 				size += len(*part.Text)
 			}
 		}
 	}
-	if hasMedia{model,err:=catalog.ReadInputBudgetModel(ctx,op,input.ModelId);if err!=nil{return EstimateTokensResult{},err};if !slices.Contains(model.Capabilities,"vision")||(hasFile&&!slices.Contains(model.Capabilities,"file")){return EstimateTokensResult{},platform.NewError(platform.CodeUnsupportedCapability,false,"媒体预算须模型明确vision/file能力")};return EstimateTokensResult{InputTokens:model.MaxInputTokens,EstimatorVersion:"fixed-model-input-window-v1"},nil}
- base := (size+1)/2 + len(input.Messages)*32
+	if hasMedia {
+		model, err := catalog.ReadInputBudgetModel(ctx, op, input.ModelId)
+		if err != nil {
+			return EstimateTokensResult{}, err
+		}
+		if !slices.Contains(model.Capabilities, "vision") || (hasFile && !slices.Contains(model.Capabilities, "file")) {
+			return EstimateTokensResult{}, platform.NewError(platform.CodeUnsupportedCapability, false, "媒体预算须模型明确vision/file能力")
+		}
+		return EstimateTokensResult{InputTokens: model.MaxInputTokens, EstimatorVersion: "fixed-model-input-window-v1"}, nil
+	}
+	base := (size+1)/2 + len(input.Messages)*32
 	return EstimateTokensResult{InputTokens: (base*6 + 4) / 5, EstimatorVersion: "utf8-half-message32-six-fifths-v1"}, nil
 }
 
@@ -75,12 +90,33 @@ func NewTokenHandlers() map[string]http.Handler {
 }
 
 // ValidateEmbeddingSpace核对MG原空间身份和原始有限向量；默认none，不擅自L2归一化。
-type ValidateEmbeddingSpaceInput struct{Space gen.EmbeddingSpace `json:"space"`;Vectors [][]float64 `json:"vectors"`}
-type ValidateEmbeddingSpaceResult struct{Valid bool `json:"valid"`;EmbeddingSpaceID string `json:"embeddingSpaceId"`}
-func ValidateEmbeddingSpace(ctx context.Context,op OperationContext,input ValidateEmbeddingSpaceInput)(ValidateEmbeddingSpaceResult,error){
- model:=catalog.Model{ProviderId:input.Space.Provider,ProviderModelVersion:input.Space.ModelVersion,Dimension:input.Space.Dimensions,PreprocessorVersion:input.Space.PreprocessingVersion}
- space,err:=catalog.ModelEmbeddingSpace(model);if err!=nil{return ValidateEmbeddingSpaceResult{},err}
- if space.SpaceID!=input.Space.SpaceId{return ValidateEmbeddingSpaceResult{},platform.NewError(platform.CodeIntegrityError,false,"嵌入空间摘要与原五字段身份不一致")}
- for _,vector:=range input.Vectors{if len(vector)!=space.Dimensions{return ValidateEmbeddingSpaceResult{},platform.NewError(platform.CodeIntegrityError,false,"向量维度与固定空间不一致")};for _,component:=range vector{if math.IsNaN(component)||math.IsInf(component,0){return ValidateEmbeddingSpaceResult{},platform.NewError(platform.CodeIntegrityError,false,"向量存在非有限分量")}}}
- return ValidateEmbeddingSpaceResult{Valid:true,EmbeddingSpaceID:space.SpaceID},nil
+type ValidateEmbeddingSpaceInput struct {
+	Space   gen.EmbeddingSpace `json:"space"`
+	Vectors [][]float64        `json:"vectors"`
+}
+type ValidateEmbeddingSpaceResult struct {
+	Valid            bool   `json:"valid"`
+	EmbeddingSpaceID string `json:"embeddingSpaceId"`
+}
+
+func ValidateEmbeddingSpace(ctx context.Context, op OperationContext, input ValidateEmbeddingSpaceInput) (ValidateEmbeddingSpaceResult, error) {
+	model := catalog.Model{ProviderId: input.Space.Provider, ProviderModelVersion: input.Space.ModelVersion, Dimension: input.Space.Dimensions, PreprocessorVersion: input.Space.PreprocessingVersion}
+	space, err := catalog.ModelEmbeddingSpace(model)
+	if err != nil {
+		return ValidateEmbeddingSpaceResult{}, err
+	}
+	if space.SpaceID != input.Space.SpaceId {
+		return ValidateEmbeddingSpaceResult{}, platform.NewError(platform.CodeIntegrityError, false, "嵌入空间摘要与原五字段身份不一致")
+	}
+	for _, vector := range input.Vectors {
+		if len(vector) != space.Dimensions {
+			return ValidateEmbeddingSpaceResult{}, platform.NewError(platform.CodeIntegrityError, false, "向量维度与固定空间不一致")
+		}
+		for _, component := range vector {
+			if math.IsNaN(component) || math.IsInf(component, 0) {
+				return ValidateEmbeddingSpaceResult{}, platform.NewError(platform.CodeIntegrityError, false, "向量存在非有限分量")
+			}
+		}
+	}
+	return ValidateEmbeddingSpaceResult{Valid: true, EmbeddingSpaceID: space.SpaceID}, nil
 }

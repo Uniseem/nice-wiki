@@ -254,6 +254,9 @@ func problemToError(raw []byte) error {
 	return platform.NewError(code, retryable, "%s", problem.Detail)
 }
 
+// PayloadValidationSpec保留显式登记的生产方载荷及引用闭包，不扩展HTTP接口。
+const PayloadValidationSpec = "{\"components\":{\"schemas\":{\"Asset\":{\"additionalProperties\":false,\"description\":\"资源元数据，不含OSpath；服务无图像处理或视频转码库\",\"properties\":{\"animated\":{\"description\":\"GIF/WebP/AVIF动图不压缩\",\"type\":\"boolean\"},\"createdAt\":{\"$ref\":\"#/components/schemas/Timestamp\",\"description\":\"上传\"},\"createdBy\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"上传账户\"},\"height\":{\"description\":\"无null\",\"maximum\":100000,\"minimum\":1,\"nullable\":true,\"type\":\"integer\"},\"imageVariants\":{\"description\":\"浏览器已传variants\",\"items\":{\"$ref\":\"#/components/schemas/ImageVariant\",\"description\":\"ImageVariant\"},\"maxItems\":3,\"minItems\":0,\"type\":\"array\"},\"kind\":{\"description\":\"资源库类别\",\"enum\":[\"image\",\"attachment\",\"video\",\"drawing_scene\",\"drawing_svg\",\"platform_cover\"],\"type\":\"string\"},\"originalName\":{\"description\":\"安全展示文件名，不作为路径\",\"maxLength\":255,\"minLength\":1,\"type\":\"string\"},\"ref\":{\"$ref\":\"#/components/schemas/AssetVersionRef\",\"description\":\"AssetVersionRef\"},\"revision\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"CAS\"},\"siteId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"站点\"},\"state\":{\"description\":\"状态\",\"enum\":[\"uploading\",\"validating\",\"ready\",\"blocked\",\"delete_pending\",\"deleted\"],\"type\":\"string\"},\"width\":{\"description\":\"无null\",\"maximum\":100000,\"minimum\":1,\"nullable\":true,\"type\":\"integer\"}},\"required\":[\"ref\",\"siteId\",\"kind\",\"originalName\",\"state\",\"animated\",\"width\",\"height\",\"imageVariants\",\"createdBy\",\"createdAt\",\"revision\"],\"type\":\"object\"},\"AssetVersionRef\":{\"additionalProperties\":false,\"description\":\"完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖\",\"properties\":{\"assetId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"逻辑资源ID\"},\"byteSize\":{\"description\":\"字节数\",\"maximum\":2147483648,\"minimum\":0,\"type\":\"integer\"},\"mediaType\":{\"description\":\"嗅探确认MIME\",\"maxLength\":128,\"minLength\":1,\"type\":\"string\"},\"sha256\":{\"$ref\":\"#/components/schemas/Hash\",\"description\":\"Hash\"},\"version\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"不可变对象版本\"}},\"required\":[\"assetId\",\"version\",\"sha256\",\"mediaType\",\"byteSize\"],\"type\":\"object\"},\"ErrorCode\":{\"description\":\"ErrorCode的公共协议类型；字段及范围按本schema\",\"enum\":[\"VALIDATION\",\"UNAUTHENTICATED\",\"FORBIDDEN\",\"NOT_FOUND\",\"GONE\",\"CONFLICT\",\"VERSION_MISMATCH\",\"LOCKED\",\"UNSUPPORTED_SCHEMA\",\"UNSUPPORTED_CAPABILITY\",\"RATE_LIMITED\",\"BUDGET_EXCEEDED\",\"CANCELLED\",\"DEADLINE_EXCEEDED\",\"DEPENDENCY_UNAVAILABLE\",\"STALE_RESULT\",\"INTEGRITY_ERROR\",\"INTERNAL\",\"CHALLENGE_REQUIRED\"],\"type\":\"string\"},\"FieldIssue\":{\"additionalProperties\":false,\"description\":\"FieldIssue的公共协议类型；字段及范围按本schema\",\"properties\":{\"field\":{\"description\":\"字段路径，不包含字段值\",\"type\":\"string\"},\"reason\":{\"description\":\"可展示且不泄露输入正文的原因\",\"type\":\"string\"}},\"required\":[\"field\",\"reason\"],\"type\":\"object\"},\"Hash\":{\"description\":\"SHA-256 小写十六进制\",\"pattern\":\"^[0-9a-f]{64}$\",\"type\":\"string\"},\"Identifier\":{\"description\":\"系统生成的不透明 ID，不含个人信息\",\"maxLength\":128,\"minLength\":1,\"pattern\":\"^[A-Za-z0-9._:-]+$\",\"type\":\"string\"},\"ImageVariant\":{\"additionalProperties\":false,\"description\":\"浏览器生成WebP尺寸，最多640/1280/1920且不放大原图\",\"properties\":{\"asset\":{\"$ref\":\"#/components/schemas/AssetVersionRef\",\"description\":\"AssetVersionRef\"},\"height\":{\"description\":\"实际像素高\",\"maximum\":100000,\"minimum\":1,\"type\":\"integer\"},\"width\":{\"description\":\"实际像素宽\",\"maximum\":100000,\"minimum\":1,\"type\":\"integer\"}},\"required\":[\"width\",\"height\",\"asset\"],\"type\":\"object\"},\"InitializationState\":{\"additionalProperties\":false,\"description\":\"首超管注册后的站点/语言两步向导；没有AI和owner reservation\",\"properties\":{\"configRevision\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"配置水位\"},\"decision\":{\"description\":\"决定\",\"enum\":[\"none\",\"commit\",\"abort\"],\"type\":\"string\"},\"operationId\":{\"allOf\":[{\"$ref\":\"#/components/schemas/Identifier\"}],\"description\":\"初始化操作；尚无协调记录时为null，不生成占位ID\",\"nullable\":true},\"phase\":{\"description\":\"阶段\",\"enum\":[\"uninitialized\",\"preparing\",\"config_committed\",\"completed\",\"aborting\",\"aborted\",\"blocked\"],\"type\":\"string\"},\"revision\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"CAS\"},\"safeError\":{\"allOf\":[{\"$ref\":\"#/components/schemas/Problem\"}],\"description\":\"无null\",\"nullable\":true},\"siteId\":{\"allOf\":[{\"$ref\":\"#/components/schemas/Identifier\"}],\"description\":\"已由identity首注册取得站点；尚无协调记录时为null，不生成占位ID\",\"nullable\":true},\"updatedAt\":{\"$ref\":\"#/components/schemas/Timestamp\",\"description\":\"时间\"}},\"required\":[\"operationId\",\"siteId\",\"phase\",\"configRevision\",\"decision\",\"revision\",\"safeError\",\"updatedAt\"],\"type\":\"object\"},\"LanguageSuggestionApprovalResult\":{\"$ref\":\"#/components/schemas/ReadLanguageSuggestionApprovalResult\"},\"MediaReadAssetResult\":{\"$ref\":\"#/components/schemas/ReadAssetResult\"},\"Problem\":{\"additionalProperties\":false,\"description\":\"公共失败响应；不含秘密、问题正文、原始IP或内部堆栈\",\"properties\":{\"code\":{\"$ref\":\"#/components/schemas/ErrorCode\",\"description\":\"登记的稳定错误码\"},\"detail\":{\"description\":\"中文安全说明\",\"type\":\"string\"},\"issues\":{\"description\":\"逐字段输入错误，不能回显秘密原值\",\"items\":{\"$ref\":\"#/components/schemas/FieldIssue\"},\"type\":\"array\"},\"requestId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"本次请求唯一追踪ID\"},\"retryable\":{\"description\":\"是否允许在幂等和总截止内重试\",\"type\":\"boolean\"},\"status\":{\"description\":\"HTTP 状态\",\"minimum\":100,\"type\":\"integer\"},\"title\":{\"description\":\"中文标题\",\"type\":\"string\"},\"type\":{\"description\":\"问题类型标识\",\"type\":\"string\"}},\"required\":[\"type\",\"title\",\"status\",\"code\",\"detail\",\"requestId\",\"retryable\"],\"type\":\"object\"},\"PublicInitializationState\":{\"additionalProperties\":false,\"description\":\"公开安全初始化阶段，不包含协调标识和私有决定\",\"properties\":{\"phase\":{\"description\":\"阶段\",\"enum\":[\"uninitialized\",\"preparing\",\"config_committed\",\"completed\",\"aborting\",\"aborted\",\"blocked\"],\"type\":\"string\"},\"safeError\":{\"allOf\":[{\"$ref\":\"#/components/schemas/Problem\"}],\"description\":\"无null\",\"nullable\":true}},\"required\":[\"phase\",\"safeError\"],\"type\":\"object\"},\"ReadAssetResult\":{\"additionalProperties\":false,\"description\":\"读取资源/variants安全元数据的结果\",\"properties\":{\"asset\":{\"$ref\":\"#/components/schemas/Asset\",\"description\":\"Asset\"}},\"required\":[\"asset\"],\"type\":\"object\"},\"ReadInitializationStatusResult\":{\"additionalProperties\":false,\"description\":\"读取安全初始化阶段的结果\",\"properties\":{\"coordination\":{\"$ref\":\"#/components/schemas/InitializationState\",\"description\":\"仅同站点超管或identity/site-config可信服务返回，匿名省略\"},\"initialized\":{\"description\":\"active已提交配置是否完成初始化；不能用于重开注册\",\"type\":\"boolean\"},\"state\":{\"$ref\":\"#/components/schemas/PublicInitializationState\",\"description\":\"仅安全phase和safeError\"}},\"required\":[\"initialized\",\"state\"],\"type\":\"object\"},\"ReadLanguageSuggestionApprovalResult\":{\"additionalProperties\":false,\"properties\":{\"approvalId\":{\"$ref\":\"#/components/schemas/Identifier\"},\"approvedAt\":{\"$ref\":\"#/components/schemas/Timestamp\"},\"dataEpoch\":{\"$ref\":\"#/components/schemas/Identifier\"},\"enabled\":{\"type\":\"boolean\"},\"siteId\":{\"$ref\":\"#/components/schemas/Identifier\"},\"version\":{\"maximum\":9007199254740991,\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"enabled\",\"version\",\"approvalId\",\"siteId\",\"dataEpoch\",\"approvedAt\"],\"type\":\"object\"},\"Revision\":{\"description\":\"对象单调修订号\",\"minimum\":0,\"type\":\"integer\"},\"SiteInitializationStatusResult\":{\"$ref\":\"#/components/schemas/ReadInitializationStatusResult\"},\"Timestamp\":{\"description\":\"RFC3339 UTC 时间\",\"format\":\"date-time\",\"type\":\"string\"}}},\"info\":{\"title\":\"运行载荷校验\",\"version\":\"1\"},\"openapi\":\"3.0.3\",\"paths\":{}}"
+
 // DataProtectionClient 调用data-protection服务（自动附服务断言）。
 type DataProtectionClient struct{ *producerClient }
 
@@ -276,21 +279,6 @@ func NewIdentityClient(baseURL, issuer string, key platform.SigningKey) *Identit
 // CheckAuthorization POST /v1/authorizations/check（identity:checkAuthorization）。
 func (c *IdentityClient) CheckAuthorization(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/authorizations/check", body, "")
-}
-
-// JobsClient 调用jobs服务（自动附服务断言）。
-type JobsClient struct{ *producerClient }
-
-func NewJobsClient(baseURL, issuer string, key platform.SigningKey) *JobsClient {
-	return &JobsClient{newProducerClient("jobs", baseURL, issuer, key)}
-}
-
-// PublishEvent POST /v1/events（jobs:publishEvent）。
-func (c *JobsClient) PublishEvent(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
-	if idempotencyKey == "" {
-		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
-	}
-	return c.do(ctx, http.MethodPost, "/v1/events", body, idempotencyKey)
 }
 
 // LocalizationClient 调用localization服务（自动附服务断言）。
@@ -328,11 +316,32 @@ func (c *MediaClient) ReadAsset(ctx context.Context, assetId string, queries ...
 	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
+// ReadAssetBytes GET /v1/assets/{assetId}/bytes（media:readAssetBytes）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *MediaClient) ReadAssetBytes(ctx context.Context, assetId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/assets/" + url.PathEscape(assetId) + "/bytes"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
 // SiteConfigClient 调用site-config服务（自动附服务断言）。
 type SiteConfigClient struct{ *producerClient }
 
 func NewSiteConfigClient(baseURL, issuer string, key platform.SigningKey) *SiteConfigClient {
 	return &SiteConfigClient{newProducerClient("site-config", baseURL, issuer, key)}
+}
+
+// ReadInitializationStatus GET /v1/initialization（site-config:readInitializationStatus）。
+func (c *SiteConfigClient) ReadInitializationStatus(ctx context.Context) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/initialization", nil, "")
 }
 
 // ReadRuntimeState GET /v1/runtime-state（site-config:readRuntimeState）。

@@ -1990,6 +1990,8 @@ export interface components {
              * @enum {string}
              */
             retryReason: "initial" | "fallback" | "structured_retry";
+            /** @description MG对该attempt实际固定Model的CanonicalJSON SHA256，含配置版本，旧无证据不伪造。 */
+            modelSnapshotHash?: components["schemas"]["Hash"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Invocation: {
@@ -2016,6 +2018,8 @@ export interface components {
             lastSequence: number;
             /** @description 全部独立计费尝试 */
             attempts: components["schemas"]["Attempt"][];
+            /** @description 真实完整有效结果来源attempt，费用仍可unknown；对账不改写。 */
+            resultAttemptId?: components["schemas"]["Identifier"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         types_CreateInvocationResult: {

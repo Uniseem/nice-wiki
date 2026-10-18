@@ -24,6 +24,7 @@
 | `model-gateway.LoadRuntime` | 启动时 | 启动并验证本服务私有持久化与密钥引用 |
 | `model-gateway.RecoverLeases` | 启动时及每30秒 | 恢复崩溃中的调用 |
 | `model-gateway.PublishOutbox` | 启动后持续，空闲每1秒 | 持久发布事件 |
+| `model-gateway.RefreshModelCatalog` | 启动及每UTC日，完整装配待公共保护。 | 刷新公开模型目录 |
 <!-- flows:end -->
 
 ## 免费任务配置能力读取

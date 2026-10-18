@@ -235,7 +235,9 @@ func writeCredential(ctx context.Context, op OperationContext, input credentialC
 	if _, err := tx.ExecContext(ctx, `INSERT INTO operation_receipts(site_id,actor_id,function_id,idempotency_key,input_hash,result_json,created_at) VALUES(?,?,?,?,?,?,?)`, op.Actor.SiteID, op.Actor.SubjectID, functionID, input.IdempotencyKey, digest, resultJSON, now); err != nil {
 		return credentialWriteResult{}, credentialStorageError(err)
 	}
-	if err := gatewayruntime.DestroyRetiredSecrets(ctx, op, tx); err != nil { return credentialWriteResult{}, err }
+	if err := gatewayruntime.DestroyRetiredSecrets(ctx, op, tx); err != nil {
+		return credentialWriteResult{}, err
+	}
 	if err := tx.Commit(); err != nil {
 		return credentialWriteResult{}, credentialStorageError(err)
 	}

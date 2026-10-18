@@ -406,7 +406,7 @@ func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, mod
 	var candidate RouteCandidate
 	var capabilitiesJSON, headerNamesJSON, headerRefsJSON []byte
 	var modelEpoch string
- var catalogProvider,catalogModel sql.NullString
+	var catalogProvider, catalogModel sql.NullString
 	var providerEnabled sql.NullBool
 	var providerVersion, credentialVersion sql.NullInt64
 	var providerEpoch sql.NullString
@@ -442,8 +442,13 @@ func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, mod
 		json.Unmarshal(headerRefsJSON, &refs) != nil || refs == nil || len(names) != len(refs) {
 		return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型或供应方元数据损坏")
 	}
-	if catalogProvider.Valid!=catalogModel.Valid||(catalogProvider.Valid&&(!validModelString(catalogProvider.String)||!validModelString(catalogModel.String))){return RouteCandidate{},false,platform.NewError(platform.CodeIntegrityError,false,"模型来源身份不完整")};if catalogProvider.Valid{model.CatalogRef=&gen.ModelCatalogRef{ProviderId:catalogProvider.String,ModelId:catalogModel.String}}
- for _, capability := range model.Capabilities {
+	if catalogProvider.Valid != catalogModel.Valid || (catalogProvider.Valid && (!validModelString(catalogProvider.String) || !validModelString(catalogModel.String))) {
+		return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型来源身份不完整")
+	}
+	if catalogProvider.Valid {
+		model.CatalogRef = &gen.ModelCatalogRef{ProviderId: catalogProvider.String, ModelId: catalogModel.String}
+	}
+	for _, capability := range model.Capabilities {
 		if !validCapability(capability) {
 			return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型能力损坏")
 		}

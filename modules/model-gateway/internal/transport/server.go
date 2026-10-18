@@ -38,17 +38,17 @@ type Application struct {
 	restoreControlReady bool
 	businessReady       bool
 
-	state        atomic.Int32
-	serveStarted atomic.Bool
-	serveActive  atomic.Bool
-	shutdownOnce sync.Once
-	shutdownErr  error
-	httpServer   *http.Server
-	workerCancel context.CancelFunc
- background []platform.BackgroundTask
- closeResources func(context.Context)error
- safePoint func(context.Context)(bool,error)
- readInitialization func(context.Context)(bool,error)
+	state              atomic.Int32
+	serveStarted       atomic.Bool
+	serveActive        atomic.Bool
+	shutdownOnce       sync.Once
+	shutdownErr        error
+	httpServer         *http.Server
+	workerCancel       context.CancelFunc
+	background         []platform.BackgroundTask
+	closeResources     func(context.Context) error
+	safePoint          func(context.Context) (bool, error)
+	readInitialization func(context.Context) (bool, error)
 }
 
 // NewApplication 创建生命周期容器与匿名健康/就绪路由。只有在本域业务
@@ -116,11 +116,19 @@ func Shutdown(ctx context.Context, app *Application) error {
 	if app == nil || app.httpServer == nil {
 		return platform.NewError(platform.CodeValidation, false, "Application未装配")
 	}
- app.shutdownOnce.Do(func(){
-  if err:=app.Drain(ctx);err!=nil{app.shutdownErr=err;return}
-  if app.closeResources!=nil{if err:=app.closeResources(ctx);err!=nil{app.shutdownErr=err;return}}
-  app.state.Store(stateClosed)
- })
+	app.shutdownOnce.Do(func() {
+		if err := app.Drain(ctx); err != nil {
+			app.shutdownErr = err
+			return
+		}
+		if app.closeResources != nil {
+			if err := app.closeResources(ctx); err != nil {
+				app.shutdownErr = err
+				return
+			}
+		}
+		app.state.Store(stateClosed)
+	})
 	return app.shutdownErr
 }
 
@@ -157,9 +165,18 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if activeEpoch == "" {
 		activeEpoch = view.DataEpoch
 	}
-	if app.safePoint==nil||app.readInitialization==nil{return gen.ServiceReadiness{},platform.NewError(platform.CodeDependencyUnavailable,false,"实际控制安全点未装配")};safePoint,err:=app.safePoint(ctx);if err!=nil{return gen.ServiceReadiness{},err}
- initialized,err:=app.readInitialization(ctx);if err!=nil{return gen.ServiceReadiness{},err}
- health, err := Health(ctx, app)
+	if app.safePoint == nil || app.readInitialization == nil {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, false, "实际控制安全点未装配")
+	}
+	safePoint, err := app.safePoint(ctx)
+	if err != nil {
+		return gen.ServiceReadiness{}, err
+	}
+	initialized, err := app.readInitialization(ctx)
+	if err != nil {
+		return gen.ServiceReadiness{}, err
+	}
+	health, err := Health(ctx, app)
 	if err != nil {
 		return gen.ServiceReadiness{}, err
 	}
@@ -168,7 +185,7 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		ActiveDataEpoch:       stringPointer(activeEpoch),
 		RuntimeRevision:       gen.Revision(view.Revision),
 		Maintenance:           view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning && app.state.Load()==stateReady,
+		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning && app.state.Load() == stateReady,
 		Initialized:           initialized,
 		JournalRecovered:      app.journalRecovered,
 		SafePoint:             safePoint,
@@ -212,13 +229,28 @@ func writeProblem(w http.ResponseWriter, err error) {
 }
 
 // ConfigureBusiness仅由完整本域启动装配调用，不持有或复制通用任务实现。
-func(a *Application)ConfigureBusiness(handler http.Handler,tasks []platform.BackgroundTask,closeResources func(context.Context)error,safePoint func(context.Context)(bool,error),readInitialization func(context.Context)(bool,error)){
- mux:=a.httpServer.Handler.(*http.ServeMux);mux.Handle("/",handler);a.background=append([]platform.BackgroundTask{},tasks...);a.closeResources=closeResources;a.safePoint=safePoint;a.readInitialization=readInitialization
+func (a *Application) ConfigureBusiness(handler http.Handler, tasks []platform.BackgroundTask, closeResources func(context.Context) error, safePoint func(context.Context) (bool, error), readInitialization func(context.Context) (bool, error)) {
+	mux := a.httpServer.Handler.(*http.ServeMux)
+	mux.Handle("/", handler)
+	a.background = append([]platform.BackgroundTask{}, tasks...)
+	a.closeResources = closeResources
+	a.safePoint = safePoint
+	a.readInitialization = readInitialization
 }
-func(a *Application)BackgroundTasks()[]platform.BackgroundTask{return append([]platform.BackgroundTask{},a.background...)}
+func (a *Application) BackgroundTasks() []platform.BackgroundTask {
+	return append([]platform.BackgroundTask{}, a.background...)
+}
+
 // Drain只停HTTP并等在途，等平台RunService取消并等完所有后台之后Shutdown才关私有库。
-func(a *Application)Drain(ctx context.Context)error{
- a.state.CompareAndSwap(stateReady,stateDraining);if a.workerCancel!=nil{a.workerCancel()}
- if err:=a.httpServer.Shutdown(ctx);err!=nil{return platform.NormalizeIOError(err,platform.CodeDeadlineExceeded,true,"关闭期限内HTTP在途尚未排空")};return nil
+func (a *Application) Drain(ctx context.Context) error {
+	a.state.CompareAndSwap(stateReady, stateDraining)
+	if a.workerCancel != nil {
+		a.workerCancel()
+	}
+	if err := a.httpServer.Shutdown(ctx); err != nil {
+		return platform.NormalizeIOError(err, platform.CodeDeadlineExceeded, true, "关闭期限内HTTP在途尚未排空")
+	}
+	return nil
 }
-var _ platform.BackgroundApplication=(*Application)(nil)
+
+var _ platform.BackgroundApplication = (*Application)(nil)

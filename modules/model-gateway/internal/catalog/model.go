@@ -76,9 +76,15 @@ func ValidateModel(ctx context.Context, op OperationContext, input ValidateModel
 		}
 		capabilities[capability] = struct{}{}
 	}
-	if _,isFile:=capabilities["file"];isFile{if _,isVision:=capabilities["vision"];!isVision||model.MaxInputTokens<1{return ValidateModelResult{},platform.NewError(platform.CodeValidation,false,"file声明必须同时vision并给完整输入窗口")}}
- if model.CatalogRef!=nil&&(!validModelString(model.CatalogRef.ProviderId)||!validModelString(model.CatalogRef.ModelId)){return ValidateModelResult{},platform.NewError(platform.CodeValidation,false,"公开目录来源身份不合法")}
- _, isEmbedding := capabilities["embedding"]
+	if _, isFile := capabilities["file"]; isFile {
+		if _, isVision := capabilities["vision"]; !isVision || model.MaxInputTokens < 1 {
+			return ValidateModelResult{}, platform.NewError(platform.CodeValidation, false, "file声明必须同时vision并给完整输入窗口")
+		}
+	}
+	if model.CatalogRef != nil && (!validModelString(model.CatalogRef.ProviderId) || !validModelString(model.CatalogRef.ModelId)) {
+		return ValidateModelResult{}, platform.NewError(platform.CodeValidation, false, "公开目录来源身份不合法")
+	}
+	_, isEmbedding := capabilities["embedding"]
 	if isEmbedding {
 		if model.Dimension < 1 || model.Dimension > maxEmbeddingDimension {
 			return ValidateModelResult{}, platform.NewError(platform.CodeValidation, false, "嵌入维度不合法")
@@ -180,7 +186,11 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 		return PutModelResult{}, platform.NewError(platform.CodeConflict, false, "模型身份变化必须使用新的模型ID")
 	}
 	model := input.Model
- var catalogProvider,catalogModel any;if model.CatalogRef!=nil{catalogProvider=model.CatalogRef.ProviderId;catalogModel=model.CatalogRef.ModelId}
+	var catalogProvider, catalogModel any
+	if model.CatalogRef != nil {
+		catalogProvider = model.CatalogRef.ProviderId
+		catalogModel = model.CatalogRef.ModelId
+	}
 	capabilities, _ := json.Marshal(model.Capabilities)
 	saved, err := tx.ExecContext(ctx, `
 		INSERT INTO models (
@@ -322,8 +332,31 @@ func ModelEmbeddingSpace(model Model) (EmbeddingSpace, error) {
 }
 
 // ReadInputBudgetModel只读当前epoch模型声明，为非文本输入提供真实窗口上界，不声称实际token数。
-func ReadInputBudgetModel(ctx context.Context,op OperationContext,modelID string)(Model,error){
- store:=gatewayruntime.CurrentStore();if store==nil{return Model{},platform.NewError(platform.CodeDependencyUnavailable,false,"媒体预算模型未装配")};snapshot,err:=beginAvailabilitySnapshot(ctx,op,store);if err!=nil{return Model{},err};defer snapshot.tx.Rollback()
- var model Model;var raw []byte;var epoch string
- err=snapshot.tx.QueryRowContext(ctx,`SELECT model_id,capabilities_json,max_input_tokens,data_epoch FROM models WHERE model_id=? AND enabled=1`,modelID).Scan(&model.ModelId,&raw,&model.MaxInputTokens,&epoch);if errors.Is(err,sql.ErrNoRows){return Model{},platform.NewError(platform.CodeNotFound,false,"媒体预算模型不存在或已停用")};if err!=nil{return Model{},availabilityReadError(err)};if epoch!=snapshot.epoch{return Model{},platform.NewError(platform.CodeVersionMismatch,false,"媒体预算模型代际已变化")};if json.Unmarshal(raw,&model.Capabilities)!=nil||model.MaxInputTokens<1||model.MaxInputTokens>9007199254740991{return Model{},platform.NewError(platform.CodeIntegrityError,false,"媒体输入窗口声明损坏")};return model,nil
+func ReadInputBudgetModel(ctx context.Context, op OperationContext, modelID string) (Model, error) {
+	store := gatewayruntime.CurrentStore()
+	if store == nil {
+		return Model{}, platform.NewError(platform.CodeDependencyUnavailable, false, "媒体预算模型未装配")
+	}
+	snapshot, err := beginAvailabilitySnapshot(ctx, op, store)
+	if err != nil {
+		return Model{}, err
+	}
+	defer snapshot.tx.Rollback()
+	var model Model
+	var raw []byte
+	var epoch string
+	err = snapshot.tx.QueryRowContext(ctx, `SELECT model_id,capabilities_json,max_input_tokens,data_epoch FROM models WHERE model_id=? AND enabled=1`, modelID).Scan(&model.ModelId, &raw, &model.MaxInputTokens, &epoch)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Model{}, platform.NewError(platform.CodeNotFound, false, "媒体预算模型不存在或已停用")
+	}
+	if err != nil {
+		return Model{}, availabilityReadError(err)
+	}
+	if epoch != snapshot.epoch {
+		return Model{}, platform.NewError(platform.CodeVersionMismatch, false, "媒体预算模型代际已变化")
+	}
+	if json.Unmarshal(raw, &model.Capabilities) != nil || model.MaxInputTokens < 1 || model.MaxInputTokens > 9007199254740991 {
+		return Model{}, platform.NewError(platform.CodeIntegrityError, false, "媒体输入窗口声明损坏")
+	}
+	return model, nil
 }

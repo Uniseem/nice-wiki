@@ -18,7 +18,7 @@ import (
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/model-gateway/internal/gen"
- gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
+	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
 
 type GetLedgerInput struct {
@@ -342,15 +342,55 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 	unknownState := map[string]bool{}
 	evidence := map[string]bool{}
 	inWindow := map[string]bool{}
- safeToRetry:=true
- for _,record:=range metadata{
-  var safeRaw []byte;var safeHash,initialized sql.NullString;var dispatched,attemptUnknown bool
-  if err:=tx.QueryRowContext(ctx,`SELECT invocation_json,invocation_hash,execution_hash,EXISTS(SELECT 1 FROM invocation_attempts a WHERE a.invocation_id=i.invocation_id AND a.dispatched_ns>0),EXISTS(SELECT 1 FROM invocation_attempts a WHERE a.invocation_id=i.invocation_id AND json_extract(a.attempt_json,'$.state')='charge_unknown') FROM invocations i WHERE invocation_id=?`,record.Id).Scan(&safeRaw,&safeHash,&initialized,&dispatched,&attemptUnknown);err!=nil{return QueryUsageResult{},adminStorageError(err)}
-  if len(safeRaw)==0||!safeHash.Valid||!initialized.Valid||initialized.String==""{safeToRetry=false}else{var snapshot gen.Invocation;if platform.HashBytes(safeRaw)!=safeHash.String||json.Unmarshal(safeRaw,&snapshot)!=nil||snapshot.InvocationId!=record.Id||snapshot.RootOperationId!=input.RootOperationId||string(snapshot.State)!=record.State{return QueryUsageResult{},platform.NewError(platform.CodeIntegrityError,false,"原root调用安全状态快照损坏")};proofOp:=op;proofOp.RootOperationID=input.RootOperationId;proofOp.CostClass=record.CostClass;execution:=&gatewayruntime.ExecutionTransaction{Tx:tx,Context:ctx};proof,err:=gatewayruntime.ReadInvocationRecord(execution,proofOp,record.Id);if err!=nil{return QueryUsageResult{},err};var count int;if err:=tx.QueryRowContext(ctx,`SELECT COUNT(*) FROM invocation_attempts WHERE invocation_id=?`,record.Id).Scan(&count);err!=nil{return QueryUsageResult{},adminStorageError(err)};if count!=len(proof.Invocation.Attempts){return QueryUsageResult{},platform.NewError(platform.CodeIntegrityError,false,"原root尝试列表与持久证据不完整")};for _,item:=range proof.Invocation.Attempts{stored,err:=gatewayruntime.ReadAttemptRecord(execution,item.AttemptId);if err!=nil{return QueryUsageResult{},err};if stored.DispatchedNS>0{safeToRetry=false}}}
-  if dispatched||attemptUnknown||(record.State!="accepted"&&record.State!="reserved"){safeToRetry=false}
-  if attemptUnknown&&!record.CreatedAt.Before(input.From)&&record.CreatedAt.Before(input.Until){unknown[record.Id]=true;unknownState[record.Id]=true}
- }
- for _, record := range metadata {
+	safeToRetry := true
+	for _, record := range metadata {
+		var safeRaw []byte
+		var safeHash, initialized sql.NullString
+		var dispatched, attemptUnknown bool
+		if err := tx.QueryRowContext(ctx, `SELECT invocation_json,invocation_hash,execution_hash,EXISTS(SELECT 1 FROM invocation_attempts a WHERE a.invocation_id=i.invocation_id AND a.dispatched_ns>0),EXISTS(SELECT 1 FROM invocation_attempts a WHERE a.invocation_id=i.invocation_id AND json_extract(a.attempt_json,'$.state')='charge_unknown') FROM invocations i WHERE invocation_id=?`, record.Id).Scan(&safeRaw, &safeHash, &initialized, &dispatched, &attemptUnknown); err != nil {
+			return QueryUsageResult{}, adminStorageError(err)
+		}
+		if len(safeRaw) == 0 || !safeHash.Valid || !initialized.Valid || initialized.String == "" {
+			safeToRetry = false
+		} else {
+			var snapshot gen.Invocation
+			if platform.HashBytes(safeRaw) != safeHash.String || json.Unmarshal(safeRaw, &snapshot) != nil || snapshot.InvocationId != record.Id || snapshot.RootOperationId != input.RootOperationId || string(snapshot.State) != record.State {
+				return QueryUsageResult{}, platform.NewError(platform.CodeIntegrityError, false, "原root调用安全状态快照损坏")
+			}
+			proofOp := op
+			proofOp.RootOperationID = input.RootOperationId
+			proofOp.CostClass = record.CostClass
+			execution := &gatewayruntime.ExecutionTransaction{Tx: tx, Context: ctx}
+			proof, err := gatewayruntime.ReadInvocationRecord(execution, proofOp, record.Id)
+			if err != nil {
+				return QueryUsageResult{}, err
+			}
+			var count int
+			if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM invocation_attempts WHERE invocation_id=?`, record.Id).Scan(&count); err != nil {
+				return QueryUsageResult{}, adminStorageError(err)
+			}
+			if count != len(proof.Invocation.Attempts) {
+				return QueryUsageResult{}, platform.NewError(platform.CodeIntegrityError, false, "原root尝试列表与持久证据不完整")
+			}
+			for _, item := range proof.Invocation.Attempts {
+				stored, err := gatewayruntime.ReadAttemptRecord(execution, item.AttemptId)
+				if err != nil {
+					return QueryUsageResult{}, err
+				}
+				if stored.DispatchedNS > 0 {
+					safeToRetry = false
+				}
+			}
+		}
+		if dispatched || attemptUnknown || (record.State != "accepted" && record.State != "reserved") {
+			safeToRetry = false
+		}
+		if attemptUnknown && !record.CreatedAt.Before(input.From) && record.CreatedAt.Before(input.Until) {
+			unknown[record.Id] = true
+			unknownState[record.Id] = true
+		}
+	}
+	for _, record := range metadata {
 		if !record.CreatedAt.Before(input.From) && record.CreatedAt.Before(input.Until) {
 			inWindow[record.Id] = true
 			if record.State == "charge_unknown" {
@@ -426,7 +466,7 @@ func QueryUsage(ctx context.Context, op OperationContext, input QueryUsageInput)
 	if len(unknown) > 256 {
 		return QueryUsageResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "完整未知调用集合超过响应预算")
 	}
-	result := QueryUsageResult{Entries: entries, UnknownInvocationIds: make([]string, 0, len(unknown)),SafeToRetry:&safeToRetry}
+	result := QueryUsageResult{Entries: entries, UnknownInvocationIds: make([]string, 0, len(unknown)), SafeToRetry: &safeToRetry}
 	for id := range unknown {
 		result.UnknownInvocationIds = append(result.UnknownInvocationIds, id)
 	}

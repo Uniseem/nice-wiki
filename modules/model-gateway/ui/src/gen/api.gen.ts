@@ -115,7 +115,7 @@ export interface paths {
         put?: never;
         /**
          * 接受统一AI调用
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 新调用持久accepted及不可变输入/原根/路线/原凭据refs，取得公共TaskGroup容量后提交，异步仅沿原业务deadline执行。expectedEmbeddingSpace仅embedding，主备付费前精确核五字段。localization.suggest要求background及持久管理员languageSuggestionApprovalId，每次新attempt预留/派发读localization权威，其他任务不得带此字段。完整结果与费用分离：completed可带charge_unknown attempt，保留held，不自动重算。
          */
         post: operations["createInference"];
         delete?: never;
@@ -253,7 +253,7 @@ export interface paths {
         };
         /**
          * 跨服务读取权威费用状态
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 AI任务owner纯服务按持久root全部同站点/同owner归属读取；portal管理员经当前model.manage授权，root多owner普通服务403。held为调用created_at在窗内的当前held，settled按ledger.created_at；未知省略完整相应总额且列出全部未知ID，不返回部分和。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 AI任务owner纯服务按持久root全部同站点/同owner归属读取；portal管理员经当前model.manage授权，root多owner普通服务403。held为调用created_at在窗内的当前held，settled按ledger.created_at；未知省略完整相应总额且列出全部未知ID，不返回部分和。 safeToRetry仅证明完整原root全部调用和attempt尚未派发，不以成功状态或零金额代表免费；结果已成功但费用未知仍列unknownInvocationIds。
          */
         get: operations["queryUsage"];
         put?: never;
@@ -646,6 +646,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        MediaReadAssetResult: components["schemas"]["ReadAssetResult"];
+        LanguageSuggestionApprovalResult: components["schemas"]["ReadLanguageSuggestionApprovalResult"];
+        SiteInitializationStatusResult: components["schemas"]["ReadInitializationStatusResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
@@ -772,6 +775,11 @@ export interface components {
             /** @description 幂等键 */
             idempotencyKey: string;
         };
+        /** @description models.dev显式源身份，不是本站渠道ID；不从URL/名称推断。 */
+        ModelCatalogRef: {
+            providerId: string;
+            modelId: string;
+        };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Model: {
             /** @description 网关模型ID */
@@ -782,7 +790,7 @@ export interface components {
             providerId: components["schemas"]["Identifier"];
             /** @description 不可变供应方模型版本 */
             providerModelVersion: string;
-            /** @description chat vision structured reasoning embedding rerank translation能力集合 */
+            /** @description chat vision structured reasoning embedding rerank translation能力集合；file必须同时vision和完整输入窗口。 */
             capabilities: string[];
             /** @description 嵌入维度chat为0 */
             dimension: number;
@@ -804,6 +812,8 @@ export interface components {
             manualOverride: boolean;
             /** @description 是否显示并可分配 */
             enabled: boolean;
+            /** @description remote/bundled更新精确来源绑定，缺失旧行保留，manualOverride优先。 */
+            catalogRef?: components["schemas"]["ModelCatalogRef"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         PutModelResult: {
@@ -883,6 +893,8 @@ export interface components {
          * @description RFC3339 UTC 时间
          */
         Timestamp: string;
+        /** @description SHA-256 小写十六进制 */
+        Hash: string;
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Attempt: {
             /** @description 尝试ID */
@@ -907,6 +919,8 @@ export interface components {
              * @enum {string}
              */
             retryReason: "initial" | "fallback" | "structured_retry";
+            /** @description MG对该attempt实际固定Model的CanonicalJSON SHA256，含配置版本，旧无证据不伪造。 */
+            modelSnapshotHash?: components["schemas"]["Hash"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Invocation: {
@@ -933,14 +947,14 @@ export interface components {
             lastSequence: number;
             /** @description 全部独立计费尝试 */
             attempts: components["schemas"]["Attempt"][];
+            /** @description 真实完整有效结果来源attempt，费用仍可unknown；对账不改写。 */
+            resultAttemptId?: components["schemas"]["Identifier"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         CreateInvocationResult: {
             /** @description accepted状态 */
             invocation: components["schemas"]["Invocation"];
         };
-        /** @description SHA-256 小写十六进制 */
-        Hash: string;
         /** @description 资源身份、哈希、媒体类型与字节数；通过media受控读取 */
         AssetRef: {
             /** @description media资源稳定ID */
@@ -958,17 +972,22 @@ export interface components {
              * @description 输入片段
              * @enum {string}
              */
-            kind: "text" | "image";
+            kind: "text" | "image" | "file";
             /** @description 文字仅text必要 */
             text?: string;
             /** @description 图像引用仅image必要 */
             image?: components["schemas"]["AssetRef"];
+            /** @description 原生PDF资源引用 */
+            file?: components["schemas"]["AssetRef"];
         } & ({
             /** @constant */
             kind: "text";
         } | {
             /** @constant */
             kind: "image";
+        } | {
+            /** @constant */
+            kind: "file";
         });
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         GatewayMessage: {
@@ -979,7 +998,7 @@ export interface components {
             role: "system" | "user" | "assistant";
             /** @description UTF8文本不超过64KiB */
             content: string;
-            /** @description 可选视觉输入片段 */
+            /** @description text/image/file互斥；非文本仅vision用户消息，file仅application/pdf。 */
             parts?: components["schemas"]["GatewayPart"][];
         };
         /** @description guard分配元数据；token空表示未消费。仅消费后的QA许可具有nw-admission-v1签名并可提交MG。签名覆盖全部字段，MG仍核原根/代次/QA动作；免费语言提示从不签模型token。 */
@@ -1008,6 +1027,20 @@ export interface components {
              */
             audience: "model-gateway";
         };
+        /** @description 供应方、模型版本、维度与预处理版本共同定义空间；不同空间不得比相似度 */
+        "common.schema_EmbeddingSpace": {
+            /** @description 完整嵌入空间唯一ID */
+            spaceId: components["schemas"]["Hash"];
+            /** @description 供应方稳定标识 */
+            provider: string;
+            /** @description 供应方模型版本，不只用展示名 */
+            modelVersion: string;
+            /** @description 向量维度正整数 */
+            dimensions: number;
+            /** @description 规范预处理算法版本 */
+            preprocessingVersion: string;
+        };
+        EmbeddingSpace: components["schemas"]["common.schema_EmbeddingSpace"];
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         CreateInvocationInput: {
             /** @description 根AI task catalog */
@@ -1019,9 +1052,9 @@ export interface components {
              * @enum {string}
              */
             capability: "chat" | "vision" | "embedding" | "rerank" | "translation";
-            /** @description chat/vision消息其余空 */
+            /** @description chat/vision/translation的显式消息；其他能力空 */
             messages: components["schemas"]["GatewayMessage"][];
-            /** @description embedding/translation/rerank输入其余空 */
+            /** @description embedding/rerank显式原文本；聊天/翻译使用messages，不隐式拼接目标语言或提示词 */
             texts: string[];
             /** @description rerank等长ID其余空 */
             candidateIds: components["schemas"]["Identifier"][];
@@ -1033,11 +1066,31 @@ export interface components {
             admissionPermit?: components["schemas"]["AdmissionPermit"];
             /** @description 仅rerank必需的查询；texts是与candidateIds逐项对齐的候选原文，其他能力省略 */
             query?: string;
+            /** @description 仅embedding可选；主/备用每次预留和真实派发前与固定模型权威五字段逐项精确相等，否则付费前失败。knowledge调用必须提供。 */
+            expectedEmbeddingSpace?: components["schemas"]["EmbeddingSpace"];
+            /** @description 仅localization.suggest+background必需，其他任务禁止。每次新attempt前与派发前读取localization持久管理员批准，停用/换版失败关闭。 */
+            languageSuggestionApprovalId?: components["schemas"]["Identifier"];
         };
+        /** @description 模型结构化完成结果；仅StreamEvent.completed出现，文本仍走delta；不混用向量空间。 */
+        ModelOutput: {
+            /** @enum {string} */
+            capability: "embedding" | "rerank";
+            embeddingSpace?: components["schemas"]["common.schema_EmbeddingSpace"];
+            vectors?: number[][];
+            candidateIds?: components["schemas"]["Identifier"][];
+        } & ({
+            /** @constant */
+            capability?: "embedding";
+        } | {
+            /** @constant */
+            capability?: "rerank";
+        });
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         GetInvocationResult: {
             /** @description 状态 */
             invocation: components["schemas"]["Invocation"];
+            /** @description 兼容可选；仅原持久完整有效结构输出，必须与winning attempt/evidence摘要一致，不新调模型/不造事件。 */
+            output?: components["schemas"]["ModelOutput"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         CancelInvocationResult: {
@@ -1155,6 +1208,8 @@ export interface components {
             inputTokens?: number;
             /** @description 原用量未知/冲突时charged证明必须显式给真实值，与另一token字段同时提供 */
             outputTokens?: number;
+            /** @description charged时原收费ID不存在必须明确提供真实ID，原已存在必须全等；not_charged不伪造ID或账单。 */
+            providerRequestId?: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         GetLedgerResult: {
@@ -1178,19 +1233,8 @@ export interface components {
             settledCost?: components["schemas"]["Money"];
             /** @description 本次窗内完整未知金额/未知收费调用ID，不能用0代替；超响应预算失败不截断 */
             unknownInvocationIds: components["schemas"]["Identifier"][];
-        };
-        /** @description 供应方、模型版本、维度与预处理版本共同定义空间；不同空间不得比相似度 */
-        EmbeddingSpace: {
-            /** @description 完整嵌入空间唯一ID */
-            spaceId: components["schemas"]["Hash"];
-            /** @description 供应方稳定标识 */
-            provider: string;
-            /** @description 供应方模型版本，不只用展示名 */
-            modelVersion: string;
-            /** @description 向量维度正整数 */
-            dimensions: number;
-            /** @description 规范预处理算法版本 */
-            preprocessingVersion: string;
+            /** @description 兼容可选，实际生产始终给；仅完整原root全部调用accepted/reserved且全部attempt未派发为true；旧证据不完整/未知/成功结果/零金额都不表示可重算。仅继续原输入hash阶段，仍须原paidRefs与费用准入。 */
+            safeToRetry?: boolean;
         };
         /** @description readModels安全模型声明，embedding配置完整时附MG权威五字段空间；不改变PutModel输入 */
         ModelWithSpace: {
@@ -1202,11 +1246,14 @@ export interface components {
             providerId: components["schemas"]["Identifier"];
             /** @description 不可变供应方模型版本 */
             providerModelVersion: string;
-            /** @description chat vision structured reasoning embedding rerank translation能力集合 */
+            /** @description chat vision structured reasoning embedding rerank translation能力集合；file必须同时vision和完整输入窗口。 */
             capabilities: string[];
             /** @description 嵌入维度chat为0 */
             dimension: number;
-            /** @description 预处理版本 */
+            /**
+             * @description 预处理版本，显式默认none；不得默示归一化，算法改变必须新版本/模型ID/space
+             * @default none
+             */
             preprocessorVersion: string;
             /** @description 输入上限 */
             maxInputTokens: number;
@@ -1221,8 +1268,12 @@ export interface components {
             manualOverride: boolean;
             /** @description 是否显示并可分配 */
             enabled: boolean;
+            /** @description remote/bundled更新精确来源绑定，缺失旧行保留，manualOverride优先。 */
+            catalogRef?: components["schemas"]["ModelCatalogRef"];
             /** @description 只有embedding能力且配置完整时返回，由MG原有有序JSON算法权威生成 */
-            embeddingSpace?: components["schemas"]["EmbeddingSpace"];
+            embeddingSpace?: components["schemas"]["common.schema_EmbeddingSpace"];
+            /** @description MG对该attempt实际固定Model的CanonicalJSON SHA256，含配置版本，旧无证据不伪造。 */
+            modelSnapshotHash?: components["schemas"]["Hash"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         ReadModelsResult: {
@@ -1588,7 +1639,7 @@ export interface components {
         EstimateTokensResult: {
             /** @description 保守token */
             inputTokens: number;
-            /** @description 估算算法 */
+            /** @description 文本回退或fixed-model-input-window-v1保守窗口上界，非实际token数。 */
             estimatorVersion: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
@@ -1601,7 +1652,7 @@ export interface components {
             messages: components["schemas"]["GatewayMessage"][];
         };
         TokenizeTextResult: {
-            embeddingSpace: components["schemas"]["EmbeddingSpace"];
+            embeddingSpace: components["schemas"]["common.schema_EmbeddingSpace"];
             /** @enum {string} */
             tokenizerVersion: "none;tiktoken-go@v0.7.0;cl100k_base" | "none;tiktoken-go@v0.7.0;o200k_base";
             tokenCount: number;
@@ -1613,6 +1664,118 @@ export interface components {
             modelId: components["schemas"]["Identifier"];
             /** @description 原始UTF8文本；额外限制4MiB字节，不进行隐式预处理。 */
             text: string;
+        };
+        /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
+        AssetVersionRef: {
+            /** @description 逻辑资源ID */
+            assetId: components["schemas"]["Identifier"];
+            /** @description 不可变对象版本 */
+            version: components["schemas"]["Revision"];
+            /** @description Hash */
+            sha256: components["schemas"]["Hash"];
+            /** @description 嗅探确认MIME */
+            mediaType: string;
+            /** @description 字节数 */
+            byteSize: number;
+        };
+        /** @description 浏览器生成WebP尺寸，最多640/1280/1920且不放大原图 */
+        ImageVariant: {
+            /** @description 实际像素宽 */
+            width: number;
+            /** @description 实际像素高 */
+            height: number;
+            /** @description AssetVersionRef */
+            asset: components["schemas"]["AssetVersionRef"];
+        };
+        /** @description 资源元数据，不含OSpath；服务无图像处理或视频转码库 */
+        Asset: {
+            /** @description AssetVersionRef */
+            ref: components["schemas"]["AssetVersionRef"];
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /**
+             * @description 资源库类别
+             * @enum {string}
+             */
+            kind: "image" | "attachment" | "video" | "drawing_scene" | "drawing_svg" | "platform_cover";
+            /** @description 安全展示文件名，不作为路径 */
+            originalName: string;
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            state: "uploading" | "validating" | "ready" | "blocked" | "delete_pending" | "deleted";
+            /** @description GIF/WebP/AVIF动图不压缩 */
+            animated: boolean;
+            /** @description 无null */
+            width: number | null;
+            /** @description 无null */
+            height: number | null;
+            /** @description 浏览器已传variants */
+            imageVariants: components["schemas"]["ImageVariant"][];
+            /** @description 上传账户 */
+            createdBy: components["schemas"]["Identifier"];
+            /** @description 上传 */
+            createdAt: components["schemas"]["Timestamp"];
+            /** @description CAS */
+            revision: components["schemas"]["Revision"];
+        };
+        /** @description 读取资源/variants安全元数据的结果 */
+        ReadAssetResult: {
+            /** @description Asset */
+            asset: components["schemas"]["Asset"];
+        };
+        ReadLanguageSuggestionApprovalResult: {
+            enabled: boolean;
+            version: number;
+            approvalId: components["schemas"]["Identifier"];
+            siteId: components["schemas"]["Identifier"];
+            dataEpoch: components["schemas"]["Identifier"];
+            approvedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 公开安全初始化阶段，不包含协调标识和私有决定 */
+        PublicInitializationState: {
+            /**
+             * @description 阶段
+             * @enum {string}
+             */
+            phase: "uninitialized" | "preparing" | "config_committed" | "completed" | "aborting" | "aborted" | "blocked";
+            /** @description 无null */
+            safeError: components["schemas"]["Problem"] | null;
+        };
+        /** @description 首超管注册后的站点/语言两步向导；没有AI和owner reservation */
+        InitializationState: {
+            /** @description 初始化操作；尚无协调记录时为null，不生成占位ID */
+            operationId: components["schemas"]["Identifier"] | null;
+            /** @description 已由identity首注册取得站点；尚无协调记录时为null，不生成占位ID */
+            siteId: components["schemas"]["Identifier"] | null;
+            /**
+             * @description 阶段
+             * @enum {string}
+             */
+            phase: "uninitialized" | "preparing" | "config_committed" | "completed" | "aborting" | "aborted" | "blocked";
+            /** @description 配置水位 */
+            configRevision: components["schemas"]["Revision"];
+            /**
+             * @description 决定
+             * @enum {string}
+             */
+            decision: "none" | "commit" | "abort";
+            /** @description CAS */
+            revision: components["schemas"]["Revision"];
+            /** @description 无null */
+            safeError: components["schemas"]["Problem"] | null;
+            /** @description 时间 */
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 读取安全初始化阶段的结果 */
+        ReadInitializationStatusResult: {
+            /** @description active已提交配置是否完成初始化；不能用于重开注册 */
+            initialized: boolean;
+            /** @description 仅安全phase和safeError */
+            state: components["schemas"]["PublicInitializationState"];
+            /** @description 仅同站点超管或identity/site-config可信服务返回，匿名省略 */
+            coordination?: components["schemas"]["InitializationState"];
         };
     };
     responses: never;

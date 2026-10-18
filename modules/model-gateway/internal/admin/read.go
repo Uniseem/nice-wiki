@@ -12,12 +12,12 @@ import (
 	"net/http"
 	"slices"
 	"time"
- "unicode/utf8"
+	"unicode/utf8"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/model-gateway/internal/billing"
- "nice-wiki/modules/model-gateway/internal/catalog"
+	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
@@ -26,8 +26,14 @@ type OperationContext = platform.OperationContext
 type ReadModelsInput struct {
 	Capability *string `json:"capability,omitempty"`
 }
-type ModelWithSpace struct{gen.Model;ModelSnapshotHash *string `json:"modelSnapshotHash,omitempty"`;EmbeddingSpace *catalog.EmbeddingSpace `json:"embeddingSpace,omitempty"`}
-type ReadModelsResult struct{Models []ModelWithSpace `json:"models"`}
+type ModelWithSpace struct {
+	gen.Model
+	ModelSnapshotHash *string                 `json:"modelSnapshotHash,omitempty"`
+	EmbeddingSpace    *catalog.EmbeddingSpace `json:"embeddingSpace,omitempty"`
+}
+type ReadModelsResult struct {
+	Models []ModelWithSpace `json:"models"`
+}
 type ReadProfilesInput struct {
 	ProfileId *string `json:"profileId,omitempty"`
 }
@@ -47,9 +53,23 @@ func ReadModels(ctx context.Context, op OperationContext, input ReadModelsInput)
 	if err != nil {
 		return ReadModelsResult{}, err
 	}
-	result:=ReadModelsResult{Models:make([]ModelWithSpace,0,len(models))}
- for _,model:=range models{hash,err:=gatewayruntime.ModelSnapshotHash(model);if err!=nil{return ReadModelsResult{},err};view:=ModelWithSpace{Model:model,ModelSnapshotHash:&hash};if slices.Contains(model.Capabilities,"embedding"){space,err:=catalog.ModelEmbeddingSpace(model);if err!=nil{return ReadModelsResult{},err};view.EmbeddingSpace=&space};result.Models=append(result.Models,view)}
- return result,nil
+	result := ReadModelsResult{Models: make([]ModelWithSpace, 0, len(models))}
+	for _, model := range models {
+		hash, err := gatewayruntime.ModelSnapshotHash(model)
+		if err != nil {
+			return ReadModelsResult{}, err
+		}
+		view := ModelWithSpace{Model: model, ModelSnapshotHash: &hash}
+		if slices.Contains(model.Capabilities, "embedding") {
+			space, err := catalog.ModelEmbeddingSpace(model)
+			if err != nil {
+				return ReadModelsResult{}, err
+			}
+			view.EmbeddingSpace = &space
+		}
+		result.Models = append(result.Models, view)
+	}
+	return result, nil
 }
 
 // ReadProfiles 对纯服务只返回可信费用类别；后台管理读取通过即时model.manage授权。
@@ -128,7 +148,7 @@ func readCatalogModels(ctx context.Context, op OperationContext, tx *sql.Tx, cap
 		var model gen.Model
 		var capabilities []byte
 		var epoch string
- var catalogProvider,catalogModel sql.NullString
+		var catalogProvider, catalogModel sql.NullString
 		if err := rows.Scan(&model.ModelId, &model.Version, &model.ProviderId, &model.ProviderModelVersion, &capabilities,
 			&model.Dimension, &model.PreprocessorVersion, &model.MaxInputTokens, &model.MaxOutputTokens, &model.CatalogOrigin, &model.ManualOverride, &model.Enabled, &epoch, &catalogProvider, &catalogModel); err != nil {
 			return nil, adminStorageError(err)
@@ -139,8 +159,13 @@ func readCatalogModels(ctx context.Context, op OperationContext, tx *sql.Tx, cap
 		if json.Unmarshal(capabilities, &model.Capabilities) != nil || model.Capabilities == nil || len(model.Capabilities) == 0 || len(model.Capabilities) > 256 || model.Version < 1 || model.Version > 9007199254740991 {
 			return nil, platform.NewError(platform.CodeIntegrityError, false, "模型目录持久声明损坏")
 		}
-		if catalogProvider.Valid!=catalogModel.Valid||(catalogProvider.Valid&&(!utf8.ValidString(catalogProvider.String)||!utf8.ValidString(catalogModel.String)||catalogProvider.String==""||catalogModel.String==""||utf8.RuneCountInString(catalogProvider.String)>65536||utf8.RuneCountInString(catalogModel.String)>65536)){return nil,platform.NewError(platform.CodeIntegrityError,false,"公开目录来源身份不完整")};if catalogProvider.Valid{model.CatalogRef=&gen.ModelCatalogRef{ProviderId:catalogProvider.String,ModelId:catalogModel.String}}
- if capability != nil && !slices.Contains(model.Capabilities, *capability) {
+		if catalogProvider.Valid != catalogModel.Valid || (catalogProvider.Valid && (!utf8.ValidString(catalogProvider.String) || !utf8.ValidString(catalogModel.String) || catalogProvider.String == "" || catalogModel.String == "" || utf8.RuneCountInString(catalogProvider.String) > 65536 || utf8.RuneCountInString(catalogModel.String) > 65536)) {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "公开目录来源身份不完整")
+		}
+		if catalogProvider.Valid {
+			model.CatalogRef = &gen.ModelCatalogRef{ProviderId: catalogProvider.String, ModelId: catalogModel.String}
+		}
+		if capability != nil && !slices.Contains(model.Capabilities, *capability) {
 			continue
 		}
 		if len(result) == limit {
