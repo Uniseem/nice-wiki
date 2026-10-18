@@ -7,7 +7,7 @@
   "assignedSession": "单轮 analytics 费用 V2 安全统计消费小闭环；未 push。",
   "branch": "codex/analytics-20261018-r9",
   "baseCommit": "1f1e1b08cc047fe5be826cbc2bb51547a3779c02",
-  "deliveryCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+  "deliveryCommit": "7e72ff26892494393d52e2200382697078100343",
   "deployment": "not_started",
   "files": [
     {
@@ -123,7 +123,7 @@
     {
       "path": "modules/analytics/internal/usage_store.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -143,7 +143,7 @@
     {
       "path": "modules/analytics/internal/gateway_client.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -163,7 +163,7 @@
     {
       "path": "modules/analytics/internal/event_handler.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -333,7 +333,7 @@
     {
       "path": "modules/analytics/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -513,7 +513,7 @@
     {
       "path": "modules/analytics/internal/store.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -533,7 +533,7 @@
     {
       "path": "modules/analytics/migrations/schema.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -603,7 +603,7 @@
     {
       "path": "modules/analytics/internal/consumer.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -683,7 +683,7 @@
     {
       "path": "modules/analytics/internal/usage_gateway_types.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -693,7 +693,7 @@
     {
       "path": "modules/analytics/internal/usage_models.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -703,7 +703,7 @@
     {
       "path": "modules/analytics/internal/usage_events.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -713,7 +713,7 @@
     {
       "path": "modules/analytics/migrations/0006_usage_statistics_v2.sql",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -913,7 +913,7 @@
       "id": "analytics.ValidateUsageEvent",
       "path": "modules/analytics/internal/usage_store.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -924,7 +924,7 @@
       "id": "analytics.ProjectUsage",
       "path": "modules/analytics/internal/usage_store.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -946,7 +946,7 @@
       "id": "analytics.FetchUsagePage",
       "path": "modules/analytics/internal/gateway_client.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -968,7 +968,7 @@
       "id": "analytics.ConsumeAnalyticsEvent",
       "path": "modules/analytics/internal/event_handler.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -979,7 +979,7 @@
       "id": "analytics.ConsumeEvents",
       "path": "modules/analytics/internal/consumer.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1210,7 +1210,7 @@
       "id": "analytics.BuildApplication",
       "path": "modules/analytics/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1298,7 +1298,7 @@
       "id": "analytics.OpenStore",
       "path": "modules/analytics/internal/store.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -2244,7 +2244,7 @@
       "id": "analytics.WithUsageGateway",
       "path": "modules/analytics/internal/gateway_client.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -2255,7 +2255,7 @@
       "id": "analytics.readUsageGatewayPage",
       "path": "modules/analytics/internal/gateway_client.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -2266,7 +2266,7 @@
       "id": "analytics.validateUsageGatewayPage",
       "path": "modules/analytics/internal/gateway_client.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -2277,7 +2277,7 @@
       "id": "analytics.ProjectUsageTx",
       "path": "modules/analytics/internal/usage_store.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -2288,7 +2288,7 @@
       "id": "analytics.recordUsageFact",
       "path": "modules/analytics/internal/usage_store.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -2299,7 +2299,7 @@
       "id": "analytics.projectUsageLedger",
       "path": "modules/analytics/internal/usage_store.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -2310,7 +2310,7 @@
       "id": "analytics.projectUsageObservation",
       "path": "modules/analytics/internal/usage_store.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -2321,7 +2321,7 @@
       "id": "analytics.parseUsageEventReference",
       "path": "modules/analytics/internal/usage_events.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -2332,7 +2332,7 @@
       "id": "analytics.validateUsageEventReference",
       "path": "modules/analytics/internal/usage_events.go",
       "state": "blocked",
-      "implementationCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+      "implementationCommit": "7e72ff26892494393d52e2200382697078100343",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -2540,7 +2540,34 @@
         "notes": "事件handler代码完整，但等根统一producer事件/订阅装配不计完整入口ready；AuditRecordedPayload为本域确定schema。修首批非法free成本类别清为空。"
       },
       {
-        "sourceCommit": "7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0",
+        "sourceCommit": "7e72ff26892494393d52e2200382697078100343",
+        "existingBusinessFunctions": [
+          "analytics.FetchUsagePage",
+          "analytics.ProjectUsage",
+          "analytics.ConsumeAnalyticsEvent"
+        ],
+        "changedSupportFunctions": [
+          "analytics.ValidateUsageEvent",
+          "analytics.ConsumeEvents",
+          "analytics.OpenStore",
+          "analytics.BuildApplication"
+        ],
+        "newReferenceHelpers": [
+          "analytics.WithUsageGateway",
+          "analytics.readUsageGatewayPage",
+          "analytics.validateUsageGatewayPage",
+          "analytics.ProjectUsageTx",
+          "analytics.recordUsageFact",
+          "analytics.projectUsageLedger",
+          "analytics.projectUsageObservation",
+          "analytics.parseUsageEventReference",
+          "analytics.validateUsageEventReference"
+        ],
+        "verification": "blocked",
+        "notes": "model-gateway V2固定水位页、同事务inbox首写与持久投影小闭环；GitLab HTTP 522，未本机/SSH回退编译。完整worker/scope/服务未完成。"
+      },
+      {
+        "sourceCommit": "7e72ff26892494393d52e2200382697078100343",
         "existingBusinessFunctions": [
           "analytics.FetchUsagePage",
           "analytics.ProjectUsage",

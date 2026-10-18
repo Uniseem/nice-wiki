@@ -1,6 +1,6 @@
 # 2026-10-18 费用 V2 消费小闭环候选
 
-独占 worktree `/private/tmp/nice-wiki-analytics-20261018-r9`，分支 `codex/analytics-20261018-r9`。基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，修正源码 `7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0`。GitLab 只读探测 HTTP 522，全部生成/编译/vet/gofmt/make check 保持 blocked，未回退本机或SSH。
+独占 worktree `/private/tmp/nice-wiki-analytics-20261018-r9`，分支 `codex/analytics-20261018-r9`。基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，修正源码 `7e72ff26892494393d52e2200382697078100343`。GitLab 只读探测 HTTP 522，全部生成/编译/vet/gofmt/make check 保持 blocked，未回退本机或SSH。
 
 本轮准确候选业务ID仅 `analytics.FetchUsagePage`、`analytics.ProjectUsage`、`analytics.ConsumeAnalyticsEvent`。`FetchUsagePage`经生成 `*gen.ModelGatewayClient`收齐完整V2上界；OpenAPI `x-runtime-payload-schemas` 新增 `AnalyticsUsageStatisticsPageResult`，wire以 `apivalidate.NewPayloadValidator`装配每页唯一一次生产schema校验。读取边界再对完整原始JSON仅删除 `pageHash` 后算 canonical SHA256，严格解码拒未知/额外字段；单页2MiB、全范围原始JSON累计32MiB，超限不截断。`ProjectUsageTx`按dataEpoch/changeRevision和实体修订幂等保存完整账项与观察，unknown/held不补0。`ConsumeAnalyticsEvent`以事件为引用，`ClaimInboxBeforeWrite`与投影同一事务，成功提交后才允许consumer确认。
 

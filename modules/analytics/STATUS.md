@@ -1,6 +1,6 @@
 # 2026-10-18 费用 V2 消费小闭环候选（GitLab blocked）
 
-分支 `codex/analytics-20261018-r9`，基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，修正源码 `7e72ff26569c068c4e6c66f0fbef6a289e8fb7c0`。GitLab 只读探测 HTTP 522（Cloudflare 无法连接源站），本轮未本机/SSH回退 Go/gofmt/build/vet/gen，也未执行真实接口、模型或部署。
+分支 `codex/analytics-20261018-r9`，基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，修正源码 `7e72ff26892494393d52e2200382697078100343`。GitLab 只读探测 HTTP 522（Cloudflare 无法连接源站），本轮未本机/SSH回退 Go/gofmt/build/vet/gen，也未执行真实接口、模型或部署。
 
 候选业务函数仅 `analytics.FetchUsagePage`、`analytics.ProjectUsage`、`analytics.ConsumeAnalyticsEvent`，准确状态均为 blocked。实现收齐 model-gateway V2 固定水位 changes/observations，单页与全范围分别以 2MiB/32MiB 原始 JSON 预算失败关闭；每页先由生成 `apivalidate` schema 校验，再仅删除 `pageHash` 核完整 canonical hash，随后无损解码并核共享时间线与原引用。V6 保留原 owner/site/sourceEpoch/root/op/class/provider/model、独立 change/ledger revision、amountKnown/真实金额、state/time/captureKind 和无账项 invocation/attempt/held 事实；inbox首写与投影同事务。未猜费用0或ledgerRevision。
 
