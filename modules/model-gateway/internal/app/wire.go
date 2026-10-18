@@ -65,7 +65,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	defer store.Close()
  taskGroup,err:=lifecycle.NewTaskGroup(ctx,256);if err!=nil{return nil,err}
  validators:=make(map[string]func(json.RawMessage)error)
- for _,name:=range []string{"MediaReadAssetResult","LanguageSuggestionApprovalResult"}{validator,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),name);if err!=nil{return nil,err};validators[name]=validator}
+ for _,name:=range []string{"MediaReadAssetResult","LanguageSuggestionApprovalResult","SiteInitializationStatusResult"}{validator,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),name);if err!=nil{return nil,err};validators[name]=validator}
  mediaClient:=gen.NewMediaClient(config.Dependencies["media"],ModuleSlug,key)
  options:=gatewayruntime.ExecutionOptions{Anchors:anchors,Tasks:taskGroup,Media:mediaClient,MediaBytes:mediaClient,Jobs:gen.NewJobsClient(config.Dependencies["jobs"],ModuleSlug,key),Validators:validators,WriteWindow:platform.WriteWindowConfig{Runtime:runtimeAuthority.ReadRuntimeState,WriteWindow:func(work context.Context)(time.Time,error){view,err:=runtimeAuthority.ReadRuntimeState(work);if err!=nil{return time.Time{},err};if view.DataEpoch!=runtimeView.DataEpoch{return time.Time{},platform.NewError(platform.CodeStaleResult,false,"模型写窗口代际已变化")};if view.Phase!=platform.PhaseRunning&&view.Phase!=platform.PhaseBackupBarrier&&view.Phase!=platform.PhaseRestoreStaging{return time.Time{},platform.NewError(platform.CodeLocked,true,"模型写窗口已关闭")};return time.Time{},nil}}}
  if base:=config.Dependencies["localization"];base!=""{options.LanguageApprovals=gen.NewLocalizationClient(base,ModuleSlug,key)}
@@ -99,7 +99,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	for operationID, handler := range tokens.NewTokenizerHandlers() { handlers[operationID] = handler }; for operationID, handler := range tokens.NewTokenHandlers() {
 		handlers[operationID] = handler
 	}
-	for operationID, handler := range catalog.NewCatalogHandlers() {
+	for operationID, handler := range catalog.NewCatalogRefreshHandlers() {handlers[operationID]=handler}
+ for operationID, handler := range catalog.NewCatalogHandlers() {
 		handlers[operationID] = handler
 	}
 	for operationID, handler := range admin.NewAdminHandlers(authorize) {
@@ -137,6 +138,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"putProfile":           {"portal"},
 			"putProvider":          {"portal"},
 			"putModel":             {"portal"},
+ "refreshModelCatalog":{"portal"},
 			"putCredential":        {"portal"},
 			"rotateCredential":     {"portal"},
 			"readTaskAssignments":  assignmentCallers,
@@ -199,4 +201,10 @@ func ensureDataLayout(dataRoot string) error {
 		}
 	}
 	return nil
+}
+
+// ReadInitializationState只读site-config实际初始化权威，不以epoch推测。
+func ReadInitializationState(ctx context.Context,client *gen.SiteConfigClient,validate func(json.RawMessage)error)(bool,error){
+ work,cancel:=context.WithTimeout(ctx,5*time.Second);defer cancel();deadline,_:=work.Deadline();id:=platform.NewIdentifier();op:=platform.OperationContext{RequestID:id,OperationID:id,RootOperationID:id,CallerService:ModuleSlug,Deadline:deadline.UTC().Format(time.RFC3339Nano),Actor:platform.AuthContext{Kind:"service",SubjectID:ModuleSlug,SiteID:"system",Grants:[]string{},ExpiresAt:deadline.UTC().Format(time.RFC3339Nano)}}
+ raw,err:=client.ReadInitializationStatus(platform.WithOperationContext(platform.WithPortalProof(work,""),op));if err!=nil{return false,err};var status struct{Initialized bool `json:"initialized"`};if validate(raw)!=nil||json.Unmarshal(raw,&status)!=nil{return false,platform.NewError(platform.CodeIntegrityError,false,"站点初始化权威响应不符合合同")};return status.Initialized,nil
 }

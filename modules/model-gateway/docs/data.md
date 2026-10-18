@@ -333,3 +333,17 @@ GatewayPart可选file:AssetRef与text/image严格互斥，调用仍vision，仅�
 每主/备用付费预留与派发前核能力，完整MaxInputTokens窗口保守预留，不猜PDF页token；EstimateTokens非文本fixed-model-input-window-v1只给保守上界；缺真实usage仍unknown/held。
 
 协议依据：[OpenAI](https://developers.openai.com/api/docs/guides/file-inputs)、[Anthropic](https://platform.claude.com/docs/en/build-with-claude/pdf-support)、[Gemini](https://ai.google.dev/gemini-api/docs/document-processing)。仅读公开官方文档，未复制SDK、未真实模型调用。
+
+
+## 明确公开目录来源
+
+Model.catalogRef={providerId,modelId}是models.dev明确源身份，和任意本站渠道ID分开。schema010两列不猜填旧行，固定路线/安全目录保留原源引用。远端仅更新已绑定且remote/bundled、未manualOverride模型的真实token上界与新不可变价目；不从attachment/名称推断file或空间能力，不改空间/渠道/凭据，不自动建默认模型。每条规范事实hash没变不重复刷全模型版本。原下载快照、模型CAS、价格、事件与原回执同事务。
+
+公开下载单GET固定models.dev/api.json、10MiB/30s，禁重定向，无站点数据或认证材料；未公布固定费保留未知，不伪0。后台每日及管理员刷新沿同一真实链。真实bundled编译快照及其新项目许可待用户答复，未借入，不把Refresh整项计ready。源字段依据[models.dev API说明](https://github.com/anomalyco/models.dev/blob/dev/README.md)，未复制代码/目录快照。
+
+初始化状态由site-config已有readInitializationStatus严格响应真实读取，MG不取私有coordination；Ready不按epoch或硬编码猜initialized，完整保护装配仍待公共实现。
+
+
+## 实际结果模型来源
+
+MG唯一ModelSnapshotHash助手对原固定gen.Model作CanonicalJSON SHA256，覆盖配置版本、模型/预处理/能力/来源元数据，不冒称探测供应方内部权重版本。ReadModels返回权威hash用于比较；每attempt准备时持久自己的hash。只有真实完整有效结果与脱敏evidence同事务写Invocation.resultAttemptId，winner费用仍可charge_unknown。终态/SSE保持该来源，人工对账只改费用不改结果或winning ID。消费者按resultAttemptId选择对应hash，不按state=succeeded猜测、不复制算法；旧缺证据值保持缺失，失败关闭。

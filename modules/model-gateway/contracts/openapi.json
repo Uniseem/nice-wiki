@@ -4549,11 +4549,15 @@
       },
       "LanguageSuggestionApprovalResult": {
         "$ref": "../../localization/contracts/types.json#/$defs/ReadLanguageSuggestionApprovalResult"
+      },
+      "SiteInitializationStatusResult": {
+        "$ref": "../../site-config/contracts/types.json#/$defs/ReadInitializationStatusResult"
       }
     }
   },
   "x-runtime-payload-schemas": [
     "MediaReadAssetResult",
-    "LanguageSuggestionApprovalResult"
+    "LanguageSuggestionApprovalResult",
+    "SiteInitializationStatusResult"
   ]
 }

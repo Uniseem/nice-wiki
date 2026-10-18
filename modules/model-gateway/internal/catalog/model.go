@@ -77,6 +77,7 @@ func ValidateModel(ctx context.Context, op OperationContext, input ValidateModel
 		capabilities[capability] = struct{}{}
 	}
 	if _,isFile:=capabilities["file"];isFile{if _,isVision:=capabilities["vision"];!isVision||model.MaxInputTokens<1{return ValidateModelResult{},platform.NewError(platform.CodeValidation,false,"file声明必须同时vision并给完整输入窗口")}}
+ if model.CatalogRef!=nil&&(!validModelString(model.CatalogRef.ProviderId)||!validModelString(model.CatalogRef.ModelId)){return ValidateModelResult{},platform.NewError(platform.CodeValidation,false,"公开目录来源身份不合法")}
  _, isEmbedding := capabilities["embedding"]
 	if isEmbedding {
 		if model.Dimension < 1 || model.Dimension > maxEmbeddingDimension {
@@ -179,22 +180,23 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 		return PutModelResult{}, platform.NewError(platform.CodeConflict, false, "模型身份变化必须使用新的模型ID")
 	}
 	model := input.Model
+ var catalogProvider,catalogModel any;if model.CatalogRef!=nil{catalogProvider=model.CatalogRef.ProviderId;catalogModel=model.CatalogRef.ModelId}
 	capabilities, _ := json.Marshal(model.Capabilities)
 	saved, err := tx.ExecContext(ctx, `
 		INSERT INTO models (
 			model_id, version, provider_id, provider_model_version, capabilities_json,
 			dimension, preprocessor_version, max_input_tokens, max_output_tokens,
-			catalog_origin, manual_override, enabled, data_epoch, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			catalog_origin, manual_override, enabled, data_epoch, updated_at, catalog_provider_id, catalog_model_id
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(model_id) DO UPDATE SET
 			version = excluded.version, capabilities_json = excluded.capabilities_json,
 			max_input_tokens = excluded.max_input_tokens, max_output_tokens = excluded.max_output_tokens,
 			catalog_origin = excluded.catalog_origin, manual_override = excluded.manual_override,
-			enabled = excluded.enabled, updated_at = excluded.updated_at
+			enabled = excluded.enabled, updated_at = excluded.updated_at, catalog_provider_id=excluded.catalog_provider_id, catalog_model_id=excluded.catalog_model_id
 		WHERE models.version = ? AND models.data_epoch = ?`,
 		model.ModelId, model.Version, model.ProviderId, model.ProviderModelVersion, capabilities,
 		model.Dimension, model.PreprocessorVersion, model.MaxInputTokens, model.MaxOutputTokens,
-		model.CatalogOrigin, model.ManualOverride, model.Enabled, op.DataEpoch, platform.Now(), input.ExpectedVersion, op.DataEpoch)
+		model.CatalogOrigin, model.ManualOverride, model.Enabled, op.DataEpoch, platform.Now(), catalogProvider, catalogModel, input.ExpectedVersion, op.DataEpoch)
 	if err != nil {
 		return PutModelResult{}, availabilityReadError(err)
 	}

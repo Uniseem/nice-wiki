@@ -28,7 +28,7 @@ func FinishInvocation(ctx context.Context,op OperationContext,id,state,code stri
  if record.Invocation.State=="succeeded"||record.Invocation.State=="cancelled"||record.Invocation.State=="failed"||record.Invocation.State=="reconciled"{return nil}
  if record.CancelRequested{state="cancelled";code=platform.CodeCancelled}
  if record.ActiveAttemptID!=""{attempt,err:=gatewayruntime.ReadAttemptRecord(tx,record.ActiveAttemptID);if err!=nil{return err}
-  if state=="succeeded"{evidence,err:=ReadAttemptEvidence(tx,attempt.Attempt.AttemptId);if err!=nil{return err};if !evidence.Completed||evidence.Code!=""{return platform.NewError(platform.CodeIntegrityError,false,"未完成校验的供应方结果不能成功交付")}}
+  if state=="succeeded"{evidence,err:=ReadAttemptEvidence(tx,attempt.Attempt.AttemptId);if err!=nil{return err};if !evidence.Completed||evidence.Code!=""||record.Invocation.ResultAttemptId==nil||*record.Invocation.ResultAttemptId!=attempt.Attempt.AttemptId{return platform.NewError(platform.CodeIntegrityError,false,"未完成校验的供应方结果不能成功交付")}}
   if attempt.Attempt.State!="charge_unknown"&&attempt.Attempt.State!="reconciled"{if state=="succeeded"{attempt.Attempt.State=gen.AttemptState("succeeded")}else{attempt.Attempt.State=gen.AttemptState("failed")};if err:=gatewayruntime.SaveAttemptRecord(tx,attempt);err!=nil{return err};for i:=range record.Invocation.Attempts{if record.Invocation.Attempts[i].AttemptId==attempt.Attempt.AttemptId{record.Invocation.Attempts[i]=attempt.Attempt}}}
  }
  record.Invocation.State=gen.InvocationState(state);record.TerminalNS=time.Now().UnixNano();record.LeaseID="";record.LeaseUntilNS=0

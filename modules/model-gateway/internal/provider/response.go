@@ -11,6 +11,7 @@ import (
  "net/http/httptrace"
  "slices"
  "strings"
+ "strconv"
  "sync/atomic"
  "time"
  "unicode/utf8"
@@ -40,7 +41,7 @@ type providerUsage struct{
 
 // ProviderReportedCost将供应方明确USD金额按整数微额向上表示，不经float64。
 func ProviderReportedCost(raw json.Number)(*gen.Money,error){
- if raw==""{return nil,nil};amount,ok:=new(big.Rat).SetString(string(raw));if !ok||amount.Sign()<0{return nil,platform.NewError(platform.CodeIntegrityError,false,"供应方金额不合法")};amount.Mul(amount,big.NewRat(1000000,1));integer,remainder:=new(big.Int).QuoRem(amount.Num(),amount.Denom(),new(big.Int));if remainder.Sign()>0{integer.Add(integer,big.NewInt(1))};if integer.Cmp(big.NewInt(9007199254740991))>0{return nil,platform.NewError(platform.CodeIntegrityError,false,"供应方金额超出整数微额范围")};return &gen.Money{Currency:"USD",Micros:int(integer.Int64())},nil
+ if raw==""{return nil,nil};if len(raw)>128{return nil,platform.NewError(platform.CodeIntegrityError,false,"供应方金额表示超过精度预算")};if index:=strings.IndexAny(string(raw),"eE");index>=0{exponent,err:=strconv.ParseInt(string(raw)[index+1:],10,32);if err!=nil||exponent < -128||exponent>128{return nil,platform.NewError(platform.CodeIntegrityError,false,"供应方金额指数超过有界精度预算")}};amount,ok:=new(big.Rat).SetString(string(raw));if !ok||amount.Sign()<0{return nil,platform.NewError(platform.CodeIntegrityError,false,"供应方金额不合法")};amount.Mul(amount,big.NewRat(1000000,1));integer,remainder:=new(big.Int).QuoRem(amount.Num(),amount.Denom(),new(big.Int));if remainder.Sign()>0{integer.Add(integer,big.NewInt(1))};if integer.Cmp(big.NewInt(9007199254740991))>0{return nil,platform.NewError(platform.CodeIntegrityError,false,"供应方金额超出整数微额范围")};return &gen.Money{Currency:"USD",Micros:int(integer.Int64())},nil
 }
 func MergeProviderUsage(outcome *ProviderOutcome,usage *providerUsage,nonText bool,currency string)error{
  if usage==nil{return nil};for _,count:=range []*int{usage.Prompt,usage.Completion,usage.Input,usage.Output,usage.Total}{if count!=nil&&(*count<0||*count>9007199254740991){return platform.NewError(platform.CodeIntegrityError,false,"供应方token数超出非负整数范围")}};if usage.CacheCreation<0||usage.CacheRead<0||usage.CacheCreation>9007199254740991||usage.CacheRead>9007199254740991{return platform.NewError(platform.CodeIntegrityError,false,"供应方缓存token数不合法")};if usage.Prompt!=nil{outcome.InputTokens=usage.Prompt};if usage.Input!=nil{outcome.InputTokens=usage.Input};if usage.Completion!=nil{outcome.OutputTokens=usage.Completion};if usage.Output!=nil{outcome.OutputTokens=usage.Output}
@@ -57,7 +58,7 @@ func ConsumeProviderFrame(raw []byte,adapter,capability,expectedModel,currency s
  if frame.UsageMetadata!=nil{usage:=frame.UsageMetadata;if usage.Input!=nil{outcome.InputTokens=usage.Input};if usage.Output!=nil{total:=*usage.Output;if usage.Thoughts!=nil{total+=*usage.Thoughts};outcome.OutputTokens=&total};if usage.Cached!=nil&&*usage.Cached>0{outcome.PricingComplete=false};for _,count:=range []*int{outcome.InputTokens,outcome.OutputTokens,usage.Thoughts,usage.Cached}{if count!=nil&&(*count<0||*count>9007199254740991){return platform.NewError(platform.CodeIntegrityError,false,"供应方实际token元数据越界")}}}
  if frame.Error!=nil{code:=frame.Error.Type;if frame.Error.Status!=""{code=frame.Error.Status};if value,ok:=frame.Error.Code.(string);ok{code=value};if outcome.HTTPStatus>=400&&outcome.HTTPStatus<500&&slices.Contains([]string{"invalid_api_key","authentication_error","permission_error","invalid_request_error","model_not_found","rate_limit_exceeded","rate_limit_error","INVALID_ARGUMENT","UNAUTHENTICATED","PERMISSION_DENIED","NOT_FOUND","RESOURCE_EXHAUSTED"},code){outcome.AcceptanceProof="not_accepted"};outcome.Code=platform.CodeDependencyUnavailable;return platform.NewError(platform.CodeDependencyUnavailable,false,"供应方明确返回错误，原费用证据保留")}
  if capability=="embedding"{
-  if (frame.Model!=""&&frame.Model!=expectedModel)||(frame.ModelVersion!=""&&frame.ModelVersion!=expectedModel){return platform.NewError(platform.CodeIntegrityError,false,"返回嵌入模型版本与固定请求版本不一致")}
+  if (frame.Model!=""&&frame.Model!=expectedModel)||(frame.ModelVersion!=""&&frame.ModelVersion!=expectedModel){return platform.NewError(platform.CodeStaleResult,false,"返回嵌入模型版本与固定请求版本不一致")}
   vectors:=make([][]float64,0);if adapter=="openai_embeddings"{ordered:=make([][]float64,len(frame.Data));for _,item:=range frame.Data{if item.Index==nil||*item.Index<0||*item.Index>=len(ordered)||ordered[*item.Index]!=nil{return platform.NewError(platform.CodeIntegrityError,false,"向量响应index越界或重复")};ordered[*item.Index]=item.Embedding};vectors=ordered}else if frame.Embedding!=nil{vectors=append(vectors,frame.Embedding.Values)}else{for _,item:=range frame.Embeddings{vectors=append(vectors,item.Values)}};outcome.Output=&platform.ModelOutput{Capability:"embedding",Vectors:vectors};outcome.Completed=len(vectors)>0;return nil
  }
  if capability=="rerank"{outcome.Completed=true;return nil}

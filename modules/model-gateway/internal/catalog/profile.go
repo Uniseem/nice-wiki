@@ -406,6 +406,7 @@ func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, mod
 	var candidate RouteCandidate
 	var capabilitiesJSON, headerNamesJSON, headerRefsJSON []byte
 	var modelEpoch string
+ var catalogProvider,catalogModel sql.NullString
 	var providerEnabled sql.NullBool
 	var providerVersion, credentialVersion sql.NullInt64
 	var providerEpoch sql.NullString
@@ -413,12 +414,12 @@ func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, mod
 	err := snapshot.tx.QueryRowContext(ctx, `SELECT m.model_id, m.version, m.provider_id, m.provider_model_version,
 		m.capabilities_json, m.dimension, m.preprocessor_version, m.max_input_tokens, m.max_output_tokens,
 		m.catalog_origin, m.manual_override, m.enabled, m.data_epoch,
-		p.enabled, p.version, p.credential_version, p.data_epoch, p.extra_header_names_json, p.extra_header_secret_refs_json
+		p.enabled, p.version, p.credential_version, p.data_epoch, p.extra_header_names_json, p.extra_header_secret_refs_json, m.catalog_provider_id, m.catalog_model_id
 		FROM models m LEFT JOIN providers p ON p.provider_id = m.provider_id WHERE m.model_id = ?`, modelID).
 		Scan(&model.ModelId, &model.Version, &model.ProviderId, &model.ProviderModelVersion,
 			&capabilitiesJSON, &model.Dimension, &model.PreprocessorVersion, &model.MaxInputTokens, &model.MaxOutputTokens,
 			&model.CatalogOrigin, &model.ManualOverride, &model.Enabled, &modelEpoch,
-			&providerEnabled, &providerVersion, &credentialVersion, &providerEpoch, &headerNamesJSON, &headerRefsJSON)
+			&providerEnabled, &providerVersion, &credentialVersion, &providerEpoch, &headerNamesJSON, &headerRefsJSON, &catalogProvider, &catalogModel)
 	if errors.Is(err, sql.ErrNoRows) {
 		return RouteCandidate{}, false, nil
 	}
@@ -441,7 +442,8 @@ func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, mod
 		json.Unmarshal(headerRefsJSON, &refs) != nil || refs == nil || len(names) != len(refs) {
 		return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型或供应方元数据损坏")
 	}
-	for _, capability := range model.Capabilities {
+	if catalogProvider.Valid!=catalogModel.Valid||(catalogProvider.Valid&&(!validModelString(catalogProvider.String)||!validModelString(catalogModel.String))){return RouteCandidate{},false,platform.NewError(platform.CodeIntegrityError,false,"模型来源身份不完整")};if catalogProvider.Valid{model.CatalogRef=&gen.ModelCatalogRef{ProviderId:catalogProvider.String,ModelId:catalogModel.String}}
+ for _, capability := range model.Capabilities {
 		if !validCapability(capability) {
 			return RouteCandidate{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型能力损坏")
 		}

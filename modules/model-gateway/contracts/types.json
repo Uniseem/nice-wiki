@@ -192,6 +192,10 @@
         "enabled": {
           "type": "boolean",
           "description": "是否显示并可分配"
+        },
+        "catalogRef": {
+          "$ref": "#/$defs/ModelCatalogRef",
+          "description": "remote/bundled更新精确来源绑定，缺失旧行保留，manualOverride优先。"
         }
       },
       "required": [
@@ -338,6 +342,10 @@
           },
           "maxItems": 256,
           "description": "全部独立计费尝试"
+        },
+        "resultAttemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "真实完整有效结果来源attempt，费用仍可unknown；对账不改写。"
         }
       },
       "required": [
@@ -673,6 +681,10 @@
             "structured_retry"
           ],
           "description": "原因"
+        },
+        "modelSnapshotHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "MG对该attempt实际固定Model的CanonicalJSON SHA256，含配置版本，旧无证据不伪造。"
         }
       },
       "required": [
@@ -4693,7 +4705,7 @@
           },
           "maxItems": 256,
           "uniqueItems": false,
-          "description": "chat vision structured reasoning embedding rerank translation能力集合"
+          "description": "chat vision structured reasoning embedding rerank translation能力集合；file必须同时vision和完整输入窗口。"
         },
         "dimension": {
           "type": "integer",
@@ -4705,7 +4717,8 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
-          "description": "预处理版本"
+          "description": "预处理版本，显式默认none；不得默示归一化，算法改变必须新版本/模型ID/space",
+          "default": "none"
         },
         "maxInputTokens": {
           "type": "integer",
@@ -4736,9 +4749,17 @@
           "type": "boolean",
           "description": "是否显示并可分配"
         },
+        "catalogRef": {
+          "$ref": "#/$defs/ModelCatalogRef",
+          "description": "remote/bundled更新精确来源绑定，缺失旧行保留，manualOverride优先。"
+        },
         "embeddingSpace": {
           "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace",
           "description": "只有embedding能力且配置完整时返回，由MG原有有序JSON算法权威生成"
+        },
+        "modelSnapshotHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "MG对该attempt实际固定Model的CanonicalJSON SHA256，含配置版本，旧无证据不伪造。"
         }
       },
       "required": [
@@ -4975,6 +4996,27 @@
       "type": "object",
       "x-internal": true,
       "description": "浏览器非序列化公共运行端口，精确TS接口来自libs/platform/web/module-api.ts，不入JSON。"
+    },
+    "ModelCatalogRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "modelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "providerId",
+        "modelId"
+      ],
+      "description": "models.dev显式源身份，不是本站渠道ID；不从URL/名称推断。"
     }
   }
 }
