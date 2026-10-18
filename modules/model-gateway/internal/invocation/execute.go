@@ -161,7 +161,7 @@ func ExecuteInvocation(ctx context.Context, op OperationContext, input ExecuteIn
 			state, err := FinishCancelledInvocation(ctx, op, record)
 			return ExecuteInvocationResult{State: state}, err
 		}
-		if outcome.OutputStarted || work.Err() != nil || record.CancelRequested || outcome.Completed || classification.Classification == "terminal" {
+		if op.CostClass==platform.CostClassAdminProbe || outcome.OutputStarted || work.Err() != nil || record.CancelRequested || outcome.Completed || classification.Classification == "terminal" {
 			state := "failed"
 			if !usageRecorded && outcome.AcceptanceProof != "not_accepted" {
 				state = "charge_unknown"

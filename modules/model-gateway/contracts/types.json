@@ -3835,6 +3835,10 @@
         "dailyQaLimit": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Money",
           "description": "站点每天qa上限，0不限，background独立"
+        },
+        "dailyProbeLimit": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "独立admin-probe日额度；本次用户明确默认0不限，兼容缺字段等同该明确默认，不影响QA/background"
         }
       },
       "required": [
@@ -4589,6 +4593,10 @@
         "credentialConfigured": {
           "type": "boolean",
           "description": "同代active凭据材料存在且长度完整；不证明可解密、在线或已经探测"
+        },
+        "lastProbe": {
+          "$ref": "#/$defs/ConnectionProbeSummary",
+          "description": "真实最近探测；从未执行则省略，旧版本结果不冒当前渠道/密钥成功"
         }
       },
       "required": [
@@ -5460,6 +5468,47 @@
         "nextCursor",
         "feeCoverage",
         "completeFeeCoverage"
+      ]
+    },
+    "ConnectionProbeSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocation": {
+          "$ref": "#/$defs/Invocation"
+        },
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "providerVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "modelVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "credentialVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "latencyMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "实际dispatched_ns至持久供应方响应evidence.recorded_ns耗时；没有响应证据不提供"
+        }
+      },
+      "required": [
+        "invocation",
+        "modelId",
+        "providerVersion",
+        "modelVersion",
+        "credentialVersion",
+        "createdAt"
       ]
     }
   }

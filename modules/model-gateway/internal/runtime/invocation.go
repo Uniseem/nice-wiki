@@ -51,7 +51,7 @@ type FixedCandidate struct {
 type FixedRoute struct {
 	Version              string             `json:"version"`
 	Candidates           []FixedCandidate   `json:"candidates"`
-	Assignment           gen.TaskAssignment `json:"assignment"`
+	Assignment           *gen.TaskAssignment `json:"assignment,omitempty"`
 	RequiredCapabilities []string           `json:"requiredCapabilities"`
 	Fallback             bool               `json:"fallback"`
 	AssetVersions        map[string]int     `json:"assetVersions"`
@@ -65,7 +65,9 @@ type FeeScopeBinding struct {
 	DataEpoch          string    `json:"dataEpoch"`
 	ExpiresAt          time.Time `json:"expiresAt"`
 }
+type ProbePolicy struct{Kind string `json:"kind"`;SchemaVersion int `json:"schemaVersion"`;ApprovedBy string `json:"approvedBy"`;PermissionRevision int64 `json:"permissionRevision"`}
 type InvocationRecord struct {
+ Probe *ProbePolicy
 	Invocation      gen.Invocation
 	Request         gen.CreateInvocationInput
 	Operation       OperationContext
@@ -224,9 +226,10 @@ func readInvocationRecord(tx *ExecutionTransaction, op OperationContext, id stri
 	if site != op.Actor.SiteID || epoch != op.DataEpoch || (!admin && !statistics && owner != op.CallerService) {
 		return InvocationRecord{}, platform.NewError(platform.CodeForbidden, false, "不能读取其他站点或owner的模型调用")
 	}
-	if len(invocationRaw) == 0 || platform.HashBytes(invocationRaw) != hash || json.Unmarshal(invocationRaw, &record.Invocation) != nil || json.Unmarshal(requestRaw, &record.Request) != nil || json.Unmarshal(operationRaw, &record.Operation) != nil || json.Unmarshal(profileRaw, &record.Profile) != nil {
+	if len(invocationRaw) == 0 || platform.HashBytes(invocationRaw) != hash || json.Unmarshal(invocationRaw, &record.Invocation) != nil || json.Unmarshal(requestRaw, &record.Request) != nil || json.Unmarshal(operationRaw, &record.Operation) != nil {
 		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "模型调用持久快照不完整")
 	}
+ if costClass==platform.CostClassAdminProbe{var policy ProbePolicy;if json.Unmarshal(profileRaw,&policy)!=nil||policy.Kind!="admin-probe"||policy.SchemaVersion!=1||policy.ApprovedBy!=record.Operation.Actor.SubjectID||policy.PermissionRevision!=int64(record.Operation.Actor.PermissionRevision)||record.Operation.CallerService!="portal"||record.Operation.Actor.Kind!="admin"{return InvocationRecord{},platform.NewError(platform.CodeIntegrityError,false,"原连接探测人工批准策略损坏")};record.Probe=&policy}else if json.Unmarshal(profileRaw,&record.Profile)!=nil{return InvocationRecord{},platform.NewError(platform.CodeIntegrityError,false,"原AI档位快照损坏")}
 	if createKey.Valid && createKey.String != record.Request.IdempotencyKey {
 		return InvocationRecord{}, platform.NewError(platform.CodeIntegrityError, false, "原创建键与不可变请求不一致")
 	}

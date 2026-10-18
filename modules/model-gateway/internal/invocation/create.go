@@ -110,7 +110,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 	if err != nil {
 		return result, err
 	}
-	fixed := gatewayruntime.FixedRoute{Version: route.RouteVersion, Assignment: route.Resolved.Assignment, RequiredCapabilities: route.Resolved.RequiredCapabilities, Fallback: route.Resolved.Fallback, AssetVersions: versions, Candidates: make([]gatewayruntime.FixedCandidate, 0, len(route.Candidates))}
+	fixed := gatewayruntime.FixedRoute{Version: route.RouteVersion, Assignment: &route.Resolved.Assignment, RequiredCapabilities: route.Resolved.RequiredCapabilities, Fallback: route.Resolved.Fallback, AssetVersions: versions, Candidates: make([]gatewayruntime.FixedCandidate, 0, len(route.Candidates))}
 	for index, candidate := range route.Candidates {
 		if index == 0 && input.ExpectedEmbeddingSpace != nil {
 			space, err := catalog.ModelEmbeddingSpace(candidate.Model)
@@ -195,17 +195,22 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 	invocation := gen.Invocation{InvocationId: id, RootOperationId: op.RootOperationID, CostClass: gen.CostClass(op.CostClass), State: gen.InvocationState("accepted"), Deadline: deadline, PriceSnapshotId: fixed.Candidates[0].Price.PriceSnapshotId, Attempts: make([]gen.Attempt, 0)}
 	record := gatewayruntime.InvocationRecord{Invocation: invocation, Request: input, Operation: op, Profile: route.Resolved.Profile, Binding: binding, CreatedNS: now.UnixNano()}
 	record.Route, _ = platform.CanonicalJSON(fixed)
+ requestRaw,_:=platform.CanonicalJSON(input);profileRaw,_:=platform.CanonicalJSON(record.Profile)
+ return AcceptPreparedInvocation(ctx,op,tx,record,fixed,requestRaw,profileRaw,"model-gateway.CreateInvocation",input.IdempotencyKey,canonical,options)
+}
+
+// AcceptPreparedInvocation共享已批准调用的原子接受与本进程任务启动；入口权限仍由各自调用方完成。
+func AcceptPreparedInvocation(ctx context.Context, op OperationContext, tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, fixed gatewayruntime.FixedRoute, requestRaw []byte, profileRaw []byte, function string, key string, canonical any, options gatewayruntime.ExecutionOptions) (CreateInvocationResult,error){
+	invocation:=record.Invocation;id:=invocation.InvocationId;deadline:=time.Time(invocation.Deadline);now:=time.Unix(0,record.CreatedNS).UTC();var result CreateInvocationResult
 	raw, _ := platform.CanonicalJSON(invocation)
-	requestRaw, _ := platform.CanonicalJSON(input)
 	operationRaw, _ := platform.CanonicalJSON(op)
-	profileRaw, _ := platform.CanonicalJSON(record.Profile)
 	priceRaw, _ := platform.CanonicalJSON(fixed.Candidates[0].Price)
 	var bindingRaw any
-	if binding != nil {
-		bindingRaw, _ = platform.CanonicalJSON(binding)
+	if record.Binding != nil {
+		bindingRaw, _ = platform.CanonicalJSON(record.Binding)
 	}
 	requestHash, _ := platform.CanonicalJSON(canonical)
-	_, err = tx.Tx.ExecContext(tx.Context, `INSERT INTO invocations(invocation_id,request_hash,root_operation_id,cost_class,state,deadline,price_snapshot_json,data_epoch,updated_at,owner_service,site_id,created_at,invocation_json,invocation_hash,request_json,operation_json,route_json,profile_json,fee_binding_json,active_attempt_id,created_ns,execution_hash,create_command_key) VALUES(?,?,?,?,'accepted',?,?,?,?,?,?,?,?,?,?,?,?,?,?,'',?,?,?)`, id, platform.HashBytes(requestHash), op.RootOperationID, op.CostClass, deadline.UTC().Format(time.RFC3339Nano), priceRaw, op.DataEpoch, platform.Now(), op.CallerService, op.Actor.SiteID, now.Format(time.RFC3339Nano), raw, platform.HashBytes(raw), requestRaw, operationRaw, record.Route, profileRaw, bindingRaw, record.CreatedNS, gatewayruntime.ExecutionSnapshotHash(requestRaw, operationRaw, record.Route, profileRaw, record.Binding, record.CreatedNS, op.CallerService, op.Actor.SiteID, op.DataEpoch), input.IdempotencyKey)
+	_, err := tx.Tx.ExecContext(tx.Context, `INSERT INTO invocations(invocation_id,request_hash,root_operation_id,cost_class,state,deadline,price_snapshot_json,data_epoch,updated_at,owner_service,site_id,created_at,invocation_json,invocation_hash,request_json,operation_json,route_json,profile_json,fee_binding_json,active_attempt_id,created_ns,execution_hash,create_command_key) VALUES(?,?,?,?,'accepted',?,?,?,?,?,?,?,?,?,?,?,?,?,?,'',?,?,?)`, id, platform.HashBytes(requestHash), op.RootOperationID, op.CostClass, deadline.UTC().Format(time.RFC3339Nano), priceRaw, op.DataEpoch, platform.Now(), op.CallerService, op.Actor.SiteID, now.Format(time.RFC3339Nano), raw, platform.HashBytes(raw), requestRaw, operationRaw, record.Route, profileRaw, bindingRaw, record.CreatedNS, gatewayruntime.ExecutionSnapshotHash(requestRaw, operationRaw, record.Route, profileRaw, record.Binding, record.CreatedNS, op.CallerService, op.Actor.SiteID, op.DataEpoch), key)
 	if err != nil {
 		return result, gatewayruntime.ExecutionStorageError(err)
 	}
@@ -240,7 +245,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 		return result, err
 	}
 	result.Invocation = record.Invocation
-	if err := gatewayruntime.SaveExecutionReceipt(tx, op, "model-gateway.CreateInvocation", input.IdempotencyKey, canonical, result); err != nil {
+	if err := gatewayruntime.SaveExecutionReceipt(tx, op, function, key, canonical, result); err != nil {
 		return result, err
 	}
 	// 先取得平台任务组容量，但只有业务事务成功后才允许执行，满容量不会留下假accepted。

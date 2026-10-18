@@ -122,7 +122,8 @@ func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayrunt
 		Value string
 		Start int64
 	}
-	budgets := []budget{{int64(profile.DailyLimitCost.Micros), "profile_id", profile.ProfileId, day}}
+	budgets := []budget{}
+ if record.Operation.CostClass==platform.CostClassAdminProbe{if record.Probe==nil{return platform.NewError(platform.CodeForbidden,false,"诊断费用缺原人工批准策略")};var daily int64;var site,epoch string;err:=tx.Tx.QueryRowContext(tx.Context,`SELECT site_id,data_epoch,daily_probe_limit_micro_usd FROM fee_budget_policy WHERE singleton=1`).Scan(&site,&epoch,&daily);if err!=nil&&err!=sql.ErrNoRows{return gatewayruntime.ExecutionStorageError(err)};if err==nil&&(site!=record.Operation.Actor.SiteID||epoch!=record.Operation.DataEpoch){return platform.NewError(platform.CodeStaleResult,false,"诊断费用策略站点/代际变化")};budgets=append(budgets,budget{daily,"cost_class",platform.CostClassAdminProbe,day})}else{budgets=append(budgets,budget{int64(profile.DailyLimitCost.Micros),"profile_id",profile.ProfileId,day})}
 	if record.Operation.CostClass == platform.CostClassQA {
 		if record.Binding == nil {
 			return platform.NewError(platform.CodeForbidden, false, "QA费用缺少已验证签名范围")

@@ -183,6 +183,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"readModels":           assignmentCallers,
 			"readProfiles":         assignmentCallers,
 			"readAdminCatalog":     {"portal"},
+ "createConnectionProbe": {"portal"},
 			"readFeeBudgetPolicy":  {"portal"},
 			"putFeeBudgetPolicy":   {"portal"},
 		},

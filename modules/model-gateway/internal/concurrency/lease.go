@@ -63,10 +63,12 @@ func AcquireProviderSlot(ctx context.Context, op OperationContext, input Acquire
 	if err := tx.Tx.QueryRowContext(tx.Context, `SELECT COUNT(*) FROM provider_slots WHERE provider_id=? AND data_epoch=?`, input.ProviderID, op.DataEpoch).Scan(&providerCount); err != nil {
 		return AcquireProviderSlotResult{}, gatewayruntime.ExecutionStorageError(err)
 	}
+	if record.Probe==nil {
 	if err := tx.Tx.QueryRowContext(tx.Context, `SELECT COUNT(*) FROM provider_slots s JOIN invocations i ON i.invocation_id=s.invocation_id JOIN fee_commitments f ON f.attempt_id=i.active_attempt_id WHERE s.data_epoch=? AND f.site_id=? AND f.profile_id=?`, op.DataEpoch, op.Actor.SiteID, record.Profile.ProfileId).Scan(&profileCount); err != nil {
 		return AcquireProviderSlotResult{}, gatewayruntime.ExecutionStorageError(err)
 	}
-	if providerCount >= attempt.Provider.ConcurrencyLimit || profileCount >= record.Profile.Concurrency {
+	}
+	if providerCount >= attempt.Provider.ConcurrencyLimit || (record.Probe==nil&&profileCount >= record.Profile.Concurrency) {
 		return AcquireProviderSlotResult{}, platform.NewError(platform.CodeRateLimited, true, "供应方或档位并发槽已满")
 	}
 	until := now.Add(30 * time.Second)

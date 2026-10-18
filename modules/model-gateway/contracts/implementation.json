@@ -4681,7 +4681,8 @@
             "expectedEmbeddingSpace仅embedding可选；接受时核主模型，主/备各自预留及真实派发前核权威五字段精确相等，不匹配不付费。",
             "同事务持久accepted、原业务deadline、不可变execution hash、路线凭据引用、SSE accepted/outbox及幂等回执。先取得公共TaskGroup容量再提交，回调等待事务commit信号；失败不假accepted；不修改原业务截止。",
             "恢复历史投影只读及人工费用结算，不新派发旧调用或恢复旧准入scope。",
-            "原创建键索引和accepted/回执同事务；新创建前也核完整tracking，避旧SDK绕过lookup重付。"
+            "原创建键索引和accepted/回执同事务；新创建前也核完整tracking，避旧SDK绕过lookup重付。",
+            "共享AcceptPreparedInvocation原子接受持久化，不改变原task owner/QA/background/route授权与tracking门禁。"
           ],
           "errors": [
             {
@@ -4767,7 +4768,8 @@
             "model-gateway.ValidateInvocationPayload",
             "model-gateway.ValidateInputModel",
             "model-gateway.ResolveRoute",
-            "model-gateway.RequireInvocationLookupTracking"
+            "model-gateway.RequireInvocationLookupTracking",
+            "model-gateway.AcceptPreparedInvocation"
           ],
           "resources": [],
           "contract": "binding"
@@ -5162,6 +5164,76 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "model-gateway.AcceptPreparedInvocation",
+          "name": "AcceptPreparedInvocation",
+          "signature": "func AcceptPreparedInvocation(ctx context.Context, op OperationContext, tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, fixed gatewayruntime.FixedRoute, requestRaw []byte, profileRaw []byte, function string, key string, canonical any, options gatewayruntime.ExecutionOptions) (CreateInvocationResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "AcceptPreparedInvocation实际探测执行支持",
+          "steps": [
+            "普通AI与显式probe各自已校验后共享原invocation持久化/引用/accepted事件/幂等/TaskGroup先容量后commit机制，不扩大入口授权。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "MG真实供应方调用可能收费；当前设计不执行"
+          ],
+          "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "model-gateway.ExecutionSnapshotHash",
+            "model-gateway.SaveInvocationEvent",
+            "model-gateway.EnqueueExecutionEvent",
+            "model-gateway.SaveExecutionReceipt",
+            "model-gateway.ExecuteInvocation"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5493,7 +5565,8 @@
             "QA另核真实已消费许可scope的全站日/会话小时/网络小时额度；后台不占QA额度；旧日held仍占原scope。",
             "additional为nil表示本次最大金额真实未知，既有amount_micro_usd为NULL表示范围内未知；任一适用额度有限时两者均失败关闭，不按零累计。",
             "额度值0明确不限；只有所有实际适用额度均不限时才允许未知预留；不释放既有held，不篡改未知金额；已知整数用big.Int求和防溢出。",
-            "恢复当前target授权投影的原source unknown held仍占原site/profile/QA scope，不因epoch过滤清零；用EXISTS语义避多次恢复重复累加。"
+            "恢复当前target授权投影的原source unknown held仍占原site/profile/QA scope，不因epoch过滤清零；用EXISTS语义避多次恢复重复累加。",
+            "admin-probe独立日限dailyProbeLimit兼容缺字段=用户明确默认0不限；有限额度遇同scope未知held失败关闭；探测限额变更同QA日限须当前superadmin。"
           ],
           "errors": [
             {
@@ -8126,7 +8199,8 @@
             "在短权威写事务内核原owner/root/epoch/current reserved attempt，30秒租约固定",
             "清到期slot，分别核真实固定provider和profile并发上限；0上限按数量小于配置规则表示暂无槽位",
             "同调用已有未到期槽位返回原租约，不重复领取；新槽位期限不超过原调用deadline",
-            "派发期间执行器每10秒续租，租约未知或取消停止后继供应方IO"
+            "派发期间执行器每10秒续租，租约未知或取消停止后继供应方IO",
+            "显式admin-probe无AI profile，仅核原冻结provider并发；QA/background仍同时核原真实profile并发，不造profile ID。"
           ],
           "errors": [
             {
@@ -9071,7 +9145,8 @@
             "预读真实policy并核site/epoch/版本；首次expectedVersion0完整创建或既有daily变化必须先结束预读事务，再调用平台identity当前superadmin，无SQL/进程锁。普通guard.manage仅保留日额度调整小时策略。",
             "授权后开启短写事务，重新先核原回执，再核全部非released屏障、当前policy和CAS；期间需超管而未授权则VERSION_MISMATCH，不自动重试，不持事务RPC。",
             "条件INSERT/UPDATE核RowsAffected1；策略、完整回执及本地fee_policy_audit同事务。审计仅actor/rootOperation/epoch/version/time/日额度变化标记；跨域投影仍未完成，不宣称通知analytics。",
-            "仅影响后续预留，不改held/ledger，不调用模型。Commit未知由相同键回读原结果，不自动重试提交。"
+            "仅影响后续预留，不改held/ledger，不调用模型。Commit未知由相同键回读原结果，不自动重试提交。",
+            "admin-probe独立日限dailyProbeLimit兼容缺字段=用户明确默认0不限；有限额度遇同scope未知held失败关闭；探测限额变更同QA日限须当前superadmin。"
           ],
           "errors": [
             {
@@ -9139,7 +9214,8 @@
             "model-gateway.beginAdminSnapshot",
             "model-gateway.readFeePolicy",
             "model-gateway.readFeePolicyReceipt",
-            "identity:checkAuthorization"
+            "identity:checkAuthorization",
+            "model-gateway.FeeProbeLimit"
           ],
           "resources": [
             "本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表"
@@ -9202,7 +9278,8 @@
             "同一严格当前epoch快照读取四项目录，按ID排序；只返回真实已存配置，不合成任务默认。",
             "ProviderSummary只查非秘密元数据、附加头名称、active凭据版本和材料存在/代次/长度；不SELECT秘密引用或密文正文。",
             "附各供应方启停状态与最近连接测试结果；本轮启停/材料状态已写，最近probe生产者/投影未齐，整函数in_progress，不伪造空或成功结果。",
-            "响应上限模型1000、供应方/档位64、任务256；超限报错不截断；异代或损坏失败关闭。"
+            "响应上限模型1000、供应方/档位64、任务256；超限报错不截断；异代或损坏失败关闭。",
+            "同一SQL快照附真实最近probe及原冻结版本/原调用/实际响应latency；无历史省略lastProbe，不探测或填成功。"
           ],
           "errors": [
             {
@@ -9268,7 +9345,8 @@
             "model-gateway.readCatalogProviders",
             "model-gateway.readCatalogModels",
             "model-gateway.readCatalogProfiles",
-            "model-gateway.readCatalogAssignments"
+            "model-gateway.readCatalogAssignments",
+            "model-gateway.ReadLatestProbes"
           ],
           "resources": [
             "本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表"
@@ -10063,7 +10141,8 @@
           ],
           "purpose": "读取真实策略归属",
           "steps": [
-            "无行NOT_FOUND；核site/epoch/版本/金额范围，不编造默认。"
+            "无行NOT_FOUND；核site/epoch/版本/金额范围，不编造默认。",
+            "admin-probe独立日限dailyProbeLimit兼容缺字段=用户明确默认0不限；有限额度遇同scope未知held失败关闭；探测限额变更同QA日限须当前superadmin。"
           ],
           "errors": [
             {
@@ -10437,7 +10516,8 @@
             "model-gateway.ReadAdminCatalog",
             "model-gateway.ReadFeeBudgetPolicy",
             "model-gateway.PutFeeBudgetPolicy",
-            "model-gateway.GetPriceBook"
+            "model-gateway.GetPriceBook",
+            "model-gateway.CreateConnectionProbe"
           ],
           "resources": [],
           "contract": "reference"
@@ -12799,7 +12879,8 @@
           "outputs": [],
           "purpose": "模型管理视图reload交互",
           "steps": [
-            "本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。"
+            "本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。",
+            "独立探测日限默认0不限与真实最近probe原版本展示，不把历史诊断当当前配置成功或未知费用0。"
           ],
           "errors": [
             {
@@ -13439,7 +13520,8 @@
           "outputs": [],
           "purpose": "模型管理视图savePolicy交互",
           "steps": [
-            "本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。"
+            "本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。",
+            "独立探测日限默认0不限与真实最近probe原版本展示，不把历史诊断当当前配置成功或未知费用0。"
           ],
           "errors": [
             {
@@ -13845,7 +13927,8 @@
           "outputs": [],
           "purpose": "模型管理视图runProbe交互",
           "steps": [
-            "本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。"
+            "本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。",
+            "独立探测日限默认0不限与真实最近probe原版本展示，不把历史诊断当当前配置成功或未知费用0。"
           ],
           "errors": [
             {
@@ -15850,11 +15933,13 @@
           ],
           "purpose": "显式测试连接",
           "steps": [
-            "1 仅superadmin点击",
-            "2 构造固定不含站点内容的1token请求",
-            "3 costClass=admin-probe并费用预留",
-            "4 显示成功/耗时/账单状态",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "仅portal当前superadmin明确点击，私有admin-probe lane，公开Create仍仅QA/background task owner；不可伪造task/profile/QA许可。",
+            "固定OK极小消息与最多1输出token；embedding仅单OK，rerank仅单候选OK；按模型已声明能力和实际adapter选择，不读取站点正文。",
+            "持久内部version1 admin-probe执行策略含approvedBy/permissionRevision，profile_json按costClass明确tagged union且原executionHash覆盖；无AI profile与task assignment。",
+            "原root/site/epoch/模型/渠道/密钥和额外头引用/price全部冻结；模型及provider/credential版本同写事务CAS，原输入/原回执/accepted/outbox/引用原子提交。",
+            "真实平台TaskGroup执行单attempt，明确禁止fallback/structured retry；未知费用沿原held，不重付；原idempotency仅接续未派发阶段或返回当前原调用。",
+            "独立dailyProbeLimit缺失按用户明确默认0不限；有限额度遇未知最大金额或原admin-probe未知held失败关闭，不占QA或background额度。",
+            "最近探测只读真实持久调用/attempt/响应时间，原版本明确展示，不凭空探测成功。"
           ],
           "errors": [
             {
@@ -15907,10 +15992,143 @@
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
-            "model-gateway.ExecuteInvocation"
+            "model-gateway.CreateProbeInvocation",
+            "model-gateway.beginAdminSnapshot",
+            "model-gateway.readCatalogModels"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "model-gateway.ReadLatestProbes",
+          "name": "ReadLatestProbes",
+          "signature": "func ReadLatestProbes(ctx context.Context, op OperationContext, tx *sql.Tx, providers []gen.ProviderSummary) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "ReadLatestProbes实际探测执行支持",
+          "steps": [
+            "同真实管理快照取每provider最近probe原记录及完整原调用；逐条核原模型/渠道/密钥/epoch，实际evidence时间才给latency。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "MG真实供应方调用可能收费；当前设计不执行"
+          ],
+          "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "model-gateway.ReadInvocationRecord",
+            "model-gateway.ReadAttemptRecord"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.FeeProbeLimit",
+          "name": "FeeProbeLimit",
+          "signature": "func FeeProbeLimit(policy gen.FeeBudgetPolicy) int",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取独立探测日限，兼容缺失按用户明确默认0不限",
+          "steps": [
+            "字段缺失与明确0均为已批准不限；不借QA/background额度。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "MG真实供应方调用可能收费；当前设计不执行"
+          ],
+          "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -15960,7 +16178,8 @@
           "purpose": "费用安全保留备用与格式重试",
           "steps": [
             "只用accepted固定有序候选；前驱必须当前attempt，直接后继才是fallback，同模型structured_retry最多一次，不重复付费尝试；总attempt上限固定路线长度+一次格式重试。",
-            "先核管理员批准/固定嵌入space并准备真实新attempt，原子Reserve追加新attempt及预留，预算不足停止；旧未知attempt与held不释放，不更换root/总deadline。"
+            "先核管理员批准/固定嵌入space并准备真实新attempt，原子Reserve追加新attempt及预留，预算不足停止；旧未知attempt与held不释放，不更换root/总deadline。",
+            "admin-probe明确拒绝新增任何paid attempt。"
           ],
           "errors": [
             {
@@ -21362,7 +21581,8 @@
             "先预留再派发，每尝试最多一次供应方HTTP请求；文本delta先持久再续读，embedding全空间/维度/有限值及rerank完整ID校验后才可输出结构结果。",
             "真实供应方usage含收费ID才RecordUsage/Settle；完整结果且缺usage/ID仍可succeeded+completed，attempt独立charge_unknown并保留held。结果不完整且费用未知outer charge_unknown。缓存等费率未覆盖不伪按普通价；缺币种不猜USD。",
             "未向调用方输出且未完整成功时依固定路线允许备用；每次新attempt新预留，旧未知费用继续held；格式重试原模型一次且不重置总deadline。已完整付费结果绝不自动重算。",
-            "只有既有派发用量/终态/释放可以进入当前权威许可的5秒finalization记账窗口，不扩原模型deadline、不新派发；IO失败保守收敛原已派发事实，不猜未收费。"
+            "只有既有派发用量/终态/释放可以进入当前权威许可的5秒finalization记账窗口，不扩原模型deadline、不新派发；IO失败保守收敛原已派发事实，不猜未收费。",
+            "admin-probe单attempt失败/unknown立即按原链终态，不执行fallback或structured retry。"
           ],
           "errors": [
             {
@@ -24198,6 +24418,90 @@
       "path": "modules/model-gateway/internal/catalog/bundled/LICENSE",
       "kind": "handwritten",
       "purpose": "models.dev原MIT许可与版权",
+      "functions": []
+    },
+    {
+      "path": "modules/model-gateway/internal/invocation/probe.go",
+      "kind": "handwritten",
+      "purpose": "后台单次真实连接探测及安全结果投影",
+      "functions": [
+        {
+          "id": "model-gateway.CreateProbeInvocation",
+          "name": "CreateProbeInvocation",
+          "signature": "func CreateProbeInvocation(ctx context.Context, op OperationContext, input gen.CreateConnectionProbeInput, model gen.Model) (gen.CreateConnectionProbeResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "CreateProbeInvocation实际探测执行支持",
+          "steps": [
+            "真实固定私有probe payload/执行policy，不进AI任务目录；同原接受链冻结并执行一次。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "MG真实供应方调用可能收费；当前设计不执行"
+          ],
+          "authorization": "权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "model-gateway.AcceptPreparedInvocation",
+            "model-gateway.ReadDispatchProvider",
+            "model-gateway.ReadPriceSnapshot",
+            "model-gateway.ReplayExecutionReceipt",
+            "model-gateway.StartAcceptedInvocation",
+            "model-gateway.RequireInvocationLookupTracking"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/model-gateway/migrations/013_admin_probe.sql",
+      "kind": "handwritten",
+      "purpose": "独立probe日限默认0不限及真实探测原调用来源，不修改历史付费事实",
       "functions": []
     }
   ],
