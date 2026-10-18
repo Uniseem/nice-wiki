@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 67 个函数：约束 42 个，参考 25 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 80 个函数：约束 42 个，参考 38 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -480,7 +480,7 @@ func VerifyObjectHash(ctx context.Context, op OperationContext, in VerifyObjectH
 - 授权：permission：service；rule：内部
 - 并发：读取64KiB块，禁止加载整个archive
 - 幂等：同bytes同hash
-- 依赖：无
+- 依赖：`data-protection.Catalog`、`data-protection.PrivateObjectPath`、`data-protection.storageError`
 - 其他依赖说明：本域对象存储
 
 ## data-protection.ValidateCrossDomainRefs
@@ -640,21 +640,21 @@ func ListBackups(ctx context.Context, op OperationContext, in ListBackupsInput) 
 
 **步骤**
 
-1. check backup.manage
-2. limit20 max100
-3. 按createdAt/id游标
-4. 显示状态/完整性摘要
+1. 后台管理员种类约束；功能权限只由平台入口即时核一次。
+2. limit默认20最大100；固定目录revision及createdAt/id倒序keyset分页。
+3. 游标复用serviceauth签名，绑定稳定站点/subject/session及权限修订/epoch/limit，10分钟过期；目录revision变化STALE_RESULT，不混页。
 
 **错误**
 
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `VALIDATION` / HTTP 400：INVALID_CURSOR：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `STALE_RESULT` / HTTP 409：签名游标过期/绑定或目录revision变化（不可重试）
 
 - 副作用：无
 - 授权：permission：backup.manage；rule：backup.manage
 - 并发：只读catalog
 - 幂等：GET幂等
-- 依赖：`identity:checkAuthorization`
+- 依赖：`data-protection.Catalog`、`data-protection.requireAdministrator`、`data-protection.storageError`、`platform.SignCursor`、`platform.VerifyCursor`
 
 ## data-protection.ReadBackup
 
@@ -696,7 +696,7 @@ func ReadBackup(ctx context.Context, op OperationContext, in ReadBackupInput) (R
 - 授权：permission：backup.manage；rule：backup.manage
 - 并发：只读已持久catalog，不宣称failed可恢复
 - 幂等：GET幂等
-- 依赖：`identity:checkAuthorization`
+- 依赖：`data-protection.Catalog`、`data-protection.requireAdministrator`、`data-protection.storageError`
 
 ## data-protection.ReadMirrorStatus
 
@@ -728,6 +728,7 @@ func ReadMirrorStatus(ctx context.Context, op OperationContext, in ReadMirrorSta
 1. checkbackup.manage
 2. 安全状态和无凭证URL
 3. 未知push状态标needs-reconcile
+4. 未指定mirrorId读真实最新记录；没有记录NOT_FOUND，syncing只报needs-reconcile不推定远程成功。
 
 **错误**
 
@@ -738,7 +739,7 @@ func ReadMirrorStatus(ctx context.Context, op OperationContext, in ReadMirrorSta
 - 授权：permission：backup.manage；rule：backup.manage
 - 并发：只读本域catalog，不能声称远端最新
 - 幂等：GET幂等
-- 依赖：`identity:checkAuthorization`
+- 依赖：`data-protection.Catalog`、`data-protection.requireAdministrator`、`data-protection.storageError`
 
 ## data-protection.ReadProtectionSettings
 
@@ -2628,6 +2629,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+7. 打开真实active目录库与control决定库，事务应用各自版本1迁移并装配已实现目录读取；其余路由保持具体不可用，完整就绪仍blocked。
 
 **错误**
 
@@ -2639,7 +2641,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`data-protection.RecoverProtectionJournal`、`data-protection.PublishProtectionEvents`、`data-protection.ConsumeEvents`、`data-protection.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`
+- 依赖：`site-config:registerActivation`、`data-protection.RecoverProtectionJournal`、`data-protection.PublishProtectionEvents`、`data-protection.ConsumeEvents`、`data-protection.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`data-protection.OpenCatalog`、`data-protection.InstallCatalog`、`data-protection.NewApplication`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## data-protection.Serve
@@ -2807,6 +2809,134 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 依赖：无
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
 
+## data-protection.NewApplication
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/transport/server.go`
+- 作用：实际修改的本域HTTP装配支持；域逻辑调用对应合同函数。
+
+```go
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtime platform.SiteConfigClient, clients Dependencies) (*Application, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：平台NewServiceHandler固定caller白名单及即时identity授权，内部使用可信op。
+- 并发：上下文传给本域IO；不发起隐式备份或模型。
+- 幂等：只读目录固定快照；不制造历史或成功状态。
+- 依赖：`data-protection.server.ListBackups`、`data-protection.server.ReadBackup`、`data-protection.server.ReadMirrorStatus`
+
+## data-protection.server.ListBackups
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/transport/server.go`
+- 作用：实际修改的本域HTTP装配支持；域逻辑调用对应合同函数。
+
+```go
+func (s *server) ListBackups(w http.ResponseWriter, r *http.Request, params gen.ListBackupsParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：平台NewServiceHandler固定caller白名单及即时identity授权，内部使用可信op。
+- 并发：上下文传给本域IO；不发起隐式备份或模型。
+- 幂等：只读目录固定快照；不制造历史或成功状态。
+- 依赖：`data-protection.ListBackups`
+
+## data-protection.server.ReadBackup
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/transport/server.go`
+- 作用：实际修改的本域HTTP装配支持；域逻辑调用对应合同函数。
+
+```go
+func (s *server) ReadBackup(w http.ResponseWriter, r *http.Request, id string, params gen.ReadBackupParams)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：平台NewServiceHandler固定caller白名单及即时identity授权，内部使用可信op。
+- 并发：上下文传给本域IO；不发起隐式备份或模型。
+- 幂等：只读目录固定快照；不制造历史或成功状态。
+- 依赖：`data-protection.ReadBackup`
+
+## data-protection.server.ReadMirrorStatus
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/transport/server.go`
+- 作用：实际修改的本域HTTP装配支持；域逻辑调用对应合同函数。
+
+```go
+func (s *server) ReadMirrorStatus(w http.ResponseWriter, r *http.Request)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：平台NewServiceHandler固定caller白名单及即时identity授权，内部使用可信op。
+- 并发：上下文传给本域IO；不发起隐式备份或模型。
+- 幂等：只读目录固定快照；不制造历史或成功状态。
+- 依赖：`data-protection.ReadMirrorStatus`
+
 ## data-protection.mountModuleUI
 
 - 级别：约束
@@ -2886,3 +3016,327 @@ func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) 
 - 并发：每进程一个领取循环，并发不超过maxConcurrency；同一任务只由持有有效fence者写回
 - 幂等：jobs按jobId与fence去重；执行函数自身按输入引用幂等
 - 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`data-protection.ExecuteBackup`、`data-protection.ExecuteRestore`、`platform.RunWorkerLoop`
+
+## data-protection.OpenCatalog
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：本域私有持久目录与路径支持：OpenCatalog
+
+```go
+func OpenCatalog(ctx context.Context, root, epoch string, key platform.SigningKey) (*Store, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 依赖：`data-protection.openDatabase`、`data-protection.applyMigration`、`data-protection.Store.Close`、`data-protection.storageError`
+
+## data-protection.openDatabase
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：本域私有持久目录与路径支持：openDatabase
+
+```go
+func openDatabase(ctx context.Context, path string) (*sql.DB, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 依赖：`data-protection.storageError`
+
+## data-protection.applyMigration
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：本域私有持久目录与路径支持：applyMigration
+
+```go
+func applyMigration(ctx context.Context, db *sql.DB, name string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 依赖：`data-protection.storageError`
+
+## data-protection.Store.Close
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：本域私有持久目录与路径支持：Store.Close
+
+```go
+func (s *Store) Close() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 依赖：`data-protection.storageError`
+
+## data-protection.InstallCatalog
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：本域私有持久目录与路径支持：InstallCatalog
+
+```go
+func InstallCatalog(s *Store)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 依赖：无
+
+## data-protection.Catalog
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：本域私有持久目录与路径支持：Catalog
+
+```go
+func Catalog(op OperationContext) (*Store, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 依赖：无
+
+## data-protection.storageError
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：本域私有持久目录与路径支持：storageError
+
+```go
+func storageError(err error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 依赖：无
+
+## data-protection.requireAdministrator
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：本域私有持久目录与路径支持：requireAdministrator
+
+```go
+func requireAdministrator(op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 依赖：无
+
+## data-protection.PrivateObjectPath
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/store.go`
+- 作用：本域私有持久目录与路径支持：PrivateObjectPath
+
+```go
+func PrivateObjectPath(store *Store, path string) (string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。
+
+**错误**
+
+- `INTERNAL`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VALIDATION`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `VERSION_MISMATCH`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+- `UNSUPPORTED_SCHEMA`：本域持久/代次/路径条件不满足时失败关闭（不可重试）
+
+- 副作用：仅登记职责范围内私有IO；构造不调用真实业务服务
+- 授权：入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。
+- 并发：SQLite最大1连接短事务；control不随active替换；Close只执行一次。
+- 幂等：版本1迁移仅user_version=0事务应用；已有版本拒绝降级。
+- 依赖：无

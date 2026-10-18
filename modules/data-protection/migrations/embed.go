@@ -4,5 +4,6 @@ package migrations
 import "embed"
 
 // Files 只包含已登记迁移，执行器按各库user_version事务应用。
+//
 //go:embed 0001_domain.sql 0002_control.sql
 var Files embed.FS

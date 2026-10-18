@@ -2283,11 +2283,12 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 
 **步骤**
 
-1. 进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连
-2. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未换入该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
-3. 按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入
-4. 处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放
-5. 屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件
+1. 装配inbox.NewEventConsumer真实窄HTTP适配及严格AcknowledgeEventResult生产方schema；返回RunConsumerWithResult真实累计计数，不构造伪worker或空统计。
+2. 进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连
+3. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未换入该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
+4. 按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入
+5. 处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放
+6. 屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件
 
 **错误**
 
@@ -2299,7 +2300,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`traffic-guard.ConsumeIdentityEvent`、`platform.RunConsumer`
+- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`traffic-guard.ConsumeIdentityEvent`、`platform.NewEventConsumer`、`platform.RunConsumerWithResult`
 
 ## traffic-guard.PublishGuardEvents
 

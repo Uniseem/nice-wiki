@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 84 个函数：约束 19 个，参考 65 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 102 个函数：约束 20 个，参考 82 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1208,7 +1208,7 @@ func ClaimInbox(tx Tx, envelope EventEnvelope) (bool, error)
 - 作用：事件订阅循环的通用实现
 
 ```go
-func RunConsumer(ctx context.Context, client JobsClient, config ConsumerConfig, handlers EventHandlerRegistry) error
+func RunConsumer(ctx context.Context, client EventConsumerClient, config ConsumerConfig, handlers EventHandlerRegistry) error
 ```
 
 **输入**
@@ -1216,7 +1216,7 @@ func RunConsumer(ctx context.Context, client JobsClient, config ConsumerConfig, 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `ctx` | `context.Context` | 进程生命周期 | 取消即退出 |
-| `client` | `JobsClient` | jobs客户端 | 带服务断言 |
+| `client` | `EventConsumerClient` | jobs客户端 | 带服务断言 |
 | `config` | `ConsumerConfig` | 订阅的事件名/版本与并发 | 来自本域events.json |
 | `handlers` | `EventHandlerRegistry` | 事件名→处理函数 | 与events.json handler一致 |
 
@@ -1241,7 +1241,499 @@ func RunConsumer(ctx context.Context, client JobsClient, config ConsumerConfig, 
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：每进程一个订阅
 - 幂等：依赖处理函数inbox去重
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`
+- 依赖：`platform.RunConsumerWithResult`
+
+## platform.RunConsumerWithResult
+
+- 级别：约束
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：以真实窄事件端口运行订阅并返回准确计数
+
+```go
+func RunConsumerWithResult(ctx context.Context, client EventConsumerClient, config ConsumerConfig, handlers EventHandlerRegistry) (ConsumerRunResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 进程生命周期 | 取消即退出 |
+| `client` | `EventConsumerClient` | jobs客户端 | 带服务断言 |
+| `config` | `ConsumerConfig` | 订阅的事件名/版本与并发 | 来自本域events.json |
+| `handlers` | `EventHandlerRegistry` | 事件名→处理函数 | 与events.json handler一致 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ConsumerRunResult` | 所有分片退出后的实际累计处理/跳过确认与失败尝试数 | 不伪填零；失败不确认 |
+| `error` | `error` | 失败原因；调用方映射为公共Problem | 不含密钥、正文或IP |
+
+**步骤**
+
+1. 启动校验runtime/payload校验器、完整登记handler与并发上限；只接真实事件窄客户端
+2. 每次订阅、handler与确认建立当前epoch的有界纯服务上下文，不复用启动时失效proof/deadline
+3. 同subject串行，分片间并发；权威未知/维护屏障暂停；新代不确认，旧代确认计skipped
+4. 信封/schema错误、handler失败或缺失、确认失败均不确认且计failed；handler明确ErrEventSkipped只确认计skipped
+5. 正常提交且确认成功计acknowledged；ctx退出排空分片后返回累计计数
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：jobs不可用（可重试）
+
+- 副作用：HTTP长连接与确认
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：每进程一个订阅
+- 幂等：依赖处理函数inbox去重
+- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`platform.consumerLoop.start`、`platform.consumerLoop.stop`、`platform.consumerLoop.operation`、`platform.consumerLoop.dispatch`、`platform.inbox.readRuntime`、`platform.inbox.pauseFor`、`platform.inbox.sleep`、`platform.inbox.isConfigRejected`
+
+## platform.consumerLoop.start
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：consumerLoop.start
+
+```ts
+func(c *consumerLoop) start(ctx context.Context)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：`platform.consumerLoop.worker`
+
+## platform.consumerLoop.stop
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：consumerLoop.stop
+
+```ts
+func(c *consumerLoop) stop()
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无
+
+## platform.consumerLoop.worker
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：consumerLoop.worker
+
+```ts
+func(c *consumerLoop) worker(ctx context.Context,index int)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：`platform.consumerLoop.process`
+
+## platform.consumerLoop.queueFor
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：consumerLoop.queueFor
+
+```ts
+func(c *consumerLoop) queueFor(subject string)chan EventEnvelope
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无
+
+## platform.consumerLoop.operation
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：consumerLoop.operation
+
+```ts
+func(c *consumerLoop) operation(ctx context.Context,epoch,root string)(context.Context,context.CancelFunc)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无
+
+## platform.consumerLoop.dispatch
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：consumerLoop.dispatch
+
+```ts
+func(c *consumerLoop) dispatch(ctx context.Context,stream EventStream,lastID *string)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：`platform.consumerLoop.classify`、`platform.consumerLoop.queueFor`、`platform.consumerLoop.acknowledge`
+
+## platform.consumerLoop.acknowledge
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：consumerLoop.acknowledge
+
+```ts
+func(c *consumerLoop) acknowledge(ctx context.Context,event EventEnvelope,skipped bool)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：`platform.inbox.readRuntime`、`platform.inbox.pauseFor`、`platform.consumerLoop.operation`
+
+## platform.consumerLoop.process
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：consumerLoop.process
+
+```ts
+func(c *consumerLoop) process(ctx context.Context,event EventEnvelope)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：`platform.inbox.readRuntime`、`platform.inbox.pauseFor`、`platform.consumerLoop.operation`、`platform.consumerLoop.acknowledge`
+
+## platform.consumerLoop.classify
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：consumerLoop.classify
+
+```ts
+func(c *consumerLoop) classify(ctx context.Context,event EventEnvelope)outcome
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：`platform.inbox.readRuntime`、`platform.inbox.pauseFor`、`platform.inbox.eventKey`
+
+## platform.inbox.eventKey
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：inbox.eventKey
+
+```go
+func eventKey(name string,version int)string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无
+
+## platform.inbox.pauseFor
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：inbox.pauseFor
+
+```go
+func pauseFor(view RuntimeView)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无
+
+## platform.inbox.readRuntime
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：inbox.readRuntime
+
+```go
+func readRuntime(ctx context.Context,provider func(context.Context)(RuntimeView,error))(RuntimeView,bool)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无
+
+## platform.inbox.sleep
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：inbox.sleep
+
+```go
+func sleep(ctx context.Context,d time.Duration)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无
+
+## platform.inbox.isConfigRejected
+
+- 级别：参考
+- 文件：`libs/platform/inbox/consumer.go`
+- 作用：事件消费内部实际助手：inbox.isConfigRejected
+
+```go
+func isConfigRejected(err error)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无
 
 ## platform.RunWorkerLoop
 
@@ -3425,3 +3917,99 @@ func verifyGuardClaims(anchors TrustAnchors,token,purpose string,result any)erro
 - 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
 - 依赖：无
 - 其他依赖说明：受控Ed25519密钥引用
+
+## platform.NewEventConsumer
+
+- 级别：参考
+- 文件：`libs/platform/inbox/client.go`
+- 作用：事件消费内部实际助手：NewEventConsumer
+
+```go
+func NewEventConsumer(raw RawEventClient,validateAck func(json.RawMessage)error)(EventConsumerClient,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：`platform.eventConsumer.SubscribeEvents`、`platform.eventConsumer.AcknowledgeEvent`
+
+## platform.eventConsumer.SubscribeEvents
+
+- 级别：参考
+- 文件：`libs/platform/inbox/client.go`
+- 作用：事件消费内部实际助手：eventConsumer.SubscribeEvents
+
+```ts
+func(c *eventConsumer) SubscribeEvents(ctx context.Context,consumerID,lastID string)(EventStream,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无
+
+## platform.eventConsumer.AcknowledgeEvent
+
+- 级别：参考
+- 文件：`libs/platform/inbox/client.go`
+- 作用：事件消费内部实际助手：eventConsumer.AcknowledgeEvent
+
+```ts
+func(c *eventConsumer) AcknowledgeEvent(ctx context.Context,consumerID,eventID string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：真实运行权威或端口缺失（可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
+- 并发：仅运行时自己的分片与原子计数
+- 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无

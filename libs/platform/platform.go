@@ -341,7 +341,7 @@ type RecoveryLoopConfig struct {
 // ConsumerConfig 事件订阅循环参数；事件为“名称@版本”。
 type ConsumerConfig struct {
 	// SiteID由本域受信装配提供；空值仅用于system控制命名空间。
-	SiteID string `json:"-"`
+	SiteID      string   `json:"-"`
 	ConsumerID  string   `json:"consumerId"`
 	Events      []string `json:"events"`
 	MaxInFlight int      `json:"maxInFlight"`
@@ -354,8 +354,8 @@ type ConsumerConfig struct {
 // ConsumerRunResult为本次循环的实际处理/跳过确认与失败尝试计数。
 type ConsumerRunResult struct {
 	Acknowledged int64 `json:"acknowledged"`
-	Skipped int64 `json:"skipped"`
-	Failed int64 `json:"failed"`
+	Skipped      int64 `json:"skipped"`
+	Failed       int64 `json:"failed"`
 }
 
 // WorkerConfig 任务领取循环参数；owner为本域slug。

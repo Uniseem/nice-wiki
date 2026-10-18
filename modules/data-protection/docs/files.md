@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 58 个：手写 38、UI 4、生成 5、配置 10、迁移 1。函数 67 个：约束 42，参考 25。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 61 个：手写 40、UI 4、生成 5、配置 10、迁移 2。函数 80 个：约束 42，参考 38。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -47,7 +47,7 @@
 | `modules/data-protection/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
 | `modules/data-protection/cmd/data-protection/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `data-protection.main` |
 | `modules/data-protection/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `data-protection.BuildApplication` |
-| `modules/data-protection/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `data-protection.Serve`、`data-protection.Shutdown`、`data-protection.Health`、`data-protection.Ready` |
+| `modules/data-protection/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `data-protection.Serve`、`data-protection.Shutdown`、`data-protection.Health`、`data-protection.Ready`、`data-protection.NewApplication`（参考）、`data-protection.server.ListBackups`（参考）、`data-protection.server.ReadBackup`（参考）、`data-protection.server.ReadMirrorStatus`（参考） |
 | `modules/data-protection/go.mod` | 配置 | 独立module nice-wiki/modules/data-protection；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/data-protection/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/data-protection/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/data-protection；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
@@ -64,3 +64,6 @@
 | `modules/data-protection/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/data-protection/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/data-protection/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
+| `modules/data-protection/internal/store.go` | 手写 | 本域active目录及control决定库，隔离路径与事务迁移。 | `data-protection.OpenCatalog`（参考）、`data-protection.openDatabase`（参考）、`data-protection.applyMigration`（参考）、`data-protection.Store.Close`（参考）、`data-protection.InstallCatalog`（参考）、`data-protection.Catalog`（参考）、`data-protection.storageError`（参考）、`data-protection.requireAdministrator`（参考）、`data-protection.PrivateObjectPath`（参考） |
+| `modules/data-protection/migrations/0002_control.sql` | 迁移 | 永不随active替换的屏障、恢复决定、回执及journal表 | 无 |
+| `modules/data-protection/migrations/embed.go` | 手写 | 内嵌本域active/control迁移 | 无 |

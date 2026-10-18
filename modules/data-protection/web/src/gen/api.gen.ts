@@ -1059,6 +1059,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 公共Problem；未知目录、水位变化、权限或私有存储不可用时失败关闭 */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     createBackup: {
@@ -1143,6 +1152,15 @@ export interface operations {
             };
             /** @description 公共错误；NOT_FOUND */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；未知目录、水位变化、权限或私有存储不可用时失败关闭 */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2235,6 +2253,15 @@ export interface operations {
             };
             /** @description FORBIDDEN：无backup.manage */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；未知目录、水位变化、权限或私有存储不可用时失败关闭 */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };

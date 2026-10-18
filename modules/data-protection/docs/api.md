@@ -9,9 +9,9 @@
 
 | 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
 |---|---|---|---|---|---|---|
-| GET `/v1/backups` | `listBackups` | `data-protection.ListBackups` | `backup.manage` | `—` → 200 `ListBackupsResult` | 分页备份目录 | `FORBIDDEN`、`VALIDATION` |
+| GET `/v1/backups` | `listBackups` | `data-protection.ListBackups` | `backup.manage` | `—` → 200 `ListBackupsResult` | 分页备份目录 | `FORBIDDEN`、`VALIDATION`、`HTTP default` |
 | POST `/v1/backups` | `createBackup` | `data-protection.CreateBackup` | `backup.manage` | `CreateBackupRequestBody` → 202 `CreateBackupResult` | 建立备份操作 | `FORBIDDEN`、`CONFLICT` |
-| GET `/v1/backups/{backupId}` | `readBackup` | `data-protection.ReadBackup` | `backup.manage` | `—` → 200 `ReadBackupResult` | 读取备份描述 | `FORBIDDEN`、`NOT_FOUND` |
+| GET `/v1/backups/{backupId}` | `readBackup` | `data-protection.ReadBackup` | `backup.manage` | `—` → 200 `ReadBackupResult` | 读取备份描述 | `FORBIDDEN`、`NOT_FOUND`、`HTTP default` |
 | POST `/v1/backups/{backupId}:download` | `authorizeBackupDownload` | `data-protection.AuthorizeBackupDownload` | `superadmin` | `AuthorizeBackupDownloadRequestBody` → 200 `AuthorizeBackupDownloadResult` | 下载私有备份授权 | `FORBIDDEN`、`LOCKED` |
 | POST `/v1/restores:validate` | `validateRestore` | `data-protection.ValidateRestore` | `superadmin` | `ValidateRestoreRequestBody` → 200 `ValidateRestoreResult` | 全域恢复预检 | `FORBIDDEN`、`INTEGRITY_ERROR` |
 | POST `/v1/restores` | `createRestore` | `data-protection.CreateRestore` | `superadmin` | `CreateRestoreRequestBody` → 202 `CreateRestoreResult` | 建立完整恢复 | `FORBIDDEN`、`VERSION_MISMATCH` |
@@ -34,7 +34,7 @@
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `data-protection.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/restores/{restoreId}/archives/{owner}` | `serveRestoreArchive` | `data-protection.ServeRestoreArchive` | `service` | `—` → 200 `application/octet-stream` | 向暂存中的域提供其归档 | `FORBIDDEN`、`NOT_FOUND`、`LOCKED`、`INTEGRITY_ERROR` |
 | POST `/v1/restores/{restoreId}:cleanup` | `cleanupRestore` | `data-protection.CleanupRestore` | `superadmin` | `CleanupRestoreInput` → 200 `CleanupRestoreResult` | 清理恢复保留目录 | `FORBIDDEN`、`LOCKED`、`DEPENDENCY_UNAVAILABLE` |
-| GET `/v1/mirrors/status` | `readMirrorStatus` | `data-protection.ReadMirrorStatus` | `backup.manage` | `—` → 200 `ReadMirrorStatusResult` | 读取镜像与远程同步状态 | `FORBIDDEN` |
+| GET `/v1/mirrors/status` | `readMirrorStatus` | `data-protection.ReadMirrorStatus` | `backup.manage` | `—` → 200 `ReadMirrorStatusResult` | 读取镜像与远程同步状态 | `FORBIDDEN`、`HTTP default` |
 | GET `/v1/settings` | `readProtectionSettings` | `data-protection.ReadProtectionSettings` | `backup.manage` | `—` → 200 `ReadProtectionSettingsResult` | 读取备份与镜像设置 | `FORBIDDEN` |
 <!-- openapi:end -->
 
