@@ -1909,6 +1909,16 @@
       "purpose": "安全只读设置，未配置不伪造事实。"
     },
     {
+      "path": "modules/data-protection/internal/snapshot.go",
+      "kind": "source",
+      "purpose": "导出本域操作目录快照；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/internal/snapshot_client.go",
+      "kind": "source",
+      "purpose": "统一导出单域；同文件职责限本域以下登记函数"
+    },
+    {
       "path": "modules/data-protection/internal/store.go",
       "kind": "handwritten",
       "purpose": "本域active目录及control决定库，隔离路径与事务迁移。"
