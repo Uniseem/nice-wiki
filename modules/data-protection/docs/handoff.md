@@ -1,3 +1,5 @@
+下载授权源码 48783b4bcf2da0df1e6d3964e5b0755829b5d226，合同 5b01ccb152896bcc3b057dba338137780a83e349：新增AuthorizeBackupDownload及HTTP助手，累计19既有业务/界面+54助手待统一GitLab CI；control V4下载hash/claim，未执行真实迁移/下载。完整便携流尚未齐。按根安排暂停本域新增，转独立公共快照草稿，不计本域ready。
+
 备份入口源码 525e43bdd8a80f323db9bf204f2ea09917cf1f57：ValidateBackupRequest/CreateBackup与3实际助手就绪，累计18既有业务/界面+53助手待统一GitLab CI。control V3持久原批准、不可变任务输入、requested/outbox和真实jobs回执，提交失败保留意图而不伪成功。完整备份执行/归档/恢复链与启动仍未齐。
 
 UI源码 351f17e936549171d39759a3b28c3912dc6da085：3既定面板与mount入口及13实际助手就绪，累计16既有业务/界面+50助手待统一GitLab CI。后端备份/恢复/镜像大链尚未齐，503真实显示；不声称系统可服务。固定token header/stream依赖root770b93c及portal；卸载nice-wiki:unmount取消轮询。lock只CI生成；大型下载需浏览器File System Access，未做行为验收。
