@@ -25884,7 +25884,8 @@
           "outputs": [],
           "purpose": "MigrateGatewayStage本域真实来源和隔离数据回调",
           "steps": [
-            "按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。"
+            "按本域data/workflows的O_EXCL来源/认证source→target/完整typed SQL库存规则实现；不造原调用/付费/资源引用，不重基原执行hash。",
+            "复用公共PrepareRestoredOutbox，仅认证Stage私有上下文内隔离原outbox活动资格、保原行与原epoch，并把gate绑本次host seal，不自行删表或重投。"
           ],
           "errors": [
             {
@@ -25954,7 +25955,8 @@
             "model-gateway.OpenGatewaySnapshotDB",
             "model-gateway.ValidateGatewayDatabase",
             "model-gateway.GatewaySnapshotInventory",
-            "model-gateway.IsRestoredEpoch"
+            "model-gateway.IsRestoredEpoch",
+            "platform.PrepareRestoredOutbox"
           ],
           "resources": [
             "本域append-only统计历史/原冻结调用和尝试"

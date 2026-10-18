@@ -4529,7 +4529,8 @@
             "2 核对sourceHash和基准answerRevision，已配置根qa.cache-translate fast任务并分别取翻译任务记忆",
             "3 继承原qa rootOperationId/costClass及同一签名admissionPermit到每个MG调用，费用计相同session/network小时作用域",
             "4 创建localization.cache-answer任务由ExecuteCacheAnswerTranslation执行，完成自动ready，发cache-answer.translated，由QA自动保存对应语言答案",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+            "待实施：原QA permit只经公共SealTaskSecret/OpenTaskSecret在原owner/site/epoch/root/purpose绑定下密文保存，读取后仍核原截止；此接口源码未完成不计ready。"
           ],
           "errors": [
             {
@@ -4589,7 +4590,9 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "jobs:createJob",
-            "memory:resolveContext"
+            "memory:resolveContext",
+            "platform.SealTaskSecret",
+            "platform.OpenTaskSecret"
           ],
           "resources": [],
           "contract": "binding"

@@ -524,6 +524,11 @@
         "name": "nw_refresh",
         "description": "仅portal读取的host-only Path=/ Secure HttpOnly SameSite=Strict刷新秘密；浏览器JSON不接受或返回raw secret"
       }
+    },
+    "schemas": {
+      "PortalSiteConfigResponse": {
+        "$ref": "./types.json#/$defs/PortalSiteConfigResponse"
+      }
     }
   },
   "x-browser-auth-adapters": {
