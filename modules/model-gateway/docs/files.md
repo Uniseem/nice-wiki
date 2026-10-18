@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 78 个：手写 56、UI 3、生成 5、配置 10、迁移 4。函数 242 个：约束 40，参考 202。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 79 个：手写 57、UI 3、生成 5、配置 10、迁移 4。函数 243 个：约束 41，参考 202。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -84,3 +84,4 @@
 | `modules/model-gateway/migrations/010_model_catalog.sql` | 手写 | 明确源身份的公开目录实际更新，manualOverride优先，不猜接口/凭据/空间。 | 无 |
 | `modules/model-gateway/internal/invocation/lookup.go` | 手写 | 原完整请求纯读查找与完整tracking证明 | `model-gateway.RequireInvocationLookupTracking`（参考）、`model-gateway.LookupInvocation` |
 | `modules/model-gateway/migrations/011_invocation_lookup.sql` | 手写 | 创建键投影及不自动生产的tracking来源 | 无 |
+| `modules/model-gateway/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `model-gateway.ReadSnapshotArchive` |

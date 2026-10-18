@@ -33,6 +33,7 @@
 | GET `/v1/risk-events` | `listRiskEvents` | `traffic-guard.ListRiskEvents` | `guard.manage` | `—` → 200 `ListRiskEventsResult` | 查看可疑事件 | `FORBIDDEN`、`HTTP 400`、`HTTP 404`、`HTTP 409`、`HTTP 429`、`HTTP 503` |
 | POST `/v1/login-attempts` | `beginLoginAttempt` | `traffic-guard.BeginLoginAttempt` | `service` | `BeginLoginAttemptInput` → 200 `BeginLoginAttemptResult` | 登录失败保护受信准入 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/login-attempts/{attemptId}:finish` | `finishLoginAttempt` | `traffic-guard.FinishLoginAttempt` | `service` | `FinishLoginAttemptInput` → 200 `FinishLoginAttemptResult` | 登录失败保护受信核验结果 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `traffic-guard.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 <!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。

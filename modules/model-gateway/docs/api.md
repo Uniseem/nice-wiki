@@ -41,6 +41,7 @@
 | POST `/v1/token-estimates` | `estimateTokens` | `model-gateway.EstimateTokens` | `service` | `EstimateTokensInput` → 200 `EstimateTokensResult` | 免费保守估算文本token | `HTTP 400`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/tokenizations` | `tokenizeText` | `model-gateway.TokenizeText` | `service` | `TokenizeTextInput` → 200 `TokenizeTextResult` | 使用固定模型分词声明离线分词 | `HTTP 400`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/inferences/lookup` | `lookupInference` | `model-gateway.LookupInvocation` | `service` | `CreateInvocationInput` → 200 `GetInvocationResult` | 按原完整请求只读查找已接受调用 | `HTTP 400`、`HTTP 409`、`HTTP 403`、`HTTP 401`、`HTTP 504`、`HTTP 500`、`HTTP default`、`HTTP 404` |
+| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `model-gateway.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 <!-- openapi:end -->
 
 完整字段、requestBody/query/path/header、错误HTTP状态和security见openapi.json。请求JSON上限1MiB，UTF8，Content-Type=application/json，拒绝额外字段/null。私网所有请求服务认证；管理写请求Origin/CSRF检查。HTTP202只确认持久接受，后续状态/账单以事件和读取操作为准。

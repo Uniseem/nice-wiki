@@ -2,13 +2,13 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 57 个：手写 27、UI 4、生成 8、配置 10、迁移 8。函数 114 个：约束 34，参考 80。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 58 个：手写 28、UI 4、生成 8、配置 10、迁移 8。函数 116 个：约束 35，参考 81。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/jobs/internal/validation.go` | 手写 | 验证任务入口；同文件职责限本域以下登记函数 | `jobs.ValidateJobSpec`（参考） |
 | `modules/jobs/internal/queue.go` | 手写 | 持久提交任务；同文件职责限本域以下登记函数 | `jobs.CreateJob`、`jobs.FailJob`、`jobs.InstallStore`（参考）、`jobs.OpenDatabase`（参考）、`jobs.runMigrations`（参考）、`jobs.Store.Close`（参考）、`jobs.createJob`（参考）、`jobs.hashCreateJobInput`（参考）、`jobs.NewQueueHandlers`（参考） |
-| `modules/jobs/internal/leases.go` | 手写 | 领取待执行任务；同文件职责限本域以下登记函数 | `jobs.ClaimJob`、`jobs.StartJob`、`jobs.HeartbeatJob`、`jobs.CheckLease`、`jobs.beginLeaseOperation`（参考）、`jobs.close`（参考）、`jobs.readLease`（参考）、`jobs.claimCandidates`（参考）、`jobs.receipt`（参考）、`jobs.saveReceipt`（参考）、`jobs.enqueueState`（参考）、`jobs.leaseLost`（参考）、`jobs.countActiveLeases`（参考） |
+| `modules/jobs/internal/leases.go` | 手写 | 领取待执行任务；同文件职责限本域以下登记函数 | `jobs.ClaimJob`、`jobs.StartJob`、`jobs.HeartbeatJob`、`jobs.CheckLease`、`jobs.beginLeaseOperation`（参考）、`jobs.close`（参考）、`jobs.readLease`（参考）、`jobs.claimCandidates`（参考）、`jobs.receipt`（参考）、`jobs.saveReceipt`（参考）、`jobs.enqueueState`（参考）、`jobs.leaseLost`（参考）、`jobs.countActiveLeases`（参考）、`jobs.NewLeaseHandlers`（参考） |
 | `modules/jobs/internal/results.go` | 手写 | 提交成功结果；同文件职责限本域以下登记函数 | `jobs.CompleteJob`、`jobs.readJobRecord`（参考）、`jobs.terminalReplay`（参考）、`jobs.saveTerminal`（参考）、`jobs.mergePaidResults`（参考）、`jobs.finishJob`（参考） |
 | `modules/jobs/internal/retry.go` | 手写 | 固定错误重试分类；同文件职责限本域以下登记函数 | `jobs.ClassifyFailure`（参考）、`jobs.ComputeRetryAt`（参考） |
 | `modules/jobs/internal/scheduler.go` | 手写 | 到期重排；同文件职责限本域以下登记函数 | `jobs.RequeueDue`（参考）、`jobs.ReapExpiredLeases`（参考）、`jobs.TickSchedules`（参考）、`jobs.lastDueTick`（参考）、`jobs.collectOrphans`（参考）、`jobs.reconcileOrphan`（参考） |
@@ -63,3 +63,4 @@
 | `modules/jobs/migrations/0006_job_management.sql` | 迁移 | 仅追加人工retry幂等回执；不重建jobs、不新增无生产分支failed持久态 | 无 |
 | `modules/jobs/migrations/0007_progress_retention.sql` | 迁移 | 只追加nullable进度发生时刻；同job/seq/epoch及安全字段的唯一一致持久源回填，未知不猜时间 | 无 |
 | `modules/jobs/migrations/0008_schedules.sql` | 迁移 | 只追加定时任务的类型、输入引用、代次、操作回执和到期索引；不重建schedules，不删除已有行 | 无 |
+| `modules/jobs/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `jobs.ReadSnapshotArchive` |

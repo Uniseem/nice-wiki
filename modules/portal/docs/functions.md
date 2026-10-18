@@ -599,7 +599,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 - 授权：permission：anonymous；rule：入口本身匿名可达；路由权限按路由表与上游服务二次校验
 - 并发：每请求独立；上游取消随客户端断开传播
 - 幂等：幂等由上游operationId保证；入口不重放写请求
-- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.CheckEntranceGate`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`、`platform.PrivateNetworkScopes`、`portal.authenticationOperation`、`portal.prepareAuthenticationRequest`、`platform.PrivateBudgetNetworkScopes`
+- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.CheckEntranceGate`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`、`platform.PrivateNetworkScopes`、`portal.authenticationOperation`、`portal.prepareAuthenticationRequest`、`platform.PrivateBudgetNetworkScopes`、`platform.ResolveVisitorAddress`
 
 ## portal.authenticationOperation
 
@@ -2254,7 +2254,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`portal.CompileRouteRegistry`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`portal.NewApplication`、`platform.NormalizePublicURL`
+- 依赖：`portal.CompileRouteRegistry`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`portal.NewApplication`、`platform.NormalizePublicURL`、`platform.LoadPortalDelegation`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## portal.Serve

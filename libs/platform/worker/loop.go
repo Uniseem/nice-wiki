@@ -38,7 +38,10 @@ func RunWorkerLoopWithResult(ctx context.Context, client platform.WorkerJobsClie
 	if client == nil || len(config.JobTypes) == 0 || config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes || config.OperationContext == nil || config.Runtime == nil {
 		return platform.WorkerRunResult{}, platform.NewError(platform.CodeValidation, false, "worker配置不合法")
 	}
-	typed,ok:=client.(platform.TypedWorkerJobsClient);if !ok{return platform.WorkerRunResult{},platform.NewError(platform.CodeDependencyUnavailable,false,"任务客户端不支持领取前类型筛选")}
+	typed, ok := client.(platform.TypedWorkerJobsClient)
+	if !ok {
+		return platform.WorkerRunResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "任务客户端不支持领取前类型筛选")
+	}
 	registered := map[string]bool{}
 	for _, jobType := range config.JobTypes {
 		if jobType == "" {
@@ -51,7 +54,7 @@ func RunWorkerLoopWithResult(ctx context.Context, client platform.WorkerJobsClie
 	}
 	work, cancel := context.WithCancel(ctx)
 	defer cancel()
-	loop := &workerLoop{cancel: cancel, client: client, typed:typed, config: config, registered: registered, executors: executors}
+	loop := &workerLoop{cancel: cancel, client: client, typed: typed, config: config, registered: registered, executors: executors}
 	var wg sync.WaitGroup
 	for i := 0; i < config.MaxConcurrency; i++ {
 		wg.Add(1)
@@ -70,7 +73,7 @@ type workerLoop struct {
 	errMu                                 sync.Mutex
 	err                                   error
 	client                                platform.WorkerJobsClient
- typed platform.TypedWorkerJobsClient
+	typed                                 platform.TypedWorkerJobsClient
 	config                                platform.WorkerConfig
 	registered                            map[string]bool
 	executors                             platform.JobExecutorRegistry
@@ -248,17 +251,17 @@ var errJobCancelled = errors.New("job cancellation requested")
 // executionLease以独立定时器限制本地执行权；续租RPC串行，避免旧回执覆盖新截止。
 type executionLease struct {
 	onCancellationObserved func(context.Context, platform.OperationContext, platform.ClaimedJob) error
-	onRenewed func(context.Context, platform.OperationContext, platform.ClaimedJob, platform.HeartbeatInfo) error
-	ctx       context.Context
-	op        platform.OperationContext
-	client    platform.WorkerJobsClient
-	workerID  string
-	job       platform.ClaimedJob
-	cancel    context.CancelCauseFunc
-	rpcMu     sync.Mutex
-	mu        sync.Mutex
-	expires   time.Time
-	timer     *time.Timer
+	onRenewed              func(context.Context, platform.OperationContext, platform.ClaimedJob, platform.HeartbeatInfo) error
+	ctx                    context.Context
+	op                     platform.OperationContext
+	client                 platform.WorkerJobsClient
+	workerID               string
+	job                    platform.ClaimedJob
+	cancel                 context.CancelCauseFunc
+	rpcMu                  sync.Mutex
+	mu                     sync.Mutex
+	expires                time.Time
+	timer                  *time.Timer
 }
 
 func newExecutionLease(ctx context.Context, op platform.OperationContext, client platform.WorkerJobsClient, workerID string, job platform.ClaimedJob, cancel context.CancelCauseFunc) (*executionLease, error) {

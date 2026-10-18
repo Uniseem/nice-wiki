@@ -1,49 +1,346 @@
 package lifecycle
 
 import (
- "context"
- "errors"
- "os"
- "path/filepath"
- "sync"
- "time"
- "nice-wiki/libs/platform"
+	"context"
+	"errors"
+	"nice-wiki/libs/platform"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
 )
 
-type snapshotBarrierRecord struct{Input SnapshotBarrierInput `json:"input"`;Epoch string `json:"epoch"`;InputHash string `json:"inputHash"`;Status SnapshotBarrierStatus `json:"status"`}
-type SnapshotManager struct{config SnapshotConfig;mu sync.Mutex;record *snapshotBarrierRecord;business int;cleanup int;fileOps int;changed chan struct{};enter chan struct{};files chan struct{}}
-type snapshotAdmissionKey struct{}
-type snapshotAdmission struct{manager *SnapshotManager;epoch string;active bool;cleanup bool;deadline time.Time}
-// Cleanup只能由固定drain回调收到，构造字段私有；不是对外的任意写通行证。
-type SnapshotCleanup struct{manager *SnapshotManager;record *snapshotBarrierRecord;active bool}
-
-func NewSnapshotManager(config SnapshotConfig)(*SnapshotManager,error){
- if config.Owner==""||config.DataRoot==""||config.OpenedDataEpoch==""||config.Runtime==nil||config.BeginDrain==nil||config.Drain==nil||config.Watermark==nil||config.Capture==nil||config.MigrateStage==nil||config.ValidateStaged==nil||config.ValidateManifest==nil||config.StageBudget==nil{return nil,platform.NewError(platform.CodeDependencyUnavailable,false,"真实快照回调尚未完整装配")};if err:=ValidatePrivatePath(config.DataRoot,"directory",false);err!=nil{return nil,err};manager:=&SnapshotManager{config:config,changed:make(chan struct{}),enter:make(chan struct{},1),files:make(chan struct{},1)}
- path:=filepath.Join(config.DataRoot,"control","snapshot-barrier.json");if _,err:=os.Lstat(path);errors.Is(err,os.ErrNotExist){return manager,nil}else if err!=nil{return nil,snapshotIOError(err)};var record snapshotBarrierRecord;if err:=readSnapshotJSON(path,1<<20,&record);err!=nil{return nil,err};record.Input.Epoch=record.Epoch;raw,_:=platform.CanonicalJSON(struct{Request SnapshotBarrierInput;Epoch string}{record.Input,record.Epoch});if record.InputHash!=platform.HashBytes(raw)||(record.Status.State!="released"&&record.Status.DataEpoch!=record.Epoch)||record.Status.Owner!=config.Owner||record.Status.BarrierID!=record.Input.BarrierID||record.Epoch==""{return nil,integrity("屏障持久绑定损坏")};switch record.Status.State{case "released","draining","failed":case "safe":record.Status.State="draining";default:return nil,integrity("屏障持久状态未知")};manager.record=&record
- // 重启不能复用上进程的inflight=0结论；旧safe先持久回draining再等待真实回调重新证明。
- if record.Status.State!="released"{if err:=manager.persistBarrier();err!=nil{return nil,err}};return manager,nil
+type snapshotBarrierRecord struct {
+	Input     SnapshotBarrierInput  `json:"input"`
+	Epoch     string                `json:"epoch"`
+	InputHash string                `json:"inputHash"`
+	Status    SnapshotBarrierStatus `json:"status"`
 }
-func (m *SnapshotManager) persistBarrier()error{return writeSnapshotJSON(filepath.Join(m.config.DataRoot,"control","snapshot-barrier.json"),m.config.DataRoot,m.record)}
-func (m *SnapshotManager) signalLocked(){close(m.changed);m.changed=make(chan struct{})}
-func lockSnapshotControl(ctx context.Context,semaphore chan struct{})(func(),error){select{case semaphore<-struct{}{}:return func(){<-semaphore},nil;case <-ctx.Done():return nil,snapshotIOError(ctx.Err())}}
-func (m *SnapshotManager) AdmitBusiness(ctx context.Context)(context.Context,func(),error){
- view,err:=m.config.Runtime(ctx);if err!=nil{return nil,nil,err};if view.DataEpoch!=m.config.OpenedDataEpoch{return nil,nil,platform.NewError(platform.CodeVersionMismatch,false,"活跃私有数据尚未对齐运行代次")};if view.Phase!=platform.PhaseRunning||view.Maintenance{return nil,nil,platform.NewError(platform.CodeLocked,true,"维护中不接受新业务")};m.mu.Lock();defer m.mu.Unlock();if m.record!=nil&&m.record.Status.State!="released"{return nil,nil,platform.NewError(platform.CodeLocked,true,"本域屏障仍未解除")};lease:=&snapshotAdmission{manager:m,epoch:view.DataEpoch,active:true};m.business++;release:=func(){m.mu.Lock();defer m.mu.Unlock();if lease.active{lease.active=false;m.business--;m.signalLocked()}};return context.WithValue(ctx,snapshotAdmissionKey{},lease),release,nil
+type SnapshotManager struct {
+	config   SnapshotConfig
+	mu       sync.Mutex
+	record   *snapshotBarrierRecord
+	business int
+	cleanup  int
+	fileOps  int
+	changed  chan struct{}
+	enter    chan struct{}
+	files    chan struct{}
+}
+type snapshotAdmissionKey struct{}
+type snapshotAdmission struct {
+	manager  *SnapshotManager
+	epoch    string
+	active   bool
+	cleanup  bool
+	deadline time.Time
+}
+
+// Cleanup只能由固定drain回调收到，构造字段私有；不是对外的任意写通行证。
+type SnapshotCleanup struct {
+	manager *SnapshotManager
+	record  *snapshotBarrierRecord
+	active  bool
+}
+
+func NewSnapshotManager(config SnapshotConfig) (*SnapshotManager, error) {
+	if config.Owner == "" || config.DataRoot == "" || config.OpenedDataEpoch == "" || config.Runtime == nil || config.BeginDrain == nil || config.Drain == nil || config.Watermark == nil || config.Capture == nil || config.MigrateStage == nil || config.ValidateStaged == nil || config.ValidateManifest == nil || config.StageBudget == nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "真实快照回调尚未完整装配")
+	}
+	if err := ValidatePrivatePath(config.DataRoot, "directory", false); err != nil {
+		return nil, err
+	}
+	manager := &SnapshotManager{config: config, changed: make(chan struct{}), enter: make(chan struct{}, 1), files: make(chan struct{}, 1)}
+	path := filepath.Join(config.DataRoot, "control", "snapshot-barrier.json")
+	if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
+		return manager, nil
+	} else if err != nil {
+		return nil, snapshotIOError(err)
+	}
+	var record snapshotBarrierRecord
+	if err := readSnapshotJSON(path, 1<<20, &record); err != nil {
+		return nil, err
+	}
+	record.Input.Epoch = record.Epoch
+	raw, _ := platform.CanonicalJSON(struct {
+		Request SnapshotBarrierInput
+		Epoch   string
+	}{record.Input, record.Epoch})
+	if record.InputHash != platform.HashBytes(raw) || (record.Status.State != "released" && record.Status.DataEpoch != record.Epoch) || record.Status.Owner != config.Owner || record.Status.BarrierID != record.Input.BarrierID || record.Epoch == "" {
+		return nil, integrity("屏障持久绑定损坏")
+	}
+	switch record.Status.State {
+	case "released", "draining", "failed":
+	case "safe":
+		record.Status.State = "draining"
+	default:
+		return nil, integrity("屏障持久状态未知")
+	}
+	manager.record = &record
+	// 重启不能复用上进程的inflight=0结论；旧safe先持久回draining再等待真实回调重新证明。
+	if record.Status.State != "released" {
+		if err := manager.persistBarrier(); err != nil {
+			return nil, err
+		}
+	}
+	return manager, nil
+}
+func (m *SnapshotManager) persistBarrier() error {
+	return writeSnapshotJSON(filepath.Join(m.config.DataRoot, "control", "snapshot-barrier.json"), m.config.DataRoot, m.record)
+}
+func (m *SnapshotManager) signalLocked() { close(m.changed); m.changed = make(chan struct{}) }
+func lockSnapshotControl(ctx context.Context, semaphore chan struct{}) (func(), error) {
+	select {
+	case semaphore <- struct{}{}:
+		return func() { <-semaphore }, nil
+	case <-ctx.Done():
+		return nil, snapshotIOError(ctx.Err())
+	}
+}
+func (m *SnapshotManager) AdmitBusiness(ctx context.Context) (context.Context, func(), error) {
+	view, err := m.config.Runtime(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	if view.DataEpoch != m.config.OpenedDataEpoch {
+		return nil, nil, platform.NewError(platform.CodeVersionMismatch, false, "活跃私有数据尚未对齐运行代次")
+	}
+	if view.Phase != platform.PhaseRunning || view.Maintenance {
+		return nil, nil, platform.NewError(platform.CodeLocked, true, "维护中不接受新业务")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.record != nil && m.record.Status.State != "released" {
+		return nil, nil, platform.NewError(platform.CodeLocked, true, "本域屏障仍未解除")
+	}
+	lease := &snapshotAdmission{manager: m, epoch: view.DataEpoch, active: true}
+	m.business++
+	release := func() {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if lease.active {
+			lease.active = false
+			m.business--
+			m.signalLocked()
+		}
+	}
+	return context.WithValue(ctx, snapshotAdmissionKey{}, lease), release, nil
 }
 
 // WriteWindow只认本进程已登记且尚未结束的business或cleanup租约；safe后计数为0，没有可被重放的有效租约。
-func (m *SnapshotManager) WriteWindow(ctx context.Context)(time.Time,error){
- lease,ok:=ctx.Value(snapshotAdmissionKey{}).(*snapshotAdmission);if !ok||lease.manager!=m{return time.Time{},platform.NewError(platform.CodeLocked,true,"写入没有既有执行窗口")};view,err:=m.config.Runtime(ctx);if err!=nil{return time.Time{},err};m.mu.Lock();defer m.mu.Unlock();if !lease.active||view.DataEpoch!=lease.epoch||view.DataEpoch!=m.config.OpenedDataEpoch{return time.Time{},platform.NewError(platform.CodeVersionMismatch,false,"写入租约已结束或属于旧代次")};if view.Phase==platform.PhaseRunning&&!view.Maintenance&&(m.record==nil||m.record.Status.State=="released"){return time.Time{},nil};if (view.Phase!=platform.PhaseBackupBarrier&&view.Phase!=platform.PhaseRestoreStaging)||!view.Maintenance||m.record==nil||m.record.Status.State!="draining"||view.BarrierID!=m.record.Input.BarrierID||lease.epoch!=m.record.Epoch{return time.Time{},platform.NewError(platform.CodeLocked,true,"本域安全截点已关闭写入")};deadline:=m.record.Input.Deadline;if !deadline.After(time.Now()){return time.Time{},platform.NewError(platform.CodeLocked,true,"既有执行清理窗口已过期")};if !lease.deadline.IsZero()&&lease.deadline.Before(deadline){deadline=lease.deadline};return deadline,nil
+func (m *SnapshotManager) WriteWindow(ctx context.Context) (time.Time, error) {
+	lease, ok := ctx.Value(snapshotAdmissionKey{}).(*snapshotAdmission)
+	if !ok || lease.manager != m {
+		return time.Time{}, platform.NewError(platform.CodeLocked, true, "写入没有既有执行窗口")
+	}
+	view, err := m.config.Runtime(ctx)
+	if err != nil {
+		return time.Time{}, err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if !lease.active || view.DataEpoch != lease.epoch || view.DataEpoch != m.config.OpenedDataEpoch {
+		return time.Time{}, platform.NewError(platform.CodeVersionMismatch, false, "写入租约已结束或属于旧代次")
+	}
+	if view.Phase == platform.PhaseRunning && !view.Maintenance && (m.record == nil || m.record.Status.State == "released") {
+		return time.Time{}, nil
+	}
+	if (view.Phase != platform.PhaseBackupBarrier && view.Phase != platform.PhaseRestoreStaging) || !view.Maintenance || m.record == nil || m.record.Status.State != "draining" || view.BarrierID != m.record.Input.BarrierID || lease.epoch != m.record.Epoch {
+		return time.Time{}, platform.NewError(platform.CodeLocked, true, "本域安全截点已关闭写入")
+	}
+	deadline := m.record.Input.Deadline
+	if !deadline.After(time.Now()) {
+		return time.Time{}, platform.NewError(platform.CodeLocked, true, "既有执行清理窗口已过期")
+	}
+	if !lease.deadline.IsZero() && lease.deadline.Before(deadline) {
+		deadline = lease.deadline
+	}
+	return deadline, nil
 }
-func (c *SnapshotCleanup) Context(ctx context.Context)(context.Context,func(),error){
- m:=c.manager;view,err:=m.config.Runtime(ctx);if err!=nil{return nil,nil,err};m.mu.Lock();defer m.mu.Unlock();if (view.Phase!=platform.PhaseBackupBarrier&&view.Phase!=platform.PhaseRestoreStaging)||!view.Maintenance||!c.active||m.record!=c.record||m.record.Status.State!="draining"||view.DataEpoch!=m.record.Epoch||view.BarrierID!=m.record.Input.BarrierID||!m.record.Input.Deadline.After(time.Now()){return nil,nil,platform.NewError(platform.CodeLocked,true,"该既有执行清理许可已失效")};deadline:=time.Now().Add(30*time.Second);if m.record.Input.Deadline.Before(deadline){deadline=m.record.Input.Deadline};work,cancel:=context.WithDeadline(platform.WithPortalProof(ctx,""),deadline);if op,ok:=platform.OperationContextFrom(work);ok{effective,_:=work.Deadline();op.Deadline=effective.UTC().Format(time.RFC3339Nano);work=platform.WithOperationContext(work,op)};lease:=&snapshotAdmission{manager:m,epoch:view.DataEpoch,active:true,cleanup:true,deadline:deadline};m.cleanup++;done:=func(){cancel();m.mu.Lock();defer m.mu.Unlock();if lease.active{lease.active=false;m.cleanup--;m.signalLocked()}};return context.WithValue(work,snapshotAdmissionKey{},lease),done,nil
+func (c *SnapshotCleanup) Context(ctx context.Context) (context.Context, func(), error) {
+	m := c.manager
+	view, err := m.config.Runtime(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if (view.Phase != platform.PhaseBackupBarrier && view.Phase != platform.PhaseRestoreStaging) || !view.Maintenance || !c.active || m.record != c.record || m.record.Status.State != "draining" || view.DataEpoch != m.record.Epoch || view.BarrierID != m.record.Input.BarrierID || !m.record.Input.Deadline.After(time.Now()) {
+		return nil, nil, platform.NewError(platform.CodeLocked, true, "该既有执行清理许可已失效")
+	}
+	deadline := time.Now().Add(30 * time.Second)
+	if m.record.Input.Deadline.Before(deadline) {
+		deadline = m.record.Input.Deadline
+	}
+	work, cancel := context.WithDeadline(platform.WithPortalProof(ctx, ""), deadline)
+	if op, ok := platform.OperationContextFrom(work); ok {
+		effective, _ := work.Deadline()
+		op.Deadline = effective.UTC().Format(time.RFC3339Nano)
+		work = platform.WithOperationContext(work, op)
+	}
+	lease := &snapshotAdmission{manager: m, epoch: view.DataEpoch, active: true, cleanup: true, deadline: deadline}
+	m.cleanup++
+	done := func() {
+		cancel()
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if lease.active {
+			lease.active = false
+			m.cleanup--
+			m.signalLocked()
+		}
+	}
+	return context.WithValue(work, snapshotAdmissionKey{}, lease), done, nil
 }
-func (m *SnapshotManager) runDrainCallback(ctx context.Context,callback func(context.Context,*SnapshotCleanup)error)error{m.mu.Lock();handle:=&SnapshotCleanup{manager:m,record:m.record,active:true};m.mu.Unlock();err:=callback(ctx,handle);m.mu.Lock();handle.active=false;m.signalLocked();m.mu.Unlock();return err}
-func (m *SnapshotManager) waitCounts(ctx context.Context,all bool)error{for{m.mu.Lock();done:=m.business==0&&(!all||m.cleanup==0);changed:=m.changed;m.mu.Unlock();if done{return nil};select{case <-ctx.Done():return snapshotIOError(ctx.Err());case <-changed:}}}
-func (m *SnapshotManager) EnterBarrier(ctx context.Context,input SnapshotBarrierInput)(SnapshotBarrierStatus,error){
- unlock,err:=lockSnapshotControl(ctx,m.enter);if err!=nil{return SnapshotBarrierStatus{},err};defer unlock();view,err:=m.config.Runtime(ctx);if err!=nil{return SnapshotBarrierStatus{},err};expectedPhase:=platform.PhaseBackupBarrier;if input.Mode=="restore"{expectedPhase=platform.PhaseRestoreStaging};if input.Epoch!=view.DataEpoch||view.DataEpoch!=m.config.OpenedDataEpoch{return SnapshotBarrierStatus{},platform.NewError(platform.CodeVersionMismatch,false,"屏障代次与运行/已打开数据不符")};if !view.Maintenance||view.Phase!=expectedPhase||view.BarrierID!=input.BarrierID||!input.Deadline.After(time.Now()){return SnapshotBarrierStatus{},platform.NewError(platform.CodeLocked,true,"运行权威尚未进入该维护屏障")};requestJSON,_:=platform.CanonicalJSON(struct{Request SnapshotBarrierInput;Epoch string}{input,input.Epoch});hash:=platform.HashBytes(requestJSON)
- m.mu.Lock();if m.record!=nil&&m.record.Status.State!="released"{if m.record.Input.BarrierID!=input.BarrierID||m.record.InputHash!=hash{m.mu.Unlock();return SnapshotBarrierStatus{},platform.NewError(platform.CodeConflict,false,"存在其他屏障或原输入不同")};if m.record.Status.State=="safe"{status:=m.record.Status;m.mu.Unlock();return status,nil}}else{m.record=&snapshotBarrierRecord{Input:input,Epoch:input.Epoch,InputHash:hash,Status:SnapshotBarrierStatus{BarrierID:input.BarrierID,Owner:m.config.Owner,State:"draining",DataEpoch:input.Epoch}}};m.record.Status.State="draining";err=m.persistBarrier();m.mu.Unlock();if err!=nil{return SnapshotBarrierStatus{},err};work,cancel:=context.WithDeadline(ctx,input.Deadline);defer cancel()
- if err=m.runDrainCallback(work,m.config.BeginDrain);err!=nil{return SnapshotBarrierStatus{},err};if err=m.waitCounts(work,false);err!=nil{return SnapshotBarrierStatus{},err};if err=m.runDrainCallback(work,m.config.Drain);err!=nil{return SnapshotBarrierStatus{},err};if err=m.waitCounts(work,true);err!=nil{return SnapshotBarrierStatus{},err};watermark,err:=m.config.Watermark(work);if err!=nil{return SnapshotBarrierStatus{},err};if watermark<0{return SnapshotBarrierStatus{},integrity("域水位未知")};view,err=m.config.Runtime(work);if err!=nil{return SnapshotBarrierStatus{},err};m.mu.Lock();defer m.mu.Unlock();if m.business!=0||m.cleanup!=0||view.DataEpoch!=input.Epoch||view.BarrierID!=input.BarrierID||!view.Maintenance||view.Phase!=expectedPhase||!input.Deadline.After(time.Now()){return SnapshotBarrierStatus{},platform.NewError(platform.CodeLocked,true,"安全证明期间运行屏障发生变化")};m.record.Status.RevisionWatermark=watermark;m.record.Status.State="safe";if err=m.persistBarrier();err!=nil{m.record.Status.State="draining";return SnapshotBarrierStatus{},err};m.signalLocked();return m.record.Status,nil
+func (m *SnapshotManager) runDrainCallback(ctx context.Context, callback func(context.Context, *SnapshotCleanup) error) error {
+	m.mu.Lock()
+	handle := &SnapshotCleanup{manager: m, record: m.record, active: true}
+	m.mu.Unlock()
+	err := callback(ctx, handle)
+	m.mu.Lock()
+	handle.active = false
+	m.signalLocked()
+	m.mu.Unlock()
+	return err
 }
-func (m *SnapshotManager) ReleaseBarrier(ctx context.Context,barrierID string)(SnapshotBarrierStatus,error){
- unlock,err:=lockSnapshotControl(ctx,m.enter);if err!=nil{return SnapshotBarrierStatus{},err};defer unlock();view,err:=m.config.Runtime(ctx);if err!=nil{return SnapshotBarrierStatus{},err};if view.DataEpoch!=m.config.OpenedDataEpoch||view.Phase!=platform.PhaseRunning||view.Maintenance||view.RestoreID!=""{return SnapshotBarrierStatus{},platform.NewError(platform.CodeLocked,true,"全局维护尚未解除")};m.mu.Lock();defer m.mu.Unlock();if m.record==nil||m.record.Input.BarrierID!=barrierID{return SnapshotBarrierStatus{},platform.NewError(platform.CodeNotFound,false,"本域屏障不存在")};if m.business!=0||m.cleanup!=0||m.fileOps!=0{return SnapshotBarrierStatus{},platform.NewError(platform.CodeLocked,true,"屏障仍有在途工作")};if m.record.Status.State=="released"{return m.record.Status,nil};watermark,err:=m.config.Watermark(ctx);if err!=nil{return SnapshotBarrierStatus{},err};if watermark<0{return SnapshotBarrierStatus{},integrity("解除屏障时域水位未知")};m.record.Status.State="released";m.record.Status.DataEpoch=view.DataEpoch;m.record.Status.RevisionWatermark=watermark;if err=m.persistBarrier();err!=nil{m.record.Status.State="draining";return SnapshotBarrierStatus{},err};m.signalLocked();return m.record.Status,nil
+func (m *SnapshotManager) waitCounts(ctx context.Context, all bool) error {
+	for {
+		m.mu.Lock()
+		done := m.business == 0 && (!all || m.cleanup == 0)
+		changed := m.changed
+		m.mu.Unlock()
+		if done {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return snapshotIOError(ctx.Err())
+		case <-changed:
+		}
+	}
+}
+func (m *SnapshotManager) EnterBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error) {
+	unlock, err := lockSnapshotControl(ctx, m.enter)
+	if err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	defer unlock()
+	view, err := m.config.Runtime(ctx)
+	if err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	expectedPhase := platform.PhaseBackupBarrier
+	if input.Mode == "restore" {
+		expectedPhase = platform.PhaseRestoreStaging
+	}
+	if input.Epoch != view.DataEpoch || view.DataEpoch != m.config.OpenedDataEpoch {
+		return SnapshotBarrierStatus{}, platform.NewError(platform.CodeVersionMismatch, false, "屏障代次与运行/已打开数据不符")
+	}
+	if !view.Maintenance || view.Phase != expectedPhase || view.BarrierID != input.BarrierID || !input.Deadline.After(time.Now()) {
+		return SnapshotBarrierStatus{}, platform.NewError(platform.CodeLocked, true, "运行权威尚未进入该维护屏障")
+	}
+	requestJSON, _ := platform.CanonicalJSON(struct {
+		Request SnapshotBarrierInput
+		Epoch   string
+	}{input, input.Epoch})
+	hash := platform.HashBytes(requestJSON)
+	m.mu.Lock()
+	if m.record != nil && m.record.Status.State != "released" {
+		if m.record.Input.BarrierID != input.BarrierID || m.record.InputHash != hash {
+			m.mu.Unlock()
+			return SnapshotBarrierStatus{}, platform.NewError(platform.CodeConflict, false, "存在其他屏障或原输入不同")
+		}
+		if m.record.Status.State == "safe" {
+			status := m.record.Status
+			m.mu.Unlock()
+			return status, nil
+		}
+	} else {
+		m.record = &snapshotBarrierRecord{Input: input, Epoch: input.Epoch, InputHash: hash, Status: SnapshotBarrierStatus{BarrierID: input.BarrierID, Owner: m.config.Owner, State: "draining", DataEpoch: input.Epoch}}
+	}
+	m.record.Status.State = "draining"
+	err = m.persistBarrier()
+	m.mu.Unlock()
+	if err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	work, cancel := context.WithDeadline(ctx, input.Deadline)
+	defer cancel()
+	if err = m.runDrainCallback(work, m.config.BeginDrain); err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	if err = m.waitCounts(work, false); err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	if err = m.runDrainCallback(work, m.config.Drain); err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	if err = m.waitCounts(work, true); err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	watermark, err := m.config.Watermark(work)
+	if err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	if watermark < 0 {
+		return SnapshotBarrierStatus{}, integrity("域水位未知")
+	}
+	view, err = m.config.Runtime(work)
+	if err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.business != 0 || m.cleanup != 0 || view.DataEpoch != input.Epoch || view.BarrierID != input.BarrierID || !view.Maintenance || view.Phase != expectedPhase || !input.Deadline.After(time.Now()) {
+		return SnapshotBarrierStatus{}, platform.NewError(platform.CodeLocked, true, "安全证明期间运行屏障发生变化")
+	}
+	m.record.Status.RevisionWatermark = watermark
+	m.record.Status.State = "safe"
+	if err = m.persistBarrier(); err != nil {
+		m.record.Status.State = "draining"
+		return SnapshotBarrierStatus{}, err
+	}
+	m.signalLocked()
+	return m.record.Status, nil
+}
+func (m *SnapshotManager) ReleaseBarrier(ctx context.Context, barrierID string) (SnapshotBarrierStatus, error) {
+	unlock, err := lockSnapshotControl(ctx, m.enter)
+	if err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	defer unlock()
+	view, err := m.config.Runtime(ctx)
+	if err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	if view.DataEpoch != m.config.OpenedDataEpoch || view.Phase != platform.PhaseRunning || view.Maintenance || view.RestoreID != "" {
+		return SnapshotBarrierStatus{}, platform.NewError(platform.CodeLocked, true, "全局维护尚未解除")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.record == nil || m.record.Input.BarrierID != barrierID {
+		return SnapshotBarrierStatus{}, platform.NewError(platform.CodeNotFound, false, "本域屏障不存在")
+	}
+	if m.business != 0 || m.cleanup != 0 || m.fileOps != 0 {
+		return SnapshotBarrierStatus{}, platform.NewError(platform.CodeLocked, true, "屏障仍有在途工作")
+	}
+	if m.record.Status.State == "released" {
+		return m.record.Status, nil
+	}
+	watermark, err := m.config.Watermark(ctx)
+	if err != nil {
+		return SnapshotBarrierStatus{}, err
+	}
+	if watermark < 0 {
+		return SnapshotBarrierStatus{}, integrity("解除屏障时域水位未知")
+	}
+	m.record.Status.State = "released"
+	m.record.Status.DataEpoch = view.DataEpoch
+	m.record.Status.RevisionWatermark = watermark
+	if err = m.persistBarrier(); err != nil {
+		m.record.Status.State = "draining"
+		return SnapshotBarrierStatus{}, err
+	}
+	m.signalLocked()
+	return m.record.Status, nil
 }

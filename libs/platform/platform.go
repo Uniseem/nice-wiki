@@ -362,11 +362,11 @@ type ConsumerRunResult struct {
 
 // WorkerConfig 任务领取循环参数；owner为本域slug。
 type WorkerConfig struct {
-	OnCancellationObserved func(context.Context, OperationContext, ClaimedJob) error `json:"-"`
-	OnLeaseRenewed func(context.Context, OperationContext, ClaimedJob, HeartbeatInfo) error `json:"-"`
-	Owner          string                                                                   `json:"owner"`
-	JobTypes       []string                                                                 `json:"jobTypes"`
-	MaxConcurrency int                                                                      `json:"maxConcurrency"`
+	OnCancellationObserved func(context.Context, OperationContext, ClaimedJob) error                `json:"-"`
+	OnLeaseRenewed         func(context.Context, OperationContext, ClaimedJob, HeartbeatInfo) error `json:"-"`
+	Owner                  string                                                                   `json:"owner"`
+	JobTypes               []string                                                                 `json:"jobTypes"`
+	MaxConcurrency         int                                                                      `json:"maxConcurrency"`
 	// Runtime 读取当前运行状态；维护期间暂停领取。可为nil。
 	Runtime func(ctx context.Context) (RuntimeView, error) `json:"-"`
 	// OperationContext从本域持久任务读取获准主体与预算，不凭任务ID猜测授权。
@@ -527,7 +527,7 @@ type EmbeddingSpace struct {
 }
 
 type ModelOutput struct {
- Text *string `json:"text,omitempty"`
+	Text           *string         `json:"text,omitempty"`
 	Capability     string          `json:"capability"`
 	EmbeddingSpace *EmbeddingSpace `json:"embeddingSpace,omitempty"`
 	Vectors        [][]float64     `json:"vectors,omitempty"`
@@ -763,8 +763,8 @@ type EventPublisher interface {
 
 // TypedWorkerJobsClient在领取前由jobs按登记类型筛选，避免同owner下依赖任务互占全部worker。
 type TypedWorkerJobsClient interface {
- WorkerJobsClient
- ClaimJobTypes(ctx context.Context, owner, workerID string, limit int, jobTypes []string) ([]ClaimedJob, error)
+	WorkerJobsClient
+	ClaimJobTypes(ctx context.Context, owner, workerID string, limit int, jobTypes []string) ([]ClaimedJob, error)
 }
 
 // WorkerJobsClient只暴露任务租约控制，不要求无关事件端口。

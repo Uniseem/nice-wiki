@@ -37,6 +37,7 @@
 | PUT `/v1/mappings:reorder` | `reorderMappings` | `memory.ReorderMappings` | `memory.manage` | `ReorderMappingsInput` → 200 `ReorderMappingsResult` | 重排任务记忆顺序 | `NOT_FOUND`、`VERSION_MISMATCH` |
 | GET `/v1/context-manifests/{versionHash}` | `readContextManifest` | `memory.ReadContextManifest` | `memory.manage` | `—` → 200 `ReadContextManifestResult` | 查看上下文版本清单 | `NOT_FOUND`、`VERSION_MISMATCH` |
 | GET `/v1/task-budgets` | `listTaskBudgets` | `memory.ListTaskBudgets` | `memory.manage` | `—` → 200 `ListTaskBudgetsResult` | 读取各任务记忆注入预算 | `FORBIDDEN` |
+| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `memory.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 <!-- openapi:end -->
 
 完整字段、requestBody/query/path/header、错误HTTP状态和security见openapi.json。请求JSON上限1MiB，UTF8，Content-Type=application/json，拒绝额外字段/null。私网所有请求服务认证；管理写请求Origin/CSRF检查。HTTP202只确认持久接受，后续状态/账单以事件和读取操作为准。

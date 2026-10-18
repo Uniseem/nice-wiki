@@ -872,7 +872,7 @@ def gen_portal_routes(modules):
                 if method.lower() not in METHODS or not isinstance(op, dict):
                     continue
                 permission = op.get("x-permission", "")
-                if permission == "service":
+                if permission == "service" or op.get("x-internal-only"):
                     continue
                 streaming = any(
                     "text/event-stream" in (content or {})

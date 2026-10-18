@@ -36,6 +36,7 @@
 | POST `/v1/restores/{restoreId}:cleanup` | `cleanupRestore` | `data-protection.CleanupRestore` | `superadmin` | `CleanupRestoreInput` → 200 `CleanupRestoreResult` | 清理恢复保留目录 | `FORBIDDEN`、`LOCKED`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/mirrors/status` | `readMirrorStatus` | `data-protection.ReadMirrorStatus` | `backup.manage` | `—` → 200 `ReadMirrorStatusResult` | 读取镜像与远程同步状态 | `FORBIDDEN`、`HTTP default` |
 | GET `/v1/settings` | `readProtectionSettings` | `data-protection.ReadProtectionSettings` | `backup.manage` | `—` → 200 `ReadProtectionSettingsResult` | 读取备份与镜像设置 | `FORBIDDEN`、`HTTP default` |
+| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `data-protection.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 <!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 56 个：手写 35、UI 4、生成 5、配置 10、迁移 2。函数 91 个：约束 32，参考 59。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 57 个：手写 36、UI 4、生成 5、配置 10、迁移 2。函数 92 个：约束 33，参考 59。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -62,3 +62,4 @@
 | `modules/traffic-guard/internal/guard_runtime.go` | 手写 | 本域可信装配与组合短事务、原安全回执和outbox边界 | `traffic-guard.WithGuardRuntime`（参考）、`traffic-guard.beginGuardTransaction`（参考）、`traffic-guard.guardTransaction.close`（参考）、`traffic-guard.guardTransaction.commit`（参考）、`traffic-guard.authorizeGuardManagement`（参考）、`traffic-guard.readGuardReceipt`（参考）、`traffic-guard.saveGuardReceipt`（参考）、`traffic-guard.enqueueGuardEvent`（参考）、`traffic-guard.readGuardPolicy`（参考） |
 | `modules/traffic-guard/migrations/0003_guard_runtime.sql` | 手写 | 只追加匿名作用域、桶、租约、挑战、禁令与安全回执；不持久token/原IP/正文 | 无 |
 | `modules/traffic-guard/internal/http_management.go` | 手写 | 只供统一服务边界绑定已完成管理/匿名信号API；内部marker复用该次即时授权 | `traffic-guard.NewGuardHandlers`（参考） |
+| `modules/traffic-guard/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `traffic-guard.ReadSnapshotArchive` |

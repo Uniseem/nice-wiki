@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/url"
+	"slices"
 	"strconv"
- "slices"
 
 	"nice-wiki/libs/platform"
 )
@@ -56,7 +56,9 @@ func (c *jobsClient) decodeWorkerResponse(schema string, raw json.RawMessage, re
 	return nil
 }
 
-func (c *jobsClient) ClaimJob(ctx context.Context, owner, workerID string, limit int) ([]platform.ClaimedJob, error) {return c.ClaimJobTypes(ctx,owner,workerID,limit,nil)}
+func (c *jobsClient) ClaimJob(ctx context.Context, owner, workerID string, limit int) ([]platform.ClaimedJob, error) {
+	return c.ClaimJobTypes(ctx, owner, workerID, limit, nil)
+}
 
 func (c *jobsClient) ClaimJobTypes(ctx context.Context, owner, workerID string, limit int, jobTypes []string) ([]platform.ClaimedJob, error) {
 	op, err := workerOperation(ctx)
@@ -64,10 +66,10 @@ func (c *jobsClient) ClaimJobTypes(ctx context.Context, owner, workerID string, 
 		return nil, err
 	}
 	raw, err := c.raw.ClaimJob(ctx, struct {
-		Owner    string `json:"owner"`
-		WorkerID string `json:"workerId"`
-		Limit    int    `json:"limit"`
- JobTypes []string `json:"jobTypes,omitempty"`
+		Owner    string   `json:"owner"`
+		WorkerID string   `json:"workerId"`
+		Limit    int      `json:"limit"`
+		JobTypes []string `json:"jobTypes,omitempty"`
 	}{owner, workerID, limit, jobTypes}, op.OperationID)
 	if err != nil {
 		return nil, err
@@ -99,7 +101,7 @@ func (c *jobsClient) ClaimJobTypes(ctx context.Context, owner, workerID string, 
 	jobs := make([]platform.ClaimedJob, 0, len(result.Jobs))
 	seen := map[string]bool{}
 	for i, job := range result.Jobs {
-		if job.Owner != owner || job.Epoch != op.DataEpoch || job.Fence != result.Fences[i] || seen[job.Job.JobID] || (len(jobTypes)>0&&!slices.Contains(jobTypes,job.Type)) {
+		if job.Owner != owner || job.Epoch != op.DataEpoch || job.Fence != result.Fences[i] || seen[job.Job.JobID] || (len(jobTypes) > 0 && !slices.Contains(jobTypes, job.Type)) {
 			return nil, platform.NewError(platform.CodeIntegrityError, false, "领取owner、代次或任务绑定矛盾")
 		}
 		seen[job.Job.JobID] = true

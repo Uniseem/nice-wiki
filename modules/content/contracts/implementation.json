@@ -9074,7 +9074,8 @@
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
             "本轮真实构造独立ReferenceRuntime并在未启动Application绑定两个只读来源路由；完整x-handler/activation/后台生命周期未齐仍返回nil和DEPENDENCY_UNAVAILABLE，逆序关闭真实资源，不运行半成品服务",
-            "本轮构造TreeRuntime并注册四树路由和四个真实发布路由；已配置media端点时挂上现有MediaClient供发布pin。没有可信写窗口、全量handler、恢复activation和后台生命周期时仍返回nil和DEPENDENCY_UNAVAILABLE，不运行半成品服务"
+            "本轮构造TreeRuntime并注册四树路由和四个真实发布路由；已配置media端点时挂上现有MediaClient供发布pin。没有可信写窗口、全量handler、恢复activation和后台生命周期时仍返回nil和DEPENDENCY_UNAVAILABLE，不运行半成品服务",
+            "完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。"
           ],
           "errors": [
             {
@@ -9128,7 +9129,9 @@
             "content.NewTreeRuntime",
             "content.RegisterTreeRoutes",
             "content.RegisterPublicationRoutes",
-            "platform.NewSnapshotManager"
+            "platform.NewSnapshotManager",
+            "platform.SnapshotManager.AdmitBusiness",
+            "platform.SnapshotManager.WriteWindow"
           ],
           "resources": [
             "本域implementation全部x-handler",

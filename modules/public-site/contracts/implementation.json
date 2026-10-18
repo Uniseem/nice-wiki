@@ -5345,7 +5345,8 @@
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "public-site装配public-site.ConsumeEvents为受lifecycle取消控制的订阅循环，Shutdown等待在途事件提交后停止，维护不写业务投影",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
-            "POST /v1/public-links:resolve真实绑定ResolvePublishedLink；静态AllowedCallers仅site-config且限纯服务主体；未实现时不得用stub或忽略缺handler启动"
+            "POST /v1/public-links:resolve真实绑定ResolvePublishedLink；静态AllowedCallers仅site-config且限纯服务主体；未实现时不得用stub或忽略缺handler启动",
+            "完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。"
           ],
           "errors": [
             {
@@ -5384,7 +5385,9 @@
             "platform.ReadRuntime",
             "platform.NewRequestValidator",
             "public-site.ResolvePublishedLink",
-            "platform.NewSnapshotManager"
+            "platform.NewSnapshotManager",
+            "platform.SnapshotManager.AdmitBusiness",
+            "platform.SnapshotManager.WriteWindow"
           ],
           "resources": [
             "本域implementation全部x-handler",

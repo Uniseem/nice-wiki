@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 106 个函数：约束 29 个，参考 77 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 107 个函数：约束 30 个，参考 77 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -3124,7 +3124,7 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
 - 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
-- 依赖：`site-config:readRuntimeState`
+- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.EnterBarrier`
 
 ## identity.ReleaseBarrier
 
@@ -3167,7 +3167,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input ReleaseBarri
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config:readRuntimeState`
+- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.ReleaseBarrier`
 
 ## identity.ExportSnapshot
 
@@ -3213,7 +3213,7 @@ func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExpo
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
 - 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
-- 依赖：`site-config:readRuntimeState`
+- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.Export`
 
 ## identity.StageSnapshot
 
@@ -3260,7 +3260,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
-- 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`
+- 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`、`platform.SnapshotManager.Stage`
 
 ## identity.DiscardSnapshot
 
@@ -3303,7 +3303,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行
 - 幂等：重复删除返回removed=false
-- 依赖：`site-config:readRuntimeState`
+- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.Discard`
 
 ## identity.OpenDatabase
 
@@ -3654,7 +3654,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`platform.CanonicalPublicOrigin`、`platform.NewServiceHandler`、`identity.NewApplication`、`platform.ValidatePrivatePath`
+- 依赖：`site-config:registerActivation`、`identity.InvalidateRestoredSessions`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`platform.CanonicalPublicOrigin`、`platform.NewServiceHandler`、`identity.NewApplication`、`platform.ValidatePrivatePath`、`platform.NewSnapshotManager`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；本域无独立web/UI；内部Go API继续由identity OpenAPI生成，portal浏览器认证副本由portal OpenAPI x-browser-auth-adapters与Browser*类型合成，禁止将内部token响应类型直接供浏览器
 
 ## identity.Serve
@@ -3985,3 +3985,49 @@ func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O]
 - 并发：只读应用容器，事务由本域用例负责
 - 幂等：以业务用例回执为准
 - 依赖：`identity.identityContext`
+
+## identity.ReadSnapshotArchive
+
+- 级别：约束
+- 文件：`modules/identity/internal/snapshot_archive.go`
+- 作用：受控读取本域已完成且精确引用匹配的快照归档流
+
+```go
+func ReadSnapshotArchive(ctx context.Context, op OperationContext, input SnapshotArchiveReadInput) (SnapshotArchiveReadResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 流取消与既有截止 | 透传IO |
+| `op` | `OperationContext` | 统一入口可信上下文 | data-protection服务及superadmin委托 |
+| `input` | `SnapshotArchiveReadInput` | 精确完成归档引用 | 严格生产方schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `SnapshotArchiveReadResult` | 只读完成tar流 | 不暴露磁盘路径 |
+| `error` | `error` | 未知或不匹配拒绝 | 不含秘密或原路径 |
+
+**步骤**
+
+1. 仅接受data-protection服务及已验证superadmin委托，当前维护backup/restore屏障与本域已完成归档绑定；不把匿名下载或任意URL转为文件读。
+2. 从本域固定owner/version=1/mediaType=application/x-tar与snapshotId/sha256/byteSize构造期望ObjectRef，委托公共SnapshotManager.OpenArchive核真实complete记录和完整hash后输出。
+3. 只有完整只读流，不写源数据、不删除历史归档；取消透传下游IO。
+
+**错误**
+
+- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
+- `LOCKED`：runtime阶段或restoreId不符，或本域屏障未safe（不可重试）
+- `INTEGRITY_ERROR`：归档hash、owner或manifest不一致；临时目录已删除（不可重试）
+- `UNSUPPORTED_SCHEMA`：快照schema高于本版本可迁移范围（不可重试）
+- `CONFLICT`：同restoreId已暂存不同checksum（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
+
+- 副作用：读取本域已完成归档字节
+- 授权：permission：superadmin；rule：仅data-protection服务身份加已验证superadmin委托；绑定本域精确完成归档与维护屏障
+- 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
+- 幂等：同完整引用只读复用，不生成或重算归档
+- 依赖：`platform.SnapshotManager.OpenArchive`

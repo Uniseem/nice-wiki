@@ -111,3 +111,5 @@ RunWorkerLoopWithResult基于真实jobs领取与终局确认累计，原RunWorke
 域快照原export仅回元数据，完整归档字节统一由GET /v1/snapshots/{snapshotId}/archive提供，query sha256/byteSize绑定本域固定ObjectRef；仅data-protection服务及superadmin委托，不能任意URL/路径。14域HTTP入口本次只登记为planned，公共OpenArchive已写，实际owner回调与授权长任务接线另按台账继续，不能因新增接口设计称完整备份可用。
 
 ModelOutput兼容完整chat/vision/translation文本，text显式空串表示已证明空输出，缺字段不是空；生产方UTF8字节上限64KiB。向量/重排/文本结果互斥，当前快照只读完整winning来源，不将旧partial delta改称完整。
+
+归档读取操作标记x-internal-only，portal静态浏览器路由生成排除该操作；其仍要求data-protection服务及superadmin委托，不用service权限隐藏掉委托。

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "c4eb57269de9d00df3f1755c0b5415c9011419c05aae14b6279e75cee4e8319e",
+  "contractSha256": "e5aa132276e187ac069a3f7facb362dc02f722c6115241f02eb175ce9b97dd18",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "content第四轮发布快照（pipeline 42 已记 verified；分享图仍 503）",
   "branch": "codex/content-20261017-r4",

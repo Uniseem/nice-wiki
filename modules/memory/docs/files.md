@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 64 个：手写 44、UI 3、生成 5、配置 10、迁移 2。函数 114 个：约束 42，参考 72。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 65 个：手写 45、UI 3、生成 5、配置 10、迁移 2。函数 115 个：约束 43，参考 72。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -70,3 +70,4 @@
 | `modules/memory/internal/runtime/tasks.go` | 手写 | 本域实际业务实现与受信装配辅助；仅访问本域私有数据。 | `memory.ConfigureAssistantClients`（参考）、`memory.SelectAssistantProfile`（参考）、`memory.SaveAssistantInput`（参考）、`memory.ReadAssistantInput`（参考）、`memory.DispatchAssistantInputs`（参考）、`memory.AssistantInput`（参考）、`memory.ReplayReceipt`（参考）、`memory.ValidateForeign`（参考）、`memory.ConfigureValidators`（参考）、`memory.CurrentAssistantState`（参考）、`memory.DispatchAssistantCancellations`（参考） |
 | `modules/memory/internal/transport/business.go` | 手写 | 本域实际业务实现与受信装配辅助；仅访问本域私有数据。 | `memory.operationHandlers`（参考）、`memory.jsonOperation`（参考）、`memory.respond`（参考）、`memory.matchPath`（参考）、`memory.optionalString`（参考）、`memory.optionalInt`（参考）、`memory.queryLimit`（参考） |
 | `modules/memory/migrations/002_business.sql` | 手写 | 业务回执、提交manifest、派生清单及助手固定输入的只追加迁移。 | 无 |
+| `modules/memory/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `memory.ReadSnapshotArchive` |

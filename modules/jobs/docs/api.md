@@ -37,6 +37,7 @@
 | POST `/v1/deliveries/{deliveryId}:replay` | `replayDelivery` | `jobs.ReplayDelivery` | `job.manage` | `ReplayDeliveryRequestBody` → 200 `ReplayDeliveryResult` | 重放死信投递 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`LOCKED`、`VALIDATION`、`DEPENDENCY_UNAVAILABLE`、`UNSUPPORTED_CAPABILITY`、`INTEGRITY_ERROR` |
 | POST `/v1/jobs/{jobId}:retry` | `retryJob` | `jobs.RetryJob` | `job.manage` | `RetryJobInput` → 200 `RetryJobResult` | 重试失败任务 | `FORBIDDEN`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`LOCKED`、`INTERNAL`、`NOT_FOUND` |
 | GET `/v1/deliveries` | `listDeliveries` | `jobs.ListDeliveries` | `job.manage` | `—` → 200 `ListDeliveriesResult` | 查看死信投递 | `FORBIDDEN`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`LOCKED`、`INTERNAL` |
+| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `jobs.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 <!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。

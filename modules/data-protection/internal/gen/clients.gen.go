@@ -257,6 +257,29 @@ func problemToError(raw []byte) error {
 // PayloadValidationSpec保留显式登记的生产方载荷及引用闭包，不扩展HTTP接口。
 const PayloadValidationSpec = "{\"components\":{\"schemas\":{\"AcceptedJob\":{\"additionalProperties\":false,\"description\":\"已持久登记的异步任务引用，不代表任务执行成功\",\"properties\":{\"jobId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"持久任务ID\"},\"operationId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"可恢复操作ID\"},\"state\":{\"description\":\"精确枚举状态，未知值拒绝\",\"enum\":[\"queued\"]}},\"required\":[\"jobId\",\"operationId\",\"state\"],\"type\":\"object\"},\"BackupDomainV1\":{\"additionalProperties\":false,\"description\":\"精确绑定源tar SnapshotRef及其首manifest.json的canonical摘要。\",\"properties\":{\"manifestHash\":{\"$ref\":\"#/components/schemas/Hash\"},\"snapshot\":{\"$ref\":\"#/components/schemas/SnapshotRef\"}},\"required\":[\"snapshot\",\"manifestHash\"],\"type\":\"object\"},\"BackupManifestV1\":{\"$ref\":\"#/components/schemas/types_BackupManifestV1\"},\"BackupReferenceV1\":{\"additionalProperties\":false,\"description\":\"完整跨域引用与真实来源domain manifest绑定；相同来源相同目标仅做等价去重，完整域数组保留在原tar。\",\"properties\":{\"reference\":{\"$ref\":\"#/components/schemas/DomainSnapshotReference\"},\"sourceManifestHash\":{\"$ref\":\"#/components/schemas/Hash\"},\"sourceOwner\":{\"maxLength\":64,\"minLength\":1,\"type\":\"string\"}},\"required\":[\"sourceOwner\",\"sourceManifestHash\",\"reference\"],\"type\":\"object\"},\"CreateJobResult\":{\"additionalProperties\":false,\"description\":\"持久提交任务成功结果；失败不返回半成功结果\",\"properties\":{\"job\":{\"$ref\":\"#/components/schemas/AcceptedJob\",\"description\":\"公共 AcceptedJob 合同，遵守其字段和空值规则\"}},\"required\":[\"job\"],\"type\":\"object\"},\"DomainSnapshotFile\":{\"additionalProperties\":false,\"properties\":{\"byteSize\":{\"maximum\":21474836480,\"minimum\":0,\"type\":\"integer\"},\"path\":{\"description\":\"active内正斜线相对普通文件路径；平台拒绝链接、绝对路径、空段和点段\",\"maxLength\":4096,\"minLength\":1,\"type\":\"string\"},\"sha256\":{\"$ref\":\"#/components/schemas/Hash\"}},\"required\":[\"path\",\"sha256\",\"byteSize\"],\"type\":\"object\"},\"DomainSnapshotManifest\":{\"$ref\":\"#/components/schemas/common.schema_DomainSnapshotManifest\"},\"DomainSnapshotObject\":{\"additionalProperties\":false,\"properties\":{\"path\":{\"description\":\"必须对应同manifest.files项及其hash/byteSize\",\"maxLength\":4096,\"minLength\":1,\"type\":\"string\"},\"reference\":{\"$ref\":\"#/components/schemas/ObjectRef\"}},\"required\":[\"reference\",\"path\"],\"type\":\"object\"},\"DomainSnapshotReference\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"kind\":{\"enum\":[\"object\"],\"type\":\"string\"},\"object\":{\"$ref\":\"#/components/schemas/ObjectRef\"}},\"required\":[\"kind\",\"object\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"kind\":{\"enum\":[\"publication\"],\"type\":\"string\"},\"publication\":{\"$ref\":\"#/components/schemas/PublishedRevisionRef\"}},\"required\":[\"kind\",\"publication\"],\"type\":\"object\"}]},\"Hash\":{\"description\":\"SHA-256 小写十六进制\",\"pattern\":\"^[0-9a-f]{64}$\",\"type\":\"string\"},\"Identifier\":{\"description\":\"系统生成的不透明 ID，不含个人信息\",\"maxLength\":128,\"minLength\":1,\"pattern\":\"^[A-Za-z0-9._:-]+$\",\"type\":\"string\"},\"JobsCreateJobResult\":{\"$ref\":\"#/components/schemas/CreateJobResult\"},\"ObjectRef\":{\"additionalProperties\":false,\"description\":\"所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径\",\"properties\":{\"byteSize\":{\"description\":\"完整对象字节数，读取结束复核\",\"minimum\":0,\"type\":\"integer\"},\"mediaType\":{\"description\":\"规范媒体类型，按允许集验证\",\"type\":\"string\"},\"objectId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"本域不可变对象ID\"},\"owner\":{\"description\":\"模块 slug\",\"type\":\"string\"},\"sha256\":{\"$ref\":\"#/components/schemas/Hash\",\"description\":\"完整字节内容SHA256\"},\"version\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"对象或协议版本\"}},\"required\":[\"owner\",\"objectId\",\"version\",\"sha256\",\"mediaType\",\"byteSize\"],\"type\":\"object\"},\"PublishedRevisionRef\":{\"additionalProperties\":false,\"description\":\"不可变发布修订引用；document/revision/contentHash/schema/dataEpoch共同验证\",\"properties\":{\"contentHash\":{\"$ref\":\"#/components/schemas/Hash\",\"description\":\"规范正文SHA256\"},\"dataEpoch\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"当前业务数据代次\"},\"documentId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"稳定文档ID\"},\"publishedRevisionId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"不可变发布修订ID\"},\"revision\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"单调非负修订号\"},\"schemaVersion\":{\"description\":\"内容格式正整数版本，变化必须迁移\",\"minimum\":1,\"type\":\"integer\"}},\"required\":[\"documentId\",\"publishedRevisionId\",\"revision\",\"contentHash\",\"schemaVersion\",\"dataEpoch\"],\"type\":\"object\"},\"Revision\":{\"description\":\"对象单调修订号\",\"minimum\":0,\"type\":\"integer\"},\"SnapshotRef\":{\"additionalProperties\":false,\"description\":\"本域不可变快照描述，包含schema、哈希、大小与数据代次\",\"properties\":{\"containsSecrets\":{\"description\":\"SnapshotRef.containsSecrets；按类型、枚举及required约束使用\",\"type\":\"boolean\"},\"dataEpoch\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"当前业务数据代次\"},\"dataSchemaVersion\":{\"description\":\"SnapshotRef.dataSchemaVersion；按类型、枚举及required约束使用\",\"minimum\":1,\"type\":\"integer\"},\"object\":{\"$ref\":\"#/components/schemas/ObjectRef\",\"description\":\"SnapshotRef.object；按类型、枚举及required约束使用\"},\"owner\":{\"description\":\"对象唯一所属模块slug\",\"type\":\"string\"},\"revisionWatermark\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"SnapshotRef.revisionWatermark；按类型、枚举及required约束使用\"},\"snapshotId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"不可变本域快照ID\"}},\"required\":[\"snapshotId\",\"owner\",\"dataEpoch\",\"dataSchemaVersion\",\"revisionWatermark\",\"object\",\"containsSecrets\"],\"type\":\"object\"},\"Timestamp\":{\"description\":\"RFC3339 UTC 时间\",\"format\":\"date-time\",\"type\":\"string\"},\"common.schema_DomainSnapshotManifest\":{\"additionalProperties\":false,\"description\":\"版本1未压缩tar的首entry manifest.json，canonical JSON≤16MiB，后续仅files/<path>声明普通文件；完整归档≤20GiB/100000文件。安全截点回调必须穷尽权威对象与跨域引用，未知不能写空列表冒充。精确sourceEpoch保留，staging迁移回调才建立targetDataEpoch。\",\"properties\":{\"backupId\":{\"$ref\":\"#/components/schemas/Identifier\"},\"barrierId\":{\"$ref\":\"#/components/schemas/Identifier\"},\"containsSecrets\":{\"type\":\"boolean\"},\"dataSchemaVersion\":{\"minimum\":1,\"type\":\"integer\"},\"files\":{\"items\":{\"$ref\":\"#/components/schemas/DomainSnapshotFile\"},\"maxItems\":100000,\"type\":\"array\"},\"format\":{\"enum\":[\"nice-wiki.domain-snapshot\"],\"type\":\"string\"},\"objects\":{\"items\":{\"$ref\":\"#/components/schemas/DomainSnapshotObject\"},\"maxItems\":100000,\"type\":\"array\"},\"owner\":{\"maxLength\":64,\"minLength\":1,\"type\":\"string\"},\"publications\":{\"items\":{\"$ref\":\"#/components/schemas/PublishedRevisionRef\"},\"maxItems\":100000,\"type\":\"array\"},\"references\":{\"items\":{\"$ref\":\"#/components/schemas/DomainSnapshotReference\"},\"maxItems\":100000,\"type\":\"array\"},\"revisionWatermark\":{\"$ref\":\"#/components/schemas/Revision\"},\"schemaVersion\":{\"enum\":[1],\"type\":\"integer\"},\"snapshotId\":{\"$ref\":\"#/components/schemas/Identifier\"},\"sourceEpoch\":{\"$ref\":\"#/components/schemas/Identifier\"}},\"required\":[\"format\",\"schemaVersion\",\"owner\",\"backupId\",\"barrierId\",\"snapshotId\",\"sourceEpoch\",\"dataSchemaVersion\",\"revisionWatermark\",\"containsSecrets\",\"files\",\"objects\",\"publications\",\"references\"],\"type\":\"object\"},\"types_BackupManifestV1\":{\"additionalProperties\":false,\"description\":\"canonical JSON≤2MiB轻量全局清单；域按owner字典顺序，引用按完整canonical值排序；全对象引用索引亦≤2MiB，超限失败不截断。\",\"properties\":{\"backupId\":{\"$ref\":\"#/components/schemas/Identifier\"},\"barrierId\":{\"$ref\":\"#/components/schemas/Identifier\"},\"createdAt\":{\"$ref\":\"#/components/schemas/Timestamp\"},\"domains\":{\"items\":{\"$ref\":\"#/components/schemas/BackupDomainV1\"},\"maxItems\":14,\"minItems\":14,\"type\":\"array\"},\"format\":{\"enum\":[\"nice-wiki.backup\"]},\"keyId\":{\"description\":\"创建实例KEK来源指纹，非密钥；移植导入后本机实际解密key由私有backup_runs.key_id及cipher header提供，不要求源KEK\",\"pattern\":\"^kek-[0-9a-f]{64}$\",\"type\":\"string\"},\"references\":{\"items\":{\"$ref\":\"#/components/schemas/BackupReferenceV1\"},\"maxItems\":100000,\"type\":\"array\"},\"schemaVersion\":{\"enum\":[1]},\"sourceEpoch\":{\"$ref\":\"#/components/schemas/Identifier\"}},\"required\":[\"format\",\"schemaVersion\",\"backupId\",\"sourceEpoch\",\"barrierId\",\"createdAt\",\"keyId\",\"domains\",\"references\"],\"type\":\"object\"}}},\"info\":{\"title\":\"运行载荷校验\",\"version\":\"1\"},\"openapi\":\"3.0.3\",\"paths\":{}}"
 
+// AnalyticsClient 调用analytics服务（自动附服务断言）。
+type AnalyticsClient struct{ *producerClient }
+
+func NewAnalyticsClient(baseURL, issuer string, key platform.SigningKey) *AnalyticsClient {
+	return &AnalyticsClient{newProducerClient("analytics", baseURL, issuer, key)}
+}
+
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（analytics:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *AnalyticsClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
 // ContentClient 调用content服务（自动附服务断言）。
 type ContentClient struct{ *producerClient }
 
@@ -280,6 +303,22 @@ func (c *ContentClient) ReadContentObject(ctx context.Context, objectId string, 
 	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（content:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *ContentClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
 // IdentityClient 调用identity服务（自动附服务断言）。
 type IdentityClient struct{ *producerClient }
 
@@ -290,6 +329,22 @@ func NewIdentityClient(baseURL, issuer string, key platform.SigningKey) *Identit
 // CheckAuthorization POST /v1/authorizations/check（identity:checkAuthorization）。
 func (c *IdentityClient) CheckAuthorization(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/authorizations/check", body, "")
+}
+
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（identity:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *IdentityClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
 }
 
 // JobsClient 调用jobs服务（自动附服务断言）。
@@ -387,6 +442,22 @@ func (c *JobsClient) PublishEvent(ctx context.Context, body any, idempotencyKey 
 	return c.do(ctx, http.MethodPost, "/v1/events", body, idempotencyKey)
 }
 
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（jobs:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *JobsClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
 // StartJob POST /v1/jobs/{jobId}:start（jobs:startJob）。
 func (c *JobsClient) StartJob(ctx context.Context, jobId string, body any, idempotencyKey string) (json.RawMessage, error) {
 	if idempotencyKey == "" {
@@ -413,6 +484,167 @@ func (c *JobsClient) SubscribeEvents(ctx context.Context, lastEventId string, qu
 		return nil, err
 	}
 	return eventEnvelopeStream{r: reader}, nil
+}
+
+// KnowledgeClient 调用knowledge服务（自动附服务断言）。
+type KnowledgeClient struct{ *producerClient }
+
+func NewKnowledgeClient(baseURL, issuer string, key platform.SigningKey) *KnowledgeClient {
+	return &KnowledgeClient{newProducerClient("knowledge", baseURL, issuer, key)}
+}
+
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（knowledge:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *KnowledgeClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
+// LocalizationClient 调用localization服务（自动附服务断言）。
+type LocalizationClient struct{ *producerClient }
+
+func NewLocalizationClient(baseURL, issuer string, key platform.SigningKey) *LocalizationClient {
+	return &LocalizationClient{newProducerClient("localization", baseURL, issuer, key)}
+}
+
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（localization:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *LocalizationClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
+// MediaClient 调用media服务（自动附服务断言）。
+type MediaClient struct{ *producerClient }
+
+func NewMediaClient(baseURL, issuer string, key platform.SigningKey) *MediaClient {
+	return &MediaClient{newProducerClient("media", baseURL, issuer, key)}
+}
+
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（media:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *MediaClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
+// MemoryClient 调用memory服务（自动附服务断言）。
+type MemoryClient struct{ *producerClient }
+
+func NewMemoryClient(baseURL, issuer string, key platform.SigningKey) *MemoryClient {
+	return &MemoryClient{newProducerClient("memory", baseURL, issuer, key)}
+}
+
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（memory:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *MemoryClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
+// ModelGatewayClient 调用model-gateway服务（自动附服务断言）。
+type ModelGatewayClient struct{ *producerClient }
+
+func NewModelGatewayClient(baseURL, issuer string, key platform.SigningKey) *ModelGatewayClient {
+	return &ModelGatewayClient{newProducerClient("model-gateway", baseURL, issuer, key)}
+}
+
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（model-gateway:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *ModelGatewayClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
+// PublicSiteClient 调用public-site服务（自动附服务断言）。
+type PublicSiteClient struct{ *producerClient }
+
+func NewPublicSiteClient(baseURL, issuer string, key platform.SigningKey) *PublicSiteClient {
+	return &PublicSiteClient{newProducerClient("public-site", baseURL, issuer, key)}
+}
+
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（public-site:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *PublicSiteClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
+// QaClient 调用qa服务（自动附服务断言）。
+type QaClient struct{ *producerClient }
+
+func NewQaClient(baseURL, issuer string, key platform.SigningKey) *QaClient {
+	return &QaClient{newProducerClient("qa", baseURL, issuer, key)}
+}
+
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（qa:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *QaClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
 }
 
 // SiteConfigClient 调用site-config服务（自动附服务断言）。
@@ -443,6 +675,22 @@ func (c *SiteConfigClient) ReadRuntimeState(ctx context.Context) (json.RawMessag
 	return c.do(ctx, http.MethodGet, "/v1/runtime-state", nil, "")
 }
 
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（site-config:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *SiteConfigClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
+}
+
 // RegisterActivation POST /v1/runtime-state/activations（site-config:registerActivation）。
 func (c *SiteConfigClient) RegisterActivation(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/runtime-state/activations", body, "")
@@ -451,4 +699,27 @@ func (c *SiteConfigClient) RegisterActivation(ctx context.Context, body any) (js
 // TransitionRuntimeState POST /v1/runtime-state:transition（site-config:transitionRuntimeState）。
 func (c *SiteConfigClient) TransitionRuntimeState(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/runtime-state:transition", body, "")
+}
+
+// TrafficGuardClient 调用traffic-guard服务（自动附服务断言）。
+type TrafficGuardClient struct{ *producerClient }
+
+func NewTrafficGuardClient(baseURL, issuer string, key platform.SigningKey) *TrafficGuardClient {
+	return &TrafficGuardClient{newProducerClient("traffic-guard", baseURL, issuer, key)}
+}
+
+// ReadSnapshotArchive GET /v1/snapshots/{snapshotId}/archive（traffic-guard:readSnapshotArchive）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *TrafficGuardClient) ReadSnapshotArchive(ctx context.Context, snapshotId string, queries ...url.Values) (*http.Response, error) {
+	requestPath := "/v1/snapshots/" + url.PathEscape(snapshotId) + "/archive"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
 }

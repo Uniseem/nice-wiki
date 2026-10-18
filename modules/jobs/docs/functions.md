@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 114 个函数：约束 34 个，参考 80 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 116 个函数：约束 35 个，参考 81 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -422,11 +422,12 @@ func ClaimJob(ctx context.Context, op OperationContext, in ClaimJobInput) (Claim
 **步骤**
 
 1. 校验service所属owner，读取可信runtime与control屏障；维护/屏障拒绝领取，输入/op/runtime代次必须相同
-2. 同owner/epoch/claim operationId按inputHash读取原批次，同键不同输入返回CONFLICT；重放不续租
-3. limit省略时显式归一化为10，不依赖生成器填default；精确读取未到期的leased/running/cancel-requested数量；实际批次为min(limit,10,max(0,8-owner在途数))
-4. 只在本owner/epoch的queued任务中按notBefore/createdAt/jobId排序，过滤未来notBefore
-5. 单事务CAS queued→leased、attempt和revision递增；持久fencing_counter递增后写30秒租约，计数不随lease释放丢失
-6. 同事务写状态outbox与claim回执；返回原任务operationId和不可变输入引用，不执行外域算法
+2. 可选jobTypes每项必须命中registeredJobTypes的owner/type配对；在queued候选SQL按真实type筛选，领取回执原输入绑定集合，省略保持旧全owner领取。
+3. 同owner/epoch/claim operationId按inputHash读取原批次，同键不同输入返回CONFLICT；重放不续租
+4. limit省略时显式归一化为10，不依赖生成器填default；精确读取未到期的leased/running/cancel-requested数量；实际批次为min(limit,10,max(0,8-owner在途数))
+5. 只在本owner/epoch的queued任务中按notBefore/createdAt/jobId排序，过滤未来notBefore
+6. 单事务CAS queued→leased、attempt和revision递增；持久fencing_counter递增后写30秒租约，计数不随lease释放丢失
+7. 同事务写状态outbox与claim回执；返回原任务operationId和不可变输入引用，不执行外域算法
 
 **错误**
 
@@ -933,6 +934,42 @@ func (work *leaseOperation) countActiveLeases(ctx context.Context, in ClaimJobIn
 - 并发：复用调用方串行SQLite事务及资源锁
 - 幂等：由调用方决定事务提交与幂等边界
 - 依赖：无
+
+## jobs.NewLeaseHandlers
+
+- 级别：参考
+- 文件：`modules/jobs/internal/leases.go`
+- 作用：只装配已统一鉴权和严格校验的worker六个租约HTTP请求
+
+```go
+func NewLeaseHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `EventHandlers` | 仅createJob的真实HTTP映射，复用本域处理器map内部类型 | 只交统一NewServiceHandler，不独立裸挂 |
+
+**步骤**
+
+1. claim正文绑定可选真实jobTypes；start/heartbeat/complete/fail从已校验路径取jobId，dataEpoch只取可信op。
+2. checkLease只读取已校验workerId/fencingToken查询；调用原领域函数，不复制身份、租约和CAS规则。
+3. 只返回原领域真实结果与安全Problem；完整jobs装配仍缺失时不宣称服务已就绪。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：信任严格入口已验证上下文；不新增通用身份/schema/截止校验
+- 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
+- 幂等：显式延迟属于去重材料，原成功不重新分配时刻
+- 依赖：`jobs.ClaimJob`、`jobs.StartJob`、`jobs.HeartbeatJob`、`jobs.CheckLease`、`jobs.CompleteJob`、`jobs.FailJob`、`jobs.writeEventResponse`
 
 ## jobs.CompleteJob
 
@@ -3131,7 +3168,7 @@ func EnterBarrier(ctx context.Context, op OperationContext, request BarrierReque
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：事件接收暂拒503让producer outbox保留；ack安全落点后冻结
 - 幂等：barrierId幂等
-- 依赖：`jobs.CoordinateBarrier`
+- 依赖：`jobs.CoordinateBarrier`、`platform.SnapshotManager.EnterBarrier`
 
 ## jobs.ReleaseBarrier
 
@@ -3173,7 +3210,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierI
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：旧任务不能改epoch后自动继续
 - 幂等：barrierId幂等
-- 依赖：`site-config:readRuntimeState`
+- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.ReleaseBarrier`
 
 ## jobs.PurgeExpiredHistory
 
@@ -3258,7 +3295,7 @@ func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotEx
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：barrier水位之后无事件提交
 - 幂等：backupId/barrierId幂等
-- 依赖：无
+- 依赖：`platform.SnapshotManager.Export`
 - 其他依赖说明：各域安全点确认
 
 ## jobs.StageSnapshot
@@ -3306,7 +3343,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
-- 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`
+- 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`、`platform.SnapshotManager.Stage`
 
 ## jobs.DiscardSnapshot
 
@@ -3349,7 +3386,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行
 - 幂等：重复删除返回removed=false
-- 依赖：`site-config:readRuntimeState`
+- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.Discard`
 
 ## jobs.RequestJobCancellation
 
@@ -3793,7 +3830,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`、`jobs.NewQueueHandlers`、`jobs.NewScheduleHandlers`
+- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`、`jobs.NewQueueHandlers`、`jobs.NewScheduleHandlers`、`jobs.NewLeaseHandlers`、`platform.NewSnapshotManager`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## jobs.Serve
@@ -4793,3 +4830,49 @@ func NewManagementHandlers(key SigningKey) map[string]http.Handler
 - 并发：短SQL，网络核权不持事务/锁
 - 幂等：遵循入口原回执或签名游标规则
 - 依赖：`jobs.WithManagementKey`、`jobs.ListJobs`、`jobs.ListDeliveries`、`jobs.RetryJob`、`jobs.writeEventResponse`
+
+## jobs.ReadSnapshotArchive
+
+- 级别：约束
+- 文件：`modules/jobs/internal/snapshot_archive.go`
+- 作用：受控读取本域已完成且精确引用匹配的快照归档流
+
+```go
+func ReadSnapshotArchive(ctx context.Context, op OperationContext, input SnapshotArchiveReadInput) (SnapshotArchiveReadResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 流取消与既有截止 | 透传IO |
+| `op` | `OperationContext` | 统一入口可信上下文 | data-protection服务及superadmin委托 |
+| `input` | `SnapshotArchiveReadInput` | 精确完成归档引用 | 严格生产方schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `SnapshotArchiveReadResult` | 只读完成tar流 | 不暴露磁盘路径 |
+| `error` | `error` | 未知或不匹配拒绝 | 不含秘密或原路径 |
+
+**步骤**
+
+1. 仅接受data-protection服务及已验证superadmin委托，当前维护backup/restore屏障与本域已完成归档绑定；不把匿名下载或任意URL转为文件读。
+2. 从本域固定owner/version=1/mediaType=application/x-tar与snapshotId/sha256/byteSize构造期望ObjectRef，委托公共SnapshotManager.OpenArchive核真实complete记录和完整hash后输出。
+3. 只有完整只读流，不写源数据、不删除历史归档；取消透传下游IO。
+
+**错误**
+
+- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
+- `LOCKED`：runtime阶段或restoreId不符，或本域屏障未safe（不可重试）
+- `INTEGRITY_ERROR`：归档hash、owner或manifest不一致；临时目录已删除（不可重试）
+- `UNSUPPORTED_SCHEMA`：快照schema高于本版本可迁移范围（不可重试）
+- `CONFLICT`：同restoreId已暂存不同checksum（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
+
+- 副作用：读取本域已完成归档字节
+- 授权：permission：superadmin；rule：仅data-protection服务身份加已验证superadmin委托；绑定本域精确完成归档与维护屏障
+- 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
+- 幂等：同完整引用只读复用，不生成或重算归档
+- 依赖：`platform.SnapshotManager.OpenArchive`

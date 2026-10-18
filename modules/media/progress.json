@@ -2,7 +2,7 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "abbfb6d2c45ebb45831a5de101c1ad5041c55f9e248caaba111784d3b247fd98",
+  "contractSha256": "1ff020946a864402331617ec745c2608c120035f86a92c46620d7b7644299467",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "PutUploadChunk 准备决定先于水位截尾（pipeline 53 记 verified）",
   "branch": "codex/media-20261017-r6",

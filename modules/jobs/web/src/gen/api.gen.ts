@@ -526,6 +526,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/snapshots/{snapshotId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 受控读取已完成域快照归档 */
+        get: operations["readSnapshotArchive"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -708,6 +725,8 @@ export interface components {
              * @default 10
              */
             limit: number;
+            /** @description 可选实际领取类型集合；必须全部属于调用owner已登记类型，SQL筛选，不得领后丢弃。省略保留旧全owner语义。 */
+            jobTypes?: string[];
         };
         /** @description 维持租约成功结果；失败不返回半成功结果 */
         HeartbeatJobResult: {
@@ -1054,6 +1073,10 @@ export interface components {
             checksum: components["schemas"]["Hash"];
             /** @description 暂存目录已fsync并登记 */
             staged: boolean;
+            /** @description 新版生产方必给：sha256(canonical JSON [restoreId,snapshotId])；旧回执缺失时不得据此激活。 */
+            stageId?: string;
+            /** @description 新版生产方必给：迁移后完整目标普通文件与目录树canonical指纹；源域manifest hash和完整tar checksum分别保留，不混用。旧回执缺失不能激活。 */
+            manifestHash?: components["schemas"]["Hash"];
         };
         /** @description 把本域备份归档暂存到restore/<restoreId>/staged；不改active目录（ADR0003） */
         SnapshotStageRequest: {
@@ -2785,6 +2808,52 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    readSnapshotArchive: {
+        parameters: {
+            query: {
+                sha256: components["schemas"]["Hash"];
+                byteSize: number;
+            };
+            header?: never;
+            path: {
+                snapshotId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 完整已完成USTAR归档，接收方仍核引用hash/长度/EOF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/x-tar": string;
+                };
+            };
+            /** @description 缺data-protection服务及superadmin委托 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 完成归档引用或维护绑定不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 完成归档或控制状态尚未可证明 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

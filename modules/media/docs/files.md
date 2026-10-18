@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 55 个：手写 45、生成 3、配置 6、迁移 1。函数 183 个：约束 36，参考 147。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 56 个：手写 46、生成 3、配置 6、迁移 1。函数 184 个：约束 37，参考 147。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -61,3 +61,4 @@
 | `modules/media/migrations/0006_cleanup_approvals.sql` | 手写 | 只追加人工计划一次批准、固定延迟任务输入、原任务回执和原waiting结果桥接；取消保留批准证据 | 无 |
 | `modules/media/migrations/0007_cleanup_execution.sql` | 手写 | 只追加人工执行/逐资产决定及有限reader租约权威，不产生自动清理授权 | 无 |
 | `modules/media/migrations/0008_asset_listing.sql` | 手写 | 只追加独立int64资产列表水位与稳定排序索引，资产/对象变更在原事务推进；不是引用源水位或删除许可 | 无 |
+| `modules/media/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `media.ReadSnapshotArchive` |

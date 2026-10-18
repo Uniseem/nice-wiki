@@ -2,7 +2,7 @@
   "version": 1,
   "module": "qa",
   "phase": "implementation",
-  "contractSha256": "27c3d16a45fc42dd8d4af22ff7974afd1227228365f870c2d8a6e45c2abf37c7",
+  "contractSha256": "58a4f62e532478a481d7406ce4f0993fb74e92a020e45a7534296c53012119ce",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-QA语义缓存及轮次终态第三批",
   "branch": "codex/qa-20261018-bulk",

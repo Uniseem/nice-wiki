@@ -534,6 +534,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/snapshots/{snapshotId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 受控读取已完成域快照归档 */
+        get: operations["readSnapshotArchive"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1107,6 +1124,10 @@ export interface components {
             checksum: components["schemas"]["Hash"];
             /** @description 暂存目录已fsync并登记 */
             staged: boolean;
+            /** @description 新版生产方必给：sha256(canonical JSON [restoreId,snapshotId])；旧回执缺失时不得据此激活。 */
+            stageId?: string;
+            /** @description 新版生产方必给：迁移后完整目标普通文件与目录树canonical指纹；源域manifest hash和完整tar checksum分别保留，不混用。旧回执缺失不能激活。 */
+            manifestHash?: components["schemas"]["Hash"];
         };
         /** @description 把本域备份归档暂存到restore/<restoreId>/staged；不改active目录（ADR0003） */
         SnapshotStageRequest: {
@@ -1301,19 +1322,24 @@ export interface components {
             /** @description 规范预处理算法版本 */
             preprocessingVersion: string;
         };
-        /** @description 模型结构化完成结果；仅StreamEvent.completed出现，文本仍走delta；不混用向量空间。 */
+        /** @description 模型完整结果：embedding/rerank结构结果或chat/vision/translation完整UTF8文本；completed事件或严格当前快照承载，不以delta片段冒充完整。 */
         ModelOutput: {
             /** @enum {string} */
-            capability: "embedding" | "rerank";
+            capability: "embedding" | "rerank" | "chat" | "vision" | "translation";
             embeddingSpace?: components["schemas"]["EmbeddingSpace"];
             vectors?: number[][];
             candidateIds?: components["schemas"]["Identifier"][];
+            /** @description 真实完整文本；生产方UTF8字节总数另限64KiB。显式空串是已证明空输出，字段缺失不是空结果。 */
+            text?: string;
         } & ({
             /** @constant */
             capability?: "embedding";
         } | {
             /** @constant */
             capability?: "rerank";
+        } | {
+            /** @enum {unknown} */
+            capability?: "chat" | "vision" | "translation";
         });
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         types_StreamEvent: {
@@ -3817,6 +3843,52 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    readSnapshotArchive: {
+        parameters: {
+            query: {
+                sha256: components["schemas"]["Hash"];
+                byteSize: number;
+            };
+            header?: never;
+            path: {
+                snapshotId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 完整已完成USTAR归档，接收方仍核引用hash/长度/EOF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/x-tar": string;
+                };
+            };
+            /** @description 缺data-protection服务及superadmin委托 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 完成归档引用或维护绑定不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 完成归档或控制状态尚未可证明 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

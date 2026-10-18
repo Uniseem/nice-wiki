@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 66 个：手写 47、UI 3、生成 5、配置 10、迁移 1。函数 97 个：约束 32，参考 65。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 67 个：手写 48、UI 3、生成 5、配置 10、迁移 1。函数 98 个：约束 33，参考 65。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -72,3 +72,4 @@
 | `modules/knowledge/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/knowledge/internal/build/rebuild.go` | 手写 | 全量重建前估算费用 | `knowledge.EstimateRebuildPlan`、`knowledge.ApproveRebuildPlan` |
 | `modules/knowledge/internal/source/tokenize.go` | 手写 | 固定构建来源的免费BPE真实偏移适配 | `knowledge.TokenizeSource`（参考） |
+| `modules/knowledge/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `knowledge.ReadSnapshotArchive` |

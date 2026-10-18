@@ -5356,7 +5356,8 @@
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
             "先装配所有已实现认证/账号真实handler与固定caller/静态action，交公共NewServiceHandler核完整OpenAPI；其余未实现handler不建占位，工厂明确拒绝启动；失败关闭store。内部敏感结果仅portal服务可取，浏览器cookie由portal白名单adapter处理",
-            "任何数据目录建立/文件打开前以公共ValidatePrivatePath校验dataRoot绝对目录链，control目录在建立或打开前另核，拒绝链接"
+            "任何数据目录建立/文件打开前以公共ValidatePrivatePath校验dataRoot绝对目录链，control目录在建立或打开前另核，拒绝链接",
+            "完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。"
           ],
           "errors": [
             {
@@ -5406,7 +5407,9 @@
             "platform.NewServiceHandler",
             "identity.NewApplication",
             "platform.ValidatePrivatePath",
-            "platform.NewSnapshotManager"
+            "platform.NewSnapshotManager",
+            "platform.SnapshotManager.AdmitBusiness",
+            "platform.SnapshotManager.WriteWindow"
           ],
           "resources": [
             "本域implementation全部x-handler",

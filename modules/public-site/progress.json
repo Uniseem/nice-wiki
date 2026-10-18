@@ -2,7 +2,7 @@
   "version": 1,
   "module": "public-site",
   "phase": "implementation",
-  "contractSha256": "75defeb30c34771d9b66f0f68987b1b5e5069211d674a88b6f84dfcb75e2dfc9",
+  "contractSha256": "21f99799efa02d7f8fca00724eeac000edc2de98ff9fcdd3070f82bdd3c473a6",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
   "branch": "codex/public-site-20261018-bulk",

@@ -157,7 +157,9 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	}, nil
 }
 
+// 未接的新增协议保持生成的未实现响应；完整服务仍不可就绪。
 type server struct {
+	gen.UnimplementedServer
 	app *Application
 }
 

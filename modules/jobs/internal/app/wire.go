@@ -79,7 +79,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	defer store.Close()
 	handlers := jobs.NewManagementHandlers(key)
-	for id, handler := range jobs.NewLeaseHandlers() { handlers[id] = handler }
+	for id, handler := range jobs.NewLeaseHandlers() {
+		handlers[id] = handler
+	}
 	for id, handler := range jobs.NewQueueHandlers() {
 		handlers[id] = handler
 	}
@@ -112,8 +114,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		OpenedDataEpoch: view.DataEpoch,
 		AllowedCallers: map[string][]string{
-			"createJob":      queueCallers,
- "claimJob": queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
+			"createJob": queueCallers,
+			"claimJob":  queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
 			"listJobs":       {"portal"},
 			"listDeliveries": {"portal"},
 			"retryJob":       {"portal"},
@@ -123,12 +125,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"updateSchedule": {"portal"},
 		},
 		ServiceActorCallers: map[string][]string{
-			"createJob":      queueCallers,
- "claimJob": queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
+			"createJob": queueCallers,
+			"claimJob":  queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
 			"createSchedule": scheduleOwners,
 		},
-		MaintenanceOperations: map[string]bool{"heartbeatJob":true,"checkLease":true,"completeJob":true,"failJob":true},
-		Authorize: apivalidate.NewIdentityAuthorizer(identity),
+		MaintenanceOperations: map[string]bool{"heartbeatJob": true, "checkLease": true, "completeJob": true, "failJob": true},
+		Authorize:             apivalidate.NewIdentityAuthorizer(identity),
 	}, handlers)
 	if err != nil {
 		return nil, err

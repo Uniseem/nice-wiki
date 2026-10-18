@@ -6921,7 +6921,8 @@
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
-            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环"
+            "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
+            "完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。"
           ],
           "errors": [
             {
@@ -6971,7 +6972,9 @@
             "localization.ConfigureSourceClient",
             "localization.NewPreferenceHandlers",
             "localization.NewSuggestionPolicyHandlers",
-            "platform.NewSnapshotManager"
+            "platform.NewSnapshotManager",
+            "platform.SnapshotManager.AdmitBusiness",
+            "platform.SnapshotManager.WriteWindow"
           ],
           "resources": [
             "本域implementation全部x-handler",

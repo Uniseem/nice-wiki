@@ -2712,7 +2712,8 @@
           "503": {
             "description": "完成归档或控制状态尚未可证明"
           }
-        }
+        },
+        "x-internal-only": true
       }
     }
   },

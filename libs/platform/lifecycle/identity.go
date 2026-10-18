@@ -60,12 +60,23 @@ func readIdentityConfig(ref string, target any) error {
 
 // LoadPortalDelegation 只给Portal装配独立委托私钥，不授予普通域代签能力。
 func LoadPortalDelegation(config platform.ServiceConfig, anchors platform.TrustAnchors) (platform.SigningKey, error) {
- if config.Module!="portal"{return platform.SigningKey{},platform.NewError(platform.CodeForbidden,false,"只有Portal可加载用户委托签名身份")}
- var key platform.SigningKey
- if err:=readIdentityConfig(config.DelegationKeyRef,&key);err!=nil{return key,err}
- if key.KeyID==""||!filepath.IsAbs(key.PrivateKeyRef){return platform.SigningKey{},platform.NewError(platform.CodeIntegrityError,false,"委托签名身份材料不完整")}
- private,err:=serviceauth.LoadSigningKey(key);if err!=nil{return platform.SigningKey{},err}
- public,err:=base64.RawURLEncoding.DecodeString(anchors.DelegationKeyID(key.KeyID))
- if err!=nil||!bytes.Equal(public,private.Public().(ed25519.PublicKey)){return platform.SigningKey{},platform.NewError(platform.CodeIntegrityError,false,"委托签名身份与本站信任锚不一致")}
- return key,nil
+	if config.Module != "portal" {
+		return platform.SigningKey{}, platform.NewError(platform.CodeForbidden, false, "只有Portal可加载用户委托签名身份")
+	}
+	var key platform.SigningKey
+	if err := readIdentityConfig(config.DelegationKeyRef, &key); err != nil {
+		return key, err
+	}
+	if key.KeyID == "" || !filepath.IsAbs(key.PrivateKeyRef) {
+		return platform.SigningKey{}, platform.NewError(platform.CodeIntegrityError, false, "委托签名身份材料不完整")
+	}
+	private, err := serviceauth.LoadSigningKey(key)
+	if err != nil {
+		return platform.SigningKey{}, err
+	}
+	public, err := base64.RawURLEncoding.DecodeString(anchors.DelegationKeyID(key.KeyID))
+	if err != nil || !bytes.Equal(public, private.Public().(ed25519.PublicKey)) {
+		return platform.SigningKey{}, platform.NewError(platform.CodeIntegrityError, false, "委托签名身份与本站信任锚不一致")
+	}
+	return key, nil
 }

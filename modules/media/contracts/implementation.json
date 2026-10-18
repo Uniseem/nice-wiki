@@ -7317,7 +7317,8 @@
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
             "受信安装opened epoch与真实running写窗口，启动核chunk水位；统一工厂只绑定真实已实现handler，缺其余操作失败并关本地库，不填占位",
             "WriteWindow回调第二次runtime读取先核DataEpoch：未知503，已知不等于Build打开epoch为409，再判phase/maintenance；不能只信NewWriteContext第一次view",
-            "真实raw jobs客户端同时用于原人工批准CreateJob和公共窄worker适配，生产者响应schema由本域规格别名提供；构造两个背景闭包但只在全量handler/恢复门槛成功后安装，不启动部分应用，loop/relay由平台启动和停止"
+            "真实raw jobs客户端同时用于原人工批准CreateJob和公共窄worker适配，生产者响应schema由本域规格别名提供；构造两个背景闭包但只在全量handler/恢复门槛成功后安装，不启动部分应用，loop/relay由平台启动和停止",
+            "完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。"
           ],
           "errors": [
             {
@@ -7374,7 +7375,9 @@
             "media.NewCleanupWorkerClient",
             "media.NewMediaBackgroundTasks",
             "media.InstallBackgroundTasks",
-            "platform.NewSnapshotManager"
+            "platform.NewSnapshotManager",
+            "platform.SnapshotManager.AdmitBusiness",
+            "platform.SnapshotManager.WriteWindow"
           ],
           "resources": [
             "本域implementation全部x-handler",

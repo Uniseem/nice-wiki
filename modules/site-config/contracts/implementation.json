@@ -5396,7 +5396,8 @@
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "构造期仅收敛本地journal/COMMITTED与首页intent，不发外部confirm/release；RecoverHomeReferences只装配为BackgroundTasks闭包，BuildApplication返回成功后由统一RunService启动公共恢复循环；退出先取消和Drain、等后台退出再Shutdown关闭DB",
-            "HTTP装配复用platform.NewServiceHandler与NewIdentityAuthorizer，固定caller及纯service actor子白名单，当前identity权威只校验用户分支；维护仅显式控制操作开放。全部OpenAPI操作必须有真实handler，剩余用例未实现时装配失败并逆序关闭，不填占位成功"
+            "HTTP装配复用platform.NewServiceHandler与NewIdentityAuthorizer，固定caller及纯service actor子白名单，当前identity权威只校验用户分支；维护仅显式控制操作开放。全部OpenAPI操作必须有真实handler，剩余用例未实现时装配失败并逆序关闭，不填占位成功",
+            "完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。"
           ],
           "errors": [
             {
@@ -5448,7 +5449,9 @@
             "site-config.BackgroundTasks",
             "site-config.RecoverHomeReferences",
             "site-config.RuntimeStore.ReadRuntimeView",
-            "platform.NewSnapshotManager"
+            "platform.NewSnapshotManager",
+            "platform.SnapshotManager.AdmitBusiness",
+            "platform.SnapshotManager.WriteWindow"
           ],
           "resources": [
             "本域implementation全部x-handler",

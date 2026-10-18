@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 118 个函数：约束 21 个，参考 97 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 177 个函数：约束 21 个，参考 156 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -419,6 +419,47 @@ func LoadSigningKey(key SigningKey) (ed25519.PrivateKey, error)
 - 幂等：同key/scope/payload生成相同游标；游标只用于查询，不作为授权凭据
 - 依赖：无
 - 其他依赖说明：受控Ed25519密钥引用
+
+## platform.ResolveVisitorAddress
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/assertion.go`
+- 作用：从唯一可信代理链解析返回规范访客地址，仅在内存处理并由入口服务断言绑定
+
+```go
+func ResolveVisitorAddress(remoteAddr string, forwardedFor string, trustedProxyCIDRs []string) (string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `remoteAddr` | `string` | 真实HTTP连接对端 | 由HTTP服务器提供 |
+| `forwardedFor` | `string` | HTTP转发链 | 仅受信代理链使用 |
+| `trustedProxyCIDRs` | `[]string` | 可信部署代理网段 | 配置边界已验证 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `address` | `string` | 规范Unmap后IP，仅内存使用 | 不日志、不持久 |
+| `error` | `error` | 无合法真实地址则失败关闭 |  |
+
+**步骤**
+
+1. 复用privateNetworkPeer唯一代理链解析，不另写XFF或地址规则。
+2. 只返回Unmap后规范地址；调用方仅用于受签名内部beacon正文，不记录原IP。
+
+**错误**
+
+- `VALIDATION`：实际连接或所需转发链不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：私有摘要密钥不可用（可重试）
+
+- 副作用：无
+- 授权：仅受信portal入口调用；原IP不跨服务
+- 并发：无可写业务状态，可并发
+- 幂等：同密钥、规范网络地址和UTC日返回相同HMAC；前一日重叠覆盖短窗口
+- 依赖：`platform.privateNetworkPeer`
 
 ## platform.VerifyDelegation
 
@@ -1858,6 +1899,7 @@ func RunWorkerLoop(ctx context.Context, client WorkerJobsClient, config WorkerCo
 **步骤**
 
 1. 兼容旧签名，委托RunWorkerLoopWithResult并返回真实错误，不复制循环机制。
+2. 必须实际TypedWorkerJobsClient按config.JobTypes领取前筛选，缺少此能力失败关闭，不以本地丢弃已领取任务代替。
 
 **错误**
 
@@ -1867,7 +1909,7 @@ func RunWorkerLoop(ctx context.Context, client WorkerJobsClient, config WorkerCo
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：并发≤maxConcurrency
 - 幂等：jobs按jobId与fence去重
-- 依赖：`platform.RunWorkerLoopWithResult`
+- 依赖：`platform.RunWorkerLoopWithResult`、`platform.ClaimJobTypes`
 
 ## platform.workerControlContext
 
@@ -2053,8 +2095,9 @@ func renewExecutionLease(ctx context.Context, lease *ExecutionLease, verify bool
 
 1. 续租互斥覆盖整个请求与回执安装，RPC使用当前lease截止
 2. 即时HeartbeatJob读取cancelRequested/safePointRequested；停止或未知则取消执行权并拒绝
-3. 旧本地截止仍有效且新expiry有效时才重置独立到期定时器；不得复活已取消执行权
-4. verify=true时继续按新截止读取CheckLease，绑定jobId/workerId/fence；RPC返回后再次核本地任务是否仍有效
+3. 仅真实cancelRequested时，取消执行前以原job/worker/fence/epoch调用OnCancellationObserved持久本域取消事实；回调在当前租约和原操作截止内，失败仍立即停执行。safePoint不调用取消回调；不重查CheckLease或生成新业务副作用。
+4. 旧本地截止仍有效且新expiry有效时才重置独立到期定时器；不得复活已取消执行权
+5. verify=true时继续按新截止读取CheckLease，绑定jobId/workerId/fence；RPC返回后再次核本地任务是否仍有效
 
 **错误**
 
@@ -2098,6 +2141,7 @@ func RunWorkerLoopWithResult(ctx context.Context, client WorkerJobsClient, confi
 1. 配置验证及共享owner worker流程保持原权限、epoch、fence和租约；永久配置拒绝返回真实错误并停止同组worker。
 2. Claim真实成功累计claimed；CompleteJob成功回执才completed；FailJob成功回执后仅明确CANCELLED计cancelled，其余failed，任何未确认终局不计。
 3. 正常ctx退出等待所有worker及其heartbeat goroutine排空后返完整累计；不包装伪客户端、不造0统计或新任务。
+4. 必须实际TypedWorkerJobsClient按config.JobTypes领取前筛选，缺少此能力失败关闭，不以本地丢弃已领取任务代替。
 
 **错误**
 
@@ -2107,7 +2151,7 @@ func RunWorkerLoopWithResult(ctx context.Context, client WorkerJobsClient, confi
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：并发≤maxConcurrency
 - 幂等：jobs按jobId与fence去重
-- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`platform.workerControlContext`、`platform.newExecutionLease`、`platform.executionLeaseContext`、`platform.renewExecutionLease`、`platform.ClaimJob`、`platform.StartJob`、`platform.HeartbeatJob`、`platform.CheckLease`、`platform.CompleteJob`、`platform.FailJob`
+- 依赖：`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`、`platform.workerControlContext`、`platform.newExecutionLease`、`platform.executionLeaseContext`、`platform.renewExecutionLease`、`platform.ClaimJob`、`platform.StartJob`、`platform.HeartbeatJob`、`platform.CheckLease`、`platform.CompleteJob`、`platform.FailJob`、`platform.ClaimJobTypes`
 
 ## platform.InvokeModel
 
@@ -2855,14 +2899,100 @@ func (s envelopeJSONStream) Close() error
 - 幂等：只读序列或幂等关闭，不写业务数据
 - 依赖：无
 
+## platform.integrity
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func integrity(message string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：无
+
+## platform.readSnapshotStageRecord
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func readSnapshotStageRecord(dataRoot, restoreID string) (snapshotStageRecord, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.snapshotStageID`
+
 ## platform.ApplyRestoreSwap
 
 - 级别：约束
 - 文件：`libs/platform/lifecycle/restore_swap.go`
-- 作用：启动时按恢复阶段换入或换回active目录（ADR0003）
+- 作用：启动入口开放前核真实完整stage回执、原输入摘要、源清单hash与目标完整树，不仅看目录。
 
 ```go
-func ApplyRestoreSwap(dataRoot string, runtime RuntimeView) (SwapResult, error)
+func ApplyRestoreSwap(dataRoot string, runtime platform.RuntimeView) (platform.SwapResult, error)
 ```
 
 **输入**
@@ -2881,19 +3011,590 @@ func ApplyRestoreSwap(dataRoot string, runtime RuntimeView) (SwapResult, error)
 
 **步骤**
 
-1. 读control区恢复日志
-2. restore_switching且存在restore/<id>/staged且未换入：active→restore/<id>/before，staged→active，fsync父目录，写日志
-3. restore_rolling_back且已换入：反向换回并写日志
-4. 其余情况不动目录；目录状态与日志矛盾时拒绝启动
+1. 启动入口开放前核真实完整stage回执、原输入摘要、源清单hash与目标完整树，不仅看目录。
+2. 精确核runtime phase/maintenance/restore/barrier/host/target/Revision后持久prepared-switch绑定原active完整树hash。
+3. active→before、staged→active每步先fsync双方父目录再写完整日志；换回反向同证据机制。
+4. 崩溃仅依已持久阶段及精确物理目录组合续接，缺日志/未知目录/树已改变均失败关闭，不尝试覆盖或删除未知数据。
 
 **错误**
 
-- `INTEGRITY_ERROR`：目录与日志不一致（不可重试）
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
 
-- 副作用：重命名数据目录；写control日志
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
-- 并发：启动阶段独占，入口开放前完成
-- 幂等：按restoreId与日志状态幂等
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.ValidatePrivatePath`、`platform.applySnapshotRollback`、`platform.applySnapshotSwitch`、`platform.integrity`、`platform.readRestoreLog`、`platform.readSnapshotStageRecord`、`platform.restoreLogState`
+
+## platform.snapshotDirectoryExists
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func snapshotDirectoryExists(path string) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.ValidatePrivatePath`、`platform.snapshotIOError`
+
+## platform.snapshotSwapPaths
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func snapshotSwapPaths(dataRoot, restoreID string) (string, string, string, string)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：无
+
+## platform.verifySnapshotHash
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func verifySnapshotHash(root, expected string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.fingerprintSnapshotTree`、`platform.integrity`
+
+## platform.snapshotRename
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func snapshotRename(from, to string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.ValidatePrivatePath`、`platform.integrity`、`platform.snapshotDirectoryExists`、`platform.snapshotIOError`
+
+## platform.snapshotSwapLog
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func snapshotSwapLog(dataRoot string, entry restoreLogEntry, action string) (restoreLogEntry, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 包括崩溃续接已发生rename的分支，先fsync双方父目录再持久下一完整日志，不假设继承上进程缓存中的目录已持久。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.appendRestoreLog`、`platform.syncDir`
+
+## platform.applySnapshotSwitch
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func applySnapshotSwitch(dataRoot string, runtime platform.RuntimeView, record snapshotStageRecord, last restoreLogEntry) (platform.SwapResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.fingerprintSnapshotTree`、`platform.integrity`、`platform.snapshotDirectoryExists`、`platform.snapshotRename`、`platform.snapshotSwapLog`、`platform.snapshotSwapPaths`、`platform.verifySnapshotHash`、`platform.verifySnapshotTarget`
+
+## platform.applySnapshotRollback
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func applySnapshotRollback(dataRoot string, runtime platform.RuntimeView, record snapshotStageRecord, last restoreLogEntry) (platform.SwapResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.integrity`、`platform.snapshotDirectoryExists`、`platform.snapshotRename`、`platform.snapshotSwapLog`、`platform.snapshotSwapPaths`、`platform.verifySnapshotHash`、`platform.verifySnapshotTarget`
+
+## platform.ReadRestoreSwapState
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：纯只读既有完整stage/原restore-log及active/staged/before组合，不修复不推断未记录成功。
+
+```go
+func ReadRestoreSwapState(dataRoot, restoreID string) (SnapshotSwapEvidence, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 纯只读既有完整stage/原restore-log及active/staged/before组合，不修复不推断未记录成功。
+2. 中间阶段需ApplyRestoreSwap先依精确运行决定续接，不给删除许可。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.integrity`、`platform.readRestoreLog`、`platform.readSnapshotStageRecord`、`platform.restoreLogState`、`platform.snapshotDirectoryExists`、`platform.snapshotSwapPaths`
+
+## platform.restoreLogState
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func restoreLogState(entries []restoreLogEntry, record snapshotStageRecord) (restoreLogEntry, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.integrity`
+
+## platform.readRestoreLog
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func readRestoreLog(dataRoot string) ([]restoreLogEntry, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.ValidatePrivatePath`、`platform.integrity`、`platform.snapshotBudget`、`platform.snapshotIOError`、`platform.splitLines`
+
+## platform.appendRestoreLog
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func appendRestoreLog(dataRoot string, entry restoreLogEntry) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.ValidatePrivatePath`、`platform.readRestoreLog`、`platform.snapshotBudget`、`platform.snapshotDirectory`、`platform.snapshotIOError`、`platform.syncDir`
+
+## platform.syncDir
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func syncDir(path string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：无
+
+## platform.splitLines
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/restore_swap.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func splitLines(raw []byte)[][]byte
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
 - 依赖：无
 
 ## platform.RunService
@@ -3195,8 +3896,7 @@ func (c *jobsClient) ClaimJob(ctx context.Context, owner, workerID string, limit
 
 **步骤**
 
-1. 严格ClaimJobRequestBody仅发送owner/workerId/limit；epoch只经可信上下文头传递，幂等键为本次op
-2. 严格ClaimJobResult后核owner/epoch、并行fencingTokens一致及唯一jobId，完整映射job.operationId/root/inputRef/attempt/expiresAt；不得截断多领任务
+1. 委托ClaimJobTypes且省略jobTypes，保留旧接口无筛选语义。
 
 **错误**
 
@@ -3207,7 +3907,7 @@ func (c *jobsClient) ClaimJob(ctx context.Context, owner, workerID string, limit
 - 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
 - 并发：无共享可变业务状态；每次RPC独立上下文
 - 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
-- 依赖：`platform.workerOperation`、`platform.decodeWorkerResponse`、`jobs:claimJob`
+- 依赖：`platform.ClaimJobTypes`
 
 ## platform.StartJob
 
@@ -3418,6 +4118,48 @@ func (c *jobsClient) FailJob(ctx context.Context, jobID, workerID string, fencin
 - 并发：无共享可变业务状态；每次RPC独立上下文
 - 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
 - 依赖：`platform.workerOperation`、`platform.decodeWorkerResponse`、`jobs:failJob`
+
+## platform.ClaimJobTypes
+
+- 级别：参考
+- 文件：`libs/platform/worker/client.go`
+- 作用：经原claimJob操作传登记类型筛选并核真实回执。
+
+```go
+func (c *jobsClient) ClaimJobTypes(ctx context.Context, owner, workerID string, limit int, jobTypes []string) ([]ClaimedJob, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信任务控制上下文 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `owner` | `string` | 本域owner | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `workerID` | `string` | 当前worker | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `limit` | `int` | 有界数量 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `jobs` | `[]ClaimedJob` | 完整映射 | 仅可信装配或已校验机制链；错误不返回半结果 |
+| `error` | `error` | 安全错误 | 仅可信装配或已校验机制链；错误不返回半结果 |
+
+**步骤**
+
+1. 请求body兼容可选jobTypes，由jobs持久SQL在领取前筛选；省略保留旧ClaimJob接口。
+2. 严格生产方schema后核每项owner/epoch/fence与已请求类型。返回未请求类型INTEGRITY_ERROR，不本地领取后丢弃。
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：缺可信上下文或生产方响应矛盾（不可重试）
+- `INTEGRITY_ERROR`：生产方成功响应不符schema或语义绑定（不可重试）
+
+- 副作用：仅执行版本化jobs RPC，不在本库持久业务状态
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.workerOperation`、`platform.decodeWorkerResponse`、`jobs:claimJob`
 
 ## platform.NewGatewayClient
 
@@ -4537,3 +5279,1820 @@ func readIdentityConfig(ref string, target any) error
 - 并发：启动时调用一次
 - 幂等：纯函数
 - 依赖：无
+
+## platform.LoadPortalDelegation
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/identity.go`
+- 作用：仅Portal读取已登记委托私钥描述并核当前信任锚精确公钥。
+
+```go
+func LoadPortalDelegation(config ServiceConfig, anchors TrustAnchors) (SigningKey, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅config.Module=portal可调用，其他模块FORBIDDEN。
+2. 复用readIdentityConfig读取DelegationKeyRef严格单个有界JSON，复用LoadSigningKey加载已验私钥。
+3. 核anchors.DelegationKeyID(key.KeyID)的真实Ed25519公钥与该私钥公钥全值相等，不匹配失败关闭。
+
+**错误**
+
+- `FORBIDDEN`：非Portal调用（不可重试）
+- `INTEGRITY_ERROR`：委托密钥描述或公钥匹配失败（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：身份材料不可读（不可重试）
+
+- 副作用：读取可信服务身份描述，私钥加载仅现有平台缓存
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动时调用一次
+- 幂等：纯函数
+- 依赖：`platform.readIdentityConfig`、`platform.LoadSigningKey`
+
+## platform.snapshotIOError
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func snapshotIOError(err error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.NormalizeIOError`
+
+## platform.snapshotBudget
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func snapshotBudget(message string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：无
+
+## platform.snapshotUnsupported
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func snapshotUnsupported(message string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：无
+
+## platform.decodeSnapshotCanonical
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func decodeSnapshotCanonical(raw []byte, target any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.integrity`
+
+## platform.readSnapshotJSON
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func readSnapshotJSON(path string, limit int64, target any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.ValidatePrivatePath`、`platform.decodeSnapshotCanonical`、`platform.snapshotBudget`、`platform.snapshotIOError`
+
+## platform.syncSnapshotDirectories
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func syncSnapshotDirectories(path, root string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.integrity`、`platform.snapshotIOError`
+
+## platform.snapshotDirectory
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func snapshotDirectory(path, root string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.ValidatePrivatePath`、`platform.snapshotIOError`、`platform.syncSnapshotDirectories`
+
+## platform.writeSnapshotJSON
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func writeSnapshotJSON(path, root string, value any) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.ValidatePrivatePath`、`platform.snapshotDirectory`、`platform.snapshotIOError`、`platform.syncSnapshotDirectories`
+
+## platform.safeSnapshotRelative
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func safeSnapshotRelative(path string) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：无
+
+## platform.CheckSnapshotDiskBudget
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func CheckSnapshotDiskBudget(ctx context.Context, root string, required int64) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.integrity`、`platform.snapshotBudget`、`platform.snapshotIOError`
+
+## platform.copySnapshotExact
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func copySnapshotExact(ctx context.Context, dst io.Writer, src io.Reader, size int64, expectedHash string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.integrity`、`platform.snapshotIOError`
+
+## platform.verifySnapshotFile
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_io.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func verifySnapshotFile(ctx context.Context, path string, file DomainSnapshotFile) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.ValidatePrivatePath`、`platform.copySnapshotExact`、`platform.integrity`、`platform.snapshotIOError`
+
+## platform.snapshotCountedReader.Read
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_archive.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func (r *snapshotCountedReader) Read(p []byte) (int, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.snapshotBudget`
+
+## platform.snapshotCountedWriter.Write
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_archive.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func (w *snapshotCountedWriter) Write(p []byte) (int, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.snapshotBudget`
+
+## platform.validateSnapshotInventory
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_archive.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func validateSnapshotInventory(manifest DomainSnapshotManifest, validate func([]byte) error) ([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.integrity`、`platform.safeSnapshotRelative`、`platform.snapshotBudget`、`platform.snapshotUnsupported`
+
+## platform.verifySnapshotInventoryTree
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_archive.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func verifySnapshotInventoryTree(ctx context.Context, root string, files []DomainSnapshotFile, checkHash bool) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.ValidatePrivatePath`、`platform.integrity`、`platform.snapshotIOError`、`platform.verifySnapshotFile`
+
+## platform.snapshotArchiveByteSize
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_archive.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func snapshotArchiveByteSize(manifestBytes int64, files []DomainSnapshotFile) (int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.snapshotBudget`
+
+## platform.BuildSnapshotArchive
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_archive.go`
+- 作用：严格公共V1清单后校验整棵已捕获文件列表/普通文件/长度与USTAR可编码性。
+
+```go
+func BuildSnapshotArchive(ctx context.Context, workspace, output string, manifest DomainSnapshotManifest, validate func([]byte) error) (SnapshotArchiveResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格公共V1清单后校验整棵已捕获文件列表/普通文件/长度与USTAR可编码性。
+2. 首manifest.json canonical≤16MiB，后仅声明files/普通文件；文件含清单≤100000、全tar≤20GiB且两组终止块的精确物理长度。
+3. 一遍流复制逐项hash/长度/EOF核对，核真实剩余空间，不重读整个新构归档。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CheckSnapshotDiskBudget`、`platform.ValidatePrivatePath`、`platform.copySnapshotExact`、`platform.integrity`、`platform.snapshotArchiveByteSize`、`platform.snapshotCountedWriter.Write`、`platform.snapshotIOError`、`platform.snapshotUnsupported`、`platform.validateSnapshotInventory`、`platform.verifySnapshotInventoryTree`
+
+## platform.ExtractSnapshotArchive
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_archive.go`
+- 作用：只向空隔离目录有界解包，首清单严格模式与canonical校验。
+
+```go
+func ExtractSnapshotArchive(ctx context.Context, source io.Reader, root string, expected platform.ObjectRef, validate func([]byte) error) (SnapshotArchiveResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只向空隔离目录有界解包，首清单严格模式与canonical校验。
+2. 只接受USTAR普通文件，拒绝PAX/GNU/链接/跳转/重复/未声明/提前结束/多余尾随，逐项hash与全归档引用hash/精确长度/EOF全部核对。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CheckSnapshotDiskBudget`、`platform.ValidatePrivatePath`、`platform.copySnapshotExact`、`platform.decodeSnapshotCanonical`、`platform.integrity`、`platform.snapshotArchiveByteSize`、`platform.snapshotCountedReader.Read`、`platform.snapshotDirectory`、`platform.snapshotIOError`、`platform.syncSnapshotDirectories`、`platform.validateSnapshotInventory`
+
+## platform.NewSnapshotManager
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：必需真实完整回调，不导入业务域或自造数据清单。
+
+```go
+func NewSnapshotManager(config SnapshotConfig) (*SnapshotManager, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 必需真实完整回调，不导入业务域或自造数据清单。
+2. 从私有control读严格原屏障回执，核全值原输入摘要；重启旧safe先持久降为draining再真实证明。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.SnapshotManager.persistBarrier`、`platform.ValidatePrivatePath`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.snapshotIOError`
+
+## platform.SnapshotManager.persistBarrier
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func (m *SnapshotManager) persistBarrier() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.writeSnapshotJSON`
+
+## platform.SnapshotManager.signalLocked
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func (m *SnapshotManager) signalLocked()
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：无
+
+## platform.lockSnapshotControl
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func lockSnapshotControl(ctx context.Context, semaphore chan struct{}) (func(), error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.snapshotIOError`
+
+## platform.SnapshotManager.AdmitBusiness
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：读真实运行状态，仅running/非维护、同已打开epoch且本域屏障已released时在同mutex下签私有进程内lease。
+
+```go
+func (m *SnapshotManager) AdmitBusiness(ctx context.Context) (context.Context, func(), error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读真实运行状态，仅running/非维护、同已打开epoch且本域屏障已released时在同mutex下签私有进程内lease。
+2. 释放只在真实所有业务及后台IO退出后调用，不以HTTP返回代替后台结束。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.SnapshotManager.signalLocked`
+
+## platform.SnapshotManager.WriteWindow
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：只认本Manager尚活跃的business/cleanup私有lease与ctx，不认外部字段。
+
+```go
+func (m *SnapshotManager) WriteWindow(ctx context.Context) (time.Time, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只认本Manager尚活跃的business/cleanup私有lease与ctx，不认外部字段。
+2. 维护下只在当前BackupBarrier/RestoreStaging精确barrier/epoch和draining原截止内给收尾窗口；safe已封闭。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：无
+
+## platform.SnapshotCleanup.Context
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：仅固定drain回调当次活跃期可签发已有执行清理lease，保留原actor/root/费用归属，清旧Portal proof。
+
+```go
+func (c *SnapshotCleanup) Context(ctx context.Context) (context.Context, func(), error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅固定drain回调当次活跃期可签发已有执行清理lease，保留原actor/root/费用归属，清旧Portal proof。
+2. 截止为min(ctx,30s,原barrier deadline)，不新建模型或重算付费。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.SnapshotManager.signalLocked`
+
+## platform.SnapshotManager.runDrainCallback
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func (m *SnapshotManager) runDrainCallback(ctx context.Context, callback func(context.Context, *SnapshotCleanup) error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.SnapshotCleanup.Context`、`platform.SnapshotManager.signalLocked`
+
+## platform.SnapshotManager.waitCounts
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func (m *SnapshotManager) waitCounts(ctx context.Context, all bool) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.snapshotIOError`
+
+## platform.SnapshotManager.EnterBarrier
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：先核权威当前phase/barrier/epoch和原输入，同mutex下闭新准入并持久draining。
+
+```go
+func (m *SnapshotManager) EnterBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 先核权威当前phase/barrier/epoch和原输入，同mutex下闭新准入并持久draining。
+2. BeginDrain停领取/取消已有作业，等business全退出；Drain完成原费用、取消回执和最终outbox，关新cleanup签发并等存量清理结束。
+3. 读真实Watermark后复核当前权威和所有计数，才持久本进程safe。不以此自证全域/jobs最终安全。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.SnapshotManager.persistBarrier`、`platform.SnapshotManager.runDrainCallback`、`platform.SnapshotManager.signalLocked`、`platform.SnapshotManager.waitCounts`、`platform.integrity`、`platform.lockSnapshotControl`
+
+## platform.SnapshotManager.ReleaseBarrier
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：仅权威已running/非维护/无restore且当前opened epoch匹配、所有在途与文件IO为0时持久released。
+
+```go
+func (m *SnapshotManager) ReleaseBarrier(ctx context.Context, barrierID string) (SnapshotBarrierStatus, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅权威已running/非维护/无restore且当前opened epoch匹配、所有在途与文件IO为0时持久released。
+2. 不以释放屏障推导备份已加密持久或回收导出历史。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.SnapshotManager.persistBarrier`、`platform.SnapshotManager.signalLocked`、`platform.integrity`、`platform.lockSnapshotControl`
+
+## platform.SnapshotManager.beginFileOperation
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func (m *SnapshotManager) beginFileOperation(ctx context.Context, barrierID string) (SnapshotSafeCut, func(), error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.SnapshotManager.signalLocked`、`platform.lockSnapshotControl`
+
+## platform.SnapshotManager.Export
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：只在真实固定safe水位时由域Capture一致SQL副本与全部权威文件、对象、发布、引用，未知不填空数组。
+
+```go
+func (m *SnapshotManager) Export(ctx context.Context, input SnapshotExportInput) (SnapshotExportResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只在真实固定safe水位时由域Capture一致SQL副本与全部权威文件、对象、发布、引用，未知不填空数组。
+2. 原输入回执固定snapshotID；归档fsync后archive-prepared回执，再rename/目录fsync和complete回执。重试只核真实引用续接，不碰live或重算付费。
+3. 无DP真实全加密持久回执回收协议时保留导出归档。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.BuildSnapshotArchive`、`platform.CanonicalJSON`、`platform.SnapshotManager.beginFileOperation`、`platform.ValidatePrivatePath`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.removeSnapshotTree`、`platform.snapshotDirectory`、`platform.snapshotIOError`、`platform.syncSnapshotDirectories`、`platform.verifySnapshotExportRecord`、`platform.verifySnapshotFile`、`platform.writeSnapshotJSON`
+
+## platform.SnapshotManager.OpenArchive
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：只读真实complete回执与精确expected ObjectRef，全文件hash核对后才返回受控流，接收方仍核整流引用。
+
+```go
+func (m *SnapshotManager) OpenArchive(ctx context.Context, snapshotID string, expected platform.ObjectRef) (io.ReadCloser, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只读真实complete回执与精确expected ObjectRef，全文件hash核对后才返回受控流，接收方仍核整流引用。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.snapshotIOError`、`platform.verifySnapshotExportRecord`、`platform.verifySnapshotFile`
+
+## platform.removeSnapshotTree
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func removeSnapshotTree(path string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.ValidatePrivatePath`、`platform.snapshotIOError`
+
+## platform.fingerprintSnapshotTree
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func fingerprintSnapshotTree(ctx context.Context, root string, limit int64) (SnapshotTree, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.ValidatePrivatePath`、`platform.integrity`、`platform.safeSnapshotRelative`、`platform.snapshotBudget`、`platform.snapshotIOError`
+
+## platform.snapshotStageID
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func snapshotStageID(restoreID, snapshotID string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`
+
+## platform.verifySnapshotTarget
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func verifySnapshotTarget(ctx context.Context, root string, record snapshotStageRecord) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.fingerprintSnapshotTree`、`platform.integrity`
+
+## platform.SnapshotManager.Stage
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：核当前restore_staging的restore/barrier/host/target和本域safe；stageId=SHA256(canonical[restoreId,snapshotId])全64hex。
+
+```go
+func (m *SnapshotManager) Stage(ctx context.Context, input SnapshotStageInput, source io.Reader) (SnapshotStageResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核当前restore_staging的restore/barrier/host/target和本域safe；stageId=SHA256(canonical[restoreId,snapshotId])全64hex。
+2. 完整认证原归档后才由真实域MigrateStage/ValidateStaged建目标代，StageBudget必须给真实完整峰值，未知失败。
+3. 不变paid/body对象按原hash核对；完整目标文件和空目录排序canonical指纹为manifestHash，与源清单hash/全tar checksum分开。
+4. 文件/目录fsync后持久prepared-stage完整原输入/源清单/host/target/目标树，rename/fsync后持久staged；重启同输入续接仍核整树和域迁移证明。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.CheckSnapshotDiskBudget`、`platform.ExtractSnapshotArchive`、`platform.SnapshotManager.beginFileOperation`、`platform.SnapshotManager.finishStage`、`platform.fingerprintSnapshotTree`、`platform.integrity`、`platform.readSnapshotJSON`、`platform.removeSnapshotTree`、`platform.snapshotBudget`、`platform.snapshotDirectory`、`platform.snapshotIOError`、`platform.snapshotStageID`、`platform.syncSnapshotDirectories`、`platform.verifySnapshotFile`、`platform.writeSnapshotJSON`
+
+## platform.SnapshotManager.finishStage
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func (m *SnapshotManager) finishStage(ctx context.Context, recordPath, temporary, staged string, record snapshotStageRecord, recovered bool) (SnapshotStageResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.integrity`、`platform.snapshotDirectoryExists`、`platform.snapshotIOError`、`platform.syncSnapshotDirectories`、`platform.validateSnapshotInventory`、`platform.verifySnapshotTarget`、`platform.writeSnapshotJSON`
+
+## platform.SnapshotManager.Discard
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：只接受精确restore/scope和完整stage原回执，ReadRestoreSwapState核真实本地日志+目录组合。
+
+```go
+func (m *SnapshotManager) Discard(ctx context.Context, input SnapshotDiscardInput) (SnapshotDiscardResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只接受精确restore/scope和完整stage原回执，ReadRestoreSwapState核真实本地日志+目录组合。
+2. 仅当未换入的原restore staging、真实全域换回且running HostEpoch或全域完成且running TargetEpoch的对应scope可删。
+3. 先持久discarding意图再删目录/目录fsync/持久discarded，未知不删。
+4. 首次删除前核对对应staged目标树或before原host树。已discarded目录重新出现为未知数据不删；已discarding仅在相同当前授权下续接原删除意图。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.ReadRestoreSwapState`、`platform.integrity`、`platform.lockSnapshotControl`、`platform.readSnapshotStageRecord`、`platform.removeSnapshotTree`、`platform.snapshotDirectoryExists`、`platform.syncSnapshotDirectories`、`platform.verifySnapshotHash`、`platform.verifySnapshotTarget`、`platform.writeSnapshotJSON`
+
+## platform.verifySnapshotExportRecord
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_manager.go`
+- 作用：实现公共快照内部单一机制
+
+```go
+func verifySnapshotExportRecord(record snapshotExportRecord) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。
+
+**错误**
+
+- `VALIDATION`：装配或输入不合法（不可重试）
+- `CONFLICT`：原输入、屏障或既有回执绑定不一致（不可重试）
+- `INTEGRITY_ERROR`：真实清单、目录、摘要或journal证据矛盾（不可重试）
+- `UNSUPPORTED_SCHEMA`：清单或USTAR版本/路径不支持（不可重试）
+- `BUDGET_EXCEEDED`：容量、文件数、清单或完整归档超预算（不可重试）
+- `LOCKED`：真实安全截点或当前运行决定不匹配（可重试）
+- `VERSION_MISMATCH`：主机开启数据与运行或恢复代次不符（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：必需回调或权威不可用（不可重试）
+- `NOT_FOUND`：指定的本域屏障不存在（不可重试）
+- `CANCELLED`：调用IO已取消（不可重试）
+- `DEADLINE_EXCEEDED`：原屏障或ctx截止已到（不可重试）
+- `INTERNAL`：私有IO失败，不暴露路径/材料（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：启动换目录全局互斥，运行Manager控制及文件IO各自串行。
+- 幂等：原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。
+- 依赖：`platform.CanonicalJSON`、`platform.integrity`

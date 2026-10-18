@@ -2,11 +2,11 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 29 个：手写 27、生成 1、配置 1。函数 118 个：约束 21，参考 97。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 34 个：手写 32、生成 1、配置 1。函数 177 个：约束 21，参考 156。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
-| `libs/platform/serviceauth/assertion.go` | 手写 | 服务断言签发与验证 | `platform.SignAssertion`、`platform.VerifyAssertion`、`platform.validLoginScopes`（参考）、`platform.PrivateNetworkScopes`（参考）、`platform.SignOutboundRequest`（参考）、`platform.applyOperationHeaders`（参考）、`platform.privateNetworkPeer`（参考）、`platform.PrivateBudgetNetworkScopes`（参考）、`platform.validBudgetScopes`（参考）、`platform.LoadSigningKey`（参考） |
+| `libs/platform/serviceauth/assertion.go` | 手写 | 服务断言签发与验证 | `platform.SignAssertion`、`platform.VerifyAssertion`、`platform.validLoginScopes`（参考）、`platform.PrivateNetworkScopes`（参考）、`platform.SignOutboundRequest`（参考）、`platform.applyOperationHeaders`（参考）、`platform.privateNetworkPeer`（参考）、`platform.PrivateBudgetNetworkScopes`（参考）、`platform.validBudgetScopes`（参考）、`platform.LoadSigningKey`（参考）、`platform.ResolveVisitorAddress`（参考） |
 | `libs/platform/serviceauth/delegation.go` | 手写 | 用户委托验证与作用域绑定的分页游标签名 | `platform.VerifyDelegation`、`platform.SignCursor`（参考）、`platform.VerifyCursor`（参考）、`platform.SignSessionAccess`（参考）、`platform.VerifySessionAccess`（参考）、`platform.GenerateSessionSecrets`（参考）、`platform.SignDelegation`（参考）、`platform.validSessionClaims`（参考）、`platform.PrivateOperationDigest`（参考） |
 | `libs/platform/opctx/context.go` | 手写 | 可信OperationContext构建 | `platform.BuildOperationContext` |
 | `libs/platform/problem/problem.go` | 手写 | 公共Problem输出 | `platform.WriteProblem`、`platform.FromError`（参考） |
@@ -19,13 +19,13 @@
 | `libs/platform/lifecycle/config.go` | 手写 | 服务配置加载 | `platform.LoadServiceConfig`、`platform.NormalizePublicURL`（参考）、`platform.CanonicalPublicOrigin`（参考）、`platform.ValidatePrivatePath`（参考） |
 | `libs/platform/lifecycle/runtime.go` | 手写 | 运行状态读取与监视 | `platform.ReadRuntime`、`platform.WatchRuntime`、`platform.NewSiteConfigClient`、`platform.NewWriteContext`（参考）、`platform.RunRecoveryLoop`（参考） |
 | `libs/platform/apivalidate/validator.go` | 手写 | HTTP入口统一请求校验中间件（kin-openapi openapi3filter） | `platform.NewRequestValidator`、`platform.NewPayloadValidator`（参考）、`platform.ServeEventStream`（参考）、`platform.NewServiceHandler`（参考）、`platform.NewIdentityAuthorizer`（参考）、`platform.ServeJSONEventStream`（参考）、`platform.envelopeJSONStream.Next`（参考）、`platform.envelopeJSONStream.Close`（参考） |
-| `libs/platform/lifecycle/restore_swap.go` | 手写 | 恢复换目录 | `platform.ApplyRestoreSwap` |
+| `libs/platform/lifecycle/restore_swap.go` | 手写 | 恢复换目录 | `platform.integrity`（参考）、`platform.readSnapshotStageRecord`（参考）、`platform.ApplyRestoreSwap`、`platform.snapshotDirectoryExists`（参考）、`platform.snapshotSwapPaths`（参考）、`platform.verifySnapshotHash`（参考）、`platform.snapshotRename`（参考）、`platform.snapshotSwapLog`（参考）、`platform.applySnapshotSwitch`（参考）、`platform.applySnapshotRollback`（参考）、`platform.ReadRestoreSwapState`（参考）、`platform.restoreLogState`（参考）、`platform.readRestoreLog`（参考）、`platform.appendRestoreLog`（参考）、`platform.syncDir`（参考）、`platform.splitLines`（参考） |
 | `libs/platform/lifecycle/service.go` | 手写 | 进程模板 | `platform.RunService` |
 | `libs/platform/cmd/nw-keys/main.go` | 手写 | 服务密钥生成工具 | `platform.main` |
 | `libs/platform/platform.go` | 手写 | 公共契约类型、接口和确定性纯工具，禁止业务规则 | `platform.CanonicalJSON`（参考）、`platform.NormalizeIOError`（参考） |
 | `libs/platform/go.mod` | 配置 | Go module nice-wiki/libs/platform；只依赖标准库与ADR0005登记的第三方库；各服务以相对replace引用 | 无 |
 | `libs/platform/go.sum` | 生成 | 依赖校验锁；由go mod download生成 | 无 |
-| `libs/platform/worker/client.go` | 手写 | 生成jobs HTTP端口到公共任务租约机制的一次性生产方schema适配 | `platform.NewJobsClient`（参考）、`platform.workerOperation`（参考）、`platform.decodeWorkerResponse`（参考）、`platform.ClaimJob`（参考）、`platform.StartJob`（参考）、`platform.HeartbeatJob`（参考）、`platform.CheckLease`（参考）、`platform.CompleteJob`（参考）、`platform.FailJob`（参考） |
+| `libs/platform/worker/client.go` | 手写 | 生成jobs HTTP端口到公共任务租约机制的一次性生产方schema适配 | `platform.NewJobsClient`（参考）、`platform.workerOperation`（参考）、`platform.decodeWorkerResponse`（参考）、`platform.ClaimJob`（参考）、`platform.StartJob`（参考）、`platform.HeartbeatJob`（参考）、`platform.CheckLease`（参考）、`platform.CompleteJob`（参考）、`platform.FailJob`（参考）、`platform.ClaimJobTypes`（参考） |
 | `libs/platform/modelclient/client.go` | 手写 | 真实生成网关HTTP端口到公共模型调用机制的单一严格适配 | `platform.NewGatewayClient`（参考）、`platform.decodeInvocation`（参考）、`platform.CreateInference`（参考）、`platform.CancelInference`（参考）、`platform.ResumeInference`（参考）、`platform.validatedModelNext`（参考）、`platform.validatedModelClose`（参考）、`platform.validatedModelLastID`（参考） |
 | `libs/platform/serviceauth/admission.go` | 手写 | 统一风控凭证签名机制 | `platform.SignAdmissionPermit`（参考）、`platform.VerifyAdmissionPermit`（参考）、`platform.validateAdmissionClaims`（参考）、`platform.SignGuardSession`（参考）、`platform.VerifyGuardSession`（参考）、`platform.validateGuardSession`（参考）、`platform.signGuardClaims`（参考）、`platform.verifyGuardClaims`（参考） |
 | `libs/platform/inbox/client.go` | 手写 | 真实事件订阅HTTP窄适配、失败关闭与准确累计统计 | `platform.NewEventConsumer`（参考）、`platform.eventConsumer.SubscribeEvents`（参考）、`platform.eventConsumer.AcknowledgeEvent`（参考） |
@@ -34,4 +34,9 @@
 | `libs/platform/lifecycle/parser_sandbox_linux_amd64.go` | 手写 | Linux amd64封闭系统调用允许集与硬资源限制 | `platform.EnterParserSandbox`（参考） |
 | `libs/platform/lifecycle/parser_sandbox_other.go` | 手写 | 其他平台相同入口失败关闭，不降级非隔离PDF | 无 |
 | `libs/platform/web/module-api.ts` | 手写 | 浏览器非序列化模块API端口与bootstrap类型，不暴露HttpOnly秘密 | 无 |
-| `libs/platform/lifecycle/identity.go` | 手写 | 各域启动服务身份描述与本站签名公钥匹配共用边界 | `platform.LoadServiceIdentity`（参考）、`platform.readIdentityConfig`（参考） |
+| `libs/platform/lifecycle/identity.go` | 手写 | 各域启动服务身份描述与本站签名公钥匹配共用边界 | `platform.LoadServiceIdentity`（参考）、`platform.readIdentityConfig`（参考）、`platform.LoadPortalDelegation`（参考） |
+| `libs/platform/lifecycle/snapshot_types.go` | 手写 | 公共快照types | 无 |
+| `libs/platform/lifecycle/snapshot_io.go` | 手写 | 公共快照io | `platform.snapshotIOError`（参考）、`platform.snapshotBudget`（参考）、`platform.snapshotUnsupported`（参考）、`platform.decodeSnapshotCanonical`（参考）、`platform.readSnapshotJSON`（参考）、`platform.syncSnapshotDirectories`（参考）、`platform.snapshotDirectory`（参考）、`platform.writeSnapshotJSON`（参考）、`platform.safeSnapshotRelative`（参考）、`platform.CheckSnapshotDiskBudget`（参考）、`platform.copySnapshotExact`（参考）、`platform.verifySnapshotFile`（参考） |
+| `libs/platform/lifecycle/snapshot_archive.go` | 手写 | 公共快照archive | `platform.snapshotCountedReader.Read`（参考）、`platform.snapshotCountedWriter.Write`（参考）、`platform.validateSnapshotInventory`（参考）、`platform.verifySnapshotInventoryTree`（参考）、`platform.snapshotArchiveByteSize`（参考）、`platform.BuildSnapshotArchive`（参考）、`platform.ExtractSnapshotArchive`（参考） |
+| `libs/platform/lifecycle/snapshot_barrier.go` | 手写 | 公共快照barrier | `platform.NewSnapshotManager`（参考）、`platform.SnapshotManager.persistBarrier`（参考）、`platform.SnapshotManager.signalLocked`（参考）、`platform.lockSnapshotControl`（参考）、`platform.SnapshotManager.AdmitBusiness`（参考）、`platform.SnapshotManager.WriteWindow`（参考）、`platform.SnapshotCleanup.Context`（参考）、`platform.SnapshotManager.runDrainCallback`（参考）、`platform.SnapshotManager.waitCounts`（参考）、`platform.SnapshotManager.EnterBarrier`（参考）、`platform.SnapshotManager.ReleaseBarrier`（参考） |
+| `libs/platform/lifecycle/snapshot_manager.go` | 手写 | 公共快照manager | `platform.SnapshotManager.beginFileOperation`（参考）、`platform.SnapshotManager.Export`（参考）、`platform.SnapshotManager.OpenArchive`（参考）、`platform.removeSnapshotTree`（参考）、`platform.fingerprintSnapshotTree`（参考）、`platform.snapshotStageID`（参考）、`platform.verifySnapshotTarget`（参考）、`platform.SnapshotManager.Stage`（参考）、`platform.SnapshotManager.finishStage`（参考）、`platform.SnapshotManager.Discard`（参考）、`platform.verifySnapshotExportRecord`（参考） |
