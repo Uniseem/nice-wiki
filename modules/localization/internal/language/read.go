@@ -26,7 +26,7 @@ func ListLanguages(ctx context.Context, op OperationContext, input ListLanguages
 			}
 			return ListLanguagesResult{}, platform.NewError(platform.CodeForbidden, false, "公开站点服务只能读取已启用语言")
 		}
-		if !hasGrant(op.Actor.Grants, "localization.manage") {
+		if op.Actor.Kind != "admin" {
 			return ListLanguagesResult{}, platform.NewError(platform.CodeForbidden, false, "停用语言列表需要语言管理权限")
 		}
 	}

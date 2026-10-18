@@ -63,3 +63,11 @@
 EstimateLanguagePlan先核当前语言管理权限，再以本域纯服务身份调用model-gateway:estimateTokens。按接口限制分批发送实际待估文本，不截断文本或复制token算法；清除原portal proof/用户委托并保留站点、epoch、root、费用类别及更早截止。随后调用quoteCost，未知价格保留警告，不伪造零费用。此函数仍planned，本次只修合同，不触发任何模型或额度操作。
 
 上述纯服务保留本站通过平台统一签名siteId传递；清portal proof后建立localization纯服务actor并保留已核本站，不能把旧无声明的system控制作用域替代本站，也不以原portal proof或未签名站点绕过。EstimateLanguagePlan本身仍planned。
+
+## R1 首组规则收口（2026-10-18）
+
+语言标签使用已批准的 x/text/language 解析和标准大小写/脚本/私用标签表示，拒空、长度>35、下划线及解析错误。归一化函数返回规范形式；语言配置仍按用户原文保存和显示，不改写既有禁用语义。写入不允许另一原文标签代表相同规范语言。排版方向继续采用已确认 ar/he/fa/ur 规范主子标签为 rtl、其余为 ltr。权限在平台HTTP入口即时核验，内层不再要求未由该入口填充的 Grants；需要人工的命令仍要求 admin 主体。
+
+术语以 NFC/去首尾空白、规范源/目标BCP47及scope+documentId+sourceTerm建立唯一活动身份。软删不删除历史身份和版本；全站 glossaryGeneration 持久单调，删除最后词条后不回退为0。分页游标绑定源/目标/epoch/首屏代数，变化返回版本冲突。解析以document范围优先global、同范围冲突失败关闭、原词长者优先。任一改动与代数/outbox同事务，只令相关目标机翻manifest stale，protected/human文本保持，仅置review；不自动重译或发生费用。未登记源语言的旧manifest按目标语言保守失效。
+
+memory异步批准命令的人工授权发生在memory批准入口：命令通过memory服务断言携带持久的approvedBy/approvalRevision/proposalHash，受同站/同根/同代绑定保护。本域只接受该来源，不接受浏览器或其他服务自称批准；不依赖原用户10秒委托或要求已过期会话重新批准。术语执行仍核对本域当前代次、维护屏障、expectedGlossaryGeneration及term版本/唯一身份；代数或术语冲突持久记rejected并发布终态，成功记applied及原结果代数。proposalId终身幂等；相同ID但批准人/修订/hash/完整词条/expected代数/根/站/epoch不同均拒绝，不因七天普通回执过期而重做。批准人之后撤销会话不撤销已持久批准事实；新的未批准操作仍由即时权限阻止。

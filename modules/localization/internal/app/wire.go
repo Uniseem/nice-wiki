@@ -15,6 +15,7 @@ import (
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/localization/internal/gen"
 	"nice-wiki/modules/localization/internal/language"
+ "nice-wiki/modules/localization/internal/glossary"
 	localizationruntime "nice-wiki/modules/localization/internal/runtime"
 	"nice-wiki/modules/localization/internal/transport"
 )
@@ -89,7 +90,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
 	}
 	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
-	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
+	handlers:=language.NewLanguageHandlers()
+ for id,handler:=range glossary.NewGlossaryHandlers(){handlers[id]=handler}
+ _, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
 		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
@@ -104,8 +107,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"putLanguage":        {"portal"},
 			"setLanguageEnabled": {"portal"},
 			"listLanguages":      {"portal", "public-site"},
+ "putGlossaryTerm":{"portal"},"deleteGlossaryTerm":{"portal"},"listGlossary":{"portal"},"rollbackAutomaticGlossaryBatch":{"portal"},"applyApprovedGlossaryProposal":{"memory"},
 		},
-	}, language.NewLanguageHandlers())
+	}, handlers)
 	if err != nil {
 		return nil, err
 	}

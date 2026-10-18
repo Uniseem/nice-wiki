@@ -4,6 +4,8 @@ package language
 
 import (
 	"context"
+ "strings"
+ textlanguage "golang.org/x/text/language"
 
 	"nice-wiki/libs/platform"
 )
@@ -22,14 +24,11 @@ type NormalizeLanguageTagResult struct {
 	Direction string `json:"direction"`
 }
 
-// NormalizeLanguageTag 拒绝空标签和超过 35 的标签。
-// 合同没有写明大小写、脚本子标签和私用用法如何变成规范形式，
-// 因此其余输入失败关闭，不返回改写后的标签或方向。
-func NormalizeLanguageTag(ctx context.Context, op OperationContext, input NormalizeLanguageTagInput) (NormalizeLanguageTagResult, error) {
-	_ = ctx
-	_ = op
-	if input.Tag == "" || len(input.Tag) > 35 {
-		return NormalizeLanguageTagResult{}, platform.NewError(platform.CodeValidation, false, "语言标签为空或超过35")
-	}
-	return NormalizeLanguageTagResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "语言标签大小写、脚本与私用归一化尚未在合同写明")
+// NormalizeLanguageTag 用已批准的 x/text/language 规范BCP47；配置展示标签仍按用户原文保存。
+func NormalizeLanguageTag(ctx context.Context,op OperationContext,input NormalizeLanguageTagInput)(NormalizeLanguageTagResult,error){
+ if input.Tag==""||len(input.Tag)>35||strings.Contains(input.Tag,"_"){return NormalizeLanguageTagResult{},platform.NewError(platform.CodeValidation,false,"语言标签为空、超过35或使用非BCP47分隔符")}
+ tag,err:=textlanguage.Parse(input.Tag);if err!=nil{return NormalizeLanguageTagResult{},platform.NewError(platform.CodeValidation,false,"语言标签不是有效BCP47")}
+ normalized:=tag.String();if len(normalized)>35{return NormalizeLanguageTagResult{},platform.NewError(platform.CodeValidation,false,"规范语言标签超过35")}
+ base,_:=tag.Base();direction:="ltr";switch base.String(){case "ar","he","fa","ur":direction="rtl"}
+ return NormalizeLanguageTagResult{Tag:normalized,Direction:direction},nil
 }

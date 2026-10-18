@@ -141,3 +141,5 @@
 ## 第四轮首页跨域只读协议
 
 listLanguages明确includeDisabled默认false，public-site纯服务仅该只读范围。接口/后台仍按台账未完成，不能据页面进程ready推断语言启用。
+
+R1新增 `003_glossary_catalog.sql`：glossary.deleted及活动scope唯一索引、domain_versions全站术语/界面代数；approved_proposals补siteId/rootOperationId/结果代数，保证跨重试的批准事实绑定。interface_sources为既有固定界面字典来源的本域私有持久表，尚未接入界面写链时不声称已有可用字典。迁移001/002不修改。

@@ -24,7 +24,7 @@ type SetLanguageEnabledResult = gen.SetLanguageEnabledResult
 
 // PutLanguage 按原文保存语言配置。它不改写标签，不探测模型，也不创建翻译任务。
 func PutLanguage(ctx context.Context, op OperationContext, input PutLanguageInput) (PutLanguageResult, error) {
-	if !hasGrant(op.Actor.Grants, "localization.languages") {
+	if op.Actor.Kind != "admin" {
 		return PutLanguageResult{}, platform.NewError(platform.CodeForbidden, false, "缺少语言配置权限")
 	}
 	if err := requireIdempotencyKey(input.IdempotencyKey); err != nil {
@@ -68,7 +68,8 @@ func PutLanguage(ctx context.Context, op OperationContext, input PutLanguageInpu
 	if err := rejectHeldBarrier(ctx, tx); err != nil {
 		return PutLanguageResult{}, err
 	}
-	if err := rejectOtherDefault(ctx, tx, input.Language.Tag, input.Language.IsDefault); err != nil {
+	if err:=rejectLanguageAlias(ctx,tx,input.Language.Tag);err!=nil{return PutLanguageResult{},err}
+ if err := rejectOtherDefault(ctx, tx, input.Language.Tag, input.Language.IsDefault); err != nil {
 		return PutLanguageResult{}, err
 	}
 	_, epoch, found, err := loadLanguage(ctx, tx, input.Language.Tag)
@@ -133,7 +134,7 @@ func updateLanguage(ctx context.Context, tx *sql.Tx, input PutLanguageInput, now
 
 // SetLanguageEnabled 启停已有语言。直接启用不会打开自动翻译，也不删除人工译文。
 func SetLanguageEnabled(ctx context.Context, op OperationContext, input SetLanguageEnabledInput) (SetLanguageEnabledResult, error) {
-	if !hasGrant(op.Actor.Grants, "localization.languages") {
+	if op.Actor.Kind != "admin" {
 		return SetLanguageEnabledResult{}, platform.NewError(platform.CodeForbidden, false, "缺少语言配置权限")
 	}
 	if err := requireIdempotencyKey(input.IdempotencyKey); err != nil {
@@ -235,4 +236,11 @@ func rejectOtherDefault(ctx context.Context, tx *sql.Tx, tag string, isDefault b
 		return platform.NormalizeIOError(err, platform.CodeInternal, false, "默认语言不可读")
 	}
 	return platform.NewError(platform.CodeConflict, false, "已存在其他默认语言")
+}
+
+// rejectLanguageAlias 保留原文标签显示，但不允许两个配置代表同一规范语言。
+func rejectLanguageAlias(ctx context.Context,tx *sql.Tx,tag string)error{
+ wanted,err:=NormalizeLanguageTag(ctx,OperationContext{},NormalizeLanguageTagInput{Tag:tag});if err!=nil{return err}
+ rows,err:=tx.QueryContext(ctx,`SELECT language_tag FROM languages WHERE language_tag<>?`,tag);if err!=nil{return mapWriteErr(err)};defer rows.Close()
+ for rows.Next(){var other string;if err=rows.Scan(&other);err!=nil{return mapWriteErr(err)};normalized,err:=NormalizeLanguageTag(ctx,OperationContext{},NormalizeLanguageTagInput{Tag:other});if err!=nil{return platform.NewError(platform.CodeIntegrityError,false,"现有语言标签不能规范解析")};if normalized.Tag==wanted.Tag{return platform.NewError(platform.CodeConflict,false,"规范语言已存在其他原文标签配置")}};return mapWriteErr(rows.Err())
 }
