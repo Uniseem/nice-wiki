@@ -1,3 +1,21 @@
+# 最终网关源码交接，待统一GitLab CI
+
+本域冻结于源码 `3489670`（仅接收者限定标识修正），生产源码连续提交：`9d0d464`目录、`c57cd4c`单次连接probe、`a8f2b76`真实建库及隔离快照、`82e456d`原批准路线/价目事务条件、`6171abd`完整费用观察V2；前序文本/负证明/posted页及台账原提交继续保留。精确函数ID、原源码SHA及新业务/新参考助手/旧修改分列于progress.readyAwaitingCI；所有本轮修改均blocked待统一GitLab CI，不提前verified。
+
+原剩余13项中4项独立源码闭环：RotateCredential、ReadAdminCatalog、RefreshModelCatalog、CreateConnectionProbe。此前Create/Lookup/RequireTracking也具真实O_EXCL首次来源与认证restore生产者，未知旧库仍失败关闭；control已记录出生而active丢失不得重建空历史。剩余9项LoadRuntime/AcquireBarrier/ReleaseBarrier/ExportSnapshot/StageSnapshot/DiscardSnapshot/main/BuildApplication/Ready尚需根的最终scope、控制HTTP、生命周期与实际装配，不计完整ready。GatewaySnapshotConfig仅给真实域数据回调，Runtime/排空/受控归档取流与HTTP由根接。
+
+统计V2：GET /v1/statistics/ledger实际analytics纯服务/site/epoch，schemaVersion2；统一timeline固定上界，changes+observations共100项/2.5秒。无ledger调用/独立attempt/held真实观察与posted完整闭包；completeFeeCoverage=true只表示来源覆盖，不表示金额known，NULL/held/charge_unknown仍unknown/partial。每原安全快照16KiB、整页2MiB；pageHash对省略仅pageHash后的完整其余响应canonical JSON UTF8 SHA256，含真实nextCursor；24h平台签名v2 cursor。消费者按changeRevision归并，在隔离投影完成整个上界后激活，不公开半页结果。
+
+目录保MIT原JSON5806411字节与内容hash80a19a3c78de1a7b0eb0a72e13e44df21180f0681d6cdf1dbd4c4c345fae3fb6，来源和原许可在internal/catalog/bundled；总第三方/框架登记归根。下载不可用先最近持久源再真实bundled，UI说明来源；人工override/旧无ref保留、未知固定费用不补0。probe只当前超管按钮、固定极小请求、独立日限默认0不限，一attempt无自动重付；原memory.assistant已批准admin-probe仍真实AI profile链，未冒probe策略。
+
+快照V2完整SQL一致副本、真实全域水位、原付费调用及accepted媒体版本typed库存；未知active文件拒绝，不造ObjectRef。认证target投影不重基原invocation/fee/price/route/evidence/hash；原source只能认证读或当前超管人工对账，不复活旧执行。includeSecrets=false只清隔离副本加密material，保存原hash/版本/引用并VACUUM；普通空密钥损坏不当脱密，原destroyed_at审计空material单独识别。MG MasterKeyRef仍是可信部署私有引用，不进入data git；跨实例恢复必须实际具备原密钥材料，不能以cipher存在保证可解密。
+
+免费POST /v1/task-routes:resolve返回真实routeVersion、opaque ModelSnapshotHash及embedding五字段空间；Create可选expectedRouteVersion及整有序expectedPriceSnapshots，在实际接受TX完整重算eligible并复读真实价目，漂移STALE不收费。Go新字段/公共Snapshot V2类型依根生成。
+
+仅本地文档/Git/隐私与diff --check；未本机Go/gofmt/gen/build/vet/pnpm/check、未SQL执行/业务接口/模型/服务/部署/push。首次建库迁移中断且来源未完成保持维护拒绝，不清除控制事实。Root接续全部GitLab检查与双推；本会话释放MG转QA。
+
+以下为既有交付历史。
+
 # 安全posted统计生产页待统一GitLab CI
 
 源码 `9bc09f504c1708d93cb44addd7f45ef1cb93dda1`：新绑定ReadUsageStatisticsPage及三个参考readStatisticsLineage/validateUsageChange/ReadGatewaySiteID、新修改NewLedgerHandlers共5项源码ready。GET /v1/statistics/ledger只analytics纯服务；实际site-config响应装配当前site，当前epoch授权；append-only changeRevision固定上界与每entry真实ledgerRevision，100条/2.5秒、平台签名24小时游标。schema012同原ledger/void事务完整捕获新增/更改/删除/替代/作废，baseline仅升级真实第一次观察。只输出原冻结provider/model/原来源/真实金额，不查当前配置补历史。
