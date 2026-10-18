@@ -1,3 +1,5 @@
+V2源码 5b60328a703a35a6a4dff73965c24c2123364acc；精确新增/改动函数见progress.readyAwaitingCI最新batch。新增3助手，业务ready总数仍10；全部改动待统一GitLab CI。
+
 V2独立vault小批：control目录/对象/journal不随active替换；未知旧对象、旧记录或vault文件维护拒绝不删除。完整索引及完成journal同事务。新增3实际助手，累计10既有业务+36助手待统一GitLab CI，无本地编译/生成/真实操作。
 
 ManifestV1小批源码1ce78c9cc5c9327a1eb5888e1cdf8842840be048：BuildManifest/ValidateCrossDomainRefs及4实际参考助手就绪，累计10既有业务+33助手待统一GitLab CI。轻量top绑定14域同一backup/barrier/sourceEpoch、真实原manifest指纹与完整来源ref；实际认证DomainManifests另作证据，只有自身owner对象及content发布修订可声明权威。对象/发布完整身份不同hash拒绝；缺目标报告valid=false，封存入口必须拒绝；全局索引和top各2MiB，超限不截断。ReadBackup严格V1/canonical投影，不能透传私有header。需root common833与gen，未本地生成或编译/测试/真实调用。
