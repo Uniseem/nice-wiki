@@ -23,8 +23,8 @@ func SaveLanguagePreference(ctx context.Context,op OperationContext,input SaveLa
  err:=language.Mutate(ctx,op,"localization.SaveLanguagePreference",input.IdempotencyKey,input,&result,func(tx *sql.Tx)error{
   target,err:=interfacecatalog.EnabledLanguage(ctx,tx,input.Language);if err!=nil{var domain *platform.Error;if errors.As(err,&domain)&&domain.Code==platform.CodeNotFound{return platform.NewError(platform.CodeValidation,false,"偏好语言未启用")};return err}
   // 回执重放沿用第一次到期时刻，不能借重试无限延长持久期。
-  result=SaveLanguagePreferenceResult{Language:target,ExpiresAt:time.Now().UTC().Add(30*24*time.Hour).Format(time.RFC3339Nano)}
-  _,err=tx.ExecContext(ctx,`INSERT INTO language_preferences(visitor_subject,language,expires_at) VALUES(?,?,?) ON CONFLICT(visitor_subject) DO UPDATE SET language=excluded.language,expires_at=excluded.expires_at`,input.VisitorSubject,target,result.ExpiresAt)
+  result=SaveLanguagePreferenceResult{Language:target,ExpiresAt:time.Now().UTC().Add(30*24*time.Hour)}
+  _,err=tx.ExecContext(ctx,`INSERT INTO language_preferences(visitor_subject,language,expires_at) VALUES(?,?,?) ON CONFLICT(visitor_subject) DO UPDATE SET language=excluded.language,expires_at=excluded.expires_at`,input.VisitorSubject,target,result.ExpiresAt.Format(time.RFC3339Nano))
   return language.StorageError(err)
  });return result,err
 }
