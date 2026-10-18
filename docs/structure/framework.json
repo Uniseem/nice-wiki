@@ -784,6 +784,11 @@
       "purpose": "进程模板实现"
     },
     {
+      "path": "libs/platform/lifecycle/task_group.go",
+      "kind": "handwritten",
+      "purpose": "受监督本进程任务去重、固定原截止与关闭排空"
+    },
+    {
       "path": "libs/platform/modelclient/client.go",
       "kind": "handwritten",
       "purpose": "统一模型网关HTTP端口与原始事件schema适配"

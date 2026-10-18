@@ -63,7 +63,7 @@ func newProducerClient(name, baseURL, issuer string, key platform.SigningKey) *p
 	return &producerClient{
 		name:   name,
 		base:   strings.TrimRight(baseURL, "/"),
-		client: &http.Client{Transport: serviceauth.SigningTransport(issuer, name, key, nil)},
+		client: &http.Client{Transport: serviceauth.SigningTransport(issuer, name, key, nil), CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 	}
 }
 
@@ -102,6 +102,20 @@ func (c *producerClient) do(ctx context.Context, method, rawPath string, body an
 		return nil, problemToError(raw)
 	}
 	return json.RawMessage(raw), nil
+}
+
+// binary只打开已签名的受控响应，调用方负责有界读取/hash核对并Close。
+func (c *producerClient) binary(ctx context.Context, method, rawPath string, body any, idempotencyKey string) (*http.Response, error) {
+ var payload io.Reader
+ if body != nil { raw,err:=json.Marshal(body);if err!=nil{return nil,platform.NewError(platform.CodeValidation,false,"请求体编码失败")};payload=bytes.NewReader(raw) }
+ request,err:=http.NewRequestWithContext(ctx,method,c.base+rawPath,payload)
+ if err!=nil{return nil,platform.NewError(platform.CodeValidation,false,"受控字节请求构造失败")}
+ request.Header.Set("Accept","application/octet-stream")
+ if body!=nil{request.Header.Set("Content-Type","application/json")}
+ if idempotencyKey!=""{request.Header.Set("Idempotency-Key",idempotencyKey)}
+ response,err:=c.client.Do(request);if err!=nil{return nil,platform.NormalizeIOError(err,platform.CodeDependencyUnavailable,true,"受控字节拥有者不可达")}
+ if response.StatusCode>=300 {defer response.Body.Close();raw,readErr:=io.ReadAll(io.LimitReader(response.Body,1<<20));if readErr!=nil{return nil,platform.NewError(platform.CodeDependencyUnavailable,true,"受控字节失败响应不可读")};return nil,problemToError(raw)}
+ return response,nil
 }
 
 // sse 打开text/event-stream连接，返回帧读取器。
@@ -522,6 +536,7 @@ def render_operation(struct, producer, oid, method, path, op):
     """渲染客户端方法；查询和SSE游标按唯一OpenAPI参数传递。"""
     params, idempotency = op_signature_parts(op)
     sse = op.get("x-sse-kind", SSE_KIND.get(oid))
+    binary = any(str(status).startswith("2") and any(media != "text/event-stream" and (schema.get("schema", {}).get("format") == "binary" or media == "application/octet-stream") for media, schema in (response.get("content", {}) or {}).items()) for status, response in op.get("responses", {}).items())
     if sse and sse not in SSE_RETURNS:
         raise SystemExit(f"未知SSE操作 {oid}")
     has_body = method in ("POST", "PUT", "PATCH")
@@ -537,7 +552,7 @@ def render_operation(struct, producer, oid, method, path, op):
         args.append("idempotencyKey string")
     if queries:
         args.append("queries ...url.Values")
-    returns = SSE_RETURNS[sse] if sse else "(json.RawMessage, error)"
+    returns = SSE_RETURNS[sse] if sse else "(*http.Response, error)" if binary else "(json.RawMessage, error)"
     lines = [f"// {name} {method} {path}（{producer}:{oid}）。"]
     if queries:
         lines.append("// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。")
@@ -568,7 +583,7 @@ def render_operation(struct, producer, oid, method, path, op):
             lines.append('\tif idempotencyKey == "" { return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键") }')
         body_arg = "body" if has_body else "nil"
         key = "idempotencyKey" if idempotency else '""'
-        lines.append(f"\treturn c.do(ctx, http.Method{method.title()}, {expr}, {body_arg}, {key})")
+        lines.append(f"\treturn c.{'binary' if binary else 'do'}(ctx, http.Method{method.title()}, {expr}, {body_arg}, {key})")
     lines.append("}")
     return "\n".join(lines)
 

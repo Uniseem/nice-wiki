@@ -298,6 +298,8 @@ type DelegationExpectation struct {
 
 // RuntimeView site-config权威运行状态摘要。
 type RuntimeView struct {
+	Revision Revision `json:"revision"`
+	BarrierID Identifier `json:"barrierId,omitempty"`
 	DataEpoch       Identifier `json:"dataEpoch"`
 	Phase           string     `json:"phase"`
 	RestoreID       Identifier `json:"restoreId,omitempty"`
@@ -360,6 +362,7 @@ type ConsumerRunResult struct {
 
 // WorkerConfig 任务领取循环参数；owner为本域slug。
 type WorkerConfig struct {
+	OnLeaseRenewed func(context.Context, OperationContext, ClaimedJob, HeartbeatInfo) error `json:"-"`
 	Owner          string   `json:"owner"`
 	JobTypes       []string `json:"jobTypes"`
 	MaxConcurrency int      `json:"maxConcurrency"`
@@ -551,6 +554,7 @@ type InvokeModelOutcome struct {
 
 // ServiceConfig 通用服务配置；secret只保存引用路径。
 type ServiceConfig struct {
+	AllowedGitHosts []string `json:"allowedGitHosts,omitempty"`
 	Module            string            `json:"module"`
 	Listen            string            `json:"listen"`
 	DataRoot          string            `json:"dataRoot"`
@@ -579,6 +583,8 @@ const (
 
 // ClaimedJob jobs领取结果中的单个任务。
 type ClaimedJob struct {
+	// WorkerID为本轮平台领取者，不接受HTTP载荷自报。
+	WorkerID Identifier `json:"-"`
 	JobID           Identifier `json:"jobId"`
 	OperationID     Identifier `json:"operationId"`
 	RootOperationID Identifier `json:"rootOperationId"`

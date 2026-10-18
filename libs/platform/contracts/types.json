@@ -302,6 +302,14 @@
         "maintenance": {
           "type": "boolean",
           "description": "是否维护中"
+        },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "site-config control.db真实CAS水位，不以时间或0代替"
+        },
+        "barrierId": {
+          "type": "string",
+          "description": "当前运行控制屏障，缺省空"
         }
       },
       "required": [
@@ -467,6 +475,10 @@
         "operationContext": {
           "x-internal": true,
           "description": "Go可信回调(context.Context, ClaimedJob) (OperationContext,error)，从本域持久任务读取获准主体、预算与期限，不从任务ID猜测授权"
+        },
+        "onLeaseRenewed": {
+          "x-internal": true,
+          "description": "可选本域真实租约镜像CAS回调；初次start后及每次权威续约后调用，失败停止执行，不再调CheckLease或伪造心跳"
         }
       },
       "required": [
@@ -609,6 +621,16 @@
           "type": "string",
           "maxLength": 2048,
           "description": "可选部署主密钥绝对路径引用；由需要加密的域按用例读取，公共配置加载不读取密钥；省略或空值不影响无密钥的免费读取"
+        },
+        "allowedGitHosts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253
+          },
+          "maxItems": 64,
+          "description": "仅data-protection使用的可信Git主机allowlist，默认空拒远程；禁止由请求或Dependencies推导"
         }
       },
       "required": [
@@ -1083,6 +1105,16 @@
       "type": "object",
       "x-internal": true,
       "description": "inbox私有运行类型，不序列化也不跨域导入"
+    },
+    "TaskGroup": {
+      "type": "object",
+      "x-internal": true,
+      "description": "进程内受监督任务集合及回调，只管理生命周期不持有领域费用或业务状态"
+    },
+    "TaskGroupCallback": {
+      "type": "object",
+      "x-internal": true,
+      "description": "进程内受监督任务集合及回调，只管理生命周期不持有领域费用或业务状态"
     }
   }
 }

@@ -109,6 +109,7 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 
 // execute 执行单个任务：start→带心跳运行→校验租约→写回。
 func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.ClaimedJob) {
+	job.WorkerID = workerID
 	op, err := l.config.OperationContext(ctx, job)
 	if err != nil || op.OperationID != job.OperationID || op.RootOperationID != job.RootOperationID || op.DataEpoch != job.DataEpoch || op.CallerService != l.config.Owner {
 		return
@@ -127,12 +128,15 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 		return
 	}
 	defer lease.timer.Stop()
+	lease.onRenewed = l.config.OnLeaseRenewed
 	startCtx, cancelStart := executionLeaseContext(lease, jobCtx)
 	err = l.client.StartJob(workerControlContext(startCtx, op), job.JobID, workerID, job.FencingToken)
 	cancelStart()
 	if err != nil {
 		return
 	}
+	// 首次执行也取真实续租回执，不能拿本地时钟伪造域内镜像。
+	if renewExecutionLease(jobCtx, lease, false) != nil { return }
 	go l.heartbeat(jobCtx, lease)
 	executor := l.executors.Executor(job.JobType)
 	var result platform.JobExecutionResult
@@ -205,6 +209,7 @@ var errJobCancelled = errors.New("job cancellation requested")
 
 // executionLease以独立定时器限制本地执行权；续租RPC串行，避免旧回执覆盖新截止。
 type executionLease struct {
+	onRenewed func(context.Context, platform.OperationContext, platform.ClaimedJob, platform.HeartbeatInfo) error
 	ctx      context.Context
 	op       platform.OperationContext
 	client   platform.WorkerJobsClient
@@ -292,6 +297,15 @@ func renewExecutionLease(ctx context.Context, lease *executionLease, verify bool
 	}
 	if lease.ctx.Err() != nil {
 		return platform.NewError(platform.CodeCancelled, false, "任务执行已停止")
+	}
+	if lease.onRenewed != nil {
+		work, cancel = executionLeaseContext(lease, ctx)
+		callbackOp := lease.op
+		deadline, _ := work.Deadline()
+		callbackOp.Deadline = deadline.UTC().Format(time.RFC3339Nano)
+		err = lease.onRenewed(platform.WithOperationContext(platform.WithPortalProof(work, ""), callbackOp), callbackOp, lease.job, info)
+		cancel()
+		if err != nil { lease.cancel(errLeaseLost); return err }
 	}
 	return nil
 }

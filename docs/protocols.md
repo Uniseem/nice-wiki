@@ -83,3 +83,9 @@ guard createAdmission只分配持久元数据，token为空串。qa付费提问�
 ## 域快照归档版本1（2026-10-18）
 
 公共 `DomainSnapshotManifest` 为未压缩tar首entry `manifest.json` 的唯一来源，canonical JSON上限16MiB；仅允许声明的 `files/<relativePath>` 普通文件，拒绝链接/特殊节点、重复、路径遍历及未声明内容。总归档20GiB、最多100000文件。域在真实安全截点回调穷尽files、objects、publications与跨域references，未知不能用空数组冒充完整。目标方逐项核长度/哈希/原epoch/格式版本与EOF后暂存，目标epoch只由域迁移回调建立；旧正文块ID和付费结果不重新生成。
+
+## 后台监督与真实租约镜像
+
+TaskGroup只监督域已持久接受的本进程操作，Start唯一key去重并固定原业务deadline，HTTP断开不改deadline或取消接受任务；进程停止/显式Cancel/原deadline仍取消IO，关闭拒绝新任务并等所有回调退出。域回调负责终态/费用，监督集合不重派模型。WorkerConfig.OnLeaseRenewed在Start后的真实Heartbeat及每次权威续约后执行，只做本域同worker/fence/epoch镜像CAS，错误停止执行，禁止递归CheckLease或另造心跳。ClaimedJob.WorkerID由平台本轮领取者填入。RuntimeView.revision/barrierId来自真实site-config控制库，Ready不伪造水位。
+
+生成客户端对二进制成功响应返回带原Content-Type/Length/ETag的http.Response；调用方有界读、核引用并Close，所有拥有者客户端拒绝重定向，不把归档当JSON或跟随任意地址。AllowedGitHosts只由data-protection可信部署配置提供，默认空拒Git远程，不从请求或服务依赖推导。

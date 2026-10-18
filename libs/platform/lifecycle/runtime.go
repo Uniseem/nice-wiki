@@ -130,7 +130,7 @@ func ReadRuntime(ctx context.Context, client platform.SiteConfigClient) (platfor
 	if err != nil {
 		return platform.RuntimeView{}, platform.NewError(platform.CodeDependencyUnavailable, true, "site-config不可达")
 	}
-	if view.DataEpoch == "" || view.Phase == "" {
+	if view.DataEpoch == "" || view.Phase == "" || view.Revision < 1 {
 		return platform.RuntimeView{}, platform.NewError(platform.CodeIntegrityError, false, "运行状态不完整")
 	}
 	runtimeCache.Store(client, cacheEntry{view: view, readAt: time.Now()})

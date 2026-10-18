@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "eaed6c2f85177b3ed6fab79354c6b62c8485ba35dc85e92a87e4bc89d8801522",
+  "contractSha256": "b41aef2d05eb9dcc75d554d12dc548b51fa1d8381e76bb9c56fd455defcc787f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
   "branch": "codex/integration-20261017-r3",
@@ -239,6 +239,16 @@
         "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
       },
       "blocker": null
+    },
+    {
+      "path": "libs/platform/lifecycle/task_group.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "公共任务监督源码就绪，待GitLab"
     }
   ],
   "functions": [
@@ -344,13 +354,13 @@
     {
       "id": "platform.RunWorkerLoop",
       "path": "libs/platform/worker/loop.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "可信运行水位/租约回调或部署allowlist本轮改变，待GitLab重新检查"
     },
     {
       "id": "platform.InvokeModel",
@@ -366,24 +376,24 @@
     {
       "id": "platform.LoadServiceConfig",
       "path": "libs/platform/lifecycle/config.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "993904524e4d7a792a6c84a80606de6215f7ace5",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16两轮并行第二轮公共前置：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14现有Go模块readonly build/vet/gofmt及完整make check通过（865文件/1258函数/379操作/2277类型），精确格式/生成快照已回传；暂存/消息及身份隐私审计通过。仅配置引用，不读取真实主密钥；未新增测试/样例，未执行SQL/HTTP行为验收、真实模型、服务或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "可信运行水位/租约回调或部署allowlist本轮改变，待GitLab重新检查"
     },
     {
       "id": "platform.ReadRuntime",
       "path": "libs/platform/lifecycle/runtime.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "passed",
-        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "可信运行水位/租约回调或部署allowlist本轮改变，待GitLab重新检查"
     },
     {
       "id": "platform.WatchRuntime",
@@ -1325,6 +1335,72 @@
         "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
       },
       "blocker": null
+    },
+    {
+      "id": "platform.NewTaskGroup",
+      "path": "libs/platform/lifecycle/task_group.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "公共任务监督源码就绪，待GitLab"
+    },
+    {
+      "id": "platform.TaskGroup.Start",
+      "path": "libs/platform/lifecycle/task_group.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "公共任务监督源码就绪，待GitLab"
+    },
+    {
+      "id": "platform.TaskGroup.Cancel",
+      "path": "libs/platform/lifecycle/task_group.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "公共任务监督源码就绪，待GitLab"
+    },
+    {
+      "id": "platform.TaskGroup.Run",
+      "path": "libs/platform/lifecycle/task_group.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "公共任务监督源码就绪，待GitLab"
+    },
+    {
+      "id": "platform.TaskGroup.Drain",
+      "path": "libs/platform/lifecycle/task_group.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "公共任务监督源码就绪，待GitLab"
+    },
+    {
+      "id": "platform.TaskGroup.stop",
+      "path": "libs/platform/lifecycle/task_group.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "公共任务监督源码就绪，待GitLab"
     }
   ],
   "rule": "公共机制已通过自部署GitLab当前源码/生成/编译/结构检查；完整服务、业务验收和部署按各域未完成项保留。"

@@ -52,6 +52,8 @@ func LoadServiceConfig(args []string, env []string) (platform.ServiceConfig, err
 		return platform.ServiceConfig{}, err
 	}
 	applyFlags(flags, &config)
+ if len(config.AllowedGitHosts)>64 || (len(config.AllowedGitHosts)>0 && config.Module!="data-protection") {return platform.ServiceConfig{},platform.NewError(platform.CodeValidation,false,"Git主机allowlist只能由数据保护可信配置提供")}
+ for _,host:=range config.AllowedGitHosts { normalized,err:=idna.Lookup.ToASCII(host);if err!=nil||normalized!=strings.ToLower(host)||host==""||strings.ContainsAny(host,"/\\:@*?#[ ]\r\n\t") {return platform.ServiceConfig{},platform.NewError(platform.CodeValidation,false,"Git主机allowlist须为规范小写主机名")}}
 	if config.PublicBaseURL != "" {
 		config.PublicBaseURL, err = NormalizePublicURL(config.PublicBaseURL, config.AllowLocalHTTP)
 		if err != nil {

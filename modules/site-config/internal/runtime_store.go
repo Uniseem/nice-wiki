@@ -502,6 +502,8 @@ func (s *RuntimeStore) ReadRuntimeView(ctx context.Context) (platform.RuntimeVie
 		return platform.RuntimeView{}, err
 	}
 	return platform.RuntimeView{
+		Revision: platform.Revision(state.Revision),
+		BarrierID: runtimeIdentifier(state.BarrierId),
 		DataEpoch:       platform.Identifier(state.DataEpoch),
 		Phase:           string(state.Phase),
 		RestoreID:       runtimeIdentifier(state.RestoreId),
