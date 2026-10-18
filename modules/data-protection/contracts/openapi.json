@@ -2174,6 +2174,18 @@
         "name": "X-Restore-Progress-Token",
         "description": "CreateRestore签发、绑定restoreId的只读进度令牌"
       }
+    },
+    "schemas": {
+      "BackupManifestV1": {
+        "$ref": "./types.json#/$defs/BackupManifestV1"
+      },
+      "DomainSnapshotManifest": {
+        "$ref": "../../../contracts/common.schema.json#/$defs/DomainSnapshotManifest"
+      }
     }
-  }
+  },
+  "x-runtime-payload-schemas": [
+    "BackupManifestV1",
+    "DomainSnapshotManifest"
+  ]
 }

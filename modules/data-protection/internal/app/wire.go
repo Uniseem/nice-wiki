@@ -10,6 +10,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+ "nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/data-protection/internal/gen"
  protection "nice-wiki/modules/data-protection/internal"
@@ -65,6 +66,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
  catalog,err:=protection.OpenCatalog(ctx,config.DataRoot,view.DataEpoch,key);if err!=nil{return nil,err}
  if err=protection.ConfigureKeyring(catalog,config.MasterKeyRef);err!=nil{_ = catalog.Close();return nil,err}
+ catalog.PayloadValidators=map[string]func(json.RawMessage)error{}
+ for _,name:=range []string{"BackupManifestV1","DomainSnapshotManifest"}{validator,validationErr:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),name);if validationErr!=nil{_ = catalog.Close();return nil,validationErr};catalog.PayloadValidators[name]=validator}
  clients.Catalog=catalog;protection.InstallCatalog(catalog)
  startup:=platform.OperationContext{CallerService:ModuleSlug,DataEpoch:view.DataEpoch,Actor:platform.AuthContext{Kind:"service",SubjectID:ModuleSlug}}
  recovered,recoveryErr:=protection.RecoverProtectionJournal(ctx,startup,protection.RecoverProtectionJournalInput{StartupDataEpoch:view.DataEpoch});if recoveryErr!=nil{_ = catalog.Close();return nil,recoveryErr};clients.JournalRecovered=true;clients.JournalControlReady=recovered.ControlReady;clients.RequiresMaintenance=recovered.RequiresMaintenance

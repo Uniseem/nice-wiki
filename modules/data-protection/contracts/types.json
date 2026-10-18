@@ -1150,14 +1150,38 @@
             "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
             "description": "公共 SnapshotRef 合同，遵守其字段和空值规则"
           },
-          "maxItems": 10000,
-          "description": "有序列表；空列表表示没有可用项"
+          "maxItems": 14,
+          "description": "有序列表；空列表表示没有可用项",
+          "minItems": 14
+        },
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "keyId": {
+          "type": "string",
+          "pattern": "^kek-[0-9a-f]{64}$"
+        },
+        "domainManifests": {
+          "type": "array",
+          "minItems": 14,
+          "maxItems": 14,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/DomainSnapshotManifest"
+          },
+          "description": "来自与snapshots精确匹配、全文件hash/EOF已认证的真实tar证据；不能由未知清单补空数组"
         }
       },
       "required": [
         "backupId",
         "sourceEpoch",
-        "snapshots"
+        "snapshots",
+        "barrierId",
+        "createdAt",
+        "keyId",
+        "domainManifests"
       ]
     },
     "BuildManifestResult": {
@@ -1230,16 +1254,26 @@
           "type": "string",
           "description": "manifestJSON；UTF-8；不得为 null",
           "maxLength": 2097152
+        },
+        "domainManifests": {
+          "type": "array",
+          "minItems": 14,
+          "maxItems": 14,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/DomainSnapshotManifest"
+          },
+          "description": "来自与snapshots精确匹配、全文件hash/EOF已认证的真实tar证据；不能由未知清单补空数组"
         }
       },
       "required": [
-        "manifestJSON"
+        "manifestJSON",
+        "domainManifests"
       ]
     },
     "ValidateCrossDomainRefsResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "备份跨域引用一致性成功结果；失败不返回半成功结果",
+      "description": "真实校验报告；悬挂引用Valid=false并返回安全issues，malformed/混代/证据不匹配或超预算为error；任何调用者必须拒绝valid=false，不得置ready。",
       "properties": {
         "valid": {
           "type": "boolean",
@@ -3969,6 +4003,102 @@
         "revision"
       ],
       "description": "保存后安全只读策略，批准身份在私有记录，不返回AuthContext或凭据。"
+    },
+    "BackupDomainV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef"
+        },
+        "manifestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        }
+      },
+      "required": [
+        "snapshot",
+        "manifestHash"
+      ],
+      "description": "精确绑定源tar SnapshotRef及其首manifest.json的canonical摘要。"
+    },
+    "BackupReferenceV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceOwner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sourceManifestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "reference": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/DomainSnapshotReference"
+        }
+      },
+      "required": [
+        "sourceOwner",
+        "sourceManifestHash",
+        "reference"
+      ],
+      "description": "完整跨域引用与真实来源domain manifest绑定；相同来源相同目标仅做等价去重，完整域数组保留在原tar。"
+    },
+    "BackupManifestV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "nice-wiki.backup"
+        },
+        "schemaVersion": {
+          "const": 1
+        },
+        "backupId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "keyId": {
+          "type": "string",
+          "pattern": "^kek-[0-9a-f]{64}$",
+          "description": "创建实例KEK来源指纹，非密钥；移植导入后本机实际解密key由私有backup_runs.key_id及cipher header提供，不要求源KEK"
+        },
+        "domains": {
+          "type": "array",
+          "minItems": 14,
+          "maxItems": 14,
+          "items": {
+            "$ref": "#/$defs/BackupDomainV1"
+          }
+        },
+        "references": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/BackupReferenceV1"
+          }
+        }
+      },
+      "required": [
+        "format",
+        "schemaVersion",
+        "backupId",
+        "sourceEpoch",
+        "barrierId",
+        "createdAt",
+        "keyId",
+        "domains",
+        "references"
+      ],
+      "description": "canonical JSON≤2MiB轻量全局清单；域按owner字典顺序，引用按完整canonical值排序；全对象引用索引亦≤2MiB，超限失败不截断。"
     }
   }
 }

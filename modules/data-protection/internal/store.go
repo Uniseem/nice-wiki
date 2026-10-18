@@ -5,6 +5,7 @@ import (
  "context"
  "database/sql"
  "errors"
+ "encoding/json"
  "net/url"
  "os"
  "path/filepath"
@@ -20,7 +21,7 @@ import (
 )
 
 type OperationContext=platform.OperationContext
-type Store struct{Root string;Epoch string;Key platform.SigningKey;Keyring map[string]string;CryptoMu sync.Mutex;DB *sql.DB;Control *sql.DB;closeOnce sync.Once;closeErr error}
+type Store struct{Root string;Epoch string;Key platform.SigningKey;Keyring map[string]string;PayloadValidators map[string]func(json.RawMessage)error;CryptoMu sync.Mutex;DB *sql.DB;Control *sql.DB;closeOnce sync.Once;closeErr error}
 var installedStore atomic.Pointer[Store]
 
 // OpenCatalog 只打开本域active/control；control决定不随业务目录替换。

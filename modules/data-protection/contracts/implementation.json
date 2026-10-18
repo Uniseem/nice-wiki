@@ -965,9 +965,10 @@
           ],
           "purpose": "构建统一备份manifest",
           "steps": [
-            "按owner字典排序",
-            "校验每必需域恰一次/同epoch",
-            "记录schema、水位、hash、依赖ref清单和外部keyId"
+            "14个真实域SnapshotRef按owner排序，backupId/同sourceEpoch/同barrierId及schema/watermark/containsSecrets与已认证域manifest逐一精确一致。",
+            "构建BackupManifestV1，记录14份域清单hash及完整来源绑定引用；等价重复目标去重，原域tar原数组不改。",
+            "仅以实际domain objects及content publications验证目标；真实缺失失败，不能以快照存在/unknown空清单替代引用证明。",
+            "顶层JSON及实际全局权威引用索引均≤2MiB，域清单≤16MiB；超限BUDGET_EXCEEDED且不产生ready，不截断。"
           ],
           "errors": [
             {
@@ -983,6 +984,21 @@
               "httpStatus": 409,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "真实证据或格式/引用索引预算不满足。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "真实证据或格式/引用索引预算不满足。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "真实证据或格式/引用索引预算不满足。"
             }
           ],
           "sideEffects": [],
@@ -992,10 +1008,264 @@
           },
           "concurrency": "纯函数，不嵌secret/materialized token",
           "idempotency": "同snapshot清单同hash",
-          "dependencies": [],
+          "dependencies": [
+            "data-protection.bindDomainEvidence",
+            "data-protection.resolveReferenceTargets"
+          ],
           "resources": [
             "根contracts/modules.json"
           ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.ValidateCrossDomainRefs",
+          "name": "ValidateCrossDomainRefs",
+          "signature": "func ValidateCrossDomainRefs(ctx context.Context, op OperationContext, in ValidateCrossDomainRefsInput) (ValidateCrossDomainRefsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "ValidateCrossDomainRefsInput",
+              "description": "备份跨域引用一致性；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ValidateCrossDomainRefsResult",
+              "description": "备份跨域引用一致性成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "备份跨域引用一致性",
+          "steps": [
+            "输入另外提供与SnapshotRef全hash/EOF认证过的14份DomainSnapshotManifest，不把占位快照当完整对象枚举。",
+            "严格schema/canonical解析顶层轻量清单；重建owner有序清单hash与来源绑定引用，任何删项/改绑定/混barrier或epoch失败。",
+            "对象只由自身owner、发布修订只由content声明权威；同对象版本或同发布完整身份不得声明不同摘要。目标必须精确匹配全部ref字段，历史publication的epoch等也必须真实相同，不补造新epoch别名。",
+            "悬挂引用返回valid=false及安全issues，所有ready/restore调用方必须拒绝；结构错误、unknown分支/owner、索引/报告预算超限直接error。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "DANGLING_REFERENCE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 422,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "MIXED_EPOCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "真实证据或格式/引用索引预算不满足。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "真实证据或格式/引用索引预算不满足。"
+            }
+          ],
+          "sideEffects": [
+            "隔离校验报告"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "service备份/恢复worker"
+          },
+          "concurrency": "只读离线snapshot引用索引，不查旧live世界补全缺失",
+          "idempotency": "manifestHash幂等",
+          "dependencies": [
+            "data-protection.Catalog",
+            "data-protection.decodeBackupManifest",
+            "data-protection.validateManifestEvidence"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.bindDomainEvidence",
+          "name": "bindDomainEvidence",
+          "signature": "func bindDomainEvidence(backupID, epoch, barrierID string, snapshots []SnapshotRef, domains []DomainSnapshotManifest) ([]BackupDomainV1, []BackupReferenceV1, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "真实域证据/全局绑定清单的本域参考支持：bindDomainEvidence",
+          "steps": [
+            "使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部固定的完整快照/恢复校验链；纯算法不重查调用方身份。",
+          "concurrency": "输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。",
+          "idempotency": "相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.validateManifestEvidence",
+          "name": "validateManifestEvidence",
+          "signature": "func validateManifestEvidence(manifest BackupManifestV1, domains []DomainSnapshotManifest) (ValidateCrossDomainRefsResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "真实域证据/全局绑定清单的本域参考支持：validateManifestEvidence",
+          "steps": [
+            "使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部固定的完整快照/恢复校验链；纯算法不重查调用方身份。",
+          "concurrency": "输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。",
+          "idempotency": "相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。",
+          "dependencies": [
+            "data-protection.bindDomainEvidence",
+            "data-protection.resolveReferenceTargets"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.resolveReferenceTargets",
+          "name": "resolveReferenceTargets",
+          "signature": "func resolveReferenceTargets(domains []DomainSnapshotManifest, references []BackupReferenceV1) (ValidateCrossDomainRefsResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "真实域证据/全局绑定清单的本域参考支持：resolveReferenceTargets",
+          "steps": [
+            "使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部固定的完整快照/恢复校验链；纯算法不重查调用方身份。",
+          "concurrency": "输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。",
+          "idempotency": "相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.decodeBackupManifest",
+          "name": "decodeBackupManifest",
+          "signature": "func decodeBackupManifest(store *Store, raw string) (BackupManifestV1, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "真实域证据/全局绑定清单的本域参考支持：decodeBackupManifest",
+          "steps": [
+            "使用实际认证域证据与精确完整引用；未知/缺失证据不假称可恢复。JSON和索引有界，不把密钥或正文加入安全报告。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "结构、绑定、实际目标或预算不符时失败关闭。"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "内部固定的完整快照/恢复校验链；纯算法不重查调用方身份。",
+          "concurrency": "输入为已认证不可变tar元数据；构造不调模型、远程服务或业务写。",
+          "idempotency": "相同真实输入产生确定性canonical字节/hash；不补造引用或epoch。",
+          "dependencies": [],
+          "resources": [],
           "contract": "reference"
         }
       ]
@@ -1101,78 +1371,6 @@
           "resources": [
             "本域对象存储"
           ],
-          "contract": "reference"
-        },
-        {
-          "id": "data-protection.ValidateCrossDomainRefs",
-          "name": "ValidateCrossDomainRefs",
-          "signature": "func ValidateCrossDomainRefs(ctx context.Context, op OperationContext, in ValidateCrossDomainRefsInput) (ValidateCrossDomainRefsResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "调用取消与deadline；不得携带正文到日志",
-              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
-              "type": "ValidateCrossDomainRefsInput",
-              "description": "备份跨域引用一致性；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ValidateCrossDomainRefsResult",
-              "description": "备份跨域引用一致性成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "备份跨域引用一致性",
-          "steps": [
-            "解密各域归档manifest后校验content→media refs/derived published refs/gateway paid result refs",
-            "所有引用在同manifest存在或明确外部非secret指纹"
-          ],
-          "errors": [
-            {
-              "code": "INTEGRITY_ERROR",
-              "condition": "DANGLING_REFERENCE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 422,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "condition": "MIXED_EPOCH：在步骤中的对应校验或依赖失败",
-              "httpStatus": 409,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            }
-          ],
-          "sideEffects": [
-            "隔离校验报告"
-          ],
-          "authorization": {
-            "permission": "service",
-            "rule": "service备份/恢复worker"
-          },
-          "concurrency": "只读离线snapshot引用索引，不查旧live世界补全缺失",
-          "idempotency": "manifestHash幂等",
-          "dependencies": [],
-          "resources": [],
           "contract": "reference"
         }
       ]
@@ -2162,7 +2360,8 @@
           "steps": [
             "check backup.manage",
             "只返回安全manifest/keyId指纹和报告",
-            "不返回wrappedDEK/secret"
+            "不返回wrappedDEK/secret",
+            "非空安全manifest必须通过版本1严格schema/canonical，ready缺清单失败，wrappedDEK等未知字段不得透传。"
           ],
           "errors": [
             {
@@ -2190,7 +2389,8 @@
           "dependencies": [
             "data-protection.Catalog",
             "data-protection.requireAdministrator",
-            "data-protection.storageError"
+            "data-protection.storageError",
+            "data-protection.decodeBackupManifest"
           ],
           "resources": [],
           "contract": "binding"

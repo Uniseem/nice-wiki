@@ -64,3 +64,5 @@ manifest决定所有域同一个sourceEpoch与backupId，portal无业务数据�
 | `data-protection.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
 | `data-protection.RunWorker` | 启动后持续 | 主动领取并执行本域登记的持久任务 |
 <!-- flows:end -->
+
+轻量manifest先按14域同一backup/barrier/epoch固定元数据并核源manifest指纹，再以真实对象/发布完整ref验证引用闭包；unknown/缺域拒绝，悬挂引用报告valid=false，所有封存/恢复入口必须拒绝。2MiB全局索引超限明确预算错误，不删引用凑合。安全ReadBackup只投影该版本1清单，不返回私有cipher header或wrappedDEK。
