@@ -423,7 +423,7 @@
         },
         "stageId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "本域暂存回执ID（restoreId+snapshotId）"
+          "description": "本域暂存回执ID：sha256(canonical JSON [restoreId,snapshotId])完整64位十六进制；portal gate分支使用其登记配置证明。"
         },
         "targetDataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -439,7 +439,7 @@
         },
         "manifestHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "激活manifest证明；portal gate使用配置hash"
+          "description": "域激活证明绑定迁移后完整目标文件与目录树指纹，必须等于该stage回执manifestHash；源清单hash及归档checksum不可替代。portal gate独立按配置hash证明。"
         },
         "recordedAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",

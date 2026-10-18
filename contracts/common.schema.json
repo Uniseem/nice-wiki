@@ -847,6 +847,15 @@
         "staged": {
           "type": "boolean",
           "description": "暂存目录已fsync并登记"
+        },
+        "stageId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "新版生产方必给：sha256(canonical JSON [restoreId,snapshotId])；旧回执缺失时不得据此激活。"
+        },
+        "manifestHash": {
+          "$ref": "#/$defs/Hash",
+          "description": "新版生产方必给：迁移后完整目标普通文件与目录树canonical指纹；源域manifest hash和完整tar checksum分别保留，不混用。旧回执缺失不能激活。"
         }
       },
       "required": [
