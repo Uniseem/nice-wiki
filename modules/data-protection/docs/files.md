@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 68 个：手写 42、UI 4、生成 5、配置 10、迁移 6。函数 124 个：约束 43，参考 81。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 68 个：手写 42、UI 4、生成 5、配置 10、迁移 6。函数 125 个：约束 43，参考 82。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -32,7 +32,7 @@
 | `modules/data-protection/internal/outbox.go` | 手写 | 可靠发送操作状态；同文件职责限本域以下登记函数 | `data-protection.PublishProtectionEvents` |
 | `modules/data-protection/internal/events.go` | 手写 | 屏障通知消费；同文件职责限本域以下登记函数 | `data-protection.ConsumeBarrierEvent`、`data-protection.ConsumeEvents` |
 | `modules/data-protection/internal/barrier.go` | 手写 | 取得本域快照安全截点；同文件职责限本域以下登记函数 | `data-protection.EnterBarrier`、`data-protection.ReleaseBarrier` |
-| `modules/data-protection/internal/snapshot.go` | 手写 | 导出本域操作目录快照；同文件职责限本域以下登记函数 | `data-protection.CreateSnapshot` |
+| `modules/data-protection/internal/snapshot.go` | 手写 | 导出本域操作目录快照；同文件职责限本域以下登记函数 | `data-protection.CreateSnapshot`、`data-protection.validateSnapshotExportResult`（参考） |
 | `modules/data-protection/internal/import.go` | 手写 | 校验保护域快照；同文件职责限本域以下登记函数 | `data-protection.StageSnapshot`、`data-protection.DiscardSnapshot` |
 | `modules/data-protection/web/src/BackupPanel.vue` | UI | Vue3模块交互：RequestBackup；同文件职责限本域以下登记函数 | `data-protection.RequestBackup`（参考）、`data-protection.failBackup`（参考）、`data-protection.loadBackups`（参考）、`data-protection.submitBackup`（参考）、`data-protection.downloadBackup`（参考） |
 | `modules/data-protection/web/src/RestoreWizard.vue` | UI | Vue3模块交互：ApproveFullRestore；同文件职责限本域以下登记函数 | `data-protection.ApproveFullRestore`（参考）、`data-protection.failRestore`（参考）、`data-protection.validateRestore`（参考）、`data-protection.refreshRestoreProgress`（参考）、`data-protection.submitRestore`（参考） |
