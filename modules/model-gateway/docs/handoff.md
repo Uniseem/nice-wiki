@@ -1,3 +1,7 @@
+## 2026-10-18 本轮接口文字复核完成
+
+readUsageStatisticsPage的V2来源覆盖描述与实际类型/代码已同步，生成物及全部源码已通过GitLab pipeline158，未增加本域业务完成项。来源覆盖完整不等于金额已知；完整服务与公共保护装配继续按原阻塞记录。
+
 ## 2026-10-18 本轮公共契约文字核对
 
 仅更新readUsageStatisticsPage的OpenAPI描述，使其与已登记V2类型及实际生产方一致：changes与observations共享固定上界，覆盖来源不等于金额已知。未改变字段、权限或实现，不提高函数状态；生成与检查待本轮GitLab。

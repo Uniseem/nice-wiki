@@ -1,3 +1,13 @@
+# 2026-10-18 本轮源码检查通过，双推后停止
+
+自部署GitLab pipeline158（源码0215ee651253a9fb88526b14868da3384c0455b1）：生成/重复生成621、Go三分片622/623/624、前端625全部成功；16模块readonly build/vet/gofmt、已有普通go test、完整make check及六前端类型/构建通过，生成补丁0字节。当前无测试文件；仅源码检查，不代表业务验收或部署。
+
+本轮明确源码完整清单14项更新verified，具体ID见progress.json.lastRoundVerification；其余真实依赖、完整应用与后台scope保持blocked，业务accepted仍0。用户已授权本轮检查全部通过后普通双推main并停止；不继续下一功能包。
+
+费用V2固定水位/32MiB范围、原始pageHash和同事务inbox投影已过源码检查；完整费用查询、对账/聚合worker及真实订阅scope仍未闭环。
+
+以下为本轮检查前及更早历史，旧HTTP522/待编译文字不覆盖以上实际源码检查结论。
+
 # 2026-10-18 费用 V2 消费小闭环候选
 
 独占 worktree `/private/tmp/nice-wiki-analytics-20261018-r9`，分支 `codex/analytics-20261018-r9`。基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，修正源码 `7e72ff26892494393d52e2200382697078100343`。GitLab 只读探测 HTTP 522，全部生成/编译/vet/gofmt/make check 保持 blocked，未回退本机或SSH。

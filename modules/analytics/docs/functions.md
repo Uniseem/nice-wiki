@@ -3887,8 +3887,8 @@ func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.Sig
 
 **步骤**
 
-1. 本域私有路径平台校验，逐级fsync；SQLite WAL/FULL/FK/busy3000，单连接短事务V1迁移。
-2. 未知高版本或非空未版本化库拒绝；绑定真实siteId/epoch，不自己生成站点。inbox/outbox复用平台。
+1. 本域私有路径平台校验，逐级fsync；SQLite WAL/FULL/FK/busy3000，单连接短事务执行V1至V6连续迁移。
+2. 未知高版本或非空未版本化库拒绝；V6升级前旧费用投影/汇总/水位非空则明确拒绝，不猜原来源。绑定真实siteId/epoch，不自己生成站点；inbox/outbox复用平台。
 
 **错误**
 

@@ -2,7 +2,7 @@
 
 聚合匿名公开访问、管理操作审计和 model-gateway 费用引用，提供后台统计及导出；实时预算、账本余额仍由 model-gateway 决定。
 
-状态：按old已确认产品行为重建微服务设计；未实现业务代码，未创建测试样例，未执行真实接口或模型，未推送远程。产品追踪见[保留矩阵](../../docs/product-preservation.md)。
+阶段：R1实施。本轮费用V2消费与投影源码已通过GitLab完整检查；完整费用查询、后台scope、快照与服务装配仍未齐。业务验收与部署未开始，详见STATUS与逐项台账。
 
 - [需求与边界](docs/requirements.md)
 - [架构与依赖](docs/architecture.md)

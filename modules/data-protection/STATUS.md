@@ -1,3 +1,13 @@
+# 2026-10-18 本轮源码检查通过，双推后停止
+
+自部署GitLab pipeline158（源码0215ee651253a9fb88526b14868da3384c0455b1）：生成/重复生成621、Go三分片622/623/624、前端625全部成功；16模块readonly build/vet/gofmt、已有普通go test、完整make check及六前端类型/构建通过，生成补丁0字节。当前无测试文件；仅源码检查，不代表业务验收或部署。
+
+本轮明确源码完整清单1项更新verified，具体ID见progress.json.lastRoundVerification；其余真实依赖、完整应用与后台scope保持blocked，业务accepted仍0。用户已授权本轮检查全部通过后普通双推main并停止；不继续下一功能包。
+
+只将快照回执校验helper记完整；CreateSnapshot/ExportDomainSnapshot的真实回调、跨域端口与短委托未齐，继续blocked，完整备份/恢复未完成。
+
+以下为本轮检查前及更早历史，旧HTTP522/待编译文字不覆盖以上实际源码检查结论。
+
 恢复检查复核补充：缓存归档命中仍核完整manifest与本次SnapshotRef的schema、水位和secret声明，不能仅因ObjectRef hash相同跳过回执绑定；此窄修仍待GitLab，完整导出端口与超管任务短委托缺口保留blocked。
 
 根集成静态审阅补充：补齐ExportDomainSnapshotInput/Result的本域手写DTO，与types.json已登记字段一致；它们未被HTTP引用，因此不能假设生成器会产出。此修正仍待GitLab编译，未提高函数状态。

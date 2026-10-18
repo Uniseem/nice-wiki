@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "6a6e3f6f7f6a6a1b6b193467af8d4deadd5044294422e7af855cc2c11cf7f7a0",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-18单轮快照导出适配：源码候选待GitLab恢复检查，业务验收未执行",
+  "assignedSession": "本轮三个独占模块已顺序集成并通过GitLab源码检查；用户授权本轮双推后停止，不自动下一轮。",
   "branch": "codex/protection-20261018-r9",
   "baseCommit": "1f1e1b08cc047fe5be826cbc2bb51547a3779c02",
-  "deliveryCommit": "a8abda3097eef31ce8e43d6aaede7d1503d6bd9e",
+  "deliveryCommit": "0215ee651253a9fb88526b14868da3384c0455b1",
   "deployment": "not_started",
   "files": [
     {
@@ -43,12 +43,12 @@
     {
       "path": "modules/data-protection/internal/snapshot_client.go",
       "state": "blocked",
-      "implementationCommit": "a8abda3097eef31ce8e43d6aaede7d1503d6bd9e",
+      "implementationCommit": "0215ee651253a9fb88526b14868da3384c0455b1",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline158（源码0215ee651253a9fb88526b14868da3384c0455b1）：生成/重复生成621、Go三分片622/623/624、前端625全部成功；16模块readonly build/vet/gofmt、已有普通go test、完整make check及六前端类型/构建通过，生成补丁0字节。当前无测试文件；仅源码检查，不代表业务验收或部署。 SQL迁移与完整服务行为未执行；逐函数及装配状态另列。"
       },
-      "blocker": "GitLab只读探测HTTP522，源码未检查；生产方exportSnapshot/readSnapshotArchive客户端装配与原长期超管批准转为短委托的控制lane未完成。"
+      "blocker": "源码检查通过；文件内尚未闭环的职责见逐函数台账，不能将文件编译视为完整服务。"
     },
     {
       "path": "modules/data-protection/internal/manifest.go",
@@ -273,12 +273,12 @@
     {
       "path": "modules/data-protection/internal/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8abda3097eef31ce8e43d6aaede7d1503d6bd9e",
+      "implementationCommit": "0215ee651253a9fb88526b14868da3384c0455b1",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline158（源码0215ee651253a9fb88526b14868da3384c0455b1）：生成/重复生成621、Go三分片622/623/624、前端625全部成功；16模块readonly build/vet/gofmt、已有普通go test、完整make check及六前端类型/构建通过，生成补丁0字节。当前无测试文件；仅源码检查，不代表业务验收或部署。 SQL迁移与完整服务行为未执行；逐函数及装配状态另列。"
       },
-      "blocker": "GitLab只读探测HTTP522，源码未检查；公共SnapshotManager真实回调与HTTP handler尚未装配。"
+      "blocker": "源码检查通过；文件内尚未闭环的职责见逐函数台账，不能将文件编译视为完整服务。"
     },
     {
       "path": "modules/data-protection/internal/import.go",
@@ -592,13 +592,13 @@
     },
     {
       "path": "modules/data-protection/internal/store.go",
-      "state": "blocked",
-      "implementationCommit": "a8abda3097eef31ce8e43d6aaede7d1503d6bd9e",
+      "state": "verified",
+      "implementationCommit": "0215ee651253a9fb88526b14868da3384c0455b1",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline158（源码0215ee651253a9fb88526b14868da3384c0455b1）：生成/重复生成621、Go三分片622/623/624、前端625全部成功；16模块readonly build/vet/gofmt、已有普通go test、完整make check及六前端类型/构建通过，生成补丁0字节。当前无测试文件；仅源码检查，不代表业务验收或部署。 SQL迁移与完整服务行为未执行；逐函数及装配状态另列。"
       },
-      "blocker": "新增快照管理器与外部owner端口字段后尚未通过新GitLab检查；旧pipeline95证据不覆盖当前源码。"
+      "blocker": null
     },
     {
       "path": "modules/data-protection/migrations/0002_control.sql",
@@ -784,12 +784,12 @@
       "id": "data-protection.ExportDomainSnapshot",
       "path": "modules/data-protection/internal/snapshot_client.go",
       "state": "blocked",
-      "implementationCommit": "a8abda3097eef31ce8e43d6aaede7d1503d6bd9e",
+      "implementationCommit": "0215ee651253a9fb88526b14868da3384c0455b1",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline158（源码0215ee651253a9fb88526b14868da3384c0455b1）：生成/重复生成621、Go三分片622/623/624、前端625全部成功；16模块readonly build/vet/gofmt、已有普通go test、完整make check及六前端类型/构建通过，生成补丁0字节。当前无测试文件；仅源码检查，不代表业务验收或部署。 此函数完整装配未闭环。"
       },
-      "blocker": "GitLab HTTP522，源码未检查；真实owner export/read客户端注入与原持久超管批准生成短委托的控制lane未装配，保持端到端blocked。"
+      "blocker": "单域归档与缓存清单绑定源码已编译；13域真实端口、完整安全截点及原批准转短委托控制尚未装配，保持blocked。"
     },
     {
       "id": "data-protection.BuildManifest",
@@ -1213,23 +1213,23 @@
       "id": "data-protection.CreateSnapshot",
       "path": "modules/data-protection/internal/snapshot.go",
       "state": "blocked",
-      "implementationCommit": "a8abda3097eef31ce8e43d6aaede7d1503d6bd9e",
+      "implementationCommit": "0215ee651253a9fb88526b14868da3384c0455b1",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline158（源码0215ee651253a9fb88526b14868da3384c0455b1）：生成/重复生成621、Go三分片622/623/624、前端625全部成功；16模块readonly build/vet/gofmt、已有普通go test、完整make check及六前端类型/构建通过，生成补丁0字节。当前无测试文件；仅源码检查，不代表业务验收或部署。 此函数完整装配未闭环。"
       },
-      "blocker": "GitLab HTTP522，源码未检查；公共SnapshotManager真实回调与CreateSnapshot HTTP handler尚未装配。"
+      "blocker": "公共SnapshotManager适配已编译；本域真实快照回调和HTTP处理器尚未装配，保持blocked。"
     },
     {
       "id": "data-protection.validateSnapshotExportResult",
       "path": "modules/data-protection/internal/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": "a8abda3097eef31ce8e43d6aaede7d1503d6bd9e",
+      "state": "verified",
+      "implementationCommit": "0215ee651253a9fb88526b14868da3384c0455b1",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline158（源码0215ee651253a9fb88526b14868da3384c0455b1）：生成/重复生成621、Go三分片622/623/624、前端625全部成功；16模块readonly build/vet/gofmt、已有普通go test、完整make check及六前端类型/构建通过，生成补丁0字节。当前无测试文件；仅源码检查，不代表业务验收或部署。"
       },
-      "blocker": "GitLab只读探测HTTP522；纯校验源码完整但尚未编译检查。"
+      "blocker": null
     },
     {
       "id": "data-protection.StageSnapshot",
@@ -2068,7 +2068,7 @@
       "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     }
   ],
-  "rule": "readyAwaitingCI保留历史检查事实；本轮新增仅validateSnapshotExportResult为源码完整待GitLab。CreateSnapshot与ExportDomainSnapshot因handler/真实回调、外部owner端口及原超管批准转短委托未装配保持blocked，不计完成。",
+  "rule": "verified仅对应完整源码及本轮GitLab检查；accepted0。13域真实导出端口、SnapshotManager回调、原批准转短委托与完整备份恢复仍未齐。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "88cef9718165e87d431e36b327f23cb207792388",
@@ -2339,5 +2339,13 @@
         "data-protection.NewApplication"
       ]
     }
+  },
+  "lastRoundVerification": {
+    "pipeline": 158,
+    "commit": "0215ee651253a9fb88526b14868da3384c0455b1",
+    "verifiedFunctionIds": [
+      "data-protection.validateSnapshotExportResult"
+    ],
+    "note": "只更新本轮明确源码完整清单；部分装配仍blocked。"
   }
 }

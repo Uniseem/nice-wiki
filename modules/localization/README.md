@@ -2,7 +2,7 @@
 
 管理站点语言启停、发布内容增量翻译、人工保护、术语库、界面字符串和语言建议；翻译是绑定权威源修订的派生资产。
 
-阶段：R1实施。免费估价、明确批准、固定revision/价目、原批准scope与jobs任务意图已有源码候选，GitLab HTTP 522 待统一生成/编译，两个约束函数记 blocked。Portal 的 background costClass、完整HTTP链、翻译执行/付费worker与完整服务仍未完成；业务验收和部署未开始。
+阶段：R1实施。本轮免费语言计划、明确批准和必需支持已通过GitLab源码检查；Portal可信background costClass、完整HTTP链与真实翻译worker仍未齐。业务验收与部署未开始。
 
 - [requirements](docs/requirements.md)
 - [architecture](docs/architecture.md)

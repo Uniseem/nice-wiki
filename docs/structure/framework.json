@@ -689,6 +689,11 @@
       "purpose": "用户要求普通双推后停止的源码检查范围、未完草稿和隐私记录"
     },
     {
+      "path": "docs/push-log/2026-10-18-0009.md",
+      "kind": "documentation",
+      "purpose": "三代理追加一轮的GitLab恢复检查、精确交付与双推停止记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"

@@ -1,3 +1,13 @@
+# 2026-10-18 本轮源码检查通过，双推后停止
+
+自部署GitLab pipeline158（源码0215ee651253a9fb88526b14868da3384c0455b1）：生成/重复生成621、Go三分片622/623/624、前端625全部成功；16模块readonly build/vet/gofmt、已有普通go test、完整make check及六前端类型/构建通过，生成补丁0字节。当前无测试文件；仅源码检查，不代表业务验收或部署。
+
+本轮明确源码完整清单34项更新verified，具体ID见progress.json.lastRoundVerification；其余真实依赖、完整应用与后台scope保持blocked，业务accepted仍0。用户已授权本轮检查全部通过后普通双推main并停止；不继续下一功能包。
+
+免费估价与批准原scope、任务幂等、最终事务版本比较及真实界面源门禁已过源码检查；Portal可信background costClass和真实翻译worker仍未装配，完整浏览器流程不可视为可用。
+
+以下为本轮检查前及更早历史，旧HTTP522/待编译文字不覆盖以上实际源码检查结论。
+
 GitLab恢复检查：pipeline154重试生成605成功，Go分片603报告ExpiresAt应为生成的time.Time类型，已修正且保留DB原UTC字符串。另移除对未安装界面源目录的空集合旁路，复用SourceCatalog原DEPENDENCY_UNAVAILABLE语义；待新流水线复检，不把未知界面缺项估为0。
 
 本轮恢复检查补充：批准初查、任务意图事务和最终CAS分别调用同一私有版本核对；最终事务比较语言版本/档位、术语与界面代数、界面源hash和缺项数，避免网络核对期间的并发编辑穿过批准。参考函数签名按实际Go类型、指针和ctx/op顺序同步；仍待GitLab，未提前提高完成状态。
