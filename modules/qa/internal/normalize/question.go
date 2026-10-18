@@ -1,10 +1,9 @@
-// Package qa 实现问答域的纯规则与问答流程。
-package qa
+// Package normalize 实现问答缓存键的共享纯规范化规则。
+package normalize
 
 import (
 	"context"
 	"strings"
-	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -39,10 +38,6 @@ const (
 // NormalizeQuestion 将问题转换成稳定的缓存基准文本，并提取无需模型即可确定的
 // 数字、代码/产品标识、否定词和连续汉字锚点。该函数不读写存储，也不调用模型。
 func NormalizeQuestion(ctx context.Context, op OperationContext, input NormalizeQuestionInput) (NormalizeQuestionResult, error) {
-	startedAt := time.Now()
-	if err := checkNormalizeContext(ctx, op, startedAt); err != nil {
-		return NormalizeQuestionResult{}, err
-	}
 	if !validInputText(input.Question) || !validInputText(input.Language) {
 		return NormalizeQuestionResult{}, platform.NewError(platform.CodeValidation, false, "问答输入不合法")
 	}
@@ -57,9 +52,6 @@ func NormalizeQuestion(ctx context.Context, op OperationContext, input Normalize
 
 	normalized := normalizeWhitespace(input.Question)
 	normalized = foldNaturalCase(normalized)
-	if err := checkNormalizeContext(ctx, op, startedAt); err != nil {
-		return NormalizeQuestionResult{}, err
-	}
 	if normalized == "" || utf8.RuneCountInString(normalized) > maxQuestionRunes || len(normalized) > maxQuestionBytes {
 		return NormalizeQuestionResult{}, platform.NewError(platform.CodeValidation, false, "问题长度不合法")
 	}
@@ -69,33 +61,6 @@ func NormalizeQuestion(ctx context.Context, op OperationContext, input Normalize
 		QuestionHash: platform.HashBytes([]byte(languageTag + "\x00" + normalized)),
 		Anchors:      extractAnchors(normalized),
 	}, nil
-}
-
-func checkNormalizeContext(ctx context.Context, op OperationContext, startedAt time.Time) error {
-	if ctx == nil {
-		return platform.NewError(platform.CodeValidation, false, "问答上下文缺失")
-	}
-	select {
-	case <-ctx.Done():
-		if ctx.Err() == context.DeadlineExceeded {
-			return platform.NewError(platform.CodeDeadlineExceeded, false, "问答操作已超过期限")
-		}
-		return platform.NewError(platform.CodeCancelled, false, "问答操作已取消")
-	default:
-	}
-	if op.Deadline != "" {
-		deadline, err := platform.ParseTimestamp(op.Deadline)
-		if err != nil {
-			return platform.NewError(platform.CodeValidation, false, "问答截止时间不合法")
-		}
-		if !time.Now().UTC().Before(deadline) {
-			return platform.NewError(platform.CodeDeadlineExceeded, false, "问答操作已超过期限")
-		}
-	}
-	if time.Since(startedAt) >= 5*time.Second {
-		return platform.NewError(platform.CodeDeadlineExceeded, false, "问答操作已超过期限")
-	}
-	return nil
 }
 
 func validInputText(value string) bool {

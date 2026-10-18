@@ -224,3 +224,17 @@
 ## 第四轮首页跨域只读协议
 
 新增readPublicCapability免费只读入口配置能力，未知503由首页禁用QA按钮但保留hero。生产方函数planned，不以readyz或无参数假成功充当AI已配置。
+
+## 2026-10-18 第一批 SQL 实施
+
+`migrations/001_initial.sql` 是新域 schemaVersion 1。`qa_identity` 固定站点和恢复代次；普通短事务通过平台 `NewWriteContext`，SQL 内再核本域身份。`qa_receipts` 按站点/代次/主体/函数/键保存七天完整原回执和输入/结果 SHA-256，同键异输入冲突。私有策略、轮次、引用和缓存 JSON 在持久读取边界按生成 schema 校验，不把缺字段或 null 当默认成功。control、inbox/outbox 结构仍由平台机制维护。
+
+会话30天过期，过期/已删除读取为 GONE/410；消息按 ordinal 签名 keyset，签名绑定访客、代次、会话、历史代数及分页数量。准入只在线核对/消费 guard 原签名许可，request/action/subject/epoch/audience及原完整许可必须与消费回执一致，不保存原始IP。外部请求不能提交可信Planner字段。
+
+流事件与 Turn.lastSequence 同事务递增；来自模型的内部追加可携 sourceStep/sourceSequence，唯一键为 turnId+sourceStep+sourceSequence。同源同内容返回原序号，异内容失败关闭。只有终态用例能把 completed/error/cancelled 事件与 Turn 终态一并写入。SSE 排他回放，15秒非持久心跳，24小时保留期后410，不重新运行模型；单连接基础设施上限5分钟，断线以原序号续读，不创建新轮次。慢客户端每次输出受5秒写截止保护。
+
+缓存作用域为 site/epoch/qa.normalize.v1/基准语言/完整 EmbeddingSpace；记忆 hash 独立保存，精选只豁免记忆版本和TTL。规范化纯算法共享在 `internal/normalize/question.go`，不复制到cache与turn；作为纯计算不再解析通用deadline或检查ctx。正文 hash、BlockRef 与当前语言 href 通过 content 与 public-site 的真实公开权威校验；无引用缓存另外保存完整发布引用集合的 SHA-256，每次读取重新向 content 取集合比较，不依赖事件是否已抵达。
+
+精确缓存只接受完整问题，精选优先，普通缓存还必须匹配调用链固定的当前 qa.answer 记忆版本。管理员提交的 publicQuestion/publicAnswer 明确是经过其清理的基准语言公开内容，不复制访客原文或私人上下文、不自动翻译；只建立 pending，不命中。负反馈以当前 answerRevision、访客/turn 唯一保存，并同事务使该来源的普通缓存 stale、移除可命中向量，精选不受此普通反馈规则自动撤销。审计事件只包含ID、评分、版本与状态。
+
+阈值校准只读同一完整空间及时间范围的匿名 similarity/feedback 数据；0.05桶用于展示。至少100样本才建议，候选阈值不低于0.94，取满足误命中不超过1%的最低观测阈值；不足或无可用建议保留当前配置，不自动改策略。

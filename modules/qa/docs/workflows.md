@@ -66,3 +66,9 @@
 | `qa.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
 | `qa.RunWorker` | 启动后持续 | 主动领取本域持久任务 |
 <!-- flows:end -->
+
+## 2026-10-18 Planner 完整性与首批真实入口
+
+可信前置提示须明确要求：把代词、省略主体、未命名的第二步来源落实为完整独立 canonicalQuestion；仍缺任一来源则 needs_clarification、complete=false、cacheEligible=false、resolvedReferences=false。只有从已校验的历史/当前页实际解析完成、且规范问题能独立理解时才输出 resolvedReferences=true；私人化或动态页面依赖不能因改写而变为共享资格。缺该字段按 false。本域将对 Planner 文本结果严格 schema 解析并补入可信原问题、语言和上下文指纹；浏览器公共入口不接受这些字段。当前 PlanQuestion 模型流程尚未实现，完整 ExecuteTurn 仍未就绪；确定性 EvaluateCacheEligibility 已按此规则编写，不做关键词扫描。
+
+已编写的 HTTP 映射交平台 NewServiceHandler 统一身份、委托、权限、恢复代次、维护和请求结构校验。第一批只有实际已完成处理函数映射，完整 BuildApplication 仍须因缺其他操作而启动失败，不能运行一个缺路由的服务冒充交付。所有编译、生成与检查由根及时送 GitLab；本域不执行本机 Go、测试、模型或服务。

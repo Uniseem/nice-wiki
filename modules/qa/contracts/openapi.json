@@ -267,6 +267,16 @@
                 }
               }
             }
+          },
+          "410": {
+            "description": "GONE：对象或流已超过保留期",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -553,7 +563,7 @@
         "summary": "SSE断线重连",
         "x-handler": "qa.ResumeAnswerStream",
         "x-permission": "anonymous",
-        "x-timeout-ms": 5000,
+        "x-timeout-ms": 300000,
         "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
         "parameters": [
           {
@@ -599,6 +609,17 @@
               "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
             },
             "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "description": "排他续读，与afterSequence同时提供时取较大值；不启动新业务"
           }
         ],
         "responses": {
@@ -675,6 +696,16 @@
           },
           "default": {
             "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "GONE：对象或流已超过保留期",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1107,6 +1138,16 @@
           },
           "403": {
             "description": "FORBIDDEN：权限不足",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "登记的公共Problem错误；失败不返回部分成功结果",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1899,6 +1940,16 @@
           },
           "default": {
             "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "GONE：对象或流已超过保留期",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2928,6 +2979,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "登记的公共Problem错误；失败不返回部分成功结果",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         }
       }
@@ -2959,6 +3020,94 @@
         "name": "X-Admission-Permit",
         "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
+    },
+    "schemas": {
+      "GuardValidatePermitResult": {
+        "$ref": "../../traffic-guard/contracts/types.json#/$defs/ValidatePermitResult"
+      },
+      "GuardConsumeAdmissionResult": {
+        "$ref": "../../traffic-guard/contracts/types.json#/$defs/ConsumeAdmissionResult"
+      },
+      "GuardReleasePermitResult": {
+        "$ref": "../../traffic-guard/contracts/types.json#/$defs/ReleasePermitResult"
+      },
+      "ContentValidatePublicationsResult": {
+        "$ref": "../../content/contracts/types.json#/$defs/ValidatePublicationsResult"
+      },
+      "ContentReadPublishedRevisionResult": {
+        "$ref": "../../content/contracts/types.json#/$defs/ReadPublishedRevisionResult"
+      },
+      "ContentReadPublicTreeResult": {
+        "$ref": "../../content/contracts/types.json#/$defs/ReadPublicTreeResult"
+      },
+      "KnowledgeCreateQueryEmbeddingResult": {
+        "$ref": "../../knowledge/contracts/types.json#/$defs/CreateQueryEmbeddingResult"
+      },
+      "KnowledgeSearchResult": {
+        "$ref": "../../knowledge/contracts/types.json#/$defs/RetrieveResult"
+      },
+      "KnowledgeReadSectionsResult": {
+        "$ref": "../../knowledge/contracts/types.json#/$defs/ReadSectionsResult"
+      },
+      "MemoryResolveContextResult": {
+        "$ref": "../../memory/contracts/types.json#/$defs/ResolveContextResult"
+      },
+      "ModelTaskAvailabilityResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/ReadTaskAvailabilityResult"
+      },
+      "CreateInvocationResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/CreateInvocationResult"
+      },
+      "CancelInvocationResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/CancelInvocationResult"
+      },
+      "StreamEvent": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
+      },
+      "LocalizationCachedAnswerTranslationResult": {
+        "$ref": "../../localization/contracts/types.json#/$defs/ReadCacheAnswerTranslationResult"
+      },
+      "QaPolicy": {
+        "$ref": "./types.json#/$defs/QaPolicy"
+      },
+      "QaCacheEntry": {
+        "$ref": "./types.json#/$defs/CacheEntry"
+      },
+      "QaTurn": {
+        "$ref": "./types.json#/$defs/Turn"
+      },
+      "QaCitations": {
+        "type": "array",
+        "items": {
+          "$ref": "./types.json#/$defs/Citation"
+        },
+        "maxItems": 256
+      },
+      "PublicResolvePublishedLinkResult": {
+        "$ref": "../../public-site/contracts/types.json#/$defs/ResolvePublishedLinkResult"
+      }
     }
-  }
+  },
+  "x-runtime-payload-schemas": [
+    "GuardValidatePermitResult",
+    "GuardConsumeAdmissionResult",
+    "GuardReleasePermitResult",
+    "ContentValidatePublicationsResult",
+    "ContentReadPublishedRevisionResult",
+    "ContentReadPublicTreeResult",
+    "KnowledgeCreateQueryEmbeddingResult",
+    "KnowledgeSearchResult",
+    "KnowledgeReadSectionsResult",
+    "MemoryResolveContextResult",
+    "ModelTaskAvailabilityResult",
+    "CreateInvocationResult",
+    "CancelInvocationResult",
+    "StreamEvent",
+    "LocalizationCachedAnswerTranslationResult",
+    "QaPolicy",
+    "QaCacheEntry",
+    "QaTurn",
+    "QaCitations",
+    "PublicResolvePublishedLinkResult"
+  ]
 }

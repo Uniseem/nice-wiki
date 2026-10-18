@@ -788,6 +788,11 @@
         "contextFingerprint": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
           "description": "当前页历史及记忆摘要"
+        },
+        "resolvedReferences": {
+          "type": "boolean",
+          "default": false,
+          "description": "仅可信qa.preflight Planner输出：所有代词/省略的主体与来源已落实为独立canonicalQuestion；缺失按false，不从浏览器接受"
         }
       },
       "required": [
@@ -1716,6 +1721,18 @@
         "leaseId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "租约"
+        },
+        "sourceStep": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "可信执行步骤身份，不接受访客提供"
+        },
+        "sourceSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "该步骤的原MG持久事件序号，须与sourceStep同时提供"
         }
       },
       "required": [

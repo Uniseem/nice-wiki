@@ -1,5 +1,5 @@
 // Package cache 实现问答缓存的确定性准入。
-// 本文件只按已写明的布尔字段拒绝共享；指代残留没有可执行规则，因此不放行。
+// 指代是否补全只接受可信Planner字段，不扫描问题关键词。
 package cache
 
 import (
@@ -30,6 +30,7 @@ type QuestionPlan struct {
 	Classification     string        `json:"classification"`
 	Risk               string        `json:"risk"`
 	ContextFingerprint platform.Hash `json:"contextFingerprint"`
+ ResolvedReferences bool `json:"resolvedReferences"`
 }
 
 // EvaluateCacheEligibilityInput 是缓存准入输入。
@@ -46,13 +47,9 @@ type EvaluateCacheEligibilityResult struct {
 	Reason   string `json:"reason"`
 }
 
-// EvaluateCacheEligibility 只执行已写明的确定性拒绝。
-// 已补全看 plan.complete，非个性化看 privateContextDependent，
-// 非敏感动态看 plan.cacheEligible，仍依赖页面看 currentPageDependent。
-// 分类为 out_of_scope 时不写入可回答缓存。
-// 不读取问题原文，不接语义缓存、嵌入、模型或存储。
-// firstTurn 没有单独的准入句子，不据此放行或拒绝。
-// 指代是否残留这/它或未命名来源没有可执行规则，因此不返回 eligible=true。
+// EvaluateCacheEligibility 只消费可信Planner判定及已验证的上下文标志。
+// 私人化、当前页依赖、未补全、敏感动态或缺少明确指代补全证明均拒绝共享。
+// firstTurn 不单独放行；不使用问题关键词、风险标签或相似度代替完整性判定。
 func EvaluateCacheEligibility(ctx context.Context, op OperationContext, input EvaluateCacheEligibilityInput) (EvaluateCacheEligibilityResult, error) {
 	_ = ctx
 	_ = op
@@ -72,11 +69,8 @@ func EvaluateCacheEligibility(ctx context.Context, op OperationContext, input Ev
 	if !input.Plan.CacheEligible {
 		return ineligible(reasonAmbiguous), nil
 	}
-	// 已补全、非个性化、计划标记为非敏感动态，且不依赖当前页、不是 out_of_scope。
-	// 独立问题是否仍残留这/它或未命名的第二步来源，合同没有判定方法。
-	return ineligible(reasonAmbiguous), nil
+ if !input.Plan.ResolvedReferences || input.Plan.CanonicalQuestion=="" || input.Plan.Classification=="needs_clarification" {return ineligible(reasonAmbiguous),nil}
+ return EvaluateCacheEligibilityResult{Eligible:true,Reason:"complete"},nil
 }
 
-func ineligible(reason string) EvaluateCacheEligibilityResult {
-	return EvaluateCacheEligibilityResult{Eligible: false, Reason: reason}
-}
+func ineligible(reason string) EvaluateCacheEligibilityResult {return EvaluateCacheEligibilityResult{Eligible:false,Reason:reason}}
