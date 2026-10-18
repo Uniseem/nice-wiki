@@ -7,6 +7,7 @@
 - [需求与边界](docs/requirements.md)
 - [架构与依赖](docs/architecture.md)
 - [存储与迁移](docs/data.md)
+- [私有分片加密格式](docs/crypto-format.md)
 - [HTTP/SSE协议](docs/api.md)
 - [流程和状态机](docs/workflows.md)
 - [未来文件目录](docs/files.md)

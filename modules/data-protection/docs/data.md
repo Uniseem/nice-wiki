@@ -27,3 +27,5 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 R1实现收口：active/protection.db保存备份/对象/镜像目录、remote设置与目录revision；control/protection-control.db保存恢复运行、决定、域回执、屏障及journal，整体不参与业务恢复。各库user_version=1，未知更高版本拒绝启动。实际迁移0001_domain.sql与0002_control.sql在SQLite短事务应用；平台inbox/outbox直接EnsureSchema，不复制结构。对象只允许本域active/incoming、active/objects及restore隔离根，不能读取其他域私有路径。
 
 目录分页由created_at/backup_id倒序keyset和目录revision绑定，平台签名游标固定稳定身份/会话/权限修订/epoch/limit，10分钟过期；水位变化拒绝混页。未配置镜像或不存在备份返回NOT_FOUND，不用空成功伪造历史。
+
+分片私有密文格式见[crypto-format.md](crypto-format.md)与CryptoMetaV1/CryptoHeaderV1；配置MasterKeyRef只接受32字节私有KEK，启动keyring按指纹绑定路径，不从恢复输入推断路径。stored_objects只保存密文安全元数据，wrappedDEK仅在私有header。控制journal保存原输入摘要与真实完整引用/解密源摘要；备份历史/已付费对象不因失败清掉，未认证明文temp不得交付。源码只实现协议，不执行真实备份或恢复。

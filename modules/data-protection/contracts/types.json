@@ -1197,7 +1197,7 @@
         "expectedBytes": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9223372036854775807,
+          "maximum": 21475885056,
           "description": "expectedBytes 非负 int64；不用浮点数"
         }
       },
@@ -1287,13 +1287,36 @@
           "description": "owner；UTF-8；不得为 null",
           "maxLength": 2048,
           "minLength": 1
+        },
+        "sourceHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "sourceBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 21474836480
+        },
+        "dataSchemaVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "objectKind": {
+          "type": "string",
+          "enum": [
+            "snapshot",
+            "manifest"
+          ]
         }
       },
       "required": [
         "objectPath",
         "keyId",
         "backupId",
-        "owner"
+        "owner",
+        "sourceHash",
+        "sourceBytes",
+        "dataSchemaVersion",
+        "objectKind"
       ]
     },
     "EncryptBackupObjectResult": {
@@ -1307,7 +1330,7 @@
         },
         "nonce": {
           "type": "string",
-          "description": "nonce；UTF-8；不得为 null",
+          "description": "标准base64首帧96-bit nonce（prefix8+counter0），仅追溯；每帧独立counter，精确格式见crypto-format.md",
           "maxLength": 8192
         }
       },
@@ -2140,11 +2163,16 @@
         "requiresMaintenance": {
           "type": "boolean",
           "description": "requiresMaintenance 的明确真假结果，不可 null"
+        },
+        "controlReady": {
+          "type": "boolean",
+          "description": "本域已知journal可作为恢复控制入口：未知kind/state或缺已认证文件为false；未完成但真实切换决定不假称完成，维持maintenance可继续控制。"
         }
       },
       "required": [
         "recovered",
-        "requiresMaintenance"
+        "requiresMaintenance",
+        "controlReady"
       ]
     },
     "ValidateMirrorProjectionInput": {
@@ -3825,6 +3853,96 @@
         "expectedRevision",
         "actor"
       ]
+    },
+    "CryptoMetaV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "chunkSize": {
+          "const": 1048576
+        },
+        "backupId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "objectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "objectKind": {
+          "enum": [
+            "snapshot",
+            "manifest"
+          ]
+        },
+        "keyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sourceHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "sourceBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 21474836480
+        },
+        "dataSchemaVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "noncePrefix": {
+          "type": "string",
+          "description": "标准base64 8字节nonce前缀"
+        },
+        "format": {
+          "const": "nice-wiki.backup.chunked"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "chunkSize",
+        "backupId",
+        "objectId",
+        "owner",
+        "objectKind",
+        "keyId",
+        "sourceHash",
+        "sourceBytes",
+        "dataSchemaVersion",
+        "noncePrefix",
+        "format"
+      ]
+    },
+    "CryptoHeaderV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "meta": {
+          "$ref": "#/$defs/CryptoMetaV1"
+        },
+        "wrappedNonce": {
+          "type": "string",
+          "description": "标准base64 12-byte KEK nonce"
+        },
+        "wrappedDEK": {
+          "type": "string",
+          "description": "标准base64 48-byte封装DEK，仅私有header"
+        }
+      },
+      "required": [
+        "meta",
+        "wrappedNonce",
+        "wrappedDEK"
+      ],
+      "description": "私有NWBAE001容器header；canonical UTF8 JSON≤16384字节；逐帧及终帧精确编码见crypto-format.md"
     }
   }
 }

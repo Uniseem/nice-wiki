@@ -11,8 +11,8 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/serviceauth"
-	protection "nice-wiki/modules/data-protection/internal"
 	"nice-wiki/modules/data-protection/internal/gen"
+ protection "nice-wiki/modules/data-protection/internal"
 	"nice-wiki/modules/data-protection/internal/transport"
 )
 
@@ -63,15 +63,14 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	catalog, err := protection.OpenCatalog(ctx, config.DataRoot, view.DataEpoch, key)
+ catalog,err:=protection.OpenCatalog(ctx,config.DataRoot,view.DataEpoch,key);if err!=nil{return nil,err}
+ if err=protection.ConfigureKeyring(catalog,config.MasterKeyRef);err!=nil{_ = catalog.Close();return nil,err}
+ clients.Catalog=catalog;protection.InstallCatalog(catalog)
+ startup:=platform.OperationContext{CallerService:ModuleSlug,DataEpoch:view.DataEpoch,Actor:platform.AuthContext{Kind:"service",SubjectID:ModuleSlug}}
+ recovered,recoveryErr:=protection.RecoverProtectionJournal(ctx,startup,protection.RecoverProtectionJournalInput{StartupDataEpoch:view.DataEpoch});if recoveryErr!=nil{_ = catalog.Close();return nil,recoveryErr};clients.JournalRecovered=true;clients.JournalControlReady=recovered.ControlReady;clients.RequiresMaintenance=recovered.RequiresMaintenance
+ application, err := transport.NewApplication(config, anchors, runtimeAuthority, clients)
 	if err != nil {
-		return nil, err
-	}
-	clients.Catalog = catalog
-	protection.InstallCatalog(catalog)
-	application, err := transport.NewApplication(config, anchors, runtimeAuthority, clients)
-	if err != nil {
-		_ = catalog.Close()
+  _ = catalog.Close()
 		return nil, err
 	}
 	return application, nil

@@ -1047,7 +1047,8 @@
           "steps": [
             "拒路径出隔离根/符号链接",
             "流式SHA256和size比对",
-            "hash常量时间比较"
+            "hash常量时间比较",
+            "明文≤20GiB、密文允许额外1MiB封装预算，先核有界长度再流式读取，避免expectedBytes+1溢出。"
           ],
           "errors": [
             {
@@ -1063,6 +1064,26 @@
               "httpStatus": 400,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
             }
           ],
           "sideEffects": [],
@@ -1201,10 +1222,11 @@
           ],
           "purpose": "加密备份对象",
           "steps": [
-            "外部KEK封装随机DEK",
-            "每对象随机nonce",
-            "AES256GCM AAD backupId/owner/hash/schema",
-            "封装DEK只在私有加密header"
+            "已配可信keyring核keyId，原输入摘要含sourceHash/sourceBytes/schema及snapshot或manifest角色；同backup/owner/role原操作异摘要CONFLICT，已完成返回真实原引用。",
+            "按CryptoHeaderV1及crypto-format.md生成每对象随机32-byte DEK、随机nonce前缀；本地32-byte KEK仅包装DEK。",
+            "1MiB流式AES256GCM数据帧，AAD绑定header摘要及帧头，连续唯一nonce；完整源hash/长度与输入相符。",
+            "必须写唯一44-byte终帧，空源亦有；prepared原输入摘要→temp fsync及完整引用→rename/目录fsync→object-installed→active索引→complete与原回执，control不随active替换。",
+            "snapshot owner只接受14个真实有状态域；manifest角色仅data-protection。未安装失败尝试丢弃自己的temp并换新objectId/DEK，已完整密文只复用，不覆盖。"
           ],
           "errors": [
             {
@@ -1220,6 +1242,31 @@
               "httpStatus": 500,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
             }
           ],
           "sideEffects": [
@@ -1231,7 +1278,20 @@
           },
           "concurrency": "每对象nonce唯一；失败删未完成ciphertext",
           "idempotency": "完成objectHash复用原密文，不重用nonce重加密",
-          "dependencies": [],
+          "dependencies": [
+            "data-protection.Catalog",
+            "data-protection.configuredKEK",
+            "data-protection.aesGCM",
+            "data-protection.PrivateObjectPath",
+            "data-protection.writeCryptoJournal",
+            "data-protection.wrapAAD",
+            "data-protection.writeCryptoFrame",
+            "data-protection.cryptoNonce",
+            "data-protection.syncObjectDirectory",
+            "data-protection.activateEncryptedObject",
+            "data-protection.VerifyObjectHash",
+            "data-protection.storageError"
+          ],
           "resources": [
             "外部密钥提供器"
           ],
@@ -1277,11 +1337,11 @@
           ],
           "purpose": "解密到私有恢复隔离区",
           "steps": [
-            "本域at-rest密文用外部KEK透明解密",
-            "用户上传便携ZIP已包含选定原始对象无需源key",
-            "逐对象SHA256/schema/ZIP路径检查后写私有隔离目录",
-            "失败清临时明文",
-            "目标重新使用自身at-rest key"
+            "按真实encryptedRef查询本域不可变对象索引，hash/size/归属精确一致；keyId只查启动可信keyring，不接任意key路径。",
+            "严格canonical CryptoHeaderV1与逐帧GCM认证；1MiB有界读取，连续序号/长度、终帧计数/源hash及完整EOF全部一致。",
+            "明文只写本域restore/<restoreId>/decrypted隔离temp；任意错key/tag/缺片/乱序/截断/尾随删除temp，不交付路径。",
+            "全部认证完成且密文整体hash与ref相同后fsync/rename/目录fsync交付隔离路径，不把临时半结果冒充已验证。",
+            "原输入摘要绑定restoreId/encryptedRef/keyId，同作用域异输入CONFLICT；prepared→verified-temp仅在完整AEAD/终帧/EOF和全密文hash通过后写，complete保留真实原路径/源hash回执。"
           ],
           "errors": [
             {
@@ -1297,6 +1357,31 @@
               "httpStatus": 422,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
             }
           ],
           "sideEffects": [
@@ -1309,11 +1394,640 @@
           "concurrency": "每restore独占目录，path验证",
           "idempotency": "同restore/objectHash复用已校验stage",
           "dependencies": [
-            "data-protection.ValidatePortableArchive"
+            "data-protection.Catalog",
+            "data-protection.PrivateObjectPath",
+            "data-protection.configuredKEK",
+            "data-protection.aesGCM",
+            "data-protection.readCryptoHeader",
+            "data-protection.wrapAAD",
+            "data-protection.decryptCryptoFrames",
+            "data-protection.writeCryptoJournal",
+            "data-protection.syncObjectDirectory",
+            "data-protection.activateDecryptedObject",
+            "data-protection.storageError"
           ],
           "resources": [
             "本实例外部at-rest key提供器"
           ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.ConfigureKeyring",
+          "name": "ConfigureKeyring",
+          "signature": "func ConfigureKeyring(store *Store,masterKeyRef string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：ConfigureKeyring",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [
+            "只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。"
+          ],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [
+            "data-protection.readKEKFile"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.readKEKFile",
+          "name": "readKEKFile",
+          "signature": "func readKEKFile(path string)([]byte,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：readKEKFile",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [
+            "只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。"
+          ],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.configuredKEK",
+          "name": "configuredKEK",
+          "signature": "func configuredKEK(store *Store,id string)([]byte,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：configuredKEK",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [
+            "只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。"
+          ],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [
+            "data-protection.readKEKFile"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.aesGCM",
+          "name": "aesGCM",
+          "signature": "func aesGCM(key []byte)(cipher.AEAD,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：aesGCM",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.cryptoNonce",
+          "name": "cryptoNonce",
+          "signature": "func cryptoNonce(prefix []byte,sequence uint32)[]byte",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：cryptoNonce",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.frameHeader",
+          "name": "frameHeader",
+          "signature": "func frameHeader(kind byte,sequence,length uint32)[]byte",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：frameHeader",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.frameAAD",
+          "name": "frameAAD",
+          "signature": "func frameAAD(headerHash []byte,frame []byte)[]byte",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：frameAAD",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.wrapAAD",
+          "name": "wrapAAD",
+          "signature": "func wrapAAD(meta CryptoMetaV1)[]byte",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：wrapAAD",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.writeCryptoFrame",
+          "name": "writeCryptoFrame",
+          "signature": "func writeCryptoFrame(output io.Writer,aead cipher.AEAD,prefix,headerHash []byte,kind byte,sequence uint32,plain []byte)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：writeCryptoFrame",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [
+            "只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。"
+          ],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [
+            "data-protection.cryptoNonce",
+            "data-protection.frameHeader",
+            "data-protection.frameAAD",
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.syncObjectDirectory",
+          "name": "syncObjectDirectory",
+          "signature": "func syncObjectDirectory(path,root string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：syncObjectDirectory",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [
+            "只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。"
+          ],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.writeCryptoJournal",
+          "name": "writeCryptoJournal",
+          "signature": "func writeCryptoJournal(ctx context.Context,store *Store,id,kind,state string,receipt any)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：writeCryptoJournal",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [
+            "只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。"
+          ],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.activateEncryptedObject",
+          "name": "activateEncryptedObject",
+          "signature": "func activateEncryptedObject(ctx context.Context,op OperationContext,store *Store,journalID string,receipt cryptoReceipt)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：activateEncryptedObject",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [
+            "只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。"
+          ],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [
+            "data-protection.writeCryptoJournal",
+            "data-protection.VerifyObjectHash",
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.readCryptoHeader",
+          "name": "readCryptoHeader",
+          "signature": "func readCryptoHeader(input io.Reader)(CryptoHeaderV1,[]byte,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：readCryptoHeader",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [
+            "只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。"
+          ],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.decryptCryptoFrames",
+          "name": "decryptCryptoFrames",
+          "signature": "func decryptCryptoFrames(ctx context.Context,input io.Reader,output io.Writer,aead cipher.AEAD,header CryptoHeaderV1,raw []byte)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：decryptCryptoFrames",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [
+            "只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。"
+          ],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [
+            "data-protection.cryptoNonce",
+            "data-protection.frameAAD",
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.activateDecryptedObject",
+          "name": "activateDecryptedObject",
+          "signature": "func activateDecryptedObject(ctx context.Context,op OperationContext,store *Store,id string,receipt decryptReceipt)(DecryptForValidationResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "分片AEAD与真实journal的本域参考支持：activateDecryptedObject",
+          "steps": [
+            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数私有路径、格式、AEAD或持久状态不满足时失败关闭。"
+            }
+          ],
+          "sideEffects": [
+            "只进行本函数签名指定的私有流IO/控制journal，不把secret写日志或Git。"
+          ],
+          "authorization": "调用链已核；KEK只能查启动可信keyring，所有业务/恢复路径限定本域隔离根。",
+          "concurrency": "CryptoMu串行本进程对象封存/解密；控制库FULL同步，文件/目录先fsync再索引，完成回执核原输入摘要。",
+          "idempotency": "按原操作摘要与真实引用重放；缺终帧/未知事实失败关闭，不复用nonce或覆盖既有密文。",
+          "dependencies": [
+            "data-protection.syncObjectDirectory",
+            "data-protection.writeCryptoJournal",
+            "data-protection.VerifyObjectHash",
+            "data-protection.storageError"
+          ],
+          "resources": [],
           "contract": "reference"
         }
       ]
@@ -2898,9 +3612,11 @@
           ],
           "purpose": "恢复自身文件和决策操作",
           "steps": [
-            "扫manifest temp/journal",
-            "ready缺文件降failed",
-            "切换决定尚未全域完成时保持maintenance并继续等待各域回执，不默许正常启动"
+            "读取control真实journal；prepared没有完整引用仅清本操作temp，完整已fsync引用则验证文件hash/长度再补安装/active索引/complete，不重做业务或假造成功。",
+            "解密verified-temp凭已持久认证事实核plaintext hash/长度后续接rename；其他未认证temp删除并标needs-retry，不能当已校验明文交付。",
+            "ready备份须有14个真实owner对象及密文manifest；任一文件/hash缺失，真实降failed、目录revision与安全outbox同事务，不删除原对象。",
+            "存在未完成全域切换决定或未知journal/state时requiresMaintenance=true；不能根据本域记录推定外域已safe或已换入。",
+            "controlReady区分真实可续接决定与未知/缺失事实：未知kind/state或已认证文件丢失时false；不能因为maintenance=true就伪报本域安全控制就绪。"
           ],
           "errors": [
             {
@@ -2916,6 +3632,31 @@
               "httpStatus": 503,
               "retryable": true,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "CONFLICT",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本函数精确格式、预算、原输入摘要或本域持久事实不符时失败关闭。"
             }
           ],
           "sideEffects": [
@@ -2928,8 +3669,14 @@
           "concurrency": "启动readiness必须在恢复审计完成后；源历史不修改",
           "idempotency": "journalOpId去重",
           "dependencies": [
-            "data-protection.ReadRestoreProgress",
-            "site-config:readRuntimeState"
+            "data-protection.Catalog",
+            "data-protection.VerifyObjectHash",
+            "data-protection.activateEncryptedObject",
+            "data-protection.activateDecryptedObject",
+            "data-protection.syncObjectDirectory",
+            "data-protection.writeCryptoJournal",
+            "data-protection.storageError",
+            "platform.EnqueueEvent"
           ],
           "resources": [],
           "contract": "reference"
@@ -5167,7 +5914,8 @@
             "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
-            "打开真实active目录库与control决定库，事务应用各自版本1迁移并装配已实现目录读取；其余路由保持具体不可用，完整就绪仍blocked。"
+            "打开真实active目录库与control决定库，事务应用各自版本1迁移并装配已实现目录读取；其余路由保持具体不可用，完整就绪仍blocked。",
+            "真实调用RecoverProtectionJournal，把journalRecovered与requiresMaintenance事实传入应用；不丢弃未决维护要求，不在完整业务缺失时开放Ready。"
           ],
           "errors": [
             {
@@ -5209,7 +5957,8 @@
             "platform.NewRequestValidator",
             "data-protection.OpenCatalog",
             "data-protection.InstallCatalog",
-            "data-protection.NewApplication"
+            "data-protection.NewApplication",
+            "data-protection.ConfigureKeyring"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -5449,7 +6198,8 @@
             "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
             "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
             "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
-            "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
+            "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现",
+            "未决journal要求维护而runtime不在维护时拒绝；controlReady=false即使维护中亦拒绝，不将未知安全点报就绪。"
           ],
           "errors": [
             {
@@ -5480,7 +6230,8 @@
           "outputs": [],
           "purpose": "实际修改的本域HTTP装配支持；域逻辑调用对应合同函数。",
           "steps": [
-            "生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。"
+            "生成结构校验与身份/epoch/权限只经平台入口；具体HTTP方法转换查询/路径并调用真实目录函数，未实现操作仍失败关闭。",
+            "接收真实恢复结果及当前active epoch；未知控制journal时恢复控制Ready仍失败关闭，不丢弃requiresMaintenance。"
           ],
           "errors": [],
           "sideEffects": [],
@@ -5807,7 +6558,8 @@
           "outputs": [],
           "purpose": "本域私有持久目录与路径支持：OpenCatalog",
           "steps": [
-            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。"
+            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。",
+            "目录创建后逐级fsync到dataRoot；两个SQLite库显式synchronous=FULL，使控制journal先于文件激活持久。"
           ],
           "errors": [
             {
@@ -5846,7 +6598,8 @@
             "data-protection.openDatabase",
             "data-protection.applyMigration",
             "data-protection.Store.Close",
-            "data-protection.storageError"
+            "data-protection.storageError",
+            "data-protection.syncObjectDirectory"
           ],
           "resources": [],
           "contract": "reference"
