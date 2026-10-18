@@ -2187,10 +2187,10 @@
           "steps": [
             "1 公共入口即时校验superadmin，内部信任严格生成校验过的输入与可信op；model.version必须expectedVersion+1且不超过安全整数上限。",
             "2 beginAvailabilitySnapshot严格核非空runtime_meta当前代次；普通输入摘要绑定callerService/dataEpoch/model/expectedVersion。先读取7天完整原结果，同代同hash先返回，不因后续配置或本地屏障阻断；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR，过期只读未命中。 可选manualPrice以omitempty字段追加规范摘要尾部；省略时旧JSON字节不变，兼容原回执。",
-            "3 新写拒绝任意state非released屏障，不按epoch或deadline过滤。capabilities含embedding的创建/编辑/启停统一DEPENDENCY_UNAVAILABLE：M07-R06归一化空间身份与公共schema尚未收口，本轮不猜默认，不计算或发布未确认space。非embedding由ValidateModel校验；provider必须真实存在且同代，不要求启用/凭据/价格/在线，不探测。",
             "4 读取真实模型version/epoch及providerId/providerModelVersion/dimension/preprocessorVersion；缺行仅expectedVersion0可创建。已有模型以上四项身份字段任一变化返回CONFLICT并要求调用方用新modelId，原ID不可改写。",
             "5 条件UPSERT以models.version/data_epoch绑定CAS并核RowsAffected恰好1，只更新可变能力、token上限、目录来源、人工覆盖、enabled与version/time；停用只影响后续路由，不清既有任务分配、档位、invocations、held或ledger。",
-            "6 非embedding模型、现有model.changed平台outbox和完整PutModelResult回执同事务；embedding新写在前置失败，不写库/回执/outbox。仅成功新配置事务替换过期键；未知Commit不自行重试；不调用模型、不自动重算付费结果。 可选manualPrice对象是整份人工价目替换，三个费率可缺（unknown不回退），服务器当前有效时刻，SaveManualPrice与模型CAS/事件/原回执同事务；省略不写价目。"
+            "6 非embedding模型、现有model.changed平台outbox和完整PutModelResult回执同事务；embedding新写在前置失败，不写库/回执/outbox。仅成功新配置事务替换过期键；未知Commit不自行重试；不调用模型、不自动重算付费结果。 可选manualPrice对象是整份人工价目替换，三个费率可缺（unknown不回退），服务器当前有效时刻，SaveManualPrice与模型CAS/事件/原回执同事务；省略不写价目。",
+            "嵌入预处理默认none已收口，embedding可沿同一ValidateModel/CAS/事件保存；原空间身份算法不变，版本变更须新ID"
           ],
           "errors": [
             {
@@ -2329,11 +2329,9 @@
           ],
           "purpose": "纯声明验证模型能力",
           "steps": [
-            "1 校验能力非空且在允许集合",
-            "2 embedding维度1..65536",
-            "3 chat/translation输出上限≥1",
-            "4 计算嵌入身份",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "纯规则检查能力集合、embedding维度和模型输入输出声明",
+            "embedding空间使用原五字段有序JSONhash；预处理显式默认none，不做默示L2归一化",
+            "供应方/不可变模型版本/维度/预处理版本任一改变必须新modelId/space；不得沿旧space混用"
           ],
           "errors": [
             {
@@ -2493,6 +2491,86 @@
           "idempotency": "同scope/函数/key只读7天原结果；异输入/异代冲突，过期不写，由上层成功新配置事务替换。",
           "dependencies": [
             "model-gateway.availabilityReadError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.ModelEmbeddingSpace",
+          "name": "ModelEmbeddingSpace",
+          "signature": "func ModelEmbeddingSpace(model Model)(EmbeddingSpace,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域唯一五字段空间权威生产者，保持既有有序JSONhash算法",
+          "steps": [
+            "模型维度与四项身份材料必须完整",
+            "复用原embeddingSpaceID算法返回五字段空间，不新增或猜测归一化身份"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。"
+          },
+          "concurrency": "同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。",
+          "idempotency": "只读真实状态与固定原价目，无费用写入。",
+          "dependencies": [
+            "model-gateway.embeddingSpaceID"
           ],
           "resources": [],
           "contract": "reference"
@@ -6975,7 +7053,7 @@
         {
           "id": "model-gateway.ValidateEmbeddingSpace",
           "name": "ValidateEmbeddingSpace",
-          "signature": "func ValidateEmbeddingSpace(ctx context.Context, op OperationContext, input ValidateEmbeddingSpaceInput) (ValidateEmbeddingSpaceResult, error)",
+          "signature": "func ValidateEmbeddingSpace(ctx context.Context,op OperationContext,input ValidateEmbeddingSpaceInput)(ValidateEmbeddingSpaceResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -7012,11 +7090,9 @@
           ],
           "purpose": "阻止错空间向量入库",
           "steps": [
-            "1 重算空间SHA256",
-            "2 每向量维度严格等于dimension",
-            "3 拒绝NaN/Infinity",
-            "4 l2模式范数误差≤1e-5",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "使用本域唯一ModelEmbeddingSpace重算原五字段有序JSON身份并精确比较spaceId，不更改既有算法",
+            "每条原始向量维度必须等于固定space.dimension，逐项拒绝NaN/Infinity",
+            "默认预处理none，保留原始向量，不擅自L2归一化；算法/预处理版本改变必须新空间身份"
           ],
           "errors": [
             {
@@ -7066,7 +7142,9 @@
           "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
           "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
+          "dependencies": [
+            "model-gateway.ModelEmbeddingSpace"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -7907,10 +7985,9 @@
           ],
           "purpose": "读取模型能力声明",
           "steps": [
-            "根任务目录owner纯服务，或portal当前model.manage管理员；HTTP映射即时核管理权限。",
-            "一次严格当前epoch快照读取真实模型声明，能力可选过滤，modelId排序，disabled仍返回；超256条报错不截断。",
-            "返回不可变模型版本/space；本轮只完成声明分支，Model无space字段与归一化规则历史缺口未修，整函数in_progress，不声称完整。",
-            "损坏或异代失败关闭，不探测、不读价格/余额/秘密。"
+            "根目录owner纯服务或portal当前model.manage管理员，一次严格当前epoch快照读模型，停用模型仍显示",
+            "能力可选过滤，按modelId排序，超过256失败不截断；损坏/异代失败关闭，不探测或读秘密",
+            "每条embedding模型配置完整才附可选embeddingSpace五字段；只用MG原有有序JSON算法权威生产，不让消费者跨域复制hash"
           ],
           "errors": [
             {
@@ -7974,7 +8051,8 @@
           "dependencies": [
             "model-gateway.requireCatalogReader",
             "model-gateway.beginAdminSnapshot",
-            "model-gateway.readCatalogModels"
+            "model-gateway.readCatalogModels",
+            "model-gateway.ModelEmbeddingSpace"
           ],
           "resources": [
             "本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表"

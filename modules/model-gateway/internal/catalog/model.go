@@ -60,14 +60,6 @@ const (
 
 // ValidateModel 是无网络、无收费的模型能力与嵌入空间身份校验。
 func ValidateModel(ctx context.Context, op OperationContext, input ValidateModelInput) (ValidateModelResult, error) {
-	operationCtx, cancel, err := operationContext(ctx, op, 5*time.Second)
-	if err != nil {
-		return ValidateModelResult{}, err
-	}
-	defer cancel()
-	if err := contextError(operationCtx); err != nil {
-		return ValidateModelResult{}, err
-	}
 	model := input.Model
 	if !platform.ValidIdentifier(model.ModelId) || !platform.ValidIdentifier(model.ProviderId) || model.Version < 0 ||
 		!validModelString(model.ProviderModelVersion) || !validModelString(model.PreprocessorVersion) ||
@@ -155,9 +147,6 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 	}
 	if blocked {
 		return PutModelResult{}, platform.NewError(platform.CodeLocked, false, "模型配置屏障尚未释放")
-	}
-	if hasGrant(input.Model.Capabilities, "embedding") {
-		return PutModelResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "嵌入空间归一化身份尚未确认，暂不能保存嵌入模型配置")
 	}
 	validation, err := ValidateModel(ctx, op, ValidateModelInput{Model: input.Model})
 	if err != nil {
@@ -315,4 +304,11 @@ func readModelReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, key 
 		return PutModelResult{}, false, platform.NewError(platform.CodeIntegrityError, false, "模型原结果与摘要不一致")
 	}
 	return PutModelResult{Model: expected}, true, nil
+}
+
+// ModelEmbeddingSpace 是本域唯一五字段空间生产者，保留已有有序JSON哈希算法。
+func ModelEmbeddingSpace(model Model)(EmbeddingSpace,error){
+ if model.Dimension<1||model.Dimension>maxEmbeddingDimension||model.ProviderId==""||model.ProviderModelVersion==""||model.PreprocessorVersion==""{return EmbeddingSpace{},platform.NewError(platform.CodeIntegrityError,false,"嵌入模型空间配置不完整")}
+ id,err:=embeddingSpaceID(model);if err!=nil{return EmbeddingSpace{},err}
+ return EmbeddingSpace{SpaceID:id,Provider:model.ProviderId,ModelVersion:model.ProviderModelVersion,Dimensions:model.Dimension,PreprocessingVersion:model.PreprocessorVersion},nil
 }

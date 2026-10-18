@@ -78,7 +78,7 @@ PutModel在同一严格当前代次事务先核7天原结果，再核所有非re
 
 模型回执摘要绑定callerService/dataEpoch/model/expectedVersion，完整原结果早于当前配置/屏障返回。旧摘要不能默认为新摘要；7天内hash不匹配CONFLICT，不重签旧结果。过期仅成功新事务替换；配置、现有model.changed平台outbox与回执原子提交。现有嵌入space算法与归一化迁移缺口本轮未扩写。HTTP核路径和非空幂等头与正文一致，由公共入口即时superadmin授权；完整服务缺其他handler仍拒绝启动。
 
-M07-R06要求归一化参与空间身份，但现公共schema与旧算法只含五字段，缺确认规则与迁移。新PutModel对embedding创建/编辑/启停明确返回DEPENDENCY_UNAVAILABLE（合同待确认，非运行服务故障），在写库/回执/outbox前拒绝；有效原回执仍先行，非embedding配置照常。完整PutModel/model.go保持partial，不发布未收口的空间身份。
+历史M07-R06归一化缺口已在本轮根裁定收口：保留五字段/原hash算法，预处理默认none，不默示L2；算法改变必须新版本身份。本轮解除PutModel embedding设计守卫并补只读ModelWithSpace生产者，待新的GitLab检查，不据历史证据直接记verified。
 
 ## 第二轮价目与免费预算
 

@@ -161,7 +161,8 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
-          "description": "预处理版本"
+          "description": "预处理版本，显式默认none；不得默示归一化，算法改变必须新版本/模型ID/space",
+          "default": "none"
         },
         "maxInputTokens": {
           "type": "integer",
@@ -2815,7 +2816,7 @@
         "models": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Model"
+            "$ref": "#/$defs/ModelWithSpace"
           },
           "maxItems": 256,
           "description": "不含密钥声明"
@@ -4612,6 +4613,103 @@
       "x-internal": true,
       "x-go-type": "platform.SigningKey",
       "description": "仅可信进程装配传入的平台服务签名引用；真实Go类型platform.SigningKey，不从HTTP构造、不生成密钥输入字段、不持久化私有引用。"
+    },
+    "ModelWithSpace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "网关模型ID"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "CAS版本"
+        },
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "供应方ID"
+        },
+        "providerModelVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "不可变供应方模型版本"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "chat vision structured reasoning embedding rerank translation能力集合"
+        },
+        "dimension": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "嵌入维度chat为0"
+        },
+        "preprocessorVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "预处理版本"
+        },
+        "maxInputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "输入上限"
+        },
+        "maxOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "输出上限"
+        },
+        "catalogOrigin": {
+          "type": "string",
+          "enum": [
+            "bundled",
+            "remote",
+            "manual"
+          ],
+          "description": "模型目录来源"
+        },
+        "manualOverride": {
+          "type": "boolean",
+          "description": "手动覆盖目录"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "是否显示并可分配"
+        },
+        "embeddingSpace": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace",
+          "description": "只有embedding能力且配置完整时返回，由MG原有有序JSON算法权威生成"
+        }
+      },
+      "required": [
+        "modelId",
+        "version",
+        "providerId",
+        "providerModelVersion",
+        "capabilities",
+        "dimension",
+        "preprocessorVersion",
+        "maxInputTokens",
+        "maxOutputTokens",
+        "catalogOrigin",
+        "manualOverride",
+        "enabled"
+      ],
+      "description": "readModels安全模型声明，embedding配置完整时附MG权威五字段空间；不改变PutModel输入"
     }
   }
 }
