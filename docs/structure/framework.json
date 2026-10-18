@@ -769,6 +769,21 @@
       "purpose": "服务配置加载实现"
     },
     {
+      "path": "libs/platform/lifecycle/parser_process.go",
+      "kind": "handwritten",
+      "purpose": "有界隔离解析子入口"
+    },
+    {
+      "path": "libs/platform/lifecycle/parser_sandbox_linux_amd64.go",
+      "kind": "handwritten",
+      "purpose": "有界隔离解析子入口"
+    },
+    {
+      "path": "libs/platform/lifecycle/parser_sandbox_other.go",
+      "kind": "handwritten",
+      "purpose": "有界隔离解析子入口"
+    },
+    {
       "path": "libs/platform/lifecycle/restore_swap.go",
       "kind": "handwritten",
       "purpose": "恢复换目录实现"

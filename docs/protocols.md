@@ -89,3 +89,7 @@ guard createAdmission只分配持久元数据，token为空串。qa付费提问�
 TaskGroup只监督域已持久接受的本进程操作，Start唯一key去重并固定原业务deadline，HTTP断开不改deadline或取消接受任务；进程停止/显式Cancel/原deadline仍取消IO，关闭拒绝新任务并等所有回调退出。域回调负责终态/费用，监督集合不重派模型。WorkerConfig.OnLeaseRenewed在Start后的真实Heartbeat及每次权威续约后执行，只做本域同worker/fence/epoch镜像CAS，错误停止执行，禁止递归CheckLease或另造心跳。ClaimedJob.WorkerID由平台本轮领取者填入。RuntimeView.revision/barrierId来自真实site-config控制库，Ready不伪造水位。
 
 生成客户端对二进制成功响应返回带原Content-Type/Length/ETag的http.Response；调用方有界读、核引用并Close，所有拥有者客户端拒绝重定向，不把归档当JSON或跟随任意地址。AllowedGitHosts只由data-protection可信部署配置提供，默认空拒Git远程，不从请求或服务依赖推导。
+
+## 受控解析子进程
+
+平台lifecycle.RunBoundedParser只执行当前二进制固定`--nw-isolated-parser=<kind>`入口，清空继承配置/密钥环境，管道输入最多50MiB、输出16MiB、最早父ctx或60秒，超输出立即取消杀进程。域main在读配置/密钥/数据库前调用RunParserChild；回调仅处理内存。Linux amd64先设CPU30秒、数据段512MiB、GOMEMLIMIT384MiB及禁core/文件输出，再用NO_NEW_PRIVS与seccomp TSYNC封闭允许集；拒绝文件打开、网络、新程序、非线程clone、io_uring、跨进程读取和提升资源限额。其他架构明确不可用，不降级在主进程解析。知识域仍负责PDF50MiB/500页/8MiB文本等业务限制；编译不是隔离行为验收。

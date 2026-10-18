@@ -467,6 +467,7 @@ type CreateInvocationInput struct {
 	MaximumOutputTokens int64            `json:"maximumOutputTokens"`
 	IDempotencyKey      string           `json:"idempotencyKey"`
 	AdmissionPermit     *AdmissionPermit `json:"admissionPermit,omitempty"`
+	ExpectedEmbeddingSpace *EmbeddingSpace `json:"expectedEmbeddingSpace,omitempty"`
 }
 
 // ModelAttempt 一次独立计费的供应方尝试。

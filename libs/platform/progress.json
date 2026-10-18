@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "b41aef2d05eb9dcc75d554d12dc548b51fa1d8381e76bb9c56fd455defcc787f",
+  "contractSha256": "e7427cb6138cf66a16d77ec00f1ac6931f8c0f005698a3b7d90d994e6c3dc69b",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
   "branch": "codex/integration-20261017-r3",
@@ -249,6 +249,36 @@
         "evidence": null
       },
       "blocker": "公共任务监督源码就绪，待GitLab"
+    },
+    {
+      "path": "libs/platform/lifecycle/parser_process.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "隔离解析源码待GitLab编译；不代表真实PDF行为验收"
+    },
+    {
+      "path": "libs/platform/lifecycle/parser_sandbox_linux_amd64.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "隔离解析源码待GitLab编译；不代表真实PDF行为验收"
+    },
+    {
+      "path": "libs/platform/lifecycle/parser_sandbox_other.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "隔离解析源码待GitLab编译；不代表真实PDF行为验收"
     }
   ],
   "functions": [
@@ -1401,6 +1431,50 @@
         "evidence": null
       },
       "blocker": "公共任务监督源码就绪，待GitLab"
+    },
+    {
+      "id": "platform.RunBoundedParser",
+      "path": "libs/platform/lifecycle/parser_process.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "隔离解析源码待GitLab编译；调用方知识main尚待接入"
+    },
+    {
+      "id": "platform.RunParserChild",
+      "path": "libs/platform/lifecycle/parser_process.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "隔离解析源码待GitLab编译；调用方知识main尚待接入"
+    },
+    {
+      "id": "platform.parserOutput.Write",
+      "path": "libs/platform/lifecycle/parser_process.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "隔离解析源码待GitLab编译；调用方知识main尚待接入"
+    },
+    {
+      "id": "platform.EnterParserSandbox",
+      "path": "libs/platform/lifecycle/parser_sandbox_linux_amd64.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "隔离解析源码待GitLab编译；调用方知识main尚待接入"
     }
   ],
   "rule": "公共机制已通过自部署GitLab当前源码/生成/编译/结构检查；完整服务、业务验收和部署按各域未完成项保留。"

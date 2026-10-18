@@ -6962,6 +6962,158 @@
           "contract": "reference"
         }
       ]
+    },
+    {
+      "path": "libs/platform/lifecycle/parser_process.go",
+      "kind": "handwritten",
+      "purpose": "受控有界子进程解析，不继承配置密钥或业务句柄",
+      "functions": [
+        {
+          "id": "platform.RunBoundedParser",
+          "name": "RunBoundedParser",
+          "signature": "func RunBoundedParser(ctx context.Context, kind string, input []byte) ([]byte, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅当前二进制固定子入口，清空继承环境、限制输入50MiB输出16MiB和60秒；子进程异常不透传原始stderr。",
+          "steps": [
+            "仅当前二进制固定子入口，清空继承环境、限制输入50MiB输出16MiB和60秒；子进程异常不透传原始stderr。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅受控子进程、管道与不可放宽的系统调用/资源限制；不读配置、密钥、业务库或网络。"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "父进程ctx与60秒取最早，输出超16MiB立即杀子进程；子进程CPU硬上限30秒，数据段512MiB、GOMEMLIMIT384MiB。",
+          "idempotency": "不写业务数据，不重算模型或费用。",
+          "dependencies": [
+            "platform.parserOutput.Write"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.RunParserChild",
+          "name": "RunParserChild",
+          "signature": "func RunParserChild(kind string, parse func([]byte) ([]byte, error)) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "主入口读取配置和密钥前检测固定子进程模式；先隔离再限量读取stdin，回调只解析内存并返回有界stdout。",
+          "steps": [
+            "主入口读取配置和密钥前检测固定子进程模式；先隔离再限量读取stdin，回调只解析内存并返回有界stdout。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅受控子进程、管道与不可放宽的系统调用/资源限制；不读配置、密钥、业务库或网络。"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "父进程ctx与60秒取最早，输出超16MiB立即杀子进程；子进程CPU硬上限30秒，数据段512MiB、GOMEMLIMIT384MiB。",
+          "idempotency": "不写业务数据，不重算模型或费用。",
+          "dependencies": [
+            "platform.EnterParserSandbox"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.parserOutput.Write",
+          "name": "parserOutput.Write",
+          "signature": "func (w *parserOutput) Write(value []byte) (int, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "累计有界输出，超过16MiB取消并杀子进程，避免管道阻塞。",
+          "steps": [
+            "累计有界输出，超过16MiB取消并杀子进程，避免管道阻塞。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅受控子进程、管道与不可放宽的系统调用/资源限制；不读配置、密钥、业务库或网络。"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "父进程ctx与60秒取最早，输出超16MiB立即杀子进程；子进程CPU硬上限30秒，数据段512MiB、GOMEMLIMIT384MiB。",
+          "idempotency": "不写业务数据，不重算模型或费用。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/parser_sandbox_linux_amd64.go",
+      "kind": "handwritten",
+      "purpose": "Linux amd64封闭系统调用允许集与硬资源限制",
+      "functions": [
+        {
+          "id": "platform.EnterParserSandbox",
+          "name": "EnterParserSandbox",
+          "signature": "func EnterParserSandbox() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "设置CPU/数据段/输出文件/FD硬限制和NO_NEW_PRIVS，对全部Go线程TSYNC安装固定amd64/x32拒绝规则；仅内存、Go运行时和标准管道调用允许，不允许新文件、网络、外部程序、io_uring、命名空间、跨进程读或提高限制；任一步失败关闭。",
+          "steps": [
+            "设置CPU/数据段/输出文件/FD硬限制和NO_NEW_PRIVS，对全部Go线程TSYNC安装固定amd64/x32拒绝规则；仅内存、Go运行时和标准管道调用允许，不允许新文件、网络、外部程序、io_uring、命名空间、跨进程读或提高限制；任一步失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配参数缺失",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "本域回调永久完整性错误",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅受控子进程、管道与不可放宽的系统调用/资源限制；不读配置、密钥、业务库或网络。"
+          ],
+          "authorization": "平台受信装配；不读业务秘密，不授予业务权限",
+          "concurrency": "父进程ctx与60秒取最早，输出超16MiB立即杀子进程；子进程CPU硬上限30秒，数据段512MiB、GOMEMLIMIT384MiB。",
+          "idempotency": "不写业务数据，不重算模型或费用。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/parser_sandbox_other.go",
+      "kind": "handwritten",
+      "purpose": "其他平台相同入口失败关闭，不降级非隔离PDF",
+      "functions": []
     }
   ],
   "jobTypes": [],

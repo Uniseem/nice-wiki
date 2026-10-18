@@ -1115,6 +1115,11 @@
       "type": "object",
       "x-internal": true,
       "description": "进程内受监督任务集合及回调，只管理生命周期不持有领域费用或业务状态"
+    },
+    "parserOutput": {
+      "description": "私有有界内存输出与取消信号，不是HTTP DTO",
+      "type": "object",
+      "additionalProperties": false
     }
   }
 }
