@@ -3439,6 +3439,11 @@
       "purpose": "绑定已有语言配置HTTP操作"
     },
     {
+      "path": "modules/localization/internal/language/plan_enable.go",
+      "kind": "source",
+      "purpose": "语言计划最终启用事务。"
+    },
+    {
       "path": "modules/localization/internal/language/protocol.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
@@ -3497,6 +3502,11 @@
       "path": "modules/localization/internal/translation/http.go",
       "kind": "handwritten",
       "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/language_plan.go",
+      "kind": "source",
+      "purpose": "增量规划与启用前免费估价、明确批准和持久任务意图"
     },
     {
       "path": "modules/localization/internal/translation/plan.go",
@@ -3592,6 +3602,11 @@
       "path": "modules/localization/migrations/005_suggestion_policy.sql",
       "kind": "handwritten",
       "purpose": "管理员明确批准语言建议付费"
+    },
+    {
+      "path": "modules/localization/migrations/006_language_plan.sql",
+      "kind": "source",
+      "purpose": "只追加语言估价计划、发布revision快照、原批准scope与逐任务持久意图"
     },
     {
       "path": "modules/localization/migrations/migrations.go",
