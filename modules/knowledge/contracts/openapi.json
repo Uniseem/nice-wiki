@@ -1000,7 +1000,7 @@
         "x-handler": "knowledge.ReadSections",
         "x-permission": "service",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "返回当前活动证据块及完整逐UTF8字节sourceOffsets，所有来源经content权威校验。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -2163,6 +2163,26 @@
         "name": "X-Admission-Permit",
         "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
+    },
+    "schemas": {
+      "CreateInvocationResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/CreateInvocationResult"
+      },
+      "CancelInvocationResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/CancelInvocationResult"
+      },
+      "StreamEvent": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
+      },
+      "ContentValidatePublicationsResult": {
+        "$ref": "../../content/contracts/types.json#/$defs/ValidatePublicationsResult"
+      }
     }
-  }
+  },
+  "x-runtime-payload-schemas": [
+    "CreateInvocationResult",
+    "CancelInvocationResult",
+    "StreamEvent",
+    "ContentValidatePublicationsResult"
+  ]
 }

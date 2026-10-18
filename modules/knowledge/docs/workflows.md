@@ -48,3 +48,11 @@
 | `knowledge.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
 | `knowledge.RunWorker` | 启动后持续 | 主动领取本域持久任务 |
 <!-- flows:end -->
+
+## 2026-10-18 已编写链路
+
+已编写分块→staging→词项/向量→完整清单→一秒内权威证明→CAS 活动指针与 outbox 的各用例，以及只读活动快照→混合召回→权威过滤→可选重排→整块预算选择→最终权威过滤的检索链。SQL 迁移和完整服务启动尚未装配，后台 `ExecuteBuild`、资源提取及 tokenizer 来源仍未完成；这不是已可运行的服务。
+
+模型调用只经 `platform/modelclient`。网关成功终态的 `output` 承载完整空间和向量，原生重排显式传 query，texts 与 candidateIds 对应；聊天 delta 只用于 fast 核查的 JSON ID 排列。最多 20 项重排，fast 最多 800 输出 token；格式不合格只追加一次独立 attempt，仍不合格保原顺序；收费未知与依赖失败不自动重放。材料超过网关消息预算返回 VALIDATION。开启重排由可信配置决定，未开启时不调用模型。
+
+`NewOperationHandlers` 只提供 searchKnowledge、readSections、createQueryEmbedding、getBuild、listBuilds 和 redactDiagnostics 六个真实映射。它们必须交给平台 `NewServiceHandler`，由其一次完成服务身份、委托、权限、代次、维护和严格请求校验；处理函数从可信上下文取得本域依赖。其他操作缺失时完整应用仍必须启动失败，不用 503 占位宣称已交付服务。

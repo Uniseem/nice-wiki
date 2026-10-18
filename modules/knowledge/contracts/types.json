@@ -188,6 +188,16 @@
         "asset": {
           "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef",
           "description": "资源派生来源"
+        },
+        "sourceOffsets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "maxItems": 65536,
+          "description": "与text的每个UTF-8字节等长；值是本源块原始UTF-8字节起点，单调且处于byteStart..byteEnd"
         }
       },
       "required": [
@@ -199,7 +209,8 @@
         "text",
         "tokenCount",
         "byteStart",
-        "byteEnd"
+        "byteEnd",
+        "sourceOffsets"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -227,7 +238,8 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "description": "RRF分数"
+          "description": "RRF分数",
+          "format": "double"
         },
         "visibilityRevision": {
           "type": "integer",
@@ -398,7 +410,8 @@
         "vector": {
           "type": "array",
           "items": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "minItems": 1,
           "maxItems": 65536,
@@ -1029,12 +1042,6 @@
           "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
           "description": "来源"
         },
-        "normalized": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 65536,
-          "description": "规范文本"
-        },
         "chunkTokens": {
           "type": "integer",
           "minimum": 128,
@@ -1048,14 +1055,21 @@
           "maximum": 128,
           "description": "重叠预算",
           "default": 64
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceBlock"
+          },
+          "maxItems": 256
         }
       },
       "required": [
         "buildId",
         "document",
-        "normalized",
         "chunkTokens",
-        "overlapTokens"
+        "overlapTokens",
+        "blocks"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -1224,7 +1238,8 @@
           "items": {
             "type": "array",
             "items": {
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "minItems": 1,
             "maxItems": 65536
@@ -1266,7 +1281,8 @@
           "items": {
             "type": "array",
             "items": {
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "minItems": 1,
             "maxItems": 65536
@@ -1547,7 +1563,8 @@
         "vector": {
           "type": "array",
           "items": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "minItems": 1,
           "maxItems": 65536,
@@ -1620,7 +1637,8 @@
         "vector": {
           "type": "array",
           "items": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "minItems": 1,
           "maxItems": 65536,
@@ -3265,6 +3283,59 @@
         "config",
         "version"
       ]
+    },
+    "SourceBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "block": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/BlockRef"
+        },
+        "normalized": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "sourceOffsets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "maxItems": 65536,
+          "description": "与text的每个UTF-8字节等长；值是本源块原始UTF-8字节起点，单调且处于byteStart..byteEnd"
+        },
+        "sourceByteEnd": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "tokenEnds": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "maxItems": 65536,
+          "description": "所选模型tokenizer的排他UTF8字节边界；严格递增且最后等于normalized字节数"
+        },
+        "contextVersionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "asset": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AssetRef"
+        }
+      },
+      "required": [
+        "block",
+        "normalized",
+        "sourceOffsets",
+        "sourceByteEnd",
+        "tokenEnds",
+        "contextVersionHash"
+      ],
+      "description": "可信内部源块，不接受浏览器提供模型分词边界"
     }
   }
 }

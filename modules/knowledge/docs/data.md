@@ -120,3 +120,15 @@
 | dataEpoch | 是 | `{"$ref":"../../../contracts/common.schema.json#/$defs/Identifier"}` | 代际 |
 
 恢复特殊数据：屏障停止新build、active切换和staging写入，等待reader lease排空；导出active manifest/分块/词项/向量与空间身份。导入空间不匹配的代数隔离且不得自动发模型重建；派生索引可由管理员另发重建任务。
+
+## 2026-10-18 实施收口：独立 SQL 代数与证据映射
+
+本域 schemaVersion 1 的实际迁移为 `migrations/001_initial.sql`，仍只访问本域私有 SQL。`index_identity` 固定站点和代次；`builds` 保存完整发布引用、完整空间、固定嵌入档位和语言、租约、独立 generation、分块计数、清单摘要及一秒内的权威观察时间。`generation_state` 独立记录 staging/active/retired，不把已成功构建的历史结果改成非法 Build 枚举。`active_indexes` 每站点、代次、文档与 spaceId 只有一个指针。
+
+分块、词项和向量均存本域 SQL，不另造第二份索引文件。清单是按 ordinal 排序的完整 Chunk、固定版本词频/长度、向量及 vectorHash 的规范 JSON SHA-256；读者用同一只读事务固定活动指针和全部记录，核对完整空间与清单后将材料载入内存。读事务结束后不持有可删除的索引文件句柄。`ValidateBuild` 对比分块/词项/向量数量、重算确定词项、核每个来源和向量摘要，观察 content 权威后重新打开当前租约写事务，清单未变才保存证明。`ActivateBuild` 在当前安全写窗口内检查观察时间不超过一秒，CAS 预期活动代数，并同事务写 `index.ready` outbox；旧代数保留。
+
+Chunk 新增必填 `sourceOffsets`，长度等于 text 的 UTF-8 字节数，每个值是同一源块原始 UTF-8 字节起点。单个规范化字符可覆盖多个原字符，映射可重复。`byteStart`/排他 `byteEnd` 覆盖该片段全部原字符。拆分输入改成可信 `SourceBlock[]`：每项含单一 BlockRef、规范文本、映射、原文排他终点、模型 tokenizer 给出的严格 UTF-8 tokenEnds 与上下文版本。分块不跨源块合并；长块切分与重叠都按给定 tokenEnds。chunkId 摘要包含完整 BlockRef、可选资源、上下文版本、规范字节区间和 chunkHash，不生成假 blockId，不猜模型分词。实际 `ExecuteBuild` 尚未取得此 tokenizer 前置，仍未完成。
+
+词项分词版本固定 `unicode-code-cjk-bigram-v1`：字母、数字、下划线组成保留大小写的代码词；组合标记跟前词；中日韩连续片段为相邻 bigram，单字片段保留单字；标点和空白分界。BM25 固定 k1=1.2、b=0.75，最多 80 项；向量余弦先按最大绝对值缩放再单位化，排除零向量，最多 80 项；并列按 chunkId。RRF 固定 60，缺失名次贡献零，完整同 ID 内容冲突失败关闭，最多 40 项。所有向量 number 明确 format=double，避免跨服务舍入造成 vectorHash 不一致。
+
+`query_embeddings` 唯一键为站点、代次、可信 rootOperationId、规范 queryHash 和 spaceId，并保存完整 space JSON、首次 operationId 和持久结果。进行中调用在本进程按该身份 singleflight；恢复续读仍使用首次 operationId 和同一 MG 幂等键，不因断线重算。`query_embedding_keys` 将管理员或可信调用者的幂等键绑定到完整身份摘要，同键异输入返回 CONFLICT。结果复用前核完整空间、查询、代次和向量摘要。只有成功后通过当前平台写窗口才能保存；费用和余额仍只由 MG 权威记录。
