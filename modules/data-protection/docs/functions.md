@@ -3828,6 +3828,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 打开真实active目录库与control决定库，事务应用各自版本1迁移并装配已实现目录读取；其余路由保持具体不可用，完整就绪仍blocked。
 8. 真实调用RecoverProtectionJournal，把journalRecovered与requiresMaintenance事实传入应用；不丢弃未决维护要求，不在完整业务缺失时开放Ready。
+9. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
 
@@ -3839,7 +3840,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`data-protection.RecoverProtectionJournal`、`data-protection.PublishProtectionEvents`、`data-protection.ConsumeEvents`、`data-protection.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`data-protection.OpenCatalog`、`data-protection.InstallCatalog`、`data-protection.NewApplication`、`data-protection.ConfigureKeyring`、`platform.NewSnapshotManager`
+- 依赖：`site-config:registerActivation`、`data-protection.RecoverProtectionJournal`、`data-protection.PublishProtectionEvents`、`data-protection.ConsumeEvents`、`data-protection.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`data-protection.OpenCatalog`、`data-protection.InstallCatalog`、`data-protection.NewApplication`、`data-protection.ConfigureKeyring`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## data-protection.Serve

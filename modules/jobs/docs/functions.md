@@ -3819,6 +3819,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 8. 私有库迁移真实打开/失败关闭资源；合并管理与进度真实映射再交完整入口工厂，streamProgress固定portal；其余handler/control/owner后台未齐仍blocked
 9. 合并NewQueueHandlers真实createJob映射，调用服务白名单仅生成任务目录owner；其他HTTP/运行存储/control/后台缺口仍使完整启动失败
 10. 合并NewScheduleHandlers真实createSchedule/updateSchedule/listSchedules映射；createSchedule允许portal和管理员路径以及带系统默认定时的owner服务，list/update仅portal；其余handler、存储安装、control和后台循环未齐仍使完整启动失败
+11. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
 
@@ -3830,7 +3831,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`、`jobs.NewQueueHandlers`、`jobs.NewScheduleHandlers`、`jobs.NewLeaseHandlers`、`platform.NewSnapshotManager`
+- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`、`jobs.NewQueueHandlers`、`jobs.NewScheduleHandlers`、`jobs.NewLeaseHandlers`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## jobs.Serve

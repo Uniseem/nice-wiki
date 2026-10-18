@@ -3294,6 +3294,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
+7. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
 
@@ -3305,7 +3306,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`localization.LoadRuntime`、`localization.RecoverTranslationLeases`、`localization.PublishOutbox`、`localization.ConsumeEvents`、`localization.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`localization.NewGlossaryHandlers`、`localization.NewTranslationHandlers`、`localization.NewInterfaceHandlers`、`localization.NewCacheTranslationHandlers`、`localization.ConfigureExecutionAdapters`、`localization.ConfigureSourceClient`、`localization.NewPreferenceHandlers`、`localization.NewSuggestionPolicyHandlers`、`platform.NewSnapshotManager`
+- 依赖：`site-config:registerActivation`、`localization.LoadRuntime`、`localization.RecoverTranslationLeases`、`localization.PublishOutbox`、`localization.ConsumeEvents`、`localization.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`localization.NewGlossaryHandlers`、`localization.NewTranslationHandlers`、`localization.NewInterfaceHandlers`、`localization.NewCacheTranslationHandlers`、`localization.ConfigureExecutionAdapters`、`localization.ConfigureSourceClient`、`localization.NewPreferenceHandlers`、`localization.NewSuggestionPolicyHandlers`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## localization.Serve

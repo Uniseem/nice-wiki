@@ -3271,6 +3271,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 构造期仅收敛本地journal/COMMITTED与首页intent，不发外部confirm/release；RecoverHomeReferences只装配为BackgroundTasks闭包，BuildApplication返回成功后由统一RunService启动公共恢复循环；退出先取消和Drain、等后台退出再Shutdown关闭DB
 7. HTTP装配复用platform.NewServiceHandler与NewIdentityAuthorizer，固定caller及纯service actor子白名单，当前identity权威只校验用户分支；维护仅显式控制操作开放。全部OpenAPI操作必须有真实handler，剩余用例未实现时装配失败并逆序关闭，不填占位成功
+8. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
 
@@ -3282,7 +3283,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`identity:checkAuthorization`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`site-config.ConfigureHome`、`site-config.RecoverHomeReferenceState`、`site-config.BackgroundTasks`、`site-config.RecoverHomeReferences`、`site-config.RuntimeStore.ReadRuntimeView`、`platform.NewSnapshotManager`
+- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`identity:checkAuthorization`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`site-config.ConfigureHome`、`site-config.RecoverHomeReferenceState`、`site-config.BackgroundTasks`、`site-config.RecoverHomeReferences`、`site-config.RuntimeStore.ReadRuntimeView`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；已实现的config/init/runtime HTTP适配与固定caller策略在transport装配；Home/快照/屏障等未完成时维持blocked
 
 ## site-config.Serve

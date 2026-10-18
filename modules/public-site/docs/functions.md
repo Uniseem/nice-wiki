@@ -3117,6 +3117,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 6. public-site装配public-site.ConsumeEvents为受lifecycle取消控制的订阅循环，Shutdown等待在途事件提交后停止，维护不写业务投影
 7. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 8. POST /v1/public-links:resolve真实绑定ResolvePublishedLink；静态AllowedCallers仅site-config且限纯服务主体；未实现时不得用stub或忽略缺handler启动
+9. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
 
@@ -3128,7 +3129,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`public-site.ConsumeEvents`、`site-config:registerActivation`、`public-site.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`public-site.ResolvePublishedLink`、`platform.NewSnapshotManager`
+- 依赖：`public-site.ConsumeEvents`、`site-config:registerActivation`、`public-site.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`public-site.ResolvePublishedLink`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## public-site.Serve

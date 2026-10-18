@@ -5844,6 +5844,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 7. 受信安装opened epoch与真实running写窗口，启动核chunk水位；统一工厂只绑定真实已实现handler，缺其余操作失败并关本地库，不填占位
 8. WriteWindow回调第二次runtime读取先核DataEpoch：未知503，已知不等于Build打开epoch为409，再判phase/maintenance；不能只信NewWriteContext第一次view
 9. 真实raw jobs客户端同时用于原人工批准CreateJob和公共窄worker适配，生产者响应schema由本域规格别名提供；构造两个背景闭包但只在全量handler/恢复门槛成功后安装，不启动部分应用，loop/relay由平台启动和停止
+10. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
 
@@ -5855,7 +5856,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`、`media.InstallReferenceDecisionClients`、`media.InstallCleanupJobsClient`、`media.InstallAssetListingKey`、`media.NewCleanupWorkerClient`、`media.NewMediaBackgroundTasks`、`media.InstallBackgroundTasks`、`platform.NewSnapshotManager`
+- 依赖：`site-config:registerActivation`、`media.RecoverBlobJournal`、`media.ExpireUploadSessions`、`media.RelayOutbox`、`media.ConsumeEvents`、`media.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`media.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`media.InstallLocalBlobStore`、`media.ConfigureWriteWindow`、`media.RecoverUploadChunks`、`media.NewApplication`、`media.CloseLocalBlobStore`、`identity:checkAuthorization`、`platform.NewIdentityAuthorizer`、`platform.NewServiceHandler`、`media.InstallReferenceDecisionClients`、`media.InstallCleanupJobsClient`、`media.InstallAssetListingKey`、`media.NewCleanupWorkerClient`、`media.NewMediaBackgroundTasks`、`media.InstallBackgroundTasks`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## media.Serve

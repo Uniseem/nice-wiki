@@ -6982,6 +6982,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 本轮真实构造独立ReferenceRuntime并在未启动Application绑定两个只读来源路由；完整x-handler/activation/后台生命周期未齐仍返回nil和DEPENDENCY_UNAVAILABLE，逆序关闭真实资源，不运行半成品服务
 8. 本轮构造TreeRuntime并注册四树路由和四个真实发布路由；已配置media端点时挂上现有MediaClient供发布pin。没有可信写窗口、全量handler、恢复activation和后台生命周期时仍返回nil和DEPENDENCY_UNAVAILABLE，不运行半成品服务
+9. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
 
@@ -6993,7 +6994,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`、`content.WithDraftRuntime`、`content.NewReferenceRuntime`、`content.RegisterReferenceRoutes`、`content.NewTreeRuntime`、`content.RegisterTreeRoutes`、`content.RegisterPublicationRoutes`、`platform.NewSnapshotManager`
+- 依赖：`site-config:registerActivation`、`content.RecoverPreparedCommits`、`content.ExpireIdleLocks`、`content.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`content.OpenDatabase`、`content.RecoverDatabaseJournal`、`content.CloseDatabase`、`content.ConfigureRevisionStorage`、`content.WithRevisionFileStore`、`content.NewEditLockManager`、`content.CloseEditLocks`、`content.WithEditLockRuntime`、`content.WithDraftRuntime`、`content.NewReferenceRuntime`、`content.RegisterReferenceRoutes`、`content.NewTreeRuntime`、`content.RegisterTreeRoutes`、`content.RegisterPublicationRoutes`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；完整handler装配时构造ConfigureRevisionStorage并通过WithRevisionFileStore传递；本轮只有Open/Recover真实接入，完整装配继续blocked；本轮真实构造EditLockManager单leader至退出；完整锁handler/identity安全姓名/通知审计编排仍blocked
 
 ## content.Serve

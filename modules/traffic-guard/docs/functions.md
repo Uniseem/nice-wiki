@@ -3018,6 +3018,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 7. 私有库固定view.DataEpoch；恢复store后实际构造NewLoginHandlers并交公共NewServiceHandler核完整内嵌spec，两个已完成operation只允许identity且普通维护不放行；任何其他handler缺失由工厂返回DEPENDENCY_UNAVAILABLE并关闭store，完整其余后台/恢复回执仍缺时也禁止返回Application
 8. 管理/匿名信号真实HTTP映射通过NewGuardHandlers交公共ServiceHandler；授权由统一边界即时核一次，内部marker避免重复identity调用。运行写窗口/预算key/完整其余handler及后台尚缺时仍禁止启动。
 9. 用生成的IdentityChanged运行载荷规格创建平台validator并注入GuardRuntime；jobs真实客户端用于公共relay。完整预算key/安全写窗口/恢复/订阅后台尚缺仍禁止启动
+10. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
 
@@ -3029,7 +3030,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`traffic-guard.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`traffic-guard.OpenPolicyStore`、`traffic-guard.RunMigrations`、`traffic-guard.RecoverJournal`、`traffic-guard.Close`、`traffic-guard.NewLoginHandlers`、`platform.NewServiceHandler`、`traffic-guard.NewGuardHandlers`、`platform.NewPayloadValidator`、`platform.NewSnapshotManager`
+- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`traffic-guard.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`traffic-guard.OpenPolicyStore`、`traffic-guard.RunMigrations`、`traffic-guard.RecoverJournal`、`traffic-guard.Close`、`traffic-guard.NewLoginHandlers`、`platform.NewServiceHandler`、`traffic-guard.NewGuardHandlers`、`platform.NewPayloadValidator`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## traffic-guard.Serve
