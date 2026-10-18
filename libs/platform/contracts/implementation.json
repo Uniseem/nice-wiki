@@ -7430,6 +7430,51 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "platform.LoadPortalDelegation",
+          "name": "LoadPortalDelegation",
+          "signature": "func LoadPortalDelegation(config ServiceConfig, anchors TrustAnchors) (SigningKey, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅Portal读取已登记委托私钥描述并核当前信任锚精确公钥。",
+          "steps": [
+            "仅config.Module=portal可调用，其他模块FORBIDDEN。",
+            "复用readIdentityConfig读取DelegationKeyRef严格单个有界JSON，复用LoadSigningKey加载已验私钥。",
+            "核anchors.DelegationKeyID(key.KeyID)的真实Ed25519公钥与该私钥公钥全值相等，不匹配失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "非Portal调用",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "委托密钥描述或公钥匹配失败",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "身份材料不可读",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "读取可信服务身份描述，私钥加载仅现有平台缓存"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动时调用一次",
+          "idempotency": "纯函数",
+          "dependencies": [
+            "platform.readIdentityConfig",
+            "platform.LoadSigningKey"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     }
