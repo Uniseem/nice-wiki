@@ -204,6 +204,11 @@
       "purpose": "全局frontend设计/手册/状态记录"
     },
     {
+      "path": "docs/licenses/go-git-v5.16.3-Apache-2.0.txt",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "docs/licenses/ledongthuc-pdf-6c8c28e0e8a0.LICENSE",
       "kind": "documentation",
       "purpose": "用户批准项目固定版本原始许可文本"
@@ -4399,6 +4404,11 @@
       "purpose": "model-gateway依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
     },
     {
+      "path": "modules/model-gateway/internal/admin/observations.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
       "path": "modules/model-gateway/internal/admin/probe.go",
       "kind": "implementation",
       "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
@@ -4750,6 +4760,11 @@
     },
     {
       "path": "modules/model-gateway/migrations/015_snapshot_watermark.sql",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
+    },
+    {
+      "path": "modules/model-gateway/migrations/016_usage_observations.sql",
       "kind": "implementation",
       "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
@@ -5517,6 +5532,11 @@
       "path": "modules/qa/internal/cache/semantic.go",
       "kind": "handwritten",
       "purpose": "保守查询语义缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。"
+    },
+    {
+      "path": "modules/qa/internal/cache/translation-source.go",
+      "kind": "implementation",
+      "purpose": "本轮集中实际源码、机器契约或工具生成依赖锁"
     },
     {
       "path": "modules/qa/internal/cache/validate.go",

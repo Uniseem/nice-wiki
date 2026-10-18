@@ -3082,6 +3082,84 @@
         },
         "x-internal-only": true
       }
+    },
+    "/v1/internal/cache/{cacheId}/translation-source": {
+      "get": {
+        "operationId": "readCacheTranslationSource",
+        "summary": "读取缓存翻译的当前权威基准材料",
+        "x-handler": "qa.ReadCacheTranslationSource",
+        "x-permission": "service",
+        "x-timeout-ms": 5000,
+        "description": "纯localization同站同代窄读取；正文不入日志，不授予新QA模型许可。",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cacheId",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前真实来源；eligible=false不得收费",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadCacheTranslationSourceResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "安全错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "安全错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "安全错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "安全错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ],
+        "x-internal-only": true
+      }
     }
   },
   "components": {

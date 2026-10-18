@@ -4327,6 +4327,69 @@
     "SnapshotArchiveReadResult": {
       "x-internal": true,
       "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
+    },
+    "ReadCacheTranslationSourceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "cacheId"
+      ]
+    },
+    "ReadCacheTranslationSourceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cacheId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "answerRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "sourceHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "active",
+            "disabled"
+          ]
+        },
+        "eligible": {
+          "type": "boolean",
+          "description": "真实当前缓存策略/未过期/引用仍有效；false不得触发付费翻译。"
+        },
+        "question": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "answer": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 35
+        }
+      },
+      "required": [
+        "cacheId",
+        "answerRevision",
+        "sourceHash",
+        "state",
+        "eligible",
+        "question",
+        "answer",
+        "sourceLanguage"
+      ],
+      "description": "仅localization纯服务同站同代读取真实缓存基准材料；不由请求自报active，不新建缓存或模型。sourceHash仅由QA固定schema1对象canonical产生，消费者直接保存，不复制算法。"
     }
   }
 }
