@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 20 个：手写 18、生成 1、配置 1。函数 64 个：约束 19，参考 45。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 21 个：手写 19、生成 1、配置 1。函数 72 个：约束 19，参考 53。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -26,3 +26,4 @@
 | `libs/platform/go.mod` | 配置 | Go module nice-wiki/libs/platform；只依赖标准库与ADR0005登记的第三方库；各服务以相对replace引用 | 无 |
 | `libs/platform/go.sum` | 生成 | 依赖校验锁；由go mod download生成 | 无 |
 | `libs/platform/worker/client.go` | 手写 | 生成jobs HTTP端口到公共任务租约机制的一次性生产方schema适配 | `platform.NewJobsClient`（参考）、`platform.workerOperation`（参考）、`platform.decodeWorkerResponse`（参考）、`platform.ClaimJob`（参考）、`platform.StartJob`（参考）、`platform.HeartbeatJob`（参考）、`platform.CheckLease`（参考）、`platform.CompleteJob`（参考）、`platform.FailJob`（参考） |
+| `libs/platform/modelclient/client.go` | 手写 | 真实生成网关HTTP端口到公共模型调用机制的单一严格适配 | `platform.NewGatewayClient`（参考）、`platform.decodeInvocation`（参考）、`platform.CreateInference`（参考）、`platform.CancelInference`（参考）、`platform.ResumeInference`（参考）、`platform.validatedModelNext`（参考）、`platform.validatedModelClose`（参考）、`platform.validatedModelLastID`（参考） |

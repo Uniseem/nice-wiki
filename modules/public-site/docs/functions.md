@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 65 个函数：约束 32 个，参考 33 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 85 个函数：约束 32 个，参考 53 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -120,9 +120,9 @@ func CheckPublication(ctx context.Context, op OperationContext, in CheckPublicat
 
 **步骤**
 
-1. 检查当前 epoch
-2. 调用 content 获取强一致状态
-3. 撤回拒绝缓存输出
+1. 比较本次dataEpoch；读取content同一公开树中的精确PublishedRevisionRef
+2. 可空expectedRevision为null时读取当前引用，非null必须精确匹配；不签发或缓存第二份公开token
+3. 调用validatePublications核visible/matchesCurrent/visibilityRevision和精确ref；撤回返回NOT_FOUND，未知503
 
 **错误**
 
@@ -134,7 +134,7 @@ func CheckPublication(ctx context.Context, op OperationContext, in CheckPublicat
 - 授权：permission：site.read；rule：服务身份 public-site.read-public
 - 并发：每 HTTP 请求执行，不能跨请求复用状态 TTL
 - 幂等：只读，重试至请求总 deadline
-- 依赖：`content:validatePublications`
+- 依赖：`content:readPublicTree`、`content:validatePublications`
 
 ## public-site.LoadPublishedBundle
 
@@ -163,9 +163,11 @@ func LoadPublishedBundle(ctx context.Context, op OperationContext, in LoadPublis
 
 **步骤**
 
-1. 携PublishedRevisionRef向content.readPublishedRevision
-2. 取得Tiptap JSON并验证hash/schemaVersion和2MiB限制
-3. localization提供同blockId旧译/原文回退及人工优先元数据，权威publication再验证
+1. 携完整PublishedRevisionRef读取精确已发布正文，核hash/schema与2MiB限制
+2. 原样保留Tiptap结构、标题、元数据与完整AssetVersionRef
+3. 安全可用子集：仅原本一个无marks纯text的paragraph/heading可使用同源译文targetText替换；其他富文本保留原文并登记untranslatedBlockIds，不删除格式和链接
+4. 旧译或缺失译文仍保留显式语言URL；复杂译文映射与翻译SEO优先规则缺口使本函数整体仍partial，不计完整ready
+5. 返回前再次读取content公开权威并精确匹配同一ref
 
 **错误**
 
@@ -177,7 +179,7 @@ func LoadPublishedBundle(ctx context.Context, op OperationContext, in LoadPublis
 - 授权：permission：site.read；rule：服务身份 public-site.read-public
 - 并发：content token 只绑定单修订；失配至多重走一次检查
 - 幂等：读取无写；不能回退旧正文
-- 依赖：`content:readPublishedRevision`、`localization:readTranslation`、`content:validatePublications`
+- 依赖：`content:readPublishedRevision`、`localization:readTranslation`、`public-site.ParseTiptapDocument`、`public-site.CheckPublication`
 
 ## public-site.SanitizeHTML
 
@@ -218,6 +220,38 @@ func SanitizeHTML(ctx context.Context, op OperationContext, in SanitizeHTMLInput
 - 授权：permission：service；rule：渲染内部调用
 - 并发：纯函数，无共享 DOM
 - 幂等：同 html/config 同结果
+- 依赖：`public-site.safeLink`
+
+## public-site.safeLink
+
+- 级别：参考
+- 文件：`modules/public-site/internal/sanitize.go`
+- 作用：静态输出协议与同源根路径白名单
+
+```go
+func safeLink(raw string) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 静态输出协议与同源根路径白名单
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
 - 依赖：无
 
 ## public-site.BuildTOC
@@ -290,9 +324,9 @@ func RewriteInternalLinks(ctx context.Context, op OperationContext, in RewriteIn
 
 **步骤**
 
-1. 批量询问 content 公开路由
-2. 仅输出可公开目标
-3. 缺失语言保留文档链接但显示不可用提示
+1. 输入为稳定documentId与可空blockId目标；按同次权威公开导航解析，未知目标不输出路径
+2. 非空blockId读取精确发布正文核hash/schema与锚点
+3. 最终再次读取并逐引用比较公开导航；变化返回STALE_RESULT，输出映射键documentId#blockId
 
 **错误**
 
@@ -303,7 +337,7 @@ func RewriteInternalLinks(ctx context.Context, op OperationContext, in RewriteIn
 - 授权：permission：site.read；rule：public-site.read-public
 - 并发：每批 100 目标，4 并发，总 deadline 2500ms
 - 幂等：读取无副作用
-- 依赖：`content:resolvePublicPath`
+- 依赖：`public-site.BuildNavigation`、`public-site.anchorMissing`
 
 ## public-site.ResolvePublishedLink
 
@@ -341,6 +375,7 @@ func ResolvePublishedLink(ctx context.Context, op OperationContext, input Resolv
 7. 复用本域BuildCanonical规范机制，将可信publicBaseURL的basePath、请求language和content权威canonicalPath恰好拼接一次，清除全部query；从原始规范URL取得同源相对路径，附已存在稳定blockId的URL编码片段，不在JSON接口写HTML属性转义串或外部origin
 8. 返回公开目标的任何路径/锚点/语言候选前，以content:resolvePublicPath(canonicalPath)重核仍指同documentId和当前发布ref，以content:validatePublications核同精确ref的visible、matchesCurrent和visibilityRevision；配置/启用语言仍须保持已读revision/version及epoch。当前已知撤回只false/unavailable；仍公开但修订/路径/配置/语言水位变化直接STALE_RESULT/409，权威未知保持DEPENDENCY_UNAVAILABLE/503，不自动重算或重试
 9. 成功响应no-store；true仅href/current publication/request language/available，false仅封闭reason与三项null。解析结果不授予公开正文读取权限，实际页面每次仍执行既有content最终门禁
+10. 允许qa用于引用href解析，仍是当前公开发布来源；不得返回草稿或预览链接
 
 **错误**
 
@@ -353,7 +388,7 @@ func ResolvePublishedLink(ctx context.Context, op OperationContext, input Resolv
 - `DEADLINE_EXCEEDED` / HTTP 504：调用链截止到达（可重试）
 
 - 副作用：无
-- 授权：permission：service；rule：仅callerService=site-config且actor.kind=service，无用户委托；只读公开数据，不借服务身份访问draft或撤回历史
+- 授权：permission：service；rule：仅site-config或qa纯服务身份；只解析当前公开发布的精确文档/语言/块，返回publication供调用方再核对
 - 并发：总deadline=min(ctx/op,2500ms)；外域只读快照与最终ref/path/config/language门禁，不宣称跨域单事务；水位变化直接STALE_RESULT/409，不重试
 - 幂等：只读无持久副作用；同输入仅在同权威修订集合下同结果；无需Idempotency-Key，不缓存为后续授权
 - 依赖：`site-config:readSiteConfig`、`content:readPublicTree`、`content:readPublishedRevision`、`content:resolvePublicPath`、`content:validatePublications`、`localization:listLanguages`、`public-site.BuildCanonical`
@@ -386,9 +421,10 @@ func ResolvePublicMedia(ctx context.Context, op OperationContext, in ResolvePubl
 
 **步骤**
 
-1. media 校验文档引用和发布修订
-2. 拒绝草稿资源
-3. 固定 width/height/alt 和安全下载 URL
+1. 携完整PublishedRevisionRef与完整AssetVersionRef请求公开manifest
+2. 未知media不可达时只返回空清单，由渲染器固定占位，不构造URL；其他错误保持失败
+3. 核manifest的精确发布来源、资源身份、immutable_public与安全URL
+4. 原图尺寸/alt和变体URL未在生产方manifest提供，本函数完整PublicAsset投影仍partial，不虚构尺寸或URL
 
 **错误**
 
@@ -399,7 +435,7 @@ func ResolvePublicMedia(ctx context.Context, op OperationContext, in ResolvePubl
 - 授权：permission：site.read；rule：public-site.read-public
 - 并发：4 并发，缺图输出尺寸占位且禁止私有 URL
 - 幂等：同引用修订可缓存元数据；授权仍逐响应检查
-- 依赖：`media:buildDeliveryManifest`
+- 依赖：`media:buildDeliveryManifest`、`public-site.safeLink`
 
 ## public-site.BuildNavigation
 
@@ -428,9 +464,10 @@ func BuildNavigation(ctx context.Context, op OperationContext, in BuildNavigatio
 
 **步骤**
 
-1. content 提供权威可公开树
-2. 按 stable sortKey 排序
-3. 过滤被撤回/权限限制节点后折叠空组
+1. 读取当前安全站点配置、启用语言与content权威公开树；停用语言拒绝
+2. 只对同epoch公开树节点按sortKey稳定DFS排序，使用content完整canonicalPath，不从缺失祖先拼路径
+3. 按100项精确PublishedRevisionRef批量核验visible/matchesCurrent及visibilityRevision
+4. 返回前重读配置、语言与treeRevision水位，变化返回STALE_RESULT；未知依赖返回503
 
 **错误**
 
@@ -441,7 +478,39 @@ func BuildNavigation(ctx context.Context, op OperationContext, in BuildNavigatio
 - 授权：permission：site.read；rule：public-site.read-public
 - 并发：投影修订 CAS，不覆盖新修订
 - 幂等：以 epoch/locale/sourceRevision 去重
-- 依赖：`content:readPublicTree`
+- 依赖：`content:readPublicTree`、`content:validatePublications`、`site-config:readSiteConfig`、`localization:listLanguages`
+
+## public-site.navigationOrder
+
+- 级别：参考
+- 文件：`modules/public-site/internal/navigation.go`
+- 作用：对已公开节点作稳定DFS并拒绝重复、缺父与环
+
+```go
+func navigationOrder(nodes []NavigationNode) ([]NavigationNode, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 对已公开节点作稳定DFS并拒绝重复、缺父与环
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：无
 
 ## public-site.BuildBreadcrumbs
 
@@ -459,7 +528,7 @@ func BuildBreadcrumbs(ctx context.Context, op OperationContext, in BuildBreadcru
 |---|---|---|---|
 | `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
 | `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `BuildBreadcrumbsInput` | 生成面包屑；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `in` | `BuildBreadcrumbsInput` | 公开树与当前语言homeURL；字段见types.json | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
 
 **输出**
 
@@ -470,14 +539,13 @@ func BuildBreadcrumbs(ctx context.Context, op OperationContext, in BuildBreadcru
 
 **步骤**
 
-1. 定位节点父链
-2. 检测环
-3. 输出首页及祖先规范链接
+1. 定位公开树父链并检测重复与环；未知目标拒绝
+2. 使用调用方明确的homeURL输出首页与原始规范链接，不从树节点猜语言首页
 
 **错误**
 
-- `VALIDATION` / HTTP 400：NAV_CYCLE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `VALIDATION` / HTTP 400：NODE_NOT_LISTED：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `INTEGRITY_ERROR` / HTTP 422：公开树重复/缺父/环（不可重试）
+- `NOT_FOUND` / HTTP 404：目标节点不存在（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：渲染内部调用
@@ -554,10 +622,9 @@ func BuildHreflang(ctx context.Context, op OperationContext, in BuildHreflangInp
 
 **步骤**
 
-1. content验证当前公开版本
-2. 每语言canonical
-3. x-default固定指向站点根/
-4. 翻译未完成仍可旧译/原文回退展示，不能把语言停用版本列入
+1. 读取当前公开精确ref、配置与启用语言
+2. 为每启用语言输出规范URL，缺译仍保留该语言URL；x-default指向站点basePath根
+3. 返回前重核路径、精确publication和配置/语言/tree水位，不用事件或缓存授权
 
 **错误**
 
@@ -567,7 +634,7 @@ func BuildHreflang(ctx context.Context, op OperationContext, in BuildHreflangInp
 - 授权：permission：site.read；rule：public-site.read-public
 - 并发：同请求批量权威查询
 - 幂等：只读，撤回语言不保留旧 alternate
-- 依赖：`localization:listLanguages`
+- 依赖：`content:readPublicTree`、`content:validatePublications`、`content:resolvePublicPath`、`site-config:readSiteConfig`、`localization:listLanguages`、`public-site.BuildCanonical`
 
 ## public-site.BuildSEOMetadata
 
@@ -638,11 +705,10 @@ func ComposeHTML(ctx context.Context, op OperationContext, in ComposeHTMLInput) 
 
 **步骤**
 
-1. 输出Go完整三栏HTML：顶栏AI/语言/主题，左侧当前分支展开树，正文与右侧TOC
-2. 手机将树/TOC放抽屉
-3. 文末上一篇/下一篇按树顺序
-4. 页脚版权/链接/ICP/默认源代码链接
-5. 挂Vue问答浮窗和语言建议，正文无JS仍完整且不折叠
+1. 输出完整Go三栏HTML、当前文档父分支展开导航、正文和右侧TOC；正文标题不折叠
+2. 手机文档树与TOC使用按钮展开抽屉，正文无JavaScript仍完整
+3. 输出面包屑、文末上下篇及页脚源代码链接；AI未配置显示条件
+4. 增强主题切换、复制Markdown与平台点击加载，问答岛标记复用qa同会话；不在服务器代浏览器重复统计
 
 **错误**
 
@@ -652,7 +718,7 @@ func ComposeHTML(ctx context.Context, op OperationContext, in ComposeHTMLInput) 
 - 授权：permission：service；rule：渲染内部调用
 - 并发：模板启动时编译；每请求独立缓冲
 - 幂等：同输入与 themeRevision 同输出结构
-- 依赖：`site-config:readConfigObject`
+- 依赖：`public-site.navigationOrder`
 
 ## public-site.BuildCacheKey
 
@@ -985,9 +1051,8 @@ func HandleNavigation(ctx context.Context, op OperationContext, in HandleNavigat
 
 **步骤**
 
-1. 权威取得可公开树
-2. 构建过滤树
-3. 按修订生成 etag，304 同样权威查验
+1. 读取当前权威导航并最终核验每个精确发布引用
+2. 按公开树序列及水位生成SHA-256 ETag，HTTP绑定只在本函数成功之后处理If-None-Match
 
 **错误**
 
@@ -1072,11 +1137,9 @@ func HandleRobots(ctx context.Context, op OperationContext, in HandleRobotsInput
 
 **步骤**
 
-1. 读公开索引策略
-2. 明确Allow主流AI爬虫（GPTBot/ChatGPT-User/ClaudeBot/PerplexityBot）
-3. 拒preview/admin私有接口
-4. 列每语言sitemap总索引
-5. 不能把功能性cookie变成统计同意弹窗
+1. 读取SiteConfig.indexingEnabled作为站点统一索引策略
+2. 启用时明确Allow GPTBot/ChatGPT-User/ClaudeBot/PerplexityBot，并禁止basePath下admin和v1私有路径；停用时全部Disallow
+3. 输出总sitemap及每启用语言sitemap，不产生统计cookie；返回前核配置/语言水位
 
 **错误**
 
@@ -1086,7 +1149,39 @@ func HandleRobots(ctx context.Context, op OperationContext, in HandleRobotsInput
 - 授权：permission：anonymous；rule：anonymous
 - 并发：配置不可达返回 503 禁止旧配置承诺
 - 幂等：GET 幂等
-- 依赖：`site-config:readConfigObject`
+- 依赖：`site-config:readSiteConfig`、`localization:listLanguages`、`public-site.readIndexingPolicy`
+
+## public-site.readIndexingPolicy
+
+- 级别：参考
+- 文件：`modules/public-site/internal/http_robots.go`
+- 作用：读取site-config当前站点统一索引开关
+
+```go
+func readIndexingPolicy(ctx context.Context) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取site-config当前站点统一索引开关
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：`site-config:readSiteConfig`
 
 ## public-site.BuildLLMsIndex
 
@@ -1115,9 +1210,9 @@ func BuildLLMsIndex(ctx context.Context, op OperationContext, in BuildLLMsIndexI
 
 **步骤**
 
-1. 权威枚举公开文档
-2. 按导航序输出标题/摘要/Markdown 地址
-3. 不出现草稿元数据
+1. 权威枚举并携精确publishedRevisionId读公开SEO摘要
+2. 按导航稳定DFS输出标题、摘要和.md链接，输出超过maxBytes拒绝
+3. 最终重读并比较每个公开引用与树水位，不出现草稿元数据
 
 **错误**
 
@@ -1128,7 +1223,39 @@ func BuildLLMsIndex(ctx context.Context, op OperationContext, in BuildLLMsIndexI
 - 授权：permission：site.read；rule：public-site.read-public
 - 并发：每项在输出前批量 authority 校验
 - 幂等：同公开修订集合可复用缓存
-- 依赖：`content:readPublicTree`
+- 依赖：`public-site.BuildNavigation`、`content:readPublishedRevision`、`public-site.markdownLabel`
+
+## public-site.markdownLabel
+
+- 级别：参考
+- 文件：`modules/public-site/internal/llms.go`
+- 作用：Markdown链接标签转义
+
+```go
+func markdownLabel(value string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. Markdown链接标签转义
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：无
 
 ## public-site.HandleLLMsIndex
 
@@ -1157,9 +1284,9 @@ func HandleLLMsIndex(ctx context.Context, op OperationContext, in HandleLLMsInde
 
 **步骤**
 
-1. 读取公开 AI 索引开关
-2. 生成已授权索引
-3. 禁用时 404
+1. 读取SiteConfig.indexingEnabled；停用时404
+2. 生成同次已授权公开索引
+3. 发送前再次读取索引开关，停用时404
 
 **错误**
 
@@ -1170,7 +1297,7 @@ func HandleLLMsIndex(ctx context.Context, op OperationContext, in HandleLLMsInde
 - 授权：permission：anonymous；rule：anonymous
 - 并发：权威批量校验不使用过期索引安全结论
 - 幂等：GET 幂等
-- 依赖：`public-site.BuildLLMsIndex`、`site-config:readConfigObject`
+- 依赖：`public-site.readIndexingPolicy`、`public-site.BuildLLMsIndex`
 
 ## public-site.HandleLLMsFull
 
@@ -1241,9 +1368,9 @@ func BuildSitemapEntries(ctx context.Context, op OperationContext, in BuildSitem
 
 **步骤**
 
-1. content 列公开可索引页面
-2. 按 canonicalURL 字典排序
-3. lastmod 采用实际发布修订时间
+1. 权威枚举当前公开导航，携精确publishedRevisionId读发布元数据
+2. lastmod仅使用lastPublishedAt，不使用缓存时间；canonical URL采用可信publicBaseURL及完整公开路径
+3. 最终重读并比较整份公开树和配置水位，再按loc字典排序
 
 **错误**
 
@@ -1253,7 +1380,7 @@ func BuildSitemapEntries(ctx context.Context, op OperationContext, in BuildSitem
 - 授权：permission：site.read；rule：public-site.read-public
 - 并发：最终批量 authority 校验
 - 幂等：同公开集合同分片边界
-- 依赖：`content:readPublicTree`
+- 依赖：`public-site.BuildNavigation`、`site-config:readSiteConfig`、`content:readPublishedRevision`
 
 ## public-site.HandleSitemapIndex
 
@@ -1282,9 +1409,9 @@ func HandleSitemapIndex(ctx context.Context, op OperationContext, in HandleSitem
 
 **步骤**
 
-1. 获取有公开内容语言
-2. 每 10000 URL 固定分片
-3. 只输出当前 epoch 分片地址
+1. 读取启用语言并生成当前公开条目集
+2. 每10000项固定分片，只为存在公开内容的语言输出当前epoch分片地址
+3. 返回前核配置与语言水位，XML输出点转义
 
 **错误**
 
@@ -1294,7 +1421,7 @@ func HandleSitemapIndex(ctx context.Context, op OperationContext, in HandleSitem
 - 授权：permission：anonymous；rule：anonymous
 - 并发：不使用已撤回分片清单
 - 幂等：GET 幂等
-- 依赖：`public-site.BuildSitemapEntries`
+- 依赖：`public-site.BuildSitemapEntries`、`site-config:readSiteConfig`、`localization:listLanguages`、`public-site.sitemapIndexXML`
 
 ## public-site.HandleSitemapShard
 
@@ -1323,9 +1450,8 @@ func HandleSitemapShard(ctx context.Context, op OperationContext, in HandleSitem
 
 **步骤**
 
-1. 验证非负 shard
-2. 生成当前稳定条目集合
-3. 越界 404 并 XML 转义输出
+1. 拒绝负shard，读取当前稳定并最终权威校验的公开条目
+2. 每10000项切片，越界404；XML输出点转义
 
 **错误**
 
@@ -1336,7 +1462,103 @@ func HandleSitemapShard(ctx context.Context, op OperationContext, in HandleSitem
 - 授权：permission：anonymous；rule：anonymous
 - 并发：每响应权威校验所含条目
 - 幂等：GET 幂等
-- 依赖：`public-site.BuildSitemapEntries`
+- 依赖：`public-site.BuildSitemapEntries`、`public-site.sitemapURLSetXML`
+
+## public-site.xmlText
+
+- 级别：参考
+- 文件：`modules/public-site/internal/http_sitemap.go`
+- 作用：XML文本转义
+
+```go
+func xmlText(value string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. XML文本转义
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：无
+
+## public-site.sitemapIndexXML
+
+- 级别：参考
+- 文件：`modules/public-site/internal/http_sitemap.go`
+- 作用：输出sitemapindex
+
+```go
+func sitemapIndexXML(locations []string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 输出sitemapindex
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：`public-site.xmlText`
+
+## public-site.sitemapURLSetXML
+
+- 级别：参考
+- 文件：`modules/public-site/internal/http_sitemap.go`
+- 作用：输出规范urlset
+
+```go
+func sitemapURLSetXML(entries []SitemapEntry) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 输出规范urlset
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：`public-site.xmlText`
 
 ## public-site.IssuePreviewToken
 
@@ -1365,10 +1587,10 @@ func IssuePreviewToken(ctx context.Context, op OperationContext, in IssuePreview
 
 **步骤**
 
-1. identity.checkAuthorization核content.preview
-2. 委托content.createPreviewGrant绑定当前已登录admin/精确draftRevision/epoch
-3. 直接返回拥有者token与expiry，不创建第二份授权真相
-4. 刷新可在expiry前重复本人预览
+1. 即时核当前admin会话content.preview权限
+2. 只以documentId和明确draftRevisionId调用content.createPreviewGrant；旧revision可选弃用，不用于授权或ID映射
+3. 核拥有者返回grant的本人、文档与精确草稿，直接返回previewId/token/expiresAt；不造第二份授权真相
+4. 同operationId重试由content返回同grant，有效期内刷新可重复本人预览
 
 **错误**
 
@@ -1378,14 +1600,14 @@ func IssuePreviewToken(ctx context.Context, op OperationContext, in IssuePreview
 - 副作用：content拥有预览grant，本域不存token原文
 - 授权：permission：content.preview；rule：identity session + content.preview
 - 并发：随机 256-bit token；每 token 一次消费
-- 幂等：同operationId由content复用grant；有效期内重复GET允许
+- 幂等：同operationId由content拥有者返回同grant，不本地签发新token。
 - 依赖：`identity:checkAuthorization`、`content:createPreviewGrant`
 
 ## public-site.ValidatePreviewToken
 
 - 级别：参考
 - 文件：`modules/public-site/internal/preview.go`
-- 作用：原子消费预览 token
+- 作用：每次重验拥有者草稿预览授权，不消费刷新许可
 
 ```go
 func ValidatePreviewToken(ctx context.Context, op OperationContext, in ValidatePreviewTokenInput) (ValidatePreviewTokenResult, error)
@@ -1408,10 +1630,9 @@ func ValidatePreviewToken(ctx context.Context, op OperationContext, in ValidateP
 
 **步骤**
 
-1. 本域解析token大小与格式
-2. 调用content.validatePreviewGrant核本人会话/epoch/expiry/精确draft
-3. content返回授权draft数据
-4. 不消费一次性状态，不因刷新迫使用户重领
+1. 仅当前admin会话可调用，核previewId与token格式大小
+2. 携previewId/token及可信op.actor.subjectId调用content.validatePreviewGrant，重验本人/epoch/expiry/精确草稿
+3. 仅在本次内部调用链返回已授权body与所需metadata投影；不消费一次性状态，不持久化token
 
 **错误**
 
@@ -1440,7 +1661,7 @@ func RenderPreview(ctx context.Context, op OperationContext, in RenderPreviewInp
 |---|---|---|---|
 | `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
 | `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `RenderPreviewInput` | 渲染受保护修订；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `in` | `RenderPreviewInput` | 本次已验证的内部snapshot与原previewId/token，不从HTTP请求接收snapshot。 | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
 
 **输出**
 
@@ -1451,10 +1672,10 @@ func RenderPreview(ctx context.Context, op OperationContext, in RenderPreviewInp
 
 **步骤**
 
-1. content.validatePreviewGrant取绑定本人已授权精确draftJSON/metadata
-2. RenderTiptapHTML同公开样式
-3. media.buildDeliveryManifest携previewGrant输出受保护资源
-4. noindex/no-store，绝不公开cache
+1. 仅接收HandlePreview本次经content验证的内部snapshot，按生产方唯一schema解析
+2. 资源携原previewId/token向media请求private_no_store manifest；核精确资源身份，不进入公开缓存
+3. 正文沿同一HTML块渲染和公开样式输出，标题不折叠；内部ID目标只链接当前公开目标
+4. 输出noindex元数据，受保护资源依赖失败保持503，不转公开URL
 
 **错误**
 
@@ -1466,7 +1687,39 @@ func RenderPreview(ctx context.Context, op OperationContext, in RenderPreviewInp
 - 授权：permission：content.preview；rule：content.preview
 - 并发：独立预览缓冲；禁用公开导航/private 标题混入
 - 幂等：只读重渲染无需模型
-- 依赖：`content:validatePreviewGrant`、`media:buildDeliveryManifest`、`public-site.RenderTiptapHTML`
+- 依赖：`public-site.ParseTiptapDocument`、`public-site.RenderTiptapHTML`、`public-site.BuildTOC`、`public-site.ComposeHTML`、`public-site.collectInternalLinks`、`public-site.RewriteInternalLinks`、`media:buildDeliveryManifest`
+
+## public-site.collectInternalLinks
+
+- 级别：参考
+- 文件：`modules/public-site/internal/preview_renderer.go`
+- 作用：收集正文稳定ID链接目标并去重
+
+```go
+func collectInternalLinks(document TiptapDocument) []InternalLinkTarget
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 收集正文稳定ID链接目标并去重
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威
+- 并发：调用方传播取消，不修改共享业务记录
+- 幂等：只读或复用拥有者同operationId回执；不持久化token
+- 依赖：无
 
 ## public-site.HandlePreview
 
@@ -1495,11 +1748,10 @@ func HandlePreview(ctx context.Context, op OperationContext, in HandlePreviewInp
 
 **步骤**
 
-1. 已登录identity会话+token
-2. ValidatePreviewToken
-3. RenderPreview
-4. CSP/noindex/no-store输出
-5. 刷新不消费许可且每次content重验本人草稿权限
+1. 从当前登录上下文与token路径/必填previewId查询建立预览输入
+2. ValidatePreviewToken重验本人草稿许可，再RenderPreview输出同样式完整HTML
+3. 发送前再次由content验证同grant，快照发生变化拒绝STALE_RESULT
+4. 返回CSP/noindex/no-store/private与no-referrer；刷新不消费许可，不把token写日志或公开缓存
 
 **错误**
 
@@ -1540,10 +1792,9 @@ func RecordAnonymousView(ctx context.Context, op OperationContext, in RecordAnon
 
 **步骤**
 
-1. 仅已知AI爬虫成功Markdown请求进入crawler计数
-2. 只传crawlerFamily/document/locale/状态桶
-3. 普通HTML页面访问由浏览器sendBeacon一次发送，不在服务端双计
-4. 不传IP/UA原文
+1. 仅成功Markdown已知GPTBot/ChatGPT-User/ClaudeBot/PerplexityBot请求进入独立crawler计数
+2. 只传documentId/locale/crawlerFamily/status，不传UA原文、IP或正文
+3. analytics未装配/不可达时丢弃且返回accepted=false，不使HTML或Markdown失败
 
 **错误**
 
@@ -1796,10 +2047,10 @@ function LoadPreview(input: LoadPreviewInput, signal: AbortSignal): Promise<Load
 
 **步骤**
 
-1. 领取明确修订预览token并同会话加载private预览
-2. 消费失败显示需要重新领取，不缓存HTML
-3. 处理401重新登录、403清空敏感界面
-4. 按operationId重试不重复提交
+1. 编辑器传入documentId/draftRevisionId与仅当前页内存的csrfToken，旧revision不再用于授权
+2. 领取拥有者previewId/token后携必填previewId查询fetch受保护HTML，在sandbox无脚本iframe显示
+3. 同operationId手动重试不重复提交；有效期前刷新复用owner幂等grant，不持久化token或HTML
+4. 取消旧请求，卸载/切换草稿/401/403立即清空敏感界面；错误只显示安全中文说明
 
 **错误**
 
@@ -1811,8 +2062,40 @@ function LoadPreview(input: LoadPreviewInput, signal: AbortSignal): Promise<Load
 - 授权：permission：content.preview；rule：content.preview
 - 并发：组件AbortController取消旧请求；同组件同动作单飞
 - 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
+- 依赖：`public-site.requestPreview`
 - 其他依赖说明：public-site OpenAPI HTTP/JSON/SSE
+
+## public-site.load
+
+- 级别：参考
+- 文件：`modules/public-site/web/src/PreviewPanel.vue`
+- 作用：复用当前草稿operationId，过期或显式换稿后新领grant
+
+```ts
+async function load(): Promise<void>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用当前草稿operationId，过期或显式换稿后新领grant
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：content.preview；rule：仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威
+- 并发：调用方传播取消，不修改共享业务记录
+- 幂等：只读或复用拥有者同operationId回执；不持久化token
+- 依赖：`public-site.LoadPreview`
 
 ## public-site.LoadPublicCapabilities
 
@@ -1884,10 +2167,8 @@ function RequestPublicNavigation(input: RequestPublicNavigationInput, signal: Ab
 
 **步骤**
 
-1. 请求公开导航JSON
-2. 503显示依赖不可用，禁止用过期private投影
-3. 处理401重新登录、403清空敏感界面
-4. 按operationId重试不重复提交
+1. 只请求当前站点同源APIBaseURL及显式语言navigation
+2. 503直接显示依赖不可用，不缓存旧private投影；401/403仅返回安全错误供外壳处理
 
 **错误**
 
@@ -1899,8 +2180,104 @@ function RequestPublicNavigation(input: RequestPublicNavigationInput, signal: Ab
 - 授权：permission：anonymous；rule：anonymous
 - 并发：组件AbortController取消旧请求；同组件同动作单飞
 - 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
+- 依赖：`public-site.sameOriginURL`、`public-site.responseProblem`
 - 其他依赖说明：public-site OpenAPI HTTP/JSON/SSE
+
+## public-site.sameOriginURL
+
+- 级别：参考
+- 文件：`modules/public-site/web/src/client.ts`
+- 作用：限制浏览器API只使用当前站点同源地址
+
+```ts
+function sameOriginURL(base: string, path: string): URL
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 限制浏览器API只使用当前站点同源地址
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：content.preview；rule：仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威
+- 并发：调用方传播取消，不修改共享业务记录
+- 幂等：只读或复用拥有者同operationId回执；不持久化token
+- 依赖：无
+
+## public-site.responseProblem
+
+- 级别：参考
+- 文件：`modules/public-site/web/src/client.ts`
+- 作用：只提取安全公共错误码，不回显敏感正文
+
+```ts
+async function responseProblem(response: Response): Promise<Problem>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只提取安全公共错误码，不回显敏感正文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：content.preview；rule：仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威
+- 并发：调用方传播取消，不修改共享业务记录
+- 幂等：只读或复用拥有者同operationId回执；不持久化token
+- 依赖：无
+
+## public-site.requestPreview
+
+- 级别：参考
+- 文件：`modules/public-site/web/src/client.ts`
+- 作用：精确草稿签发与本人previewId/token读取，不自动重试mutation
+
+```ts
+async function requestPreview(input: LoadPreviewInput): Promise<LoadPreviewResult>
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 精确草稿签发与本人previewId/token读取，不自动重试mutation
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：content.preview；rule：仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威
+- 并发：调用方传播取消，不修改共享业务记录
+- 幂等：只读或复用拥有者同operationId回执；不持久化token
+- 依赖：`public-site.sameOriginURL`、`public-site.responseProblem`
 
 ## public-site.HandleRootRedirect
 
@@ -1929,10 +2306,9 @@ func HandleRootRedirect(ctx context.Context, op OperationContext, in HandleRootR
 
 **步骤**
 
-1. 仅/按cookie→Accept-Language地区映射→基准语言
-2. 返回302
-3. Vary Accept-Language/Cookie，缓存no-store
-4. 带前缀不调用
+1. 仅根路径读取当前启用语言与基准语言，按cookie→Accept-Language→基准选择
+2. 返回302及当前basePath下语言首页；Vary为Accept-Language, Cookie；Cache-Control为no-store
+3. 返回前重核配置和启用语言水位；带前缀页不调用
 
 **错误**
 
@@ -1942,7 +2318,7 @@ func HandleRootRedirect(ctx context.Context, op OperationContext, in HandleRootR
 - 授权：permission：anonymous；rule：anonymous
 - 并发：只读配置
 - 幂等：GET幂等
-- 依赖：`public-site.SelectLocale`、`site-config:readConfigObject`
+- 依赖：`site-config:readSiteConfig`、`localization:listLanguages`、`public-site.SelectLocale`
 
 ## public-site.ParseTiptapDocument
 
@@ -1971,10 +2347,9 @@ func ParseTiptapDocument(ctx context.Context, op OperationContext, in ParseTipta
 
 **步骤**
 
-1. schemaVersion逐级已迁移
-2. 类型枚举白名单/深度64/稳定blockId唯一
-3. 拒未知节点而不默丢
-4. 收集H2-H4与媒体refs
+1. 在正文输入边界使用gen.PayloadValidationSpec中PublishedDocumentBody生产方自包含schema严格校验一次
+2. 拒绝超出maxBytes、层级64、重复blockId/columnId/cellId及嵌套columns
+3. 原样保留生产方节点与marks；收集标题和完整AssetVersionRef，不做有损归一化
 
 **错误**
 
@@ -1985,8 +2360,136 @@ func ParseTiptapDocument(ctx context.Context, op OperationContext, in ParseTipta
 - 授权：permission：content.preview；rule：published或preview已授权
 - 并发：纯函数
 - 幂等：同JSON/hash同结果
-- 依赖：无
+- 依赖：`platform.NewPayloadValidator`、`public-site.attrString`、`public-site.attrInt`、`public-site.nodeText`
 - 其他依赖说明：content.types.TiptapDocument
+
+## public-site.attrString
+
+- 级别：参考
+- 文件：`modules/public-site/internal/tiptap.go`
+- 作用：读取生产方已校验的字符串属性
+
+```go
+func attrString(attrs map[string]any, key string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取生产方已校验的字符串属性
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：无
+
+## public-site.attrInt
+
+- 级别：参考
+- 文件：`modules/public-site/internal/tiptap.go`
+- 作用：读取生产方已校验的整数属性
+
+```go
+func attrInt(attrs map[string]any, key string) int
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取生产方已校验的整数属性
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：无
+
+## public-site.nodeText
+
+- 级别：参考
+- 文件：`modules/public-site/internal/tiptap.go`
+- 作用：保持次序提取节点已有文字
+
+```go
+func nodeText(node TiptapNode) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保持次序提取节点已有文字
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：无
+
+## public-site.assetFrom
+
+- 级别：参考
+- 文件：`modules/public-site/internal/tiptap.go`
+- 作用：提取已校验完整资源引用
+
+```go
+func assetFrom(value any) (AssetVersionRef, bool)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 提取已校验完整资源引用
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：无
 
 ## public-site.RenderTiptapHTML
 
@@ -2015,12 +2518,11 @@ func RenderTiptapHTML(ctx context.Context, op OperationContext, in RenderTiptapH
 
 **步骤**
 
-1. 段落/引用/分割线/列表/任务/表格/四类callout转义渲染
-2. chroma高亮代码
-3. 公式仅源码占位/按需KaTeX
-4. 图片srcset lazy与人工alt优先
-5. 附件下载卡片/画板亮暗SVG/columns2..4窄屏竖排/上传video或平台封面点击
-6. inline格式安全渲染
+1. 按生产方节点与marks转义渲染段落、标题、引用、分割、列表、任务、表格、callout与多栏
+2. chroma v2.20.0高亮代码；公式只输出LaTeX源码标记containsMath
+3. 资源只输出media manifest明确授权URL；未知资源固定占位，图片lazy/srcset、附件下载、画板亮暗SVG
+4. 上传视频使用controls/playsinline及封面；平台只本地封面并在点击后加载拥有者快照的embedURL，页面不预取第三方播放器
+5. 内部ID链接仅使用同次RewriteInternalLinks映射，未知节点或mark拒绝，不静默丢弃
 
 **错误**
 
@@ -2031,7 +2533,7 @@ func RenderTiptapHTML(ctx context.Context, op OperationContext, in RenderTiptapH
 - 授权：permission：content.preview；rule：published或preview授权
 - 并发：纯函数，危险href拒绝，平台iframe仅白名单
 - 幂等：同document/assets/renderer版本同输出
-- 依赖：`public-site.ParseTiptapDocument`、`public-site.SanitizeHTML`
+- 依赖：`public-site.markHref`、`public-site.attrString`、`public-site.attrInt`、`public-site.nodeText`、`public-site.assetFrom`、`public-site.safeLink`
 - 其他依赖说明：media公开元数据
 
 ## public-site.RenderTiptapMarkdown
@@ -2061,13 +2563,10 @@ func RenderTiptapMarkdown(ctx context.Context, op OperationContext, in RenderTip
 
 **步骤**
 
-1. 按块顺序输出段落/列表/表格/代码/LaTeX
-2. callout保留类型
-3. 多栏依序
-4. 附件下载链接
-5. 画板和视频输出图片链接+文本描述
-6. 内部ID转换同语言URL+blockId
-7. 不临时生成描述
+1. 按生产方块顺序输出段落、标题、嵌套列表、表格、代码、LaTeX与callout类型；多栏依序输出
+2. 正文和链接转义，代码围栏大于原文最长连续反引号，保留原文
+3. 资源只使用明确授权manifest；画板/视频用图片及已有说明，不临时生成描述
+4. 内部ID链接使用同次RewriteInternalLinks映射；未知节点或mark失败，不静默丢弃
 
 **错误**
 
@@ -2078,8 +2577,136 @@ func RenderTiptapMarkdown(ctx context.Context, op OperationContext, in RenderTip
 - 授权：permission：service；rule：公开authoritative检查完成
 - 并发：纯函数
 - 幂等：同revision同Markdown
-- 依赖：`public-site.RewriteInternalLinks`
+- 依赖：`public-site.markHref`、`public-site.markdownEscape`、`public-site.markdownDestination`、`public-site.codeFence`、`public-site.assetFrom`
 - 其他依赖说明：media公开元数据
+
+## public-site.markdownEscape
+
+- 级别：参考
+- 文件：`modules/public-site/internal/tiptap_markdown.go`
+- 作用：转义Markdown正文
+
+```go
+func markdownEscape(value string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 转义Markdown正文
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：无
+
+## public-site.markdownDestination
+
+- 级别：参考
+- 文件：`modules/public-site/internal/tiptap_markdown.go`
+- 作用：编码Markdown目标分隔符
+
+```go
+func markdownDestination(value string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 编码Markdown目标分隔符
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：无
+
+## public-site.codeFence
+
+- 级别：参考
+- 文件：`modules/public-site/internal/tiptap_markdown.go`
+- 作用：选择不与源代码冲突的围栏
+
+```go
+func codeFence(value, character string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 选择不与源代码冲突的围栏
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：无
+
+## public-site.markHref
+
+- 级别：参考
+- 文件：`modules/public-site/internal/tiptap_markdown.go`
+- 作用：外链协议过滤及已核验ID映射读取
+
+```go
+func markHref(mark TiptapMark, links map[string]string) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 外链协议过滤及已核验ID映射读取
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威
+- 并发：只读或纯函数，不修改共享业务状态
+- 幂等：相同已校验输入同结果
+- 依赖：`public-site.safeLink`
 
 ## public-site.RenderHero
 
@@ -2114,6 +2741,7 @@ func RenderHero(ctx context.Context, op OperationContext, in RenderHeroInput) (R
 4. 纯色/图/动图/video选择
 5. video reduced-motion封面与图片preload
 6. 不添加第二屏内容
+7. 背景装饰文字、文字主题来自明确输入，不把空字符串改成默认；默认值由site-config生产方确定
 
 **错误**
 
@@ -2123,7 +2751,7 @@ func RenderHero(ctx context.Context, op OperationContext, in RenderHeroInput) (R
 - 授权：permission：anonymous；rule：anonymous config读取
 - 并发：纯渲染
 - 幂等：同public config revision同输出
-- 依赖：无
+- 依赖：`public-site.safeLink`
 - 其他依赖说明：site-config公开首页配置
 
 ## public-site.RenderAnnouncement
@@ -2166,7 +2794,7 @@ func RenderAnnouncement(ctx context.Context, op OperationContext, in RenderAnnou
 - 授权：permission：anonymous；rule：anonymous
 - 并发：配置revision绑定rendercache
 - 幂等：同公告/时间窗口同结果
-- 依赖：`site-config:readConfigObject`
+- 依赖：`public-site.safeLink`
 
 ## public-site.BuildPreviousNext
 
@@ -2195,20 +2823,19 @@ func BuildPreviousNext(ctx context.Context, op OperationContext, in BuildPreviou
 
 **步骤**
 
-1. 按权威树DFS稳定顺序
-2. 排除非published节点
-3. 输出前后最多一个
-4. 缺相邻为空数组
+1. 只接受已由content公开门禁过滤的树
+2. 按sortKey稳定DFS顺序返回前后各至多一项；无邻居为空数组，目标不存在返回NOT_FOUND
 
 **错误**
 
-- `INTEGRITY_ERROR` / HTTP 422：INTEGRITY_ERROR：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `INTEGRITY_ERROR` / HTTP 422：公开树重复/缺父/环（不可重试）
+- `NOT_FOUND` / HTTP 404：目标节点不存在（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：公开渲染内部
 - 并发：纯函数
 - 幂等：同tree修订同neighbors
-- 依赖：`public-site.BuildNavigation`
+- 依赖：`public-site.navigationOrder`
 
 ## public-site.RenderNotFound
 
@@ -2367,10 +2994,9 @@ func HandleLLMsRoot(ctx context.Context, op OperationContext, in HandleLLMsRootI
 
 **步骤**
 
-1. 读取启用语言
-2. 列/<locale>/llms.txt与llms-full链接
-3. 不混合多语言正文
-4. 停用语言不输出
+1. 读取当前启用语言，逐语言列出llms.txt和llms-full.txt
+2. 使用可信publicBaseURL，不混合正文，不输出停用语言
+3. 返回前重核配置与语言水位
 
 **错误**
 
@@ -2380,7 +3006,7 @@ func HandleLLMsRoot(ctx context.Context, op OperationContext, in HandleLLMsRootI
 - 授权：permission：anonymous；rule：anonymous
 - 并发：公开配置revision一致
 - 幂等：GET幂等
-- 依赖：`site-config:readConfigObject`
+- 依赖：`site-config:readSiteConfig`、`localization:listLanguages`
 
 ## public-site.HandleLanguageSitemap
 
@@ -2409,9 +3035,9 @@ func HandleLanguageSitemap(ctx context.Context, op OperationContext, in HandleLa
 
 **步骤**
 
-1. 读取该语言公开规范URL集合
-2. ≤10000输出urlset，更多输出该语言分片index
-3. 最终权威校验，撤回不保留旧URL
+1. 读取当前语言规范URL并最终权威校验
+2. 不超过10000项返回urlset；更多返回仅该语言的固定分片index
+3. 撤回不保留旧URL，XML输出点转义
 
 **错误**
 
@@ -2421,7 +3047,7 @@ func HandleLanguageSitemap(ctx context.Context, op OperationContext, in HandleLa
 - 授权：permission：anonymous；rule：anonymous
 - 并发：同公开修订集合稳定分片
 - 幂等：GET幂等
-- 依赖：`public-site.BuildSitemapEntries`
+- 依赖：`public-site.BuildSitemapEntries`、`public-site.sitemapURLSetXML`、`public-site.sitemapIndexXML`、`site-config:readSiteConfig`
 
 ## public-site.main
 
@@ -2694,9 +3320,9 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 
 **步骤**
 
-1. 校验rootElement与bootstrap module/capabilities；按本域已登记Vue页面导入模块路由，createApp挂载，不注册别域业务组件
-2. 只装配同源HTTP/JSON/SSE客户端和已有权限清理/语言逻辑，复用identity/qa会话，缺AI能力保持关闭提示
-3. 同DOM重复mount先复用既有实例；unmount停止AbortController/SSE/listeners，不能清服务端业务记录
+1. 校验本域bootstrap与当前document连接中的挂载节点，同DOM/buildRevision重复调用复用实例
+2. 只挂载本域PreviewPanel，不跨域导入业务组件；编辑器以public-site:preview-request事件在当前页内存传递精确草稿/CSRF/operationId
+3. unmount取消AbortController并移除事件，清空CSRF及HTML；不清服务端业务记录
 
 **错误**
 
@@ -2706,7 +3332,7 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 - 授权：permission：anonymous；rule：只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限
 - 并发：同DOM一个Vue实例，AbortController取消旧请求
 - 幂等：同DOM/buildRevision重复挂载复用实例
-- 依赖：无
+- 依赖：`public-site.LoadPreview`
 - 其他依赖说明：本域已登记UI页面函数
 
 ## public-site.ConsumeEvents

@@ -24,11 +24,12 @@
 - 执行函数：`memory.RunAssistant`
 - 触发：CreateAssistantRun与RecoverAssistantLeases创建
 
-1. lease/cancel检查
-2. 根memory.assistant accurate档max1500output token，可信admin-probe根
-3. 严格解析new/update/delete/noop候选和readonly规则
-4. 不写active，只保存pending差异候选。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 必须受信job绑定runId/inputRef SHA256/rootOperationId/dataEpoch/jobId；模型前及提交前锁外CheckLease，租约未知失败关闭；同op+assistant步骤复用MG持久结果不重新收费。
+2. lease/cancel检查
+3. 根memory.assistant accurate档max1500output token，可信admin-probe根
+4. 严格解析new/update/delete/noop候选和readonly规则
+5. 不写active，只保存pending差异候选。
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 #### `memory.overview`
 

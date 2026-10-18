@@ -193,7 +193,8 @@
           "dependencies": [
             "memory.All",
             "memory.Control",
-            "memory.OpenStore"
+            "memory.OpenStore",
+            "memory.validateEntries"
           ],
           "resources": [],
           "contract": "reference"
@@ -861,7 +862,7 @@
         {
           "id": "memory.PersistVersion",
           "name": "PersistVersion",
-          "signature": "func PersistVersion(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx,op OperationContext,e gen.MemoryEntry,previous *int)(gen.MemoryEntry,error)",
+          "signature": "func PersistVersion(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx, op OperationContext,e gen.MemoryEntry,previous *int)(gen.MemoryEntry,error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考级辅助 PersistVersion；精确参数与返回见签名，调用边界随所属用例固定。",
@@ -2136,106 +2137,6 @@
           "contract": "reference"
         },
         {
-          "id": "memory.ApplyContextBudget",
-          "name": "ApplyContextBudget",
-          "signature": "func ApplyContextBudget(ctx context.Context,op OperationContext,input ApplyContextBudgetInput)(ApplyContextBudgetResult,error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ApplyContextBudgetInput",
-              "description": "封闭业务输入；逐字段见types $defs/ApplyContextBudgetInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ApplyContextBudgetResult",
-              "description": "成功结果；逐字段见types $defs/ApplyContextBudgetResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "确定性截选完整条目",
-          "steps": [
-            "1 精确计算全部选择条目的标题/description/正文边界UTF8bytes",
-            "2 预算≤5120默认且每entry≤其limit",
-            "3 超预算INTEGRITY_ERROR拒发不静默截条（写时已preflight）",
-            "4 保持mapping顺序所有条目不截断。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "memory.RenderText"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
           "id": "memory.ReadMappings",
           "name": "ReadMappings",
           "signature": "func ReadMappings(ctx context.Context,q memoryruntime.Queryer,site string)([]gen.TaskMapping,error)",
@@ -2287,7 +2188,7 @@
         {
           "id": "memory.RenderContext",
           "name": "RenderContext",
-          "signature": "func RenderContext(ctx context.Context,op OperationContext,input RenderContextInput)(RenderContextResult,error)",
+          "signature": "func RenderContext(ctx context.Context, op OperationContext, input RenderContextInput)(RenderContextResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -2429,6 +2330,106 @@
           "idempotency": "按所属用例持久回执或不可变引用执行，不创建独立收费操作。",
           "dependencies": [
             "memory.Write"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "memory.ApplyContextBudget",
+          "name": "ApplyContextBudget",
+          "signature": "func ApplyContextBudget(ctx context.Context, op OperationContext, input ApplyContextBudgetInput)(ApplyContextBudgetResult,error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "ApplyContextBudgetInput",
+              "description": "封闭业务输入；逐字段见types $defs/ApplyContextBudgetInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ApplyContextBudgetResult",
+              "description": "成功结果；逐字段见types $defs/ApplyContextBudgetResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "确定性截选完整条目",
+          "steps": [
+            "1 精确计算全部选择条目的标题/description/正文边界UTF8bytes",
+            "2 预算≤5120默认且每entry≤其limit",
+            "3 超预算INTEGRITY_ERROR拒发不静默截条（写时已preflight）",
+            "4 保持mapping顺序所有条目不截断。",
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "memory.RenderText"
           ],
           "resources": [],
           "contract": "reference"
@@ -2837,7 +2838,7 @@
         {
           "id": "memory.BuildAssistantPrompt",
           "name": "BuildAssistantPrompt",
-          "signature": "func BuildAssistantPrompt(ctx context.Context,op OperationContext,input BuildAssistantPromptInput)(BuildAssistantPromptResult,error)",
+          "signature": "func BuildAssistantPrompt(ctx context.Context, op OperationContext, input BuildAssistantPromptInput)(BuildAssistantPromptResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -3051,7 +3052,7 @@
         {
           "id": "memory.CheckJobBinding",
           "name": "CheckJobBinding",
-          "signature": "func CheckJobBinding(ctx context.Context,op OperationContext,runID string,job platform.JobExecutionInput)(memoryruntime.AssistantInputRecord,error)",
+          "signature": "func CheckJobBinding(ctx context.Context, op OperationContext,runID string,job platform.JobExecutionInput)(memoryruntime.AssistantInputRecord,error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考级辅助 CheckJobBinding；精确参数与返回见签名，调用边界随所属用例固定。",
@@ -3100,7 +3101,7 @@
         {
           "id": "memory.ValidateProposal",
           "name": "ValidateProposal",
-          "signature": "func ValidateProposal(ctx context.Context,op OperationContext,input ValidateProposalInput)(ValidateProposalResult,error)",
+          "signature": "func ValidateProposal(ctx context.Context, op OperationContext, input ValidateProposalInput)(ValidateProposalResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -3705,7 +3706,7 @@
         {
           "id": "memory.SaveProposal",
           "name": "SaveProposal",
-          "signature": "func SaveProposal(ctx context.Context,tx *sql.Tx,op OperationContext,p gen.MemoryProposal)error",
+          "signature": "func SaveProposal(ctx context.Context,tx *sql.Tx, op OperationContext,p gen.MemoryProposal)error",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考级辅助 SaveProposal；精确参数与返回见签名，调用边界随所属用例固定。",
@@ -3754,7 +3755,7 @@
         {
           "id": "memory.ApplyEntryProposal",
           "name": "ApplyEntryProposal",
-          "signature": "func ApplyEntryProposal(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx,op OperationContext,p gen.MemoryProposal,expected int)(ApplyEntryProposalResult,error)",
+          "signature": "func ApplyEntryProposal(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx, op OperationContext,p gen.MemoryProposal,expected int)(ApplyEntryProposalResult,error)",
           "inputs": [],
           "outputs": [],
           "purpose": "应用批准的记忆内容",
@@ -3844,7 +3845,7 @@
         {
           "id": "memory.EnqueueGlossaryCommand",
           "name": "EnqueueGlossaryCommand",
-          "signature": "func EnqueueGlossaryCommand(ctx context.Context,tx *sql.Tx,op OperationContext,p gen.MemoryProposal)(EnqueueGlossaryCommandResult,error)",
+          "signature": "func EnqueueGlossaryCommand(ctx context.Context,tx *sql.Tx, op OperationContext,p gen.MemoryProposal)(EnqueueGlossaryCommandResult,error)",
           "inputs": [],
           "outputs": [],
           "purpose": "产生已批准术语命令",
@@ -4268,7 +4269,7 @@
         {
           "id": "memory.CancelRunTransaction",
           "name": "CancelRunTransaction",
-          "signature": "func CancelRunTransaction(ctx context.Context,tx *sql.Tx,op OperationContext,runID string)(gen.AssistantRun,error)",
+          "signature": "func CancelRunTransaction(ctx context.Context,tx *sql.Tx, op OperationContext,runID string)(gen.AssistantRun,error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考级辅助 CancelRunTransaction；精确参数与返回见签名，调用边界随所属用例固定。",
@@ -4317,7 +4318,7 @@
         {
           "id": "memory.RecoverAssistantLeases",
           "name": "RecoverAssistantLeases",
-          "signature": "func RecoverAssistantLeases(ctx context.Context,op OperationContext,input RecoverAssistantLeasesInput)(RecoverAssistantLeasesResult,error)",
+          "signature": "func RecoverAssistantLeases(ctx context.Context, op OperationContext, input RecoverAssistantLeasesInput)(RecoverAssistantLeasesResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -5518,7 +5519,7 @@
         {
           "id": "memory.EmitContextChanged",
           "name": "EmitContextChanged",
-          "signature": "func EmitContextChanged(ctx context.Context,tx *sql.Tx,op OperationContext,tasks []string)error",
+          "signature": "func EmitContextChanged(ctx context.Context,tx *sql.Tx, op OperationContext,tasks []string)error",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考级辅助 EmitContextChanged；精确参数与返回见签名，调用边界随所属用例固定。",
@@ -6948,7 +6949,7 @@
         {
           "id": "memory.InvokeModel",
           "name": "InvokeModel",
-          "signature": "func InvokeModel(ctx context.Context,op OperationContext,input InvokeModelInput)(InvokeModelResult,error)",
+          "signature": "func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInput)(InvokeModelResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -7907,7 +7908,7 @@
         {
           "id": "memory.SelectAssistantProfile",
           "name": "SelectAssistantProfile",
-          "signature": "func SelectAssistantProfile(ctx context.Context,op OperationContext)(string,error)",
+          "signature": "func SelectAssistantProfile(ctx context.Context, op OperationContext)(string,error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考级辅助 SelectAssistantProfile；精确参数与返回见签名，调用边界随所属用例固定。",
@@ -7949,7 +7950,7 @@
         {
           "id": "memory.SaveAssistantInput",
           "name": "SaveAssistantInput",
-          "signature": "func SaveAssistantInput(ctx context.Context,tx *sql.Tx,op OperationContext,snapshot AssistantSnapshot)error",
+          "signature": "func SaveAssistantInput(ctx context.Context,tx *sql.Tx, op OperationContext,snapshot AssistantSnapshot)error",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考级辅助 SaveAssistantInput；精确参数与返回见签名，调用边界随所属用例固定。",
@@ -8120,7 +8121,7 @@
         {
           "id": "memory.ReplayReceipt",
           "name": "ReplayReceipt",
-          "signature": "func ReplayReceipt(ctx context.Context,op OperationContext,functionID,key string,input,result any)(bool,error)",
+          "signature": "func ReplayReceipt(ctx context.Context, op OperationContext,functionID,key string,input,result any)(bool,error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考级辅助 ReplayReceipt；精确参数与返回见签名，调用边界随所属用例固定。",

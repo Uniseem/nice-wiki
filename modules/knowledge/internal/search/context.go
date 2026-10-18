@@ -8,13 +8,13 @@ import (
 )
 
 type SelectContextInput struct {
-	Candidates []gen.Candidate `json:"candidates"`
-	MaximumTokens int `json:"maximumTokens"`
-	MaximumChunks int `json:"maximumChunks"`
+	Candidates    []gen.Candidate `json:"candidates"`
+	MaximumTokens int             `json:"maximumTokens"`
+	MaximumChunks int             `json:"maximumChunks"`
 }
 type SelectContextResult struct {
 	Candidates []gen.Candidate `json:"candidates"`
-	Truncated bool `json:"truncated"`
+	Truncated  bool            `json:"truncated"`
 }
 
 // SelectContext 保留整块和原始顺序，每文档最多三块；跳过的块明确记截断。
@@ -28,7 +28,9 @@ func SelectContext(ctx context.Context, op OperationContext, input SelectContext
 	remaining := input.MaximumTokens
 	for _, candidate := range input.Candidates {
 		id := candidate.Chunk.ChunkId
-		if seen[id] { continue }
+		if seen[id] {
+			continue
+		}
 		seen[id] = true
 		document := candidate.Chunk.Document.DocumentId
 		if perDocument[document] >= 3 || len(result.Candidates) >= input.MaximumChunks || candidate.Chunk.TokenCount > remaining {

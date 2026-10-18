@@ -29,6 +29,14 @@ const (
 	UserDelegationScopes   = "userDelegation.Scopes"
 )
 
+// Defines values for CalloutBlockAttrsKind.
+const (
+	Danger  CalloutBlockAttrsKind = "danger"
+	Info    CalloutBlockAttrsKind = "info"
+	Tip     CalloutBlockAttrsKind = "tip"
+	Warning CalloutBlockAttrsKind = "warning"
+)
+
 // Defines values for ErrorCode.
 const (
 	BUDGETEXCEEDED        ErrorCode = "BUDGET_EXCEEDED"
@@ -37,6 +45,7 @@ const (
 	DEADLINEEXCEEDED      ErrorCode = "DEADLINE_EXCEEDED"
 	DEPENDENCYUNAVAILABLE ErrorCode = "DEPENDENCY_UNAVAILABLE"
 	FORBIDDEN             ErrorCode = "FORBIDDEN"
+	GONE                  ErrorCode = "GONE"
 	INTEGRITYERROR        ErrorCode = "INTEGRITY_ERROR"
 	INTERNAL              ErrorCode = "INTERNAL"
 	LOCKED                ErrorCode = "LOCKED"
@@ -50,9 +59,52 @@ const (
 	VERSIONMISMATCH       ErrorCode = "VERSION_MISMATCH"
 )
 
+// Defines values for HeadingBlockAttrsLevel.
+const (
+	N2 HeadingBlockAttrsLevel = 2
+	N3 HeadingBlockAttrsLevel = 3
+	N4 HeadingBlockAttrsLevel = 4
+)
+
+// Defines values for ImageBlockAttrsAltSource.
+const (
+	ImageBlockAttrsAltSourceAuto   ImageBlockAttrsAltSource = "auto"
+	ImageBlockAttrsAltSourceManual ImageBlockAttrsAltSource = "manual"
+)
+
+// Defines values for InlineMark0Type.
+const (
+	Bold      InlineMark0Type = "bold"
+	Code      InlineMark0Type = "code"
+	Italic    InlineMark0Type = "italic"
+	Strike    InlineMark0Type = "strike"
+	Underline InlineMark0Type = "underline"
+)
+
+// Defines values for PlatformProvider.
+const (
+	Bilibili PlatformProvider = "bilibili"
+	Douyin   PlatformProvider = "douyin"
+	Tiktok   PlatformProvider = "tiktok"
+	Youtube  PlatformProvider = "youtube"
+)
+
+// Defines values for PlatformVideoSnapshotCapability.
+const (
+	PlatformVideoSnapshotCapabilityAvailable        PlatformVideoSnapshotCapability = "available"
+	PlatformVideoSnapshotCapabilityManualRequired   PlatformVideoSnapshotCapability = "manual_required"
+	PlatformVideoSnapshotCapabilityUnsupportedEmbed PlatformVideoSnapshotCapability = "unsupported_embed"
+)
+
+// Defines values for PlatformVideoSnapshotMetadataSource.
+const (
+	PlatformVideoSnapshotMetadataSourceManual PlatformVideoSnapshotMetadataSource = "manual"
+	PlatformVideoSnapshotMetadataSourcePublic PlatformVideoSnapshotMetadataSource = "public"
+)
+
 // Defines values for ResolvePublishedLinkResult0Reason.
 const (
-	Available ResolvePublishedLinkResult0Reason = "available"
+	ResolvePublishedLinkResult0ReasonAvailable ResolvePublishedLinkResult0Reason = "available"
 )
 
 // Defines values for ResolvePublishedLinkResult0Visible.
@@ -71,6 +123,46 @@ const (
 const (
 	False ResolvePublishedLinkResult1Visible = false
 )
+
+// Defines values for TableCellType.
+const (
+	TableCellTypeTableCell   TableCellType = "tableCell"
+	TableCellTypeTableHeader TableCellType = "tableHeader"
+)
+
+// AssetVersionRef 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+type AssetVersionRef struct {
+	// AssetId 系统生成的不透明 ID，不含个人信息
+	AssetId Identifier `json:"assetId"`
+
+	// ByteSize 字节数
+	ByteSize int `json:"byteSize"`
+
+	// MediaType 嗅探确认MIME
+	MediaType string `json:"mediaType"`
+
+	// Sha256 SHA-256 小写十六进制
+	Sha256 Hash `json:"sha256"`
+
+	// Version 对象单调修订号
+	Version Revision `json:"version"`
+}
+
+// AttachmentBlock Tiptap attachment节点
+type AttachmentBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// Asset 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+		Asset AssetVersionRef `json:"asset"`
+
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// DisplayName 文件卡片文字，默认media原始文件名
+		DisplayName string `json:"displayName"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
 
 // BarrierRequest 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging
 type BarrierRequest struct {
@@ -103,6 +195,127 @@ type BarrierStatus struct {
 
 	// State 精确枚举状态，未知值拒绝
 	State interface{} `json:"state"`
+}
+
+// Block 16类Tiptap块完整联合体；schema版本在DocumentBody，不含未知attrs/原始HTML
+type Block struct {
+	union json.RawMessage
+}
+
+// BulletListBlock Tiptap bulletList节点
+type BulletListBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+
+	// Content 无序项
+	Content []ListItem  `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// CalloutBlock Tiptap callout节点
+type CalloutBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Kind 提示框
+		Kind CalloutBlockAttrsKind `json:"kind"`
+	} `json:"attrs"`
+
+	// Content 提示框子块，纯文本提取附类型
+	Content []Block     `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// CalloutBlockAttrsKind 提示框
+type CalloutBlockAttrsKind string
+
+// CodeBlock Tiptap codeBlock节点
+type CodeBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Language 自动plain null
+		Language *string `json:"language"`
+	} `json:"attrs"`
+
+	// Content 最多一个text节点
+	Content []struct {
+		// Text 代码原文，不翻译，保留换行
+		Text string      `json:"text"`
+		Type interface{} `json:"type"`
+	} `json:"content"`
+	Type interface{} `json:"type"`
+}
+
+// Column 单栏
+type Column struct {
+	// Attrs 列属性
+	Attrs struct {
+		// ColumnId 系统生成的不透明 ID，不含个人信息
+		ColumnId Identifier `json:"columnId"`
+	} `json:"attrs"`
+
+	// Content 任意块但不得含columns后代
+	Content []Block     `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// ColumnsBlock Tiptap columns节点
+type ColumnsBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// WidthRatios 2–4栏比例
+		WidthRatios []float32 `json:"widthRatios"`
+	} `json:"attrs"`
+
+	// Content 2–4栏
+	Content []Column    `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// DividerBlock Tiptap horizontalRule节点
+type DividerBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// DrawingBlock Tiptap drawing节点
+type DrawingBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Caption 有序行内内容
+		Caption []InlineNode `json:"caption"`
+
+		// DarkSVG 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+		DarkSVG AssetVersionRef `json:"darkSVG"`
+
+		// LightSVG 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+		LightSVG AssetVersionRef `json:"lightSVG"`
+
+		// Scene 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+		Scene AssetVersionRef `json:"scene"`
+
+		// WidthPercent 自然宽null
+		WidthPercent *int `json:"widthPercent"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
 }
 
 // ErrorCode ErrorCode的公共协议类型；字段及范围按本schema
@@ -150,6 +363,25 @@ type HandleNavigationResult struct {
 // Hash SHA-256 小写十六进制
 type Hash = string
 
+// HeadingBlock Tiptap heading节点
+type HeadingBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Level 正文仅H2/H3/H4；不折叠
+		Level HeadingBlockAttrsLevel `json:"level"`
+	} `json:"attrs"`
+
+	// Content 有序行内内容
+	Content []InlineNode `json:"content"`
+	Type    interface{}  `json:"type"`
+}
+
+// HeadingBlockAttrsLevel 正文仅H2/H3/H4；不折叠
+type HeadingBlockAttrsLevel int
+
 // HealthStatus 服务版本、存活/就绪与能力状态，输出脱敏说明
 type HealthStatus struct {
 	// Capabilities 按配置已启用或缺失的业务能力
@@ -168,13 +400,111 @@ type HealthStatus struct {
 // Identifier 系统生成的不透明 ID，不含个人信息
 type Identifier = string
 
+// ImageBlock Tiptap image节点
+type ImageBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// Alt auto null
+		Alt *string `json:"alt"`
+
+		// AltSource 来源
+		AltSource ImageBlockAttrsAltSource `json:"altSource"`
+
+		// Asset 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+		Asset AssetVersionRef `json:"asset"`
+
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Caption 有序行内内容
+		Caption []InlineNode `json:"caption"`
+
+		// WidthPercent 自然宽null
+		WidthPercent *int `json:"widthPercent"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// ImageBlockAttrsAltSource 来源
+type ImageBlockAttrsAltSource string
+
+// InlineMark old8项行内能力：5文本marks+highlight+link+inlineMath；同种mark至多一次
+type InlineMark struct {
+	union json.RawMessage
+}
+
+// InlineMark0 无属性marks
+type InlineMark0 struct {
+	// Type 标准格式
+	Type InlineMark0Type `json:"type"`
+}
+
+// InlineMark0Type 标准格式
+type InlineMark0Type string
+
+// InlineMark1 高亮
+type InlineMark1 struct {
+	// Attrs 高亮属性
+	Attrs struct {
+		// Color 默认主题色null
+		Color *string `json:"color"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// InlineMark2 链接mark
+type InlineMark2 struct {
+	// Attrs 链接属性
+	Attrs struct {
+		// Target 站内链接按当前语言和树路径渲染，移动/改名不失效
+		Target LinkTarget `json:"target"`
+
+		// Title 无null
+		Title *string `json:"title"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// InlineNode Tiptap受控行内联合体，未知节点不静默丢弃
+type InlineNode struct {
+	union json.RawMessage
+}
+
+// InlineNode0 Tiptap text
+type InlineNode0 struct {
+	// Marks marks可空
+	Marks []InlineMark `json:"marks"`
+
+	// Text Unicode原文不规范改写，不含NUL
+	Text string      `json:"text"`
+	Type interface{} `json:"type"`
+}
+
+// InlineNode1 显式换行
+type InlineNode1 struct {
+	Type interface{} `json:"type"`
+}
+
+// InlineNode2 行内公式
+type InlineNode2 struct {
+	// Attrs 公式属性
+	Attrs struct {
+		// Latex 原始LaTeX，不翻译；不允许文件/网络宏
+		Latex string `json:"latex"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
 // IssuePreviewTokenRequestBody 为明确 documentId/revision 签发 120 秒单用途预览 token；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
 type IssuePreviewTokenRequestBody struct {
 	// DocumentId documentId；UTF-8；不得为 null
 	DocumentId string `json:"documentId"`
 
+	// DraftRevisionId 系统生成的不透明 ID，不含个人信息
+	DraftRevisionId Identifier `json:"draftRevisionId"`
+
 	// Revision 对象单调修订号
-	Revision Revision `json:"revision"`
+	Revision *Revision `json:"revision,omitempty"`
 }
 
 // IssuePreviewTokenResult 签发草稿预览授权成功结果；失败不返回半成功结果
@@ -182,12 +512,63 @@ type IssuePreviewTokenResult struct {
 	// ExpiresAt RFC3339 UTC 时间
 	ExpiresAt Timestamp `json:"expiresAt"`
 
+	// PreviewId 系统生成的不透明 ID，不含个人信息
+	PreviewId Identifier `json:"previewId"`
+
 	// Token token；UTF-8；不得为 null
 	Token string `json:"token"`
 }
 
 // LanguageTag 规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证
 type LanguageTag = TypesLanguageTag
+
+// LinkTarget 站内链接按当前语言和树路径渲染，移动/改名不失效
+type LinkTarget struct {
+	union json.RawMessage
+}
+
+// LinkTarget0 站内链接
+type LinkTarget0 struct {
+	// BlockId 文档链接null
+	BlockId *Identifier `json:"blockId"`
+
+	// DocumentId 系统生成的不透明 ID，不含个人信息
+	DocumentId Identifier  `json:"documentId"`
+	Kind       interface{} `json:"kind"`
+}
+
+// LinkTarget1 外链
+type LinkTarget1 struct {
+	// Href 仅http/https/mailto；禁止javascript/userinfo
+	Href string      `json:"href"`
+	Kind interface{} `json:"kind"`
+}
+
+// ListItem 列表项；可嵌套列表但受深度限制
+type ListItem struct {
+	// Attrs 列表项属性
+	Attrs struct {
+		// ItemId 系统生成的不透明 ID，不含个人信息
+		ItemId Identifier `json:"itemId"`
+	} `json:"attrs"`
+
+	// Content 列表项有序子块，首项paragraph
+	Content []Block     `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// MathBlock Tiptap mathBlock节点
+type MathBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Latex LaTeX源码；不翻译；只含公式页加载KaTeX
+		Latex string `json:"latex"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
 
 // NavigationNode 可公开导航节点，不包含草稿信息
 type NavigationNode struct {
@@ -229,6 +610,91 @@ type ObjectRef struct {
 
 	// Version 对象单调修订号
 	Version Revision `json:"version"`
+}
+
+// OrderedListBlock Tiptap orderedList节点
+type OrderedListBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Start 编号起始
+		Start int `json:"start"`
+	} `json:"attrs"`
+
+	// Content 有序项
+	Content []ListItem  `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// ParagraphBlock Tiptap paragraph节点
+type ParagraphBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+
+	// Content 有序行内内容
+	Content []InlineNode `json:"content"`
+	Type    interface{}  `json:"type"`
+}
+
+// PlatformProvider 四个已确认平台
+type PlatformProvider string
+
+// PlatformVideoSnapshot 插入时一次公开快照，不自动刷新、不假造信息；失败可手填标题简介
+type PlatformVideoSnapshot struct {
+	// Author 公开作者
+	Author string `json:"author"`
+
+	// CanonicalURL 允许域名规范视频URL
+	CanonicalURL string `json:"canonicalURL"`
+
+	// Capability provider能力
+	Capability PlatformVideoSnapshotCapability `json:"capability"`
+
+	// Cover 抓取失败无封面null
+	Cover *AssetVersionRef `json:"cover"`
+
+	// Description 公开/手填简介
+	Description string `json:"description"`
+
+	// DurationSeconds 未知null
+	DurationSeconds *int `json:"durationSeconds"`
+
+	// EmbedURL provider构造白名单embed；YouTube nocookie
+	EmbedURL string `json:"embedURL"`
+
+	// FetchedAt 手填null
+	FetchedAt *Timestamp `json:"fetchedAt"`
+
+	// MetadataSource 来源
+	MetadataSource PlatformVideoSnapshotMetadataSource `json:"metadataSource"`
+
+	// Provider 四个已确认平台
+	Provider PlatformProvider `json:"provider"`
+
+	// ProviderVideoId 解析不透明视频ID
+	ProviderVideoId string `json:"providerVideoId"`
+
+	// Title 公开/手填标题
+	Title string `json:"title"`
+}
+
+// PlatformVideoSnapshotCapability provider能力
+type PlatformVideoSnapshotCapability string
+
+// PlatformVideoSnapshotMetadataSource 来源
+type PlatformVideoSnapshotMetadataSource string
+
+// PlatformVideoSource 插入时一次公开信息快照，失败可手填
+type PlatformVideoSource struct {
+	Kind interface{} `json:"kind"`
+
+	// Snapshot 插入时一次公开快照，不自动刷新、不假造信息；失败可手填标题简介
+	Snapshot PlatformVideoSnapshot `json:"snapshot"`
 }
 
 // Problem 公共失败响应；不含秘密、问题正文、原始IP或内部堆栈
@@ -280,6 +746,19 @@ type PublishedRevisionRef struct {
 
 	// SchemaVersion 内容格式正整数版本，变化必须迁移
 	SchemaVersion int `json:"schemaVersion"`
+}
+
+// QuoteBlock Tiptap blockquote节点
+type QuoteBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+
+	// Content 引用有序子块
+	Content []Block     `json:"content"`
+	Type    interface{} `json:"type"`
 }
 
 // ReleaseBarrierRequestBody 仅全域恢复完成或commit前全部abort确认后释放；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
@@ -483,8 +962,130 @@ type SnapshotStageResult struct {
 	TargetDataEpoch Identifier `json:"targetDataEpoch"`
 }
 
+// TableBlock Tiptap table节点
+type TableBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+
+	// Content 最多200行、30逻辑列
+	Content []TableRow  `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// TableCell 表格单元格，grid覆盖必须无洞无重叠
+type TableCell struct {
+	// Attrs 完整表格cell属性
+	Attrs struct {
+		// BackgroundColor 继承null
+		BackgroundColor *string `json:"backgroundColor"`
+
+		// CellId 系统生成的不透明 ID，不含个人信息
+		CellId Identifier `json:"cellId"`
+
+		// Colspan 列跨度
+		Colspan int `json:"colspan"`
+
+		// Colwidth auto null
+		Colwidth *[]int `json:"colwidth"`
+
+		// Rowspan 行跨度
+		Rowspan int `json:"rowspan"`
+	} `json:"attrs"`
+
+	// Content cell正文有序块
+	Content []Block `json:"content"`
+
+	// Type 标准Tiptap单元格
+	Type TableCellType `json:"type"`
+}
+
+// TableCellType 标准Tiptap单元格
+type TableCellType string
+
+// TableRow 表格行
+type TableRow struct {
+	// Attrs 行属性
+	Attrs struct {
+		// RowId 系统生成的不透明 ID，不含个人信息
+		RowId Identifier `json:"rowId"`
+	} `json:"attrs"`
+
+	// Content 仅起始cell，上一行rowspan可覆盖
+	Content []TableCell `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// TaskItem 任务项
+type TaskItem struct {
+	// Attrs 任务项属性
+	Attrs struct {
+		// Checked 勾选
+		Checked bool `json:"checked"`
+
+		// ItemId 系统生成的不透明 ID，不含个人信息
+		ItemId Identifier `json:"itemId"`
+	} `json:"attrs"`
+
+	// Content 首项paragraph及嵌套任务
+	Content []Block     `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
+// TaskListBlock Tiptap taskList节点
+type TaskListBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+	} `json:"attrs"`
+
+	// Content 任务列表
+	Content []TaskItem  `json:"content"`
+	Type    interface{} `json:"type"`
+}
+
 // Timestamp RFC3339 UTC 时间
 type Timestamp = time.Time
+
+// UploadedVideoSource 上传视频，服务端不转码
+type UploadedVideoSource struct {
+	// Asset 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖
+	Asset AssetVersionRef `json:"asset"`
+	Kind  interface{}     `json:"kind"`
+}
+
+// VideoBlock Tiptap video节点
+type VideoBlock struct {
+	// Attrs 完整块属性
+	Attrs struct {
+		// BlockId 系统生成的不透明 ID，不含个人信息
+		BlockId Identifier `json:"blockId"`
+
+		// Description 用户说明或抓取公开简介
+		Description string `json:"description"`
+
+		// Poster 浏览器截帧/自传/平台本地封面，暂无null
+		Poster *AssetVersionRef `json:"poster"`
+
+		// Source 统一视频组件来源
+		Source VideoBlock_Attrs_Source `json:"source"`
+
+		// Title 用户填写或公开信息标题
+		Title string `json:"title"`
+
+		// WidthPercent 自然宽null
+		WidthPercent *int `json:"widthPercent"`
+	} `json:"attrs"`
+	Type interface{} `json:"type"`
+}
+
+// VideoBlock_Attrs_Source 统一视频组件来源
+type VideoBlock_Attrs_Source struct {
+	union json.RawMessage
+}
 
 // TypesLanguageTag 规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证
 type TypesLanguageTag = string
@@ -548,6 +1149,9 @@ type IssuePreviewTokenParams struct {
 
 // HandlePreviewParams defines parameters for HandlePreview.
 type HandlePreviewParams struct {
+	// PreviewId content签发的grant ID，与token及当前登录本人一起验证。
+	PreviewId Identifier `form:"previewId" json:"previewId"`
+
 	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
 	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
 }
@@ -648,6 +1252,670 @@ type ExportSnapshotJSONRequestBody = SnapshotExportRequest
 // StageSnapshotJSONRequestBody defines body for StageSnapshot for application/json ContentType.
 type StageSnapshotJSONRequestBody = SnapshotStageRequest
 
+// AsParagraphBlock returns the union data inside the Block as a ParagraphBlock
+func (t Block) AsParagraphBlock() (ParagraphBlock, error) {
+	var body ParagraphBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromParagraphBlock overwrites any union data inside the Block as the provided ParagraphBlock
+func (t *Block) FromParagraphBlock(v ParagraphBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeParagraphBlock performs a merge with any union data inside the Block, using the provided ParagraphBlock
+func (t *Block) MergeParagraphBlock(v ParagraphBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsHeadingBlock returns the union data inside the Block as a HeadingBlock
+func (t Block) AsHeadingBlock() (HeadingBlock, error) {
+	var body HeadingBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromHeadingBlock overwrites any union data inside the Block as the provided HeadingBlock
+func (t *Block) FromHeadingBlock(v HeadingBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeHeadingBlock performs a merge with any union data inside the Block, using the provided HeadingBlock
+func (t *Block) MergeHeadingBlock(v HeadingBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsQuoteBlock returns the union data inside the Block as a QuoteBlock
+func (t Block) AsQuoteBlock() (QuoteBlock, error) {
+	var body QuoteBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromQuoteBlock overwrites any union data inside the Block as the provided QuoteBlock
+func (t *Block) FromQuoteBlock(v QuoteBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeQuoteBlock performs a merge with any union data inside the Block, using the provided QuoteBlock
+func (t *Block) MergeQuoteBlock(v QuoteBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDividerBlock returns the union data inside the Block as a DividerBlock
+func (t Block) AsDividerBlock() (DividerBlock, error) {
+	var body DividerBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDividerBlock overwrites any union data inside the Block as the provided DividerBlock
+func (t *Block) FromDividerBlock(v DividerBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDividerBlock performs a merge with any union data inside the Block, using the provided DividerBlock
+func (t *Block) MergeDividerBlock(v DividerBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBulletListBlock returns the union data inside the Block as a BulletListBlock
+func (t Block) AsBulletListBlock() (BulletListBlock, error) {
+	var body BulletListBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBulletListBlock overwrites any union data inside the Block as the provided BulletListBlock
+func (t *Block) FromBulletListBlock(v BulletListBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBulletListBlock performs a merge with any union data inside the Block, using the provided BulletListBlock
+func (t *Block) MergeBulletListBlock(v BulletListBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsOrderedListBlock returns the union data inside the Block as a OrderedListBlock
+func (t Block) AsOrderedListBlock() (OrderedListBlock, error) {
+	var body OrderedListBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrderedListBlock overwrites any union data inside the Block as the provided OrderedListBlock
+func (t *Block) FromOrderedListBlock(v OrderedListBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrderedListBlock performs a merge with any union data inside the Block, using the provided OrderedListBlock
+func (t *Block) MergeOrderedListBlock(v OrderedListBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTaskListBlock returns the union data inside the Block as a TaskListBlock
+func (t Block) AsTaskListBlock() (TaskListBlock, error) {
+	var body TaskListBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTaskListBlock overwrites any union data inside the Block as the provided TaskListBlock
+func (t *Block) FromTaskListBlock(v TaskListBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTaskListBlock performs a merge with any union data inside the Block, using the provided TaskListBlock
+func (t *Block) MergeTaskListBlock(v TaskListBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTableBlock returns the union data inside the Block as a TableBlock
+func (t Block) AsTableBlock() (TableBlock, error) {
+	var body TableBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTableBlock overwrites any union data inside the Block as the provided TableBlock
+func (t *Block) FromTableBlock(v TableBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTableBlock performs a merge with any union data inside the Block, using the provided TableBlock
+func (t *Block) MergeTableBlock(v TableBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCodeBlock returns the union data inside the Block as a CodeBlock
+func (t Block) AsCodeBlock() (CodeBlock, error) {
+	var body CodeBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCodeBlock overwrites any union data inside the Block as the provided CodeBlock
+func (t *Block) FromCodeBlock(v CodeBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCodeBlock performs a merge with any union data inside the Block, using the provided CodeBlock
+func (t *Block) MergeCodeBlock(v CodeBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMathBlock returns the union data inside the Block as a MathBlock
+func (t Block) AsMathBlock() (MathBlock, error) {
+	var body MathBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMathBlock overwrites any union data inside the Block as the provided MathBlock
+func (t *Block) FromMathBlock(v MathBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMathBlock performs a merge with any union data inside the Block, using the provided MathBlock
+func (t *Block) MergeMathBlock(v MathBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCalloutBlock returns the union data inside the Block as a CalloutBlock
+func (t Block) AsCalloutBlock() (CalloutBlock, error) {
+	var body CalloutBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCalloutBlock overwrites any union data inside the Block as the provided CalloutBlock
+func (t *Block) FromCalloutBlock(v CalloutBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCalloutBlock performs a merge with any union data inside the Block, using the provided CalloutBlock
+func (t *Block) MergeCalloutBlock(v CalloutBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsImageBlock returns the union data inside the Block as a ImageBlock
+func (t Block) AsImageBlock() (ImageBlock, error) {
+	var body ImageBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromImageBlock overwrites any union data inside the Block as the provided ImageBlock
+func (t *Block) FromImageBlock(v ImageBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeImageBlock performs a merge with any union data inside the Block, using the provided ImageBlock
+func (t *Block) MergeImageBlock(v ImageBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsAttachmentBlock returns the union data inside the Block as a AttachmentBlock
+func (t Block) AsAttachmentBlock() (AttachmentBlock, error) {
+	var body AttachmentBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAttachmentBlock overwrites any union data inside the Block as the provided AttachmentBlock
+func (t *Block) FromAttachmentBlock(v AttachmentBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAttachmentBlock performs a merge with any union data inside the Block, using the provided AttachmentBlock
+func (t *Block) MergeAttachmentBlock(v AttachmentBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDrawingBlock returns the union data inside the Block as a DrawingBlock
+func (t Block) AsDrawingBlock() (DrawingBlock, error) {
+	var body DrawingBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDrawingBlock overwrites any union data inside the Block as the provided DrawingBlock
+func (t *Block) FromDrawingBlock(v DrawingBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDrawingBlock performs a merge with any union data inside the Block, using the provided DrawingBlock
+func (t *Block) MergeDrawingBlock(v DrawingBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsVideoBlock returns the union data inside the Block as a VideoBlock
+func (t Block) AsVideoBlock() (VideoBlock, error) {
+	var body VideoBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromVideoBlock overwrites any union data inside the Block as the provided VideoBlock
+func (t *Block) FromVideoBlock(v VideoBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeVideoBlock performs a merge with any union data inside the Block, using the provided VideoBlock
+func (t *Block) MergeVideoBlock(v VideoBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsColumnsBlock returns the union data inside the Block as a ColumnsBlock
+func (t Block) AsColumnsBlock() (ColumnsBlock, error) {
+	var body ColumnsBlock
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromColumnsBlock overwrites any union data inside the Block as the provided ColumnsBlock
+func (t *Block) FromColumnsBlock(v ColumnsBlock) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeColumnsBlock performs a merge with any union data inside the Block, using the provided ColumnsBlock
+func (t *Block) MergeColumnsBlock(v ColumnsBlock) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t Block) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *Block) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsInlineMark0 returns the union data inside the InlineMark as a InlineMark0
+func (t InlineMark) AsInlineMark0() (InlineMark0, error) {
+	var body InlineMark0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineMark0 overwrites any union data inside the InlineMark as the provided InlineMark0
+func (t *InlineMark) FromInlineMark0(v InlineMark0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineMark0 performs a merge with any union data inside the InlineMark, using the provided InlineMark0
+func (t *InlineMark) MergeInlineMark0(v InlineMark0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInlineMark1 returns the union data inside the InlineMark as a InlineMark1
+func (t InlineMark) AsInlineMark1() (InlineMark1, error) {
+	var body InlineMark1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineMark1 overwrites any union data inside the InlineMark as the provided InlineMark1
+func (t *InlineMark) FromInlineMark1(v InlineMark1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineMark1 performs a merge with any union data inside the InlineMark, using the provided InlineMark1
+func (t *InlineMark) MergeInlineMark1(v InlineMark1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInlineMark2 returns the union data inside the InlineMark as a InlineMark2
+func (t InlineMark) AsInlineMark2() (InlineMark2, error) {
+	var body InlineMark2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineMark2 overwrites any union data inside the InlineMark as the provided InlineMark2
+func (t *InlineMark) FromInlineMark2(v InlineMark2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineMark2 performs a merge with any union data inside the InlineMark, using the provided InlineMark2
+func (t *InlineMark) MergeInlineMark2(v InlineMark2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t InlineMark) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *InlineMark) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsInlineNode0 returns the union data inside the InlineNode as a InlineNode0
+func (t InlineNode) AsInlineNode0() (InlineNode0, error) {
+	var body InlineNode0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineNode0 overwrites any union data inside the InlineNode as the provided InlineNode0
+func (t *InlineNode) FromInlineNode0(v InlineNode0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineNode0 performs a merge with any union data inside the InlineNode, using the provided InlineNode0
+func (t *InlineNode) MergeInlineNode0(v InlineNode0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInlineNode1 returns the union data inside the InlineNode as a InlineNode1
+func (t InlineNode) AsInlineNode1() (InlineNode1, error) {
+	var body InlineNode1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineNode1 overwrites any union data inside the InlineNode as the provided InlineNode1
+func (t *InlineNode) FromInlineNode1(v InlineNode1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineNode1 performs a merge with any union data inside the InlineNode, using the provided InlineNode1
+func (t *InlineNode) MergeInlineNode1(v InlineNode1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInlineNode2 returns the union data inside the InlineNode as a InlineNode2
+func (t InlineNode) AsInlineNode2() (InlineNode2, error) {
+	var body InlineNode2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInlineNode2 overwrites any union data inside the InlineNode as the provided InlineNode2
+func (t *InlineNode) FromInlineNode2(v InlineNode2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInlineNode2 performs a merge with any union data inside the InlineNode, using the provided InlineNode2
+func (t *InlineNode) MergeInlineNode2(v InlineNode2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t InlineNode) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *InlineNode) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsLinkTarget0 returns the union data inside the LinkTarget as a LinkTarget0
+func (t LinkTarget) AsLinkTarget0() (LinkTarget0, error) {
+	var body LinkTarget0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLinkTarget0 overwrites any union data inside the LinkTarget as the provided LinkTarget0
+func (t *LinkTarget) FromLinkTarget0(v LinkTarget0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLinkTarget0 performs a merge with any union data inside the LinkTarget, using the provided LinkTarget0
+func (t *LinkTarget) MergeLinkTarget0(v LinkTarget0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLinkTarget1 returns the union data inside the LinkTarget as a LinkTarget1
+func (t LinkTarget) AsLinkTarget1() (LinkTarget1, error) {
+	var body LinkTarget1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLinkTarget1 overwrites any union data inside the LinkTarget as the provided LinkTarget1
+func (t *LinkTarget) FromLinkTarget1(v LinkTarget1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLinkTarget1 performs a merge with any union data inside the LinkTarget, using the provided LinkTarget1
+func (t *LinkTarget) MergeLinkTarget1(v LinkTarget1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t LinkTarget) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *LinkTarget) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsResolvePublishedLinkResult0 returns the union data inside the ResolvePublishedLinkResult as a ResolvePublishedLinkResult0
 func (t ResolvePublishedLinkResult) AsResolvePublishedLinkResult0() (ResolvePublishedLinkResult0, error) {
 	var body ResolvePublishedLinkResult0
@@ -706,6 +1974,68 @@ func (t ResolvePublishedLinkResult) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ResolvePublishedLinkResult) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsUploadedVideoSource returns the union data inside the VideoBlock_Attrs_Source as a UploadedVideoSource
+func (t VideoBlock_Attrs_Source) AsUploadedVideoSource() (UploadedVideoSource, error) {
+	var body UploadedVideoSource
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUploadedVideoSource overwrites any union data inside the VideoBlock_Attrs_Source as the provided UploadedVideoSource
+func (t *VideoBlock_Attrs_Source) FromUploadedVideoSource(v UploadedVideoSource) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUploadedVideoSource performs a merge with any union data inside the VideoBlock_Attrs_Source, using the provided UploadedVideoSource
+func (t *VideoBlock_Attrs_Source) MergeUploadedVideoSource(v UploadedVideoSource) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPlatformVideoSource returns the union data inside the VideoBlock_Attrs_Source as a PlatformVideoSource
+func (t VideoBlock_Attrs_Source) AsPlatformVideoSource() (PlatformVideoSource, error) {
+	var body PlatformVideoSource
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPlatformVideoSource overwrites any union data inside the VideoBlock_Attrs_Source as the provided PlatformVideoSource
+func (t *VideoBlock_Attrs_Source) FromPlatformVideoSource(v PlatformVideoSource) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePlatformVideoSource performs a merge with any union data inside the VideoBlock_Attrs_Source, using the provided PlatformVideoSource
+func (t *VideoBlock_Attrs_Source) MergePlatformVideoSource(v PlatformVideoSource) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t VideoBlock_Attrs_Source) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *VideoBlock_Attrs_Source) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -1280,6 +2610,21 @@ func (siw *ServerInterfaceWrapper) HandlePreview(w http.ResponseWriter, r *http.
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params HandlePreviewParams
+
+	// ------------- Required query parameter "previewId" -------------
+
+	if paramValue := r.URL.Query().Get("previewId"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "previewId"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "previewId", r.URL.Query(), &params.PreviewId)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "previewId", Err: err})
+		return
+	}
 
 	headers := r.Header
 
@@ -3757,146 +5102,203 @@ func (sh *strictHandler) HandleMarkdown(w http.ResponseWriter, r *http.Request, 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+x9/VMaWbr/v2L13h9272IwbzMTq7ZuOepsvOuYlJq5d79zs6kWWu0N0Gx3k4mTsgoS",
-	"X9CAMMa3iMaXaHRNBDUmIqD5X0bO6eYn/oVvnfM00ECDgJk4mXF+mIpAd5/zvHye5zxv/YixCHan4OAc",
-	"ssQ0PmIkSz9nZ+k/v2ZFkefETu5fLk6SySes1crLvOBgbbdFwcmJMs9JTGMva5M4E2PlJIvIO8n3TCOj",
-	"vh9WwitoYwqPzSnzQyg8hoY30W4gNb+gTL1VIwfphE+J/4TC8/iZP3m0kIxOYO8W3l5NJ0IiJ8mCyOHN",
-	"FZQIqB/m1FcevPtYdDlk3s6htaFkbEL7yT1JZvt4Rx9jYpy6FT1iemDtbVbyx3+IXC/TyPzBnNuqWdun",
-	"uc3KOWS+l+dEZpDsgbXaeAd32lXdvJ2TZNbuJBfZBSu9IJ8A+dS7RH6UToSwb0zZjaMXT0/cHvxiPhk9",
-	"RoFxkfuXixc5qxJ7hReXkkcflKlNxsRwDpedafye6WEt911OxsRom2buDpoYslmWPKq6LQ6Su8DTyK31",
-	"dzHpiKZtSkeQuyZGHnByTCMj9PyTs8hk49oWu2RWdklVyocmCuPvsduDAuMgH8rjQ0KjhS3k3cl+koz6",
-	"1SdHKJJAozEU9uHpffThtTK88dF4zspsq1Ow9Fd3mfCDgxOL2Y4ih+ruCpqKJKNuPOZGuy+IGC/OSjYX",
-	"kVKNhpIsEqml3HjAS7zg+B9W5kQ7K94/bRWd2gXkYklmZQPRU/aOlZUwiBdQOJ3w4YUtZWkduRP46aQS",
-	"X9TJl1VkeQcokcT2clTQbBwrcUQOelnexlmZu4WSo5cVIEVmOXqKGu3PSJJaRVEQmw31KPsVQZHhN2h4",
-	"F/kDajgMapROhND2LA6/Q4Fx1fcEhfaxbwwvvAFq6Tb5XVN7W0tTd9utDsbE3OloutN9s7Wju625qbu1",
-	"hTEx39zq/LqtpaWVfNtxq/veN7fudJDPm291fNPe1tzNmJjvWju72m513Pu2revbpu7mm4yJab/V/Dd6",
-	"+Z2Orju3b9/q7G5tudfVfLP126aCD5ubbjd93dbe1v13xsR0NnW33mtv+7YNnv31nZa/tnbfa/3f5tbW",
-	"FvpJc1NHc2t7O/13S2tTS3tbR6v++5bW260dLa0dzX+/d6ej6bumtvamr9tbGRPT1d3U3nqvs7XrTjtZ",
-	"cltHd+tfO9u6/36vtbPzVqf2SWdHU7uOCzlZ/IbnbNY2SXJxVSpz7sLamJSvx73kbgaaRW+hHkTQ8VA6",
-	"4UtG/cg3jIKvtVu7E8bqxUrk6qKbBSJod1pZiyWjU8moH78dSi3sqcfP0PA63n6JZ0bJRiaWUGi5+K4F",
-	"mgDLzT7KSLxvsg6rjWuS7nf1czZbJye5bNXaU+XpG+X109RsWNmeSq28Sy2uorUZ9PIt9gbR+JISf4Zf",
-	"LBA6r+2q++sEMj9ModAL5B/X/6CI1P2y3VZMHPJpOhG60/1N/VfpRIhQ+ng2GY3VOVw2G7EN7MN2ztEn",
-	"9zONVxpufHn5+hUDyktZq5B/c/i8LrX4Qt1fquMd8hfX4BnK1CZ+F1YeH+LpHXgIbye6e/3GDRNj5x3w",
-	"1+WGhuzDeIfM9RlYNe3RJtheaYa0t38rdQqCXBND8PKhzWaX1Mi2uulW9ldRYvpsvPiUBDMxMvdQLn4W",
-	"+fSMnC/FC/rA0rzoYB/wfdQVqYkbBHQSbhRJqN6tupvd3bfPxgtOZvuKqUM+rZA6X12+cd5KYWJkkTMw",
-	"qHhhDMUCyDurrmymEyHl3zH4t7qyqazF8N4K+UEgokxtplYOGRPDy5xdOs0rybGvg1jxQbrUNrjyckOD",
-	"bn2sKLIDZcSErNkEDDCWFqm/eE9dN5vqr1z/og7tBNDIc+T3oOFt9UMIed8T1rKyzInkZ//4vqH+Blvf",
-	"e/fRF9cG/8PIXtzkWJvcX5NHixf8aHxFGfPihTcnbg/ansP7cTPa2VXiW8noBPFhx0NZd4zYmtGYOrSL",
-	"pwNqZB/PTRQJoYV1sj28jc/8XfA431hq2K8chdHBHgoSdmHvjJKIobVdZX4oGZ1H4yvwTD0PizaczxXq",
-	"97tsBlKjJ8wl+FGVx5mKlYGoL9BJWfboXDiRY60D9EzSJ7JW6p26HOwDlrexPTY4FT3gROobl3DLsXdG",
-	"80sol0417Roxcvc15QQ1jztGkqo7LhR76G/jSnxJmVrC3iDllj/lDuC5ibq2Fs21Cb5ORreSsVjywwr2",
-	"RPLB5fKVr6jyZ//Ol/Gm+v/H1v/YUH/j0r3G+rt/NpRz6qzdJs4590O3cJ9zaOfUrwXrQJVyn4zG8NyE",
-	"shKuswoWl51zyG1Wc8btr1O2j1Hgp7rLVxrqlI1J5J8muOKeSq0OqRveOpk8msBzIJL8sMJaZEE0c+Tk",
-	"YHZynKhM7abG9vHiEyJUcPpPRseT0ad4ZhQHgsnjEBALT6yjwCwKr2LvgfI6oo5uoZc7RhqVW2AxS3Lf",
-	"VQjxBlwoebqr/FBXIIG6FevuZihuxRytxc2k7FL9Y8rmB+ARnvDixSdnNKcPnbzISU1yVXEVKhwGPoom",
-	"MzWb4QISw2NMukUakbeddfS52D6u28gxUDeGVN+Tuq+bb1/7sg48wjrwFdDaBtgk7BuDL8zq0DxeeGNG",
-	"vhhaWoIrQYyT8ZfqymZqwa2+8uDNFfTiaWrLp0Y8+Vu6ej1P6q4Y6f7dR1dMXw3+sT4HBXcfXTZ9Nfin",
-	"/zQEgwLjXaXnFYjonS91/DGN4uTOZyBMWRwrtHEOwcFbWNttVjaw63lfn831ytf9yuM8TlYsgRh4+RB2",
-	"W5f5zV9KoAT5mNqoRll0cQaLc7p6bLyFlSuAitvkp1I/Z81gRifXS62pIMp/4wYMfEv44mzUk3nZyCug",
-	"H39EXcyDuyzlM483FYhLbtP5FDTS31v0X4RWVXp1EMOjvh3YHLDXROwDcygwiyc2wLlIJ3zYNyb1s1eu",
-	"f5GMTvQMyFwX/yMHOqwZqrlIMh7HQwHlpUcJzUEsoziOqV1p4MVA+BNCjNuz6vhjPL1DnMlIHAVmCPgu",
-	"LqE1P16OMrrTgeHZwM5ZebabfmyMZmhrMnn0LBPAIVtDwx41HE2FRrKwVCQmQO9qVaxEKBUCp3WlIqdA",
-	"6dOeRM8L+Z5hTYY4E+PM7jDPKYSl6KlqyrHRSBxvi0KPjbPXcMod3gXji575UWxK07nga2VjDkVGTtye",
-	"1Gw4tToHQSxyDJlYQhtP224T13dkOPVkEy2P4GVvMRBryF+OOLkoLU2VyCxvEDxKRrfxzChE77MHmyLm",
-	"8cRbMfD9U+6gFuejsbjU1HM1EgHlIYeZ0As8dwxbJRujMb+Kzqe60KbBoUcE57dauRU5WRwAXC+S3bkI",
-	"Cr4CjUELm+jwsbI9hiZ92B2HNBdhxqhfjUznqNMjCDaOdZx2NKqDsxFTwfnfGLSBQ3h5NLU6Z8Qb2RAV",
-	"QK4AD/DyqBoZOfX4JIMiZMA7d3TK5JaoBOnJr6epodpQlO/kbKzMP+Daecd9A5AM+nAsCCCmhKIocnin",
-	"sz2dmMeeHbR+lIy6k9Et9d0B2nhqTid8Wgz56Bka84MN+ZqVuDud7cr8UA8rccTQkMPt3DFKBMCDQ5M+",
-	"i+CQOYdMjiabnkInhZiG6Ct0sKeshNXwmrL5FoXne2yC5X6bNTU1D+4Rnl3+l4sTB4iKrs2knmwKIt/H",
-	"O8ifAT+eWcCLy9g7Q4yL973y75jy/MjImpY8BJq//4f5v/7wf/Q/6e73/8j9+z//+Af9n3/+038Z+oSG",
-	"bka1B8OslfwJRZ8kP4TV8CpKkBNgOhHKmPrsUdGsEZUgtqZw5mwmicBe0Jc1PIXYlb2wUnNQY9KvZiey",
-	"kJrVQ021B0mTlsr/rmRIZGQYhQ/xcgIlAsRcTO/j6R0IjBC9CMwh3wz6MJxaiasfPMpGPA9wTo3B53ty",
-	"BtvX7cmUx8HCheuZZYQJnZCszM+31xLHiA+j4U20tIQ9q2jNT3wtbxB7ZyyC3c7LaMyPhjdTTzbZHkGU",
-	"QbNRcCI1Oo6njn/JCMap+63hlA+rhmMbju7hpWdKfB+Pr32sBEY5Cc0vGigRBzbmsyTYHnBZYCLo3+Zw",
-	"uuTq+SzxMldvERy9fJ8Si4Bzr268xC+CQJPUs2M8sZ5OhNSdJ8rUJp45RAd7yfg6Woqh0RGwAurKeuoo",
-	"aNPCAsVOPOA9XZvNdquXafy+cn2/W7hmcprS4vMzo3jlZToRSi2+IJ+ChhIXg5owSP2jgz3AXHADk9Ft",
-	"tD2HFjaZwqPoGSAtu/NTrtIHTsqChI6UGeJVKgY5JSiAuIM9ZWkdrDQIrTI/hHY8qdlt1TOFgl7iPh8v",
-	"qu9msHcGoA/KJEDgNSf9xP2YChI42hDOIC4BdaCIwR5+gqd3sD9MDPbsRiZDHSIEBnNHOBQ5RLEpNXKA",
-	"dx8DD9GkD3jGaaUSgoPT5KSsNBdkcEWwy6eGDPK9po8Tc8hl1zMxel043jAcSnlnba9FdkwMebbmbWvP",
-	"IyS+W+xAF4hZ5joTUCt/6warKpfLr4k52mqJ7t0tjgY9rO8T6jNHEseAAW+qvr5U2YMuX6LEl6gv7Ado",
-	"MOOFLQA/M55cQ6EXZuRdTj1fSydCrMPSL4j37Lwk8Y6+ZDQGYquZjwzCgGijxdnsLdOJUEan7+kenIwP",
-	"k2dlUlbIs0AdQnrEoxCnRn4iGjL/WEnEdOkffa7HxOQvSgcf9/JyQhUKYdUELhZFKgCfVBbvUjTM+YWG",
-	"hWj+aXUn43oHDk4NC3Vx4gPewnVyrJV3cFLVVX002wmhCYBLibOInEzgEtKjryPK48MTt4dGJKCcBUSo",
-	"yIKyFoJWLXpHvTDhuoW8i2jjKfLNEJalEyHNdfOOYv8qXlhKze4rU5vJ2AT4a3jhDVpaQgd72L+KhteV",
-	"+SElFMbLoxkAPjVM20+ToKeeMfQ55EETwzt4mWdt/I+ctfwmUGBLfXKE5/dTC3tklQtj2a8gk5tOhJra",
-	"IOurJGKplUPiOk4dEl99KaasuOFXwATDuMI/BZfoYG2dnEV4wIlG69F+AZFGIKfhnewskRoH67AYxSk1",
-	"gNhUXj8Hz5KcKCheqJE4GnmejPvV1dep2U3llSc1F8fbq4YPcWqGi7r0UpPNJvxgtGbNeZ19T2WSFhCz",
-	"1gFCzZVNPDehsR0qkMmB9HEyOgEna837DgTJchPurFMM6XPDNWlufGctBzK2l7st8A4DTwUobUZro8n4",
-	"EfIH1J0nKPwi9XxYVxirBcGS8WFleywZjxOndecJir3C84+RZ4E5FXs08TUVqVbxrvIZXIoT+bJtIF76",
-	"PRs5c10O1in1C3ILL1lY0VpbqTkYKrwUxG9WgI7K/BChyfacEgqjo2nil/lX0WiMfD67Ac4afFWEOlqN",
-	"dbXesGQRjIJmksz2cda/4IWtLOTAwtKJUA/XK4jcX/SnTRSc0C8U2KQzgXA74iDTa4urcnOrzyypIqrX",
-	"cIRMRldR4kn2qAjUzJp+dWOE+AkHe8AbAyrbhQfGcPiGcBGip6AA9A7J2EiWYQY6+VGZRpa9NqQER8BA",
-	"oKNpZTeOvK/PxghTdtPlWNL60CmIcm16gH2jKDwPhfVo0qcRMZMaICcfWjcPlfTgrhnU0Fvuu5zVEvLT",
-	"Vt7zDovNZeW6qGdhECSH1hOoSUm5x/DTf2ukgBaCyEhqcv10sMxSIr8vQl/bXrCQSvhaS2njwZ4SD2iL",
-	"P3wPMVACEGDWgKf0mFkcGO3nLPcll73SqKikrfa032d2RY+BhRGczD1MuceXo0wNKVm68Vx0mVIABwLq",
-	"h51sQB9WSg7nz7wo6qNR9g20EyCWn8J/Mv4Sv1kxDCWzvEMqKVy6ZV8q+HFt9XA6GKs1KM3KbFf5WK9+",
-	"1UU/r3Ld5YLAmfzoaRvIZeN/LZ00GoHO1E2lu0muKUYPGMWcMlp2loimInEsp0hdxCbVaDnGxzU0Af/z",
-	"aBKvvARHBXl3NFtm/j9XQ8NVS9ay0T85M5hCyEPjqUPwWcBsphPeppbOhoaGq+nE2Mdq16oW02r1DWqB",
-	"QhMjs2IfJ7fUosjlPIgcpuptUeHDKkRcTVBq6XmgQqIJRugFHttIJ0I2/gGnxT8XtlBgjmAwPYATP/BD",
-	"SNl8mhr1o2AEz74HL/fMZqpUvQhdV2VQcSaZqPo68BZLLBh0BR3s9UoDDgs6fK88j6vhHUML8cuIV7Z/",
-	"T49fZYQruyMjKcuVcBbtt/Ob5qtXr96ou9PdXIdn36dm9xkT0yuIdlZmGgk4cvXkEFqqJkG699stwiRS",
-	"wllcIi8PUAOhhcCsNL4pOG5zop03CBsQp5K1kaMWDVs0tWlR2OBPssj29vKW+j4XK1qh45qcAEZH0PC6",
-	"Go6iQCSdCGnxNyhue+9V9w/TCZ9y9BMafktUfWEnteVTto+pq8s0Mv0ca6WC4mDtZPH/W9+UWWC9tsJc",
-	"bY2T/xtHQ6UShBSbJIloPHgnPRwrcuI3Gdb/9/90/7HV2tLV9CemqI88k4HT4odTm6knm8rRHp7V9ESZ",
-	"H2q1Xrl+/fINZcOTmlyHCuafx9a+aFA2JvEMYXc64eUl6S/aveiNTtwe1kVO5m+yf9s5uV+wnrg9Tqj5",
-	"6BGsAwRyTtyef8p8OjFGHKWJdTz1nizHNyaLLkluonHoTq4XboOG36Qm14kEUalBh++h3TY16sdTx5nc",
-	"NtVqSoIcwfplmVY9uyRObOFsXF82+l+K5TTIBgyHTSvzQz+PrV0m+6ax9QNov1cjHjw3kU54aXb6xO3p",
-	"E1mHLJ24PRJHmac5Iydujyi4ZE63ddh0MvoUR6OpZ8fqQQRNLOHlg2RiOeWeTCd8WXok434lHuAp4MgD",
-	"jRQrmlxyvyDyP9Kd4OUoXnySeh5MRieSiXk1sphtwighXLfpTutvi4LQayRYxG+SBbELNmFQnJqnAtvH",
-	"ytGeMj+UTGyhoF8Nf0DhVVgHzd5vQaBYy/9SvUhGJ7SCH08ArR9lGzPabmfWbBGE+zyXW7Pjh3vaoorX",
-	"O0hPrr2CAXCFj9XwCgp6UdCntb+HXygTO9g7o34Iqis+ZWEJhV/QGoGXJ+7HIGmp2f2b3d23zf/ddavD",
-	"3NXVCjVFaHg3GXsN5hjFnp24H2cLsBq1IF69xMsc7ZGrg2fqShkbmcuXGi41MDBgwME6eaaRuXqp4dJV",
-	"6KPqp7BkJv/r4wzwKBkfxsuHkAG92nAlnfABicxNFgvnlOszAG7WZ9KTiTk07E0nfN+x4gDefqmshJmC",
-	"AQdakyA0a1p5EbxjJyuydk7mRIlmTQuCwomYsuBRpnbRMKEb9NoQVkMp3shzFHgFZ5o2K2d3CjLnsAzU",
-	"/40bgKkUvMPpytSjlJBPzdeu14I8tJe5GoN8lzoiTsEhAdpfbbhiIByURFmiqgdv1aM3Gq3qCqnaTImd",
-	"TvgcQj2MitAbFqbx+7smRnLZ7aw4oNWv07tDkIRIBGNiHtaTU0o9zYnU5zyGTCasnzJCzJemS4bseVjv",
-	"JEZB006GdQiOAbugFX2YIRj9o06UCjieCVbn0ehKQ4Ou4ovaSKczkz8z/1NLelbGjPw8zeBgkemhziv0",
-	"8YF2Qa2AGfwCPLGK3z0lqnK94WqZRTmhiuDP1S0uUyBccl0Q/yBH8rI8ph67fidMGS5mSF6eczabXbok",
-	"Q/twKRTIdYXQyBRxPbI1KbT6Af80p77yQN90CW3PtGf/9jT9o0qxUSu7gdRUzZRPL9hQ3p6p+Q6VmHJx",
-	"CqQVNuWfDdJ0MlheKWjKsTSadWq9q7+YGBQl7g3oC2BAV4q9M5A1JQ8XBVs9/TSbpYX8J+RnUeAV8q6d",
-	"izi8TU2Fs/VZUFWppRjxwha0A58OfigYQeObZi3PlsmNl2J7hlGncFvoEeTyIKi8fq48PlRiGyCGyvaM",
-	"Mr2uJXFp77ey4cELY2hhBy26S/o75DG/B/yTuYey2Wlj+QLRKTwmFwlJdWT+LDFtIYaebyZjMXVjCHmf",
-	"n9VF0ySqvHyTK+ys89JDGA9TRsDrtJ/WIe+IMjZa1qB3wU/bHFbu4e/NqGuUrFqyjen7OcpxZiOwhbqz",
-	"HzcKxKkiiTY/sgkW1sYNmh9J/axoHSwr4mAMT9weiBCeuD1ZhwkABU36cGgfz+xkw5ll5L6LPPA0uYdj",
-	"HnInlKldOgiDijN6volWXhNVGD3C0zu07J0cSbTiSz86noWGATSyp2x5tMY4Gi6CRllN6mHzjD4UDJTO",
-	"yUf+cuCCCjt8C6Kilz9CVPTTkkfSOFQpdejvq5jac+PKlatXv7zScPWLr65f+/LLL+hcnHIFmcUEuMDF",
-	"qpVy0MRcK7uGXxosdbMHP0fgRv5pMD4ZW/RRYDuDhuVh+8Fls5bxpLLkFKQSMD28m98A9vPIZF6nES1y",
-	"8CQPhzPTLs0S28ulEz6iNcfDmRrRvJLLIjhvstCNajf+/F0Yk1H5HR3HC2tMTYXJkTDoI+ewqB8FfaBz",
-	"PYJ1oK6flfqhT+Zaw41SayzYWVlsrQ5h8tr8PsoRumDe8WB+ylRrl/rFDvCFfXElFPkXkHKKSdfOFZMK",
-	"R5wWwNEjgyTi93cH81FK180IIU+idrqx07WiVqtD5sScyhfglbawIrQyP8pWagw2avN0SyPYGXpPi0Aq",
-	"vz/0fP1NfbVKpU5V9pqPNofrc/SiLqA5v1SvVI/3J0Zpw+brEtH2WhWa+qs3zhGPtbHWNYBwqcbyWrG3",
-	"CMtOQV8nzL8z05luZTzGM88sLELdovF7F97hbwuCyk7M/MQoVGrWoxEQnVnSKRyd55E1N5ufLuU8PdXc",
-	"qwEqAsfiaq5CwCw1b7NWwDSCoQLM1Eh3ScPKIux8RNk+WDq7H/UriWdoe67uZve37elESHnlUaY26yAn",
-	"poV3CZDRJLP6bgjHguR7OhutTlnaxgtLBVs1Cppqmzhf/zWD9ZX6rh9hNulvNruXeddAFaG+jy5qvzYs",
-	"O08vL+9dIZ9JXLJWmNUMGhQ9Uj06WwwzB06VgivcwsY77kuN2pCHsuEA3YgidLCnhtfUiCc7qygZjSeP",
-	"nulHR0E9Kx1G8z4Zn9FKur0z+jrgE/djFNhSI3Hd2Jky846wb6yHlbhMcWH+vCNyr8zcea3aJkEHd8y+",
-	"T35YVKafq5F1+PxOZ/uJ+7FWxaEbrnO94Wo6EYLZPHhnP3nkh5Fj8K1eOM3XGm5oxfmJrZR7GSrf1A0P",
-	"AALeXk25J9HRpI5kl0SOtcLYm5uCnYMy2MIwSfEcIeaXOr2Wmlz1yU+vJWcnGZULUd7ADCVlfghobs7W",
-	"HWZ6v0EIvcmYFwUnlPg2DKPN2nawN3Qrzayln6tvhoojo3fyZIqwdZXtubEHRwvJaAweoR0w6SPAQJS1",
-	"0Zmu7WxVbPFYGLr9T5wlyqWF0ol5mHdKDN6bVyjoTUbX8XJCewRd2uVPubSCF2SlE/Maosxoqo7WdrF3",
-	"hvx/2nsOVjVrRtOJ+dTiC6N5boCRdJGHKPpKD4TnYHsLXx5GOE7lO9semoxqcg9qR9Au6lZH9wssdTox",
-	"r6/hxN4ZDTwP9gA/z8GUG9vudGJeW8CJ2wNDawg3dCZDA39qFLB3RsP14+NzyEgUpSAIg6gxJLYRJvZ6",
-	"d+jaqo+KYd+YNvItMI4WZ9tatFmDMCUHUhQ6O1x7sMzQop0SMss0/UmNVhgHUibPCoNWaERTa7YsPVkl",
-	"r/mXttg8xtM7ZrAayfg6+H/AGgLsoyNFJlqbT9KV6369iKj9hiJqJYb/fGKfyHgYjtGBpRrpJ5/QWanQ",
-	"Jn3OJjLr1sM7CCi2OEVB5iy0M4++N0pyEd2z2nnHuRlJyDsQCweGkJI6Nfceh98RbYBh6pQLamRdGwdU",
-	"S6a4GkbWCsbF2FUxDnN0Vsxp5S6GE4N+Hpk0mjhDQJDOidXe75oPs/DLC5T9baNs/mSpcwLZvDFIJYNC",
-	"tYv2ryZ1ShzY8yw5zL7ntyZ8DKF4LDNliZxBsi/crgkKm0WOlblakJCOmSgNhBp4w1ASyLPTyTVaTKLM",
-	"MJra/FE6OOUCJ3/bOJk3RumcYFI/occoMFeN3F94omfxRLW5qOCEYu9MdmwOROrSCR/xHaGsklYZ4oUt",
-	"KLkMZV4dT/zZoC97ITrYA/6BSmWH6pBNXrnyKTdZ8HZ46ncTMeqHmSd0KhD2zthZB9/LSbI+IpWM7uPZ",
-	"99nJRdlR4cXvwSd3pdYDFpR6PZeMTeCFNzD8AwUi8HIReC38ryl2hZ+OocAMUARehEGkk763Tfl3LDW7",
-	"n4z61fdvSxGjpjhRNXpdqzUuNGLljHG2Wapsqz8U2L6aSa286+dEoUQ+/6ZAJztdND/V3vz0uy4FMBC0",
-	"i8aeszX2QIcpEPRs+XBNucv38mTRhJXul+4qfvpGef0UBjClVt5R6JvIRM/fJqNP8buwsjWLhneVqc1/",
-	"sTDBqQTkNEn3u/o5qqgXsPP7hp2zzlfJiFJpp7w2wf0sYSN/p6nFVbQ2g16+PRuE6JS1Qhix2exSfa/L",
-	"Zis7hyNbiIKGN0F3icdOS2KhqzGbdCs1g+gb1wWEXEBI7SNKKpXAcw9eFhYpfJboBFNfUNCLDt9nqV0w",
-	"nOSMA6E0QKgCpipDKG0I1/JPp45Fq2iEygUmXWDSqZhUKHMXZ6qzwU9G2z/CfBu9oleINQ72AZ8bHFxm",
-	"pk0B80tATUfudhdYc3GEOtsRKidM5fO/xcJ5gUlnHOACBaORhOrd+gi4lIcKFQJTJQPlcER7wb7243TC",
-	"JwqCXKe7Frvj5X0jrT2hKzuo5gK1LlCr9llTVYnkZzlcsmCDZ/RYitSvQnh4JNlcfaVbTuFtpH8VktEx",
-	"vBy42f1t+4nb4xDqLayln/szJ7N9J24Pnt0gd7nacPnE7YEk3LXLDaW6S7V3tl+gw691FB+8uqfiSXw2",
-	"V1+FpLnScO23ODDml0u9nUX7Bk3MVWhdKgBWcO6mDlHQb1Y24mh8EwUnoPxW/6YDuME145d0wjtTdU0z",
-	"+KUbL60no1Ot3WxfpljBh2eXe+iQhl+XG/mrmWRgYginDCkMldKUV3c629OJELwbHnl3tJEF80F1NgDv",
-	"fMXujUxB2LXP0hZCLuMjNgmDjanKBF6yW0tawW7eKbPOn0cmv2XF+1bhB0c64WNtBNRZmcu08Po0TaB8",
-	"An0oYQIzd7kwgxdm8HdnBu0Z4a/OFNasgr8uvP/8Ihjw9mMax6jTAdcZ0DnvLiURWnt/XQYZXaJNe1Vb",
-	"o9msu2fjVw1fNTCDdwf/fwAAAP//71FSYU+tAAA=",
+	"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",
+	"qnS3dDjtnJPt4m1sMfg3FW8UGyPc6fn+TzUEGOzc4JBU209FK3u6m9ngdxRybrKC1RBXlIk9efQdihzn",
+	"DFMVClW1pwFjoVVaGEAriXkwcd3acwQsmF2Ot5XsGFVca9gq7YLAC62GTnjtK3l5FI29QGMvUSCoRCJw",
+	"+sokV9D+Ao68RcEpxf8ArbzB/km8+gLIrztLft/S2dHW0ttxo8tkNvV1tfT1Xmvv6u1obeltbzOZTd/d",
+	"6P62o62tnXzbdaO3/7sbfV3k8z/d6Go3mU2tN7q+6+xo7TWZTd+3d/d03Ojqv97Rc72lt/WayWzqvNH6",
+	"ZzpKX1dP382bN7p729v6e1qvtV9vKfiwteVmy7cdnR29fzWZTd0tve39nR3XO2AK3/a1/am9t7/9L63t",
+	"7W30k9aWrtb2zk76d1t7S1tnR1e7/vu29pvtXW3tXa1/7e/ravm+paOz5dtOMt2e3pbO9v7u9p6+TjLl",
+	"jq7e9j91d/T+tb+9u/tGt/pJd1dLp8Eh2mz6jmPttg5RdLNVgkvuh7XxKh+KBshohjFlHHmrHEbRyajq",
+	"IfaPodBzdWhP0thFz4hGAIWCUfRyTt6Kp2KzqVgAvx5Nr75STh6jsW2IpZOFTK+jlY1Tj3UwXe1VRlJ+",
+	"jXHa7GyLeKdniLXbu1nRba82Jic/fCE/f5heiMj7s+nw2/TaJtqaR09fY18ITa3Licf4ySqh89ZL5c12",
+	"KhZQ3s+ilScoMKV/oIjUQ5LDXkwc8mkmudLX+13jN5nkChjyqVjc4Mjc3HTl6/OXmo3C7FpkKX9w+Lwh",
+	"vfZEebPewDmlyxfhHfLsLn4bke8fFaQNXLpyRQ9/TU2nAp76ajMsrzRDOjuvi908L9XEELxxZLc7RCW6",
+	"r+x65DebKDlXHy8+JsHMJY725NM6OV+KFyVP7sCLLuYuN0jDmTVxg4BO0oOiScW313Ctt/dmfbxgJWaw",
+	"mDrk0wqp8835K596U5hNksCypWwz5FtQwruZ5Ir8zzj8rYR35a04fhUmDwSj8uxuFU71HPsqNN1KigmZ",
+	"sxkYYCwt4lDxmnqutTQ2X7rcgA6CaHwJBbxobF95v4J870z5TrumxitM48Ctny9fHPk3I32RFwOs7ZAE",
+	"I3z2PlL2Lms3Pr/PT6QSY9eaLdcuWK6pYoinFlFwI2dVNZsvmC/eqsLyhNdV6e78SGeIovMfcLCuw/Y1",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

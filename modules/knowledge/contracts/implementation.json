@@ -2,7 +2,7 @@
   "moduleId": "M08",
   "module": "knowledge",
   "version": 1,
-  "phase": "implementation",
+  "phase": "design",
   "requirements": [
     {
       "id": "M08-R01",

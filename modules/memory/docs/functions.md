@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 62 个函数：约束 42 个，参考 20 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 114 个函数：约束 42 个，参考 72 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -54,7 +54,77 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`memory.All`、`memory.Control`、`memory.OpenStore`
+
+## memory.OpenStore
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/bootstrap.go`
+- 作用：本域参考级辅助 OpenStore；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func OpenStore(ctx context.Context, dataDirectory string, dataEpoch platform.Identifier) (*Store, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
 - 依赖：`memory.All`、`memory.Control`
+
+## memory.validateEntries
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/bootstrap.go`
+- 作用：本域参考级辅助 validateEntries；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func validateEntries(ctx context.Context,s *Store,siteID platform.Identifier)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.ReadEntryObject`
 
 ## memory.ValidateEntry
 
@@ -63,23 +133,16 @@ func LoadRuntime(ctx context.Context, op OperationContext, input LoadRuntimeInpu
 - 作用：验证记忆内容与预算
 
 ```go
-func ValidateEntry(ctx context.Context, op OperationContext, input ValidateEntryInput) (ValidateEntryResult, error)
+func ValidateEntry(e gen.MemoryEntry)(gen.MemoryEntry,error)
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `ValidateEntryInput` | 封闭业务输入；逐字段见types $defs/ValidateEntryInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ValidateEntryResult` | 成功结果；逐字段见types $defs/ValidateEntryResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+无
 
 **步骤**
 
@@ -103,6 +166,42 @@ func ValidateEntry(ctx context.Context, op OperationContext, input ValidateEntry
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`memory.NormalizeLineEndings`
+- 其他依赖说明：参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。
+
+## memory.ContainsPrivateMaterial
+
+- 级别：参考
+- 文件：`modules/memory/internal/entry/validate.go`
+- 作用：本域参考级辅助 ContainsPrivateMaterial；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ContainsPrivateMaterial(text string)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
 - 依赖：无
 
 ## memory.CreateEntry
@@ -153,7 +252,7 @@ func CreateEntry(ctx context.Context, op OperationContext, input CreateEntryInpu
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`identity:checkAuthorization`、`memory.ValidateEntry`、`memory.ValidateProjectedBudgets`
+- 依赖：`identity:checkAuthorization`、`memory.ValidateEntry`、`memory.ValidateProjectedBudgets`、`memory.PersistVersion`、`memory.Write`、`memory.RequireManager`、`memory.DBError`
 
 ## memory.UpdateEntry
 
@@ -203,7 +302,7 @@ func UpdateEntry(ctx context.Context, op OperationContext, input UpdateEntryInpu
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory.ValidateEntry`、`memory.ValidateProjectedBudgets`
+- 依赖：`memory.ValidateEntry`、`memory.ValidateProjectedBudgets`、`memory.PersistVersion`、`memory.Write`、`memory.RequireManager`、`memory.ReadEntryObject`
 
 ## memory.ArchiveEntry
 
@@ -253,7 +352,7 @@ func ArchiveEntry(ctx context.Context, op OperationContext, input ArchiveEntryIn
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.PersistVersion`、`memory.Write`、`memory.RequireManager`、`memory.ReadEntryObject`
 
 ## memory.RestoreEntry
 
@@ -303,7 +402,42 @@ func RestoreEntry(ctx context.Context, op OperationContext, input RestoreEntryIn
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory.ValidateEntry`、`memory.ValidateProjectedBudgets`
+- 依赖：`memory.ValidateEntry`、`memory.ValidateProjectedBudgets`、`memory.PersistVersion`、`memory.Write`、`memory.RequireManager`、`memory.ReadEntryObject`
+
+## memory.PersistVersion
+
+- 级别：参考
+- 文件：`modules/memory/internal/entry/write.go`
+- 作用：本域参考级辅助 PersistVersion；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func PersistVersion(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx,op OperationContext,e gen.MemoryEntry,previous *int)(gen.MemoryEntry,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.ValidateEntry`、`memory.ValidateProjectedBudgets`、`memory.EmitContextChanged`、`memory.SaveEntryObject`、`memory.InsertEntryVersion`、`memory.Emit`
 
 ## memory.ReadEntry
 
@@ -352,7 +486,7 @@ func ReadEntry(ctx context.Context, op OperationContext, input ReadEntryInput) (
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.ReadSnapshot`、`memory.RequireManager`、`memory.ReadEntryObject`
 
 ## memory.ListEntries
 
@@ -401,6 +535,41 @@ func ListEntries(ctx context.Context, op OperationContext, input ListEntriesInpu
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`memory.sameFilter`、`memory.ReadSnapshot`、`memory.RequireManager`、`memory.DBError`、`memory.ReadEntryObject`
+
+## memory.sameFilter
+
+- 级别：参考
+- 文件：`modules/memory/internal/entry/read.go`
+- 作用：本域参考级辅助 sameFilter；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func sameFilter(a,b *string)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
 - 依赖：无
 
 ## memory.ListEntryRevisions
@@ -450,7 +619,7 @@ func ListEntryRevisions(ctx context.Context, op OperationContext, input ListEntr
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.ReadSnapshot`、`memory.RequireManager`、`memory.DBError`、`memory.ReadEntryObject`
 
 ## memory.PutMapping
 
@@ -501,7 +670,7 @@ func PutMapping(ctx context.Context, op OperationContext, input PutMappingInput)
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory.ValidateProjectedBudgets`
+- 依赖：`memory.ValidateProjectedBudgets`、`memory.EmitContextChanged`、`memory.advance`、`memory.Write`、`memory.RequireManager`、`memory.DBError`、`memory.ValidateTask`、`memory.ReadEntryObject`
 
 ## memory.RemoveMapping
 
@@ -551,7 +720,42 @@ func RemoveMapping(ctx context.Context, op OperationContext, input RemoveMapping
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.EmitContextChanged`、`memory.advance`、`memory.Write`、`memory.RequireManager`、`memory.DBError`
+
+## memory.advance
+
+- 级别：参考
+- 文件：`modules/memory/internal/mapping/write.go`
+- 作用：本域参考级辅助 advance；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func advance(ctx context.Context,tx *sql.Tx)(int,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
 
 ## memory.ReorderMappings
 
@@ -601,7 +805,7 @@ func ReorderMappings(ctx context.Context, op OperationContext, input ReorderMapp
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory.ValidateProjectedBudgets`
+- 依赖：`memory.ValidateProjectedBudgets`、`memory.ReadTaskBudget`、`memory.EmitContextChanged`、`memory.ReadMappings`、`memory.advance`、`memory.Write`、`memory.RequireManager`、`memory.DBError`、`memory.ValidateTask`
 
 ## memory.ListMappings
 
@@ -650,7 +854,7 @@ func ListMappings(ctx context.Context, op OperationContext, input ListMappingsIn
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.ReadMappings`、`memory.ReadSnapshot`、`memory.RequireManager`、`memory.DBError`、`memory.ValidateTask`
 
 ## memory.PutTaskBudget
 
@@ -700,7 +904,7 @@ func PutTaskBudget(ctx context.Context, op OperationContext, input PutTaskBudget
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory.ValidateProjectedBudgets`
+- 依赖：`memory.ValidateProjectedBudgets`、`memory.ReadTaskBudget`、`memory.EmitContextChanged`、`memory.Write`、`memory.RequireManager`、`memory.DBError`、`memory.ValidateTask`
 
 ## memory.ReadTaskBudget
 
@@ -709,23 +913,16 @@ func PutTaskBudget(ctx context.Context, op OperationContext, input PutTaskBudget
 - 作用：读取注入预算
 
 ```go
-func ReadTaskBudget(ctx context.Context, op OperationContext, input ReadTaskBudgetInput) (ReadTaskBudgetResult, error)
+func ReadTaskBudget(ctx context.Context,q memoryruntime.Queryer,site,task string)(gen.TaskBudget,error)
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `ReadTaskBudgetInput` | 封闭业务输入；逐字段见types $defs/ReadTaskBudgetInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ReadTaskBudgetResult` | 成功结果；逐字段见types $defs/ReadTaskBudgetResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+无
 
 **步骤**
 
@@ -749,7 +946,8 @@ func ReadTaskBudget(ctx context.Context, op OperationContext, input ReadTaskBudg
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.DBError`
+- 其他依赖说明：参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。
 
 ## memory.ListTaskBudgets
 
@@ -789,7 +987,7 @@ func ListTaskBudgets(ctx context.Context, op OperationContext, input ListTaskBud
 - 授权：permission：memory.manage；rule：后台管理员
 - 并发：只读快照
 - 幂等：只读
-- 依赖：`memory.ReadTaskBudget`
+- 依赖：`memory.ReadTaskBudget`、`memory.ReadSnapshot`、`memory.RequireManager`
 
 ## memory.SelectContextEntries
 
@@ -798,23 +996,16 @@ func ListTaskBudgets(ctx context.Context, op OperationContext, input ListTaskBud
 - 作用：按范围确定注入候选
 
 ```go
-func SelectContextEntries(ctx context.Context, op OperationContext, input SelectContextEntriesInput) (SelectContextEntriesResult, error)
+func SelectContextEntries(entries []gen.MemoryEntry,mappings []gen.TaskMapping,task,language string)SelectContextEntriesResult
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `SelectContextEntriesInput` | 封闭业务输入；逐字段见types $defs/SelectContextEntriesInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SelectContextEntriesResult` | 成功结果；逐字段见types $defs/SelectContextEntriesResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+无
 
 **步骤**
 
@@ -840,6 +1031,7 @@ func SelectContextEntries(ctx context.Context, op OperationContext, input Select
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：无
+- 其他依赖说明：参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。
 
 ## memory.ApplyContextBudget
 
@@ -848,7 +1040,7 @@ func SelectContextEntries(ctx context.Context, op OperationContext, input Select
 - 作用：确定性截选完整条目
 
 ```go
-func ApplyContextBudget(ctx context.Context, op OperationContext, input ApplyContextBudgetInput) (ApplyContextBudgetResult, error)
+func ApplyContextBudget(ctx context.Context,op OperationContext,input ApplyContextBudgetInput)(ApplyContextBudgetResult,error)
 ```
 
 **输入**
@@ -888,7 +1080,42 @@ func ApplyContextBudget(ctx context.Context, op OperationContext, input ApplyCon
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.RenderText`
+
+## memory.ReadMappings
+
+- 级别：参考
+- 文件：`modules/memory/internal/context/select.go`
+- 作用：本域参考级辅助 ReadMappings；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ReadMappings(ctx context.Context,q memoryruntime.Queryer,site string)([]gen.TaskMapping,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
 
 ## memory.RenderContext
 
@@ -897,7 +1124,7 @@ func ApplyContextBudget(ctx context.Context, op OperationContext, input ApplyCon
 - 作用：生成防混淆记忆上下文
 
 ```go
-func RenderContext(ctx context.Context, op OperationContext, input RenderContextInput) (RenderContextResult, error)
+func RenderContext(ctx context.Context,op OperationContext,input RenderContextInput)(RenderContextResult,error)
 ```
 
 **输入**
@@ -938,7 +1165,42 @@ func RenderContext(ctx context.Context, op OperationContext, input RenderContext
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.ApplyContextBudget`、`memory.RenderText`
+
+## memory.RenderText
+
+- 级别：参考
+- 文件：`modules/memory/internal/context/render.go`
+- 作用：本域参考级辅助 RenderText；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func RenderText(entries []gen.MemoryEntry)string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.Write`
 
 ## memory.ResolveContext
 
@@ -988,7 +1250,42 @@ func ResolveContext(ctx context.Context, op OperationContext, input ResolveConte
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory.SelectContextEntries`、`memory.ReadTaskBudget`、`memory.ApplyContextBudget`、`memory.RenderContext`
+- 依赖：`memory.SelectContextEntries`、`memory.ReadTaskBudget`、`memory.ApplyContextBudget`、`memory.RenderContext`、`memory.ReadMappings`、`memory.allowedCaller`、`memory.ReadSnapshot`、`memory.DBError`、`memory.ReadAllEntries`、`memory.SaveContextManifest`
+
+## memory.allowedCaller
+
+- 级别：参考
+- 文件：`modules/memory/internal/context/service.go`
+- 作用：本域参考级辅助 allowedCaller；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func allowedCaller(caller,task string)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
 
 ## memory.ReadContextManifest
 
@@ -1037,7 +1334,7 @@ func ReadContextManifest(ctx context.Context, op OperationContext, input ReadCon
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.ReadSnapshot`、`memory.RequireManager`、`memory.DBError`
 
 ## memory.CreateAssistantRun
 
@@ -1068,9 +1365,10 @@ func CreateAssistantRun(ctx context.Context, op OperationContext, input CreateAs
 
 1. 仅memory.manage即可使用已配置助手，不要求model.manage/superadmin且不修改渠道/档位/任务模型分配
 2. 根memory.assistant映射读取已配置accurate模型，未配置明确禁调用；固定entry versions/memoryGeneration
-3. 输入≤16384bytes，readonly只建议人工直接编辑
-4. 可信admin-probe根任务排队，统一MG执行及计费
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+3. 2a 按可信admin-probe读取readProfiles，以TaskAssignment.tier匹配唯一且已配置模型列表的实际profileId，不以tier伪造ID；清原portal proof，以memory服务身份保留root/site/epoch免费读取。
+4. 输入≤16384bytes，readonly只建议人工直接编辑
+5. 可信admin-probe根任务排队，统一MG执行及计费
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1086,7 +1384,7 @@ func CreateAssistantRun(ctx context.Context, op OperationContext, input CreateAs
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`identity:checkAuthorization`、`jobs:createJob`、`model-gateway:readTaskAssignments`
+- 依赖：`identity:checkAuthorization`、`jobs:createJob`、`model-gateway:readTaskAssignments`、`model-gateway:readProfiles`、`memory.BuildAssistantPrompt`、`memory.Write`、`memory.RequireManager`、`memory.DBError`、`memory.ReadEntryObject`、`memory.SelectAssistantProfile`、`memory.SaveAssistantInput`、`memory.ReplayReceipt`
 
 ## memory.BuildAssistantPrompt
 
@@ -1095,7 +1393,7 @@ func CreateAssistantRun(ctx context.Context, op OperationContext, input CreateAs
 - 作用：构造只允许提议助手输入
 
 ```go
-func BuildAssistantPrompt(ctx context.Context, op OperationContext, input BuildAssistantPromptInput) (BuildAssistantPromptResult, error)
+func BuildAssistantPrompt(ctx context.Context,op OperationContext,input BuildAssistantPromptInput)(BuildAssistantPromptResult,error)
 ```
 
 **输入**
@@ -1164,11 +1462,12 @@ func RunAssistant(ctx context.Context, op OperationContext, input RunAssistantIn
 
 **步骤**
 
-1. lease/cancel检查
-2. 根memory.assistant accurate档max1500output token，可信admin-probe根
-3. 严格解析new/update/delete/noop候选和readonly规则
-4. 不写active，只保存pending差异候选。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 必须受信job绑定runId/inputRef SHA256/rootOperationId/dataEpoch/jobId；模型前及提交前锁外CheckLease，租约未知失败关闭；同op+assistant步骤复用MG持久结果不重新收费。
+2. lease/cancel检查
+3. 根memory.assistant accurate档max1500output token，可信admin-probe根
+4. 严格解析new/update/delete/noop候选和readonly规则
+5. 不写active，只保存pending差异候选。
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1184,7 +1483,42 @@ func RunAssistant(ctx context.Context, op OperationContext, input RunAssistantIn
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory.InvokeModel`、`memory.BuildAssistantPrompt`、`memory.ValidateProposal`、`memory.CommitAssistantProposals`
+- 依赖：`memory.InvokeModel`、`memory.BuildAssistantPrompt`、`memory.ValidateProposal`、`memory.CommitAssistantProposals`、`memory.CheckJobBinding`、`memory.ValidateForeign`、`memory.CurrentAssistantState`
+
+## memory.CheckJobBinding
+
+- 级别：参考
+- 文件：`modules/memory/internal/assistant/execute.go`
+- 作用：本域参考级辅助 CheckJobBinding；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func CheckJobBinding(ctx context.Context,op OperationContext,runID string,job platform.JobExecutionInput)(memoryruntime.AssistantInputRecord,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.AssistantInput`
 
 ## memory.ValidateProposal
 
@@ -1193,7 +1527,7 @@ func RunAssistant(ctx context.Context, op OperationContext, input RunAssistantIn
 - 作用：验证候选提议闭包
 
 ```go
-func ValidateProposal(ctx context.Context, op OperationContext, input ValidateProposalInput) (ValidateProposalResult, error)
+func ValidateProposal(ctx context.Context,op OperationContext,input ValidateProposalInput)(ValidateProposalResult,error)
 ```
 
 **输入**
@@ -1216,8 +1550,9 @@ func ValidateProposal(ctx context.Context, op OperationContext, input ValidatePr
 1. kind对应字段required且其他字段禁止
 2. entry_update/archive必须目标及旧version
 3. glossary必须目标语言/术语/旧glossaryGeneration
-4. 无批准人允许pending
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+4. 3a glossary额外强制sourceLanguage，非glossary禁止；payloadHash为移除payloadHash后完整pending候选及sourceGeneration的canonical JSON SHA256。
+5. 无批准人允许pending
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1234,7 +1569,7 @@ func ValidateProposal(ctx context.Context, op OperationContext, input ValidatePr
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.ContainsPrivateMaterial`
 
 ## memory.CommitAssistantProposals
 
@@ -1263,11 +1598,12 @@ func CommitAssistantProposals(ctx context.Context, op OperationContext, input Co
 
 **步骤**
 
-1. 当前memoryGeneration一致
-2. 每提议目标expectedVersion仍一致
-3. 不一致run superseded
-4. pending proposals与run review同事务
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 同RunAssistant受信JobExecutionInput绑定且提交前锁外CheckLease；原子判断运行取消、输入代数及全部目标版本。
+2. 当前memoryGeneration一致
+3. 每提议目标expectedVersion仍一致
+4. 不一致run superseded
+5. pending proposals与run review同事务
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1283,7 +1619,7 @@ func CommitAssistantProposals(ctx context.Context, op OperationContext, input Co
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.CheckJobBinding`、`memory.Write`、`memory.DBError`、`memory.ReadEntryObject`
 
 ## memory.ReadAssistantRun
 
@@ -1332,7 +1668,7 @@ func ReadAssistantRun(ctx context.Context, op OperationContext, input ReadAssist
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.ReadSnapshot`、`memory.RequireManager`、`memory.DBError`
 
 ## memory.ApproveProposal
 
@@ -1382,7 +1718,7 @@ func ApproveProposal(ctx context.Context, op OperationContext, input ApproveProp
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`identity:checkAuthorization`、`memory.ValidateProposal`、`memory.ApplyEntryProposal`、`memory.EnqueueGlossaryCommand`
+- 依赖：`identity:checkAuthorization`、`memory.ValidateProposal`、`memory.ApplyEntryProposal`、`memory.EnqueueGlossaryCommand`、`memory.ReadProposal`、`memory.SaveProposal`、`memory.Write`、`memory.RequireManager`、`memory.DBError`、`memory.Emit`
 
 ## memory.RejectProposal
 
@@ -1432,7 +1768,77 @@ func RejectProposal(ctx context.Context, op OperationContext, input RejectPropos
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.Write`、`memory.RequireManager`、`memory.DBError`
+
+## memory.ReadProposal
+
+- 级别：参考
+- 文件：`modules/memory/internal/proposal/approve.go`
+- 作用：本域参考级辅助 ReadProposal；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ReadProposal(ctx context.Context,q memoryruntime.Queryer,site,id string)(gen.MemoryProposal,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
+
+## memory.SaveProposal
+
+- 级别：参考
+- 文件：`modules/memory/internal/proposal/approve.go`
+- 作用：本域参考级辅助 SaveProposal；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func SaveProposal(ctx context.Context,tx *sql.Tx,op OperationContext,p gen.MemoryProposal)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
 
 ## memory.ApplyEntryProposal
 
@@ -1441,31 +1847,25 @@ func RejectProposal(ctx context.Context, op OperationContext, input RejectPropos
 - 作用：应用批准的记忆内容
 
 ```go
-func ApplyEntryProposal(ctx context.Context, op OperationContext, input ApplyEntryProposalInput) (ApplyEntryProposalResult, error)
+func ApplyEntryProposal(ctx context.Context,s *memoryruntime.Store,tx *sql.Tx,op OperationContext,p gen.MemoryProposal,expected int)(ApplyEntryProposalResult,error)
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `ApplyEntryProposalInput` | 封闭业务输入；逐字段见types $defs/ApplyEntryProposalInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ApplyEntryProposalResult` | 成功结果；逐字段见types $defs/ApplyEntryProposalResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+无
 
 **步骤**
 
 1. 必须已人工批准且hash一致
 2. readonly=true的助手候选禁止应用仅建议直接人工编辑
-3. CAS旧entry version并投影全部映射任务预算
-4. 原子权威Markdown新对象+manifest与revision索引提交，proposal applied及context.changed同事务。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+3. 2a entry_create默认description=proposedTitle、maximumBytes=1536、priority=100、tags=[]、readonly=false、source=assistant、autoUpdateEnabled=false，新entryId在批准事务生成；entry_update保留其余元数据。
+4. CAS旧entry version并投影全部映射任务预算
+5. 原子权威Markdown新对象+manifest与revision索引提交，proposal applied及context.changed同事务。
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1482,7 +1882,8 @@ func ApplyEntryProposal(ctx context.Context, op OperationContext, input ApplyEnt
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`memory.ValidateProjectedBudgets`
+- 依赖：`memory.ValidateProjectedBudgets`、`memory.PersistVersion`、`memory.SaveProposal`、`memory.ReadEntryObject`、`memory.Emit`
+- 其他依赖说明：参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。
 
 ## memory.EnqueueGlossaryCommand
 
@@ -1491,31 +1892,25 @@ func ApplyEntryProposal(ctx context.Context, op OperationContext, input ApplyEnt
 - 作用：产生已批准术语命令
 
 ```go
-func EnqueueGlossaryCommand(ctx context.Context, op OperationContext, input EnqueueGlossaryCommandInput) (EnqueueGlossaryCommandResult, error)
+func EnqueueGlossaryCommand(ctx context.Context,tx *sql.Tx,op OperationContext,p gen.MemoryProposal)(EnqueueGlossaryCommandResult,error)
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `EnqueueGlossaryCommandInput` | 封闭业务输入；逐字段见types $defs/EnqueueGlossaryCommandInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `EnqueueGlossaryCommandResult` | 成功结果；逐字段见types $defs/EnqueueGlossaryCommandResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+无
 
 **步骤**
 
 1. 校验kind=glossary及admin approval
-2. 规范ApprovedGlossaryProposal含批准修订/hash
-3. 唯一proposalId command
-4. applying与outbox同事务
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+2. 1a glossary强制sourceLanguage；全局人工术语使用新termId/version0/source=manual/scope=global/generation=expectedGlossaryGeneration，禁止猜测源语言。
+3. 规范ApprovedGlossaryProposal含批准修订/hash
+4. 唯一proposalId command
+5. applying与outbox同事务
+6. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
 
@@ -1532,7 +1927,8 @@ func EnqueueGlossaryCommand(ctx context.Context, op OperationContext, input Enqu
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.SaveProposal`、`memory.DBError`
+- 其他依赖说明：参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。
 
 ## memory.DispatchGlossaryCommand
 
@@ -1681,7 +2077,42 @@ func CancelAssistantRun(ctx context.Context, op OperationContext, input CancelAs
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:cancelInference`、`jobs:cancelJob`
+- 依赖：`model-gateway:cancelInference`、`jobs:cancelJob`、`memory.CancelRunTransaction`、`memory.Write`、`memory.RequireManager`、`memory.DispatchAssistantCancellations`
+
+## memory.CancelRunTransaction
+
+- 级别：参考
+- 文件：`modules/memory/internal/assistant/cancel.go`
+- 作用：本域参考级辅助 CancelRunTransaction；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func CancelRunTransaction(ctx context.Context,tx *sql.Tx,op OperationContext,runID string)(gen.AssistantRun,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
 
 ## memory.RecoverAssistantLeases
 
@@ -1690,7 +2121,7 @@ func CancelAssistantRun(ctx context.Context, op OperationContext, input CancelAs
 - 作用：恢复助手执行与批准命令
 
 ```go
-func RecoverAssistantLeases(ctx context.Context, op OperationContext, input RecoverAssistantLeasesInput) (RecoverAssistantLeasesResult, error)
+func RecoverAssistantLeases(ctx context.Context,op OperationContext,input RecoverAssistantLeasesInput)(RecoverAssistantLeasesResult,error)
 ```
 
 **输入**
@@ -1730,7 +2161,7 @@ func RecoverAssistantLeases(ctx context.Context, op OperationContext, input Reco
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:readInference`、`jobs:createJob`
+- 依赖：`model-gateway:readInference`、`jobs:createJob`、`memory.Write`、`memory.DBError`、`memory.DispatchAssistantInputs`、`memory.DispatchAssistantCancellations`
 
 ## memory.PublishOutbox
 
@@ -1779,7 +2210,7 @@ func PublishOutbox(ctx context.Context, op OperationContext, input PublishOutbox
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:publishEvent`、`platform.RunRelay`
+- 依赖：`jobs:publishEvent`、`platform.RunRelay`、`memory.RelayBatch`
 
 ## memory.PruneContextSnapshots
 
@@ -2177,23 +2608,16 @@ export async function submitPrimaryEdit(input: SubmitPrimaryEditInput, signal: A
 - 作用：保存前完整投影注入预算
 
 ```go
-func ValidateProjectedBudgets(ctx context.Context, op OperationContext, input ValidateProjectedBudgetsInput) (ValidateProjectedBudgetsResult, error)
+func ValidateProjectedBudgets(ctx context.Context,s *memoryruntime.Store,q memoryruntime.Queryer,site string,entry *gen.MemoryEntry,mapping *gen.TaskMapping,budget *gen.TaskBudget)(ValidateProjectedBudgetsResult,error)
 ```
 
 **输入**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `ValidateProjectedBudgetsInput` | 封闭业务输入；逐字段见types $defs/ValidateProjectedBudgetsInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+无
 
 **输出**
 
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ValidateProjectedBudgetsResult` | 成功结果；逐字段见types $defs/ValidateProjectedBudgetsResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+无
 
 **步骤**
 
@@ -2218,7 +2642,78 @@ func ValidateProjectedBudgets(ctx context.Context, op OperationContext, input Va
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`memory.ReadTaskBudget`、`memory.SelectContextEntries`、`memory.joinTaskIDs`、`memory.RenderText`、`memory.ReadMappings`、`memory.ReadAllEntries`
+- 其他依赖说明：参考级实际输入输出以本次精确Go签名为准；数据字段继续复用MemoryEntry/TaskMapping/TaskBudget与本域事务，不再建立独立读取事务。
+
+## memory.joinTaskIDs
+
+- 级别：参考
+- 文件：`modules/memory/internal/context/preflight.go`
+- 作用：本域参考级辅助 joinTaskIDs；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func joinTaskIDs(ids []string)string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
 - 依赖：无
+
+## memory.EmitContextChanged
+
+- 级别：参考
+- 文件：`modules/memory/internal/context/preflight.go`
+- 作用：本域参考级辅助 EmitContextChanged；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func EmitContextChanged(ctx context.Context,tx *sql.Tx,op OperationContext,tasks []string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`、`memory.Emit`
 
 ## memory.UpdateProjectOverview
 
@@ -2318,7 +2813,7 @@ func AppendAssistantMessage(ctx context.Context, op OperationContext, input Appe
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.readConversation`、`memory.ContainsPrivateMaterial`、`memory.Write`、`memory.RequireManager`、`memory.DBError`
 
 ## memory.ReadAssistantConversation
 
@@ -2367,7 +2862,7 @@ func ReadAssistantConversation(ctx context.Context, op OperationContext, input R
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`memory.readConversation`、`memory.ReadSnapshot`、`memory.RequireManager`、`memory.DBError`
 
 ## memory.DeleteAssistantConversation
 
@@ -2416,7 +2911,42 @@ func DeleteAssistantConversation(ctx context.Context, op OperationContext, input
 - 授权：权限 memory.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway:cancelInference`
+- 依赖：`model-gateway:cancelInference`、`memory.CancelRunTransaction`、`memory.readConversation`、`memory.Write`、`memory.RequireManager`、`memory.DBError`、`memory.DispatchAssistantCancellations`
+
+## memory.readConversation
+
+- 级别：参考
+- 文件：`modules/memory/internal/assistant/conversation.go`
+- 作用：本域参考级辅助 readConversation；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func readConversation(ctx context.Context,q memoryruntime.Queryer,site,id string)(string,int,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
 
 ## memory.RunWorker
 
@@ -2611,7 +3141,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`memory.LoadRuntime`、`memory.RecoverAssistantLeases`、`memory.DispatchGlossaryCommand`、`memory.PruneContextSnapshots`、`memory.PublishOutbox`、`memory.ConsumeEvents`、`memory.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`
+- 依赖：`site-config:registerActivation`、`memory.LoadRuntime`、`memory.RecoverAssistantLeases`、`memory.DispatchGlossaryCommand`、`memory.PruneContextSnapshots`、`memory.PublishOutbox`、`memory.ConsumeEvents`、`memory.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`memory.NewApplication`、`memory.ConfigureWrites`、`memory.ConfigurePublisher`、`memory.ConfigureGateway`、`memory.ConfigureAssistantClients`、`memory.ConfigureValidators`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## memory.Serve
@@ -2779,6 +3309,41 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 依赖：无
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
 
+## memory.NewApplication
+
+- 级别：参考
+- 文件：`modules/memory/internal/transport/server.go`
+- 作用：本域参考级辅助 NewApplication；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, openedEpoch platform.Identifier, authorize func(context.Context,platform.OperationContext,string,string)error) (*Application,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.operationHandlers`
+
 ## memory.mountModuleUI
 
 - 级别：约束
@@ -2869,7 +3434,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 作用：经模型网关执行一次调用并读取到终态
 
 ```go
-func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInput) (InvokeModelResult, error)
+func InvokeModel(ctx context.Context,op OperationContext,input InvokeModelInput)(InvokeModelResult,error)
 ```
 
 **输入**
@@ -2906,6 +3471,41 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 - 并发：每次调用独立；同一根操作的子调用共享网关费用作用域
 - 幂等：幂等键固定，重试返回原invocation
 - 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`
+
+## memory.ConfigureGateway
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/model_client.go`
+- 作用：本域参考级辅助 ConfigureGateway；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ConfigureGateway(client platform.GatewayClient)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
 
 ## memory.CountPublication
 
@@ -2947,3 +3547,1193 @@ func CountPublication(ctx context.Context, op OperationContext, input EventDeliv
 - 并发：计数行CAS
 - 幂等：eventId去重
 - 依赖：`jobs:createJob`、`platform.ClaimInbox`
+
+## memory.ConfigureWrites
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 ConfigureWrites；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ConfigureWrites(window platform.WriteWindowConfig) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.ReadSnapshot
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 ReadSnapshot；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ReadSnapshot(ctx context.Context, fn func(*Store,*sql.Tx) error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
+
+## memory.Write
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 Write；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func Write(ctx context.Context,op platform.OperationContext,functionID,key string,input,result any,fn func(*Store,*sql.Tx) error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
+
+## memory.RequireManager
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 RequireManager；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func RequireManager(op platform.OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.DBError
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 DBError；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func DBError(err error) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.ValidateTask
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 ValidateTask；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ValidateTask(task string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.ReadEntryObject
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 ReadEntryObject；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func (s *Store) ReadEntryObject(ctx context.Context,q Queryer,siteID,id string,version *int)(gen.MemoryEntry,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`、`memory.decodeEntry`
+
+## memory.decodeEntry
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 decodeEntry；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func decodeEntry(raw []byte)(gen.MemoryEntry,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.SaveEntryObject
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 SaveEntryObject；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func (s *Store) SaveEntryObject(ctx context.Context,q Queryer,site string,entry gen.MemoryEntry)(gen.MemoryEntry,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.Write`、`memory.DBError`
+
+## memory.InsertEntryVersion
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 InsertEntryVersion；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func InsertEntryVersion(ctx context.Context,tx *sql.Tx,op platform.OperationContext,e gen.MemoryEntry,previous *int)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
+
+## memory.Emit
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 Emit；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func Emit(tx *sql.Tx,op platform.OperationContext,eventType,subject string,revision int,payload any)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.ReadAllEntries
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 ReadAllEntries；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func (s *Store) ReadAllEntries(ctx context.Context,q Queryer,site string)([]gen.MemoryEntry,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`、`memory.ReadEntryObject`
+
+## memory.NormalizeLineEndings
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 NormalizeLineEndings；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func NormalizeLineEndings(s string)string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.SaveContextManifest
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 SaveContextManifest；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func SaveContextManifest(ctx context.Context,op platform.OperationContext,id,task,language string,revision int,versionHash,bodyHash string,size int,manifest any)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
+
+## memory.ConfigurePublisher
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 ConfigurePublisher；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ConfigurePublisher(publisher platform.EventPublisher)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.RelayBatch
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/business.go`
+- 作用：本域参考级辅助 RelayBatch；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func RelayBatch(ctx context.Context,limit int)(platform.RelayBatchResult,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.ConfigureAssistantClients
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 ConfigureAssistantClients；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ConfigureAssistantClients(jobs *gen.JobsClient,gateway *gen.ModelGatewayClient)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.SelectAssistantProfile
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 SelectAssistantProfile；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func SelectAssistantProfile(ctx context.Context,op OperationContext)(string,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.ValidateForeign`
+
+## memory.SaveAssistantInput
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 SaveAssistantInput；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func SaveAssistantInput(ctx context.Context,tx *sql.Tx,op OperationContext,snapshot AssistantSnapshot)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
+
+## memory.ReadAssistantInput
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 ReadAssistantInput；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ReadAssistantInput(ctx context.Context,q Queryer,runID string)(AssistantInputRecord,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
+
+## memory.DispatchAssistantInputs
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 DispatchAssistantInputs；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func DispatchAssistantInputs(ctx context.Context,limit int)(int,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.Write`、`memory.DBError`、`memory.ReadAssistantInput`、`memory.ValidateForeign`
+
+## memory.AssistantInput
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 AssistantInput；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func AssistantInput(ctx context.Context,id string)(AssistantInputRecord,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.ReadAssistantInput`
+
+## memory.ReplayReceipt
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 ReplayReceipt；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ReplayReceipt(ctx context.Context,op OperationContext,functionID,key string,input,result any)(bool,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
+
+## memory.ValidateForeign
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 ValidateForeign；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ValidateForeign(name string,raw json.RawMessage)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.ConfigureValidators
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 ConfigureValidators；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func ConfigureValidators(validators map[string]func(json.RawMessage)error)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.CurrentAssistantState
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 CurrentAssistantState；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func CurrentAssistantState(ctx context.Context,site,run string)(string,int,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.DBError`
+
+## memory.DispatchAssistantCancellations
+
+- 级别：参考
+- 文件：`modules/memory/internal/runtime/tasks.go`
+- 作用：本域参考级辅助 DispatchAssistantCancellations；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func DispatchAssistantCancellations(ctx context.Context,limit int)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.Write`、`memory.DBError`、`memory.ReadAssistantInput`、`memory.ValidateForeign`
+
+## memory.operationHandlers
+
+- 级别：参考
+- 文件：`modules/memory/internal/transport/business.go`
+- 作用：本域参考级辅助 operationHandlers；精确参数与返回见签名，调用边界随所属用例固定。
+
+```ts
+func(a *Application)operationHandlers()map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.Health`、`memory.Ready`、`memory.jsonOperation`、`memory.respond`、`memory.matchPath`、`memory.optionalString`、`memory.optionalInt`、`memory.queryLimit`、`memory.CreateEntry`、`memory.UpdateEntry`、`memory.ArchiveEntry`、`memory.RestoreEntry`、`memory.ReadEntry`、`memory.ListEntries`、`memory.ListEntryRevisions`、`memory.PutMapping`、`memory.RemoveMapping`、`memory.ReorderMappings`、`memory.ListMappings`、`memory.PutTaskBudget`、`memory.ListTaskBudgets`、`memory.ResolveContext`、`memory.ReadContextManifest`、`memory.CreateAssistantRun`、`memory.ReadAssistantRun`、`memory.ApproveProposal`、`memory.RejectProposal`、`memory.CancelAssistantRun`、`memory.AppendAssistantMessage`、`memory.ReadAssistantConversation`、`memory.DeleteAssistantConversation`
+
+## memory.jsonOperation
+
+- 级别：参考
+- 文件：`modules/memory/internal/transport/business.go`
+- 作用：本域参考级辅助 jsonOperation；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func jsonOperation[I,R any](fn func(context.Context,platform.OperationContext,I)(R,error),status int,bind ...func(*I,*http.Request)error)http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：`memory.respond`
+
+## memory.respond
+
+- 级别：参考
+- 文件：`modules/memory/internal/transport/business.go`
+- 作用：本域参考级辅助 respond；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func respond(w http.ResponseWriter,r *http.Request,result any,err error,status int)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.matchPath
+
+- 级别：参考
+- 文件：`modules/memory/internal/transport/business.go`
+- 作用：本域参考级辅助 matchPath；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func matchPath(body,path string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.optionalString
+
+- 级别：参考
+- 文件：`modules/memory/internal/transport/business.go`
+- 作用：本域参考级辅助 optionalString；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func optionalString(r *http.Request,name string)*string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.optionalInt
+
+- 级别：参考
+- 文件：`modules/memory/internal/transport/business.go`
+- 作用：本域参考级辅助 optionalInt；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func optionalInt(r *http.Request,name string)*int
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无
+
+## memory.queryLimit
+
+- 级别：参考
+- 文件：`modules/memory/internal/transport/business.go`
+- 作用：本域参考级辅助 queryLimit；精确参数与返回见签名，调用边界随所属用例固定。
+
+```go
+func queryLimit(r *http.Request)int
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按调用方已验证输入执行本域私有存储、纯规则或协议装配；保留错误，不输出正文或凭据。
+
+**错误**
+
+- `INTERNAL`：本域私有IO失败（不可重试）
+- `VALIDATION`：登记的边界不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：受信运行依赖未装配（可重试）
+- `INTEGRITY_ERROR`：持久摘要或引用不一致（不可重试）
+
+- 副作用：无
+- 授权：内部调用信任入口授权；管理与模型权限不得由浏览器覆盖。
+- 并发：复用调用方事务、固定快照及平台取消上下文；未提交失败回滚。
+- 幂等：按所属用例持久回执或不可变引用执行，不创建独立收费操作。
+- 依赖：无

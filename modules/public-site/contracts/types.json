@@ -3996,6 +3996,11 @@
         "sourceLanguage"
       ],
       "description": "content已授权metadata的本次渲染所需只读投影。"
+    },
+    "ContentClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "本域生成的精确发布来源HTTP客户端*gen.ContentClient"
     }
   }
 }

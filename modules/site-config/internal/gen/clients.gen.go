@@ -184,6 +184,12 @@ func (s eventEnvelopeStream) Close() error { return s.r.resp.Body.Close() }
 // modelEventStream 把网关事件SSE适配为platform.ModelEventStream。
 type modelEventStream struct{ r *sseReader }
 
+// NextRaw把原始JSON交给平台适配器按生产方schema校验，避免先解码丢弃未知字段。
+func (s modelEventStream) NextRaw(ctx context.Context) (json.RawMessage, error) {
+	_, raw, err := s.r.next(ctx)
+	return json.RawMessage(raw), err
+}
+
 func (s modelEventStream) Next(ctx context.Context) (platform.StreamEvent, error) {
 	_, data, err := s.r.next(ctx)
 	if err != nil {

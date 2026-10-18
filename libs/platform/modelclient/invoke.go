@@ -43,7 +43,7 @@ func InvokeModel(ctx context.Context, client platform.GatewayClient, op platform
 		return outcome, nil
 	}
 	// HTTP游标为排他序号；首次从0重读持久事件，不按当前水位跳过已付费结果。
- var lastSequence int64 = 0
+	var lastSequence int64 = 0
 	for {
 		if err := ctx.Err(); err != nil {
 			_ = cancelCall(ctx, client, invocation.InvocationID, input.IDempotencyKey)
@@ -88,10 +88,10 @@ func drain(ctx context.Context, client platform.GatewayClient, stream platform.M
 		}
 		*lastSequence = event.Sequence
 		if len(outcome.Events) >= maxEvents {
- _ = cancelCall(ctx,client,outcome.InvocationID,input.IDempotencyKey)
- return true,platform.NewError(platform.CodeBudgetExceeded,false,"模型持久结果超过读取事件上限")
- }
- outcome.Events=append(outcome.Events,event)
+			_ = cancelCall(ctx, client, outcome.InvocationID, input.IDempotencyKey)
+			return true, platform.NewError(platform.CodeBudgetExceeded, false, "模型持久结果超过读取事件上限")
+		}
+		outcome.Events = append(outcome.Events, event)
 		if input.Stream && input.OnEvent != nil {
 			if err := input.OnEvent(event); err != nil {
 				_ = cancelCall(ctx, client, outcome.InvocationID, input.IDempotencyKey)

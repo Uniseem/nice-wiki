@@ -2,7 +2,7 @@
   "version": 1,
   "module": "knowledge",
   "phase": "implementation",
-  "contractSha256": "bdbea37542557db69fe707d433617740576539fa01392c45995f25a555409fa9",
+  "contractSha256": "83a34a8b8cff4cf04e540b419ef5b33d17a4bd1f789b9706a3317acbfe58c02f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-知识持久索引与权威检索批次",
   "branch": "codex/knowledge-20261018-bulk",

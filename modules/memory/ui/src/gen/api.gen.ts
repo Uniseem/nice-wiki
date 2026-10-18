@@ -538,6 +538,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CreateInvocationResult: components["schemas"]["types_CreateInvocationResult"];
+        CancelInvocationResult: components["schemas"]["types_CancelInvocationResult"];
+        StreamEvent: components["schemas"]["types_StreamEvent"];
+        ReadTaskAssignmentsResult: components["schemas"]["types_ReadTaskAssignmentsResult"];
+        ReadProfilesResult: components["schemas"]["types_ReadProfilesResult"];
+        JobsCreateJobResult: components["schemas"]["CreateJobResult"];
+        JobsRequestCancelResult: components["schemas"]["RequestCancelResult"];
+        AssistantModelOutput: components["schemas"]["types_AssistantModelOutput"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /** @description SHA-256 小写十六进制 */
@@ -620,7 +628,7 @@ export interface components {
          * @description ErrorCode的公共协议类型；字段及范围按本schema
          * @enum {string}
          */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL";
         /** @description FieldIssue的公共协议类型；字段及范围按本schema */
         FieldIssue: {
             /** @description 字段路径，不包含字段值 */
@@ -874,6 +882,8 @@ export interface components {
             approvedBy?: components["schemas"]["Identifier"];
             /** @description 批准修订 */
             approvalRevision: number;
+            /** @description glossary提议必须声明原文语言；非术语提议禁止 */
+            sourceLanguage?: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         ReadAssistantRunResult: {
@@ -1187,6 +1197,16 @@ export interface components {
             versionHash: components["schemas"]["Hash"];
             /** @description UTF8字节 */
             byteSize: number;
+            /** @description 固定预算追溯；schema1新增的兼容字段 */
+            budgetRevision?: number;
+            /** @description 固定预算追溯；schema1新增的兼容字段 */
+            maximumBytes?: number;
+            /** @description 固定预算追溯；schema1新增的兼容字段 */
+            maximumEntries?: number;
+            /** @description 与entryIds等长的实际语言回退及正文摘要 */
+            entryLanguages?: string[];
+            /** @description 与entryIds等长的实际语言回退及正文摘要 */
+            entryBodyHashes?: string[];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         ReadContextManifestResult: {
@@ -1197,6 +1217,225 @@ export interface components {
         ListTaskBudgetsResult: {
             /** @description 任务预算 */
             budgets: components["schemas"]["TaskBudget"][];
+        };
+        /**
+         * @description 可信服务上下文决定，公开请求不能指定
+         * @enum {string}
+         */
+        CostClass: "qa" | "background" | "admin-probe";
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Attempt: {
+            /** @description 尝试ID */
+            attemptId: components["schemas"]["Identifier"];
+            /** @description 统一调用 */
+            invocationId: components["schemas"]["Identifier"];
+            /** @description 尝试序号 */
+            ordinal: number;
+            /** @description 固定模型 */
+            modelId: components["schemas"]["Identifier"];
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            state: "reserved" | "dispatching" | "streaming" | "succeeded" | "failed" | "charge_unknown" | "reconciled";
+            /** @description 独立费用预留 */
+            reservationId: components["schemas"]["Identifier"];
+            /** @description 收费标识 */
+            providerRequestId?: string;
+            /**
+             * @description 原因
+             * @enum {string}
+             */
+            retryReason: "initial" | "fallback" | "structured_retry";
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Invocation: {
+            /** @description 调用ID */
+            invocationId: components["schemas"]["Identifier"];
+            /** @description 根操作ID */
+            rootOperationId: components["schemas"]["Identifier"];
+            /** @description 可信费用类别 */
+            costClass: components["schemas"]["CostClass"];
+            /**
+             * @description 调用状态
+             * @enum {string}
+             */
+            state: "accepted" | "reserved" | "dispatching" | "streaming" | "succeeded" | "failed" | "cancel_requested" | "cancelled" | "charge_unknown" | "reconciled";
+            /** @description 预留ID */
+            reservationId?: components["schemas"]["Identifier"];
+            /** @description 供应方请求ID */
+            providerRequestId?: string;
+            /** @description 全链路截止 */
+            deadline: components["schemas"]["Timestamp"];
+            /** @description 固定价目快照 */
+            priceSnapshotId: components["schemas"]["Identifier"];
+            /** @description SSE最后序号 */
+            lastSequence: number;
+            /** @description 全部独立计费尝试 */
+            attempts: components["schemas"]["Attempt"][];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_CreateInvocationResult: {
+            /** @description accepted状态 */
+            invocation: components["schemas"]["Invocation"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_CancelInvocationResult: {
+            /** @description 取消状态 */
+            invocation: components["schemas"]["Invocation"];
+        };
+        /** @description 供应方、模型版本、维度与预处理版本共同定义空间；不同空间不得比相似度 */
+        EmbeddingSpace: {
+            /** @description 完整嵌入空间唯一ID */
+            spaceId: components["schemas"]["Hash"];
+            /** @description 供应方稳定标识 */
+            provider: string;
+            /** @description 供应方模型版本，不只用展示名 */
+            modelVersion: string;
+            /** @description 向量维度正整数 */
+            dimensions: number;
+            /** @description 规范预处理算法版本 */
+            preprocessingVersion: string;
+        };
+        /** @description 模型结构化完成结果；仅StreamEvent.completed出现，文本仍走delta；不混用向量空间。 */
+        ModelOutput: {
+            /** @enum {string} */
+            capability: "embedding" | "rerank";
+            embeddingSpace?: components["schemas"]["EmbeddingSpace"];
+            vectors?: number[][];
+            candidateIds?: components["schemas"]["Identifier"][];
+        } & ({
+            /** @constant */
+            capability?: "embedding";
+        } | {
+            /** @constant */
+            capability?: "rerank";
+        });
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_StreamEvent: {
+            /** @description 严格递增序号 */
+            sequence: number;
+            /**
+             * @description SSE事件名
+             * @enum {string}
+             */
+            event: "accepted" | "delta" | "usage" | "completed" | "error" | "cancelled";
+            /** @description 文本增量 */
+            delta?: string;
+            /** @description 状态快照 */
+            invocation?: components["schemas"]["Invocation"];
+            /** @description 终态错误代码 */
+            code?: string;
+            /** @description 仅completed事件携带的持久结构化结果，可选新增兼容旧文本消费者 */
+            output?: components["schemas"]["ModelOutput"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        TaskAssignment: {
+            /** @description 根唯一任务目录ID */
+            taskId: string;
+            /**
+             * @description 根唯一AI任务目录登记的默认档位；不能用输入改写目录
+             * @enum {string}
+             */
+            tier: "fast" | "accurate" | "vision" | "embedding" | "rerank";
+            /** @description 单任务覆盖模型 */
+            overrideModelId?: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_ReadTaskAssignmentsResult: {
+            /** @description 任务/档位/覆盖声明 */
+            assignments: components["schemas"]["TaskAssignment"][];
+        };
+        /** @description 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限 */
+        Money: {
+            /**
+             * @description 唯一支持USD
+             * @constant
+             */
+            currency: "USD";
+            /** @description 百万分之一美元，整数，禁止浮点累计 */
+            micros: number;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Profile: {
+            /** @description 档位ID */
+            profileId: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+            /** @description 该档位配置面向的费用类别；不覆盖可信op.costClass */
+            costClass: components["schemas"]["CostClass"];
+            /**
+             * @description 五档
+             * @enum {string}
+             */
+            tier: "fast" | "accurate" | "vision" | "embedding" | "rerank";
+            /** @description 第一为主其余有序备用 */
+            orderedModelIds: components["schemas"]["Identifier"][];
+            /** @description 每请求费用上限；Money.currency=USD且micros非负整数 */
+            maximumCost: components["schemas"]["Money"];
+            /** @description 并发上限 */
+            concurrency: number;
+            /** @description 日消费额度；Money.currency=USD且micros非负整数 */
+            dailyLimitCost: components["schemas"]["Money"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_ReadProfilesResult: {
+            /** @description 档位声明 */
+            profiles: components["schemas"]["Profile"][];
+        };
+        /** @description 已持久登记的异步任务引用，不代表任务执行成功 */
+        AcceptedJob: {
+            /** @description 持久任务ID */
+            jobId: components["schemas"]["Identifier"];
+            /** @description 可恢复操作ID */
+            operationId: components["schemas"]["Identifier"];
+            /**
+             * @description 精确枚举状态，未知值拒绝
+             * @constant
+             */
+            state: "queued";
+        };
+        /** @description 持久提交任务成功结果；失败不返回半成功结果 */
+        CreateJobResult: {
+            /** @description 公共 AcceptedJob 合同，遵守其字段和空值规则 */
+            job: components["schemas"]["AcceptedJob"];
+        };
+        /** @description 请求取消任务成功结果；失败不返回半成功结果 */
+        RequestCancelResult: {
+            /** @description state；UTF-8；不得为 null */
+            state: string;
+        };
+        /** @description 模型仅输出业务候选；ID/hash/批准身份由本域建立，类型分支由ValidateProposal严格核验。 */
+        types_AssistantModelOutput: {
+            proposals: {
+                /**
+                 * @description 类型
+                 * @enum {string}
+                 */
+                kind: "entry_create" | "entry_update" | "entry_archive" | "glossary";
+                /** @description 目标条目 */
+                entryId?: components["schemas"]["Identifier"];
+                /** @description 输入版本 */
+                expectedEntryVersion?: number;
+                /** @description 拟标题 */
+                proposedTitle?: string;
+                /** @description 拟正文 */
+                proposedBody?: string;
+                /** @description 拟语言 */
+                proposedLanguage?: string;
+                /** @description 术语原文 */
+                sourceTerm?: string;
+                /** @description 术语译文 */
+                targetTerm?: string;
+                /** @description 术语目标 */
+                targetLanguage?: string;
+                /** @description 术语输入版本 */
+                expectedGlossaryGeneration?: number;
+                /** @description glossary提议必须声明原文语言；非术语提议禁止 */
+                sourceLanguage?: string;
+            }[];
         };
     };
     responses: never;

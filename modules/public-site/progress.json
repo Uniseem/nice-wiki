@@ -2,7 +2,7 @@
   "version": 1,
   "module": "public-site",
   "phase": "implementation",
-  "contractSha256": "445f8bd989cdcddc80ce1b4f04fe500796948744acb902d621a4fc8bba71c6fb",
+  "contractSha256": "0c3836e128424d13ce6919e3184815a23bbe6bc70ea4663097ed54bfd419ac01",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "public-site第二批精确发布/预览及前端源码已交付；待CI",
   "branch": "codex/public-site-20261018-bulk",
@@ -765,17 +765,6 @@
         "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
       "blocker": "复杂富文本译文及SEO回填未收口；仅无marks纯text子集，不计完整ready。"
-    },
-    {
-      "id": "public-site.SanitizeHTML",
-      "path": "modules/public-site/internal/sanitize.go",
-      "state": "blocked",
-      "implementationCommit": "32ab806",
-      "verification": {
-        "state": "not_run",
-        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
-      },
-      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
     },
     {
       "id": "public-site.BuildTOC",
@@ -1656,6 +1645,16 @@
         "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
       "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
+    },
+    {
+      "id": "public-site.anchorMissing",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "复用的实际锚点助手补登记，待完整GitLab检查"
     }
   ],
   "rule": "先集中源码再统一GitLab检查与双推；未编译不提前记implemented/verified；accepted为零。"

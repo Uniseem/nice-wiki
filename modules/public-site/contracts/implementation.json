@@ -494,72 +494,6 @@
       "purpose": "移除危险结构及协议；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "public-site.SanitizeHTML",
-          "name": "SanitizeHTML",
-          "signature": "func SanitizeHTML(ctx context.Context, op OperationContext, in SanitizeHTMLInput) (SanitizeHTMLResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "调用取消与deadline；不得携带正文到日志",
-              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
-              "type": "SanitizeHTMLInput",
-              "description": "移除危险结构及协议；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "SanitizeHTMLResult",
-              "description": "移除危险结构及协议成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "移除危险结构及协议",
-          "steps": [
-            "允许静态排版标签和限定属性",
-            "移除 script/style/事件属性",
-            "链接仅允许 http/https/mailto 和同源根路径"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "condition": "INVALID_BASE_URL：在步骤中的对应校验或依赖失败",
-              "httpStatus": 400,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            }
-          ],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "service",
-            "rule": "渲染内部调用"
-          },
-          "concurrency": "纯函数，无共享 DOM",
-          "idempotency": "同 html/config 同结果",
-          "dependencies": [
-            "public-site.safeLink"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
           "id": "public-site.safeLink",
           "name": "safeLink",
           "signature": "func safeLink(raw string) bool",
@@ -850,7 +784,8 @@
             "content:resolvePublicPath",
             "content:validatePublications",
             "localization:listLanguages",
-            "public-site.BuildCanonical"
+            "public-site.BuildCanonical",
+            "public-site.anchorMissing"
           ],
           "resources": [
             "content.PublicTreeNode.required canonicalPath由根同步producer；裁剪公开树parentId不能代替完整规范路径",
@@ -858,6 +793,80 @@
             "已绑定真实ResolvePublishedLink；正文hash按content CanonicalizeBody的键排序、mark类型升序、platform.CanonicalJSON与SHA-256，并受本域2MiB限制。水位变化的HTTP状态以公共错误表409为准。源码未编译"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "public-site.anchorMissing",
+          "name": "anchorMissing",
+          "signature": "func anchorMissing(ctx context.Context, client *gen.ContentClient, ref gen.PublishedRevisionRef, blockID string) (bool, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "精确发布锚点输入",
+              "constraints": [
+                "可信服务链内使用"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "ContentClient",
+              "description": "精确发布锚点输入",
+              "constraints": [
+                "可信服务链内使用"
+              ]
+            },
+            {
+              "name": "ref",
+              "type": "PublishedRevisionRef",
+              "description": "精确发布锚点输入",
+              "constraints": [
+                "可信服务链内使用"
+              ]
+            },
+            {
+              "name": "blockID",
+              "type": "string",
+              "description": "精确发布锚点输入",
+              "constraints": [
+                "可信服务链内使用"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "missing",
+              "type": "bool",
+              "description": "缺失标记或安全错误",
+              "constraints": [
+                "未知来源失败关闭"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "缺失标记或安全错误",
+              "constraints": [
+                "未知来源失败关闭"
+              ]
+            }
+          ],
+          "purpose": "读取精确发布正文并核对稳定块锚点",
+          "steps": [
+            "经content:readPublishedRevision读取精确publication，按权威blockId/bodyHash判定锚点缺失，未知不能当有效"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅本域已验证的公开读取或渲染调用链调用，不建立新的权限权威"
+          },
+          "concurrency": "只读或纯函数，不修改共享业务状态",
+          "idempotency": "相同已校验输入同结果",
+          "dependencies": [
+            "content:readPublishedRevision"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },

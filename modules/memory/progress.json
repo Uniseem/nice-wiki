@@ -2,7 +2,7 @@
   "version": 1,
   "module": "memory",
   "phase": "implementation",
-  "contractSha256": "8988fe00a259fe0132212256e4e8e655daa8c2b44f416f4ef7d48222433a2ecd",
+  "contractSha256": "04cd159c19e873b33144eac4474dfc1919dc64a0faded84a353bd3f7761dbd5f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-13（Codex，集中并行实现）",
   "branch": "codex/memory-20261018-bulk",

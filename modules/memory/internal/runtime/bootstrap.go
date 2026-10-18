@@ -22,8 +22,8 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/inbox"
 	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/modules/memory/internal/gen"
 	memorymigrations "nice-wiki/modules/memory/migrations"
- "nice-wiki/modules/memory/internal/gen"
 )
 
 const (
@@ -61,17 +61,17 @@ type Store struct {
 	dataEpoch   platform.Identifier
 	generation  int64
 
-	journal   *os.File
-	journalMu sync.Mutex
-	writeMu sync.Mutex
- window platform.WriteWindowConfig
- gateway platform.GatewayClient
- publisher platform.EventPublisher
- jobs *gen.JobsClient
- gatewayRaw *gen.ModelGatewayClient
- validators map[string]func(json.RawMessage)error
- closeOnce sync.Once
-	closeErr  error
+	journal    *os.File
+	journalMu  sync.Mutex
+	writeMu    sync.Mutex
+	window     platform.WriteWindowConfig
+	gateway    platform.GatewayClient
+	publisher  platform.EventPublisher
+	jobs       *gen.JobsClient
+	gatewayRaw *gen.ModelGatewayClient
+	validators map[string]func(json.RawMessage) error
+	closeOnce  sync.Once
+	closeErr   error
 }
 
 var installed struct {
@@ -162,10 +162,14 @@ func OpenStore(ctx context.Context, dataDirectory string, dataEpoch platform.Ide
 		}
 	}
 
-	legacy,legacyErr:=os.ReadDir(filepath.Join(dataDirectory,"objects"))
- if legacyErr==nil&&len(legacy)>0{return nil,platform.NewError(platform.CodeIntegrityError,false,"旧根对象目录非空，需显式迁移后启动")}
- if legacyErr!=nil&&!errors.Is(legacyErr,os.ErrNotExist){return nil,platform.NewError(platform.CodeIntegrityError,false,"旧根对象目录不可核对")}
- store := &Store{objectsRoot: filepath.Join(dataDirectory, "active", "objects"), dataEpoch: dataEpoch}
+	legacy, legacyErr := os.ReadDir(filepath.Join(dataDirectory, "objects"))
+	if legacyErr == nil && len(legacy) > 0 {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "旧根对象目录非空，需显式迁移后启动")
+	}
+	if legacyErr != nil && !errors.Is(legacyErr, os.ErrNotExist) {
+		return nil, platform.NewError(platform.CodeIntegrityError, false, "旧根对象目录不可核对")
+	}
+	store := &Store{objectsRoot: filepath.Join(dataDirectory, "active", "objects"), dataEpoch: dataEpoch}
 	closeOnError := func(err error) (*Store, error) {
 		_ = store.Close()
 		return nil, err
@@ -405,11 +409,35 @@ func (s *Store) recoverJournal() error {
 	return nil
 }
 
-func validateEntries(ctx context.Context,s *Store,siteID platform.Identifier)error{
- rows,err:=s.db.QueryContext(ctx,`SELECT site_id,entry_id,version FROM memory_entries ORDER BY site_id,entry_id,version`);if err!=nil{return mapDatabaseError(err,"读取记忆条目索引失败")}
- type revision struct{site,id string;version int};revisions:=[]revision{}
- for rows.Next(){var r revision;if err=rows.Scan(&r.site,&r.id,&r.version);err!=nil{rows.Close();return mapDatabaseError(err,"读取记忆条目索引失败")};revisions=append(revisions,r)};err=rows.Err();rows.Close();if err!=nil{return mapDatabaseError(err,"读取记忆条目索引失败")}
- for _,r:=range revisions{if _,err=s.ReadEntryObject(ctx,s.db,r.site,r.id,&r.version);err!=nil{return err}};return nil
+func validateEntries(ctx context.Context, s *Store, siteID platform.Identifier) error {
+	rows, err := s.db.QueryContext(ctx, `SELECT site_id,entry_id,version FROM memory_entries ORDER BY site_id,entry_id,version`)
+	if err != nil {
+		return mapDatabaseError(err, "读取记忆条目索引失败")
+	}
+	type revision struct {
+		site, id string
+		version  int
+	}
+	revisions := []revision{}
+	for rows.Next() {
+		var r revision
+		if err = rows.Scan(&r.site, &r.id, &r.version); err != nil {
+			rows.Close()
+			return mapDatabaseError(err, "读取记忆条目索引失败")
+		}
+		revisions = append(revisions, r)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return mapDatabaseError(err, "读取记忆条目索引失败")
+	}
+	for _, r := range revisions {
+		if _, err = s.ReadEntryObject(ctx, s.db, r.site, r.id, &r.version); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func verifyObjectFile(objectsRoot, entryID string, version int64, ref platform.ObjectRef) error {

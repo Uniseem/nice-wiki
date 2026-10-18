@@ -14,12 +14,12 @@ import (
 type OperationContext = platform.OperationContext
 
 type NormalizeQueryInput struct {
-	Query string `json:"query"`
+	Query    string `json:"query"`
 	Language string `json:"language"`
 }
 type NormalizeQueryResult struct {
 	Normalized string `json:"normalized"`
-	QueryHash string `json:"queryHash"`
+	QueryHash  string `json:"queryHash"`
 }
 
 // NormalizeQuery 保留大小写、统一换行和 NFC；摘要只绑定规范后的查询。
@@ -35,26 +35,34 @@ func NormalizeQuery(ctx context.Context, op OperationContext, input NormalizeQue
 }
 
 type EmbedQueryInput struct {
-	Normalized string `json:"normalized"`
-	Space gen.EmbeddingSpace `json:"space"`
-	ProfileID string `json:"profileId"`
+	Normalized string             `json:"normalized"`
+	Space      gen.EmbeddingSpace `json:"space"`
+	ProfileID  string             `json:"profileId"`
 }
 type EmbedQueryResult struct {
-	Vector []float64 `json:"vector"`
-	Space gen.EmbeddingSpace `json:"space"`
+	Vector []float64          `json:"vector"`
+	Space  gen.EmbeddingSpace `json:"space"`
 }
 
 // EmbedQuery 只接受网关返回的完整同空间向量，付费执行交由装配的网关调用链。
 func EmbedQuery(ctx context.Context, op OperationContext, input EmbedQueryInput) (EmbedQueryResult, error) {
 	runtime, err := searchRuntime(ctx)
-	if err != nil { return EmbedQueryResult{}, err }
- if runtime.EmbeddingProfileID!=input.ProfileID { return EmbedQueryResult{},platform.NewError(platform.CodeIntegrityError,false,"查询嵌入档位不匹配") }
- embedded,err:=CreateQueryEmbedding(ctx,op,CreateQueryEmbeddingInput{Query:input.Normalized,Space:input.Space,IdempotencyKey:"query."+platform.HashBytes([]byte(op.RootOperationID+":"+input.Space.SpaceId+":"+input.Normalized))})
- if err!=nil { return EmbedQueryResult{},err }
- result:=EmbedQueryResult{Vector:embedded.Embedding.Vector,Space:embedded.Embedding.Space}
+	if err != nil {
+		return EmbedQueryResult{}, err
+	}
+	if runtime.EmbeddingProfileID != input.ProfileID {
+		return EmbedQueryResult{}, platform.NewError(platform.CodeIntegrityError, false, "查询嵌入档位不匹配")
+	}
+	embedded, err := CreateQueryEmbedding(ctx, op, CreateQueryEmbeddingInput{Query: input.Normalized, Space: input.Space, IdempotencyKey: "query." + platform.HashBytes([]byte(op.RootOperationID+":"+input.Space.SpaceId+":"+input.Normalized))})
+	if err != nil {
+		return EmbedQueryResult{}, err
+	}
+	result := EmbedQueryResult{Vector: embedded.Embedding.Vector, Space: embedded.Embedding.Space}
 	if result.Space != input.Space || !validVector(result.Vector, input.Space.Dimensions) {
 		return EmbedQueryResult{}, platform.NewError(platform.CodeIntegrityError, false, "查询嵌入空间或向量不一致")
 	}
-	if err := ctx.Err(); err != nil { return EmbedQueryResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "嵌入已停止") }
+	if err := ctx.Err(); err != nil {
+		return EmbedQueryResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "嵌入已停止")
+	}
 	return result, nil
 }

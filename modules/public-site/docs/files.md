@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 71 个：手写 51、UI 4、生成 5、配置 10、迁移 1。函数 65 个：约束 32，参考 33。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 71 个：手写 51、UI 4、生成 5、配置 10、迁移 1。函数 85 个：约束 32，参考 53。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -10,11 +10,11 @@
 | `modules/public-site/internal/locale.go` | 手写 | 确定展示语言；同文件职责限本域以下登记函数 | `public-site.SelectLocale`（参考） |
 | `modules/public-site/internal/authority.go` | 手写 | 执行正文公开权威检查；同文件职责限本域以下登记函数 | `public-site.CheckPublication`（参考） |
 | `modules/public-site/internal/content_client.go` | 手写 | 取得同一发布修订完整包；同文件职责限本域以下登记函数 | `public-site.LoadPublishedBundle`（参考） |
-| `modules/public-site/internal/sanitize.go` | 手写 | 移除危险结构及协议；同文件职责限本域以下登记函数 | `public-site.SanitizeHTML`（参考） |
+| `modules/public-site/internal/sanitize.go` | 手写 | 移除危险结构及协议；同文件职责限本域以下登记函数 | `public-site.SanitizeHTML`（参考）、`public-site.safeLink`（参考） |
 | `modules/public-site/internal/toc.go` | 手写 | 生成稳定锚点目录；同文件职责限本域以下登记函数 | `public-site.BuildTOC`（参考） |
 | `modules/public-site/internal/links.go` | 手写 | 解析跨文档链接；同文件职责限本域以下登记函数 | `public-site.RewriteInternalLinks`（参考）、`public-site.ResolvePublishedLink` |
 | `modules/public-site/internal/media_client.go` | 手写 | 取得公开资源清单；同文件职责限本域以下登记函数 | `public-site.ResolvePublicMedia`（参考） |
-| `modules/public-site/internal/navigation.go` | 手写 | 构建可访问公开导航树；同文件职责限本域以下登记函数 | `public-site.BuildNavigation`（参考） |
+| `modules/public-site/internal/navigation.go` | 手写 | 构建可访问公开导航树；同文件职责限本域以下登记函数 | `public-site.BuildNavigation`（参考）、`public-site.navigationOrder`（参考） |
 | `modules/public-site/internal/breadcrumbs.go` | 手写 | 生成面包屑；同文件职责限本域以下登记函数 | `public-site.BuildBreadcrumbs`（参考） |
 | `modules/public-site/internal/seo.go` | 手写 | 生成规范地址；同文件职责限本域以下登记函数 | `public-site.BuildCanonical`（参考） |
 | `modules/public-site/internal/hreflang.go` | 手写 | 输出已有公开语言版本；同文件职责限本域以下登记函数 | `public-site.BuildHreflang`（参考） |
@@ -28,25 +28,25 @@
 | `modules/public-site/internal/http_home.go` | 手写 | 站点首页；同文件职责限本域以下登记函数 | `public-site.HandleHome` |
 | `modules/public-site/internal/http_navigation.go` | 手写 | 公开导航 HTTP；同文件职责限本域以下登记函数 | `public-site.HandleNavigation` |
 | `modules/public-site/internal/http_markdown.go` | 手写 | 导出公开 Markdown；同文件职责限本域以下登记函数 | `public-site.HandleMarkdown` |
-| `modules/public-site/internal/http_robots.go` | 手写 | 机器人规则；同文件职责限本域以下登记函数 | `public-site.HandleRobots` |
-| `modules/public-site/internal/llms.go` | 手写 | 生成模型可读公开索引；同文件职责限本域以下登记函数 | `public-site.BuildLLMsIndex`（参考） |
+| `modules/public-site/internal/http_robots.go` | 手写 | 机器人规则；同文件职责限本域以下登记函数 | `public-site.HandleRobots`、`public-site.readIndexingPolicy`（参考） |
+| `modules/public-site/internal/llms.go` | 手写 | 生成模型可读公开索引；同文件职责限本域以下登记函数 | `public-site.BuildLLMsIndex`（参考）、`public-site.markdownLabel`（参考） |
 | `modules/public-site/internal/http_llms.go` | 手写 | llms.txt HTTP；同文件职责限本域以下登记函数 | `public-site.HandleLLMsIndex`、`public-site.HandleLLMsFull` |
 | `modules/public-site/internal/sitemap.go` | 手写 | 生成规范 sitemap 项；同文件职责限本域以下登记函数 | `public-site.BuildSitemapEntries`（参考） |
-| `modules/public-site/internal/http_sitemap.go` | 手写 | sitemap 索引 HTTP；同文件职责限本域以下登记函数 | `public-site.HandleSitemapIndex`、`public-site.HandleSitemapShard` |
+| `modules/public-site/internal/http_sitemap.go` | 手写 | sitemap 索引 HTTP；同文件职责限本域以下登记函数 | `public-site.HandleSitemapIndex`、`public-site.HandleSitemapShard`、`public-site.xmlText`（参考）、`public-site.sitemapIndexXML`（参考）、`public-site.sitemapURLSetXML`（参考） |
 | `modules/public-site/internal/preview.go` | 手写 | 签发草稿预览授权；同文件职责限本域以下登记函数 | `public-site.IssuePreviewToken`、`public-site.ValidatePreviewToken`（参考） |
-| `modules/public-site/internal/preview_renderer.go` | 手写 | 渲染受保护修订；同文件职责限本域以下登记函数 | `public-site.RenderPreview`（参考） |
+| `modules/public-site/internal/preview_renderer.go` | 手写 | 渲染受保护修订；同文件职责限本域以下登记函数 | `public-site.RenderPreview`（参考）、`public-site.collectInternalLinks`（参考） |
 | `modules/public-site/internal/http_preview.go` | 手写 | 预览 HTTP 入口；同文件职责限本域以下登记函数 | `public-site.HandlePreview` |
 | `modules/public-site/internal/beacon.go` | 手写 | AI爬虫Markdown访问单独计数；同文件职责限本域以下登记函数 | `public-site.RecordAnonymousView`（参考） |
 | `modules/public-site/internal/snapshot.go` | 手写 | 创建本域一致快照；同文件职责限本域以下登记函数 | `public-site.CreateSnapshot` |
 | `modules/public-site/internal/import.go` | 手写 | 验证待恢复快照；同文件职责限本域以下登记函数 | `public-site.StageSnapshot`、`public-site.DiscardSnapshot` |
 | `modules/public-site/internal/barrier.go` | 手写 | 公开渲染域进入安全屏障；同文件职责限本域以下登记函数 | `public-site.EnterBarrier`、`public-site.ReleaseBarrier` |
-| `modules/public-site/web/src/PreviewPanel.vue` | UI | Vue3模块交互：LoadPreview；同文件职责限本域以下登记函数 | `public-site.LoadPreview`（参考） |
+| `modules/public-site/web/src/PreviewPanel.vue` | UI | Vue3模块交互：LoadPreview；同文件职责限本域以下登记函数 | `public-site.LoadPreview`（参考）、`public-site.load`（参考） |
 | `modules/public-site/web/src/PublicSettingsPanel.vue` | UI | Vue3模块交互：LoadPublicCapabilities；同文件职责限本域以下登记函数 | `public-site.LoadPublicCapabilities`（参考） |
-| `modules/public-site/web/src/client.ts` | UI | Vue3模块交互：RequestPublicNavigation；同文件职责限本域以下登记函数 | `public-site.RequestPublicNavigation`（参考） |
+| `modules/public-site/web/src/client.ts` | UI | Vue3模块交互：RequestPublicNavigation；同文件职责限本域以下登记函数 | `public-site.RequestPublicNavigation`（参考）、`public-site.sameOriginURL`（参考）、`public-site.responseProblem`（参考）、`public-site.requestPreview`（参考） |
 | `modules/public-site/internal/http_root.go` | 手写 | 根语言选择HTTP；同文件职责限本域以下登记函数 | `public-site.HandleRootRedirect` |
-| `modules/public-site/internal/tiptap.go` | 手写 | 校验权威Tiptap渲染输入；同文件职责限本域以下登记函数 | `public-site.ParseTiptapDocument`（参考） |
+| `modules/public-site/internal/tiptap.go` | 手写 | 校验权威Tiptap渲染输入；同文件职责限本域以下登记函数 | `public-site.ParseTiptapDocument`（参考）、`public-site.attrString`（参考）、`public-site.attrInt`（参考）、`public-site.nodeText`（参考）、`public-site.assetFrom`（参考） |
 | `modules/public-site/internal/tiptap_html.go` | 手写 | 按节点输出完整HTML；同文件职责限本域以下登记函数 | `public-site.RenderTiptapHTML`（参考） |
-| `modules/public-site/internal/tiptap_markdown.go` | 手写 | Tiptap输出AI可读Markdown；同文件职责限本域以下登记函数 | `public-site.RenderTiptapMarkdown`（参考） |
+| `modules/public-site/internal/tiptap_markdown.go` | 手写 | Tiptap输出AI可读Markdown；同文件职责限本域以下登记函数 | `public-site.RenderTiptapMarkdown`（参考）、`public-site.markdownEscape`（参考）、`public-site.markdownDestination`（参考）、`public-site.codeFence`（参考）、`public-site.markHref`（参考） |
 | `modules/public-site/internal/hero.go` | 手写 | 仅一屏默认主视觉；同文件职责限本域以下登记函数 | `public-site.RenderHero`（参考） |
 | `modules/public-site/internal/announcement.go` | 手写 | 公告翻译横幅；同文件职责限本域以下登记函数 | `public-site.RenderAnnouncement`（参考） |
 | `modules/public-site/internal/navigation_neighbors.go` | 手写 | 文末相邻文档；同文件职责限本域以下登记函数 | `public-site.BuildPreviousNext`（参考） |

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 64 个函数：约束 19 个，参考 45 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 72 个函数：约束 19 个，参考 53 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1358,6 +1358,8 @@ func InvokeModel(ctx context.Context, client GatewayClient, op OperationContext,
 2. model-gateway:resumeInference按序号读取到终态，流式时逐条回调
 3. 取消或截止时model-gateway:cancelInference
 4. failed/charge_unknown按网关Problem返回，不在调用方重放
+5. 首次从排他序号0重读已持久事件；已succeeded调用也重读既有付费结果，不按当前lastSequence跳过
+6. 超过4096事件返回BUDGET_EXCEEDED并取消，不静默截断
 
 **错误**
 
@@ -1368,7 +1370,7 @@ func InvokeModel(ctx context.Context, client GatewayClient, op OperationContext,
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：每次调用独立
 - 幂等：幂等键固定
-- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`
+- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.NewGatewayClient`
 
 ## platform.LoadServiceConfig
 
@@ -2629,3 +2631,305 @@ func (c *jobsClient) FailJob(ctx context.Context, jobID, workerID string, fencin
 - 并发：无共享可变业务状态；每次RPC独立上下文
 - 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
 - 依赖：`platform.workerOperation`、`platform.decodeWorkerResponse`、`jobs:failJob`
+
+## platform.NewGatewayClient
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：启动要求CreateInvocationResult/CancelInvocationResult/StreamEvent校验器并复制映射；不执行RPC
+
+```go
+func NewGatewayClient(raw RawGatewayClient, validators GatewayResponseValidators) (GatewayClient, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `raw` | `RawGatewayClient` | 可信装配或已校验输入 | 不接受浏览器身份 |
+| `validators` | `GatewayResponseValidators` | 可信装配或已校验输入 | 不接受浏览器身份 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `client` | `GatewayClient` | 严格生产方合同结果 | 成功时有效 |
+| `error` | `error` | 安全公共错误 | 不包含原始输入 |
+
+**步骤**
+
+1. 启动要求CreateInvocationResult/CancelInvocationResult/StreamEvent校验器并复制映射；不执行RPC
+
+**错误**
+
+- `VALIDATION`：客户端或六个校验器缺失（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`platform.CreateInference`、`platform.CancelInference`、`platform.ResumeInference`
+
+## platform.decodeInvocation
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：按生产方严格schema核响应再解析invocation
+
+```go
+func (c *gatewayClient) decodeInvocation(name string, raw JSONBytes) (Invocation, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `name` | `string` | 可信装配或已校验输入 | 不接受浏览器身份 |
+| `raw` | `JSONBytes` | 可信装配或已校验输入 | 不接受浏览器身份 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `invocation` | `Invocation` | 严格生产方合同结果 | 成功时有效 |
+| `error` | `error` | 安全公共错误 | 不包含原始输入 |
+
+**步骤**
+
+1. 按生产方严格schema核响应再解析invocation
+
+**错误**
+
+- `VALIDATION`：客户端或六个校验器缺失（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.CreateInference
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：幂等键入生产方body；三空数组显式[]；按真实HTTP客户端发出，不重试
+
+```go
+func (c *gatewayClient) CreateInference(ctx context.Context, key string, input CreateInvocationInput) (Invocation, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信装配或已校验输入 | 不接受浏览器身份 |
+| `key` | `string` | 可信装配或已校验输入 | 不接受浏览器身份 |
+| `input` | `CreateInvocationInput` | 可信装配或已校验输入 | 不接受浏览器身份 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `invocation` | `Invocation` | 严格生产方合同结果 | 成功时有效 |
+| `error` | `error` | 安全公共错误 | 不包含原始输入 |
+
+**步骤**
+
+1. 幂等键入生产方body；三空数组显式[]；按真实HTTP客户端发出，不重试
+2. 响应严格校验，再核rootOperationId/costClass与可信op一致
+
+**错误**
+
+- `VALIDATION`：客户端或六个校验器缺失（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`model-gateway:createInference`、`platform.decodeInvocation`
+
+## platform.CancelInference
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：生产方body仅invocationId/reason/idempotencyKey，路径与body一致
+
+```go
+func (c *gatewayClient) CancelInference(ctx context.Context, key string, id string, reason string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信装配或已校验输入 | 不接受浏览器身份 |
+| `key` | `string` | 可信装配或已校验输入 | 不接受浏览器身份 |
+| `id` | `string` | 可信装配或已校验输入 | 不接受浏览器身份 |
+| `reason` | `string` | 可信装配或已校验输入 | 不接受浏览器身份 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 安全公共错误 | 不包含原始输入 |
+
+**步骤**
+
+1. 生产方body仅invocationId/reason/idempotencyKey，路径与body一致
+2. 严格响应校验并核取消对象
+
+**错误**
+
+- `VALIDATION`：客户端或六个校验器缺失（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`model-gateway:cancelInference`、`platform.decodeInvocation`
+
+## platform.ResumeInference
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：afterSequence为排他游标；limit100
+
+```go
+func (c *gatewayClient) ResumeInference(ctx context.Context, id string, after int64) (ModelEventStream, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信装配或已校验输入 | 不接受浏览器身份 |
+| `id` | `string` | 可信装配或已校验输入 | 不接受浏览器身份 |
+| `after` | `int64` | 可信装配或已校验输入 | 不接受浏览器身份 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `stream` | `ModelEventStream` | 严格生产方合同结果 | 成功时有效 |
+| `error` | `error` | 安全公共错误 | 不包含原始输入 |
+
+**步骤**
+
+1. afterSequence为排他游标；limit100
+2. 生成流必须提供NextRaw，平台先严格schema后解码；缺端口关闭流并失败
+
+**错误**
+
+- `VALIDATION`：客户端或六个校验器缺失（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：`model-gateway:resumeInference`、`platform.validatedModelNext`、`platform.validatedModelClose`、`platform.validatedModelLastID`
+
+## platform.validatedModelNext
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：原始JSON先严格schema校验，再解析；对象与流invocationId一致
+
+```go
+func (s *validatedModelStream) Next(ctx context.Context) (StreamEvent, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 可信装配或已校验输入 | 不接受浏览器身份 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `event` | `StreamEvent` | 严格生产方合同结果 | 成功时有效 |
+| `error` | `error` | 安全公共错误 | 不包含原始输入 |
+
+**步骤**
+
+1. 原始JSON先严格schema校验，再解析；对象与流invocationId一致
+2. output仅completed，向量空间维度一致且有限，重排与嵌入数据不得混合
+
+**错误**
+
+- `VALIDATION`：客户端或六个校验器缺失（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.validatedModelClose
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：关闭底层SSE
+
+```go
+func (s *validatedModelStream) Close() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 安全公共错误 | 不包含原始输入 |
+
+**步骤**
+
+1. 关闭底层SSE
+
+**错误**
+
+- `VALIDATION`：客户端或六个校验器缺失（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无
+
+## platform.validatedModelLastID
+
+- 级别：参考
+- 文件：`libs/platform/modelclient/client.go`
+- 作用：保留生产方SSE续传标识
+
+```go
+func (s *validatedModelStream) LastID() string
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `id` | `string` | 最后SSE事件标识 | 由底层流产生 |
+
+**步骤**
+
+1. 原样返回底层流LastID，不改写序号
+
+**错误**
+
+- `VALIDATION`：客户端或六个校验器缺失（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份
+- 并发：无共享可变业务状态；每次RPC独立上下文
+- 幂等：控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试
+- 依赖：无

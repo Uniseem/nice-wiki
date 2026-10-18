@@ -44,7 +44,7 @@ const (
 	CodeUnauthenticated       = "UNAUTHENTICATED"
 	CodeForbidden             = "FORBIDDEN"
 	CodeNotFound              = "NOT_FOUND"
- CodeGone = "GONE"
+	CodeGone                  = "GONE"
 	CodeConflict              = "CONFLICT"
 	CodeVersionMismatch       = "VERSION_MISMATCH"
 	CodeLocked                = "LOCKED"
@@ -67,7 +67,7 @@ var ProblemHTTPStatus = map[string]int{
 	CodeUnauthenticated:       401,
 	CodeForbidden:             403,
 	CodeNotFound:              404,
- CodeGone: 410,
+	CodeGone:                  410,
 	CodeConflict:              409,
 	CodeVersionMismatch:       409,
 	CodeLocked:                409,
@@ -421,7 +421,7 @@ type GatewayMessage struct {
 
 // CreateInvocationInput model-gateway调用请求；字段与生产方types.json一致。
 type CreateInvocationInput struct {
- Query string `json:"query,omitempty"`
+	Query               string           `json:"query,omitempty"`
 	TaskID              string           `json:"taskId"`
 	ProfileID           Identifier       `json:"profileId"`
 	Capability          string           `json:"capability"`
@@ -477,27 +477,27 @@ const (
 // StreamEvent 网关SSE事件；sequence严格递增。
 // EmbeddingSpace完整标识向量空间；不得只以模型展示名比较。
 type EmbeddingSpace struct {
- SpaceID Hash `json:"spaceId"`
- Provider string `json:"provider"`
- ModelVersion string `json:"modelVersion"`
- Dimensions int64 `json:"dimensions"`
- PreprocessingVersion string `json:"preprocessingVersion"`
+	SpaceID              Hash   `json:"spaceId"`
+	Provider             string `json:"provider"`
+	ModelVersion         string `json:"modelVersion"`
+	Dimensions           int64  `json:"dimensions"`
+	PreprocessingVersion string `json:"preprocessingVersion"`
 }
 
 type ModelOutput struct {
- Capability string `json:"capability"`
- EmbeddingSpace *EmbeddingSpace `json:"embeddingSpace,omitempty"`
- Vectors [][]float64 `json:"vectors,omitempty"`
- CandidateIDs []Identifier `json:"candidateIds,omitempty"`
+	Capability     string          `json:"capability"`
+	EmbeddingSpace *EmbeddingSpace `json:"embeddingSpace,omitempty"`
+	Vectors        [][]float64     `json:"vectors,omitempty"`
+	CandidateIDs   []Identifier    `json:"candidateIds,omitempty"`
 }
 
 type StreamEvent struct {
- Output *ModelOutput `json:"output,omitempty"`
-	Sequence   int64       `json:"sequence"`
-	Event      string      `json:"event"`
-	Delta      string      `json:"delta,omitempty"`
-	Invocation *Invocation `json:"invocation,omitempty"`
-	Code       string      `json:"code,omitempty"`
+	Output     *ModelOutput `json:"output,omitempty"`
+	Sequence   int64        `json:"sequence"`
+	Event      string       `json:"event"`
+	Delta      string       `json:"delta,omitempty"`
+	Invocation *Invocation  `json:"invocation,omitempty"`
+	Code       string       `json:"code,omitempty"`
 }
 
 // InvokeModelRequest 模型调用请求；idempotencyKey=操作ID+步骤名。

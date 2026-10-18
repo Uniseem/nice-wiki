@@ -7,16 +7,16 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
- "time"
+	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/modelclient"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/serviceauth"
- "nice-wiki/libs/platform/apivalidate"
- "nice-wiki/libs/platform/outbox"
- "nice-wiki/libs/platform/modelclient"
- memoryruntime "nice-wiki/modules/memory/internal/runtime"
- "nice-wiki/modules/memory/internal/gen"
+	"nice-wiki/modules/memory/internal/gen"
+	memoryruntime "nice-wiki/modules/memory/internal/runtime"
 	"nice-wiki/modules/memory/internal/transport"
 )
 
@@ -52,8 +52,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	key,err:=loadSigningKey(config.SigningKeyRef)
- if err != nil {
+	key, err := loadSigningKey(config.SigningKeyRef)
+	if err != nil {
 		return nil, err
 	}
 	runtimeAuthority, err := NewRuntimeClient(config)
@@ -72,26 +72,66 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖本域屏障与持久化，尚未实现")
 	}
 
- id:=platform.NewIdentifier();deadline:=time.Now().UTC().Add(30*time.Second).Format(time.RFC3339Nano)
- startup:=platform.OperationContext{RequestID:id,OperationID:id,RootOperationID:id,CallerService:ModuleSlug,DataEpoch:view.DataEpoch,Deadline:deadline,Actor:platform.AuthContext{Kind:"service",SubjectID:ModuleSlug,SiteID:"system",ExpiresAt:deadline}}
- if _,err=memoryruntime.LoadRuntime(ctx,startup,memoryruntime.LoadRuntimeInput{ServiceID:ModuleSlug,DataDirectory:config.DataRoot});err!=nil{return nil,err}
- fail:=func(cause error)(*transport.Application,error){if store:=memoryruntime.CurrentStore();store!=nil{_ = store.Close()};return nil,cause}
- err=memoryruntime.ConfigureWrites(platform.WriteWindowConfig{Runtime:runtimeAuthority.ReadRuntimeState,WriteWindow:func(work context.Context)(time.Time,error){
-  current,readErr:=runtimeAuthority.ReadRuntimeState(work);if readErr!=nil{return time.Time{},readErr};if current.DataEpoch!=view.DataEpoch{return time.Time{},platform.NewError(platform.CodeVersionMismatch,false,"记忆写窗口代次已变化")};if current.Maintenance||current.Phase!=platform.PhaseRunning{return time.Time{},platform.NewError(platform.CodeLocked,true,"维护期间记忆写窗口关闭")};return time.Time{},nil
- }})
- if err!=nil{return fail(err)}
- jobs:=gen.NewJobsClient(config.Dependencies["jobs"],ModuleSlug,key)
- if err=memoryruntime.ConfigurePublisher(outbox.NewEventPublisher(jobs));err!=nil{return fail(err)}
- validators:=map[string]func(json.RawMessage)error{}
- for _,name:=range []string{"CreateInvocationResult","CancelInvocationResult","StreamEvent","ReadTaskAssignmentsResult","ReadProfilesResult","JobsCreateJobResult","JobsRequestCancelResult","AssistantModelOutput"}{validator,validationErr:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),name);if validationErr!=nil{return fail(validationErr)};validators[name]=validator}
- if err=memoryruntime.ConfigureValidators(validators);err!=nil{return fail(err)}
- rawGateway:=gen.NewModelGatewayClient(config.Dependencies["model-gateway"],ModuleSlug,key)
- gateway,gatewayErr:=modelclient.NewGatewayClient(rawGateway,modelclient.GatewayResponseValidators{"CreateInvocationResult":validators["CreateInvocationResult"],"CancelInvocationResult":validators["CancelInvocationResult"],"StreamEvent":validators["StreamEvent"]});if gatewayErr!=nil{return fail(gatewayErr)}
- if err=memoryruntime.ConfigureGateway(gateway);err!=nil{return fail(err)}
- if err=memoryruntime.ConfigureAssistantClients(jobs,rawGateway);err!=nil{return fail(err)}
- identity:=gen.NewIdentityClient(config.Dependencies["identity"],ModuleSlug,key)
- application,err:=transport.NewApplication(config,anchors,runtimeAuthority,view.DataEpoch,apivalidate.NewIdentityAuthorizer(identity));if err!=nil{return fail(err)}
- return application,nil
+	id := platform.NewIdentifier()
+	deadline := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)
+	startup := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, DataEpoch: view.DataEpoch, Deadline: deadline, Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system", ExpiresAt: deadline}}
+	if _, err = memoryruntime.LoadRuntime(ctx, startup, memoryruntime.LoadRuntimeInput{ServiceID: ModuleSlug, DataDirectory: config.DataRoot}); err != nil {
+		return nil, err
+	}
+	fail := func(cause error) (*transport.Application, error) {
+		if store := memoryruntime.CurrentStore(); store != nil {
+			_ = store.Close()
+		}
+		return nil, cause
+	}
+	err = memoryruntime.ConfigureWrites(platform.WriteWindowConfig{Runtime: runtimeAuthority.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
+		current, readErr := runtimeAuthority.ReadRuntimeState(work)
+		if readErr != nil {
+			return time.Time{}, readErr
+		}
+		if current.DataEpoch != view.DataEpoch {
+			return time.Time{}, platform.NewError(platform.CodeVersionMismatch, false, "记忆写窗口代次已变化")
+		}
+		if current.Maintenance || current.Phase != platform.PhaseRunning {
+			return time.Time{}, platform.NewError(platform.CodeLocked, true, "维护期间记忆写窗口关闭")
+		}
+		return time.Time{}, nil
+	}})
+	if err != nil {
+		return fail(err)
+	}
+	jobs := gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)
+	if err = memoryruntime.ConfigurePublisher(outbox.NewEventPublisher(jobs)); err != nil {
+		return fail(err)
+	}
+	validators := map[string]func(json.RawMessage) error{}
+	for _, name := range []string{"CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "ReadTaskAssignmentsResult", "ReadProfilesResult", "JobsCreateJobResult", "JobsRequestCancelResult", "AssistantModelOutput"} {
+		validator, validationErr := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
+		if validationErr != nil {
+			return fail(validationErr)
+		}
+		validators[name] = validator
+	}
+	if err = memoryruntime.ConfigureValidators(validators); err != nil {
+		return fail(err)
+	}
+	rawGateway := gen.NewModelGatewayClient(config.Dependencies["model-gateway"], ModuleSlug, key)
+	gateway, gatewayErr := modelclient.NewGatewayClient(rawGateway, modelclient.GatewayResponseValidators{"CreateInvocationResult": validators["CreateInvocationResult"], "CancelInvocationResult": validators["CancelInvocationResult"], "StreamEvent": validators["StreamEvent"]})
+	if gatewayErr != nil {
+		return fail(gatewayErr)
+	}
+	if err = memoryruntime.ConfigureGateway(gateway); err != nil {
+		return fail(err)
+	}
+	if err = memoryruntime.ConfigureAssistantClients(jobs, rawGateway); err != nil {
+		return fail(err)
+	}
+	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
+	application, err := transport.NewApplication(config, anchors, runtimeAuthority, view.DataEpoch, apivalidate.NewIdentityAuthorizer(identity))
+	if err != nil {
+		return fail(err)
+	}
+	return application, nil
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，供进程模板读取

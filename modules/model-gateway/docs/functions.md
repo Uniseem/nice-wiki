@@ -1955,6 +1955,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 4. 同幂等键同hash返回原调用，不同CONFLICT；此时不派发供应方请求
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 6. 新调用持久accepted后启动ExecuteInvocation；调用方经resumeInference读取流直到终态
+7. capability=rerank时query非空，texts与candidateIds等长逐项对应；其他能力省略query；不得把查询与候选拼接猜测供应方语义
 
 **错误**
 
@@ -2203,6 +2204,7 @@ func BuildProviderRequest(ctx context.Context, op OperationContext, input BuildP
 3. 加供应方支持的幂等键
 4. 返回只供executor内存消费
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+6. capability=rerank时query非空，texts与candidateIds等长逐项对应；其他能力省略query；不得把查询与候选拼接猜测供应方语义
 
 **错误**
 
@@ -2302,6 +2304,7 @@ func AppendStreamEvent(ctx context.Context, op OperationContext, input AppendStr
 3. 持久事件
 4. 提交后向订阅者广播
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+6. 序号从1开始，0为初次排他续传游标；output只允许completed，结构化结果与文本事件同样持久化
 
 **错误**
 
@@ -5560,6 +5563,7 @@ func ParseRerankResponse(ctx context.Context, op OperationContext, input ParseRe
 3. scores有限且排序稳定
 4. 缺失候选排末不生成正文
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+6. capability=rerank时query非空，texts与candidateIds等长逐项对应；其他能力省略query；不得把查询与候选拼接猜测供应方语义
 
 **错误**
 
