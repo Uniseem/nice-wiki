@@ -2,12 +2,12 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "3b474d2e5694d6476d80760d70b88a1b975d2819ffd5e2d6ae523ea75d6435a1",
+  "contractSha256": "26aafcf2f2a080e2171fdc89a01a4225569b8dffa7ec1499d31a6dfc262fb961",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1模型网关费用执行及完整启动收尾",
   "branch": "codex/finish-20261018-gateway",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+  "deliveryCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
   "deployment": "not_started",
   "files": [
     {
@@ -32,13 +32,13 @@
     },
     {
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "in_progress",
-      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "Put和七项紧密辅助/映射verified；Rotate最后引用销毁生命周期尚缺，整文件partial"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/model.go",
@@ -202,13 +202,13 @@
     },
     {
       "path": "modules/model-gateway/internal/events/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/admin/read.go",
@@ -252,23 +252,23 @@
     },
     {
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/ui/src/views/EditView.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/task.go",
@@ -452,13 +452,13 @@
     },
     {
       "path": "modules/model-gateway/ui/package.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/ui/pnpm-lock.yaml",
@@ -472,43 +472,43 @@
     },
     {
       "path": "modules/model-gateway/ui/vite.config.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/ui/tsconfig.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/ui/index.html",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/ui/src/main.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/gen/openapi.gen.go",
@@ -593,12 +593,12 @@
     {
       "path": "modules/model-gateway/internal/runtime/invocation.go",
       "state": "verified",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "passed",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/http.go",
@@ -729,6 +729,46 @@
         "evidence": "未本机Go检查；提交后交根CI。"
       },
       "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+    },
+    {
+      "path": "modules/model-gateway/internal/runtime/retirement.go",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "path": "modules/model-gateway/internal/runtime/relay.go",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "path": "modules/model-gateway/migrations/009_retired_secrets.sql",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "path": "modules/model-gateway/ui/src/vue.d.ts",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
     }
   ],
   "functions": [
@@ -879,23 +919,23 @@
       "id": "model-gateway.RotateCredential",
       "path": "modules/model-gateway/internal/security/credential.go",
       "state": "in_progress",
-      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。 仅本轮已写切片经过检查，整函数缺口未完成。"
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "新版本切换通过本阶段检查；派发旧凭据引用/释放及最后引用销毁尚未实现，整函数partial，不能记完整verified"
+      "blocker": "密文退休已写，完整Build显式tracking初始化待下批。"
     },
     {
       "id": "model-gateway.writeCredential",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "verified",
-      "implementationCommit": "c82f663bb8f935ff67a8da9e22c463ea0765d816",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16 集成会话VPS linux/amd64 Go1.25.5、GOMAXPROCS=8：最终修正树make docs/gen、credential.go/bootstrap.go/provider.go/wire.go的gofmt、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（867文件/1277函数/379操作/2281类型）；41个本域文件的精确格式/生成快照已回传。本阶段仅源码/生成/编译/结构检查，未SQL/HTTP行为验证、业务测试、真实接口/模型、服务/镜像/部署。"
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.loadCredentialMasterKey",
@@ -1503,26 +1543,15 @@
       "blocker": "源码ready；原调用执行/费用证据/取消恢复闭环待根GitLab生成、编译与结构检查。"
     },
     {
-      "id": "model-gateway.EnqueueOutbox",
-      "path": "modules/model-gateway/internal/events/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": null
-    },
-    {
       "id": "model-gateway.PublishOutbox",
       "path": "modules/model-gateway/internal/events/outbox.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.RecoverLeases",
@@ -1912,24 +1941,24 @@
     {
       "id": "model-gateway.LoadAdminOverview",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.SubmitPrimaryEdit",
       "path": "modules/model-gateway/ui/src/views/EditView.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.PutTaskAssignment",
@@ -2209,13 +2238,13 @@
     {
       "id": "model-gateway.mountModuleUI",
       "path": "modules/model-gateway/ui/src/main.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.InstallExecutionOptions",
@@ -2782,12 +2811,12 @@
       "id": "model-gateway.ReleaseResolvedReferences",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
       "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
         "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "evidence": "源码ready，待根GitLab。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": "源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.ReleaseUnacceptedAttempt",
@@ -2964,6 +2993,292 @@
         "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
       },
       "blocker": "源码ready，待CI。"
+    },
+    {
+      "id": "model-gateway.DestroyRetiredSecrets",
+      "path": "modules/model-gateway/internal/runtime/retirement.go",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.RelayOutbox",
+      "path": "modules/model-gateway/internal/runtime/relay.go",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.clearSecrets",
+      "path": "modules/model-gateway/ui/src/views/EditView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.clearSensitive",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.decimal",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.dollars",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.editModel",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.editProfile",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.editTask",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.failure",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.loadLedger",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.micros",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.moveModel",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.perform",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.pollProbe",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.refreshCatalog",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.reload",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.runProbe",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.save",
+      "path": "modules/model-gateway/ui/src/views/EditView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.saveCredential",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.saveModel",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.savePolicy",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.saveProfile",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.saveTask",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.stop",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.write",
+      "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
+      "state": "blocked",
+      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待根GitLab。"
+      },
+      "blocker": "源码ready，待根GitLab。"
     }
   ],
   "rule": "费用首批11原有业务及26必要助手共37项源码ready，加2项修改过的既有账本函数重新待CI；全部blocked，不提前implemented/verified。既有未改verified保留原证据；完整生产派发及启动继续实现。"

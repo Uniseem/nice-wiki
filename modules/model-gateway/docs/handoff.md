@@ -1,3 +1,40 @@
+# 管理界面与转发第5批
+
+源码91bfe36。4原业务ready：PublishOutbox、LoadAdminOverview、SubmitPrimaryEdit、mountModuleUI，+26实际helper，全部blocked待GitLab。移除重复EnqueueOutbox参考ID不计完成；Rotate完整tracking初始化待后续完整Build，暂partial。
+
+UI沿批准Vue/TS/Vite精确版本，lock仅CI真实pnpm生成；根需typecheck/build及保留dc8435d公共端口。新增schema009、runtime/relay.go、runtime/retirement.go、ui/src/vue.d.ts需公共结构索引。credentials退休审计后删除材料，header墓碑保留；unknown/held/legacy缺证据都不销毁。
+
+实际helper IDs：
+
+- `model-gateway.DestroyRetiredSecrets`
+- `model-gateway.RelayOutbox`
+- `model-gateway.clearSecrets`
+- `model-gateway.clearSensitive`
+- `model-gateway.decimal`
+- `model-gateway.dollars`
+- `model-gateway.editModel`
+- `model-gateway.editProfile`
+- `model-gateway.editTask`
+- `model-gateway.failure`
+- `model-gateway.loadLedger`
+- `model-gateway.micros`
+- `model-gateway.moveModel`
+- `model-gateway.perform`
+- `model-gateway.pollProbe`
+- `model-gateway.refreshCatalog`
+- `model-gateway.reload`
+- `model-gateway.runProbe`
+- `model-gateway.save`
+- `model-gateway.saveCredential`
+- `model-gateway.saveModel`
+- `model-gateway.savePolicy`
+- `model-gateway.saveProfile`
+- `model-gateway.saveTask`
+- `model-gateway.stop`
+- `model-gateway.write`
+
+未本机Go/pnpm/生成/编译/格式/测试，未真实接口/模型/部署/push。继续原生PDF file受控链及probe/catalog/保护/完整启动。
+
 # 付费执行第4批交接
 
 源码`b6d8ae0`，7原业务ready：CreateInvocation、ExecuteInvocation、DispatchInvocation、CancelInvocation、CreateFallbackAttempt、RecoverLeases、BuildProviderRequest（统一model-gateway前缀）。均blocked待GitLab，不提前verified。既有QueryUsage、SSE、费用/预留/结算/释放和HTTP映射修改重新待CI。完整BuildApplication仍partial；下一批继续完整启动/保护、管理员catalog/probe、凭据引用回收与UI，不以本批启动成功。
