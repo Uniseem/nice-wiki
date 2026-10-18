@@ -1,3 +1,9 @@
+# Portal委托身份公共加载小补
+
+源码2759c93，新增platform.LoadPortalDelegation，复用严格身份描述读取与私钥Loader，仅portal可调用，核本站委托公钥全值。仅源码ready，blocked待GitLab，未读取真实密钥、未本机Go/生成/格式/编译/测试、未部署/push。
+
+当前独占libs/platform，分支codex/finish-20261018-snapshot，基线599cc7b；已读根及公共合同、全部快照草稿，继续真实归档/Stage证明/崩溃可续接换目录。全域屏障、jobs最终outbox排空与旧pending事件代次仍需协调证明，不能宣称全链safe。
+
 # 实际取消回调待GitLab
 
 worker收到真实cancelRequested时先调用OnCancellationObserved持久精确worker/fence/epoch取消事实，再取消执行；safePoint不当取消，失败停止，回调不触发业务/model。仅源码与合同，待Root后续集成GitLab，未本机编译或真实任务。
