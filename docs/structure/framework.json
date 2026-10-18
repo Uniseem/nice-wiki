@@ -204,6 +204,16 @@
       "purpose": "全局frontend设计/手册/状态记录"
     },
     {
+      "path": "docs/licenses/ledongthuc-pdf-6c8c28e0e8a0.LICENSE",
+      "kind": "documentation",
+      "purpose": "用户批准项目固定版本原始许可文本"
+    },
+    {
+      "path": "docs/licenses/tiktoken-go-tokenizer-v0.7.0.LICENSE",
+      "kind": "documentation",
+      "purpose": "用户批准项目固定版本原始许可文本"
+    },
+    {
       "path": "docs/operations.md",
       "kind": "documentation",
       "purpose": "全局operations设计/手册/状态记录"
@@ -877,16 +887,6 @@
       "path": "libs/platform/worker/loop.go",
       "kind": "handwritten",
       "purpose": "任务领取循环实现"
-    },
-    {
-      "path": "licenses/ledongthuc-pdf-6c8c28e0e8a0.LICENSE",
-      "kind": "documentation",
-      "purpose": "用户批准项目固定版本原始许可文本"
-    },
-    {
-      "path": "licenses/tiktoken-go-tokenizer-v0.7.0.LICENSE",
-      "kind": "documentation",
-      "purpose": "用户批准项目固定版本原始许可文本"
     },
     {
       "path": "modules/analytics/AGENTS.md",

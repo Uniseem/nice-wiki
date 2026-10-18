@@ -5515,6 +5515,7 @@ func ReadLanguageSuggestionPolicy(ctx context.Context, op OperationContext, inpu
 - `INTERNAL` / HTTP 500：（不可重试）
 - `VERSION_MISMATCH` / HTTP 409：（不可重试）
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
 
 - 副作用：无
 - 授权：permission：localization.manage；rule：管理员操作只portal当前localization.manage；批准只model-gateway纯服务，不能接受访客自报开关。
@@ -5563,6 +5564,7 @@ func PutLanguageSuggestionPolicy(ctx context.Context, op OperationContext, input
 - `INTERNAL` / HTTP 500：（不可重试）
 - `VERSION_MISMATCH` / HTTP 409：（不可重试）
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
 
 - 副作用：本域批准历史与当前开关CAS、幂等回执同事务
 - 授权：permission：localization.manage；rule：管理员操作只portal当前localization.manage；批准只model-gateway纯服务，不能接受访客自报开关。
@@ -5609,6 +5611,8 @@ func ReadLanguageSuggestionApproval(ctx context.Context, op OperationContext, in
 - `INTERNAL` / HTTP 500：（不可重试）
 - `VERSION_MISMATCH` / HTTP 409：（不可重试）
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：管理员操作只portal当前localization.manage；批准只model-gateway纯服务，不能接受访客自报开关。
@@ -5648,6 +5652,7 @@ func readSuggestionPolicy(ctx context.Context, tx *sql.Tx, op OperationContext) 
 - `INTERNAL` / HTTP 500：（不可重试）
 - `VERSION_MISMATCH` / HTTP 409：（不可重试）
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
 
 - 副作用：无
 - 授权：权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
@@ -5687,6 +5692,7 @@ func NewSuggestionPolicyHandlers() map[string]http.Handler
 - `INTERNAL` / HTTP 500：（不可重试）
 - `VERSION_MISMATCH` / HTTP 409：（不可重试）
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
 
 - 副作用：无
 - 授权：权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。

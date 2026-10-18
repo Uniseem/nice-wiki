@@ -4602,6 +4602,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 当前付费批准指针完整性错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
                 headers: {
@@ -4683,6 +4692,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 当前付费批准指针完整性错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
                 headers: {
@@ -4753,8 +4771,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description 当前同代批准不存在或已被新版本替代 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 当前付费批准指针完整性错误 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

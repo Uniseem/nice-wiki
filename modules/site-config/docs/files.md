@@ -2,11 +2,11 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 44 个：手写 29、生成 3、配置 6、迁移 6。函数 90 个：约束 32，参考 58。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 44 个：手写 29、生成 3、配置 6、迁移 6。函数 91 个：约束 32，参考 59。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
-| `modules/site-config/internal/config_service.go` | 手写 | 读取后台站点配置 | `site-config.ReadSiteConfig`、`site-config.UpdateSiteConfig`、`site-config.readConfigAtWatermark`（参考）、`site-config.loadPublicHomeConfig`（参考） |
+| `modules/site-config/internal/config_service.go` | 手写 | 读取后台站点配置 | `site-config.ReadSiteConfig`、`site-config.UpdateSiteConfig`、`site-config.readConfigAtWatermark`（参考）、`site-config.loadPublicHomeConfig`（参考）、`site-config.authorizeConfigRead`（参考） |
 | `modules/site-config/internal/config_validator.go` | 手写 | 校验配置所有字段和关联约束 | `site-config.ValidateSiteConfig`（参考）、`site-config.NormalizeBaseURL`（参考）、`site-config.validateConfigWebLink`（参考） |
 | `modules/site-config/internal/language_service.go` | 手写 | 规范基准语言 tag | `site-config.ValidateLanguageTag`（参考） |
 | `modules/site-config/internal/home_service.go` | 手写 | 保存一屏hero权威配置、公开安全投影和媒体引用持久恢复 | `site-config.UpdateHome`、`site-config.ReadPublicHome`、`site-config.ReadHomeReferenceDecision`、`site-config.RecoverHomeReferences`、`site-config.ConfigureHome`（参考）、`site-config.homeDependencies`（参考）、`site-config.homeSourceObjectID`（参考）、`site-config.homeReferenceMaterial`（参考）、`site-config.saveHomeReferenceIntent`（参考）、`site-config.readHomeReferenceIntent`（参考）、`site-config.validateHomePin`（参考）、`site-config.committedHomeReference`（参考）、`site-config.verifyHomeCommittedReference`（参考）、`site-config.checkHomeConfigCommit`（参考）、`site-config.markHomeConfigCommitted`（参考）、`site-config.homeReferenceContext`（参考）、`site-config.persistHomePin`（参考）、`site-config.acquireHomePin`（参考）、`site-config.decideHomeTermination`（参考）、`site-config.settleHomeReference`（参考）、`site-config.compareHomeInput`（参考）、`site-config.homeTerminatedError`（参考）、`site-config.finishHomeFailure`（参考）、`site-config.homeServiceContext`（参考）、`site-config.resolveHomeDocument`（参考）、`site-config.safeHomeRelativeHref`（参考）、`site-config.disablePublicHomeButton`（参考）、`site-config.readHomeQACapability`（参考）、`site-config.RecoverHomeReferenceState`（参考）、`site-config.homeWriteContext`（参考） |

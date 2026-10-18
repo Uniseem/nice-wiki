@@ -46,8 +46,13 @@ variables:
       for m in libs/platform modules/*; do
         if test -f "$m/go.mod"; then (cd "$m" && go mod tidy) || exit 1; fi
       done
-    - pnpm --dir modules/public-site/web install --lockfile-only --ignore-scripts
-    - git add -N modules/public-site/web/pnpm-lock.yaml
+    - |
+      for frontend_dir in modules/*/ui modules/*/web; do
+        if test -f "$frontend_dir/package.json"; then
+          pnpm --dir "$frontend_dir" install --lockfile-only --ignore-scripts || exit 1
+          git add -N "$frontend_dir/pnpm-lock.yaml"
+        fi
+      done
     - git ls-files -z '*.go' | xargs -0 gofmt -w
     - make docs
     - make gen
@@ -97,13 +102,18 @@ variables:
     - job: 生成与格式
       artifacts: true
   cache:
-    key: node22-public-site
+    key: node22-module-frontends
     paths:
       - .cache/npm/
       - .cache/pnpm-store/
   script:
     - if test -s generated.patch; then git apply generated.patch; fi
     - npm install --global pnpm@9.15.9
-    - pnpm --dir modules/public-site/web install --frozen-lockfile --store-dir "$CI_PROJECT_DIR/.cache/pnpm-store"
-    - pnpm --dir modules/public-site/web typecheck
-    - pnpm --dir modules/public-site/web build
+    - |
+      for frontend_dir in modules/*/ui modules/*/web; do
+        if test -f "$frontend_dir/package.json"; then
+          pnpm --dir "$frontend_dir" install --frozen-lockfile --store-dir "$CI_PROJECT_DIR/.cache/pnpm-store" || exit 1
+          pnpm --dir "$frontend_dir" typecheck || exit 1
+          pnpm --dir "$frontend_dir" build || exit 1
+        fi
+      done

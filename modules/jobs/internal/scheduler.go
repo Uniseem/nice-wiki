@@ -16,22 +16,22 @@ type OwnerRecoveryChecker func(context.Context, OperationContext, OwnerRecoveryR
 
 // 本域保留生成ObjectRef的精确Go类型；JSON协议与公共OwnerRecovery契约相同。
 type OwnerRecoveryRequest struct {
- JobID string `json:"jobId"`
- Owner string `json:"owner"`
- Type string `json:"type"`
- InputRef ObjectRef `json:"inputRef"`
- RootOperationID string `json:"rootOperationId"`
- DataEpoch string `json:"dataEpoch"`
- ExpiredFence int64 `json:"expiredFence"`
- WorkerID string `json:"workerId"`
- Attempt int64 `json:"attempt"`
- CancelRequested bool `json:"cancelRequested"`
+	JobID           string    `json:"jobId"`
+	Owner           string    `json:"owner"`
+	Type            string    `json:"type"`
+	InputRef        ObjectRef `json:"inputRef"`
+	RootOperationID string    `json:"rootOperationId"`
+	DataEpoch       string    `json:"dataEpoch"`
+	ExpiredFence    int64     `json:"expiredFence"`
+	WorkerID        string    `json:"workerId"`
+	Attempt         int64     `json:"attempt"`
+	CancelRequested bool      `json:"cancelRequested"`
 }
 
 type OwnerRecoveryResult struct {
- Status string `json:"status"`
- ResultRef *ObjectRef `json:"resultRef,omitempty"`
- PaidResultRefs []string `json:"paidResultRefs"`
+	Status         string     `json:"status"`
+	ResultRef      *ObjectRef `json:"resultRef,omitempty"`
+	PaidResultRefs []string   `json:"paidResultRefs"`
 }
 
 type orphanCandidate struct {

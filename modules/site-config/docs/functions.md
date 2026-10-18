@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 90 个函数：约束 32 个，参考 58 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 91 个函数：约束 32 个，参考 59 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -49,7 +49,7 @@ func ReadSiteConfig(ctx context.Context, op OperationContext, input ReadSiteConf
 - 授权：site.read 或 service:portal/public-site/content/media/localization/identity
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：只读
-- 依赖：无
+- 依赖：`site-config.authorizeConfigRead`
 
 ## site-config.UpdateSiteConfig
 
@@ -165,6 +165,43 @@ func (s *ActiveStore) loadPublicHomeConfig(ctx context.Context, op OperationCont
 - 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
 - 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
 - 依赖：`site-config.readConfigAtWatermark`
+
+## site-config.authorizeConfigRead
+
+- 级别：参考
+- 文件：`modules/site-config/internal/config_service.go`
+- 作用：落实配置读取和对象读取不同服务白名单
+
+```go
+func authorizeConfigRead(op OperationContext, object bool) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 已核纯服务读取SiteConfig允许portal/public-site/content/media/localization/identity/knowledge/model-gateway/memory/qa/analytics/traffic-guard/jobs/data-protection，仅配置公开字段，不给写权限。
+2. object分支仍只public-site/data-protection；管理员仍当前site.read或superadmin，不扩大对象读取或管理写权限。
+
+**错误**
+
+- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+- `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `INTEGRITY_ERROR`：权威文件/COMMITTED/SQL或原始材料不一致（不可重试）
+- `VERSION_MISMATCH`：活动epoch或expectedRevision已变化（不可重试）
+
+- 副作用：无
+- 授权：site.read 或 service:portal/public-site/content/media/localization/identity
+- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
+- 幂等：只读
+- 依赖：无
 
 ## site-config.ValidateSiteConfig
 
