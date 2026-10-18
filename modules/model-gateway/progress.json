@@ -2,12 +2,12 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "037625f9cb3f7c0da9631fd87dfbf6d315c1c855341b31fc2d0fd1e2be763c3f",
+  "contractSha256": "d8a0137d3cfd424a4d309c879ad0bf303e88b61f72092e9c2fc41231b4692aad",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1最终完整文本/安全统计页/目录与探测",
   "branch": "codex/finish-20261018-gateway-final",
   "baseCommit": "ba1925675d6874e298a971cfed9f08d446ab84d4",
-  "deliveryCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
+  "deliveryCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
   "deployment": "not_started",
   "files": [
     {
@@ -223,12 +223,12 @@
     {
       "path": "modules/model-gateway/internal/admin/usage.go",
       "state": "blocked",
-      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
+      "implementationCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批实际改动待统一GitLab CI；完整启动/tracking原partial保持"
+      "blocker": "安全posted统计生产页源码就绪，待统一GitLab CI；全费用未知观察闭包另保持partial"
     },
     {
       "path": "modules/model-gateway/internal/protection/protocol.go",
@@ -373,12 +373,12 @@
     {
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "0867a87d16a18d72d7eecab197d5d8ca9542283e",
+      "implementationCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批实际改动待统一GitLab CI；完整启动/tracking原partial保持"
+      "blocker": "安全posted统计生产页源码就绪，待统一GitLab CI；全费用未知观察闭包另保持partial"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
@@ -583,12 +583,12 @@
     {
       "path": "modules/model-gateway/internal/runtime/invocation.go",
       "state": "blocked",
-      "implementationCommit": "26210be2b9f38c2d270c5b6f845ad67b9144c8f3",
+      "implementationCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本批实际改动待统一GitLab CI；未改函数原verified证据保持"
+      "blocker": "安全posted统计生产页源码就绪，待统一GitLab CI；全费用未知观察闭包另保持partial"
     },
     {
       "path": "modules/model-gateway/internal/invocation/http.go",
@@ -799,6 +799,26 @@
         "evidence": null
       },
       "blocker": null
+    },
+    {
+      "path": "modules/model-gateway/internal/admin/statistics.go",
+      "state": "blocked",
+      "implementationCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "安全posted统计生产页源码就绪，待统一GitLab CI；全费用未知观察闭包另保持partial"
+    },
+    {
+      "path": "modules/model-gateway/migrations/012_usage_statistics.sql",
+      "state": "blocked",
+      "implementationCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "安全posted统计生产页源码就绪，待统一GitLab CI；全费用未知观察闭包另保持partial"
     }
   ],
   "functions": [
@@ -1883,13 +1903,13 @@
     {
       "id": "model-gateway.NewLedgerHandlers",
       "path": "modules/model-gateway/internal/admin/usage.go",
-      "state": "verified",
-      "implementationCommit": "39b1e33d2f2a0e61298504704f2dd1802fb9d44f",
+      "state": "blocked",
+      "implementationCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17 GitLab CI完整候选流水线32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成job148、三个同时分片job149/150/151全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt及完整make check，生成补丁0字节。根已精确回传本域18变更路径（含流水线31格式/生成），源码/合同此后未改。仅源码/生成/编译/结构证据；未SQL/HTTP业务验收、新测试、真实模型/供应方、业务worker、服务/镜像或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "安全posted统计生产页源码就绪，待统一GitLab CI；全费用未知观察闭包另保持partial"
     },
     {
       "id": "model-gateway.AcquireBarrier",
@@ -3485,13 +3505,58 @@
         "evidence": null
       },
       "blocker": "完整文本/原证据只读链源码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "model-gateway.ReadUsageStatisticsPage",
+      "path": "modules/model-gateway/internal/admin/statistics.go",
+      "state": "blocked",
+      "implementationCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "安全posted统计生产页源码就绪，待统一GitLab CI；全费用未知观察闭包另保持partial"
+    },
+    {
+      "id": "model-gateway.readStatisticsLineage",
+      "path": "modules/model-gateway/internal/admin/statistics.go",
+      "state": "blocked",
+      "implementationCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "安全posted统计生产页源码就绪，待统一GitLab CI；全费用未知观察闭包另保持partial"
+    },
+    {
+      "id": "model-gateway.validateUsageChange",
+      "path": "modules/model-gateway/internal/admin/statistics.go",
+      "state": "blocked",
+      "implementationCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "安全posted统计生产页源码就绪，待统一GitLab CI；全费用未知观察闭包另保持partial"
+    },
+    {
+      "id": "model-gateway.ReadGatewaySiteID",
+      "path": "modules/model-gateway/internal/app/wire.go",
+      "state": "blocked",
+      "implementationCommit": "9bc09f504c1708d93cb44addd7f45ef1cb93dda1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "安全posted统计生产页源码就绪，待统一GitLab CI；全费用未知观察闭包另保持partial"
     }
   ],
   "rule": "本批完整独立函数通过pipeline101；Create/Lookup/tracking首次来源、完整启动及保护、probe额度/目录数据许可仍按逐项台账阻塞，不计业务验收。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "26210be2b9f38c2d270c5b6f845ad67b9144c8f3",
-      "0867a87d16a18d72d7eecab197d5d8ca9542283e"
+      "0867a87d16a18d72d7eecab197d5d8ca9542283e",
+      "9bc09f504c1708d93cb44addd7f45ef1cb93dda1"
     ],
     "modifiedFunctions": [
       "model-gateway.SendProviderRequest",
@@ -3501,12 +3566,18 @@
       "model-gateway.GetInvocation",
       "model-gateway.QueryUsage",
       "model-gateway.RequirePriceCaller",
-      "model-gateway.QuoteCost"
+      "model-gateway.QuoteCost",
+      "model-gateway.NewLedgerHandlers"
     ],
     "newReferenceHelpers": [
-      "model-gateway.ReadLegacyTextResult"
+      "model-gateway.ReadLegacyTextResult",
+      "model-gateway.readStatisticsLineage",
+      "model-gateway.validateUsageChange",
+      "model-gateway.ReadGatewaySiteID"
     ],
-    "newBusinessFunctions": [],
-    "note": "Lookup/Create完整tracking及启动/保护未齐继续原blocked；旧文本不是缺证据即补空或重付。"
+    "newBusinessFunctions": [
+      "model-gateway.ReadUsageStatisticsPage"
+    ],
+    "note": "Lookup/Create完整tracking及启动/保护未齐继续原blocked；旧文本不是缺证据即补空或重付。 安全统计仅posted，完整no-ledger未知费用观察及恢复target投影仍partial。"
   }
 }

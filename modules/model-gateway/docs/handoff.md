@@ -1,3 +1,11 @@
+# 安全posted统计生产页待统一GitLab CI
+
+源码 `9bc09f504c1708d93cb44addd7f45ef1cb93dda1`：新绑定ReadUsageStatisticsPage及三个参考readStatisticsLineage/validateUsageChange/ReadGatewaySiteID、新修改NewLedgerHandlers共5项源码ready。GET /v1/statistics/ledger只analytics纯服务；实际site-config响应装配当前site，当前epoch授权；append-only changeRevision固定上界与每entry真实ledgerRevision，100条/2.5秒、平台签名24小时游标。schema012同原ledger/void事务完整捕获新增/更改/删除/替代/作废，baseline仅升级真实第一次观察。只输出原冻结provider/model/原来源/真实金额，不查当前配置补历史。
+
+响应明确feeCoverage=posted-only、completeFeeCoverage=false；无账项held/charge_unknown观察尚未闭包，全站费用统计/analytics worker继续partial。恢复旧sourceEpoch尚需认证target投影，当前严格503，不重基费用/执行hash。BuildApplication仅增加实际site读取，完整保护装配仍partial。根须登记新增源码/迁移框架并统一gen/docs/所有GitLab检查；本域未本机Go/SQL执行/接口/模型/部署/push。
+
+以下为既有交付历史。
+
 # 原负证明/费用根观察窄修待GitLab
 
 源码 `0867a87d16a18d72d7eecab197d5d8ca9542283e`：QueryUsage/RequirePriceCaller/QuoteCost 三修改项待统一GitLab CI；Lookup的专用负证明与Build报价caller已写，但原tracking/完整启动仍blocked/partial，不计整项ready。Lookup仅CodeInvocationNotAccepted常量（公共dcba0de）承载真实未接受证明。QueryUsage两可选兼容bool实际始终给：窗覆盖所有root调用创建及全ledger时间；完整原调用/attempt列表和终态/无lease才allFinal，unknown/held另据原字段，不混safeToRetry。portal当前model.manage可免费报价；原AI owners/localization授权保留，knowledge额外纯service+background。需Root合公共常量/错误码与本域新字段统一gen；未本机检查或push。
