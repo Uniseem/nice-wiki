@@ -1,3 +1,73 @@
+# 公共快照与恢复源码切片
+
+源码3211e23及删除边界窄修afae2ed，基线599cc7b，分支codex/finish-20261018-snapshot，独占libs/platform。实际57项函数登记待GitLab（修改原ApplyRestoreSwap；56实际新增登记参考，其中5个原先已有未登记助手，不冒称56新业务）。新增5个snapshot_*.go和重写restore_swap.go，无业务域导入。源码就绪不表示14域回调或全域安全点已完成。
+
+完整USTAR有界归档/隔离解包、原输入与源清单及目标完整树stage journal、私有进程lease/drain、真实换目录日志与崩溃续接、ReadRestoreSwapState、先记意图后删除均已写。StageId为canonical[restoreId,snapshotId]全64hex；目标manifestHash包含文件和空目录，源清单hash及full tar checksum分开。公共common字段Root14b5c44，HTTP/14域Capture/MigrateStage/ValidateStaged和实际scope接线Root负责，未齐不记可运行。
+
+全域屏障仍有明确缺口：jobs必须等全部生产者封口和最终outbox排空后才safe；旧epoch job/fence/event撤销活动资格，原未决费用、输入/输出/来源/队列事实只隔离审计留存，不通用改epoch或物理删证据后声称无调用。新版免费重建通知须真实生产者/restore证据。没有DP“全部加密持久”的回收回执协议，所以保留历史export，不以Release推删除。
+
+本批只做文档读取、静态复核和git diff --check；未本机或SSH Go/gofmt/gen/build/vet/check/pnpm，未新增测试/fixture/mock/样例或临时业务验证程序，未真实接口/模型/业务服务/部署/push。下一步仅按根GitLab反馈窄修本切片，再接真实运行scope与协调证明，不以缺失回调空成功补齐。
+
+精确待检查函数IDs：
+
+- `platform.integrity`
+- `platform.readSnapshotStageRecord`
+- `platform.ApplyRestoreSwap`
+- `platform.snapshotDirectoryExists`
+- `platform.snapshotSwapPaths`
+- `platform.verifySnapshotHash`
+- `platform.snapshotRename`
+- `platform.snapshotSwapLog`
+- `platform.applySnapshotSwitch`
+- `platform.applySnapshotRollback`
+- `platform.ReadRestoreSwapState`
+- `platform.restoreLogState`
+- `platform.readRestoreLog`
+- `platform.appendRestoreLog`
+- `platform.syncDir`
+- `platform.splitLines`
+- `platform.snapshotIOError`
+- `platform.snapshotBudget`
+- `platform.snapshotUnsupported`
+- `platform.decodeSnapshotCanonical`
+- `platform.readSnapshotJSON`
+- `platform.syncSnapshotDirectories`
+- `platform.snapshotDirectory`
+- `platform.writeSnapshotJSON`
+- `platform.safeSnapshotRelative`
+- `platform.CheckSnapshotDiskBudget`
+- `platform.copySnapshotExact`
+- `platform.verifySnapshotFile`
+- `platform.snapshotCountedReader.Read`
+- `platform.snapshotCountedWriter.Write`
+- `platform.validateSnapshotInventory`
+- `platform.verifySnapshotInventoryTree`
+- `platform.snapshotArchiveByteSize`
+- `platform.BuildSnapshotArchive`
+- `platform.ExtractSnapshotArchive`
+- `platform.NewSnapshotManager`
+- `platform.SnapshotManager.persistBarrier`
+- `platform.SnapshotManager.signalLocked`
+- `platform.lockSnapshotControl`
+- `platform.SnapshotManager.AdmitBusiness`
+- `platform.SnapshotManager.WriteWindow`
+- `platform.SnapshotCleanup.Context`
+- `platform.SnapshotManager.runDrainCallback`
+- `platform.SnapshotManager.waitCounts`
+- `platform.SnapshotManager.EnterBarrier`
+- `platform.SnapshotManager.ReleaseBarrier`
+- `platform.SnapshotManager.beginFileOperation`
+- `platform.SnapshotManager.Export`
+- `platform.SnapshotManager.OpenArchive`
+- `platform.removeSnapshotTree`
+- `platform.fingerprintSnapshotTree`
+- `platform.snapshotStageID`
+- `platform.verifySnapshotTarget`
+- `platform.SnapshotManager.Stage`
+- `platform.SnapshotManager.finishStage`
+- `platform.SnapshotManager.Discard`
+- `platform.verifySnapshotExportRecord`
+
 # 按登记类型领取公共小补
 
 源码3f17df5：新增platform.ClaimJobTypes实际适配与TypedWorkerJobsClient可选能力，旧ClaimJob保留无筛选兼容；循环必须有typed能力并实际传config.JobTypes到原jobs:claimJob，缺能力失败关闭，不在领取后丢弃任务假筛选。四新/改函数blocked待根GitLab及生产方jobTypes/SQL同时检查。无本机Go/生成/格式/编译/测试、无真实任务/业务/模型/部署/push。
