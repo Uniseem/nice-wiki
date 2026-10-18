@@ -72,3 +72,7 @@
 可信前置提示须明确要求：把代词、省略主体、未命名的第二步来源落实为完整独立 canonicalQuestion；仍缺任一来源则 needs_clarification、complete=false、cacheEligible=false、resolvedReferences=false。只有从已校验的历史/当前页实际解析完成、且规范问题能独立理解时才输出 resolvedReferences=true；私人化或动态页面依赖不能因改写而变为共享资格。缺该字段按 false。本域将对 Planner 文本结果严格 schema 解析并补入可信原问题、语言和上下文指纹；浏览器公共入口不接受这些字段。当前 PlanQuestion 模型流程尚未实现，完整 ExecuteTurn 仍未就绪；确定性 EvaluateCacheEligibility 已按此规则编写，不做关键词扫描。
 
 已编写的 HTTP 映射交平台 NewServiceHandler 统一身份、委托、权限、恢复代次、维护和请求结构校验。第一批只有实际已完成处理函数映射，完整 BuildApplication 仍须因缺其他操作而启动失败，不能运行一个缺路由的服务冒充交付。所有编译、生成与检查由根及时送 GitLab；本域不执行本机 Go、测试、模型或服务。
+
+第二批SSE映射改用现成 `platform/apivalidate.ServeJSONEventStream`，本域只提供持久事件Next/Close；15秒心跳、30秒有界背压及关闭交平台。HTTP连接还受五分钟上限和更早上游ctx约束。没有在本域复制通用SSE机制。
+
+完整ExecuteTurn/RunWorker/恢复仍未完成；调用链必须在首次执行固定每步记忆/输入及步骤幂等身份，并保存原MG调用引用，恢复费用未知步骤只查询原调用、不重新解析新记忆后发新请求。本批参考级前置/提示/检索消费者可以使用真实已装配依赖执行，不代表该完整调度链已经交付。

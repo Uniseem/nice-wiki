@@ -238,3 +238,17 @@
 精确缓存只接受完整问题，精选优先，普通缓存还必须匹配调用链固定的当前 qa.answer 记忆版本。管理员提交的 publicQuestion/publicAnswer 明确是经过其清理的基准语言公开内容，不复制访客原文或私人上下文、不自动翻译；只建立 pending，不命中。负反馈以当前 answerRevision、访客/turn 唯一保存，并同事务使该来源的普通缓存 stale、移除可命中向量，精选不受此普通反馈规则自动撤销。审计事件只包含ID、评分、版本与状态。
 
 阈值校准只读同一完整空间及时间范围的匿名 similarity/feedback 数据；0.05桶用于展示。至少100样本才建议，候选阈值不低于0.94，取满足误命中不超过1%的最低观测阈值；不足或无可用建议保留当前配置，不自动改策略。
+
+## 2026-10-18 第二批消费者与窄修
+
+准入 `requestId` 兼容字段实际绑定原问题稳定 `RootOperationID`，不是 trace RequestID。mint 只有分配元数据、token可空；先消费，再接受 guard 返回的非空签名 permit及expiry，其他不可变字段必须对应原分配。元数据不能当模型许可；内部 `ValidateAdmissionResult.permit` 是唯一后续应持久化/传播的许可。根/原匿名subject不改成服务ID，知识请求body原样携带该许可，bodyHash由服务断言保护。`normal/suspicious/abusive` 分别报告 `normal/suspicious/abuse`；没有相似度/时间间隔观测就省略字段，不伪填0。guard严格allow/deny/challenge；challenge返回公共CHALLENGE_REQUIRED，沿现有issueChallenge明确领挑战，不能从错误文案猜ID。
+
+所有服务间改变body的调用均清旧portal proof；读取公开权威使用qa纯服务主体保留本站/根/截止，模型调用继承可信费用及原签名许可。模型请求、续读与取消仍全部走平台，文本消费只取成功持久调用；单次模型文本超过64KiB失败关闭。每个格式修复是独立attempt，不重放费用未知或取消请求。
+
+`MemoryContext.byteSize` 只数完整渲染text的UTF8字节（含说明/分隔），不数JSON元数据；空text/0B合法，版本及映射不能省略。`ResolveTurnContext` 给当前租约固定qa.answer上下文、策略和独立memoryHash；前置另取qa.preflight，不复用回答记忆。Planner只消费调用链已固定的有界历史/摘要/已核页提示，页提示token数来自上游所选模型tokenizer，不拿字节数假装token。`BuildAnswerPrompt`只组装调用链已裁剪的资料，任务记忆与任务指令先于明确JSON数据边界，不自行猜模型窗口。
+
+查询嵌入经knowledge一次生成/按根复用，核queryHash、完整space、vectorHash、epoch与维度。检索复用相同向量，再readSections核固定chunk、完整源偏移及hash，最多8块/4096token，最终href来自public-site。没有材料且truncated是预算不足，不能说成文档没有说明。自动缓存只来自持久completed、真实最终答案、同记忆/计划/引用版本且无负反馈的轮次，保存原访客语言答案、基准canonical键和配置TTL；同turn/answerRevision不会续期重复插入。其余语义、批准和翻译链仍未完成。
+
+记录接口只给问题前200字的摘要，详情保留原BlockRef并逐条给citationStatuses；已知失效false，权威未知整次失败。debug读取独立debug表与事件表，仅创建者或已核superadmin模型权限可读，七天后410。压缩提交校验当前租约、原摘要hash、连续增量范围和historyGeneration CAS，旧任务标superseded，原消息保留，不把模型返回字段当作可修改范围的授权。
+
+修正首批Go DTO真实形状：策略实际生成名`gen.TypesQaPolicy`，Timestamp为time.Time；私有SQL时间以RFC3339Nano字符串存储，读TEXT后明确解析，再赋生成DTO。缓存expiry使用time.Time指针，不对其重复字符串解析。QuestionPlan是本域共享Go DTO，不假设仅内部schema会生成HTTP闭包外的gen类型。签名分页只绑定稳定subject/session/授权修订，不绑定每次委托变化的expiresAt。

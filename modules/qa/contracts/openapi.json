@@ -3085,6 +3085,21 @@
       },
       "PublicResolvePublishedLinkResult": {
         "$ref": "../../public-site/contracts/types.json#/$defs/ResolvePublishedLinkResult"
+      },
+      "QaPlannerDecision": {
+        "$ref": "./types.json#/$defs/PlannerDecision"
+      },
+      "GuardReportQuestionSignalsResult": {
+        "$ref": "../../traffic-guard/contracts/types.json#/$defs/ReportQuestionSignalsResult"
+      },
+      "QaDebugTurn": {
+        "$ref": "./types.json#/$defs/DebugTurn"
+      },
+      "QaCompaction": {
+        "$ref": "./types.json#/$defs/Compaction"
+      },
+      "QaQuestionPlan": {
+        "$ref": "./types.json#/$defs/QuestionPlan"
       }
     }
   },
@@ -3108,6 +3123,11 @@
     "QaCacheEntry",
     "QaTurn",
     "QaCitations",
-    "PublicResolvePublishedLinkResult"
+    "PublicResolvePublishedLinkResult",
+    "QaPlannerDecision",
+    "GuardReportQuestionSignalsResult",
+    "QaDebugTurn",
+    "QaCompaction",
+    "QaQuestionPlan"
   ]
 }

@@ -470,9 +470,9 @@
         },
         "summary": {
           "type": "string",
-          "minLength": 1,
+          "minLength": 0,
           "maxLength": 65536,
-          "description": "派生摘要"
+          "description": "queued/running允许未产出空文本；提交必须非空且摘要一致"
         },
         "summaryHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
@@ -1227,11 +1227,16 @@
         "visitorSubject": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "伪名"
+        },
+        "permit": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
+          "description": "只能是ConsumeAdmission回执的非空模型签名许可，不能回传mint元数据代替"
         }
       },
       "required": [
         "valid",
-        "visitorSubject"
+        "visitorSubject",
+        "permit"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -1304,11 +1309,15 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "语言"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         }
       },
       "required": [
         "turnId",
-        "language"
+        "language",
+        "leaseId"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -1514,12 +1523,21 @@
         "policy": {
           "$ref": "#/$defs/QaPolicy",
           "description": "策略"
+        },
+        "embedding": {
+          "$ref": "#/$defs/QueryEmbedding"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 35
         }
       },
       "required": [
         "turnId",
         "normalized",
-        "policy"
+        "policy",
+        "language"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -1580,6 +1598,16 @@
           },
           "maxItems": 256,
           "description": "历史"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "verifiedPageText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
         }
       },
       "required": [
@@ -1684,11 +1712,17 @@
           },
           "maxItems": 256,
           "description": "白名单"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 35
         }
       },
       "required": [
         "citationId",
-        "allowed"
+        "allowed",
+        "language"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2655,7 +2689,7 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991,
-          "description": "待发送数"
+          "description": "仅本批已领取仍待确认数，不代表全域队列总积压"
         }
       },
       "required": [
@@ -2873,14 +2907,6 @@
           "maxLength": 65536,
           "description": "摘要"
         },
-        "currentPage": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef",
-          "description": "已验证页面"
-        },
-        "memory": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext",
-          "description": "项目概述"
-        },
         "guardSignals": {
           "type": "array",
           "items": {
@@ -2891,13 +2917,21 @@
           "maxItems": 256,
           "uniqueItems": false,
           "description": "无IP风险信号"
+        },
+        "visitorLanguage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 35
+        },
+        "verifiedPage": {
+          "$ref": "#/$defs/VerifiedPageContext"
         }
       },
       "required": [
         "question",
         "history",
-        "memory",
-        "guardSignals"
+        "guardSignals",
+        "visitorLanguage"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2908,10 +2942,18 @@
         "plan": {
           "$ref": "#/$defs/QuestionPlan",
           "description": "严格前置计划"
+        },
+        "currentPageDependent": {
+          "type": "boolean"
+        },
+        "privateContextDependent": {
+          "type": "boolean"
         }
       },
       "required": [
-        "plan"
+        "plan",
+        "currentPageDependent",
+        "privateContextDependent"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -4062,7 +4104,7 @@
         },
         "citations": {
           "type": "array",
-          "maxItems": 32,
+          "maxItems": 256,
           "items": {
             "$ref": "../../../contracts/common.schema.json#/$defs/BlockRef"
           },
@@ -4072,6 +4114,27 @@
           "type": "string",
           "maxLength": 32,
           "description": "回答类型"
+        },
+        "citationStatuses": {
+          "type": "array",
+          "maxItems": 256,
+          "description": "与原引用逐项对应，权威未知整次失败；已知撤回或hash变化标false",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "block": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/BlockRef"
+              },
+              "valid": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "block",
+              "valid"
+            ]
+          }
         }
       },
       "required": [
@@ -4136,6 +4199,104 @@
       "required": [
         "available",
         "reason"
+      ]
+    },
+    "VerifiedPageContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "仅上游已核验的内部页提示；tokenCount来自所选模型tokenizer，不从字节数假造",
+      "properties": {
+        "document": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "tokenCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
+        }
+      },
+      "required": [
+        "document",
+        "text",
+        "tokenCount"
+      ]
+    },
+    "PlannerDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "仅来自qa.preflight当前模型文本的严格决定，不接受HTTP用户自报",
+      "properties": {
+        "canonicalQuestion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "完整基准语言问题"
+        },
+        "complete": {
+          "type": "boolean",
+          "description": "意思完整且无需缺失指代"
+        },
+        "cacheEligible": {
+          "type": "boolean",
+          "description": "完整非个人化且非敏感动态问题"
+        },
+        "resolvedReferences": {
+          "type": "boolean",
+          "default": false,
+          "description": "仅可信qa.preflight Planner输出：所有代词/省略的主体与来源已落实为独立canonicalQuestion；缺失按false，不从浏览器接受"
+        },
+        "subqueries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 4,
+          "uniqueItems": false,
+          "description": "最多4个完整子问题"
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "smalltalk",
+            "out_of_scope",
+            "simple",
+            "complex",
+            "needs_clarification"
+          ],
+          "description": "类型"
+        },
+        "risk": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "suspicious",
+            "abusive"
+          ],
+          "description": "并入前置模型风险"
+        },
+        "currentPageDependent": {
+          "type": "boolean"
+        },
+        "privateContextDependent": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "canonicalQuestion",
+        "complete",
+        "cacheEligible",
+        "subqueries",
+        "classification",
+        "risk",
+        "currentPageDependent",
+        "privateContextDependent"
       ]
     }
   }
