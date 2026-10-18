@@ -16,7 +16,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/model-gateway/internal/billing"
- "nice-wiki/modules/model-gateway/internal/catalog"
+	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
@@ -25,8 +25,13 @@ type OperationContext = platform.OperationContext
 type ReadModelsInput struct {
 	Capability *string `json:"capability,omitempty"`
 }
-type ModelWithSpace struct{gen.Model;EmbeddingSpace *catalog.EmbeddingSpace `json:"embeddingSpace,omitempty"`}
-type ReadModelsResult struct{Models []ModelWithSpace `json:"models"`}
+type ModelWithSpace struct {
+	gen.Model
+	EmbeddingSpace *catalog.EmbeddingSpace `json:"embeddingSpace,omitempty"`
+}
+type ReadModelsResult struct {
+	Models []ModelWithSpace `json:"models"`
+}
 type ReadProfilesInput struct {
 	ProfileId *string `json:"profileId,omitempty"`
 }
@@ -46,9 +51,19 @@ func ReadModels(ctx context.Context, op OperationContext, input ReadModelsInput)
 	if err != nil {
 		return ReadModelsResult{}, err
 	}
-	result:=ReadModelsResult{Models:make([]ModelWithSpace,0,len(models))}
- for _,model:=range models{view:=ModelWithSpace{Model:model};if slices.Contains(model.Capabilities,"embedding"){space,err:=catalog.ModelEmbeddingSpace(model);if err!=nil{return ReadModelsResult{},err};view.EmbeddingSpace=&space};result.Models=append(result.Models,view)}
- return result,nil
+	result := ReadModelsResult{Models: make([]ModelWithSpace, 0, len(models))}
+	for _, model := range models {
+		view := ModelWithSpace{Model: model}
+		if slices.Contains(model.Capabilities, "embedding") {
+			space, err := catalog.ModelEmbeddingSpace(model)
+			if err != nil {
+				return ReadModelsResult{}, err
+			}
+			view.EmbeddingSpace = &space
+		}
+		result.Models = append(result.Models, view)
+	}
+	return result, nil
 }
 
 // ReadProfiles 对纯服务只返回可信费用类别；后台管理读取通过即时model.manage授权。

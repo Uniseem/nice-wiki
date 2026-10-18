@@ -30,7 +30,7 @@ func newProducerClient(name, baseURL, issuer string, key platform.SigningKey) *p
 	return &producerClient{
 		name:   name,
 		base:   strings.TrimRight(baseURL, "/"),
-		client: &http.Client{Transport: serviceauth.SigningTransport(issuer, name, key, nil)},
+		client: &http.Client{Transport: serviceauth.SigningTransport(issuer, name, key, nil), CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 	}
 }
 
@@ -69,6 +69,42 @@ func (c *producerClient) do(ctx context.Context, method, rawPath string, body an
 		return nil, problemToError(raw)
 	}
 	return json.RawMessage(raw), nil
+}
+
+// binary只打开已签名的受控响应，调用方负责有界读取/hash核对并Close。
+func (c *producerClient) binary(ctx context.Context, method, rawPath string, body any, idempotencyKey string) (*http.Response, error) {
+	var payload io.Reader
+	if body != nil {
+		raw, err := json.Marshal(body)
+		if err != nil {
+			return nil, platform.NewError(platform.CodeValidation, false, "请求体编码失败")
+		}
+		payload = bytes.NewReader(raw)
+	}
+	request, err := http.NewRequestWithContext(ctx, method, c.base+rawPath, payload)
+	if err != nil {
+		return nil, platform.NewError(platform.CodeValidation, false, "受控字节请求构造失败")
+	}
+	request.Header.Set("Accept", "application/octet-stream")
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	if idempotencyKey != "" {
+		request.Header.Set("Idempotency-Key", idempotencyKey)
+	}
+	response, err := c.client.Do(request)
+	if err != nil {
+		return nil, platform.NormalizeIOError(err, platform.CodeDependencyUnavailable, true, "受控字节拥有者不可达")
+	}
+	if response.StatusCode >= 300 {
+		defer response.Body.Close()
+		raw, readErr := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+		if readErr != nil {
+			return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "受控字节失败响应不可读")
+		}
+		return nil, problemToError(raw)
+	}
+	return response, nil
 }
 
 // sse 打开text/event-stream连接，返回帧读取器。
@@ -262,8 +298,8 @@ func NewDataProtectionClient(baseURL, issuer string, key platform.SigningKey) *D
 }
 
 // ServeRestoreArchive GET /v1/restores/{restoreId}/archives/{owner}（data-protection:serveRestoreArchive）。
-func (c *DataProtectionClient) ServeRestoreArchive(ctx context.Context, restoreId string, owner string) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodGet, "/v1/restores/"+url.PathEscape(restoreId)+"/archives/"+url.PathEscape(owner)+"", nil, "")
+func (c *DataProtectionClient) ServeRestoreArchive(ctx context.Context, restoreId string, owner string) (*http.Response, error) {
+	return c.binary(ctx, http.MethodGet, "/v1/restores/"+url.PathEscape(restoreId)+"/archives/"+url.PathEscape(owner)+"", nil, "")
 }
 
 // JobsClient 调用jobs服务（自动附服务断言）。
@@ -482,7 +518,7 @@ func (c *ModelGatewayClient) ResumeInference(ctx context.Context, invocationId s
 	if encoded := query.Encode(); encoded != "" {
 		requestPath += "?" + encoded
 	}
-	reader, err := c.sse(ctx, http.MethodGet, requestPath, "")
+	reader, err := c.sse(ctx, http.MethodGet, requestPath, lastEventId)
 	if err != nil {
 		return nil, err
 	}

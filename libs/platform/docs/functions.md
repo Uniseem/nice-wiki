@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 102 个函数：约束 20 个，参考 82 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 108 个函数：约束 20 个，参考 88 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1775,6 +1775,7 @@ func RunWorkerLoop(ctx context.Context, client WorkerJobsClient, config WorkerCo
 11. 向executor传完整ObjectRef、JobID、WorkerID与fence；进程内CheckLease回调在不可逆决定前锁外串行读取HeartbeatJob当前取消/安全点及有效期，再核CheckLease；取消/未知/过期均失败关闭
 12. 领取后即建立独立本地租约到期定时器；start/续租/检查RPC截止不超过已知租约。续租回执只在旧租约仍有效且新截止有效时更新定时器，续租与不可逆前检查共用串行通道，拒绝旧回执覆盖新截止；领域仍负责短事务CAS和持久恢复决定
 13. executor返回后占用同一控制互斥排空在途心跳，显式核本地租约仍有效；最终check/complete/fail均用当前本地expiry截止，不提前取消抢占leaseLost原因；只有原业务已持久成功才能报告成功
+14. start成功后先真实Heartbeat并调用可选OnLeaseRenewed；以后每次权威续租成功更新本域镜像，回调失败取消执行。同worker/fence/epoch本地CAS，不在域内另造心跳或递归CheckLease。
 
 **错误**
 
@@ -2223,6 +2224,7 @@ func ReadRuntime(ctx context.Context, client SiteConfigClient) (RuntimeView, err
 
 1. 调用site-config:readRuntimeState并核签名
 2. 缓存≤1秒；失联时写请求一律关闭
+3. RuntimeView保留生产方真实revision/barrierId；revision缺失不得由0或时间伪造就绪。
 
 **错误**
 
@@ -2303,6 +2305,7 @@ func NewSiteConfigClient(cfg ServiceConfig, key SigningKey) (SiteConfigClient, e
 1. 以本服务断言调用site-config:readRuntimeState（GET /v1/runtime-state）
 2. 解开响应{"state": RuntimeState}外层，字段与RuntimeView同名；非2xx映射为公共错误码
 3. 各域NewRuntimeClient只装配参数，不自写适配
+4. RuntimeView保留生产方真实revision/barrierId；revision缺失不得由0或时间伪造就绪。
 
 **错误**
 
@@ -4012,4 +4015,202 @@ func(c *eventConsumer) AcknowledgeEvent(ctx context.Context,consumerID,eventID s
 - 授权：permission：service；rule：仅受信进程装配；不接受浏览器自声明
 - 并发：仅运行时自己的分片与原子计数
 - 幂等：确认沿consumerId/eventId稳定幂等键
+- 依赖：无
+
+## platform.NewTaskGroup
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_group.go`
+- 作用：构造进程任务集合，不执行回调
+
+```go
+func NewTaskGroup(parent context.Context, maxConcurrent int) (*TaskGroup, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：`platform.TaskGroup.stop`
+
+## platform.TaskGroup.Start
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_group.go`
+- 作用：按唯一key启动已持久接受的有界任务
+
+```go
+func (g *TaskGroup) Start(ctx context.Context, key string, run func(context.Context) error) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：无
+
+## platform.TaskGroup.Cancel
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_group.go`
+- 作用：只取消指定在途任务
+
+```go
+func (g *TaskGroup) Cancel(key string) bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：无
+
+## platform.TaskGroup.Run
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_group.go`
+- 作用：接进程后台生命周期，停止并等待全部任务
+
+```go
+func (g *TaskGroup) Run(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：`platform.TaskGroup.stop`
+
+## platform.TaskGroup.Drain
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_group.go`
+- 作用：拒绝新任务、取消在途并有界等待全部退出
+
+```go
+func (g *TaskGroup) Drain(ctx context.Context) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：`platform.TaskGroup.stop`
+
+## platform.TaskGroup.stop
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/task_group.go`
+- 作用：内部一次关闭接收并取消、排空
+
+```go
+func (g *TaskGroup) stop()
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只管理本进程已接受任务；Start固定输入ctx原deadline和值并脱离HTTP取消，进程取消/显式Cancel/原deadline仍终止；同key在途去重、满并发真实限流；关闭后不再接受，等待全部回调退出。回调负责本域持久终态与费用，回调业务error不使其它任务取消或引起重派。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：本进程goroutine与取消信号，不读写业务表或费用账
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：不产生并发本域业务批次；IO只用传入ctx
+- 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
 - 依赖：无

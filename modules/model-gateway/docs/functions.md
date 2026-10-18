@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 124 个函数：约束 38 个，参考 86 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 159 个函数：约束 38 个，参考 121 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -400,12 +400,11 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 
 **步骤**
 
-1. 仅已授权superadmin保存渠道元数据，ValidateProvider完成本函数配置安全规则与URL规范化；版本为expectedVersion+1。
-2. 复用beginAvailabilitySnapshot在同一事务严格核非空runtime_meta当前代次；普通非秘密输入摘要绑定callerService/dataEpoch/provider/expectedVersion。
-3. 先按site/actor/函数/key读取7天原回执：同代同hash返回首次规范结果，不核后来的指针或屏障；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR。过期只读未命中，不能提前删除。
-4. 新操作在同一事务拒绝任何state非released屏障，不按屏障epoch或deadline过滤；不改PutModel或其旧共享屏障helper。
-5. 读取provider真实version/credential_version/data_epoch并比较同代CAS；创建credentialVersion只能0，已有配置只保留真实active指针。条件UPSERT绑定version/data_epoch/credential_version且RowsAffected恰好1，推进或回退只由专用凭据端点事务负责。enabled直接保存，停用只阻止后续路由，不改既有invocations、预留或账本。
-6. 同事务写provider配置、provider.changed平台outbox和完整原结果回执；仅成功新事务末尾替换过期回执，失败回滚；不读取secret或调用供应方。
+1. 仍只portal当前superadmin；同代provider版本/credential指针CAS，原完整幂等结果先于新写屏障返回
+2. secretHeaders缺失保留原映射，显式[]清空；Provider内names/refs只读兼容，不采信客户端refs或读取本机路径
+3. 非空secretHeaders在SQL外用部署主密钥和域分离HMAC生成保密输入摘要；AES-GCM每项随机nonce/AAD绑定同provider/version/name/ref/epoch
+4. 短事务CAS后写不可变header_secrets、服务器生成的不透明refs、provider.changed及仅含安全结果的resultHash原回执，不返回明文
+5. 旧attempt继续原固定refs，密文不因轮换或表暂空销毁；其他provider启停/配置职责不变
 
 **错误**
 
@@ -421,12 +420,15 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
 - `INTEGRITY_ERROR` / HTTP 422：（不可重试）
 - `CONFLICT` / HTTP 409：（不可重试）
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `RATE_LIMITED` / HTTP 429：（不可重试）
 
 - 副作用：更新providers并发出provider.changed
 - 授权：权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：同一当前代次SQL事务先核有效原结果，再核所有非released屏障及provider版本/代次/active指针；条件UPSERT及RowsAffected核对，配置、平台outbox和回执一起提交，不做网络IO。
 - 幂等：siteId+actorId+函数ID+key唯一、7天有效；普通配置hash绑定callerService/dataEpoch/provider/expectedVersion，同代同hash返回首次规范结果，异hash CONFLICT。过期仅成功新配置事务替换，不因后续屏障/指针阻断有效无副作用重放。
-- 依赖：`model-gateway.ValidateProvider`、`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readProviderReceipt`
+- 依赖：`model-gateway.ValidateProvider`、`model-gateway.CurrentStore`、`model-gateway.beginAvailabilitySnapshot`、`model-gateway.readProviderReceipt`、`model-gateway.PrepareHeaderSecrets`、`model-gateway.SaveHeaderSecrets`
 
 ## model-gateway.readProviderReceipt
 
@@ -1009,10 +1011,10 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 
 1. 公共入口即时校验superadmin，内部信任严格生成校验过的输入与可信op；model.version必须expectedVersion+1且不超过安全整数上限。
 2. beginAvailabilitySnapshot严格核非空runtime_meta当前代次；普通输入摘要绑定callerService/dataEpoch/model/expectedVersion。先读取7天完整原结果，同代同hash先返回，不因后续配置或本地屏障阻断；异输入/异代CONFLICT，坏时间或结果INTEGRITY_ERROR，过期只读未命中。 可选manualPrice以omitempty字段追加规范摘要尾部；省略时旧JSON字节不变，兼容原回执。
-3. 新写拒绝任意state非released屏障，不按epoch或deadline过滤。capabilities含embedding的创建/编辑/启停统一DEPENDENCY_UNAVAILABLE：M07-R06归一化空间身份与公共schema尚未收口，本轮不猜默认，不计算或发布未确认space。非embedding由ValidateModel校验；provider必须真实存在且同代，不要求启用/凭据/价格/在线，不探测。
-4. 读取真实模型version/epoch及providerId/providerModelVersion/dimension/preprocessorVersion；缺行仅expectedVersion0可创建。已有模型以上四项身份字段任一变化返回CONFLICT并要求调用方用新modelId，原ID不可改写。
-5. 条件UPSERT以models.version/data_epoch绑定CAS并核RowsAffected恰好1，只更新可变能力、token上限、目录来源、人工覆盖、enabled与version/time；停用只影响后续路由，不清既有任务分配、档位、invocations、held或ledger。
-6. 非embedding模型、现有model.changed平台outbox和完整PutModelResult回执同事务；embedding新写在前置失败，不写库/回执/outbox。仅成功新配置事务替换过期键；未知Commit不自行重试；不调用模型、不自动重算付费结果。 可选manualPrice对象是整份人工价目替换，三个费率可缺（unknown不回退），服务器当前有效时刻，SaveManualPrice与模型CAS/事件/原回执同事务；省略不写价目。
+3. 读取真实模型version/epoch及providerId/providerModelVersion/dimension/preprocessorVersion；缺行仅expectedVersion0可创建。已有模型以上四项身份字段任一变化返回CONFLICT并要求调用方用新modelId，原ID不可改写。
+4. 条件UPSERT以models.version/data_epoch绑定CAS并核RowsAffected恰好1，只更新可变能力、token上限、目录来源、人工覆盖、enabled与version/time；停用只影响后续路由，不清既有任务分配、档位、invocations、held或ledger。
+5. 非embedding模型、现有model.changed平台outbox和完整PutModelResult回执同事务；embedding新写在前置失败，不写库/回执/outbox。仅成功新配置事务替换过期键；未知Commit不自行重试；不调用模型、不自动重算付费结果。 可选manualPrice对象是整份人工价目替换，三个费率可缺（unknown不回退），服务器当前有效时刻，SaveManualPrice与模型CAS/事件/原回执同事务；省略不写价目。
+6. 嵌入预处理默认none已收口，embedding可沿同一ValidateModel/CAS/事件保存；原空间身份算法不变，版本变更须新ID
 
 **错误**
 
@@ -1063,11 +1065,9 @@ func ValidateModel(ctx context.Context, op OperationContext, input ValidateModel
 
 **步骤**
 
-1. 校验能力非空且在允许集合
-2. embedding维度1..65536
-3. chat/translation输出上限≥1
-4. 计算嵌入身份
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 纯规则检查能力集合、embedding维度和模型输入输出声明
+2. embedding空间使用原五字段有序JSONhash；预处理显式默认none，不做默示L2归一化
+3. 供应方/不可变模型版本/维度/预处理版本任一改变必须新modelId/space；不得沿旧space混用
 
 **错误**
 
@@ -1083,7 +1083,7 @@ func ValidateModel(ctx context.Context, op OperationContext, input ValidateModel
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.embeddingSpaceID`
 
 ## model-gateway.readModelReceipt
 
@@ -1133,6 +1133,87 @@ func readModelReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, key 
 - 并发：共用PutModel的同代SQL事务，只读原回执，不独立提交。
 - 幂等：同scope/函数/key只读7天原结果；异输入/异代冲突，过期不写，由上层成功新配置事务替换。
 - 依赖：`model-gateway.availabilityReadError`
+
+## model-gateway.ModelEmbeddingSpace
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/model.go`
+- 作用：本域唯一五字段空间权威生产者，保持既有有序JSONhash算法
+
+```go
+func ModelEmbeddingSpace(model Model)(EmbeddingSpace, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 模型维度与四项身份材料必须完整
+2. 复用原embeddingSpaceID算法返回五字段空间，不新增或猜测归一化身份
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.embeddingSpaceID`
+
+## model-gateway.embeddingSpaceID
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/model.go`
+- 作用：沿存量有序JSON字段生产空间ID
+
+```go
+func embeddingSpaceID(model Model) (platform.Hash, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保留provider/modelVersion/dimensions/preprocessingVersion原有序json.Marshal及SHA256，不修改已有spaceId算法。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
 
 ## model-gateway.PutProfile
 
@@ -1973,7 +2054,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`identity:checkAuthorization`、`media:readAsset`、`model-gateway.ExecuteInvocation`、`platform.VerifyAdmissionPermit`
+- 依赖：`identity:checkAuthorization`、`media:readAsset`、`model-gateway.ExecuteInvocation`、`platform.VerifyAdmissionPermit`、`platform.TaskGroup.Start`
 
 ## model-gateway.ReserveCost
 
@@ -1982,7 +2063,7 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 - 作用：原子扣占额度
 
 ```go
-func ReserveCost(ctx context.Context, op OperationContext, input ReserveCostInput) (ReserveCostResult, error)
+func ReserveCost(ctx context.Context, op OperationContext, input ReserveCostInput)(ReserveCostResult, error)
 ```
 
 **输入**
@@ -2002,11 +2083,11 @@ func ReserveCost(ctx context.Context, op OperationContext, input ReserveCostInpu
 
 **步骤**
 
-1. 从invocation读取MG内部已验证FeeScopeBinding，调用者不能传或覆盖session/network scopes
-2. 已知价锁site/day/costClass；qa且hourlyLimitsEnabled再锁session/hour和network/hour，network额度=sessionHourlyLimit×networkMultiplier默认5，额度0或总开关关闭表示不限
-3. background独立统计不占qa日/访客小时额度；未知价保存price_unknown且金额省略，显示不能完整纳入金额限额warning但允许调用
-4. 同attempt唯一，新fallback独立预留；旧未知held继续计入同作用域，不释放或伪零
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 从持久调用核原owner/site/epoch/root/costClass及当前独立attempt，只读MG已验证FeeScopeBinding，不接受自由scope
+2. 固定attempt价目按真实保守token预算计算maximumCost并核输入；价目未知金额NULL且显式未知用量，不伪零，允许调用
+3. 同一短写事务核profile请求上限、site+UTC日+profile日预算；qa另核站点日及已启用会话/网络小时预算，network倍率按策略；0表示不限
+4. 全部held含旧日未知继续占同scope预算，不因跨日或超时释放；background不占QA额度
+5. 每attempt唯一预留及fee_commitments、attempt/reserved调用状态、原回执同事务，重复原输入返回原结果
 
 **错误**
 
@@ -2019,12 +2100,17 @@ func ReserveCost(ctx context.Context, op OperationContext, input ReserveCostInpu
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
 
 - 副作用：增加held，写reservation和outbox
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReplayExecutionReceipt`、`model-gateway.ReadInvocationRecord`、`model-gateway.ReadAttemptRecord`、`model-gateway.ComputeUsageCost`、`model-gateway.CheckFeeBudgets`、`model-gateway.ReadReservation`、`model-gateway.SaveAttemptRecord`、`model-gateway.SaveInvocationRecord`、`model-gateway.SaveExecutionReceipt`、`model-gateway.ExecutionTransaction.Close`、`model-gateway.ExecutionTransaction.Commit`
 
 ## model-gateway.ExtendReservation
 
@@ -2033,7 +2119,7 @@ func ReserveCost(ctx context.Context, op OperationContext, input ReserveCostInpu
 - 作用：预留额不足时扩展
 
 ```go
-func ExtendReservation(ctx context.Context, op OperationContext, input ExtendReservationInput) (ExtendReservationResult, error)
+func ExtendReservation(ctx context.Context, op OperationContext, input ExtendReservationInput)(ExtendReservationResult, error)
 ```
 
 **输入**
@@ -2053,11 +2139,9 @@ func ExtendReservation(ctx context.Context, op OperationContext, input ExtendRes
 
 **步骤**
 
-1. 验证held状态
-2. 锁额度及预留
-3. 新额仍在档位/日额度内
-4. 写版本
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 只允许当前attempt已知价held且未取消，核expectedVersion
+2. 相同短写事务重核档位请求/日及QA额外范围额度，增加held与maximum且版本递增
+3. 同输入回执不重复扩大；旧未知尝试不能转移到新根或扩大其他attempt
 
 **错误**
 
@@ -2070,11 +2154,139 @@ func ExtendReservation(ctx context.Context, op OperationContext, input ExtendRes
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
 
 - 副作用：只增加额度占用；失败不得继续超额输出
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReplayExecutionReceipt`、`model-gateway.ReadReservation`、`model-gateway.ReadInvocationRecord`、`model-gateway.CheckFeeBudgets`、`model-gateway.SaveExecutionReceipt`、`model-gateway.ExecutionTransaction.Close`、`model-gateway.ExecutionTransaction.Commit`
+
+## model-gateway.ComputeUsageCost
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/reservation.go`
+- 作用：ComputeUsageCost的本域实际执行职责
+
+```go
+func ComputeUsageCost(price gen.PriceSnapshot, inputTokens, outputTokens int)(*gen.Money, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.ReadReservation
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/reservation.go`
+- 作用：ReadReservation的本域实际执行职责
+
+```go
+func ReadReservation(tx *gatewayruntime.ExecutionTransaction, id string)(gen.Reservation, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.CheckFeeBudgets
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/reservation.go`
+- 作用：CheckFeeBudgets的本域实际执行职责
+
+```go
+func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, additional int64, now time.Time)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
 - 依赖：无
 
 ## model-gateway.DispatchInvocation
@@ -2222,7 +2434,7 @@ func BuildProviderRequest(ctx context.Context, op OperationContext, input BuildP
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.OpenAttemptCredential`、`model-gateway.OpenAttemptHeaders`
 
 ## model-gateway.ClassifyFailure
 
@@ -2231,7 +2443,7 @@ func BuildProviderRequest(ctx context.Context, op OperationContext, input BuildP
 - 作用：决定有限重试与收费未知
 
 ```go
-func ClassifyFailure(ctx context.Context, op OperationContext, input ClassifyFailureInput) (ClassifyFailureResult, error)
+func ClassifyFailure(ctx context.Context, op OperationContext, input ClassifyFailureInput)(ClassifyFailureResult, error)
 ```
 
 **输入**
@@ -2251,11 +2463,10 @@ func ClassifyFailure(ctx context.Context, op OperationContext, input ClassifyFai
 
 **步骤**
 
-1. responseStarted后不把新模型delta拼进同一已交付结果
-2. timeout/限流/格式错误依有序策略可新attempt
-3. acceptance未知标旧attempt charge_unknown保留held
-4. 新attempt先预留后派发，最多每模型一次及格式重试一次且deadline不重置。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. acceptance未知或已接受但usage未持久时返回charge_unknown并保留旧held
+2. 已有输出则终止，不把后继模型delta拼入已交付结果
+3. 已有真实usage且结构输出格式失败可独立structured_retry一次；0/429/5xx可走后继fallback，不重置原deadline
+4. 每模型最多一次加一次格式尝试、fallback预算及原held处理由执行器持久次数控制
 
 **错误**
 
@@ -2266,6 +2477,14 @@ func ClassifyFailure(ctx context.Context, op OperationContext, input ClassifyFai
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
 
 - 副作用：无副作用；不将网络timeout等同免费
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
@@ -2280,7 +2499,7 @@ func ClassifyFailure(ctx context.Context, op OperationContext, input ClassifyFai
 - 作用：持久保存流序列
 
 ```go
-func AppendStreamEvent(ctx context.Context, op OperationContext, input AppendStreamEventInput) (AppendStreamEventResult, error)
+func AppendStreamEvent(ctx context.Context, op OperationContext, input AppendStreamEventInput)(AppendStreamEventResult, error)
 ```
 
 **输入**
@@ -2300,12 +2519,9 @@ func AppendStreamEvent(ctx context.Context, op OperationContext, input AppendStr
 
 **步骤**
 
-1. 验证租约和非终态
-2. 事务递增sequence
-3. 持久事件
-4. 提交后向订阅者广播
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-6. 序号从1开始，0为初次排他续传游标；output只允许completed，结构化结果与文本事件同样持久化
+1. 只接受非终态delta/usage，租约未过期、原root/owner一致且未取消
+2. delta严格UTF8并不超过16KiB；output仅终态completed，accepted/终态由状态事务直接保存
+3. 短事务递增服务器sequence并持久事件，提交后持久轮询订阅可见
 
 **错误**
 
@@ -2317,12 +2533,18 @@ func AppendStreamEvent(ctx context.Context, op OperationContext, input AppendStr
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
 
 - 副作用：stream_events与invocation序号原子更新
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadInvocationRecord`、`model-gateway.InvocationTerminal`、`model-gateway.SaveInvocationEvent`
 
 ## model-gateway.ResumeStream
 
@@ -2331,7 +2553,7 @@ func AppendStreamEvent(ctx context.Context, op OperationContext, input AppendStr
 - 作用：重连读取原流
 
 ```go
-func ResumeStream(ctx context.Context, op OperationContext, input ResumeStreamInput) (ResumeStreamResult, error)
+func ResumeStream(ctx context.Context, op OperationContext, input ResumeStreamInput)(ResumeStreamResult, error)
 ```
 
 **输入**
@@ -2351,11 +2573,9 @@ func ResumeStream(ctx context.Context, op OperationContext, input ResumeStreamIn
 
 **步骤**
 
-1. 验证调用所有者服务
-2. 查询sequence>cursor
-3. 返回最多256项
-4. 游标超出保留区返回410
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 核原owner/site/epoch/root/costClass，读取sequence>排他游标的连续持久事件
+2. 游标越界拒绝；所需区已清除返回GONE/410；不因HTTP重连调用模型
+3. 实际HTTP经平台ServeJSONEventStream处理心跳/背压，连接上限5分钟，持久结果保留供重读
 
 **错误**
 
@@ -2366,11 +2586,59 @@ func ResumeStream(ctx context.Context, op OperationContext, input ResumeStreamIn
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
 
 - 副作用：只读，不重启模型
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadInvocationRecord`、`model-gateway.InvocationTerminal`
+
+## model-gateway.InvocationTerminal
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/stream/store.go`
+- 作用：InvocationTerminal的本域实际执行职责
+
+```go
+func InvocationTerminal(state string)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
 - 依赖：无
 
 ## model-gateway.RecordUsage
@@ -2380,7 +2648,7 @@ func ResumeStream(ctx context.Context, op OperationContext, input ResumeStreamIn
 - 作用：接受供应方用量证据
 
 ```go
-func RecordUsage(ctx context.Context, op OperationContext, input RecordUsageInput) (RecordUsageResult, error)
+func RecordUsage(ctx context.Context, op OperationContext, input RecordUsageInput)(RecordUsageResult, error)
 ```
 
 **输入**
@@ -2400,11 +2668,10 @@ func RecordUsage(ctx context.Context, op OperationContext, input RecordUsageInpu
 
 **步骤**
 
-1. 校验token与金额范围
-2. 按provider/request/hash唯一
-3. 冲突证据进入人工对账
-4. 保存原始已脱敏证据hash
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 仅接受已派发、同owner/site/epoch/root调用和明确attempt的真实供应方用量
+2. UsageDigest=SHA256规范JSON{providerRequestId,inputTokens,outputTokens,reportedCost?}，不含正文/密钥；按provider/request唯一
+3. 同attempt同hash返回原接受；异hash持久conflict_hash后失败，必须人工证明收敛，不覆盖原证据
+4. 用量和attempt/providerRequestId及安全调用快照同事务提交
 
 **错误**
 
@@ -2416,11 +2683,100 @@ func RecordUsage(ctx context.Context, op OperationContext, input RecordUsageInpu
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
 
 - 副作用：追加usage evidence；不直接修改最终账本
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`model-gateway.UsageDigest`、`model-gateway.BeginExecution`、`model-gateway.ReadInvocationRecord`、`model-gateway.ReadAttemptRecord`、`model-gateway.SaveAttemptRecord`、`model-gateway.SaveInvocationRecord`、`model-gateway.ExecutionTransaction.Close`、`model-gateway.ExecutionTransaction.Commit`
+
+## model-gateway.UsageDigest
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/usage.go`
+- 作用：UsageDigest的本域实际执行职责
+
+```go
+func UsageDigest(input RecordUsageInput)string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.ReadUsage
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/usage.go`
+- 作用：ReadUsage的本域实际执行职责
+
+```go
+func ReadUsage(tx *gatewayruntime.ExecutionTransaction, attempt gatewayruntime.AttemptRecord, hash string)(RecordUsageInput, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
 - 依赖：无
 
 ## model-gateway.SettleInvocation
@@ -2430,7 +2786,7 @@ func RecordUsage(ctx context.Context, op OperationContext, input RecordUsageInpu
 - 作用：结算已知费用
 
 ```go
-func SettleInvocation(ctx context.Context, op OperationContext, input SettleInvocationInput) (SettleInvocationResult, error)
+func SettleInvocation(ctx context.Context, op OperationContext, input SettleInvocationInput)(SettleInvocationResult, error)
 ```
 
 **输入**
@@ -2450,11 +2806,10 @@ func SettleInvocation(ctx context.Context, op OperationContext, input SettleInvo
 
 **步骤**
 
-1. 供应方实际金额优先
-2. 否则已知固定价目按usage整数算费
-3. 两者未知保存price_unknown ledger实际金额字段省略不伪0
-4. 独立attempt结算，晚到证据通过reconciliation补不可变更正entry并更新额度。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 明确attempt和原usageHash；冲突或缺失真实证据拒绝
+2. 供应方reportedCost优先，否则按该attempt不可变价目整数算费；未知价格保存price_unknown且实际金额省略
+3. 独立attempt唯一账本及自己的priceSnapshot，预留转settled并清held，未知价用量计数真实递增；实际费用超预留也如实记账不丢弃
+4. fee_commitments更新实际金额及invocation.settled outbox和幂等回执同事务；账本永久保存
 
 **错误**
 
@@ -2466,11 +2821,99 @@ func SettleInvocation(ctx context.Context, op OperationContext, input SettleInvo
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
 
 - 副作用：写不可变ledger并触发invocation.settled
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReplayExecutionReceipt`、`model-gateway.ReadInvocationRecord`、`model-gateway.ReadAttemptRecord`、`model-gateway.ReadUsage`、`model-gateway.ReadReservation`、`model-gateway.ComputeUsageCost`、`model-gateway.InsertLedgerEntry`、`model-gateway.EnqueueExecutionEvent`、`model-gateway.SaveExecutionReceipt`、`model-gateway.ExecutionTransaction.Close`、`model-gateway.ExecutionTransaction.Commit`
+
+## model-gateway.InsertLedgerEntry
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/settlement.go`
+- 作用：InsertLedgerEntry的本域实际执行职责
+
+```go
+func InsertLedgerEntry(tx *gatewayruntime.ExecutionTransaction, entry gen.LedgerEntry, hash string, price gen.PriceSnapshot, supersedes string)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.ReadAttemptLedger
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/billing/settlement.go`
+- 作用：ReadAttemptLedger的本域实际执行职责
+
+```go
+func ReadAttemptLedger(tx *gatewayruntime.ExecutionTransaction, attemptID string)(gen.LedgerEntry, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
 - 依赖：无
 
 ## model-gateway.MarkUnknownCharge
@@ -2480,7 +2923,7 @@ func SettleInvocation(ctx context.Context, op OperationContext, input SettleInvo
 - 作用：保留不确定收费责任
 
 ```go
-func MarkUnknownCharge(ctx context.Context, op OperationContext, input MarkUnknownChargeInput) (MarkUnknownChargeResult, error)
+func MarkUnknownCharge(ctx context.Context, op OperationContext, input MarkUnknownChargeInput)(MarkUnknownChargeResult, error)
 ```
 
 **输入**
@@ -2500,11 +2943,9 @@ func MarkUnknownCharge(ctx context.Context, op OperationContext, input MarkUnkno
 
 **步骤**
 
-1. 检查已派发
-2. 设置charge_unknown与证据
-3. 维持全部held
-4. 经model-gateway.EnqueueOutbox在同一事务登记reconciliation.requested
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 必须已派发且当前尝试预留仍held，固定原providerRequestId及原根
+2. attempt标charge_unknown；若是当前attempt则调用同标；全部原held不释放
+3. 同事务写invocation.charge_unknown和reconciliation.requested，只有ID/原因/范围无正文
 
 **错误**
 
@@ -2516,12 +2957,18 @@ func MarkUnknownCharge(ctx context.Context, op OperationContext, input MarkUnkno
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
 
 - 副作用：保留额度和创建对账任务
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway.EnqueueOutbox`
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadInvocationRecord`、`model-gateway.ReadAttemptRecord`、`model-gateway.ReadReservation`、`model-gateway.SaveAttemptRecord`、`model-gateway.SaveInvocationRecord`、`model-gateway.EnqueueExecutionEvent`、`model-gateway.ExecutionTransaction.Close`、`model-gateway.ExecutionTransaction.Commit`
 
 ## model-gateway.ReconcileCharge
 
@@ -2530,7 +2977,7 @@ func MarkUnknownCharge(ctx context.Context, op OperationContext, input MarkUnkno
 - 作用：证据驱动完成未知费用对账
 
 ```go
-func ReconcileCharge(ctx context.Context, op OperationContext, input ReconcileChargeInput) (ReconcileChargeResult, error)
+func ReconcileCharge(ctx context.Context, op OperationContext, input ReconcileChargeInput)(ReconcileChargeResult, error)
 ```
 
 **输入**
@@ -2550,11 +2997,11 @@ func ReconcileCharge(ctx context.Context, op OperationContext, input ReconcileCh
 
 **步骤**
 
-1. 校验可验证供应方证据/授权人工证明
-2. charged走唯一结算
-3. not_charged才释放held
-4. 终态reconciled
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 只接受portal当前superadmin的明确人工proofHash，按原调用site/epoch读取；不由超时推未收费
+2. attemptId兼容可省略：仅唯一待对账尝试时可推定，多候选必须明确
+3. charged复用真实完整usage；若原usage未知或冲突须显式inputTokens/outputTokens，不能填假0；必须原providerRequestId
+4. 独立attempt追加不可变更正entry及原priceSnapshot，以supersedes引用旧entry；not_charged只凭明确0费证明释放held、追加ledger_void审计而不造usage/ledger
+5. 费用投影及proof/原回执同事务；保留旧不可变账本，QueryUsage不重复累计已更正/明确否定旧entry，不转移原root/costClass
 
 **错误**
 
@@ -2566,12 +3013,18 @@ func ReconcileCharge(ctx context.Context, op OperationContext, input ReconcileCh
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
 
 - 副作用：最终结算或释放预留；保留审计
 - 授权：权限 model.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReplayExecutionReceipt`、`model-gateway.ReadInvocationRecord`、`model-gateway.ReadAttemptRecord`、`model-gateway.ReadReservation`、`model-gateway.ReadAttemptLedger`、`model-gateway.ReadUsage`、`model-gateway.InsertLedgerEntry`、`model-gateway.SaveAttemptRecord`、`model-gateway.SaveInvocationRecord`、`model-gateway.SaveExecutionReceipt`、`model-gateway.ExecutionTransaction.Close`、`model-gateway.ExecutionTransaction.Commit`
 
 ## model-gateway.CancelInvocation
 
@@ -2620,7 +3073,7 @@ func CancelInvocation(ctx context.Context, op OperationContext, input CancelInvo
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`platform.TaskGroup.Cancel`
 
 ## model-gateway.GetInvocation
 
@@ -2629,7 +3082,7 @@ func CancelInvocation(ctx context.Context, op OperationContext, input CancelInvo
 - 作用：读取调用状态
 
 ```go
-func GetInvocation(ctx context.Context, op OperationContext, input GetInvocationInput) (GetInvocationResult, error)
+func GetInvocation(ctx context.Context, op OperationContext, input GetInvocationInput)(GetInvocationResult, error)
 ```
 
 **输入**
@@ -2649,11 +3102,8 @@ func GetInvocation(ctx context.Context, op OperationContext, input GetInvocation
 
 **步骤**
 
-1. 验证服务租户和拥有者
-2. 读取状态快照
-3. 不返回prompt/secret
-4. 返回最近序号
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 按原owner或portal当前model.manage/superadmin、同site/epoch读取安全调用快照
+2. 核持久hash、root和costClass一致，返回当前状态及最后序号，不返回prompt/secret
 
 **错误**
 
@@ -2664,12 +3114,19 @@ func GetInvocation(ctx context.Context, op OperationContext, input GetInvocation
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
 
 - 副作用：无
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadInvocationRecord`
 
 ## model-gateway.EstimateTokens
 
@@ -2729,7 +3186,7 @@ func EstimateTokens(ctx context.Context, op OperationContext, input EstimateToke
 - 作用：阻止错空间向量入库
 
 ```go
-func ValidateEmbeddingSpace(ctx context.Context, op OperationContext, input ValidateEmbeddingSpaceInput) (ValidateEmbeddingSpaceResult, error)
+func ValidateEmbeddingSpace(ctx context.Context, op OperationContext, input ValidateEmbeddingSpaceInput)(ValidateEmbeddingSpaceResult, error)
 ```
 
 **输入**
@@ -2749,11 +3206,9 @@ func ValidateEmbeddingSpace(ctx context.Context, op OperationContext, input Vali
 
 **步骤**
 
-1. 重算空间SHA256
-2. 每向量维度严格等于dimension
-3. 拒绝NaN/Infinity
-4. l2模式范数误差≤1e-5
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 使用本域唯一ModelEmbeddingSpace重算原五字段有序JSON身份并精确比较spaceId，不更改既有算法
+2. 每条原始向量维度必须等于固定space.dimension，逐项拒绝NaN/Infinity
+3. 默认预处理none，保留原始向量，不擅自L2归一化；算法/预处理版本改变必须新空间身份
 
 **错误**
 
@@ -2769,7 +3224,7 @@ func ValidateEmbeddingSpace(ctx context.Context, op OperationContext, input Vali
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.ModelEmbeddingSpace`
 
 ## model-gateway.NewTokenHandlers
 
@@ -2812,7 +3267,7 @@ func NewTokenHandlers() map[string]http.Handler
 - 作用：限制供应方并发
 
 ```go
-func AcquireProviderSlot(ctx context.Context, op OperationContext, input AcquireProviderSlotInput) (AcquireProviderSlotResult, error)
+func AcquireProviderSlot(ctx context.Context, op OperationContext, input AcquireProviderSlotInput)(AcquireProviderSlotResult, error)
 ```
 
 **输入**
@@ -2832,11 +3287,10 @@ func AcquireProviderSlot(ctx context.Context, op OperationContext, input Acquire
 
 **步骤**
 
-1. 锁供应方槽位计数
-2. 清除过期租约
-3. 数量小于配置才取得
-4. 设置30秒租约每10秒续约
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 在短权威写事务内核原owner/root/epoch/current reserved attempt，30秒租约固定
+2. 清到期slot，分别核真实固定provider和profile并发上限；0上限按数量小于配置规则表示暂无槽位
+3. 同调用已有未到期槽位返回原租约，不重复领取；新槽位期限不超过原调用deadline
+4. 派发期间执行器每10秒续租，租约未知或取消停止后继供应方IO
 
 **错误**
 
@@ -2847,12 +3301,16 @@ func AcquireProviderSlot(ctx context.Context, op OperationContext, input Acquire
 - `LOCKED` / HTTP 409：（不可重试）
 - `CANCELLED` / HTTP 409：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
 
 - 副作用：持久租约；拒绝超并发
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadInvocationRecord`、`model-gateway.ReadAttemptRecord`
 
 ## model-gateway.ReleaseProviderSlot
 
@@ -2861,7 +3319,7 @@ func AcquireProviderSlot(ctx context.Context, op OperationContext, input Acquire
 - 作用：释放供应方槽位
 
 ```go
-func ReleaseProviderSlot(ctx context.Context, op OperationContext, input ReleaseProviderSlotInput) (ReleaseProviderSlotResult, error)
+func ReleaseProviderSlot(ctx context.Context, op OperationContext, input ReleaseProviderSlotInput)(ReleaseProviderSlotResult, error)
 ```
 
 **输入**
@@ -2881,11 +3339,8 @@ func ReleaseProviderSlot(ctx context.Context, op OperationContext, input Release
 
 **步骤**
 
-1. 验证租约绑定调用
-2. 删除租约
-3. 对不存在返回released=true
-4. 不修改账单
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 核租约属于原调用，同owner/root/epoch
+2. 不存在为released=true，存在仅删除该slot；不改held或账单，不把释放slot当未收费证明
 
 **错误**
 
@@ -2895,12 +3350,17 @@ func ReleaseProviderSlot(ctx context.Context, op OperationContext, input Release
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `RATE_LIMITED` / HTTP 429：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
 
 - 副作用：删除本服务租约
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadInvocationRecord`
 
 ## model-gateway.EnqueueOutbox
 
@@ -3178,10 +3638,9 @@ func ReadModels(ctx context.Context, op OperationContext, input ReadModelsInput)
 
 **步骤**
 
-1. 根任务目录owner纯服务，或portal当前model.manage管理员；HTTP映射即时核管理权限。
-2. 一次严格当前epoch快照读取真实模型声明，能力可选过滤，modelId排序，disabled仍返回；超256条报错不截断。
-3. 返回不可变模型版本/space；本轮只完成声明分支，Model无space字段与归一化规则历史缺口未修，整函数in_progress，不声称完整。
-4. 损坏或异代失败关闭，不探测、不读价格/余额/秘密。
+1. 根目录owner纯服务或portal当前model.manage管理员，一次严格当前epoch快照读模型，停用模型仍显示
+2. 能力可选过滤，按modelId排序，超过256失败不截断；损坏/异代失败关闭，不探测或读秘密
+3. 每条embedding模型配置完整才附可选embeddingSpace五字段；只用MG原有有序JSON算法权威生产，不让消费者跨域复制hash
 
 **错误**
 
@@ -3200,7 +3659,7 @@ func ReadModels(ctx context.Context, op OperationContext, input ReadModelsInput)
 - 授权：permission：service；rule：根任务目录owner纯服务，或portal当前model.manage管理员。
 - 并发：严格当前epoch快照；必要权限RPC前结束预读事务，短写事务重核回执/屏障/CAS。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`model-gateway.requireCatalogReader`、`model-gateway.beginAdminSnapshot`、`model-gateway.readCatalogModels`
+- 依赖：`model-gateway.requireCatalogReader`、`model-gateway.beginAdminSnapshot`、`model-gateway.readCatalogModels`、`model-gateway.ModelEmbeddingSpace`
 - 其他依赖说明：本域私有目录配置/策略/屏障/原回执/审计表，根唯一AI任务目录生成表
 
 ## model-gateway.ReadProfiles
@@ -3948,7 +4407,7 @@ func NewAdminHandlers(authorize AdminAuthorizer) map[string]http.Handler
 - 作用：生成最小运行日志
 
 ```go
-func RedactLog(ctx context.Context, op OperationContext, input RedactLogInput) (RedactLogResult, error)
+func RedactLog(ctx context.Context, op OperationContext, input RedactLogInput)(RedactLogResult, error)
 ```
 
 **输入**
@@ -3968,11 +4427,9 @@ func RedactLog(ctx context.Context, op OperationContext, input RedactLogInput) (
 
 **步骤**
 
-1. 只允许invocationId/rootOperationId/state/code/durationMs/providerId/modelId
-2. secret/header/prompt/content全部删除
-3. ID合法性检查
-4. 输出安全字段
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 仅允许invocationId/rootOperationId/state/code/durationMs/providerId/modelId，其余字段直接删除
+2. ID用公共Identifier、状态/公共错误码白名单、非负durationMs检查，重复或非法安全字段失败
+3. 不返回secret/header/prompt/content或任意供应方错误正文
 
 **错误**
 
@@ -3983,6 +4440,14 @@ func RedactLog(ctx context.Context, op OperationContext, input RedactLogInput) (
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
 
 - 副作用：无
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
@@ -5439,7 +5904,7 @@ func CreateFallbackAttempt(ctx context.Context, op OperationContext, input Creat
 - 作用：映射Anthropic消息协议
 
 ```go
-func MapAnthropicRequest(ctx context.Context, op OperationContext, input MapAnthropicRequestInput) (MapAnthropicRequestResult, error)
+func MapAnthropicRequest(ctx context.Context, op OperationContext, input MapAnthropicRequestInput)(MapAnthropicRequestResult, error)
 ```
 
 **输入**
@@ -5459,11 +5924,9 @@ func MapAnthropicRequest(ctx context.Context, op OperationContext, input MapAnth
 
 **步骤**
 
-1. system合并独立字段
-2. user/assistant保持原序
-3. max_tokens固定
-4. 不将密钥写body
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. system文本及text parts合并独立system字段，空系统段合法
+2. user/assistant原序，max_tokens固定，stream按可信执行请求；图像只用已核AssetRef字节base64 source
+3. 密钥不进body，不接外部URL/本机路径，系统段不静默丢图像
 
 **错误**
 
@@ -5475,12 +5938,99 @@ func MapAnthropicRequest(ctx context.Context, op OperationContext, input MapAnth
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `RATE_LIMITED` / HTTP 429：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
 
 - 副作用：无
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`model-gateway.ProviderContent`
+
+## model-gateway.ImageKey
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/provider/anthropic.go`
+- 作用：ImageKey的真实本域材料处理
+
+```go
+func ImageKey(asset gen.AssetRef)string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信调用者固定的原provider/version/epoch材料处理
+2. 精确加密、引用、内容边界见data/workflows与源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
 - 依赖：无
+
+## model-gateway.ProviderContent
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/provider/anthropic.go`
+- 作用：ProviderContent的真实本域材料处理
+
+```go
+func ProviderContent(message gen.GatewayMessage, images map[string][]byte, protocol string)([]map[string]any, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信调用者固定的原provider/version/epoch材料处理
+2. 精确加密、引用、内容边界见data/workflows与源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.ImageKey`
 
 ## model-gateway.MapGeminiRequest
 
@@ -5489,7 +6039,7 @@ func MapAnthropicRequest(ctx context.Context, op OperationContext, input MapAnth
 - 作用：映射Gemini协议
 
 ```go
-func MapGeminiRequest(ctx context.Context, op OperationContext, input MapGeminiRequestInput) (MapGeminiRequestResult, error)
+func MapGeminiRequest(ctx context.Context, op OperationContext, input MapGeminiRequestInput)(MapGeminiRequestResult, error)
 ```
 
 **输入**
@@ -5509,11 +6059,9 @@ func MapGeminiRequest(ctx context.Context, op OperationContext, input MapGeminiR
 
 **步骤**
 
-1. role assistant→model
-2. systemInstruction独立
-3. 模型能力选端点
-4. embedding维度/模型版本固定
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. assistant映射model，systemInstruction独立并保留全部system text parts
+2. chat/vision/translation按generateContent或streamGenerateContent，图像只来自已核资源inlineData
+3. embedding固定模型版本/维度，单项embedContent、多项batchEmbedContents，不把多段文本猜拼成单向量
 
 **错误**
 
@@ -5525,12 +6073,17 @@ func MapGeminiRequest(ctx context.Context, op OperationContext, input MapGeminiR
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `RATE_LIMITED` / HTTP 429：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
 
 - 副作用：无
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`model-gateway.ProviderContent`
 
 ## model-gateway.ParseRerankResponse
 
@@ -5539,7 +6092,7 @@ func MapGeminiRequest(ctx context.Context, op OperationContext, input MapGeminiR
 - 作用：解析rerank协议
 
 ```go
-func ParseRerankResponse(ctx context.Context, op OperationContext, input ParseRerankResponseInput) (ParseRerankResponseResult, error)
+func ParseRerankResponse(ctx context.Context, op OperationContext, input ParseRerankResponseInput)(ParseRerankResponseResult, error)
 ```
 
 **输入**
@@ -5559,12 +6112,9 @@ func ParseRerankResponse(ctx context.Context, op OperationContext, input ParseRe
 
 **步骤**
 
-1. 响应index必须在输入范围
-2. 无重复且仅既有候选
-3. scores有限且排序稳定
-4. 缺失候选排末不生成正文
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-6. capability=rerank时query非空，texts与candidateIds等长逐项对应；其他能力省略query；不得把查询与候选拼接猜测供应方语义
+1. results必须显式有index/relevance_score且index在输入范围，无重复，score有限
+2. 按score稳定降序，仅返回原candidate IDs；缺失项按输入原序排末
+3. 结果只返回orderedIds，不对未返回项伪造0或无穷分数，不生成正文
 
 **错误**
 
@@ -5575,6 +6125,10 @@ func ParseRerankResponse(ctx context.Context, op OperationContext, input ParseRe
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `RATE_LIMITED` / HTTP 429：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
 
 - 副作用：无
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
@@ -5694,7 +6248,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`、`model-gateway.NewPriceHandlers`、`model-gateway.EstimateTokens`、`model-gateway.NewTokenHandlers`、`model-gateway.NewLedgerHandlers`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`、`model-gateway.NewPriceHandlers`、`model-gateway.EstimateTokens`、`model-gateway.NewTokenHandlers`、`model-gateway.NewLedgerHandlers`、`model-gateway.NewExecutionHandlers`、`platform.NewTaskGroup`、`platform.TaskGroup.Run`、`model-gateway.InstallExecutionOptions`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.Serve
@@ -5778,7 +6332,7 @@ func Shutdown(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：sync.Once启动drain；其他调用等待同一次结果
 - 幂等：重复Shutdown返回同一次关闭结果；已closed成功
-- 依赖：无
+- 依赖：`platform.TaskGroup.Drain`
 - 其他依赖说明：本域barrier安全点函数；本域journal/outbox flush
 
 ## model-gateway.Health
@@ -5899,3 +6453,1009 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 - 幂等：同DOM/buildRevision重复挂载复用实例
 - 依赖：无
 - 其他依赖说明：本域已登记UI页面函数
+
+## model-gateway.InstallExecutionOptions
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：InstallExecutionOptions的本域实际执行职责
+
+```go
+func InstallExecutionOptions(options ExecutionOptions)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.ExecutionDependencies
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：ExecutionDependencies的本域实际执行职责
+
+```go
+func ExecutionDependencies()(ExecutionOptions, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.BeginExecution
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：BeginExecution的本域实际执行职责
+
+```go
+func BeginExecution(ctx context.Context, op OperationContext, write bool)(*ExecutionTransaction, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.CurrentStore`、`model-gateway.ExecutionDependencies`、`model-gateway.Store.BeginTx`、`platform.NewWriteContext`
+
+## model-gateway.ExecutionTransaction.Close
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：ExecutionTransaction.Close的本域实际执行职责
+
+```ts
+func(t *ExecutionTransaction)Close()
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.ExecutionTransaction.Commit
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：ExecutionTransaction.Commit的本域实际执行职责
+
+```ts
+func(t *ExecutionTransaction)Commit()error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.ExecutionStorageError
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：ExecutionStorageError的本域实际执行职责
+
+```go
+func ExecutionStorageError(err error)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.ReadInvocationRecord
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：ReadInvocationRecord的本域实际执行职责
+
+```go
+func ReadInvocationRecord(tx *ExecutionTransaction, op OperationContext, id string)(InvocationRecord, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.ExecutionStorageError`
+
+## model-gateway.SaveInvocationRecord
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：SaveInvocationRecord的本域实际执行职责
+
+```go
+func SaveInvocationRecord(tx *ExecutionTransaction, record InvocationRecord)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.ReadAttemptRecord
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：ReadAttemptRecord的本域实际执行职责
+
+```go
+func ReadAttemptRecord(tx *ExecutionTransaction, id string)(AttemptRecord, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.SaveAttemptRecord
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：SaveAttemptRecord的本域实际执行职责
+
+```go
+func SaveAttemptRecord(tx *ExecutionTransaction, record AttemptRecord)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.ReplayExecutionReceipt
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：ReplayExecutionReceipt的本域实际执行职责
+
+```go
+func ReplayExecutionReceipt(tx *ExecutionTransaction, op OperationContext, function, key string, input, result any)(bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.SaveExecutionReceipt
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：SaveExecutionReceipt的本域实际执行职责
+
+```go
+func SaveExecutionReceipt(tx *ExecutionTransaction, op OperationContext, function, key string, input, result any)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.SaveInvocationEvent
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：SaveInvocationEvent的本域实际执行职责
+
+```go
+func SaveInvocationEvent(tx *ExecutionTransaction, record *InvocationRecord, event StreamEvent)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.SaveInvocationRecord`
+
+## model-gateway.EnqueueExecutionEvent
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/runtime/invocation.go`
+- 作用：EnqueueExecutionEvent的本域实际执行职责
+
+```go
+func EnqueueExecutionEvent(tx *ExecutionTransaction, op OperationContext, eventType, subject string, revision int, payload any)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`platform.EnqueueEvent`
+
+## model-gateway.NewExecutionHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/invocation/http.go`
+- 作用：NewExecutionHandlers的本域实际执行职责
+
+```go
+func NewExecutionHandlers()map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.GetInvocation`、`model-gateway.ReconcileCharge`、`model-gateway.ResumeStream`、`model-gateway.invocationEventStream.Next`、`model-gateway.invocationEventStream.Close`、`model-gateway.writeExecutionResult`、`platform.ServeJSONEventStream`
+
+## model-gateway.writeExecutionResult
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/invocation/http.go`
+- 作用：writeExecutionResult的本域实际执行职责
+
+```go
+func writeExecutionResult(w http.ResponseWriter, op OperationContext, result any, err error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.invocationEventStream.Next
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/invocation/http.go`
+- 作用：invocationEventStream.Next的本域实际执行职责
+
+```ts
+func(s *invocationEventStream)Next(ctx context.Context)(platform.SSEFrame, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.ResumeStream`
+
+## model-gateway.invocationEventStream.Close
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/invocation/http.go`
+- 作用：invocationEventStream.Close的本域实际执行职责
+
+```ts
+func(s *invocationEventStream)Close()error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按精确Go签名消费已校验业务输入、可信op及真实私有事务
+2. 算法、证据与副作用边界见本域data/workflows及源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `CONFLICT` / HTTP 409：（不可重试）
+- `GONE` / HTTP 410：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.SecretHeaderName
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/headers.go`
+- 作用：SecretHeaderName的真实本域材料处理
+
+```go
+func SecretHeaderName(name string)bool
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信调用者固定的原provider/version/epoch材料处理
+2. 精确加密、引用、内容边界见data/workflows与源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：无
+
+## model-gateway.PrepareHeaderSecrets
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/headers.go`
+- 作用：PrepareHeaderSecrets的真实本域材料处理
+
+```go
+func PrepareHeaderSecrets(ctx context.Context, op OperationContext, providerID string, providerVersion int, headers []SecretHeader, command any)([]SealedHeader, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信调用者固定的原provider/version/epoch材料处理
+2. 精确加密、引用、内容边界见data/workflows与源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `RATE_LIMITED` / HTTP 429：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.CurrentStore`、`model-gateway.loadCredentialMasterKey`、`model-gateway.credentialDigest`、`model-gateway.SecretHeaderName`
+
+## model-gateway.SaveHeaderSecrets
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/headers.go`
+- 作用：SaveHeaderSecrets的真实本域材料处理
+
+```go
+func SaveHeaderSecrets(ctx context.Context, op OperationContext, tx *sql.Tx, providerID string, version int, headers []SealedHeader)error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信调用者固定的原provider/version/epoch材料处理
+2. 精确加密、引用、内容边界见data/workflows与源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.credentialStorageError`
+
+## model-gateway.OpenAttemptCredential
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/headers.go`
+- 作用：OpenAttemptCredential的真实本域材料处理
+
+```go
+func OpenAttemptCredential(ctx context.Context, op OperationContext, attemptID string)([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信调用者固定的原provider/version/epoch材料处理
+2. 精确加密、引用、内容边界见data/workflows与源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `RATE_LIMITED` / HTTP 429：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadAttemptRecord`、`model-gateway.ReadInvocationRecord`、`model-gateway.CurrentStore`、`model-gateway.loadCredentialMasterKey`
+
+## model-gateway.OpenAttemptHeaders
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/security/headers.go`
+- 作用：OpenAttemptHeaders的真实本域材料处理
+
+```go
+func OpenAttemptHeaders(ctx context.Context, op OperationContext, attemptID string)(http.Header, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按可信调用者固定的原provider/version/epoch材料处理
+2. 精确加密、引用、内容边界见data/workflows与源码注释
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 429：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `UNSUPPORTED_SCHEMA` / HTTP 422：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `RATE_LIMITED` / HTTP 429：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：只在已核当前model.manage或root owner的真实只读链路内；不取得新权限。
+- 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
+- 幂等：只读真实状态与固定原价目，无费用写入。
+- 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadAttemptRecord`、`model-gateway.ReadInvocationRecord`、`model-gateway.CurrentStore`、`model-gateway.loadCredentialMasterKey`、`model-gateway.SecretHeaderName`

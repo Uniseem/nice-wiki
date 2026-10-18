@@ -20,8 +20,8 @@ import (
 	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/model-gateway/internal/gen"
- "nice-wiki/modules/model-gateway/internal/security"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
+	"nice-wiki/modules/model-gateway/internal/security"
 )
 
 // OperationContext 是服务间可信操作上下文的本域别名。
@@ -40,10 +40,10 @@ type ValidateProviderResult struct {
 }
 
 type PutProviderInput struct {
-	Provider        Provider `json:"provider"`
-	ExpectedVersion int      `json:"expectedVersion"`
-	IdempotencyKey  string   `json:"idempotencyKey"`
- SecretHeaders *[]security.SecretHeader `json:"secretHeaders,omitempty"`
+	Provider        Provider                 `json:"provider"`
+	ExpectedVersion int                      `json:"expectedVersion"`
+	IdempotencyKey  string                   `json:"idempotencyKey"`
+	SecretHeaders   *[]security.SecretHeader `json:"secretHeaders,omitempty"`
 }
 
 type PutProviderResult struct {
@@ -120,11 +120,17 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 	if store == nil {
 		return PutProviderResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "模型网关数据库尚未装配")
 	}
- var prepared []security.SealedHeader
- var secretDigest string
- if input.SecretHeaders!=nil&&len(*input.SecretHeaders)>0{
-  prepared,secretDigest,err=security.PrepareHeaderSecrets(operationCtx,op,input.Provider.ProviderId,input.Provider.Version,*input.SecretHeaders,struct{Caller,Epoch string;Input PutProviderInput}{op.CallerService,op.DataEpoch,input});if err!=nil{return PutProviderResult{},err}
- }
+	var prepared []security.SealedHeader
+	var secretDigest string
+	if input.SecretHeaders != nil && len(*input.SecretHeaders) > 0 {
+		prepared, secretDigest, err = security.PrepareHeaderSecrets(operationCtx, op, input.Provider.ProviderId, input.Provider.Version, *input.SecretHeaders, struct {
+			Caller, Epoch string
+			Input         PutProviderInput
+		}{op.CallerService, op.DataEpoch, input})
+		if err != nil {
+			return PutProviderResult{}, err
+		}
+	}
 	snapshot, err := beginAvailabilitySnapshot(operationCtx, op, store)
 	if err != nil {
 		return PutProviderResult{}, err
@@ -145,7 +151,19 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 	if err != nil {
 		return rollback(platform.NewError(platform.CodeInternal, false, "供应方输入摘要计算失败"))
 	}
- if input.SecretHeaders!=nil{if len(*input.SecretHeaders)>0{inputHash=secretDigest}else{inputHash,err=hashJSON(struct{Caller,Epoch string;Input PutProviderInput}{op.CallerService,op.DataEpoch,input});if err!=nil{return rollback(err)}}}
+	if input.SecretHeaders != nil {
+		if len(*input.SecretHeaders) > 0 {
+			inputHash = secretDigest
+		} else {
+			inputHash, err = hashJSON(struct {
+				Caller, Epoch string
+				Input         PutProviderInput
+			}{op.CallerService, op.DataEpoch, input})
+			if err != nil {
+				return rollback(err)
+			}
+		}
+	}
 	if result, found, err := readProviderReceipt(operationCtx, op, tx, input.IdempotencyKey, inputHash, provider); err != nil {
 		return rollback(err)
 	} else if found {
@@ -182,10 +200,29 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 		return rollback(platform.NewError(platform.CodeValidation, false, "供应方编辑必须保留当前凭据版本"))
 	}
 
- // 元数据中的refs只回显；省略secretHeaders始终保留原映射，不能把客户端refs当路径或凭据。
- provider.ExtraHeaderNames=make([]string,0);provider.ExtraHeaderSecretRefs=make([]string,0)
- if currentVersion>0{var namesRaw,refsRaw []byte;if err:=tx.QueryRowContext(operationCtx,`SELECT extra_header_names_json,extra_header_secret_refs_json FROM providers WHERE provider_id=?`,provider.ProviderId).Scan(&namesRaw,&refsRaw);err!=nil{return rollback(availabilityReadError(err))};if json.Unmarshal(namesRaw,&provider.ExtraHeaderNames)!=nil||json.Unmarshal(refsRaw,&provider.ExtraHeaderSecretRefs)!=nil{return rollback(platform.NewError(platform.CodeIntegrityError,false,"原额外头映射损坏"))}}
- if input.SecretHeaders!=nil{provider.ExtraHeaderNames=make([]string,0,len(prepared));provider.ExtraHeaderSecretRefs=make([]string,0,len(prepared));for _,header:=range prepared{provider.ExtraHeaderNames=append(provider.ExtraHeaderNames,header.Name);provider.ExtraHeaderSecretRefs=append(provider.ExtraHeaderSecretRefs,header.RefID)};if err:=security.SaveHeaderSecrets(operationCtx,op,tx,provider.ProviderId,provider.Version,prepared);err!=nil{return rollback(err)}}
+	// 元数据中的refs只回显；省略secretHeaders始终保留原映射，不能把客户端refs当路径或凭据。
+	provider.ExtraHeaderNames = make([]string, 0)
+	provider.ExtraHeaderSecretRefs = make([]string, 0)
+	if currentVersion > 0 {
+		var namesRaw, refsRaw []byte
+		if err := tx.QueryRowContext(operationCtx, `SELECT extra_header_names_json,extra_header_secret_refs_json FROM providers WHERE provider_id=?`, provider.ProviderId).Scan(&namesRaw, &refsRaw); err != nil {
+			return rollback(availabilityReadError(err))
+		}
+		if json.Unmarshal(namesRaw, &provider.ExtraHeaderNames) != nil || json.Unmarshal(refsRaw, &provider.ExtraHeaderSecretRefs) != nil {
+			return rollback(platform.NewError(platform.CodeIntegrityError, false, "原额外头映射损坏"))
+		}
+	}
+	if input.SecretHeaders != nil {
+		provider.ExtraHeaderNames = make([]string, 0, len(prepared))
+		provider.ExtraHeaderSecretRefs = make([]string, 0, len(prepared))
+		for _, header := range prepared {
+			provider.ExtraHeaderNames = append(provider.ExtraHeaderNames, header.Name)
+			provider.ExtraHeaderSecretRefs = append(provider.ExtraHeaderSecretRefs, header.RefID)
+		}
+		if err := security.SaveHeaderSecrets(operationCtx, op, tx, provider.ProviderId, provider.Version, prepared); err != nil {
+			return rollback(err)
+		}
+	}
 	names, _ := json.Marshal(provider.ExtraHeaderNames)
 	refs, _ := json.Marshal(provider.ExtraHeaderSecretRefs)
 	saved, err := tx.ExecContext(operationCtx, `
@@ -251,7 +288,7 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 		INSERT INTO operation_receipts
 			(site_id, actor_id, function_id, idempotency_key, input_hash, result_json, created_at,result_hash)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, string(op.Actor.SiteID), string(op.Actor.SubjectID), providerFunctionID,
-		input.IdempotencyKey, inputHash, resultJSON, string(platform.Now()),platform.HashBytes(resultJSON)); err != nil {
+		input.IdempotencyKey, inputHash, resultJSON, string(platform.Now()), platform.HashBytes(resultJSON)); err != nil {
 		return rollback(platform.NewError(platform.CodeInternal, true, "保存供应方幂等回执失败"))
 	}
 	if err := tx.Commit(); err != nil {
@@ -368,12 +405,12 @@ func hashJSON(value any) (platform.Hash, error) {
 
 func readProviderReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, key string, inputHash platform.Hash, expected Provider) (PutProviderResult, bool, error) {
 	var storedHash, createdAt string
- var resultHash sql.NullString
+	var resultHash sql.NullString
 	var resultJSON []byte
 	err := tx.QueryRowContext(ctx, `
 		SELECT input_hash, result_json, created_at,result_hash FROM operation_receipts
 		WHERE site_id = ? AND actor_id = ? AND function_id = ? AND idempotency_key = ?`,
-		op.Actor.SiteID, op.Actor.SubjectID, providerFunctionID, key).Scan(&storedHash, &resultJSON, &createdAt,&resultHash)
+		op.Actor.SiteID, op.Actor.SubjectID, providerFunctionID, key).Scan(&storedHash, &resultJSON, &createdAt, &resultHash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PutProviderResult{}, false, nil
 	}
@@ -391,8 +428,14 @@ func readProviderReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, k
 	if storedHash != inputHash {
 		return PutProviderResult{}, false, platform.NewError(platform.CodeConflict, false, "幂等键已绑定不同供应方配置或代次")
 	}
- if resultHash.Valid{var result PutProviderResult;if resultHash.String!=platform.HashBytes(resultJSON)||json.Unmarshal(resultJSON,&result)!=nil||result.Provider.ProviderId!=expected.ProviderId||result.Provider.Version!=expected.Version{return PutProviderResult{},false,platform.NewError(platform.CodeIntegrityError,false,"供应方原安全回执损坏")};return result,true,nil}
- expectedJSON, _ := json.Marshal(PutProviderResult{Provider: expected})
+	if resultHash.Valid {
+		var result PutProviderResult
+		if resultHash.String != platform.HashBytes(resultJSON) || json.Unmarshal(resultJSON, &result) != nil || result.Provider.ProviderId != expected.ProviderId || result.Provider.Version != expected.Version {
+			return PutProviderResult{}, false, platform.NewError(platform.CodeIntegrityError, false, "供应方原安全回执损坏")
+		}
+		return result, true, nil
+	}
+	expectedJSON, _ := json.Marshal(PutProviderResult{Provider: expected})
 	if !bytes.Equal(resultJSON, expectedJSON) {
 		return PutProviderResult{}, false, platform.NewError(platform.CodeIntegrityError, false, "供应方原结果与摘要不一致")
 	}

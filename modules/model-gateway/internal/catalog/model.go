@@ -307,8 +307,13 @@ func readModelReceipt(ctx context.Context, op OperationContext, tx *sql.Tx, key 
 }
 
 // ModelEmbeddingSpace 是本域唯一五字段空间生产者，保留已有有序JSON哈希算法。
-func ModelEmbeddingSpace(model Model)(EmbeddingSpace,error){
- if model.Dimension<1||model.Dimension>maxEmbeddingDimension||model.ProviderId==""||model.ProviderModelVersion==""||model.PreprocessorVersion==""{return EmbeddingSpace{},platform.NewError(platform.CodeIntegrityError,false,"嵌入模型空间配置不完整")}
- id,err:=embeddingSpaceID(model);if err!=nil{return EmbeddingSpace{},err}
- return EmbeddingSpace{SpaceID:id,Provider:model.ProviderId,ModelVersion:model.ProviderModelVersion,Dimensions:model.Dimension,PreprocessingVersion:model.PreprocessorVersion},nil
+func ModelEmbeddingSpace(model Model) (EmbeddingSpace, error) {
+	if model.Dimension < 1 || model.Dimension > maxEmbeddingDimension || model.ProviderId == "" || model.ProviderModelVersion == "" || model.PreprocessorVersion == "" {
+		return EmbeddingSpace{}, platform.NewError(platform.CodeIntegrityError, false, "嵌入模型空间配置不完整")
+	}
+	id, err := embeddingSpaceID(model)
+	if err != nil {
+		return EmbeddingSpace{}, err
+	}
+	return EmbeddingSpace{SpaceID: id, Provider: model.ProviderId, ModelVersion: model.ProviderModelVersion, Dimensions: model.Dimension, PreprocessingVersion: model.PreprocessorVersion}, nil
 }

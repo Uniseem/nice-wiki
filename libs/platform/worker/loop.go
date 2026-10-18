@@ -136,7 +136,9 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 		return
 	}
 	// 首次执行也取真实续租回执，不能拿本地时钟伪造域内镜像。
-	if renewExecutionLease(jobCtx, lease, false) != nil { return }
+	if renewExecutionLease(jobCtx, lease, false) != nil {
+		return
+	}
 	go l.heartbeat(jobCtx, lease)
 	executor := l.executors.Executor(job.JobType)
 	var result platform.JobExecutionResult
@@ -210,16 +212,16 @@ var errJobCancelled = errors.New("job cancellation requested")
 // executionLease以独立定时器限制本地执行权；续租RPC串行，避免旧回执覆盖新截止。
 type executionLease struct {
 	onRenewed func(context.Context, platform.OperationContext, platform.ClaimedJob, platform.HeartbeatInfo) error
-	ctx      context.Context
-	op       platform.OperationContext
-	client   platform.WorkerJobsClient
-	workerID string
-	job      platform.ClaimedJob
-	cancel   context.CancelCauseFunc
-	rpcMu    sync.Mutex
-	mu       sync.Mutex
-	expires  time.Time
-	timer    *time.Timer
+	ctx       context.Context
+	op        platform.OperationContext
+	client    platform.WorkerJobsClient
+	workerID  string
+	job       platform.ClaimedJob
+	cancel    context.CancelCauseFunc
+	rpcMu     sync.Mutex
+	mu        sync.Mutex
+	expires   time.Time
+	timer     *time.Timer
 }
 
 func newExecutionLease(ctx context.Context, op platform.OperationContext, client platform.WorkerJobsClient, workerID string, job platform.ClaimedJob, cancel context.CancelCauseFunc) (*executionLease, error) {
@@ -305,7 +307,10 @@ func renewExecutionLease(ctx context.Context, lease *executionLease, verify bool
 		callbackOp.Deadline = deadline.UTC().Format(time.RFC3339Nano)
 		err = lease.onRenewed(platform.WithOperationContext(platform.WithPortalProof(work, ""), callbackOp), callbackOp, lease.job, info)
 		cancel()
-		if err != nil { lease.cancel(errLeaseLost); return err }
+		if err != nil {
+			lease.cancel(errLeaseLost)
+			return err
+		}
 	}
 	return nil
 }

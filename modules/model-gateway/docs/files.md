@@ -2,24 +2,24 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 59 个：手写 37、UI 3、生成 5、配置 10、迁移 4。函数 124 个：约束 38，参考 86。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 64 个：手写 42、UI 3、生成 5、配置 10、迁移 4。函数 159 个：约束 38，参考 121。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/model-gateway/internal/runtime/bootstrap.go` | 手写 | 启动并验证本服务私有持久化与密钥引用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.LoadRuntime`（参考）、`model-gateway.OpenDatabase`（参考）、`model-gateway.CurrentStore`（参考）、`model-gateway.InstallStore`（参考）、`model-gateway.Store.BeginTx`（参考）、`model-gateway.Store.Close`（参考）、`model-gateway.runMigrations`（参考）、`model-gateway.Store.MasterKeyRef`（参考） |
 | `modules/model-gateway/internal/catalog/provider.go` | 手写 | 验证供应方配置所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ValidateProvider`（参考）、`model-gateway.PutProvider`、`model-gateway.readProviderReceipt`（参考）、`model-gateway.NewCatalogHandlers`（参考） |
 | `modules/model-gateway/internal/security/credential.go` | 手写 | 凭据AES-GCM密文、敏感输入HMAC原回执与active版本CAS；旧引用生命周期回收尚未交付 | `model-gateway.PutCredential`、`model-gateway.RotateCredential`、`model-gateway.writeCredential`（参考）、`model-gateway.loadCredentialMasterKey`（参考）、`model-gateway.credentialDigest`（参考）、`model-gateway.credentialFingerprint`（参考）、`model-gateway.readCredentialReceipt`（参考）、`model-gateway.credentialStorageError`（参考）、`model-gateway.NewCredentialHandlers`（参考） |
-| `modules/model-gateway/internal/catalog/model.go` | 手写 | 保存不可变模型身份版本所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PutModel`、`model-gateway.ValidateModel`（参考）、`model-gateway.readModelReceipt`（参考） |
+| `modules/model-gateway/internal/catalog/model.go` | 手写 | 保存不可变模型身份版本所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PutModel`、`model-gateway.ValidateModel`（参考）、`model-gateway.readModelReceipt`（参考）、`model-gateway.ModelEmbeddingSpace`（参考）、`model-gateway.embeddingSpaceID`（参考） |
 | `modules/model-gateway/internal/catalog/profile.go` | 手写 | 档位配置持久写入、真实任务档位解析与同代安全候选筛选；无供应方或费用操作 | `model-gateway.PutProfile`、`model-gateway.ResolveProfile`（参考）、`model-gateway.readProfileReceipt`（参考）、`model-gateway.validateProfileModels`（参考）、`model-gateway.NewProfileHandlers`（参考）、`model-gateway.readRouteProfile`（参考）、`model-gateway.applyTaskOverride`（参考）、`model-gateway.SelectCandidates`（参考）、`model-gateway.readRouteCandidate`（参考） |
 | `modules/model-gateway/internal/routing/route.go` | 手写 | 确定不可变调用路线所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ResolveRoute`（参考） |
 | `modules/model-gateway/internal/billing/quote.go` | 手写 | 计算可保守预留的最大费用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.QuoteCost`、`model-gateway.ReadPriceSnapshot`（参考）、`model-gateway.SaveManualPrice`（参考）、`model-gateway.MakePriceSnapshot`（参考）、`model-gateway.beginPriceSnapshot`（参考）、`model-gateway.RequirePriceCaller`（参考）、`model-gateway.NewPriceHandlers`（参考） |
 | `modules/model-gateway/internal/invocation/create.go` | 手写 | 接受统一AI调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CreateInvocation` |
-| `modules/model-gateway/internal/billing/reservation.go` | 手写 | 原子扣占额度所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ReserveCost`（参考）、`model-gateway.ExtendReservation`（参考） |
+| `modules/model-gateway/internal/billing/reservation.go` | 手写 | 原子扣占额度所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ReserveCost`（参考）、`model-gateway.ExtendReservation`（参考）、`model-gateway.ComputeUsageCost`（参考）、`model-gateway.ReadReservation`（参考）、`model-gateway.CheckFeeBudgets`（参考） |
 | `modules/model-gateway/internal/invocation/dispatch.go` | 手写 | 派发供应方请求所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.DispatchInvocation`（参考）、`model-gateway.ExecuteInvocation`（参考） |
 | `modules/model-gateway/internal/provider/adapter.go` | 手写 | 映射统一调用到供应方协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.BuildProviderRequest`（参考）、`model-gateway.ClassifyFailure`（参考） |
-| `modules/model-gateway/internal/stream/store.go` | 手写 | 持久保存流序列所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.AppendStreamEvent`（参考）、`model-gateway.ResumeStream` |
-| `modules/model-gateway/internal/billing/usage.go` | 手写 | 接受供应方用量证据所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RecordUsage`（参考） |
-| `modules/model-gateway/internal/billing/settlement.go` | 手写 | 结算已知费用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.SettleInvocation`（参考） |
+| `modules/model-gateway/internal/stream/store.go` | 手写 | 持久保存流序列所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.AppendStreamEvent`（参考）、`model-gateway.ResumeStream`、`model-gateway.InvocationTerminal`（参考） |
+| `modules/model-gateway/internal/billing/usage.go` | 手写 | 接受供应方用量证据所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RecordUsage`（参考）、`model-gateway.UsageDigest`（参考）、`model-gateway.ReadUsage`（参考） |
+| `modules/model-gateway/internal/billing/settlement.go` | 手写 | 结算已知费用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.SettleInvocation`（参考）、`model-gateway.InsertLedgerEntry`（参考）、`model-gateway.ReadAttemptLedger`（参考） |
 | `modules/model-gateway/internal/billing/reconcile.go` | 手写 | 保留不确定收费责任所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.MarkUnknownCharge`（参考）、`model-gateway.ReconcileCharge` |
 | `modules/model-gateway/internal/invocation/cancel.go` | 手写 | 贯穿取消调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CancelInvocation` |
 | `modules/model-gateway/internal/invocation/read.go` | 手写 | 读取调用状态所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.GetInvocation` |
@@ -37,7 +37,7 @@
 | `modules/model-gateway/internal/catalog/refresh.go` | 手写 | 刷新公开模型目录所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RefreshModelCatalog` |
 | `modules/model-gateway/internal/admin/probe.go` | 手写 | 显式测试连接所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CreateConnectionProbe` |
 | `modules/model-gateway/internal/invocation/fallback.go` | 手写 | 费用安全保留备用与格式重试所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CreateFallbackAttempt`（参考） |
-| `modules/model-gateway/internal/provider/anthropic.go` | 手写 | 映射Anthropic消息协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.MapAnthropicRequest`（参考） |
+| `modules/model-gateway/internal/provider/anthropic.go` | 手写 | 映射Anthropic消息协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.MapAnthropicRequest`（参考）、`model-gateway.ImageKey`（参考）、`model-gateway.ProviderContent`（参考） |
 | `modules/model-gateway/internal/provider/gemini.go` | 手写 | 映射Gemini协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.MapGeminiRequest`（参考） |
 | `modules/model-gateway/internal/provider/rerank.go` | 手写 | 解析rerank协议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.ParseRerankResponse`（参考） |
 | `modules/model-gateway/deploy/service.config.json` | 配置 | 未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
@@ -65,3 +65,8 @@
 | `modules/model-gateway/migrations/003_fee_budget_policy.sql` | 手写 | 只追加费用策略单例和本地脱敏审计，无金额默认或探测种子，随active快照恢复。 | 无 |
 | `modules/model-gateway/migrations/004_price_book.sql` | 迁移 | 只追加不可变人工价目历史，无价格种子、目录来源伪造或费用状态。 | 无 |
 | `modules/model-gateway/migrations/005_ledger_reads.sql` | 迁移 | 仅追加nullable调用归属/created_at与真实读取水位、触发器、精确分页索引；不回填、不造费用事实。 | 无 |
+| `modules/model-gateway/internal/runtime/invocation.go` | 手写 | 本域真实执行链私有事务及HTTP适配；不读取其他域私有表。 | `model-gateway.InstallExecutionOptions`（参考）、`model-gateway.ExecutionDependencies`（参考）、`model-gateway.BeginExecution`（参考）、`model-gateway.ExecutionTransaction.Close`（参考）、`model-gateway.ExecutionTransaction.Commit`（参考）、`model-gateway.ExecutionStorageError`（参考）、`model-gateway.ReadInvocationRecord`（参考）、`model-gateway.SaveInvocationRecord`（参考）、`model-gateway.ReadAttemptRecord`（参考）、`model-gateway.SaveAttemptRecord`（参考）、`model-gateway.ReplayExecutionReceipt`（参考）、`model-gateway.SaveExecutionReceipt`（参考）、`model-gateway.SaveInvocationEvent`（参考）、`model-gateway.EnqueueExecutionEvent`（参考） |
+| `modules/model-gateway/internal/invocation/http.go` | 手写 | 本域真实执行链私有事务及HTTP适配；不读取其他域私有表。 | `model-gateway.NewExecutionHandlers`（参考）、`model-gateway.writeExecutionResult`（参考）、`model-gateway.invocationEventStream.Next`（参考）、`model-gateway.invocationEventStream.Close`（参考） |
+| `modules/model-gateway/migrations/006_execution.sql` | 手写 | schemaVersion6追加真实attempt/预留投影/原输入回执/凭据引用/人工证明；旧行不猜填。 | 无 |
+| `modules/model-gateway/internal/security/headers.go` | 手写 | 本域主密钥及供应方固定路线的安全映射，不访问其他域私有表。 | `model-gateway.SecretHeaderName`（参考）、`model-gateway.PrepareHeaderSecrets`（参考）、`model-gateway.SaveHeaderSecrets`（参考）、`model-gateway.OpenAttemptCredential`（参考）、`model-gateway.OpenAttemptHeaders`（参考） |
+| `modules/model-gateway/migrations/007_provider_dispatch.sql` | 手写 | schemaVersion7追加固定路线凭据引用、加密额外头及安全结果hash；不猜填旧引用。 | 无 |

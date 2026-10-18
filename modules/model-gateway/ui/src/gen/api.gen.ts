@@ -654,9 +654,9 @@ export interface components {
             requestTimeoutMs: number;
             /** @description 供应方显示名 */
             displayName: string;
-            /** @description 允许附加头名 */
+            /** @description 服务器生成的只读兼容元数据；PutProvider不使用客户端值控制秘密，secretHeaders缺失保留原映射，[]才清空 */
             extraHeaderNames: string[];
-            /** @description 等长加密secret引用 */
+            /** @description 服务器生成的只读兼容元数据；PutProvider不使用客户端值控制秘密，secretHeaders缺失保留原映射，[]才清空 */
             extraHeaderSecretRefs: string[];
             /** @description 供应方并发上限 */
             concurrencyLimit: number;
@@ -699,6 +699,12 @@ export interface components {
             /** @description 逐字段输入错误，不能回显秘密原值 */
             issues?: components["schemas"]["FieldIssue"][];
         };
+        SecretHeader: {
+            /** @description 合法且非路由/认证/凭据/cookie协议控制头 */
+            name: string;
+            /** @description 仅superadmin显式写入的秘密值，拒CRLF/NUL；不进响应/事件/回执正文/日志 */
+            value: string;
+        };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         PutProviderInput: {
             /** @description 完整配置 */
@@ -707,6 +713,8 @@ export interface components {
             expectedVersion: number;
             /** @description 幂等键 */
             idempotencyKey: string;
+            /** @description 缺失保留原映射，显式[]清空；服务器生成同provider/epoch不可变加密refs，不接受本机路径 */
+            secretHeaders?: components["schemas"]["SecretHeader"][];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         PutCredentialResult: {
@@ -758,7 +766,10 @@ export interface components {
             capabilities: string[];
             /** @description 嵌入维度chat为0 */
             dimension: number;
-            /** @description 预处理版本 */
+            /**
+             * @description 预处理版本，显式默认none；不得默示归一化，算法改变必须新版本/模型ID/space
+             * @default none
+             */
             preprocessorVersion: string;
             /** @description 输入上限 */
             maxInputTokens: number;
@@ -826,11 +837,11 @@ export interface components {
             tier: "fast" | "accurate" | "vision" | "embedding" | "rerank";
             /** @description 第一为主其余有序备用 */
             orderedModelIds: components["schemas"]["Identifier"][];
-            /** @description 每请求费用上限；Money.currency=USD且micros非负整数 */
+            /** @description 本请求最大费用，0表示不限；不能释放或覆盖旧unknown held */
             maximumCost: components["schemas"]["Money"];
             /** @description 并发上限 */
             concurrency: number;
-            /** @description 日消费额度；Money.currency=USD且micros非负整数 */
+            /** @description site+UTC日+profile独立预算，0不限；profile已绑定costClass，background不占QA额度 */
             dailyLimitCost: components["schemas"]["Money"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
@@ -1114,10 +1125,16 @@ export interface components {
             proofKind: "charged" | "not_charged";
             /** @description 最终金额；Money.currency=USD且micros非负整数 */
             actualCost: components["schemas"]["Money"];
-            /** @description 证据摘要 */
-            proofHash: string;
+            /** @description 当前超管明确人工证明摘要，不能据网络超时虚构未收费 */
+            proofHash: components["schemas"]["Hash"];
             /** @description 幂等键 */
             idempotencyKey: string;
+            /** @description 仅唯一待对账尝试时可省略 */
+            attemptId?: components["schemas"]["Identifier"];
+            /** @description 原用量未知/冲突时charged证明必须显式给真实值，与另一token字段同时提供 */
+            inputTokens?: number;
+            /** @description 原用量未知/冲突时charged证明必须显式给真实值，与另一token字段同时提供 */
+            outputTokens?: number;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         GetLedgerResult: {
@@ -1142,10 +1159,55 @@ export interface components {
             /** @description 本次窗内完整未知金额/未知收费调用ID，不能用0代替；超响应预算失败不截断 */
             unknownInvocationIds: components["schemas"]["Identifier"][];
         };
+        /** @description 供应方、模型版本、维度与预处理版本共同定义空间；不同空间不得比相似度 */
+        EmbeddingSpace: {
+            /** @description 完整嵌入空间唯一ID */
+            spaceId: components["schemas"]["Hash"];
+            /** @description 供应方稳定标识 */
+            provider: string;
+            /** @description 供应方模型版本，不只用展示名 */
+            modelVersion: string;
+            /** @description 向量维度正整数 */
+            dimensions: number;
+            /** @description 规范预处理算法版本 */
+            preprocessingVersion: string;
+        };
+        /** @description readModels安全模型声明，embedding配置完整时附MG权威五字段空间；不改变PutModel输入 */
+        ModelWithSpace: {
+            /** @description 网关模型ID */
+            modelId: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+            /** @description 供应方ID */
+            providerId: components["schemas"]["Identifier"];
+            /** @description 不可变供应方模型版本 */
+            providerModelVersion: string;
+            /** @description chat vision structured reasoning embedding rerank translation能力集合 */
+            capabilities: string[];
+            /** @description 嵌入维度chat为0 */
+            dimension: number;
+            /** @description 预处理版本 */
+            preprocessorVersion: string;
+            /** @description 输入上限 */
+            maxInputTokens: number;
+            /** @description 输出上限 */
+            maxOutputTokens: number;
+            /**
+             * @description 模型目录来源
+             * @enum {string}
+             */
+            catalogOrigin: "bundled" | "remote" | "manual";
+            /** @description 手动覆盖目录 */
+            manualOverride: boolean;
+            /** @description 是否显示并可分配 */
+            enabled: boolean;
+            /** @description 只有embedding能力且配置完整时返回，由MG原有有序JSON算法权威生成 */
+            embeddingSpace?: components["schemas"]["EmbeddingSpace"];
+        };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         ReadModelsResult: {
             /** @description 不含密钥声明 */
-            models: components["schemas"]["Model"][];
+            models: components["schemas"]["ModelWithSpace"][];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         ReadProfilesResult: {
@@ -2424,6 +2486,8 @@ export interface operations {
             header: {
                 /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
                 "X-Request-Id": components["schemas"]["Identifier"];
+                /** @description 排他持久序号，与afterSequence取较大值；0为初次重读 */
+                "Last-Event-ID"?: string;
             };
             path: {
                 /** @description 必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。 */
@@ -2471,6 +2535,15 @@ export interface operations {
             };
             /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 持久模型事件所需区已超过保留期；GONE */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };

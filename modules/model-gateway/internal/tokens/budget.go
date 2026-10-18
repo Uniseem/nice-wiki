@@ -4,9 +4,9 @@ package tokens
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"net/http"
- "math"
- "nice-wiki/modules/model-gateway/internal/catalog"
+	"nice-wiki/modules/model-gateway/internal/catalog"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/problem"
@@ -74,12 +74,33 @@ func NewTokenHandlers() map[string]http.Handler {
 }
 
 // ValidateEmbeddingSpace核对MG原空间身份和原始有限向量；默认none，不擅自L2归一化。
-type ValidateEmbeddingSpaceInput struct{Space gen.EmbeddingSpace `json:"space"`;Vectors [][]float64 `json:"vectors"`}
-type ValidateEmbeddingSpaceResult struct{Valid bool `json:"valid"`;EmbeddingSpaceID string `json:"embeddingSpaceId"`}
-func ValidateEmbeddingSpace(ctx context.Context,op OperationContext,input ValidateEmbeddingSpaceInput)(ValidateEmbeddingSpaceResult,error){
- model:=catalog.Model{ProviderId:input.Space.Provider,ProviderModelVersion:input.Space.ModelVersion,Dimension:input.Space.Dimensions,PreprocessorVersion:input.Space.PreprocessingVersion}
- space,err:=catalog.ModelEmbeddingSpace(model);if err!=nil{return ValidateEmbeddingSpaceResult{},err}
- if space.SpaceID!=input.Space.SpaceId{return ValidateEmbeddingSpaceResult{},platform.NewError(platform.CodeIntegrityError,false,"嵌入空间摘要与原五字段身份不一致")}
- for _,vector:=range input.Vectors{if len(vector)!=space.Dimensions{return ValidateEmbeddingSpaceResult{},platform.NewError(platform.CodeIntegrityError,false,"向量维度与固定空间不一致")};for _,component:=range vector{if math.IsNaN(component)||math.IsInf(component,0){return ValidateEmbeddingSpaceResult{},platform.NewError(platform.CodeIntegrityError,false,"向量存在非有限分量")}}}
- return ValidateEmbeddingSpaceResult{Valid:true,EmbeddingSpaceID:space.SpaceID},nil
+type ValidateEmbeddingSpaceInput struct {
+	Space   gen.EmbeddingSpace `json:"space"`
+	Vectors [][]float64        `json:"vectors"`
+}
+type ValidateEmbeddingSpaceResult struct {
+	Valid            bool   `json:"valid"`
+	EmbeddingSpaceID string `json:"embeddingSpaceId"`
+}
+
+func ValidateEmbeddingSpace(ctx context.Context, op OperationContext, input ValidateEmbeddingSpaceInput) (ValidateEmbeddingSpaceResult, error) {
+	model := catalog.Model{ProviderId: input.Space.Provider, ProviderModelVersion: input.Space.ModelVersion, Dimension: input.Space.Dimensions, PreprocessorVersion: input.Space.PreprocessingVersion}
+	space, err := catalog.ModelEmbeddingSpace(model)
+	if err != nil {
+		return ValidateEmbeddingSpaceResult{}, err
+	}
+	if space.SpaceID != input.Space.SpaceId {
+		return ValidateEmbeddingSpaceResult{}, platform.NewError(platform.CodeIntegrityError, false, "嵌入空间摘要与原五字段身份不一致")
+	}
+	for _, vector := range input.Vectors {
+		if len(vector) != space.Dimensions {
+			return ValidateEmbeddingSpaceResult{}, platform.NewError(platform.CodeIntegrityError, false, "向量维度与固定空间不一致")
+		}
+		for _, component := range vector {
+			if math.IsNaN(component) || math.IsInf(component, 0) {
+				return ValidateEmbeddingSpaceResult{}, platform.NewError(platform.CodeIntegrityError, false, "向量存在非有限分量")
+			}
+		}
+	}
+	return ValidateEmbeddingSpaceResult{Valid: true, EmbeddingSpaceID: space.SpaceID}, nil
 }

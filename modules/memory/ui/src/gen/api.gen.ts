@@ -1373,11 +1373,11 @@ export interface components {
             tier: "fast" | "accurate" | "vision" | "embedding" | "rerank";
             /** @description 第一为主其余有序备用 */
             orderedModelIds: components["schemas"]["Identifier"][];
-            /** @description 每请求费用上限；Money.currency=USD且micros非负整数 */
+            /** @description 本请求最大费用，0表示不限；不能释放或覆盖旧unknown held */
             maximumCost: components["schemas"]["Money"];
             /** @description 并发上限 */
             concurrency: number;
-            /** @description 日消费额度；Money.currency=USD且micros非负整数 */
+            /** @description site+UTC日+profile独立预算，0不限；profile已绑定costClass，background不占QA额度 */
             dailyLimitCost: components["schemas"]["Money"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
