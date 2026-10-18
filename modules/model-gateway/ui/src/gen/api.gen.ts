@@ -622,6 +622,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tokenizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 使用固定模型分词声明离线分词
+         * @description 仅knowledge纯服务；读取已启用同代模型不可变预处理声明，返回真实BPE偏移与完整空间；无供应方调用、调用记录或费用。未知编码不猜测。
+         */
+        post: operations["tokenizeText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1579,6 +1599,20 @@ export interface components {
             texts: string[];
             /** @description 消息 */
             messages: components["schemas"]["GatewayMessage"][];
+        };
+        TokenizeTextResult: {
+            embeddingSpace: components["schemas"]["EmbeddingSpace"];
+            /** @enum {string} */
+            tokenizerVersion: "none;tiktoken-go@v0.7.0;cl100k_base" | "none;tiktoken-go@v0.7.0;o200k_base";
+            tokenCount: number;
+            /** @description 每个真实BPE token的原文UTF8结束字节偏移；可在Unicode字符中间，严格递增且最终覆盖输入。 */
+            byteTokenEnds: number[];
+            textHash: components["schemas"]["Hash"];
+        };
+        TokenizeTextInput: {
+            modelId: components["schemas"]["Identifier"];
+            /** @description 原始UTF8文本；额外限制4MiB字节，不进行隐式预处理。 */
+            text: string;
         };
     };
     responses: never;
@@ -4682,6 +4716,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EstimateTokensResult"];
+                };
+            };
+            /** @description 输入字段、范围、字节预算或声明配置不合法，业务事务不提交。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；错误code必须来自处理函数集合。 */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    tokenizeText: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
+                "X-Request-Id": components["schemas"]["Identifier"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenizeTextInput"];
+            };
+        };
+        responses: {
+            /** @description 完整分词与原文哈希 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenizeTextResult"];
                 };
             };
             /** @description 输入字段、范围、字节预算或声明配置不合法，业务事务不提交。 */

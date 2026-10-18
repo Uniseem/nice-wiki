@@ -3053,6 +3053,7 @@ func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyRe
 2. 同一事务调用platform.ClaimInbox按eventId与subject修订去重；sourceVersion低于当前水位只确认不覆写
 3. 事务把完整快照写入既有reference_heads/reference_entries并做history分类，提升generation，只取消已经存在的相交人工清理计划
 4. 已经明确终止sealed的同源修订不得由迟到事件复活；与持久终止来源矛盾时INTEGRITY_ERROR，保留原引用保护
+5. 事件认领为事务首项写入，统一ClaimInboxBeforeWrite只提交冲突隔离，不把业务错误回滚成未隔离。
 
 **错误**
 
@@ -3064,7 +3065,7 @@ func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyRe
 - 授权：service:jobs可信事件投递
 - 并发：sourceOperation→sourceObject→asset升序→store→SQL
 - 幂等：eventId唯一+sourceversion单调
-- 依赖：`platform.ClaimInbox`、`media.mediaWriteContext`、`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.canonicalReferenceInput`、`media.referenceBindingHash`、`media.referenceObjectAssets`、`media.referenceCleanupAssets`、`media.cancelReferenceCleanupPlans`、`media.readReferenceRecord`、`media.readReferenceAsset`、`media.advanceReferenceGeneration`、`media.writeReferenceResolution`
+- 依赖：`platform.ClaimInboxBeforeWrite`、`media.mediaWriteContext`、`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.canonicalReferenceInput`、`media.referenceBindingHash`、`media.referenceObjectAssets`、`media.referenceCleanupAssets`、`media.cancelReferenceCleanupPlans`、`media.readReferenceRecord`、`media.readReferenceAsset`、`media.advanceReferenceGeneration`、`media.writeReferenceResolution`
 
 ## media.lockReferenceKey
 

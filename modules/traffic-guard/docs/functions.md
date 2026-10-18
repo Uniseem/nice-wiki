@@ -2244,6 +2244,7 @@ func ConsumeIdentityEvent(ctx context.Context, op OperationContext, in ConsumeId
 2. 平台ClaimInbox与本地最大permissionRevision标记同事务；重复/低修订确认无操作
 3. 本域管理写入没有可绕过即时identity权威的缓存，此标记只记录撤销通知，不将事件当授权真相
 4. 本地提交后返回accepted，订阅/ack仍由后续公共适配完成；失败不确认
+5. 事件认领为事务首项写入，统一ClaimInboxBeforeWrite只提交冲突隔离，不把业务错误回滚成未隔离。
 
 **错误**
 
@@ -2254,7 +2255,7 @@ func ConsumeIdentityEvent(ctx context.Context, op OperationContext, in ConsumeId
 - 授权：permission：service；rule：service identity事件
 - 并发：按 subject权限修订取max
 - 幂等：eventId/revision幂等
-- 依赖：`traffic-guard.beginGuardTransaction`、`traffic-guard.guardTransaction.close`、`traffic-guard.guardTransaction.commit`、`platform.ClaimInbox`
+- 依赖：`traffic-guard.beginGuardTransaction`、`traffic-guard.guardTransaction.close`、`traffic-guard.guardTransaction.commit`、`platform.ClaimInboxBeforeWrite`
 
 ## traffic-guard.ConsumeEvents
 

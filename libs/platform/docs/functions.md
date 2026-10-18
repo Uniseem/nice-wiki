@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 108 个函数：约束 20 个，参考 88 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 114 个函数：约束 20 个，参考 94 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1164,7 +1164,7 @@ func RunRelayBatch(ctx context.Context, store OutboxStore, client EventPublisher
 
 - 级别：约束
 - 文件：`libs/platform/inbox/inbox.go`
-- 作用：事件处理函数的inbox去重
+- 作用：兼容旧inbox事务入口，隔离需调用方提交；新处理使用ClaimInboxBeforeWrite
 
 ```go
 func ClaimInbox(tx Tx, envelope EventEnvelope) (bool, error)
@@ -1186,10 +1186,7 @@ func ClaimInbox(tx Tx, envelope EventEnvelope) (bool, error)
 
 **步骤**
 
-1. 按eventId查inbox；同ID同hash返回false
-2. 同ID异hash返回INTEGRITY_ERROR并隔离
-3. 同subject低于已处理revision返回false
-4. 首次则插入inbox行并返回true
+1. 委托实际claimInbox，保留旧签名；同eventId身份/载荷冲突或已隔离均完整性失败，隔离需调用方提交。
 
 **错误**
 
@@ -1199,7 +1196,73 @@ func ClaimInbox(tx Tx, envelope EventEnvelope) (bool, error)
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：与业务事务同锁
 - 幂等：eventId唯一
-- 依赖：无
+- 依赖：`platform.claimInbox`
+
+## platform.ClaimInboxBeforeWrite
+
+- 级别：参考
+- 文件：`libs/platform/inbox/inbox.go`
+- 作用：事务首项写入认领；本次新增隔离时只提交隔离再返回原完整性错误，禁止在已有业务修改后使用；提交失败不确认事件。
+
+```go
+func ClaimInboxBeforeWrite(ctx context.Context, tx Tx, envelope EventEnvelope, commitClaim func() error) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 事务首项写入认领；本次新增隔离时只提交隔离再返回原完整性错误，禁止在已有业务修改后使用；提交失败不确认事件。
+
+**错误**
+
+- `INTEGRITY_ERROR`：同eventId异payloadHash（不可重试）
+
+- 副作用：写本域inbox表
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：与业务事务同锁
+- 幂等：eventId唯一
+- 依赖：`platform.claimInbox`
+
+## platform.claimInbox
+
+- 级别：参考
+- 文件：`libs/platform/inbox/inbox.go`
+- 作用：同eventId核载荷hash与生产方/类型/版本/主题/修订；quarantined始终失败关闭。
+
+```go
+func claimInbox(ctx context.Context, tx Tx, envelope EventEnvelope) (bool, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同eventId核载荷hash与生产方/类型/版本/主题/修订；quarantined始终失败关闭。
+2. 低修订只比较同生产方、类型、版本、主题的applied行；不跨事件流跳过。并发唯一冲突返回可重投冲突而非冒认重复。
+3. 只本事务更新隔离并返回隔离标记，不自动提交调用方任意业务写入。
+
+**错误**
+
+- `INTEGRITY_ERROR`：同eventId异payloadHash（不可重试）
+
+- 副作用：写本域inbox表
+- 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
+- 并发：与业务事务同锁
+- 幂等：eventId唯一
+- 依赖：`platform.validateEnvelope`
 
 ## platform.RunConsumer
 
@@ -4213,4 +4276,136 @@ func (g *TaskGroup) stop()
 - 授权：平台受信装配；不读业务秘密，不授予业务权限
 - 并发：不产生并发本域业务批次；IO只用传入ctx
 - 幂等：纯转换或由本域持久决定保证恢复幂等，平台不重算付费结果
+- 依赖：无
+
+## platform.RunBoundedParser
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/parser_process.go`
+- 作用：仅当前二进制固定子入口，清空继承环境、限制输入50MiB输出16MiB和60秒；子进程异常不透传原始stderr。
+
+```go
+func RunBoundedParser(ctx context.Context, kind string, input []byte) ([]byte, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅当前二进制固定子入口，清空继承环境、限制输入50MiB输出16MiB和60秒；子进程异常不透传原始stderr。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：仅受控子进程、管道与不可放宽的系统调用/资源限制；不读配置、密钥、业务库或网络。
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：父进程ctx与60秒取最早，输出超16MiB立即杀子进程；子进程CPU硬上限30秒，数据段512MiB、GOMEMLIMIT384MiB。
+- 幂等：不写业务数据，不重算模型或费用。
+- 依赖：`platform.parserOutput.Write`
+
+## platform.RunParserChild
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/parser_process.go`
+- 作用：主入口读取配置和密钥前检测固定子进程模式；先隔离再限量读取stdin，回调只解析内存并返回有界stdout。
+
+```go
+func RunParserChild(kind string, parse func([]byte) ([]byte, error)) (bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 主入口读取配置和密钥前检测固定子进程模式；先隔离再限量读取stdin，回调只解析内存并返回有界stdout。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：仅受控子进程、管道与不可放宽的系统调用/资源限制；不读配置、密钥、业务库或网络。
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：父进程ctx与60秒取最早，输出超16MiB立即杀子进程；子进程CPU硬上限30秒，数据段512MiB、GOMEMLIMIT384MiB。
+- 幂等：不写业务数据，不重算模型或费用。
+- 依赖：`platform.EnterParserSandbox`
+
+## platform.parserOutput.Write
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/parser_process.go`
+- 作用：累计有界输出，超过16MiB取消并杀子进程，避免管道阻塞。
+
+```go
+func (w *parserOutput) Write(value []byte) (int, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 累计有界输出，超过16MiB取消并杀子进程，避免管道阻塞。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：仅受控子进程、管道与不可放宽的系统调用/资源限制；不读配置、密钥、业务库或网络。
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：父进程ctx与60秒取最早，输出超16MiB立即杀子进程；子进程CPU硬上限30秒，数据段512MiB、GOMEMLIMIT384MiB。
+- 幂等：不写业务数据，不重算模型或费用。
+- 依赖：无
+
+## platform.EnterParserSandbox
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/parser_sandbox_linux_amd64.go`
+- 作用：设置CPU/数据段/输出文件/FD硬限制和NO_NEW_PRIVS，对全部Go线程TSYNC安装固定amd64/x32拒绝规则；仅内存、Go运行时和标准管道调用允许，不允许新文件、网络、外部程序、io_uring、命名空间、跨进程读或提高限制；任一步失败关闭。
+
+```go
+func EnterParserSandbox() error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 设置CPU/数据段/输出文件/FD硬限制和NO_NEW_PRIVS，对全部Go线程TSYNC安装固定amd64/x32拒绝规则；仅内存、Go运行时和标准管道调用允许，不允许新文件、网络、外部程序、io_uring、命名空间、跨进程读或提高限制；任一步失败关闭。
+
+**错误**
+
+- `VALIDATION`：装配参数缺失（不可重试）
+- `INTEGRITY_ERROR`：本域回调永久完整性错误（不可重试）
+
+- 副作用：仅受控子进程、管道与不可放宽的系统调用/资源限制；不读配置、密钥、业务库或网络。
+- 授权：平台受信装配；不读业务秘密，不授予业务权限
+- 并发：父进程ctx与60秒取最早，输出超16MiB立即杀子进程；子进程CPU硬上限30秒，数据段512MiB、GOMEMLIMIT384MiB。
+- 幂等：不写业务数据，不重算模型或费用。
 - 依赖：无

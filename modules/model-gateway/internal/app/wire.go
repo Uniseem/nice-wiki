@@ -97,7 +97,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	for operationID, handler := range billing.NewPriceHandlers() {
 		handlers[operationID] = handler
 	}
-	for operationID, handler := range tokens.NewTokenizerHandlers() { handlers[operationID] = handler }
+	for operationID, handler := range tokens.NewTokenizerHandlers() {
+		handlers[operationID] = handler
+	}
 	for operationID, handler := range tokens.NewTokenHandlers() {
 		handlers[operationID] = handler
 	}
@@ -121,7 +123,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		OpenedDataEpoch:     runtimeView.DataEpoch,
 		Authorize:           authorize,
-		ServiceActorCallers: map[string][]string{"tokenizeText":{"knowledge"},"queryUsage": assignmentCallers[1:], "readModels": assignmentCallers[1:], "readProfiles": assignmentCallers[1:], "readInference": assignmentCallers[1:], "resumeInference": assignmentCallers[1:]},
+		ServiceActorCallers: map[string][]string{"tokenizeText": {"knowledge"}, "queryUsage": assignmentCallers[1:], "readModels": assignmentCallers[1:], "readProfiles": assignmentCallers[1:], "readInference": assignmentCallers[1:], "resumeInference": assignmentCallers[1:]},
 		AllowedCallers: map[string][]string{
 			"getLedger":            {"portal"},
 			"readInference":        assignmentCallers,
@@ -131,7 +133,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"readTaskAvailability": {"qa"},
 			"getPriceBook":         {"portal"},
 			"quoteCost":            assignmentCallers[1:],
-			"tokenizeText": {"knowledge"},
+			"tokenizeText":         {"knowledge"},
 			"estimateTokens":       {"localization"},
 			"putTaskAssignment":    {"portal"},
 			"putProfile":           {"portal"},

@@ -525,6 +525,11 @@ func (c *ModelGatewayClient) ResumeInference(ctx context.Context, invocationId s
 	return modelEventStream{r: reader}, nil
 }
 
+// TokenizeText POST /v1/tokenizations（model-gateway:tokenizeText）。
+func (c *ModelGatewayClient) TokenizeText(ctx context.Context, body any) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodPost, "/v1/tokenizations", body, "")
+}
+
 // SiteConfigClient 调用site-config服务（自动附服务断言）。
 type SiteConfigClient struct{ *producerClient }
 

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "ac39efdef5cc1a2038dfbcf5368bee9c66fadcb8fec89880a4b025069dfb55c3",
+  "contractSha256": "07d5611c66d1c1c59059fe17e6aef329927a3be550fb2b781d230ef7325fb27f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
   "branch": "codex/integration-20261017-r3",
@@ -1507,6 +1507,17 @@
         "evidence": null
       },
       "blocker": "事件隔离与流修订修正待GitLab"
+    },
+    {
+      "id": "platform.validateEnvelope",
+      "path": "libs/platform/inbox/inbox.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "补登记实际既有信封校验，待GitLab"
     }
   ],
   "rule": "公共机制已通过自部署GitLab当前源码/生成/编译/结构检查；完整服务、业务验收和部署按各域未完成项保留。"

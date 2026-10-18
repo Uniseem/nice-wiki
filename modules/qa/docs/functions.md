@@ -2979,6 +2979,7 @@ func InvalidateCache(ctx context.Context, op OperationContext, input InvalidateC
 2. 发布/撤回失效对应文档引用与无引用公开集合答案；index退役只失效受影响文档；memory事件仅处理qa.answer，按实际cache语言读取当前memory hash
 3. 在同事务ClaimInbox；重复/旧事件不再变更。仅active缓存转stale、版本递增、删除可命中向量、写qa.cache.invalidated outbox
 4. memory只使curated=false且旧hash不等当前值的缓存失效，curated豁免；保留审核和账单引用；回答模型变化不触发本函数
+5. 事件认领为事务首项写入，统一ClaimInboxBeforeWrite只提交冲突隔离，不把业务错误回滚成未隔离。
 
 **错误**
 
@@ -3000,7 +3001,7 @@ func InvalidateCache(ctx context.Context, op OperationContext, input InvalidateC
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`qa.FromContext`、`qa.DecodeResponse`、`qa.BeginRead`、`qa.BeginWrite`、`qa.ReadCache`、`qa.SaveCache`、`qa.EmitCacheInvalidated`、`qa.ResolveTaskMemory`、`platform.ClaimInbox`
+- 依赖：`qa.FromContext`、`qa.DecodeResponse`、`qa.BeginRead`、`qa.BeginWrite`、`qa.ReadCache`、`qa.SaveCache`、`qa.EmitCacheInvalidated`、`qa.ResolveTaskMemory`、`platform.ClaimInboxBeforeWrite`
 
 ## qa.EmitCacheInvalidated
 

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 64 个：手写 42、UI 3、生成 5、配置 10、迁移 4。函数 159 个：约束 38，参考 121。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 66 个：手写 44、UI 3、生成 5、配置 10、迁移 4。函数 162 个：约束 39，参考 123。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -70,3 +70,5 @@
 | `modules/model-gateway/migrations/006_execution.sql` | 手写 | schemaVersion6追加真实attempt/预留投影/原输入回执/凭据引用/人工证明；旧行不猜填。 | 无 |
 | `modules/model-gateway/internal/security/headers.go` | 手写 | 本域主密钥及供应方固定路线的安全映射，不访问其他域私有表。 | `model-gateway.SecretHeaderName`（参考）、`model-gateway.PrepareHeaderSecrets`（参考）、`model-gateway.SaveHeaderSecrets`（参考）、`model-gateway.OpenAttemptCredential`（参考）、`model-gateway.OpenAttemptHeaders`（参考） |
 | `modules/model-gateway/migrations/007_provider_dispatch.sql` | 手写 | schemaVersion7追加固定路线凭据引用、加密额外头及安全结果hash；不猜填旧引用。 | 无 |
+| `modules/model-gateway/internal/tokens/tokenize.go` | 手写 | 固定版本免费真实BPE分词与知识服务HTTP入口 | `model-gateway.TokenizeText`、`model-gateway.NewTokenizerHandlers`（参考） |
+| `modules/model-gateway/internal/catalog/tokenizer.go` | 手写 | 免费分词读取同代模型固定身份 | `model-gateway.ReadTokenizerModel`（参考） |

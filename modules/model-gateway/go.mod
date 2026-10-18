@@ -3,15 +3,16 @@ module nice-wiki/modules/model-gateway
 go 1.25.0
 
 require (
-	github.com/tiktoken-go/tokenizer v0.7.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/oapi-codegen/runtime v1.1.2
+	github.com/tiktoken-go/tokenizer v0.7.0
 	modernc.org/sqlite v1.59.0
 	nice-wiki/libs/platform v0.0.0
 )
 
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
+	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect

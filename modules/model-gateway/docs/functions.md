@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 159 个函数：约束 38 个，参考 121 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 162 个函数：约束 39 个，参考 123 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -6248,7 +6248,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`、`model-gateway.NewPriceHandlers`、`model-gateway.EstimateTokens`、`model-gateway.NewTokenHandlers`、`model-gateway.NewLedgerHandlers`、`model-gateway.NewExecutionHandlers`、`platform.NewTaskGroup`、`platform.TaskGroup.Run`、`model-gateway.InstallExecutionOptions`
+- 依赖：`site-config:registerActivation`、`model-gateway.LoadRuntime`、`model-gateway.RecoverLeases`、`model-gateway.PublishOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`model-gateway.OpenDatabase`、`model-gateway.InstallStore`、`model-gateway.Store.Close`、`model-gateway.NewTaskAvailabilityHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`identity:checkAuthorization`、`model-gateway.NewProfileHandlers`、`model-gateway.NewCredentialHandlers`、`model-gateway.NewAdminHandlers`、`model-gateway.NewCatalogHandlers`、`model-gateway.NewPriceHandlers`、`model-gateway.EstimateTokens`、`model-gateway.NewTokenHandlers`、`model-gateway.NewLedgerHandlers`、`model-gateway.NewExecutionHandlers`、`platform.NewTaskGroup`、`platform.TaskGroup.Run`、`model-gateway.InstallExecutionOptions`、`model-gateway.NewTokenizerHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## model-gateway.Serve
@@ -7459,3 +7459,128 @@ func OpenAttemptHeaders(ctx context.Context, op OperationContext, attemptID stri
 - 并发：同一只读快照；签名/验签IO在SQL外，纯计算不轮询ctx。
 - 幂等：只读真实状态与固定原价目，无费用写入。
 - 依赖：`model-gateway.BeginExecution`、`model-gateway.ReadAttemptRecord`、`model-gateway.ReadInvocationRecord`、`model-gateway.CurrentStore`、`model-gateway.loadCredentialMasterKey`、`model-gateway.SecretHeaderName`
+
+## model-gateway.TokenizeText
+
+- 级别：约束
+- 文件：`modules/model-gateway/internal/tokens/tokenize.go`
+- 作用：校验本函数知识纯服务权限和4MiB字节预算；字符数由生成入口校验。
+
+```go
+func TokenizeText(ctx context.Context, op OperationContext, input TokenizeTextInput) (TokenizeTextResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `TokenizeTextInput` | 封闭分词输入 | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `TokenizeTextResult` | 原文真实BPE偏移和固定空间身份 | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 校验本函数知识纯服务权限和4MiB字节预算；字符数由生成入口校验。
+2. ReadTokenizerModel读取已启用同代嵌入模型，ModelEmbeddingSpace保持原五字段身份算法。
+3. 仅支持不可变preprocessorVersion精确none;tiktoken-go@v0.7.0;cl100k_base或o200k_base；不进行隐式正规化、猜模型编码或fallback。
+4. 使用已批准固定MIT依赖本地Encode，逐片验证覆盖原文并给出真实字节结束偏移；计算原文SHA256，无记录正文、供应方或费用IO。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `LOCKED` / HTTP 409：（不可重试）
+- `CANCELLED` / HTTP 409：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `NOT_FOUND` / HTTP 404：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅知识纯服务从已验证入口调用，不接受用户自报空间或编码。
+- 并发：纯计算跟随调用者；只读模型与运行代次从同一SQL语句取得，无收费或业务写入。
+- 幂等：相同模型不可变声明与相同输入返回相同BPE字节偏移。
+- 依赖：`model-gateway.ReadTokenizerModel`、`model-gateway.ModelEmbeddingSpace`
+
+## model-gateway.NewTokenizerHandlers
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/tokens/tokenize.go`
+- 作用：绑定tokenizeText真实HTTP映射；可信边界严格校验，统一Problem、no-store，不记录正文。
+
+```go
+func NewTokenizerHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `handlers` | `TokenHandlers` | 真实文本预算HTTP映射 | 失败时结果不可用，不含秘密或正文 |
+
+**步骤**
+
+1. 绑定tokenizeText真实HTTP映射；可信边界严格校验，统一Problem、no-store，不记录正文。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅知识纯服务从已验证入口调用，不接受用户自报空间或编码。
+- 并发：纯计算跟随调用者；只读模型与运行代次从同一SQL语句取得，无收费或业务写入。
+- 幂等：相同模型不可变声明与相同输入返回相同BPE字节偏移。
+- 依赖：`model-gateway.TokenizeText`
+
+## model-gateway.ReadTokenizerModel
+
+- 级别：参考
+- 文件：`modules/model-gateway/internal/catalog/tokenizer.go`
+- 作用：一次只读SQL取得已启用模型身份与实际runtime_meta代次，拒绝非同代或非嵌入模型。
+
+```go
+func ReadTokenizerModel(ctx context.Context, op OperationContext, modelID string) (Model, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `modelID` | `Identifier` | 固定模型ID | 入口已验证标识符 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `model` | `Model` | 同代模型不可变身份 | 非嵌入或停用拒绝 |
+| `err` | `error` | 公共错误 | 失败结果不可用 |
+
+**步骤**
+
+1. 一次只读SQL取得已启用模型身份与实际runtime_meta代次，拒绝非同代或非嵌入模型。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅知识纯服务从已验证入口调用，不接受用户自报空间或编码。
+- 并发：纯计算跟随调用者；只读模型与运行代次从同一SQL语句取得，无收费或业务写入。
+- 幂等：相同模型不可变声明与相同输入返回相同BPE字节偏移。
+- 依赖：`model-gateway.CurrentStore`

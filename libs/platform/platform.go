@@ -457,17 +457,17 @@ type GatewayMessage struct {
 
 // CreateInvocationInput model-gateway调用请求；字段与生产方types.json一致。
 type CreateInvocationInput struct {
-	Query               string           `json:"query,omitempty"`
-	TaskID              string           `json:"taskId"`
-	ProfileID           Identifier       `json:"profileId"`
-	Capability          string           `json:"capability"`
-	Messages            []GatewayMessage `json:"messages"`
-	Texts               []string         `json:"texts"`
-	CandidateIDs        []Identifier     `json:"candidateIds"`
-	MaximumOutputTokens int64            `json:"maximumOutputTokens"`
-	IDempotencyKey      string           `json:"idempotencyKey"`
-	AdmissionPermit     *AdmissionPermit `json:"admissionPermit,omitempty"`
-	ExpectedEmbeddingSpace *EmbeddingSpace `json:"expectedEmbeddingSpace,omitempty"`
+	Query                  string           `json:"query,omitempty"`
+	TaskID                 string           `json:"taskId"`
+	ProfileID              Identifier       `json:"profileId"`
+	Capability             string           `json:"capability"`
+	Messages               []GatewayMessage `json:"messages"`
+	Texts                  []string         `json:"texts"`
+	CandidateIDs           []Identifier     `json:"candidateIds"`
+	MaximumOutputTokens    int64            `json:"maximumOutputTokens"`
+	IDempotencyKey         string           `json:"idempotencyKey"`
+	AdmissionPermit        *AdmissionPermit `json:"admissionPermit,omitempty"`
+	ExpectedEmbeddingSpace *EmbeddingSpace  `json:"expectedEmbeddingSpace,omitempty"`
 }
 
 // ModelAttempt 一次独立计费的供应方尝试。

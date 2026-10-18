@@ -2258,6 +2258,36 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "platform.validateEnvelope",
+          "name": "validateEnvelope",
+          "signature": "func validateEnvelope(envelope EventEnvelope) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "校验公共事件信封及JSON载荷基本结构，不代替域schema",
+          "steps": [
+            "校验事件ID/生产方/类型/版本/主题/修订/代次、发生时间与JSON格式，载荷schema交已装配消费方。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "同eventId异payloadHash",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写本域inbox表"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "与业务事务同锁",
+          "idempotency": "eventId唯一",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2706,7 +2736,8 @@
           "dependencies": [
             "platform.inbox.readRuntime",
             "platform.inbox.pauseFor",
-            "platform.inbox.eventKey"
+            "platform.inbox.eventKey",
+            "platform.validateEnvelope"
           ],
           "resources": [],
           "contract": "reference"

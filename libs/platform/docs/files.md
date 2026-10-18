@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 24 个：手写 22、生成 1、配置 1。函数 108 个：约束 20，参考 88。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 27 个：手写 25、生成 1、配置 1。函数 114 个：约束 20，参考 94。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -12,7 +12,7 @@
 | `libs/platform/problem/problem.go` | 手写 | 公共Problem输出 | `platform.WriteProblem`、`platform.FromError`（参考） |
 | `libs/platform/outbox/outbox.go` | 手写 | 事务内outbox登记 | `platform.EnqueueEvent` |
 | `libs/platform/outbox/relay.go` | 手写 | outbox转发循环 | `platform.RunRelay`、`platform.NewEventPublisher`（参考）、`platform.PublishEvent`（参考）、`platform.relayWriteContext`（参考）、`platform.RunRelayBatch`（参考） |
-| `libs/platform/inbox/inbox.go` | 手写 | 事件inbox去重 | `platform.ClaimInbox` |
+| `libs/platform/inbox/inbox.go` | 手写 | 事件inbox去重 | `platform.ClaimInbox`、`platform.ClaimInboxBeforeWrite`（参考）、`platform.claimInbox`（参考） |
 | `libs/platform/inbox/consumer.go` | 手写 | 事件订阅循环 | `platform.RunConsumer`、`platform.RunConsumerWithResult`、`platform.consumerLoop.start`（参考）、`platform.consumerLoop.stop`（参考）、`platform.consumerLoop.worker`（参考）、`platform.consumerLoop.queueFor`（参考）、`platform.consumerLoop.operation`（参考）、`platform.consumerLoop.dispatch`（参考）、`platform.consumerLoop.acknowledge`（参考）、`platform.consumerLoop.process`（参考）、`platform.consumerLoop.classify`（参考）、`platform.inbox.eventKey`（参考）、`platform.inbox.pauseFor`（参考）、`platform.inbox.readRuntime`（参考）、`platform.inbox.sleep`（参考）、`platform.inbox.isConfigRejected`（参考） |
 | `libs/platform/worker/loop.go` | 手写 | 任务领取循环 | `platform.RunWorkerLoop`、`platform.workerControlContext`（参考）、`platform.newExecutionLease`（参考）、`platform.expireExecutionLease`（参考）、`platform.executionLeaseContext`（参考）、`platform.renewExecutionLease`（参考） |
 | `libs/platform/modelclient/invoke.go` | 手写 | 模型调用助手 | `platform.InvokeModel` |
@@ -30,3 +30,6 @@
 | `libs/platform/serviceauth/admission.go` | 手写 | 统一风控凭证签名机制 | `platform.SignAdmissionPermit`（参考）、`platform.VerifyAdmissionPermit`（参考）、`platform.validateAdmissionClaims`（参考）、`platform.SignGuardSession`（参考）、`platform.VerifyGuardSession`（参考）、`platform.validateGuardSession`（参考）、`platform.signGuardClaims`（参考）、`platform.verifyGuardClaims`（参考） |
 | `libs/platform/inbox/client.go` | 手写 | 真实事件订阅HTTP窄适配、失败关闭与准确累计统计 | `platform.NewEventConsumer`（参考）、`platform.eventConsumer.SubscribeEvents`（参考）、`platform.eventConsumer.AcknowledgeEvent`（参考） |
 | `libs/platform/lifecycle/task_group.go` | 手写 | 受监督本进程任务去重、并发、原截止与关闭排空 | `platform.NewTaskGroup`（参考）、`platform.TaskGroup.Start`（参考）、`platform.TaskGroup.Cancel`（参考）、`platform.TaskGroup.Run`（参考）、`platform.TaskGroup.Drain`（参考）、`platform.TaskGroup.stop`（参考） |
+| `libs/platform/lifecycle/parser_process.go` | 手写 | 受控有界子进程解析，不继承配置密钥或业务句柄 | `platform.RunBoundedParser`（参考）、`platform.RunParserChild`（参考）、`platform.parserOutput.Write`（参考） |
+| `libs/platform/lifecycle/parser_sandbox_linux_amd64.go` | 手写 | Linux amd64封闭系统调用允许集与硬资源限制 | `platform.EnterParserSandbox`（参考） |
+| `libs/platform/lifecycle/parser_sandbox_other.go` | 手写 | 其他平台相同入口失败关闭，不降级非隔离PDF | 无 |
