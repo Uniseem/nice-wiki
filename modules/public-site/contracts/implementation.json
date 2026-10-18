@@ -789,7 +789,8 @@
             "blockId非null时携精确publishedRevisionId调用content:readPublishedRevision，只读当前公开正文并按LoadPublishedBundle既有hash/schema及稳定块ID规则核验；锚点不存在候选为false/anchor_missing，不偷偷退到文档顶部，不因缺译判锚点不存在",
             "复用本域BuildCanonical规范机制，将可信publicBaseURL的basePath、请求language和content权威canonicalPath恰好拼接一次，清除全部query；从原始规范URL取得同源相对路径，附已存在稳定blockId的URL编码片段，不在JSON接口写HTML属性转义串或外部origin",
             "返回公开目标的任何路径/锚点/语言候选前，以content:resolvePublicPath(canonicalPath)重核仍指同documentId和当前发布ref，以content:validatePublications核同精确ref的visible、matchesCurrent和visibilityRevision；配置/启用语言仍须保持已读revision/version及epoch。当前已知撤回只false/unavailable；仍公开但修订/路径/配置/语言水位变化直接STALE_RESULT/409，权威未知保持DEPENDENCY_UNAVAILABLE/503，不自动重算或重试",
-            "成功响应no-store；true仅href/current publication/request language/available，false仅封闭reason与三项null。解析结果不授予公开正文读取权限，实际页面每次仍执行既有content最终门禁"
+            "成功响应no-store；true仅href/current publication/request language/available，false仅封闭reason与三项null。解析结果不授予公开正文读取权限，实际页面每次仍执行既有content最终门禁",
+            "允许qa用于引用href解析，仍是当前公开发布来源；不得返回草稿或预览链接"
           ],
           "errors": [
             {
@@ -838,7 +839,7 @@
           "sideEffects": [],
           "authorization": {
             "permission": "service",
-            "rule": "仅callerService=site-config且actor.kind=service，无用户委托；只读公开数据，不借服务身份访问draft或撤回历史"
+            "rule": "仅site-config或qa纯服务身份；只解析当前公开发布的精确文档/语言/块，返回publication供调用方再核对"
           },
           "concurrency": "总deadline=min(ctx/op,2500ms)；外域只读快照与最终ref/path/config/language门禁，不宣称跨域单事务；水位变化直接STALE_RESULT/409，不重试",
           "idempotency": "只读无持久副作用；同输入仅在同权威修订集合下同结果；无需Idempotency-Key，不缓存为后续授权",

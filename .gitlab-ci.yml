@@ -31,10 +31,23 @@ variables:
     paths:
       - .cache/
   script:
-    - apt-get install -y --no-install-recommends nodejs npm
+    - apt-get install -y --no-install-recommends curl xz-utils
+    - |
+      mkdir -p .cache/node22
+      cd .cache/node22
+      curl -fsSLO https://nodejs.org/dist/v22.20.0/node-v22.20.0-linux-x64.tar.xz
+      curl -fsSLO https://nodejs.org/dist/v22.20.0/SHASUMS256.txt
+      sha256sum --check --ignore-missing SHASUMS256.txt
+      tar -xJf node-v22.20.0-linux-x64.tar.xz -C /usr/local --strip-components=1
+      cd "$CI_PROJECT_DIR"
     - npm install --global pnpm@9.15.9
     - go version
-    - (cd modules/public-site && go mod tidy)
+    - |
+      for m in libs/platform modules/*; do
+        if test -f "$m/go.mod"; then (cd "$m" && go mod tidy) || exit 1; fi
+      done
+    - pnpm --dir modules/public-site/web install --lockfile-only --ignore-scripts
+    - git add -N modules/public-site/web/pnpm-lock.yaml
     - git ls-files -z '*.go' | xargs -0 gofmt -w
     - make docs
     - make gen
@@ -76,3 +89,21 @@ variables:
     - make build GO_MODULES="$BUILD_MODULES"
     - for m in $BUILD_MODULES; do (cd "$m" && GOFLAGS=-mod=readonly go test -p 2 ./...) || exit 1; done
     - if test "$CHECK_DOCS" = 1; then make check; fi
+
+前端构建与类型检查:
+  stage: build
+  image: node:22.20.0-bookworm
+  needs:
+    - job: 生成与格式
+      artifacts: true
+  cache:
+    key: node22-public-site
+    paths:
+      - .cache/npm/
+      - .cache/pnpm-store/
+  script:
+    - if test -s generated.patch; then git apply generated.patch; fi
+    - npm install --global pnpm@9.15.9
+    - pnpm --dir modules/public-site/web install --frozen-lockfile --store-dir "$CI_PROJECT_DIR/.cache/pnpm-store"
+    - pnpm --dir modules/public-site/web typecheck
+    - pnpm --dir modules/public-site/web build

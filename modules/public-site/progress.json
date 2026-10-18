@@ -2,7 +2,7 @@
   "version": 1,
   "module": "public-site",
   "phase": "implementation",
-  "contractSha256": "5a5a515f535087b9d09909114d04cabb5a8dbf7757c96bee88c34f0c657ad65e",
+  "contractSha256": "445f8bd989cdcddc80ce1b4f04fe500796948744acb902d621a4fc8bba71c6fb",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "public-site第二批精确发布/预览及前端源码已交付；待CI",
   "branch": "codex/public-site-20261018-bulk",
@@ -1429,13 +1429,13 @@
     {
       "id": "public-site.ResolvePublishedLink",
       "path": "modules/public-site/internal/links.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "24ff6942329d68e0ff81d7f71d59e9b7e499c228",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第二轮根统一自部署GitLab CI pipeline 48，候选24ff6942329d68e0ff81d7f71d59e9b7e499c228：生成/格式/重复生成job212补丁0字节，三个并行编译分片job213/214/215全部success，覆盖本次新增的 data-protection 与 public-site 以及既有 Go 模块的 -mod=readonly build/vet/gofmt，foundation 分片运行完整 make check。pipeline 47 在 a50f4c4315f40c36b21ea45b7026236513ed0c80 编译通过，生成补丁 10300 字节已回传为父提交。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本次补qa纯服务只读调用范围，旧CI证据不覆盖，待GitLab重跑"
     },
     {
       "id": "public-site.safeLink",

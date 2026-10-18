@@ -2934,6 +2934,96 @@
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
     },
     {
+      "path": "modules/memory/internal/assistant/cancel.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/assistant/commit.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/assistant/conversation.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/assistant/create.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/assistant/execute.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/assistant/prompt.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/assistant/read.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/context/budget.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/context/manifest.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/context/preflight.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/context/render.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/context/select.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/context/service.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/entry/history.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/entry/read.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/entry/validate.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/entry/write.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/events/outbox.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
       "path": "modules/memory/internal/gen/clients.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
@@ -2949,9 +3039,69 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/memory/internal/mapping/order.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/mapping/read.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/mapping/write.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/proposal/apply-entry.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/proposal/approve.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/proposal/glossary-command.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/proposal/validate.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
       "path": "modules/memory/internal/runtime/bootstrap.go",
       "kind": "handwritten",
       "purpose": "记忆域私有持久化、epoch与启动恢复"
+    },
+    {
+      "path": "modules/memory/internal/runtime/business.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/runtime/model_client.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/runtime/recovery.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/runtime/tasks.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/memory/internal/transport/business.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
     },
     {
       "path": "modules/memory/internal/transport/server.go",
@@ -2962,6 +3112,11 @@
       "path": "modules/memory/migrations/001_initial.sql",
       "kind": "migration",
       "purpose": "记忆域初始SQLite表结构与迁移"
+    },
+    {
+      "path": "modules/memory/migrations/002_business.sql",
+      "kind": "documentation",
+      "purpose": "本轮实际实现源码与构建资料"
     },
     {
       "path": "modules/memory/migrations/control/0001_control.sql",
@@ -3534,6 +3689,16 @@
       "purpose": "启动装配；缺处理函数、journal 或换目录回执时不返回可运行应用"
     },
     {
+      "path": "modules/public-site/internal/authority.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/public-site/internal/beacon.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
       "path": "modules/public-site/internal/breadcrumbs.go",
       "kind": "handwritten",
       "purpose": "公开交付本次已实现源码与合同资料"
@@ -3542,6 +3707,11 @@
       "path": "modules/public-site/internal/cache_key.go",
       "kind": "handwritten",
       "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/content_client.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
     },
     {
       "path": "modules/public-site/internal/gen/clients.gen.go",
@@ -3594,6 +3764,11 @@
       "purpose": "公开交付本次已实现源码与合同资料"
     },
     {
+      "path": "modules/public-site/internal/http_preview.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
       "path": "modules/public-site/internal/http_robots.go",
       "kind": "handwritten",
       "purpose": "公开交付本次已实现源码与合同资料"
@@ -3624,6 +3799,11 @@
       "purpose": "公开交付本次已实现源码与合同资料"
     },
     {
+      "path": "modules/public-site/internal/media_client.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
       "path": "modules/public-site/internal/metadata.go",
       "kind": "handwritten",
       "purpose": "公开交付本次已实现源码与合同资料"
@@ -3637,6 +3817,16 @@
       "path": "modules/public-site/internal/navigation_neighbors.go",
       "kind": "handwritten",
       "purpose": "公开交付本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/public-site/internal/preview.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/public-site/internal/preview_renderer.go",
+      "kind": "handwritten",
+      "purpose": "本轮实际实现源码与构建资料"
     },
     {
       "path": "modules/public-site/internal/sanitize.go",
@@ -3684,9 +3874,44 @@
       "purpose": "public-site逐文件/函数实现、检查和交接台账；初始未实现"
     },
     {
+      "path": "modules/public-site/web/package.json",
+      "kind": "documentation",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/public-site/web/pnpm-lock.yaml",
+      "kind": "generated",
+      "purpose": "由CI pnpm生成的精确前端依赖锁"
+    },
+    {
+      "path": "modules/public-site/web/src/PreviewPanel.vue",
+      "kind": "documentation",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/public-site/web/src/client.ts",
+      "kind": "documentation",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
       "path": "modules/public-site/web/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改"
+    },
+    {
+      "path": "modules/public-site/web/src/main.ts",
+      "kind": "documentation",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/public-site/web/tsconfig.json",
+      "kind": "documentation",
+      "purpose": "本轮实际实现源码与构建资料"
+    },
+    {
+      "path": "modules/public-site/web/vite.config.ts",
+      "kind": "documentation",
+      "purpose": "本轮实际实现源码与构建资料"
     },
     {
       "path": "modules/qa/AGENTS.md",
