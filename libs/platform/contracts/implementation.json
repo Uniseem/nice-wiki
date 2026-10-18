@@ -12492,7 +12492,8 @@
           "steps": [
             "只接受精确restore/scope和完整stage原回执，ReadRestoreSwapState核真实本地日志+目录组合。",
             "仅当未换入的原restore staging、真实全域换回且running HostEpoch或全域完成且running TargetEpoch的对应scope可删。",
-            "先持久discarding意图再删目录/目录fsync/持久discarded，未知不删。"
+            "先持久discarding意图再删目录/目录fsync/持久discarded，未知不删。",
+            "首次删除前核对对应staged目标树或before原host树。已discarded目录重新出现为未知数据不删；已discarding仅在相同当前授权下续接原删除意图。"
           ],
           "errors": [
             {
@@ -12573,6 +12574,8 @@
             "platform.removeSnapshotTree",
             "platform.snapshotDirectoryExists",
             "platform.syncSnapshotDirectories",
+            "platform.verifySnapshotHash",
+            "platform.verifySnapshotTarget",
             "platform.writeSnapshotJSON"
           ],
           "resources": [],

@@ -120,7 +120,7 @@ func applySnapshotRollback(dataRoot string,runtime platform.RuntimeView,record s
 func ReadRestoreSwapState(dataRoot,restoreID string)(SnapshotSwapEvidence,error){
  swapMu.Lock();defer swapMu.Unlock();record,err:=readSnapshotStageRecord(dataRoot,restoreID);if err!=nil{return SnapshotSwapEvidence{},err};entries,err:=readRestoreLog(dataRoot);if err!=nil{return SnapshotSwapEvidence{},err};last,err:=restoreLogState(entries,record);if err!=nil{return SnapshotSwapEvidence{},err};active,staged,before,_:=snapshotSwapPaths(dataRoot,restoreID)
  a,err:=snapshotDirectoryExists(active);if err!=nil{return SnapshotSwapEvidence{},err};s,err:=snapshotDirectoryExists(staged);if err!=nil{return SnapshotSwapEvidence{},err};b,err:=snapshotDirectoryExists(before);if err!=nil{return SnapshotSwapEvidence{},err}
- result:=SnapshotSwapEvidence{StageID:record.Receipt.StageID,ManifestHash:record.TreeFingerprint,HostEpoch:record.HostEpoch,TargetEpoch:record.Input.TargetDataEpoch}
+ result:=SnapshotSwapEvidence{StageID:record.Receipt.StageID,ManifestHash:record.TreeFingerprint,HostManifestHash:last.HostManifestHash,HostEpoch:record.HostEpoch,TargetEpoch:record.Input.TargetDataEpoch}
  switch last.Action{
  case "":result.Known=a&&!b&&(s||record.Receipt.State=="discarding-staged"||record.Receipt.State=="discarded-staged")
  case "switched":result.Switched=true;result.Known=a&&!s&&(b||record.Receipt.State=="discarding-before"||record.Receipt.State=="discarded-before")

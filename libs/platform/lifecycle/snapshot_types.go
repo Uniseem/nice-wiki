@@ -49,7 +49,7 @@ type SnapshotDiscardInput struct{RestoreID string `json:"restoreId"`;Scope strin
 type SnapshotDiscardResult struct{RestoreID string `json:"restoreId"`;Scope string `json:"scope"`;Removed bool `json:"removed"`}
 
 // Config的回调仅由各域启动装配；缺回调失败，不把未知inventory/费用事实冒充空数组或安全。
-type SnapshotSwapEvidence struct{Known bool;Switched bool;RolledBack bool;Aborted bool;StageID string;ManifestHash string;HostEpoch string;TargetEpoch string}
+type SnapshotSwapEvidence struct{Known bool;Switched bool;RolledBack bool;Aborted bool;StageID string;ManifestHash string;HostManifestHash string;HostEpoch string;TargetEpoch string}
 
 // SnapshotTree穷尽完整目标文件和目录，包括空目录。排序后canonical hash为激活manifestHash。
 type SnapshotTree struct{Files []DomainSnapshotFile `json:"files"`;Directories []string `json:"directories"`}
