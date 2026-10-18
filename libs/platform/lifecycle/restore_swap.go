@@ -71,14 +71,14 @@ func snapshotDirectoryExists(path string)(bool,error){
 }
 func snapshotSwapPaths(dataRoot,restoreID string)(string,string,string,string){base:=filepath.Join(dataRoot,restoreDir,restoreID);return filepath.Join(dataRoot,activeDir),filepath.Join(base,stagedDirName),filepath.Join(base,beforeDirName),base}
 func verifySnapshotHash(root,expected string)error{_,hash,err:=fingerprintSnapshotTree(context.Background(),root,MaxArchiveBytes);if err!=nil{return err};if hash!=expected{return integrity("恢复目录完整树与持久阶段证明不一致")};return nil}
-func snapshotRename(from,to,dataRoot,restoreBase string)error{
+func snapshotRename(from,to string)error{
  exists,err:=snapshotDirectoryExists(to);if err!=nil{return err};if exists{return integrity("rename目标目录已存在，拒绝覆盖未知数据")}
  if err=ValidatePrivatePath(from,"directory",false);err!=nil{return err};if err=os.Rename(from,to);err!=nil{return snapshotIOError(err)}
- if err=syncDir(restoreBase);err!=nil{return snapshotIOError(err)};return snapshotIOError(syncDir(dataRoot))
+ return nil
 }
-func snapshotSwapLog(dataRoot string,entry restoreLogEntry,action string)(restoreLogEntry,error){entry.Action=action;entry.At=platform.Now();return entry,appendRestoreLog(dataRoot,entry)}
+func snapshotSwapLog(dataRoot string,entry restoreLogEntry,action string)(restoreLogEntry,error){if err:=syncDir(filepath.Join(dataRoot,restoreDir,entry.RestoreID));err!=nil{return entry,snapshotIOError(err)};if err:=syncDir(dataRoot);err!=nil{return entry,snapshotIOError(err)};entry.Action=action;entry.At=platform.Now();return entry,appendRestoreLog(dataRoot,entry)}
 func applySnapshotSwitch(dataRoot string,runtime platform.RuntimeView,record snapshotStageRecord,last restoreLogEntry)(platform.SwapResult,error){
- active,staged,before,base:=snapshotSwapPaths(dataRoot,record.Input.RestoreID)
+ active,staged,before,_:=snapshotSwapPaths(dataRoot,record.Input.RestoreID)
  a,err:=snapshotDirectoryExists(active);if err!=nil{return platform.SwapResult{},err};s,err:=snapshotDirectoryExists(staged);if err!=nil{return platform.SwapResult{},err};b,err:=snapshotDirectoryExists(before);if err!=nil{return platform.SwapResult{},err}
  if last.Action=="rolled-back"||last.Action=="aborted"||last.Action=="prepared-rollback"||last.Action=="new-renamed"{return platform.SwapResult{},integrity("已进入换回的恢复不可凭旧stage再次换入")}
  if last.Action==""{
@@ -86,32 +86,32 @@ func applySnapshotSwitch(dataRoot string,runtime platform.RuntimeView,record sna
   last=restoreLogEntry{RestoreID:record.Input.RestoreID,StageID:record.Receipt.StageID,ManifestHash:record.TreeFingerprint,HostManifestHash:hostHash,InputHash:record.Receipt.InputHash,HostEpoch:record.HostEpoch,TargetEpoch:record.Input.TargetDataEpoch,BarrierID:record.Input.BarrierID,RuntimeRevision:runtime.Revision};last,err=snapshotSwapLog(dataRoot,last,"prepared-switch");if err!=nil{return platform.SwapResult{},err}
  }
  if last.Action=="prepared-switch"{
-  if a&&!b&&s{if err=verifySnapshotHash(active,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};if err=verifySnapshotTarget(context.Background(),staged,record);err!=nil{return platform.SwapResult{},err};if err=snapshotRename(active,before,dataRoot,base);err!=nil{return platform.SwapResult{},err};a,b=false,true}else if a||!b||!s{return platform.SwapResult{},integrity("prepared-switch目录状态无法续接")}
+  if a&&!b&&s{if err=verifySnapshotHash(active,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};if err=verifySnapshotTarget(context.Background(),staged,record);err!=nil{return platform.SwapResult{},err};if err=snapshotRename(active,before);err!=nil{return platform.SwapResult{},err};a,b=false,true}else if a||!b||!s{return platform.SwapResult{},integrity("prepared-switch目录状态无法续接")}
   if err=verifySnapshotHash(before,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};last,err=snapshotSwapLog(dataRoot,last,"old-renamed");if err!=nil{return platform.SwapResult{},err}
  }
  if last.Action=="old-renamed"{
   if !b{return platform.SwapResult{},integrity("原目录已换出但before缺失")};if err=verifySnapshotHash(before,last.HostManifestHash);err!=nil{return platform.SwapResult{},err}
-  if !a&&s{if err=verifySnapshotTarget(context.Background(),staged,record);err!=nil{return platform.SwapResult{},err};if err=snapshotRename(staged,active,dataRoot,base);err!=nil{return platform.SwapResult{},err};a,s=true,false}else if !a||s{return platform.SwapResult{},integrity("old-renamed目录状态无法续接")}
+  if !a&&s{if err=verifySnapshotTarget(context.Background(),staged,record);err!=nil{return platform.SwapResult{},err};if err=snapshotRename(staged,active);err!=nil{return platform.SwapResult{},err};a,s=true,false}else if !a||s{return platform.SwapResult{},integrity("old-renamed目录状态无法续接")}
   if err=verifySnapshotHash(active,last.ManifestHash);err!=nil{return platform.SwapResult{},err};last,err=snapshotSwapLog(dataRoot,last,"switched");if err!=nil{return platform.SwapResult{},err}
  }
  if last.Action!="switched"||!a||!b||s{return platform.SwapResult{},integrity("switched目录与日志不一致")};if err=verifySnapshotHash(active,last.ManifestHash);err!=nil{return platform.SwapResult{},err};if err=verifySnapshotHash(before,last.HostManifestHash);err!=nil{return platform.SwapResult{},err}
  return platform.SwapResult{Action:platform.SwapSwitched,RestoreID:record.Input.RestoreID},nil
 }
 func applySnapshotRollback(dataRoot string,runtime platform.RuntimeView,record snapshotStageRecord,last restoreLogEntry)(platform.SwapResult,error){
- active,staged,before,base:=snapshotSwapPaths(dataRoot,record.Input.RestoreID);a,err:=snapshotDirectoryExists(active);if err!=nil{return platform.SwapResult{},err};s,err:=snapshotDirectoryExists(staged);if err!=nil{return platform.SwapResult{},err};b,err:=snapshotDirectoryExists(before);if err!=nil{return platform.SwapResult{},err}
+ active,staged,before,_:=snapshotSwapPaths(dataRoot,record.Input.RestoreID);a,err:=snapshotDirectoryExists(active);if err!=nil{return platform.SwapResult{},err};s,err:=snapshotDirectoryExists(staged);if err!=nil{return platform.SwapResult{},err};b,err:=snapshotDirectoryExists(before);if err!=nil{return platform.SwapResult{},err}
  if last.Action==""{if !a||!s||b{return platform.SwapResult{},integrity("未切换域的换回目录状态不明")};if err=verifySnapshotTarget(context.Background(),staged,record);err!=nil{return platform.SwapResult{},err};_,hostHash,err:=fingerprintSnapshotTree(context.Background(),active,MaxArchiveBytes);if err!=nil{return platform.SwapResult{},err};last=restoreLogEntry{RestoreID:record.Input.RestoreID,StageID:record.Receipt.StageID,ManifestHash:record.TreeFingerprint,HostManifestHash:hostHash,InputHash:record.Receipt.InputHash,HostEpoch:record.HostEpoch,TargetEpoch:record.Input.TargetDataEpoch,BarrierID:record.Input.BarrierID,RuntimeRevision:runtime.Revision};if _,err=snapshotSwapLog(dataRoot,last,"aborted");err!=nil{return platform.SwapResult{},err};return platform.SwapResult{Action:platform.SwapNone},nil}
  if last.Action=="prepared-switch"||last.Action=="old-renamed"{
-  if !a&&b&&s{if err=verifySnapshotHash(before,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};if err=verifySnapshotTarget(context.Background(),staged,record);err!=nil{return platform.SwapResult{},err};if err=snapshotRename(before,active,dataRoot,base);err!=nil{return platform.SwapResult{},err};a,b=true,false}
+  if !a&&b&&s{if err=verifySnapshotHash(before,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};if err=verifySnapshotTarget(context.Background(),staged,record);err!=nil{return platform.SwapResult{},err};if err=snapshotRename(before,active);err!=nil{return platform.SwapResult{},err};a,b=true,false}
   if a&&!b&&s{if err=verifySnapshotHash(active,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};_,err=snapshotSwapLog(dataRoot,last,"aborted");if err!=nil{return platform.SwapResult{},err};return platform.SwapResult{Action:platform.SwapNone},nil}
   if last.Action!="old-renamed"||!a||!b||s{return platform.SwapResult{},integrity("中断切换无法证明是否已换入")};if err=verifySnapshotHash(active,last.ManifestHash);err!=nil{return platform.SwapResult{},err};last,err=snapshotSwapLog(dataRoot,last,"switched");if err!=nil{return platform.SwapResult{},err}
  }
  if last.Action=="aborted"{if !a||b||!s{return platform.SwapResult{},integrity("已取消换入的目录不一致")};if err=verifySnapshotHash(active,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};return platform.SwapResult{Action:platform.SwapNone},nil}
  if last.Action=="switched"{if !a||!b||s{return platform.SwapResult{},integrity("换回前缺完整switched目录")};if err=verifySnapshotHash(before,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};if err=verifySnapshotHash(active,last.ManifestHash);err!=nil{return platform.SwapResult{},err};last.RuntimeRevision=runtime.Revision;last,err=snapshotSwapLog(dataRoot,last,"prepared-rollback");if err!=nil{return platform.SwapResult{},err}}
  if last.Action=="prepared-rollback"{
-  if a&&b&&!s{if err=snapshotRename(active,staged,dataRoot,base);err!=nil{return platform.SwapResult{},err};a,s=false,true}else if a||!b||!s{return platform.SwapResult{},integrity("prepared-rollback目录状态无法续接")};if err=verifySnapshotHash(staged,last.ManifestHash);err!=nil{return platform.SwapResult{},err};last,err=snapshotSwapLog(dataRoot,last,"new-renamed");if err!=nil{return platform.SwapResult{},err}
+  if a&&b&&!s{if err=snapshotRename(active,staged);err!=nil{return platform.SwapResult{},err};a,s=false,true}else if a||!b||!s{return platform.SwapResult{},integrity("prepared-rollback目录状态无法续接")};if err=verifySnapshotHash(staged,last.ManifestHash);err!=nil{return platform.SwapResult{},err};last,err=snapshotSwapLog(dataRoot,last,"new-renamed");if err!=nil{return platform.SwapResult{},err}
  }
  if last.Action=="new-renamed"{
-  if !a&&b&&s{if err=verifySnapshotHash(before,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};if err=snapshotRename(before,active,dataRoot,base);err!=nil{return platform.SwapResult{},err};a,b=true,false}else if !a||b||!s{return platform.SwapResult{},integrity("new-renamed目录状态无法续接")};if err=verifySnapshotHash(active,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};last,err=snapshotSwapLog(dataRoot,last,"rolled-back");if err!=nil{return platform.SwapResult{},err}
+  if !a&&b&&s{if err=verifySnapshotHash(before,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};if err=snapshotRename(before,active);err!=nil{return platform.SwapResult{},err};a,b=true,false}else if !a||b||!s{return platform.SwapResult{},integrity("new-renamed目录状态无法续接")};if err=verifySnapshotHash(active,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};last,err=snapshotSwapLog(dataRoot,last,"rolled-back");if err!=nil{return platform.SwapResult{},err}
  }
  if last.Action!="rolled-back"||!a||b||!s{return platform.SwapResult{},integrity("rolled-back目录与日志不一致")};if err=verifySnapshotHash(active,last.HostManifestHash);err!=nil{return platform.SwapResult{},err};if err=verifySnapshotHash(staged,last.ManifestHash);err!=nil{return platform.SwapResult{},err};return platform.SwapResult{Action:platform.SwapRolledBack,RestoreID:record.Input.RestoreID},nil
 }

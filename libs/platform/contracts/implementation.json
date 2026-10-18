@@ -5325,7 +5325,7 @@
         {
           "id": "platform.snapshotRename",
           "name": "snapshotRename",
-          "signature": "func snapshotRename(from, to, dataRoot, restoreBase string) error",
+          "signature": "func snapshotRename(from, to string) error",
           "inputs": [],
           "outputs": [],
           "purpose": "实现公共快照内部单一机制",
@@ -5407,8 +5407,7 @@
             "platform.ValidatePrivatePath",
             "platform.integrity",
             "platform.snapshotDirectoryExists",
-            "platform.snapshotIOError",
-            "platform.syncDir"
+            "platform.snapshotIOError"
           ],
           "resources": [],
           "contract": "reference"
@@ -5421,7 +5420,7 @@
           "outputs": [],
           "purpose": "实现公共快照内部单一机制",
           "steps": [
-            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+            "包括崩溃续接已发生rename的分支，先fsync双方父目录再持久下一完整日志，不假设继承上进程缓存中的目录已持久。"
           ],
           "errors": [
             {
@@ -5495,7 +5494,8 @@
           "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
           "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
           "dependencies": [
-            "platform.appendRestoreLog"
+            "platform.appendRestoreLog",
+            "platform.syncDir"
           ],
           "resources": [],
           "contract": "reference"
