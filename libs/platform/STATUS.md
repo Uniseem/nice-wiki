@@ -1,3 +1,9 @@
+# 2026-10-18 公共机制第五批检查通过
+
+GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。
+
+本域64项独立机制或实际修改函数通过源码检查。14域完整回调、全域封口与完整服务未齐，保持未完成；新增归档接口尚未接真实manager。
+
 # 恢复续接目录持久次序窄修
 
 源码81730f7：snapshotSwapLog在写下一阶段日志前统一fsync数据根与本restore目录，覆盖崩溃后已发生rename但未完成日志的续接分支；snapshotRename仅负责不覆盖已存在目标的真实rename。四修改函数重新blocked待GitLab，无新函数。未本机Go/生成/格式/编译/测试、未真实业务/部署/push。随后按Root分配接公共modelclient原键只读观察。

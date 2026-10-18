@@ -33,10 +33,10 @@
     {
       "path": "modules/jobs/internal/leases.go",
       "state": "verified",
-      "implementationCommit": "167aec4ad22f427d8ec36a3d49cf63055789d692",
+      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
       },
       "blocker": null
     },
@@ -628,13 +628,13 @@
     {
       "id": "jobs.ClaimJob",
       "path": "modules/jobs/internal/leases.go",
-      "state": "blocked",
-      "implementationCommit": "e79d538a60ca2714f420f768e5fdd6971a55ed9b",
+      "state": "verified",
+      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "真实按类型领取与HTTP接线待GitLab"
+      "blocker": null
     },
     {
       "id": "jobs.StartJob",
@@ -1849,13 +1849,13 @@
     {
       "id": "jobs.NewLeaseHandlers",
       "path": "modules/jobs/internal/leases.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "f43f053e8c60cc1d37cc682e1ed4fb0e2cf0abab",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "真实worker六租约HTTP接线待GitLab"
+      "blocker": null
     },
     {
       "id": "jobs.ReadSnapshotArchive",

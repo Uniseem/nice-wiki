@@ -1,3 +1,9 @@
+# 2026-10-18 公共机制第五批检查通过
+
+GitLab pipeline109（源码eb84b64；生成507、三个Go分片508/509/510、前端511）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check和四个实际前端类型检查/构建通过。精确8050字节生成补丁已回传；普通测试无测试文件，不代表业务验收或部署。
+
+本域2项独立机制或实际修改函数通过源码检查。14域完整回调、全域封口与完整服务未齐，保持未完成；新增归档接口尚未接真实manager。
+
 # 类型筛选与真实租约HTTP接线待GitLab
 
 Root补claimJob可选jobTypes真实SQL筛选，六个租约HTTP映射及纯owner固定白名单；知识build/extract并发隔离由各域装配。ClaimJob与新NewLeaseHandlers待统一GitLab，完整jobs存储安装、恢复/后台仍未齐。不本机编译、无新增测试或真实接口。
