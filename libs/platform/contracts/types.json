@@ -1854,6 +1854,10 @@
         },
         "queryHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "eventControl": {
+          "type": "boolean",
+          "description": "可选默认false；true仅持久event/consumer控制根，不得挪作原paid root。"
         }
       },
       "required": [

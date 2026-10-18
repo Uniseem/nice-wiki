@@ -98,6 +98,11 @@ type SnapshotConfig struct {
 type SnapshotAPI interface {
  AdmitBusiness(context.Context)(context.Context,func(),error)
  WriteWindow(context.Context)(time.Time,error)
+ PrepareBarrier(context.Context,SnapshotBarrierInput)(SnapshotBarrierStatus,error)
+ DrainBarrier(context.Context,string)(SnapshotBarrierStatus,error)
+ ObserveBarrier(context.Context,string)(SnapshotBarrierObservation,error)
+ SealBarrier(context.Context,SnapshotSealProof)(SnapshotBarrierStatus,error)
+ ResumeDrain(context.Context,string,string)(SnapshotBarrierStatus,error)
  EnterBarrier(context.Context,SnapshotBarrierInput)(SnapshotBarrierStatus,error)
  ReleaseBarrier(context.Context,string)(SnapshotBarrierStatus,error)
  Export(context.Context,SnapshotExportInput)(SnapshotExportResult,error)

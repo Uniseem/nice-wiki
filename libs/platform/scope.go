@@ -9,6 +9,7 @@ import (
 
 // CleanupScope仅服务断言携带；不接受HTTP正文或未签请求头自报。它不包含或延长付费许可。
 type CleanupScope struct {
+ EventControl bool `json:"eventControl,omitempty"`
  Version int `json:"version"`
  BarrierID Identifier `json:"barrierId"`
  DataEpoch Identifier `json:"dataEpoch"`
@@ -25,7 +26,7 @@ type CleanupScope struct {
 // Resource规则仅由可信启动配置；只支持一个固定路径参数、JSON字符串叶或固定批次资源名。
 type CleanupResource struct{PathParameter string;BodyPointer string;Literal string}
 type CleanupRoute struct{TargetService string;Action string;Method string;PathTemplate string;Resource CleanupResource;Control bool;BrokerControl bool}
-type CleanupOperationPolicy struct{Callers []string;Resource CleanupResource}
+type CleanupOperationPolicy struct{Callers []string;Resource CleanupResource;BrokerControl bool}
 type CleanupRequest struct{SourceService string;TargetService string;Method string;Path string;RawQuery string;Body []byte;BodyHash Hash}
 type CleanupScopeIssuer interface{IssueCleanup(context.Context,CleanupRequest)(*CleanupScope,error)}
 type cleanupIssuerKey struct{}

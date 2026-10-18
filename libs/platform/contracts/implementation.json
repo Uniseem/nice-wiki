@@ -5586,7 +5586,8 @@
             "仅显式ServiceActorCallers子白名单且Actor.Kind=service允许业务service读取；有用户委托仍要求当前用户权威，不借服务名绕过",
             "必需真实已装配的scope准入hook，缺失失败关闭，统计完整实际在途直到最终本地提交/确认完成。",
             "ControllerOperations仅供可信启动固定登记纯控制操作，只免业务scope，身份/schema/权限/epoch不绕过。",
-            "非控制HTTP在全部边界授权/schema校验后用AdmitBusiness获独立lease，直到handler/响应流完全返回才释放。"
+            "非控制HTTP在全部边界授权/schema校验后用AdmitBusiness获独立lease，直到handler/响应流完全返回才释放。",
+            "cleanupScope仅固定CleanupOperations，真实path/body资源及policy.BrokerControl全等并经AuthorizeCleanup权威原对象归属，才AdmitCleanup整请求lease；不绕原身份/权限/epoch。"
           ],
           "errors": [
             {
@@ -14360,7 +14361,9 @@
             "platform.snapshotStageID",
             "platform.syncSnapshotDirectories",
             "platform.verifySnapshotFile",
-            "platform.writeSnapshotJSON"
+            "platform.writeSnapshotJSON",
+            "platform.PrepareRestoredOutbox",
+            "platform.SnapshotStageBinding"
           ],
           "resources": [],
           "contract": "reference"
@@ -15035,7 +15038,8 @@
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
           "steps": [
-            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。",
+            "保留event_broker来源，不能经分叉变为paid原任务root。"
           ],
           "errors": [
             {
@@ -15176,7 +15180,8 @@
           "outputs": [],
           "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
           "steps": [
-            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。",
+            "接收签名eventControl在新私有lease中保持，后续只能BrokerControl动作。"
           ],
           "errors": [
             {
@@ -15556,6 +15561,117 @@
           "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
           "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_stage_scope.go",
+      "kind": "handwritten",
+      "purpose": "真实已认证恢复隔离副本机制",
+      "functions": [
+        {
+          "id": "platform.SnapshotStageBinding",
+          "name": "SnapshotStageBinding",
+          "signature": "func SnapshotStageBinding(ctx context.Context) (string, string, string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅Manager核完整源归档后MigrateStage私有scope可读当前隔离root、targetEpoch和本次host真实sealHash。",
+          "steps": [
+            "仅Manager核完整源归档后MigrateStage私有scope可读当前隔离root、targetEpoch和本次host真实sealHash。",
+            "每次重新核实际restoreStaging/barrier/restore/target/opened source与本进程fileOps和safe绑定，不能授权active写或付费。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/outbox/restore.go",
+      "kind": "handwritten",
+      "purpose": "真实已认证恢复隔离副本机制",
+      "functions": [
+        {
+          "id": "platform.PrepareRestoredOutbox",
+          "name": "PrepareRestoredOutbox",
+          "signature": "func PrepareRestoredOutbox(ctx context.Context, db *sql.DB) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "通过公共SnapshotStageBinding核已认证隔离阶段并用PRAGMA主文件精确核staged路径，源须已有真实outbox表，不创建空历史。",
+          "steps": [
+            "通过公共SnapshotStageBinding核已认证隔离阶段并用PRAGMA主文件精确核staged路径，源须已有真实outbox表，不创建空历史。",
+            "同SQLite事务暂开复制的源gate，未知状态或冒称目标代活动失败；旧代pending/quarantine撤资格且保全原行。",
+            "保持原payload/epoch/费用事实，把gate绑定本次host真实sealHash封口，目标全局activate/Release前不能新发布。"
+          ],
+          "errors": [
+            {
+              "code": "LOCKED",
+              "when": "屏障不允许该活动",
+              "retryable": true
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原绑定或真实水位改变",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "来源或持久事实矛盾",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实权威回调缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅本进程真实在途计数或本域已登记私有IO，不记录正文/秘密，不创建付费调用。"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。"
+          },
+          "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
+          "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [
+            "platform.SnapshotStageBinding",
+            "platform.ValidatePrivatePath",
+            "platform.EnsureSchema"
+          ],
           "resources": [],
           "contract": "reference"
         }

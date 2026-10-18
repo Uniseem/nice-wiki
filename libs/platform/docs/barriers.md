@@ -28,9 +28,9 @@ SnapshotSealProof为{barrierId,dataEpoch,observations,brokerBefore,brokerAfter,n
 
 ## cleanupScope
 
-断言内可选cleanupScope={version:1,barrierId,dataEpoch,deadline,sourceService,targetService,action,resourceId,rootOperationId,siteId,costClass?,queryHash}。queryHash=SHA256实际URL.RawQuery，空串也hash；method/path/bodyHash仍由同一服务断言签名。scope期限严格为min(30秒,ctx期限,原barrier期限,原cleanup期限)，没有时钟偏差延长。
+断言内可选cleanupScope={version:1,barrierId,dataEpoch,deadline,sourceService,targetService,action,resourceId,rootOperationId,siteId,costClass?,queryHash,eventControl?}。queryHash=SHA256实际URL.RawQuery，空串也hash；method/path/bodyHash仍由同一服务断言签名。scope期限严格为min(30秒,ctx期限,原barrier期限,原cleanup期限)，没有时钟偏差延长。
 
-只有活跃原私有执行租约或SnapshotCleanup.Context可发行。后者必须AuthorizeCleanupOrigin从原持久对象核原批准任务，不能用协调器随机root代替。ExistingWorkContext只从尚未release的真实旧执行分叉独立短清理租约，脱离原HTTP取消并清除过期用户proof，不复活原用户身份，不重签/消费模型permit。固定CleanupRoutes按真实method/path/body资源绑定，Control仅明确纯读控制操作；BrokerControl仅持久event/consumer控制根，与paid任务清理根严格分开。
+只有活跃原私有执行租约或SnapshotCleanup.Context可发行。后者必须AuthorizeCleanupOrigin从原持久对象核原批准任务，不能用协调器随机root代替。ExistingWorkContext只从尚未release的真实旧执行分叉独立短清理租约，脱离原HTTP取消并清除过期用户proof，不复活原用户身份，不重签/消费模型permit。固定CleanupRoutes按真实method/path/body资源绑定，Control仅明确纯读控制操作；BrokerControl仅持久event/consumer控制根，与paid任务清理根严格分开，eventControl=true随接收/分叉租约保持；目标固定policy.BrokerControl必须全等。
 
 接收方先验证服务签名、原root/site/epoch/class/queryHash，固定CleanupOperations再提取实际path/body资源，与签名全等，并AuthorizeCleanup从本域权威原对象核归属。仅draining和同barrier可AdmitCleanup计独立租约，safe拒新清理。createInvocation/dispatch/createJob/claim/任意业务写不能登记为cleanup。controller标记也不能给写端口免除真实私有lease。
 
@@ -39,3 +39,5 @@ SnapshotSealProof为{barrierId,dataEpoch,observations,brokerBefore,brokerAfter,n
 CaptureSnapshotFiles(ctx,activeRoot,workspace,databases map[string]*sql.DB,exclude SnapshotCaptureExclude)只能从Manager真实safe Capture回调调用。activeRoot固定同DataRoot/active，workspace为空隔离树。固定exclude为明确相对路径无glob；拒全树symlink/hardlink/非regular和未登记SQLite。登记数据库以PRAGMA database_list核主文件精确归属，再VACUUM main INTO独立副本；仅跳对应live DB/-wal/-shm，未知回滚journal失败。完整容量真实预检、普通文件流copy+hash/fsync、数据库副本hash/fsync、全部目录fsync后返回真实inventory。本域仍须生成真实objects/publications/assets/invocations/references与secret redaction，不以此工具伪造业务库存。
 
 Manifest V2必须显式assets/invocations数组（真实空也保留[]），AssetVersionRef五字段assetId/version/sha256/mediaType/byteSize，SnapshotInvocationRef原invocationId/rootOperationId/dataEpoch。V1只在没有这些库存与typed引用的明确分支保持原canonical字段集合，不能加null导致原hash漂移；V1旧引用不能当V2空闭包。
+
+恢复staging可调用`outbox.PrepareRestoredOutbox(ctx,db)`，仅私有已认证Stage上下文并核真实staged主DB路径；源须已有真实outbox表，不创建空历史。事务内暂开复制的源gate，旧epoch pending/quarantine只撤活动资格并保原行，然后把gate绑定本次host sealHash继续封口；全局activate后Release才按该hash重开。原payload/epoch/费用证据不改。
