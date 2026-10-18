@@ -70,15 +70,16 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	validators := make(map[string]func(json.RawMessage) error)
-	for _, name := range []string{"MediaReadAssetResult", "LanguageSuggestionApprovalResult", "SiteInitializationStatusResult"} {
+	for _, name := range []string{"MediaReadAssetResult", "LanguageSuggestionApprovalResult", "SiteInitializationStatusResult", "GatewaySiteConfigResult"} {
 		validator, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if err != nil {
 			return nil, err
 		}
 		validators[name] = validator
 	}
+ siteClient:=gen.NewSiteConfigClient(config.Dependencies["site-config"],ModuleSlug,key);siteID,err:=ReadGatewaySiteID(ctx,siteClient,runtimeView.DataEpoch,validators["GatewaySiteConfigResult"]);if err!=nil{return nil,err}
 	mediaClient := gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key)
-	options := gatewayruntime.ExecutionOptions{Anchors: anchors, Tasks: taskGroup, Media: mediaClient, MediaBytes: mediaClient, Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), Validators: validators, WriteWindow: platform.WriteWindowConfig{Runtime: runtimeAuthority.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
+	options := gatewayruntime.ExecutionOptions{SiteID:siteID,Anchors: anchors, Tasks: taskGroup, Media: mediaClient, MediaBytes: mediaClient, Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), Validators: validators, WriteWindow: platform.WriteWindowConfig{Runtime: runtimeAuthority.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
 		view, err := runtimeAuthority.ReadRuntimeState(work)
 		if err != nil {
 			return time.Time{}, err
@@ -155,8 +156,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		OpenedDataEpoch: runtimeView.DataEpoch,
 		Authorize:       authorize,
 		ServiceActorCallers: map[string][]string{"tokenizeText": {"knowledge"}, "lookupInference": assignmentCallers[1:],
-			"createInference": assignmentCallers[1:], "quoteCost": assignmentCallers[1:], "cancelInference": assignmentCallers[1:], "queryUsage": usageServices, "readModels": assignmentCallers[1:], "readProfiles": assignmentCallers[1:], "readInference": assignmentCallers[1:], "resumeInference": assignmentCallers[1:]},
+			"createInference": assignmentCallers[1:], "readUsageStatisticsPage": {"analytics"}, "quoteCost": assignmentCallers[1:], "cancelInference": assignmentCallers[1:], "queryUsage": usageServices, "readModels": assignmentCallers[1:], "readProfiles": assignmentCallers[1:], "readInference": assignmentCallers[1:], "resumeInference": assignmentCallers[1:]},
 		AllowedCallers: map[string][]string{
+   "readUsageStatisticsPage": {"analytics"},
 			"lookupInference":      assignmentCallers[1:],
 			"getLedger":            {"portal"},
 			"readInference":        assignmentCallers,
@@ -257,4 +259,10 @@ func ReadInitializationState(ctx context.Context, client *gen.SiteConfigClient, 
 		return false, platform.NewError(platform.CodeIntegrityError, false, "站点初始化权威响应不符合合同")
 	}
 	return status.Initialized, nil
+}
+
+// ReadGatewaySiteID只取生产方严格响应的真实siteId，不把system或旧费用行当当前站点。
+func ReadGatewaySiteID(ctx context.Context,client *gen.SiteConfigClient,epoch string,validate func(json.RawMessage)error)(string,error){
+ work,cancel:=context.WithTimeout(platform.WithPortalProof(ctx,""),2500*time.Millisecond);defer cancel();deadline,_:=work.Deadline();id:=platform.NewIdentifier();op:=platform.OperationContext{RequestID:id,OperationID:id,RootOperationID:id,CallerService:ModuleSlug,Actor:platform.AuthContext{Kind:"service",SubjectID:ModuleSlug},DataEpoch:epoch,Deadline:deadline.UTC().Format(time.RFC3339Nano)}
+ raw,err:=client.ReadSiteConfig(platform.WithOperationContext(work,op));if err!=nil{return "",err};if validate(raw)!=nil{return "",platform.NewError(platform.CodeIntegrityError,false,"站点配置响应不符合生产合同")};var result struct{Config struct{SiteID string `json:"siteId"`} `json:"config"`};if json.Unmarshal(raw,&result)!=nil||result.Config.SiteID==""{return "",platform.NewError(platform.CodeDependencyUnavailable,true,"网关当前站点尚未初始化")};return result.Config.SiteID,nil
 }

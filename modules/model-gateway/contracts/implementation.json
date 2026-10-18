@@ -11579,7 +11579,8 @@
           "idempotency": "只读真实状态与固定原价目，无费用写入。",
           "dependencies": [
             "model-gateway.GetLedger",
-            "model-gateway.QueryUsage"
+            "model-gateway.QueryUsage",
+            "model-gateway.ReadUsageStatisticsPage"
           ],
           "resources": [],
           "contract": "reference"
@@ -16736,7 +16737,10 @@
             "model-gateway.Application.BackgroundTasks",
             "platform.NewSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
-            "platform.SnapshotManager.WriteWindow"
+            "platform.SnapshotManager.WriteWindow",
+            "site-config:readSiteConfig",
+            "model-gateway.ReadGatewaySiteID",
+            "model-gateway.ReadUsageStatisticsPage"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -17134,6 +17138,87 @@
             "site-config:readInitializationStatus"
           ],
           "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.ReadGatewaySiteID",
+          "name": "ReadGatewaySiteID",
+          "signature": "func ReadGatewaySiteID(ctx context.Context, client *gen.SiteConfigClient, epoch string, validate func(json.RawMessage) error) (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "安全统计生产支持：ReadGatewaySiteID",
+          "steps": [
+            "MG纯服务清用户proof，固定2.5秒新操作读site-config:readSiteConfig，严格生产完整schema只取真实Config.SiteID，不用system或旧fee行猜站点。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。"
+          },
+          "concurrency": "单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接",
+          "idempotency": "固定watermark/cursor重放原历史页，新写不失效原上界",
+          "dependencies": [
+            "site-config:readSiteConfig"
+          ],
+          "resources": [
+            "本域append-only统计历史/原冻结调用和尝试"
+          ],
           "contract": "reference"
         }
       ]
@@ -23631,6 +23716,301 @@
         }
       ],
       "kind": "handwritten"
+    },
+    {
+      "path": "modules/model-gateway/internal/admin/statistics.go",
+      "kind": "handwritten",
+      "purpose": "固定历史水位安全posted账本变更页",
+      "functions": [
+        {
+          "id": "model-gateway.ReadUsageStatisticsPage",
+          "name": "ReadUsageStatisticsPage",
+          "signature": "func ReadUsageStatisticsPage(ctx context.Context, op OperationContext, input ReadUsageStatisticsPageInput) (ReadUsageStatisticsPageResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "ReadUsageStatisticsPageInput",
+              "description": "固定历史上界与游标，逐字段见types $defs/ReadUsageStatisticsPageInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadUsageStatisticsPageResult",
+              "description": "安全posted账本变更页，逐字段见types $defs/ReadUsageStatisticsPageResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "安全统计生产支持：ReadUsageStatisticsPage",
+          "steps": [
+            "仅analytics纯服务，Actor.SiteID必须等受信启动site-config完整严格响应装配的ExecutionOptions.SiteID，当前runtime_meta epoch严格匹配。",
+            "初次固定实际append-only changeRevision上界，cursor平台签名绑定service/site/epoch/after/limit及固定upper，独立24h到期；每页≤100/2.5秒，后续新写不改变旧页。",
+            "按真实变化顺序返entry独立ledgerRevision、原owner/site/sourceEpoch/root/op/class/冻结provider/model/真实amountKnown+amount/state/occurredAt；缺任何原事实严格失败，不猜event.revision或当前配置。",
+            "feeCoverage=posted-only且completeFeeCoverage=false固定明确；无ledger的held/charge_unknown不伪entry或0，消费者不得宣称全站完整对账；完整观察闭包尚待后续。",
+            "升级现存真实行第一次观察baseline version1，与原收费历史版本不同；insert/update/delete、supersede旧项、void全部写同原事务历史，账本金额原行不变。",
+            "旧sourceEpoch跨target恢复若尚缺已认证只读投影明确503，不重基原execution/fee/hash；全域保护未齐不计完整服务。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "页大小不在1至100。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "不是analytics纯服务或当前实际站点不匹配。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "固定统计上界/签名游标不存在、过期或绑定已改变。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。"
+          },
+          "concurrency": "单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接",
+          "idempotency": "固定watermark/cursor重放原历史页，新写不失效原上界",
+          "dependencies": [
+            "model-gateway.ExecutionDependencies",
+            "model-gateway.ledgerRuntime",
+            "model-gateway.beginAdminSnapshot",
+            "model-gateway.readStatisticsLineage",
+            "model-gateway.validateUsageChange",
+            "platform.SignCursor",
+            "platform.VerifyCursor"
+          ],
+          "resources": [
+            "本域append-only统计历史/原冻结调用和尝试"
+          ],
+          "contract": "binding"
+        },
+        {
+          "id": "model-gateway.readStatisticsLineage",
+          "name": "readStatisticsLineage",
+          "signature": "func readStatisticsLineage(ctx context.Context, op OperationContext, tx *sql.Tx, stored storedUsageChange) (statisticsLineage, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "安全统计生产支持：readStatisticsLineage",
+          "steps": [
+            "核原调用完整execution hash及原attempt实际快照，与原不可变路线candidate/provider/model/credential/price全值一致；不访问当前配置补历史。",
+            "ModelSnapshotHash只从原冻结Model计算，旧缺stored hash仍需原冻结route完整证明；来源跨target未有认证投影时失败，不过滤或改写。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。"
+          },
+          "concurrency": "单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接",
+          "idempotency": "固定watermark/cursor重放原历史页，新写不失效原上界",
+          "dependencies": [
+            "model-gateway.ReadStatisticsInvocationRecord",
+            "model-gateway.ReadAttemptRecord",
+            "model-gateway.ModelSnapshotHash"
+          ],
+          "resources": [
+            "本域append-only统计历史/原冻结调用和尝试"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.validateUsageChange",
+          "name": "validateUsageChange",
+          "signature": "func validateUsageChange(stored storedUsageChange, lineage statisticsLineage, revision, version int64, observed string) (UsageLedgerChange, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "安全统计生产支持：validateUsageChange",
+          "steps": [
+            "真实变更版本与原冻结安全字段逐项相符，金额known与实际nullable字段一致；USD安全整数/真实原账本时间，未知省略不当0。",
+            "superseded/voided/deleted保留原身份与金额观察，不伪收费账单；无正文/输出/收费请求ID/凭据。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅analytics纯服务且当前真实site/epoch；免费只读，不扩Create/预算权限。"
+          },
+          "concurrency": "单页2.5秒SQL快照/固定不可变上界；最多100，60秒任务保存nextCursor续接",
+          "idempotency": "固定watermark/cursor重放原历史页，新写不失效原上界",
+          "dependencies": [],
+          "resources": [
+            "本域append-only统计历史/原冻结调用和尝试"
+          ],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/model-gateway/migrations/012_usage_statistics.sql",
+      "kind": "handwritten",
+      "purpose": "只追加安全账项真实变更历史及entry修订；同原账本/void事务完整捕获，未知legacy不补造来源；修正原读水位遗漏void变化",
+      "functions": []
     }
   ],
   "jobHandlers": {

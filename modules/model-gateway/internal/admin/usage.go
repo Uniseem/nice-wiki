@@ -519,11 +519,12 @@ func NewLedgerHandlers(key platform.SigningKey) (map[string]http.Handler, error)
 		return nil, err
 	}
 	handlers := map[string]http.Handler{}
-	for _, operation := range []string{"getLedger", "queryUsage"} {
+	for _, operation := range []string{"getLedger", "queryUsage", "readUsageStatisticsPage"} {
 		handlers[operation] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Cache-Control", "no-store")
 			op, _ := platform.OperationContextFrom(r.Context())
 			query := r.URL.Query()
+   if operation=="readUsageStatisticsPage"{after,_:=strconv.ParseInt(query.Get("afterRevision"),10,64);watermark,_:=strconv.ParseInt(query.Get("watermark"),10,64);limit,_:=strconv.Atoi(query.Get("limit"));ctx:=context.WithValue(r.Context(),ledgerRuntimeKey{},runtime);result,err:=ReadUsageStatisticsPage(ctx,op,ReadUsageStatisticsPageInput{AfterRevision:after,Watermark:watermark,Cursor:query.Get("cursor"),Limit:limit});if err!=nil{_ = problem.WriteProblem(w,problem.FromError(err,op.RequestID));return};w.Header().Set("Content-Type","application/json");_ = json.NewEncoder(w).Encode(result);return}
 			from, fromErr := platform.ParseTimestamp(query.Get("from"))
 			until, untilErr := platform.ParseTimestamp(query.Get("until"))
 			if fromErr != nil || untilErr != nil {

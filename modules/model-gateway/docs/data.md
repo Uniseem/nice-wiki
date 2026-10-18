@@ -372,3 +372,5 @@ analytics纯服务只可读同实际site/current epoch的安全QueryUsage，不�
 invocation.reconciled与原更正/void/回执同事务发outbox，charged才携真实entryId/actualCost，not_charged不造账项/金额。
 
 完整文本结果收口：同次原delta保持有效UTF8、每条16KiB/累计64KiB，SendProviderRequest只在HTTP2xx、Code空且完整协议结束/终态后构造原chat/vision/translation的ModelOutput.Text指针；实际空答复显式空指针，未完整则无Output。沿既有evidence+winning+record同事务，不修改旧付费证据。Get/Lookup核实际winning尝试/调用列表与完整成功原evidence/record全值摘要；未知字段不丢信息读。旧文本只允许单initial ordinal1、真实winner、完整无错证据及从accepted到completed连续原SSE全部证明后免费只读派生；多尝试或缺流/缺来源失败关闭，不伪空/404、不重付，不写旧hash/费用。
+
+安全统计posted变更页V1：GET /v1/statistics/ledger仅analytics纯服务且等site-config真实当前site/epoch，afterRevision默认0、watermark首轮取当前历史上界、cursor平台签名/24h到期/稳定service+site+epoch+after+limit绑定；单页最多100、2.5秒，60秒后台任务可持久nextCursor续接，新写不使旧上界变化。schema12为账项真实首次baseline观察revision1与实际后续insert/update/delete/supersede/void独立递增，非event.revision或伪原收费历史版；变化与账本原事务，历史不可原地改删。冻结安全来源对照原execution hash/route/attempt，不读当前models/providers补历史，未知金额省略。仅posted，不覆盖无ledger的held/charge_unknown；feeCoverage=posted-only/completeFeeCoverage=false必须显式，不能称全站完整费用/未知数量为0。跨恢复target原source费用缺认证投影503，不重基旧证据。完整观察feed/worker/公共保护仍未齐。

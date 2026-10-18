@@ -27,6 +27,7 @@ type LanguageApprovalClient interface {
 	ReadLanguageSuggestionApproval(context.Context, string) (json.RawMessage, error)
 }
 type ExecutionOptions struct {
+ SiteID string
 	LanguageApprovals LanguageApprovalClient
 	WriteWindow       platform.WriteWindowConfig
 	Anchors           platform.TrustAnchors

@@ -4712,6 +4712,151 @@
         },
         "x-internal-only": true
       }
+    },
+    "/v1/statistics/ledger": {
+      "get": {
+        "operationId": "readUsageStatisticsPage",
+        "summary": "analytics专用固定水位安全账本变更页",
+        "description": "仅analytics纯服务当前真实site/epoch，单页最多100且2.5s；固定历史watermark/签名游标，兼容60s任务续接。仅posted账本，不宣称无账项未知/held完整。",
+        "x-handler": "model-gateway.ReadUsageStatisticsPage",
+        "x-permission": "service",
+        "x-data-epoch-required": true,
+        "parameters": [
+          {
+            "in": "query",
+            "name": "afterRevision",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+            }
+          },
+          {
+            "in": "query",
+            "name": "watermark",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 8192
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "完整当前页；后续新写不改变已固定上界。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadUsageStatisticsPageResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "严格失败，未知来源不伪空页/0。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -4750,12 +4895,16 @@
       },
       "SiteInitializationStatusResult": {
         "$ref": "../../site-config/contracts/types.json#/$defs/ReadInitializationStatusResult"
+      },
+      "GatewaySiteConfigResult": {
+        "$ref": "../../site-config/contracts/types.json#/$defs/ReadSiteConfigResult"
       }
     }
   },
   "x-runtime-payload-schemas": [
     "MediaReadAssetResult",
     "LanguageSuggestionApprovalResult",
-    "SiteInitializationStatusResult"
+    "SiteInitializationStatusResult",
+    "GatewaySiteConfigResult"
   ]
 }

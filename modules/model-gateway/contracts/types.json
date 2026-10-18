@@ -5228,6 +5228,218 @@
     "SnapshotArchiveReadResult": {
       "x-internal": true,
       "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
+    },
+    "UsageLedgerChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "纯安全posted账项变更；只真实entry，不把held/未知attempt伪成entry。冻结provider/model来自原attempt与执行路线，不查当前配置。",
+      "properties": {
+        "ledgerEntryId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "ownerService": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "changeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "ledgerRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807,
+          "format": "int64",
+          "description": "本统计捕获账项独立修订；真实初次baseline观察为1，后续实际写/改/supersede/void/delete递增，不冒原事件修订。"
+        },
+        "providerVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "modelVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "modelSnapshotHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass"
+        },
+        "amountKnown": {
+          "type": "boolean"
+        },
+        "amount": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money",
+          "description": "只实际已知金额时存在；未知省略，不造0。"
+        },
+        "state": {
+          "enum": [
+            "settled",
+            "reconciled",
+            "price_unknown",
+            "superseded",
+            "voided",
+            "deleted"
+          ]
+        },
+        "ledgerStatus": {
+          "enum": [
+            "settled",
+            "reconciled",
+            "price_unknown"
+          ]
+        },
+        "occurredAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "原账本真实createdAt，非观察/分页时间。"
+        },
+        "observedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "captureKind": {
+          "enum": [
+            "baseline",
+            "change"
+          ]
+        }
+      },
+      "required": [
+        "ledgerEntryId",
+        "invocationId",
+        "attemptId",
+        "operationId",
+        "rootOperationId",
+        "ownerService",
+        "siteId",
+        "sourceDataEpoch",
+        "providerId",
+        "modelId",
+        "changeRevision",
+        "ledgerRevision",
+        "providerVersion",
+        "modelVersion",
+        "modelSnapshotHash",
+        "costClass",
+        "amountKnown",
+        "state",
+        "ledgerStatus",
+        "occurredAt",
+        "observedAt",
+        "captureKind"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "amountKnown": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "amount"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "amount"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ReadUsageStatisticsPageInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "afterRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "watermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "cursor": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 100
+        }
+      },
+      "required": []
+    },
+    "ReadUsageStatisticsPageResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "固定append-only变更上界的posted账本页；不含无账项held/charge_unknown，completeFeeCoverage必须false，不得称全站完整费用对账/unknown=0。",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "watermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "throughRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UsageLedgerChange"
+          },
+          "maxItems": 100
+        },
+        "nextCursor": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "feeCoverage": {
+          "const": "posted-only"
+        },
+        "completeFeeCoverage": {
+          "const": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "watermark",
+        "throughRevision",
+        "changes",
+        "nextCursor",
+        "feeCoverage",
+        "completeFeeCoverage"
+      ]
     }
   }
 }
