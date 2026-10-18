@@ -13419,7 +13419,8 @@
           "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
           "dependencies": [
             "platform.SnapshotManager.requireDraining",
-            "platform.SnapshotManager.runDrainCallback"
+            "platform.SnapshotManager.runDrainCallback",
+            "platform.WithoutCleanupIssuer"
           ],
           "resources": [],
           "contract": "reference"

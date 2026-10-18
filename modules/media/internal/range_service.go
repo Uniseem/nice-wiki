@@ -13,10 +13,10 @@ type ParseByteRangeInput struct {
 	Etag    string  `json:"etag"`
 }
 type ByteRange struct {
- Start int64 `json:"start"`
- End int64 `json:"end"`
- Total int64 `json:"total"`
- Partial bool `json:"partial"`
+	Start   int64 `json:"start"`
+	End     int64 `json:"end"`
+	Total   int64 `json:"total"`
+	Partial bool  `json:"partial"`
 }
 type ParseByteRangeResult struct {
 	Range ByteRange `json:"range"`

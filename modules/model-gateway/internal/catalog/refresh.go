@@ -91,8 +91,8 @@ func NormalizeModelCatalog(raw []byte) (CatalogSnapshot, error) {
 		} `json:"cost"`
 		Limit struct {
 			Context *int `json:"context"`
-			Input  *int `json:"input"`
-			Output *int `json:"output"`
+			Input   *int `json:"input"`
+			Output  *int `json:"output"`
 		} `json:"limit"`
 		Modalities struct {
 			Input  []string `json:"input"`

@@ -149,7 +149,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		return ProxyRequestResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "公开准入服务尚未装配")
 	}
 	if route.Definition.Owner == "analytics" && route.Definition.UpstreamOperationID == "ingestBeacon" {
-		body, err := prepareTrustedBeacon(runtime, op)
+		body, err := prepareTrustedBeacon(ctx, op, runtime)
 		if err != nil {
 			return ProxyRequestResult{}, err
 		}
@@ -577,7 +577,7 @@ func adaptSessionRevocation(response *http.Response) ([]byte, []*http.Cookie, er
 }
 
 // prepareTrustedBeacon 仅构造内部签名正文，连接地址不进入持久状态或日志。
-func prepareTrustedBeacon(runtime *ProxyRuntime, op OperationContext) ([]byte, error) {
+func prepareTrustedBeacon(ctx context.Context, op OperationContext, runtime *ProxyRuntime) ([]byte, error) {
 	if runtime.ValidateBeaconBody == nil || runtime.SiteID == "" {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "统计入口权威尚未装配")
 	}

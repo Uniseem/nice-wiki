@@ -5507,6 +5507,27 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "content.validatePublicationRef",
+          "name": "validatePublicationRef",
+          "signature": "func validatePublicationRef(ctx context.Context, tx *sql.Tx, op OperationContext, found bool, document gen.DocumentMetadata, ref gen.PublishedRevisionRef) (gen.PublicationValidation, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "在原SQL快照核对精确当前公开引用",
+          "steps": [
+            "按持久文档状态、epoch、publication快照与完整引用逐字段核对；不可见返回false，损坏失败关闭。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭",
+          "concurrency": "文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务",
+          "idempotency": "完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先",
+          "dependencies": [
+            "content.readPublicationSnapshot"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },

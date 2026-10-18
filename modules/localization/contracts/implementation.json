@@ -71,8 +71,8 @@
     },
     {
       "module": "qa",
-      "mode": "event",
-      "purpose": "消费翻译完成事件，不同步请求qa",
+      "mode": "sync",
+      "purpose": "只读原缓存翻译来源；不触发QA模型或提问许可",
       "failurePolicy": "必需读取失败关闭；写命令先本地事务+outbox，最多3次transport重试500/1000/2000ms，仍失败保留待处理；模型自动备用用新attempt新预留，旧未知费用保留held。"
     },
     {
@@ -10105,7 +10105,9 @@
           "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
           "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
           "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
-          "dependencies": [],
+          "dependencies": [
+            "qa:readCacheTranslationSource"
+          ],
           "resources": [],
           "contract": "reference"
         },

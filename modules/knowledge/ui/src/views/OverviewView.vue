@@ -12,7 +12,7 @@ export function safeCode(error: unknown): string {
  const code = (error as { code?: unknown })?.code;
  return typeof code === "string" && /^[A-Z][A-Z0-9_]{0,63}$/.test(code) ? code : "DEPENDENCY_UNAVAILABLE";
 }
-export async function loadAdminOverview(client: ModuleAPIClient, input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult> {
+export async function LoadAdminOverview(client: ModuleAPIClient, input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult> {
  const query = new URLSearchParams({ limit: String(input.limit) });
  if (input.cursor) query.set("cursor", input.cursor);
  const config = client.request<ConfigResult>("/v1/index-config", { signal }).catch(error => { if (safeCode(error) === "NOT_FOUND") return undefined; throw error; });
@@ -37,7 +37,7 @@ async function refresh(cursor?: string): Promise<void> {
  controller?.abort(); const current = new AbortController(); controller = current;
  loading.value = true; failure.value = "";
  try {
-  const next = await loadAdminOverview(props.client, { limit: 20, cursor }, current.signal);
+  const next = await LoadAdminOverview(props.client, { limit: 20, cursor }, current.signal);
   if (current.signal.aborted) return;
   if (cursor && overview.value) next.builds.builds = [...overview.value.builds.builds, ...next.builds.builds];
   overview.value = next;

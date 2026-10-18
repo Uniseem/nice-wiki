@@ -1025,7 +1025,7 @@
         {
           "id": "knowledge.CreateExtraction",
           "name": "CreateExtraction",
-          "signature": "func CreateExtraction(ctx context.Context,op OperationContext,input CreateExtractionInput)(CreateExtractionResult,error)",
+          "signature": "func CreateExtraction(ctx context.Context, op OperationContext,input CreateExtractionInput)(CreateExtractionResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -6930,8 +6930,8 @@
       "functions": [
         {
           "id": "knowledge.LoadAdminOverview",
-          "name": "loadAdminOverview",
-          "signature": "export async function loadAdminOverview(client: ModuleAPIClient, input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult>",
+          "name": "LoadAdminOverview",
+          "signature": "export async function LoadAdminOverview(client: ModuleAPIClient, input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult>",
           "inputs": [
             {
               "name": "client",
@@ -7227,8 +7227,8 @@
       "functions": [
         {
           "id": "knowledge.SubmitPrimaryEdit",
-          "name": "submitPrimaryEdit",
-          "signature": "export async function submitPrimaryEdit(client: ModuleAPIClient, input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult>",
+          "name": "SubmitPrimaryEdit",
+          "signature": "export async function SubmitPrimaryEdit(client: ModuleAPIClient, input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult>",
           "inputs": [
             {
               "name": "client",
@@ -8085,7 +8085,7 @@
         {
           "id": "knowledge.RunWorker",
           "name": "RunWorker",
-          "signature": "func RunWorker(ctx context.Context,op OperationContext,input RunWorkerInput)(RunWorkerResult,error)",
+          "signature": "func RunWorker(ctx context.Context, op OperationContext,input RunWorkerInput)(RunWorkerResult,error)",
           "inputs": [
             {
               "name": "ctx",
@@ -8213,7 +8213,9 @@
             "platform.RunWorkerLoopWithResult",
             "knowledge.ResolveClaimedJobOperation",
             "knowledge.MirrorExecutionLease",
-            "knowledge.RecordExecutionCancellation"
+            "knowledge.RecordExecutionCancellation",
+            "knowledge.ExecuteBuild",
+            "knowledge.ExecuteExtraction"
           ],
           "resources": [],
           "contract": "binding"
@@ -8433,7 +8435,15 @@
             "knowledge.ExecuteExtraction",
             "platform.NewSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
-            "platform.SnapshotManager.WriteWindow"
+            "platform.SnapshotManager.WriteWindow",
+            "knowledge.RecoverBuildLeases",
+            "knowledge.CollectRetiredIndexes",
+            "knowledge.PublishOutbox",
+            "knowledge.ConsumeEvents",
+            "knowledge.RunWorker",
+            "platform.TaskGroup.SetAdmission",
+            "platform.TaskGroup.CancelActive",
+            "platform.TaskGroup.WaitIdle"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -9674,7 +9684,7 @@
         {
           "id": "knowledge.ExecuteBuild",
           "name": "ExecuteBuild",
-          "signature": "func ExecuteBuild(ctx context.Context,op OperationContext,input JobExecutionInput)(result JobExecutionResult,failure error)",
+          "signature": "func ExecuteBuild(ctx context.Context, op OperationContext,input JobExecutionInput)(result JobExecutionResult,failure error)",
           "inputs": [
             {
               "name": "ctx",
@@ -12247,7 +12257,7 @@
         {
           "id": "knowledge.ExecuteExtraction",
           "name": "ExecuteExtraction",
-          "signature": "func ExecuteExtraction(ctx context.Context,op OperationContext,input JobExecutionInput)(result JobExecutionResult,failure error)",
+          "signature": "func ExecuteExtraction(ctx context.Context, op OperationContext,input JobExecutionInput)(result JobExecutionResult,failure error)",
           "inputs": [
             {
               "name": "ctx",
@@ -12998,7 +13008,9 @@
           "concurrency": "锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有",
           "idempotency": "原hash/key/op/root/route和价格快照保留，未知不换owner",
           "dependencies": [
-            "model-gateway:resolveTaskRoute"
+            "model-gateway:resolveTaskRoute",
+            "knowledge.ReadTaskAssignment",
+            "knowledge.ProfileModelSnapshots"
           ],
           "resources": [],
           "contract": "reference"

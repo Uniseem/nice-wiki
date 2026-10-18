@@ -2123,7 +2123,8 @@
           "concurrency": "日计数行CAS",
           "idempotency": "eventId去重",
           "dependencies": [
-            "platform.ClaimInbox"
+            "platform.ClaimInbox",
+            "analytics.applyQaCounts"
           ],
           "resources": [],
           "contract": "binding"
@@ -4479,7 +4480,8 @@
             "platform.NewSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
             "platform.SnapshotManager.WriteWindow",
-            "analytics.server.ReadSnapshotArchive"
+            "analytics.server.ReadSnapshotArchive",
+            "jobs:checkLease"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -4685,7 +4687,8 @@
           "concurrency": "sync.Once启动drain；其他调用等待同一次结果",
           "idempotency": "重复Shutdown返回同一次关闭结果；已closed成功",
           "dependencies": [
-            "analytics.DrainBeacons"
+            "analytics.DrainBeacons",
+            "analytics.Runtime.Close"
           ],
           "resources": [
             "本域barrier安全点函数",
@@ -4835,7 +4838,24 @@
           },
           "concurrency": "纯函数",
           "idempotency": "同range同结果",
-          "dependencies": [],
+          "dependencies": [
+            "analytics.server.QueryAudits",
+            "analytics.server.ReadAudit",
+            "analytics.server.QueryPageStatistics",
+            "analytics.server.AppendAudit",
+            "analytics.server.IngestTrustedBeacon",
+            "analytics.server.RecordCrawlerAccess",
+            "analytics.server.QueryContentGaps",
+            "analytics.server.QueryUsageStatistics",
+            "analytics.server.CreateExport",
+            "analytics.server.CreateAuditExport",
+            "analytics.server.createExport",
+            "analytics.server.DownloadStatisticsExport",
+            "analytics.server.DownloadAuditExport",
+            "analytics.server.downloadExport",
+            "analytics.server.ReadSnapshotArchive",
+            "analytics.WithRuntime"
+          ],
           "resources": [],
           "contract": "reference"
         },
@@ -6926,7 +6946,8 @@
             "jobs:subscribeEvents",
             "jobs:acknowledgeEvent",
             "analytics.ProjectQaTurn",
-            "platform.RunConsumerWithResult"
+            "platform.RunConsumerWithResult",
+            "analytics.ConsumeAuditEvent"
           ],
           "resources": [],
           "contract": "binding"
@@ -7019,7 +7040,8 @@
             "analytics.pageInterval",
             "analytics.streamExportRows",
             "analytics.installPreparedExport",
-            "analytics.beginWrite"
+            "analytics.beginWrite",
+            "analytics.CheckPrivacyFields"
           ],
           "resources": [],
           "contract": "binding"
@@ -7479,24 +7501,6 @@
       "path": "modules/analytics/migrations/0005_export_journal.sql",
       "kind": "handwritten",
       "purpose": "V5导出原主体/类型/代次/准备安装journal；旧未知记录拒绝静默迁移",
-      "functions": []
-    },
-    {
-      "path": "modules/analytics/web/package.json",
-      "kind": "ui",
-      "purpose": "固定批准版本的独立Vue库构建/样式，不含凭据",
-      "functions": []
-    },
-    {
-      "path": "modules/analytics/web/tsconfig.json",
-      "kind": "ui",
-      "purpose": "固定批准版本的独立Vue库构建/样式，不含凭据",
-      "functions": []
-    },
-    {
-      "path": "modules/analytics/web/vite.config.ts",
-      "kind": "ui",
-      "purpose": "固定批准版本的独立Vue库构建/样式，不含凭据",
       "functions": []
     },
     {

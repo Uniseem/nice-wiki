@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "c45188e0a18bc15b0738529ff05874206e82e707b309c74fcbb73b2aff3221e0",
+  "contractSha256": "95b789e905be859a79c940fd7659d857ea70edbd7fcb94e4c79f468fae44672a",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "公共独立scope、两阶段全域屏障、签名旧执行清理与完整捕获",
   "branch": "codex/finish-20261018-snapshot",

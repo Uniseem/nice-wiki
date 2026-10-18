@@ -734,6 +734,43 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "jobs.currentStore",
+          "name": "currentStore",
+          "signature": "func currentStore() *Store",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取启动期已安装的本域句柄",
+          "steps": [
+            "持activeQueue读锁返回本域句柄，不构造新存储。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_JOB：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "EPOCH_MISMATCH：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "service所属owner"
+          },
+          "concurrency": "纯校验+runtime只读",
+          "idempotency": "同jobSpec同结果",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },

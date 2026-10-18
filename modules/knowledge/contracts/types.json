@@ -4018,6 +4018,12 @@
         "components"
       ],
       "description": "真实多组件费用计划，不冒充单一PriceSnapshot；未产资源文字或缺价使总上限未知"
+    },
+    "ModuleAPIClient": {
+      "type": "object",
+      "description": "仅进程内portal注入的同源HTTP客户端，不经JSON传输；接口由ui/src/client.ts定义。",
+      "additionalProperties": false,
+      "properties": {}
     }
   }
 }

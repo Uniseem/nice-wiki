@@ -5,7 +5,7 @@ import type { IndexConfig, IndexOptions } from "./OverviewView.vue";
 import { safeCode } from "./OverviewView.vue";
 export type SubmitPrimaryEditInput = operations["putIndexConfig"]["requestBody"]["content"]["application/json"];
 export type SubmitPrimaryEditResult = operations["putIndexConfig"]["responses"][200]["content"]["application/json"];
-export async function submitPrimaryEdit(client: ModuleAPIClient, input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult> {
+export async function SubmitPrimaryEdit(client: ModuleAPIClient, input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult> {
  const config = input.config;
  if (!Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 0 || config.version !== input.expectedVersion || !Number.isInteger(config.chunkTokens) || config.chunkTokens < 128 || config.chunkTokens > 1024 || !Number.isInteger(config.overlapTokens) || config.overlapTokens < 0 || config.overlapTokens > 128 || config.overlapTokens >= config.chunkTokens || !input.idempotencyKey) throw { code: "VALIDATION" };
  return client.request<SubmitPrimaryEditResult>("/v1/index-config", { method: "PUT", body: input, idempotencyKey: input.idempotencyKey, signal });
@@ -38,7 +38,7 @@ async function save(): Promise<void> {
  if (pending?.serialized !== serialized) pending = { serialized, key: crypto.randomUUID() };
  busy.value = true; failure.value = "";
  try {
-  const result = await submitPrimaryEdit(props.client, { config, expectedVersion, idempotencyKey: pending.key }, controller.signal);
+  const result = await SubmitPrimaryEdit(props.client, { config, expectedVersion, idempotencyKey: pending.key }, controller.signal);
   if (!controller.signal.aborted) emit("saved", result.config);
  } catch (error) {
   if (controller.signal.aborted) return;
@@ -57,7 +57,7 @@ onBeforeUnmount(() => { controller.abort(); });
   <p v-if="failure" role="alert" class="knowledge-error">{{ failure }}<span v-if="currentVersion !== undefined"> 服务端当前版本：{{ currentVersion }}。</span></p>
   <fieldset :disabled="busy || conflict"><legend>入库参数 · 当前版本 {{ expectedVersion }}</legend>
    <label class="knowledge-check"><input v-model="enabled" type="checkbox">开启发布内容入库</label>
-   <label>后台嵌入档位<select v-model="profileID" required><option value="" disabled>选择档位</option><option v-if="config && !embeddingOptions.some(item => item.profileId === config.embeddingProfileId)" :value="config.embeddingProfileId">当前档位（目录不可用或已移除）</option><option v-for="item in embeddingOptions" :key="item.profileId" :value="item.profileId" :disabled="!item.usable && item.profileId !== config?.embeddingProfileId">{{ item.label }}{{ item.usable ? '' : `（${item.reasonCode}）` }}</option></select></label>
+   <label>后台嵌入档位<select v-model="profileID" required><option value="" disabled>选择档位</option><option v-if="config && !embeddingOptions.some(item => item.profileId === config?.embeddingProfileId)" :value="config.embeddingProfileId">当前档位（目录不可用或已移除）</option><option v-for="item in embeddingOptions" :key="item.profileId" :value="item.profileId" :disabled="!item.usable && item.profileId !== config?.embeddingProfileId">{{ item.label }}{{ item.usable ? '' : `（${item.reasonCode}）` }}</option></select></label>
    <label>检索重排档位<select v-model="rerankID"><option value="">不启用重排</option><option v-if="config?.rerankProfileId && !rerankOptions.some(item => item.profileId === config?.rerankProfileId)" :value="config.rerankProfileId">当前档位（目录不可用或已移除）</option><option v-for="item in rerankOptions" :key="item.profileId" :value="item.profileId" :disabled="!item.usable">{{ item.label }}</option></select></label>
    <div class="knowledge-grid"><label>每块 token 预算<input v-model.number="chunkTokens" type="number" min="128" max="1024" step="1" required></label><label>重叠 token 预算<input v-model.number="overlapTokens" type="number" min="0" max="128" step="1" required></label></div>
    <p>源语言：{{ options.baseLanguage }}</p><button type="submit">{{ busy ? '保存中…' : '保存配置' }}</button>

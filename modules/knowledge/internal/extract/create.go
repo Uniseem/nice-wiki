@@ -44,10 +44,6 @@ type ExtractionArtifact struct {
 
 // CreateExtraction 原构建批准下冻结提取任务，重放先读原关联，绝不因记忆变化另开付费owner。
 func CreateExtraction(ctx context.Context, op OperationContext, input CreateExtractionInput) (CreateExtractionResult, error) {
-	runtime, err := indexer.RuntimeFromContext(ctx)
-	if err != nil {
-		return CreateExtractionResult{}, err
-	}
 	_, initial, build, closeInitial, err := indexer.BeginBuildWrite(ctx, op, input.BuildID, input.LeaseID)
 	if err != nil {
 		return CreateExtractionResult{}, err

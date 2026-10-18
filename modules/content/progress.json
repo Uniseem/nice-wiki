@@ -2,7 +2,7 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "fdbf1d8f4de25a403692774414078b73d23a8896b42d0e7e526c743c4b7af73e",
+  "contractSha256": "5f74ec518f87fbcdbdc87cbd998e8633396a57b25275182ed04107645fb391f0",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "content第四轮发布快照（pipeline 42 已记 verified；分享图仍 503）",
   "branch": "codex/content-20261017-r4",
@@ -3666,6 +3666,17 @@
         "evidence": null
       },
       "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+    },
+    {
+      "id": "content.validatePublicationRef",
+      "path": "modules/content/internal/visibility_service.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "收尾补记已有参考函数，待GitLab检查。"
     }
   ],
   "rule": "第四轮发布快照按源码 67f35e4857ee66970b3ff6b84184d7e9eb92c447 记 implemented。非空引用的 confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不记 verified。空引用不造 pin。分享图变更、完整启动、回收站、历史回滚和预览仍未完成，accepted 为 0。不自行 push。"

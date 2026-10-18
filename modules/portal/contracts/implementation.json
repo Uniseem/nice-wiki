@@ -1331,14 +1331,14 @@
         {
           "id": "portal.prepareTrustedBeacon",
           "name": "prepareTrustedBeacon",
-          "signature": "func prepareTrustedBeacon(runtime *ProxyRuntime, op OperationContext) ([]byte, error)",
+          "signature": "func prepareTrustedBeacon(ctx context.Context, op OperationContext, runtime *ProxyRuntime) ([]byte, error)",
           "inputs": [
             {
-              "name": "runtime",
-              "type": "ProxyRuntime",
-              "description": "真实请求内存上下文",
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "当前真实请求上下文",
               "constraints": [
-                "可信启动装配"
+                "随下游IO传递"
               ]
             },
             {
@@ -1347,6 +1347,14 @@
               "description": "本次真实入口上下文",
               "constraints": [
                 "epoch由权威读取"
+              ]
+            },
+            {
+              "name": "runtime",
+              "type": "ProxyRuntime",
+              "description": "真实请求内存上下文",
+              "constraints": [
+                "可信启动装配"
               ]
             }
           ],
