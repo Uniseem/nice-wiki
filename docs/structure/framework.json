@@ -2139,9 +2139,34 @@
       "purpose": "knowledge依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
     },
     {
+      "path": "modules/knowledge/internal/admin/diagnostics.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/admin/read.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/build/activate.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/build/validate.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
       "path": "modules/knowledge/internal/chunk/normalize.go",
       "kind": "handwritten",
       "purpose": "知识源文本规范化及原文偏移映射"
+    },
+    {
+      "path": "modules/knowledge/internal/chunk/split.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
     },
     {
       "path": "modules/knowledge/internal/gen/clients.gen.go",
@@ -2157,6 +2182,86 @@
       "path": "modules/knowledge/internal/gen/openapi.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/knowledge/internal/index/embedding.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/index/lexical.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/index/staging.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/runtime/model_client.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/search/context.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/search/fusion.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/search/lexical.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/search/query-embedding.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/search/query.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/search/rerank.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/search/sections.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/search/service.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/search/vector.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/search/visibility.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "索引检索本次已实现源码与合同资料"
+    },
+    {
+      "path": "modules/knowledge/migrations/001_initial.sql",
+      "kind": "documentation",
+      "purpose": "索引检索本次已实现源码与合同资料"
     },
     {
       "path": "modules/knowledge/progress.json",
