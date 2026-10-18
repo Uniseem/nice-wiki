@@ -125,7 +125,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
 	handlers := language.NewLanguageHandlers()
-	for _, additional := range []map[string]http.Handler{glossary.NewGlossaryHandlers(), translation.NewTranslationHandlers(), interfacecatalog.NewInterfaceHandlers(), cacheanswer.NewCacheTranslationHandlers(), suggestion.NewPreferenceHandlers()} {
+	for _, additional := range []map[string]http.Handler{language.NewSuggestionPolicyHandlers(),glossary.NewGlossaryHandlers(), translation.NewTranslationHandlers(), interfacecatalog.NewInterfaceHandlers(), cacheanswer.NewCacheTranslationHandlers(), suggestion.NewPreferenceHandlers()} {
 		for id, handler := range additional {
 			handlers[id] = handler
 		}
@@ -138,10 +138,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		OpenedDataEpoch: view.DataEpoch,
 		Authorize:       apivalidate.NewIdentityAuthorizer(identity),
-		ServiceActorCallers: map[string][]string{
+		ServiceActorCallers: map[string][]string{"readLanguageSuggestionApproval":{"model-gateway"},
 			"listLanguages": {"public-site"},
 		},
-		AllowedCallers: map[string][]string{
+		AllowedCallers: map[string][]string{"readLanguageSuggestionPolicy":{"portal"},"putLanguageSuggestionPolicy":{"portal"},"readLanguageSuggestionApproval":{"model-gateway"},
 			"putLanguage":        {"portal"},
 			"setLanguageEnabled": {"portal"},
 			"listLanguages":      {"portal", "public-site"},

@@ -4416,7 +4416,8 @@
             "media:readAsset",
             "model-gateway.ExecuteInvocation",
             "platform.VerifyAdmissionPermit",
-            "platform.TaskGroup.Start"
+            "platform.TaskGroup.Start",
+            "localization:readLanguageSuggestionApproval"
           ],
           "resources": [],
           "contract": "binding"

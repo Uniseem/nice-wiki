@@ -109,3 +109,7 @@ public-site转发已核访客请求；本域核对同一伪名owner，在dataEpo
 投影来源保持真实：仅复用了真实human字段才标human，受保护machine仍为machine。投影按完整新编号文本逐段限制65536 Unicode字符，超限失败关闭。公开units上限10000与content全树节点/拆分一致；review但全部译值可恢复时completed计完成且partial=false，有新增原文才partial。PreviousTargetText仅可追溯真实旧整段，不要求即时跨分组投影伪造该可选值。
 
 同一最深稳定anchor的无ID子树形状必须整体一致：只保留type及字段/数组结构的签名发生变化即失败关闭，包括inline文本插入/删除或全部text消失。不能把旧content/0/text映到新插入无ID文本；有独立真实稳定ID的新增子节点才可单独原文partial。同一anchor只取最新保护来源完整字段集，不从更旧代补已移除字段。
+
+## 管理员语言建议付费许可
+
+用户2026-10-18明确选择管理员开启后才允许。默认关闭，PUT /v1/language-suggestion-policy仅当前localization.manage管理员，以CAS/幂等回执持久新版本与不可变approvalId/site/epoch/批准时间/主体/权限修订/原root。MG纯服务每新attempt经GET /v1/language-suggestion-approvals/{approvalId}读取当前真实启用许可；停用、版本变化、换代或未知全部失败关闭，不能用访客或本域自报enabled。后台付费仍经MG预算与费用链，免费guard.locale.suggest不会因此获得付费token。恢复不重基旧批准为target epoch，须管理员重新明确开启。

@@ -3512,6 +3512,313 @@
           }
         ]
       }
+    },
+    "/v1/language-suggestion-policy": {
+      "get": {
+        "operationId": "readLanguageSuggestionPolicy",
+        "summary": "读取管理员语言建议付费开关",
+        "x-handler": "localization.ReadLanguageSuggestionPolicy",
+        "x-permission": "localization.manage",
+        "x-timeout-ms": 5000,
+        "description": "管理员localization.manage明确开启后才产生可用付费许可；MG每个新attempt核同approval/site/epoch，停用或换代即拒绝。无模型或费用调用。",
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前持久许可或明确默认关闭",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/LanguageSuggestionPolicy"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-service-actor-callers": [
+          "public-site"
+        ]
+      },
+      "put": {
+        "operationId": "putLanguageSuggestionPolicy",
+        "summary": "管理员明确启停语言建议付费许可",
+        "x-handler": "localization.PutLanguageSuggestionPolicy",
+        "x-permission": "localization.manage",
+        "x-timeout-ms": 5000,
+        "description": "管理员localization.manage明确开启后才产生可用付费许可；MG每个新attempt核同approval/site/epoch，停用或换代即拒绝。无模型或费用调用。",
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前持久许可或明确默认关闭",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/LanguageSuggestionPolicy"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-service-actor-callers": [
+          "public-site"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/PutLanguageSuggestionPolicyInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/language-suggestion-approvals/{approvalId}": {
+      "get": {
+        "operationId": "readLanguageSuggestionApproval",
+        "summary": "供网关核对当前语言建议批准",
+        "x-handler": "localization.ReadLanguageSuggestionApproval",
+        "x-permission": "service",
+        "x-timeout-ms": 5000,
+        "description": "管理员localization.manage明确开启后才产生可用付费许可；MG每个新attempt核同approval/site/epoch，停用或换代即拒绝。无模型或费用调用。",
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          },
+          {
+            "name": "approvalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前持久许可或明确默认关闭",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadLanguageSuggestionApprovalResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-service-actor-callers": [
+          "public-site"
+        ]
+      }
     }
   },
   "components": {

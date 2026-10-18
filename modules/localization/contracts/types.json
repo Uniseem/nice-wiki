@@ -4302,6 +4302,112 @@
         "units",
         "pageInfo"
       ]
+    },
+    "LanguageSuggestionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "approvalId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "approvedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "enabled",
+        "version",
+        "siteId",
+        "dataEpoch"
+      ],
+      "description": "无持久配置时明确disabled/version0且无approvalId；恢复换代不继承旧付费批准。"
+    },
+    "ReadLanguageSuggestionPolicyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "PutLanguageSuggestionPolicyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740990
+        },
+        "idempotencyKey": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "enabled",
+        "expectedVersion",
+        "idempotencyKey"
+      ]
+    },
+    "ReadLanguageSuggestionApprovalInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "approvalId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "approvalId"
+      ]
+    },
+    "ReadLanguageSuggestionApprovalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "approvalId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "approvedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "enabled",
+        "version",
+        "approvalId",
+        "siteId",
+        "dataEpoch",
+        "approvedAt"
+      ]
     }
   }
 }

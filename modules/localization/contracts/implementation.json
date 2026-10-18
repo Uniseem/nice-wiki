@@ -6964,7 +6964,8 @@
             "localization.NewCacheTranslationHandlers",
             "localization.ConfigureExecutionAdapters",
             "localization.ConfigureSourceClient",
-            "localization.NewPreferenceHandlers"
+            "localization.NewPreferenceHandlers",
+            "localization.NewSuggestionPolicyHandlers"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -10916,6 +10917,483 @@
           "contract": "reference"
         }
       ]
+    },
+    {
+      "path": "modules/localization/internal/language/suggestion_policy.go",
+      "kind": "handwritten",
+      "purpose": "管理员明确开启的付费建议批准与网关只读核验",
+      "functions": [
+        {
+          "id": "localization.ReadLanguageSuggestionPolicy",
+          "name": "ReadLanguageSuggestionPolicy",
+          "signature": "func ReadLanguageSuggestionPolicy(ctx context.Context, op OperationContext, input ReadLanguageSuggestionPolicyInput) (LanguageSuggestionPolicy, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "ReadLanguageSuggestionPolicyInput",
+              "description": "封闭业务输入；逐字段见types $defs/ListLanguagesInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "LanguageSuggestionPolicy",
+              "description": "成功结果；逐字段见types $defs/ListLanguagesResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "当前管理员读取本域同site/epoch持久付费建议开关，无配置明确disabled/version0，不造批准ID。",
+          "steps": [
+            "当前管理员读取本域同site/epoch持久付费建议开关，无配置明确disabled/version0，不造批准ID。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "操作数据代次与当前运行权威或本域水位不一致。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "localization.manage",
+            "rule": "管理员操作只portal当前localization.manage；批准只model-gateway纯服务，不能接受访客自报开关。"
+          },
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.ReadData",
+            "localization.RequireAdministrator",
+            "localization.readSuggestionPolicy"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "localization.PutLanguageSuggestionPolicy",
+          "name": "PutLanguageSuggestionPolicy",
+          "signature": "func PutLanguageSuggestionPolicy(ctx context.Context, op OperationContext, input PutLanguageSuggestionPolicyInput) (LanguageSuggestionPolicy, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "PutLanguageSuggestionPolicyInput",
+              "description": "封闭业务输入；逐字段见types $defs/ListLanguagesInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "LanguageSuggestionPolicy",
+              "description": "成功结果；逐字段见types $defs/ListLanguagesResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "当前管理员明确启停，expectedVersion CAS与七天原回执同事务。",
+          "steps": [
+            "当前管理员明确启停，expectedVersion CAS与七天原回执同事务。",
+            "每个变更生成新approvalId与固定site/epoch/approvedAt，记录真实approvedBy/permissionRevision/root；原批准行只追加，当前指针CAS更新。",
+            "停用或恢复新dataEpoch后旧批准不再有效；不自动开通、不创建模型或费用任务。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "操作数据代次与当前运行权威或本域水位不一致。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "本域批准历史与当前开关CAS、幂等回执同事务"
+          ],
+          "authorization": {
+            "permission": "localization.manage",
+            "rule": "管理员操作只portal当前localization.manage；批准只model-gateway纯服务，不能接受访客自报开关。"
+          },
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.Mutate",
+            "localization.RequireAdministrator"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "localization.ReadLanguageSuggestionApproval",
+          "name": "ReadLanguageSuggestionApproval",
+          "signature": "func ReadLanguageSuggestionApproval(ctx context.Context, op OperationContext, input ReadLanguageSuggestionApprovalInput) (ReadLanguageSuggestionApprovalResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "ReadLanguageSuggestionApprovalInput",
+              "description": "封闭业务输入；逐字段见types $defs/ListLanguagesInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadLanguageSuggestionApprovalResult",
+              "description": "成功结果；逐字段见types $defs/ListLanguagesResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "仅model-gateway纯服务读取当前同site/epoch的精确approvalId，旧版本/未知404，返回真实enabled/version/approvedAt，供新attempt失败关闭。",
+          "steps": [
+            "仅model-gateway纯服务读取当前同site/epoch的精确approvalId，旧版本/未知404，返回真实enabled/version/approvedAt，供新attempt失败关闭。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "操作数据代次与当前运行权威或本域水位不一致。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "管理员操作只portal当前localization.manage；批准只model-gateway纯服务，不能接受访客自报开关。"
+          },
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.ReadData",
+            "localization.readSuggestionPolicy"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "localization.readSuggestionPolicy",
+          "name": "readSuggestionPolicy",
+          "signature": "func readSuggestionPolicy(ctx context.Context, tx *sql.Tx, op OperationContext) (LanguageSuggestionPolicy, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "从精确site/epoch持久开关读取安全批准投影",
+          "steps": [
+            "不存在时默认关闭；存在时查询当前指针及不可变批准历史，未知或矛盾不授权。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "操作数据代次与当前运行权威或本域水位不一致。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.NewSuggestionPolicyHandlers",
+          "name": "NewSuggestionPolicyHandlers",
+          "signature": "func NewSuggestionPolicyHandlers() map[string]http.Handler",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "装配真实语言建议开关和批准读取HTTP",
+          "steps": [
+            "复用JSONHandler绑定严格输入；批准ID由路径写入，幂等头与正文相同；no-store/统一Problem。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "操作数据代次与当前运行权威或本域水位不一致。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "localization.JSONHandler",
+            "localization.ReadLanguageSuggestionPolicy",
+            "localization.PutLanguageSuggestionPolicy",
+            "localization.ReadLanguageSuggestionApproval"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/localization/migrations/005_suggestion_policy.sql",
+      "kind": "handwritten",
+      "purpose": "只追加付费建议当前指针与不可变审批历史，不种默认允许",
+      "functions": []
     }
   ],
   "jobHandlers": {

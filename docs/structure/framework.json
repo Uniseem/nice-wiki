@@ -2594,6 +2594,11 @@
       "purpose": "按权限列出语言；公开站点只看已启用项"
     },
     {
+      "path": "modules/localization/internal/language/suggestion_policy.go",
+      "kind": "handwritten",
+      "purpose": "管理员明确批准语言建议付费"
+    },
+    {
       "path": "modules/localization/internal/language/tag.go",
       "kind": "handwritten",
       "purpose": "拒绝空标签和超长标签；未写明的归一化失败关闭"
@@ -2727,6 +2732,11 @@
       "path": "modules/localization/migrations/004_translation_objects.sql",
       "kind": "documentation",
       "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/migrations/005_suggestion_policy.sql",
+      "kind": "handwritten",
+      "purpose": "管理员明确批准语言建议付费"
     },
     {
       "path": "modules/localization/migrations/migrations.go",
