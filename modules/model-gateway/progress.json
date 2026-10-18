@@ -7,7 +7,7 @@
   "assignedSession": "R1模型网关费用执行及完整启动收尾",
   "branch": "codex/finish-20261018-gateway",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+  "deliveryCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
   "deployment": "not_started",
   "files": [
     {
@@ -43,22 +43,22 @@
     {
       "path": "modules/model-gateway/internal/catalog/model.go",
       "state": "verified",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
         "state": "passed",
-        "evidence": "源码ready，待根GitLab。"
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/routing/route.go",
@@ -102,23 +102,23 @@
     },
     {
       "path": "modules/model-gateway/internal/invocation/dispatch.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/provider/adapter.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/stream/store.go",
@@ -162,33 +162,33 @@
     },
     {
       "path": "modules/model-gateway/internal/invocation/cancel.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/invocation/read.go",
       "state": "verified",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
         "state": "passed",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/tokens/budget.go",
       "state": "verified",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
         "state": "passed",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/concurrency/lease.go",
@@ -202,13 +202,13 @@
     },
     {
       "path": "modules/model-gateway/internal/events/outbox.go",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/admin/read.go",
@@ -223,12 +223,12 @@
     {
       "path": "modules/model-gateway/internal/admin/usage.go",
       "state": "verified",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
         "state": "passed",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/protection/protocol.go",
@@ -242,23 +242,23 @@
     },
     {
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/ui/src/views/EditView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/catalog/task.go",
@@ -292,13 +292,13 @@
     },
     {
       "path": "modules/model-gateway/internal/invocation/fallback.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/provider/anthropic.go",
@@ -492,13 +492,13 @@
     },
     {
       "path": "modules/model-gateway/ui/src/main.ts",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/gen/openapi.gen.go",
@@ -583,12 +583,12 @@
     {
       "path": "modules/model-gateway/internal/runtime/invocation.go",
       "state": "verified",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
         "state": "passed",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/invocation/http.go",
@@ -652,63 +652,63 @@
     },
     {
       "path": "modules/model-gateway/internal/invocation/recovery.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/invocation/finish.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/runtime/approval.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/provider/response.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/provider/images.go",
-      "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/migrations/008_execution_evidence.sql",
@@ -722,23 +722,23 @@
     },
     {
       "path": "modules/model-gateway/internal/runtime/retirement.go",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/internal/runtime/relay.go",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "path": "modules/model-gateway/migrations/009_retired_secrets.sql",
@@ -949,13 +949,13 @@
     {
       "id": "model-gateway.writeCredential",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.loadCredentialMasterKey",
@@ -1158,13 +1158,13 @@
     {
       "id": "model-gateway.readRouteCandidate",
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ResolveRoute",
@@ -1260,10 +1260,10 @@
       "state": "blocked",
       "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。 真实tracking来源建立仍待公共fresh activation/verified restore生产者，缺失不假造404或开放首次付费。"
+      "blocker": "源码已通过GitLab；可信fresh activation/已验证恢复来源tracking生产者未齐，缺marker拒绝首次接受/404，保持blocked不计完整业务。"
     },
     {
       "id": "model-gateway.ReserveCost",
@@ -1312,35 +1312,35 @@
     {
       "id": "model-gateway.DispatchInvocation",
       "path": "modules/model-gateway/internal/invocation/dispatch.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ExecuteInvocation",
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "仅本地源码/契约阅读与git diff --check；未Go/gofmt/gen/build/vet/测试/真实接口/模型/服务/部署。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready；原调用执行/费用证据/取消恢复闭环待根GitLab生成、编译与结构检查。"
+      "blocker": null
     },
     {
       "id": "model-gateway.BuildProviderRequest",
       "path": "modules/model-gateway/internal/provider/adapter.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "仅本地源码/契约阅读与git diff --check；未Go/gofmt/gen/build/vet/测试/真实接口/模型/服务/部署。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready；原调用执行/费用证据/取消恢复闭环待根GitLab生成、编译与结构检查。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ClassifyFailure",
@@ -1477,13 +1477,13 @@
     {
       "id": "model-gateway.CancelInvocation",
       "path": "modules/model-gateway/internal/invocation/cancel.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "仅本地源码/契约阅读与git diff --check；未Go/gofmt/gen/build/vet/测试/真实接口/模型/服务/部署。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready；原调用执行/费用证据/取消恢复闭环待根GitLab生成、编译与结构检查。"
+      "blocker": null
     },
     {
       "id": "model-gateway.GetInvocation",
@@ -1499,13 +1499,13 @@
     {
       "id": "model-gateway.EstimateTokens",
       "path": "modules/model-gateway/internal/tokens/budget.go",
-      "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ValidateEmbeddingSpace",
@@ -1554,24 +1554,24 @@
     {
       "id": "model-gateway.PublishOutbox",
       "path": "modules/model-gateway/internal/events/outbox.go",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.RecoverLeases",
       "path": "modules/model-gateway/internal/invocation/recovery.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "仅本地源码/契约阅读与git diff --check；未Go/gofmt/gen/build/vet/测试/真实接口/模型/服务/部署。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready；原调用执行/费用证据/取消恢复闭环待根GitLab生成、编译与结构检查。"
+      "blocker": null
     },
     {
       "id": "model-gateway.GetLedger",
@@ -1674,13 +1674,13 @@
     },
     {
       "id": "model-gateway.readCatalogModels",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。",
+      "blocker": null,
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1851,13 +1851,13 @@
     {
       "id": "model-gateway.readRootMetadata",
       "path": "modules/model-gateway/internal/admin/usage.go",
-      "state": "blocked",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": null
     },
     {
       "id": "model-gateway.sumLedgerMoney",
@@ -1939,24 +1939,24 @@
     {
       "id": "model-gateway.LoadAdminOverview",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.SubmitPrimaryEdit",
       "path": "modules/model-gateway/ui/src/views/EditView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.PutTaskAssignment",
@@ -2093,13 +2093,13 @@
     {
       "id": "model-gateway.CreateFallbackAttempt",
       "path": "modules/model-gateway/internal/invocation/fallback.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "仅本地源码/契约阅读与git diff --check；未Go/gofmt/gen/build/vet/测试/真实接口/模型/服务/部署。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready；原调用执行/费用证据/取消恢复闭环待根GitLab生成、编译与结构检查。"
+      "blocker": null
     },
     {
       "id": "model-gateway.MapAnthropicRequest",
@@ -2192,35 +2192,35 @@
     {
       "id": "model-gateway.Serve",
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.Shutdown",
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.Health",
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.Ready",
@@ -2236,13 +2236,13 @@
     {
       "id": "model-gateway.mountModuleUI",
       "path": "modules/model-gateway/ui/src/main.ts",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.InstallExecutionOptions",
@@ -2500,13 +2500,13 @@
     {
       "id": "model-gateway.embeddingSpaceID",
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.TokenizeText",
@@ -2544,860 +2544,860 @@
     {
       "id": "model-gateway.AuthorizeImages",
       "path": "modules/model-gateway/internal/provider/images.go",
-      "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.BeginFinalization",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.CanonicalInvocationInput",
       "path": "modules/model-gateway/internal/invocation/create.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.CheckLanguageSuggestionApproval",
       "path": "modules/model-gateway/internal/runtime/approval.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ClaimInvocationLease",
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ConsumeProviderFrame",
       "path": "modules/model-gateway/internal/provider/response.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ErrorCode",
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ExecutionSnapshotHash",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.FinishCancelledInvocation",
       "path": "modules/model-gateway/internal/invocation/finish.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.FinishInterruptedInvocation",
       "path": "modules/model-gateway/internal/invocation/finish.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.FinishInvocation",
       "path": "modules/model-gateway/internal/invocation/finish.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.InvocationResultState",
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.InvocationSafeToRetry",
       "path": "modules/model-gateway/internal/invocation/recovery.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.LoadImages",
       "path": "modules/model-gateway/internal/provider/images.go",
-      "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.MergeProviderUsage",
       "path": "modules/model-gateway/internal/provider/response.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.NewRuntimeClient",
       "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.Nonempty",
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.PrepareInvocationAttempt",
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ProviderReportedCost",
       "path": "modules/model-gateway/internal/provider/response.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadAttemptEvidence",
       "path": "modules/model-gateway/internal/invocation/dispatch.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadDispatchProvider",
       "path": "modules/model-gateway/internal/invocation/create.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadExecutionAttempt",
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadExecutionRecord",
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadImageBytes",
       "path": "modules/model-gateway/internal/provider/images.go",
-      "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReleaseResolvedReferences",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
-      "state": "blocked",
-      "implementationCommit": "2b4c261b3e69f987447978bf10026880a0112645",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReleaseUnacceptedAttempt",
       "path": "modules/model-gateway/internal/invocation/finish.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.RenewInvocationLease",
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.SendProviderRequest",
       "path": "modules/model-gateway/internal/provider/response.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ServiceProviderContext",
       "path": "modules/model-gateway/internal/provider/images.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.StartAcceptedInvocation",
       "path": "modules/model-gateway/internal/invocation/create.go",
-      "state": "blocked",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ValidateInvocationPayload",
       "path": "modules/model-gateway/internal/invocation/create.go",
-      "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.beginExecution",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ensureDataLayout",
       "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.newRuntimeClient",
       "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.providerIdleReader.Read",
       "path": "modules/model-gateway/internal/provider/response.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.validCapability",
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.validCatalogOrigin",
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.validModelString",
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.validateConfig",
       "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": null
     },
     {
       "id": "model-gateway.DestroyRetiredSecrets",
       "path": "modules/model-gateway/internal/runtime/retirement.go",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.RelayOutbox",
       "path": "modules/model-gateway/internal/runtime/relay.go",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.clearSecrets",
       "path": "modules/model-gateway/ui/src/views/EditView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.clearSensitive",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.decimal",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.dollars",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.editModel",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.editProfile",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.editTask",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.failure",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.loadLedger",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.micros",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.moveModel",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.perform",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.pollProbe",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.refreshCatalog",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.reload",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.runProbe",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.save",
       "path": "modules/model-gateway/ui/src/views/EditView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.saveCredential",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.saveModel",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.savePolicy",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.saveProfile",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.saveTask",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.stop",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.write",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.MediaPartAsset",
       "path": "modules/model-gateway/internal/provider/images.go",
-      "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadInputBudgetModel",
       "path": "modules/model-gateway/internal/catalog/model.go",
-      "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ValidateInputModel",
       "path": "modules/model-gateway/internal/invocation/create.go",
-      "state": "blocked",
-      "implementationCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "原生PDF源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "原生PDF源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.Application.BackgroundTasks",
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.Application.ConfigureBusiness",
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.Application.Drain",
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ApplyCatalogSnapshot",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.DownloadModelCatalog",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ModelSnapshotHash",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.NewCatalogRefreshHandlers",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.NormalizeModelCatalog",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadInitializationState",
       "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.SaveCatalogPrice",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "blocked",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": null
     },
     {
       "id": "model-gateway.LookupInvocation",
@@ -3405,10 +3405,10 @@
       "state": "blocked",
       "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。 真实tracking来源建立仍待公共fresh activation/verified restore生产者，缺失不假造404或开放首次付费。"
+      "blocker": "源码已通过GitLab；可信fresh activation/已验证恢复来源tracking生产者未齐，缺marker拒绝首次接受/404，保持blocked不计完整业务。"
     },
     {
       "id": "model-gateway.RequireInvocationLookupTracking",
@@ -3416,44 +3416,44 @@
       "state": "blocked",
       "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。 真实tracking来源建立仍待公共fresh activation/verified restore生产者，缺失不假造404或开放首次付费。"
+      "blocker": "源码已通过GitLab；可信fresh activation/已验证恢复来源tracking生产者未齐，缺marker拒绝首次接受/404，保持blocked不计完整业务。"
     },
     {
       "id": "model-gateway.ReadInvocationSnapshot",
       "path": "modules/model-gateway/internal/invocation/read.go",
-      "state": "blocked",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadStatisticsInvocationRecord",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
-      "state": "blocked",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": null
     },
     {
       "id": "model-gateway.readInvocationRecord",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
-      "state": "blocked",
-      "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
+      "state": "verified",
+      "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "state": "passed",
+        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": null
     }
   ],
-  "rule": "费用首批11原有业务及26必要助手共37项源码ready，加2项修改过的既有账本函数重新待CI；全部blocked，不提前implemented/verified。既有未改verified保留原证据；完整生产派发及启动继续实现。"
+  "rule": "本批完整独立函数通过pipeline101；Create/Lookup/tracking首次来源、完整启动及保护、probe额度/目录数据许可仍按逐项台账阻塞，不计业务验收。"
 }

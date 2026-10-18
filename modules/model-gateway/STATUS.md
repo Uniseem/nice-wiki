@@ -1,3 +1,11 @@
+# 2026-10-18网关后续源码检查通过
+
+GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。
+
+本批100个完整独立或实际修改函数通过源码检查；首次接受/原键不存在证明所需tracking来源未齐，CreateInvocation/LookupInvocation/RequireInvocationLookupTracking仍blocked。13原业务保护/完整启动/探测与目录缺口继续未齐，不把源码编译当可运行。原参考ExtendReservation/RedactLog无实际caller已按ADR0002移除，不以无意义调用过结构。
+
+以下为历史记录。
+
 # 原键查询与费用更正小批
 
 源码a3c7536：新增业务LookupInvocation及4真实助手RequireInvocationLookupTracking、ReadInvocationSnapshot、ReadStatisticsInvocationRecord、readInvocationRecord，统一model-gateway前缀。13项新/修改函数blocked待GitLab，无提前verified。schema011与lookup.go已登记；根需重生成文档/客户端。
