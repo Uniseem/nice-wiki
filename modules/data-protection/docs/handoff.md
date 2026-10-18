@@ -1,3 +1,5 @@
+安全设置读取源码ea262f42c3d3a15b6656f3660d8d5c78f8549ce8：ReadProtectionSettings与实际HTTP helper就绪，累计8个既有业务函数+29助手待统一GitLab CI。schedule/remote兼容可选，只有真实已保存配置才返回，安全DTO不含actor/credentialRef，不拿当前读者假造批准事实。根已批准后续轻量BackupManifestV1和可信AllowedGitHosts配置字段，下一步先写真实Manifest/ref验证，不从请求或内部依赖推断远程allowlist。无本地编译/gen/测试/真实业务调用，工作树此记录提交后应干净。
+
 # R1第二批：私有分片AEAD与journal（2026-10-18）
 
 源码6a115d0e1c710454ed07b746c6fd71e9430d5902：EncryptBackupObject、DecryptForValidation、RecoverProtectionJournal及15个实际参考助手交付代码，累计7个既有业务函数+28助手；本批全部待统一GitLab CI，accepted=0。Root通知首批pipeline75 Go/普通test/前端已过，4条name修正同步；不把旧证据套本批改动。

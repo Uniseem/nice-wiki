@@ -2,12 +2,12 @@
   "version": 1,
   "module": "data-protection",
   "phase": "implementation",
-  "contractSha256": "b08cb636c285f9a7964e1f32776a27d294146cf769d70752041ba93e191ef431",
+  "contractSha256": "b9bbff49effb7bf1886fd1a29c17b9fc10b7ab1ffbfd0e47d71686e62c5bdd70",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1收尾并行：数据保护独占",
   "branch": "codex/finish-20261018-protection",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+  "deliveryCommit": "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
   "deployment": "not_started",
   "files": [
     {
@@ -629,6 +629,16 @@
         "evidence": null
       },
       "blocker": "本批源码/精确格式已交付，待统一GitLab CI；完整服务仍未齐"
+    },
+    {
+      "path": "modules/data-protection/internal/settings.go",
+      "state": "blocked",
+      "implementationCommit": "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "真实可选安全设置读取就绪，待统一GitLab CI"
     }
   ],
   "functions": [
@@ -821,14 +831,14 @@
     },
     {
       "id": "data-protection.ReadProtectionSettings",
-      "path": "modules/data-protection/internal/queries.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/data-protection/internal/settings.go",
+      "state": "blocked",
+      "implementationCommit": "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "真实可选安全设置读取代码就绪，待统一GitLab CI"
     },
     {
       "id": "data-protection.AuthorizeBackupDownload",
@@ -1373,12 +1383,12 @@
       "id": "data-protection.NewApplication",
       "path": "modules/data-protection/internal/transport/server.go",
       "state": "verified",
-      "implementationCommit": "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "implementationCommit": "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
       "verification": {
         "state": "passed",
         "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
       },
-      "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": "新增真实设置HTTP装配，待统一GitLab CI；完整服务未齐"
     },
     {
       "id": "data-protection.server.ListBackups",
@@ -1676,13 +1686,25 @@
         "evidence": null
       },
       "blocker": "分片AEAD/真实journal独立闭环代码就绪，待统一GitLab CI；未做行为验收"
+    },
+    {
+      "id": "data-protection.server.ReadProtectionSettings",
+      "path": "modules/data-protection/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "真实设置HTTP转换就绪，待统一GitLab CI"
     }
   ],
-  "rule": "本域累计7个既有业务函数与28个实际参考支持代码交付；本批未CI为blocked，根已核首批未改项证据由集成保留。完整备份/恢复/镜像/启动/UI未齐，不能将加密独立协议或空目录冒认为整站可恢复。",
+  "rule": "累计8个既有业务函数及29个实际参考助手交付代码，待统一GitLab CI；完整备份/恢复/镜像/启动/UI仍未齐，不冒称业务验收或部署。根已核未改项CI证据由集成保留。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "88cef9718165e87d431e36b327f23cb207792388",
-      "6a115d0e1c710454ed07b746c6fd71e9430d5902"
+      "6a115d0e1c710454ed07b746c6fd71e9430d5902",
+      "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8"
     ],
     "existingBusinessFunctions": [
       "data-protection.ListBackups",
@@ -1691,7 +1713,8 @@
       "data-protection.VerifyObjectHash",
       "data-protection.EncryptBackupObject",
       "data-protection.DecryptForValidation",
-      "data-protection.RecoverProtectionJournal"
+      "data-protection.RecoverProtectionJournal",
+      "data-protection.ReadProtectionSettings"
     ],
     "newReferenceHelpers": [
       "data-protection.NewApplication",
@@ -1721,7 +1744,8 @@
       "data-protection.activateEncryptedObject",
       "data-protection.readCryptoHeader",
       "data-protection.decryptCryptoFrames",
-      "data-protection.activateDecryptedObject"
+      "data-protection.activateDecryptedObject",
+      "data-protection.server.ReadProtectionSettings"
     ],
     "batches": [
       {
@@ -1755,6 +1779,19 @@
           "data-protection.VerifyObjectHash"
         ],
         "notes": "首批已由根通知pipeline75全部Go/普通test及前端通过；4项ID/name同根修正。该证据不覆盖本批改动；无本机/SSH编译或真实备份恢复。"
+      },
+      {
+        "sourceCommit": "ea262f42c3d3a15b6656f3660d8d5c78f8549ce8",
+        "existingBusinessFunctions": [
+          "data-protection.ReadProtectionSettings"
+        ],
+        "newReferenceHelpers": [
+          "data-protection.server.ReadProtectionSettings"
+        ],
+        "changedFunctions": [
+          "data-protection.NewApplication"
+        ],
+        "notes": "Root已批准schedule/remote兼容可选安全DTO，无配置时省略，不伪造actor/credentialRef或空策略。"
       }
     ]
   }
