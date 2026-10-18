@@ -1,3 +1,7 @@
+## 2026-10-18 本轮公共契约文字核对
+
+仅更新readUsageStatisticsPage的OpenAPI描述，使其与已登记V2类型及实际生产方一致：changes与observations共享固定上界，覆盖来源不等于金额已知。未改变字段、权限或实现，不提高函数状态；生成与检查待本轮GitLab。
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
