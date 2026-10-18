@@ -1474,9 +1474,39 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
+      "path": "modules/data-protection/internal/integrity.go",
+      "kind": "handwritten",
+      "purpose": "校验文件完整性；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/internal/queries.go",
+      "kind": "handwritten",
+      "purpose": "分页备份目录；同文件职责限本域以下登记函数"
+    },
+    {
+      "path": "modules/data-protection/internal/store.go",
+      "kind": "handwritten",
+      "purpose": "本域active目录及control决定库，隔离路径与事务迁移。"
+    },
+    {
       "path": "modules/data-protection/internal/transport/server.go",
       "kind": "handwritten",
       "purpose": "HTTP 生命周期、优雅关闭、匿名健康与就绪；业务路由失败关闭"
+    },
+    {
+      "path": "modules/data-protection/migrations/0001_domain.sql",
+      "kind": "migration",
+      "purpose": "创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针"
+    },
+    {
+      "path": "modules/data-protection/migrations/0002_control.sql",
+      "kind": "migration",
+      "purpose": "永不随active替换的屏障、恢复决定、回执及journal表"
+    },
+    {
+      "path": "modules/data-protection/migrations/embed.go",
+      "kind": "handwritten",
+      "purpose": "内嵌本域active/control迁移"
     },
     {
       "path": "modules/data-protection/progress.json",
