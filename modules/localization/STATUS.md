@@ -1,3 +1,5 @@
+冻结交付（2026-10-18）：稳定字段保护投影源码33cd264a55df396f038d693f45c8d661e2eb0cb1，此前偏好Timestamp窄修8743c9f。ReadTranslation与4个实际参考助手就绪，累计32个既有业务/已改项、57个新增参考助手；本批待统一GitLab CI，未提前verified。原父/行换分组安全映射已按真实稳定ID收口；不能证明归属、段形状变化或保护source-only明确失败关闭。fileRef兼容可选，持久单元始终返回真实引用，即时派生省略。完整服务、付费执行/恢复链及模型建议仍未齐；按根要求冻结本域，不扩新功能包。
+
 偏好链源码78097582679cf251b7460eef1f6e861f5b631b9c：SaveLanguagePreference与NewPreferenceHandlers就绪，累计31个既有业务/已改项与53个新增参考辅助，均待GitLab CI。仅保存同伪名的明确选择及30天到期，七天回执重放不延长期限；不存推测信号，不触发模型。SuggestLanguage快速模型缓存分支仍存在授权设计冲突，保持blocked。
 
 人工保护窄修源码0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640：不可恢复编号模板与source-only分支均失败关闭，旧权威对象保留；ReadTranslation仍真正blocked，不新增ready计数，待统一GitLab CI。

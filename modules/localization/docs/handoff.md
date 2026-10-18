@@ -1,3 +1,11 @@
+## 冻结交付：稳定节点保护投影
+
+源码33cd264a55df396f038d693f45c8d661e2eb0cb1（需先带偏好Timestamp窄修8743c9f）：ReadTranslation已用真实最深稳定节点身份、节点类型及节点内text/alt路径对应旧私有模板的人工译值。固定/可译分段同形才复用，固定URL/code取当前源；重排祖先数组和整表/真实行分片改组不以全局位置猜。新增真实子节点原文partial/review且继承父保护，无法证明归属、分段形状改变或保护块source-only明确失败关闭。原权威对象保留。根确认该保守行为完整代码ready，ReadTranslation不再计真实设计阻塞。
+
+TranslationUnit.fileRef先改types为兼容可选，本域读写同步为指针；持久单元必填真实引用，原子写入对象中不自引用，即时fallback/新投影省略，不写null/零引用/旧父证明。body/bodyHash与本次source publication、targetLanguage、target generation绑定。4个新增helper精确ID：StableSlotKey、CollectSlotFields、BuildProtectedProjection、ProjectProtectedUnit。变更ReadObject、WriteObject、ReadTranslation；累计32个既有业务/已改函数与57个新增助手。全部本批待统一GitLab CI生成并编译，不在本机运行Go/gen/gofmt/检查/测试，无真实调用，仅git diff --check。
+
+根通知既有批次已过pipeline67全部Go编译；本树未接回详细函数证据，集成时保留根已确认未改项，不能用本树旧not_run覆盖。根要求本小批后冻结，当前不扩新包；剩余完整任务/批准/恢复/服务启动与SuggestLanguage授权问题均未冒称完成。
+
 ## 显式偏好链交付
 
 源码78097582679cf251b7460eef1f6e861f5b631b9c：SaveLanguagePreference核对可信visitor与同一伪名owner，复用Mutate事务和EnabledLanguage规范标签核对，保存30天期限并与七天幂等回执同事务提交。新选择可替换旧值，重放返回原期限，不存country/timeZone/browserLanguages/IP或轨迹。公开HTTP装配NewPreferenceHandlers与public-site来源白名单，OpenAPI补齐公共失败响应。新增1个原有函数及1个实际helper，累计31+53，全部待统一GitLab CI。

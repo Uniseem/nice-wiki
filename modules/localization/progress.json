@@ -2,12 +2,12 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "a292fd88cdc939403714faa4e2ebf5d48a030f7a7b7935a6c7e7b51abdcf1c18",
+  "contractSha256": "ec40e890626589226b22d074a182efd3f04501b8387eadb205cabddd75e59fb7",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-15（Codex，集中并行实现）",
   "branch": "codex/localization-20261018-bulk",
   "baseCommit": "f1d4ce0628470eda7b253993366669759dd01cdc",
-  "deliveryCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
+  "deliveryCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
   "deployment": "not_started",
   "files": [
     {
@@ -108,7 +108,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/translation/incremental.go",
@@ -138,7 +138,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/translation/execute.go",
@@ -158,7 +158,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/translation/commit.go",
@@ -183,12 +183,12 @@
     {
       "path": "modules/localization/internal/translation/read.go",
       "state": "blocked",
-      "implementationCommit": "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640",
+      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "代码就绪，待统一GitLab CI；完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/human/edit.go",
@@ -313,7 +313,7 @@
     {
       "path": "modules/localization/internal/suggestion/preference.go",
       "state": "blocked",
-      "implementationCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
+      "implementationCommit": "8743c9fefb9688373328fdcda16f520afa045072",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -408,7 +408,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/glossary/extract.go",
@@ -778,17 +778,17 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/translation/store.go",
       "state": "blocked",
-      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "代码就绪，待统一GitLab CI；完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/translation/edit.go",
@@ -808,7 +808,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/interface/http.go",
@@ -858,7 +858,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/translation/restore.go",
@@ -868,7 +868,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/translation/source.go",
@@ -878,7 +878,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/translation/progress.go",
@@ -888,7 +888,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
     },
     {
       "path": "modules/localization/internal/runtime/source_client.go",
@@ -898,7 +898,17 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组源码待统一GitLab CI；公开ReadTranslation保护表格换分组仍有真实设计阻塞，完整服务未齐"
+      "blocker": "第三组源码待统一GitLab CI；人工保护投影后续小批已收口，完整服务仍未齐"
+    },
+    {
+      "path": "modules/localization/internal/translation/projection.go",
+      "state": "blocked",
+      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     }
   ],
   "functions": [
@@ -1093,12 +1103,12 @@
       "id": "localization.ReadTranslation",
       "path": "modules/localization/internal/translation/read.go",
       "state": "blocked",
-      "implementationCommit": "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640",
+      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "真实设计/实现阻塞：人工保护table父/行分组改变、当前slot无法恢复或保护块source-only均失败关闭，安全旧译投影未齐；不计完整完成。其余body/hash/水位读链待统一GitLab CI。"
+      "blocker": "稳定ID保护投影与真实引用语义代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.ListTranslationProgress",
@@ -1280,7 +1290,7 @@
       "id": "localization.SaveLanguagePreference",
       "path": "modules/localization/internal/suggestion/preference.go",
       "state": "blocked",
-      "implementationCommit": "78097582679cf251b7460eef1f6e861f5b631b9c",
+      "implementationCommit": "8743c9fefb9688373328fdcda16f520afa045072",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1962,23 +1972,23 @@
       "id": "localization.ReadObject",
       "path": "modules/localization/internal/translation/store.go",
       "state": "blocked",
-      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": "稳定ID保护投影与真实引用语义代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.WriteObject",
       "path": "modules/localization/internal/translation/store.go",
       "state": "blocked",
-      "implementationCommit": "35cc93176576b42cbbf3a737bef39758586399db",
+      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "第三组代码就绪，待统一GitLab CI；未做行为验收"
+      "blocker": "稳定ID保护投影与真实引用语义代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.NewTranslationHandlers",
@@ -2232,16 +2242,62 @@
         "evidence": null
       },
       "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.StableSlotKey",
+      "path": "modules/localization/internal/translation/projection.go",
+      "state": "blocked",
+      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.CollectSlotFields",
+      "path": "modules/localization/internal/translation/projection.go",
+      "state": "blocked",
+      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.BuildProtectedProjection",
+      "path": "modules/localization/internal/translation/projection.go",
+      "state": "blocked",
+      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.ProjectProtectedUnit",
+      "path": "modules/localization/internal/translation/projection.go",
+      "state": "blocked",
+      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
     }
   ],
-  "rule": "累计31个既有业务/已改函数与53个新增实际参考辅助待统一GitLab CI；ReadTranslation人工保护投影与SuggestLanguage模型授权仍真正blocked，完整服务未齐，不提升未核CI状态。合并保留根已核未改项CI证据。",
+  "rule": "累计32个既有业务/已改函数与57个新增实际参考辅助已交付代码，均待统一GitLab CI；ReadTranslation稳定ID保护投影已收口，失败关闭属已批准语义。SuggestLanguage模型授权及其余未写链仍blocked。按根要求冻结本域，不扩新包；合并保留根已核未改项CI证据。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "21c6a196c990d323c73429b769a38895beca7a93",
       "5e90f43d6876833467610314722150fc678fe7e6",
       "35cc93176576b42cbbf3a737bef39758586399db",
       "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640",
-      "78097582679cf251b7460eef1f6e861f5b631b9c"
+      "78097582679cf251b7460eef1f6e861f5b631b9c",
+      "8743c9fefb9688373328fdcda16f520afa045072",
+      "33cd264a55df396f038d693f45c8d661e2eb0cb1"
     ],
     "existingBusinessFunctions": [
       "localization.NormalizeLanguageTag",
@@ -2274,7 +2330,8 @@
       "localization.FetchTranslationSource",
       "localization.ReadTranslationUnits",
       "localization.ListTranslationProgress",
-      "localization.SaveLanguagePreference"
+      "localization.SaveLanguagePreference",
+      "localization.ReadTranslation"
     ],
     "newReferenceHelpers": [
       "localization.rejectLanguageAlias",
@@ -2329,7 +2386,11 @@
       "localization.readPublishedSnapshot",
       "localization.CheckPublication",
       "localization.CursorKey",
-      "localization.NewPreferenceHandlers"
+      "localization.NewPreferenceHandlers",
+      "localization.StableSlotKey",
+      "localization.CollectSlotFields",
+      "localization.BuildProtectedProjection",
+      "localization.ProjectProtectedUnit"
     ],
     "batches": [
       {
@@ -2498,6 +2559,39 @@
           "localization.SuggestLanguage"
         ],
         "note": "快速模型缓存建议和全局付费批准边界待收口；未调用模型，不把纯规则当完整SuggestLanguage。"
+      },
+      {
+        "sourceCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+        "precedingFixCommit": "8743c9fefb9688373328fdcda16f520afa045072",
+        "existingBusinessFunctions": [
+          "localization.ReadTranslation"
+        ],
+        "newReferenceHelpers": [
+          "localization.StableSlotKey",
+          "localization.CollectSlotFields",
+          "localization.BuildProtectedProjection",
+          "localization.ProjectProtectedUnit"
+        ],
+        "changedFunctions": [
+          "localization.ReadTranslation",
+          "localization.ReadObject",
+          "localization.WriteObject",
+          "localization.SaveLanguagePreference"
+        ],
+        "readyFunctions": [
+          "localization.ReadTranslation",
+          "localization.ReadObject",
+          "localization.WriteObject",
+          "localization.StableSlotKey",
+          "localization.CollectSlotFields",
+          "localization.BuildProtectedProjection",
+          "localization.ProjectProtectedUnit",
+          "localization.SaveLanguagePreference"
+        ],
+        "designBlocked": [
+          "localization.SuggestLanguage"
+        ],
+        "note": "稳定ID保守投影已获根裁定完整代码ready；无法证明归属及source-only保护失败关闭属明确业务语义，不再把整个ReadTranslation列设计阻塞。所有本批代码待CI生成fileRef指针并编译。"
       }
     ]
   }
