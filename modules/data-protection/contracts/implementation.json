@@ -560,7 +560,7 @@
           ],
           "purpose": "执行一次全站一致备份",
           "steps": [
-            "读取备份记录与发起方授权（手动=superadmin，定时=超管保存的定时设置）；AcquireMaintenance进入备份维护并让全部域屏障safe",
+            "读取持久批准：普通手动backup.manage，includeSecrets另需superadmin；定时仅已保存范围。核approvedBy/permissionRevision/includeSecrets/root/site/sourceEpoch/inputHash及当前epoch/jobs fence，不复用短期portal proof；AcquireMaintenance并等全部域safe。",
             "CollectSnapshots逐域导出；FinalizeBackup校验、加密并置ready",
             "ReleaseMaintenance释放屏障退出维护；成功后PruneBackups按保留策略清理",
             "任一域失败整体failed并释放维护，不产生部分可恢复包"
@@ -1420,10 +1420,10 @@
           ],
           "purpose": "加密备份对象",
           "steps": [
-            "已配可信keyring核keyId，原输入摘要含sourceHash/sourceBytes/schema及snapshot或manifest角色；同backup/owner/role原操作异摘要CONFLICT，已完成返回真实原引用。",
+            "已配可信keyring核keyId，原输入摘要含sourceHash/sourceBytes/schema及snapshot或manifest角色；同backup/owner/role/keyId原操作异摘要CONFLICT，已完成返回真实原引用。",
             "按CryptoHeaderV1及crypto-format.md生成每对象随机32-byte DEK、随机nonce前缀；本地32-byte KEK仅包装DEK。",
             "1MiB流式AES256GCM数据帧，AAD绑定header摘要及帧头，连续唯一nonce；完整源hash/长度与输入相符。",
-            "必须写唯一44-byte终帧，空源亦有；prepared原输入摘要→temp fsync及完整引用→rename/目录fsync→object-installed→active索引→complete与原回执，control不随active替换。",
+            "必须写唯一44-byte终帧，空源亦有；prepared原输入摘要→temp fsync及完整引用→rename/目录fsync→object-installed→control索引→complete与原回执，control不随active替换。",
             "snapshot owner只接受14个真实有状态域；manifest角色仅data-protection。未安装失败尝试丢弃自己的temp并换新objectId/DEK，已完整密文只复用，不覆盖。"
           ],
           "errors": [
@@ -2035,7 +2035,7 @@
           "outputs": [],
           "purpose": "分片AEAD与真实journal的本域参考支持：activateEncryptedObject",
           "steps": [
-            "精确采用CryptoHeaderV1与docs/crypto-format.md；仅本域受控对象及真实已持久事实，不能把临时数据、未知key、无终帧或不完整结果标成功。"
+            "完整密文及目录已fsync后，真实索引与原journal complete同一control事务提交，不覆盖对象。"
           ],
           "errors": [
             {
@@ -4792,7 +4792,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "controller元数据journal与快照冻结区分；不递归自己对象",
           "idempotency": "barrierId幂等",
@@ -4860,7 +4860,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "不会解除commit-decided恢复锁",
           "idempotency": "barrierId幂等",
@@ -4942,7 +4942,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "备份不无限嵌套；本轮操作journal保留控制面外部恢复锚",
           "idempotency": "backupId/barrierId幂等",
@@ -5055,7 +5055,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
           "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
@@ -5141,7 +5141,7 @@
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）"
           },
           "concurrency": "control区按restoreId串行",
           "idempotency": "重复删除返回removed=false",
@@ -6707,8 +6707,9 @@
           "outputs": [],
           "purpose": "本域私有持久目录与路径支持：OpenCatalog",
           "steps": [
-            "只处理本域active/control隔离目录及真实SQLite事务/版本；路径采用平台逐级无symlink校验，失败不输出路径或原IO信息。",
-            "目录创建后逐级fsync到dataRoot；两个SQLite库显式synchronous=FULL，使控制journal先于文件激活持久。"
+            "旧active/objects非空或旧active控制表非空维护拒绝，不静默遗漏历史。",
+            "control保存backup_runs/backup_objects/stored_objects/vault_meta，active只安全设置及镜像；vault独立不随恢复替换。",
+            "目录fsync到dataRoot，双库FULL同步；vault只接受真实索引或原journal所属文件，未知文件拒绝且不删除。"
           ],
           "errors": [
             {
@@ -6742,13 +6743,16 @@
           ],
           "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
           "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
-          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
           "dependencies": [
             "data-protection.openDatabase",
             "data-protection.applyMigration",
             "data-protection.Store.Close",
             "data-protection.storageError",
-            "data-protection.syncObjectDirectory"
+            "data-protection.syncObjectDirectory",
+            "data-protection.rejectLegacyVault",
+            "data-protection.rejectLegacyControllerRows",
+            "data-protection.verifyVaultInventory"
           ],
           "resources": [],
           "contract": "reference"
@@ -6795,7 +6799,7 @@
           ],
           "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
           "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
-          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
           "dependencies": [
             "data-protection.storageError"
           ],
@@ -6805,7 +6809,7 @@
         {
           "id": "data-protection.applyMigration",
           "name": "applyMigration",
-          "signature": "func applyMigration(ctx context.Context, db *sql.DB, name string) error",
+          "signature": "func applyMigration(ctx context.Context, db *sql.DB, name string, target, maxVersion int) error",
           "inputs": [],
           "outputs": [],
           "purpose": "本域私有持久目录与路径支持：applyMigration",
@@ -6844,7 +6848,7 @@
           ],
           "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
           "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
-          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
           "dependencies": [
             "data-protection.storageError"
           ],
@@ -6893,7 +6897,7 @@
           ],
           "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
           "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
-          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
           "dependencies": [
             "data-protection.storageError"
           ],
@@ -6942,7 +6946,7 @@
           ],
           "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
           "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
-          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -6989,7 +6993,7 @@
           ],
           "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
           "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
-          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -7036,7 +7040,7 @@
           ],
           "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
           "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
-          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -7083,7 +7087,7 @@
           ],
           "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
           "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
-          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -7130,8 +7134,170 @@
           ],
           "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
           "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
-          "idempotency": "版本1迁移仅user_version=0事务应用；已有版本拒绝降级。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.rejectLegacyVault",
+          "name": "rejectLegacyVault",
+          "signature": "func rejectLegacyVault(root string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "独立vault布局支持：rejectLegacyVault",
+          "steps": [
+            "旧active/objects非空维护拒绝，不覆盖未知历史。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "LOCKED",
+              "retryable": false,
+              "condition": "未知旧历史须先明确验证迁移。"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.rejectLegacyControllerRows",
+          "name": "rejectLegacyControllerRows",
+          "signature": "func rejectLegacyControllerRows(ctx context.Context, db *sql.DB) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "独立vault布局支持：rejectLegacyControllerRows",
+          "steps": [
+            "迁移前旧active三张控制表必须全空，否则维护拒绝。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "LOCKED",
+              "retryable": false,
+              "condition": "未知旧历史须先明确验证迁移。"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.verifyVaultInventory",
+          "name": "verifyVaultInventory",
+          "signature": "func verifyVaultInventory(ctx context.Context, store *Store) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "独立vault布局支持：verifyVaultInventory",
+          "steps": [
+            "只接受真实索引路径或原加密journal所属对象及temp；未知文件拒绝且不删除。"
+          ],
+          "errors": [
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "retryable": false,
+              "condition": "本域持久/代次/路径条件不满足时失败关闭"
+            },
+            {
+              "code": "LOCKED",
+              "retryable": false,
+              "condition": "未知旧历史须先明确验证迁移。"
+            }
+          ],
+          "sideEffects": [
+            "仅登记职责范围内私有IO；构造不调用真实业务服务"
+          ],
+          "authorization": "入口已核可信op，内部只执行本函数epoch/人工主体或本域路径约束。",
+          "concurrency": "SQLite最大1连接短事务；control不随active替换；Close只执行一次。",
+          "idempotency": "V1/V2连续事务迁移；更高版本拒绝，旧权威记录不静默搬迁。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -7233,6 +7399,18 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/data-protection/migrations/0003_vault_catalog.sql",
+      "kind": "migration",
+      "purpose": "control V2真实vault目录及备份原批准事实。",
+      "functions": []
+    },
+    {
+      "path": "modules/data-protection/migrations/0004_vault_layout.sql",
+      "kind": "migration",
+      "purpose": "active V2仅在旧表全空后移除旧控制表。",
+      "functions": []
     }
   ],
   "jobTypes": [

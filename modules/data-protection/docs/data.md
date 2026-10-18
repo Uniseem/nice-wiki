@@ -24,7 +24,7 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 
 快照只经HTTP管理协议（barrier/export/stage/discard），在safe屏障固定revisionWatermark；恢复先全域暂存，写切换决定后各服务重启换入，全部域登记回执才解维护。control区不随恢复替换。换入后先schema迁移与完整性验证，失败拒绝启动并可整体换回。
 
-R1实现收口：active/protection.db保存备份/对象/镜像目录、remote设置与目录revision；control/protection-control.db保存恢复运行、决定、域回执、屏障及journal，整体不参与业务恢复。各库user_version=1，未知更高版本拒绝启动。实际迁移0001_domain.sql与0002_control.sql在SQLite短事务应用；平台inbox/outbox直接EnsureSchema，不复制结构。对象只允许本域active/incoming、active/objects及restore隔离根，不能读取其他域私有路径。
+R1实现收口：active/protection.db保存安全设置与镜像；control/protection-control.db保存备份及对象权威、vault_meta、恢复运行、决定、域回执、屏障及journal，不参与业务恢复。各库user_version=2，未知更高版本拒绝启动。实际迁移0001_domain.sql与0002_control.sql在SQLite短事务应用；平台inbox/outbox直接EnsureSchema，不复制结构。对象只允许本域active/incoming、vault及restore隔离根，不能读取其他域私有路径。
 
 目录分页由created_at/backup_id倒序keyset和目录revision绑定，平台签名游标固定稳定身份/会话/权限修订/epoch/limit，10分钟过期；水位变化拒绝混页。未配置镜像或不存在备份返回NOT_FOUND，不用空成功伪造历史。
 
@@ -33,3 +33,11 @@ R1实现收口：active/protection.db保存备份/对象/镜像目录、remote�
 设置读取使用独立安全DTO：schedule/remote均兼容可选，未配置即省略。schedule只给实际保存的timezone、keepCount、includeSecrets、scheduleId及revision；remote只给无凭据URL、branch及CAS修订。不返回原批准AuthContext或credentialRef，不使用当前读者伪造原策略批准事实。
 
 BackupManifestV1采用轻量设计：14份真实DomainSnapshotManifest的hash/来源SnapshotRef、同backupId/barrierId/sourceEpoch及完整来源绑定引用；原域manifest留在原tar。全局top JSON及对象/发布/引用索引≤2MiB，域manifest≤16MiB。ValidateCrossDomainRefs另接完整认证的真实域清单，以所有精确ref字段闭包验证；快照存在不等于对象存在。发布权威只取content，历史ref的epoch/schema等必须真实完全对应，不补造别名。keyId是创建来源指纹，便携导入不依赖源KEK，本机vault的实际keyId另存私有backup_runs/header。
+
+## V2独立vault
+
+密文在dataRoot/vault，不在active/control/restore内。0003建立control备份目录、对象及vault_meta；0004仅在旧active三张表确认为空后移除旧表。旧objects非空、旧控制记录或vault未登记文件均维护拒绝，不自动搬迁、遗漏或删除。完整密文与目录fsync后，真实索引及原journal完成状态同一control事务持久。游标绑定vault_meta revision。
+
+backup_runs持久approved_by/approval_permission_revision/approval_kind/site_id/root_operation_id/input_hash/include_secrets/source_epoch。HTTP普通备份核backup.manage，secret另核superadmin；worker只在固定批准范围和当前epoch/jobs fence执行，不保存复用过期portal proof。
+
+自身快照只导出安全设置与历史目录/完成审计投影，不打包历史vault实物或恢复controller授权。历史密文是明确external-vault审计metadata，追溯backupId/cipher SHA/bytes/keyId，不伪装活跃业务ObjectRef。恢复时真实核本机vault；跨实例缺旧包应failed+安全issue，不捏造ready。本次业务及付费结果由真正拥有域的完整快照保存。

@@ -11,3 +11,5 @@ header.meta的backupId/objectId/owner/objectKind/keyId/sourceHash/sourceBytes/da
 终帧kind=2，sequence=数据片数，plaintextLength=44。其明文依次uint64总明文长、uint32数据片数、32字节明文SHA256；以该sequence的独立nonce和同一帧AAD加密。空源也必须有终帧。数据总长/源摘要/终帧摘要与片数都必须一致，终帧后必须立即EOF；缺片、乱序、重复终帧、截断、尾随、错误key或任意tag失败均不激活。
 
 每片1MiB，持有固定数量片缓冲（约2MiB及少量头部），不将20GiB对象载入内存。解密明文只落本域restore隔离临时文件，全部认证和EOF完成后fsync、rename、fsync目录再交付路径。加密同样先写临时文件并fsync，控制库FULL同步journal先记原输入摘要/prepared和完整密文引用，再安装文件/同步目录、记object-installed、提交active对象索引、记complete及原结果。控制库不随active替换，不能省略原输入摘要核对或把SQLite事务当跨文件原子提交。
+
+布局V2为dataRoot/vault/<objectId>.nwb，temp为.<objectId>.tmp；索引及备份权威在control，不随active切换。容器V1字节不变。加密幂等范围包括backupId/owner/role/keyId，同范围异原输入CONFLICT。
