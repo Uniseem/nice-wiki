@@ -7179,6 +7179,12 @@
       "kind": "handwritten",
       "purpose": "其他平台相同入口失败关闭，不降级非隔离PDF",
       "functions": []
+    },
+    {
+      "path": "libs/platform/web/module-api.ts",
+      "kind": "handwritten",
+      "purpose": "浏览器非序列化模块API端口与bootstrap类型，不暴露HttpOnly秘密",
+      "functions": []
     }
   ],
   "jobTypes": [],

@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "d7880f724c7677fda22ed6a7dc453a1e995f6b4138f594425e5bf6d389f93b23",
+  "contractSha256": "ac39efdef5cc1a2038dfbcf5368bee9c66fadcb8fec89880a4b025069dfb55c3",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
   "branch": "codex/integration-20261017-r3",
@@ -279,6 +279,16 @@
         "evidence": null
       },
       "blocker": "隔离解析源码待GitLab编译；不代表真实PDF行为验收"
+    },
+    {
+      "path": "libs/platform/web/module-api.ts",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "模块UI接入及GitLab类型检查待完成"
     }
   ],
   "functions": [

@@ -859,6 +859,11 @@
       "purpose": "portal委托证明验证实现"
     },
     {
+      "path": "libs/platform/web/module-api.ts",
+      "kind": "handwritten",
+      "purpose": "公共模块浏览器API端口类型"
+    },
+    {
       "path": "libs/platform/worker/client.go",
       "kind": "source",
       "purpose": "真实jobs HTTP到任务六方法的公共严格生产方响应适配"
