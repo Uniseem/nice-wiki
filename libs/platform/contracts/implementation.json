@@ -4759,9 +4759,182 @@
       "purpose": "恢复换目录",
       "functions": [
         {
+          "id": "platform.integrity",
+          "name": "integrity",
+          "signature": "func integrity(message string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.readSnapshotStageRecord",
+          "name": "readSnapshotStageRecord",
+          "signature": "func readSnapshotStageRecord(dataRoot, restoreID string) (snapshotStageRecord, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.integrity",
+            "platform.readSnapshotJSON",
+            "platform.snapshotStageID"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
           "id": "platform.ApplyRestoreSwap",
           "name": "ApplyRestoreSwap",
-          "signature": "func ApplyRestoreSwap(dataRoot string, runtime RuntimeView) (SwapResult, error)",
+          "signature": "func ApplyRestoreSwap(dataRoot string, runtime platform.RuntimeView) (platform.SwapResult, error)",
           "inputs": [
             {
               "name": "dataRoot",
@@ -4798,33 +4971,1251 @@
               ]
             }
           ],
-          "purpose": "启动时按恢复阶段换入或换回active目录（ADR0003）",
+          "purpose": "启动入口开放前核真实完整stage回执、原输入摘要、源清单hash与目标完整树，不仅看目录。",
           "steps": [
-            "读control区恢复日志",
-            "restore_switching且存在restore/<id>/staged且未换入：active→restore/<id>/before，staged→active，fsync父目录，写日志",
-            "restore_rolling_back且已换入：反向换回并写日志",
-            "其余情况不动目录；目录状态与日志矛盾时拒绝启动"
+            "启动入口开放前核真实完整stage回执、原输入摘要、源清单hash与目标完整树，不仅看目录。",
+            "精确核runtime phase/maintenance/restore/barrier/host/target/Revision后持久prepared-switch绑定原active完整树hash。",
+            "active→before、staged→active每步先fsync双方父目录再写完整日志；换回反向同证据机制。",
+            "崩溃仅依已持久阶段及精确物理目录组合续接，缺日志/未知目录/树已改变均失败关闭，不尝试覆盖或删除未知数据。"
           ],
           "errors": [
             {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
               "code": "INTEGRITY_ERROR",
-              "when": "目录与日志不一致",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
               "retryable": false
             }
           ],
           "sideEffects": [
-            "重命名数据目录",
-            "写control日志"
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
           ],
           "authorization": {
             "permission": "service",
             "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
           },
-          "concurrency": "启动阶段独占，入口开放前完成",
-          "idempotency": "按restoreId与日志状态幂等",
-          "dependencies": [],
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.ValidatePrivatePath",
+            "platform.applySnapshotRollback",
+            "platform.applySnapshotSwitch",
+            "platform.integrity",
+            "platform.readRestoreLog",
+            "platform.readSnapshotStageRecord",
+            "platform.restoreLogState"
+          ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.snapshotDirectoryExists",
+          "name": "snapshotDirectoryExists",
+          "signature": "func snapshotDirectoryExists(path string) (bool, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.ValidatePrivatePath",
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.snapshotSwapPaths",
+          "name": "snapshotSwapPaths",
+          "signature": "func snapshotSwapPaths(dataRoot, restoreID string) (string, string, string, string)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.verifySnapshotHash",
+          "name": "verifySnapshotHash",
+          "signature": "func verifySnapshotHash(root, expected string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.fingerprintSnapshotTree",
+            "platform.integrity"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.snapshotRename",
+          "name": "snapshotRename",
+          "signature": "func snapshotRename(from, to, dataRoot, restoreBase string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.ValidatePrivatePath",
+            "platform.integrity",
+            "platform.snapshotDirectoryExists",
+            "platform.snapshotIOError",
+            "platform.syncDir"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.snapshotSwapLog",
+          "name": "snapshotSwapLog",
+          "signature": "func snapshotSwapLog(dataRoot string, entry restoreLogEntry, action string) (restoreLogEntry, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.appendRestoreLog"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.applySnapshotSwitch",
+          "name": "applySnapshotSwitch",
+          "signature": "func applySnapshotSwitch(dataRoot string, runtime platform.RuntimeView, record snapshotStageRecord, last restoreLogEntry) (platform.SwapResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.fingerprintSnapshotTree",
+            "platform.integrity",
+            "platform.snapshotDirectoryExists",
+            "platform.snapshotRename",
+            "platform.snapshotSwapLog",
+            "platform.snapshotSwapPaths",
+            "platform.verifySnapshotHash",
+            "platform.verifySnapshotTarget"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.applySnapshotRollback",
+          "name": "applySnapshotRollback",
+          "signature": "func applySnapshotRollback(dataRoot string, runtime platform.RuntimeView, record snapshotStageRecord, last restoreLogEntry) (platform.SwapResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.integrity",
+            "platform.snapshotDirectoryExists",
+            "platform.snapshotRename",
+            "platform.snapshotSwapLog",
+            "platform.snapshotSwapPaths",
+            "platform.verifySnapshotHash",
+            "platform.verifySnapshotTarget"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.ReadRestoreSwapState",
+          "name": "ReadRestoreSwapState",
+          "signature": "func ReadRestoreSwapState(dataRoot, restoreID string) (SnapshotSwapEvidence, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "纯只读既有完整stage/原restore-log及active/staged/before组合，不修复不推断未记录成功。",
+          "steps": [
+            "纯只读既有完整stage/原restore-log及active/staged/before组合，不修复不推断未记录成功。",
+            "中间阶段需ApplyRestoreSwap先依精确运行决定续接，不给删除许可。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.integrity",
+            "platform.readRestoreLog",
+            "platform.readSnapshotStageRecord",
+            "platform.restoreLogState",
+            "platform.snapshotDirectoryExists",
+            "platform.snapshotSwapPaths"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.restoreLogState",
+          "name": "restoreLogState",
+          "signature": "func restoreLogState(entries []restoreLogEntry, record snapshotStageRecord) (restoreLogEntry, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.integrity"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.readRestoreLog",
+          "name": "readRestoreLog",
+          "signature": "func readRestoreLog(dataRoot string) ([]restoreLogEntry, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.ValidatePrivatePath",
+            "platform.integrity",
+            "platform.snapshotBudget",
+            "platform.snapshotIOError",
+            "platform.splitLines"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.appendRestoreLog",
+          "name": "appendRestoreLog",
+          "signature": "func appendRestoreLog(dataRoot string, entry restoreLogEntry) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.ValidatePrivatePath",
+            "platform.readRestoreLog",
+            "platform.snapshotBudget",
+            "platform.snapshotDirectory",
+            "platform.snapshotIOError",
+            "platform.syncDir"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.syncDir",
+          "name": "syncDir",
+          "signature": "func syncDir(path string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.splitLines",
+          "name": "splitLines",
+          "signature": "func splitLines(raw []byte)[][]byte",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -7563,6 +8954,3712 @@
           "dependencies": [
             "platform.readIdentityConfig",
             "platform.LoadSigningKey"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_types.go",
+      "kind": "handwritten",
+      "purpose": "公共快照types",
+      "functions": []
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_io.go",
+      "kind": "handwritten",
+      "purpose": "公共快照io",
+      "functions": [
+        {
+          "id": "platform.snapshotIOError",
+          "name": "snapshotIOError",
+          "signature": "func snapshotIOError(err error) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.NormalizeIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.snapshotBudget",
+          "name": "snapshotBudget",
+          "signature": "func snapshotBudget(message string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.snapshotUnsupported",
+          "name": "snapshotUnsupported",
+          "signature": "func snapshotUnsupported(message string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.decodeSnapshotCanonical",
+          "name": "decodeSnapshotCanonical",
+          "signature": "func decodeSnapshotCanonical(raw []byte, target any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.integrity"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.readSnapshotJSON",
+          "name": "readSnapshotJSON",
+          "signature": "func readSnapshotJSON(path string, limit int64, target any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.ValidatePrivatePath",
+            "platform.decodeSnapshotCanonical",
+            "platform.snapshotBudget",
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.syncSnapshotDirectories",
+          "name": "syncSnapshotDirectories",
+          "signature": "func syncSnapshotDirectories(path, root string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.integrity",
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.snapshotDirectory",
+          "name": "snapshotDirectory",
+          "signature": "func snapshotDirectory(path, root string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.ValidatePrivatePath",
+            "platform.snapshotIOError",
+            "platform.syncSnapshotDirectories"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.writeSnapshotJSON",
+          "name": "writeSnapshotJSON",
+          "signature": "func writeSnapshotJSON(path, root string, value any) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.ValidatePrivatePath",
+            "platform.snapshotDirectory",
+            "platform.snapshotIOError",
+            "platform.syncSnapshotDirectories"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.safeSnapshotRelative",
+          "name": "safeSnapshotRelative",
+          "signature": "func safeSnapshotRelative(path string) bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.CheckSnapshotDiskBudget",
+          "name": "CheckSnapshotDiskBudget",
+          "signature": "func CheckSnapshotDiskBudget(ctx context.Context, root string, required int64) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.integrity",
+            "platform.snapshotBudget",
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.copySnapshotExact",
+          "name": "copySnapshotExact",
+          "signature": "func copySnapshotExact(ctx context.Context, dst io.Writer, src io.Reader, size int64, expectedHash string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.integrity",
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.verifySnapshotFile",
+          "name": "verifySnapshotFile",
+          "signature": "func verifySnapshotFile(ctx context.Context, path string, file DomainSnapshotFile) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.ValidatePrivatePath",
+            "platform.copySnapshotExact",
+            "platform.integrity",
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_archive.go",
+      "kind": "handwritten",
+      "purpose": "公共快照archive",
+      "functions": [
+        {
+          "id": "platform.snapshotCountedReader.Read",
+          "name": "snapshotCountedReader.Read",
+          "signature": "func (r *snapshotCountedReader) Read(p []byte) (int, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.snapshotBudget"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.snapshotCountedWriter.Write",
+          "name": "snapshotCountedWriter.Write",
+          "signature": "func (w *snapshotCountedWriter) Write(p []byte) (int, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.snapshotBudget"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.validateSnapshotInventory",
+          "name": "validateSnapshotInventory",
+          "signature": "func validateSnapshotInventory(manifest DomainSnapshotManifest, validate func([]byte) error) ([]byte, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.integrity",
+            "platform.safeSnapshotRelative",
+            "platform.snapshotBudget",
+            "platform.snapshotUnsupported"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.verifySnapshotInventoryTree",
+          "name": "verifySnapshotInventoryTree",
+          "signature": "func verifySnapshotInventoryTree(ctx context.Context, root string, files []DomainSnapshotFile, checkHash bool) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.ValidatePrivatePath",
+            "platform.integrity",
+            "platform.snapshotIOError",
+            "platform.verifySnapshotFile"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.snapshotArchiveByteSize",
+          "name": "snapshotArchiveByteSize",
+          "signature": "func snapshotArchiveByteSize(manifestBytes int64, files []DomainSnapshotFile) (int64, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.snapshotBudget"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.BuildSnapshotArchive",
+          "name": "BuildSnapshotArchive",
+          "signature": "func BuildSnapshotArchive(ctx context.Context, workspace, output string, manifest DomainSnapshotManifest, validate func([]byte) error) (SnapshotArchiveResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "严格公共V1清单后校验整棵已捕获文件列表/普通文件/长度与USTAR可编码性。",
+          "steps": [
+            "严格公共V1清单后校验整棵已捕获文件列表/普通文件/长度与USTAR可编码性。",
+            "首manifest.json canonical≤16MiB，后仅声明files/普通文件；文件含清单≤100000、全tar≤20GiB且两组终止块的精确物理长度。",
+            "一遍流复制逐项hash/长度/EOF核对，核真实剩余空间，不重读整个新构归档。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CheckSnapshotDiskBudget",
+            "platform.ValidatePrivatePath",
+            "platform.copySnapshotExact",
+            "platform.integrity",
+            "platform.snapshotArchiveByteSize",
+            "platform.snapshotCountedWriter.Write",
+            "platform.snapshotIOError",
+            "platform.snapshotUnsupported",
+            "platform.validateSnapshotInventory",
+            "platform.verifySnapshotInventoryTree"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.ExtractSnapshotArchive",
+          "name": "ExtractSnapshotArchive",
+          "signature": "func ExtractSnapshotArchive(ctx context.Context, source io.Reader, root string, expected platform.ObjectRef, validate func([]byte) error) (SnapshotArchiveResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只向空隔离目录有界解包，首清单严格模式与canonical校验。",
+          "steps": [
+            "只向空隔离目录有界解包，首清单严格模式与canonical校验。",
+            "只接受USTAR普通文件，拒绝PAX/GNU/链接/跳转/重复/未声明/提前结束/多余尾随，逐项hash与全归档引用hash/精确长度/EOF全部核对。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CheckSnapshotDiskBudget",
+            "platform.ValidatePrivatePath",
+            "platform.copySnapshotExact",
+            "platform.decodeSnapshotCanonical",
+            "platform.integrity",
+            "platform.snapshotArchiveByteSize",
+            "platform.snapshotCountedReader.Read",
+            "platform.snapshotDirectory",
+            "platform.snapshotIOError",
+            "platform.syncSnapshotDirectories",
+            "platform.validateSnapshotInventory"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "kind": "handwritten",
+      "purpose": "公共快照barrier",
+      "functions": [
+        {
+          "id": "platform.NewSnapshotManager",
+          "name": "NewSnapshotManager",
+          "signature": "func NewSnapshotManager(config SnapshotConfig) (*SnapshotManager, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "必需真实完整回调，不导入业务域或自造数据清单。",
+          "steps": [
+            "必需真实完整回调，不导入业务域或自造数据清单。",
+            "从私有control读严格原屏障回执，核全值原输入摘要；重启旧safe先持久降为draining再真实证明。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.SnapshotManager.persistBarrier",
+            "platform.ValidatePrivatePath",
+            "platform.integrity",
+            "platform.readSnapshotJSON",
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.persistBarrier",
+          "name": "SnapshotManager.persistBarrier",
+          "signature": "func (m *SnapshotManager) persistBarrier() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.writeSnapshotJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.signalLocked",
+          "name": "SnapshotManager.signalLocked",
+          "signature": "func (m *SnapshotManager) signalLocked()",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.lockSnapshotControl",
+          "name": "lockSnapshotControl",
+          "signature": "func lockSnapshotControl(ctx context.Context, semaphore chan struct{}) (func(), error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.AdmitBusiness",
+          "name": "SnapshotManager.AdmitBusiness",
+          "signature": "func (m *SnapshotManager) AdmitBusiness(ctx context.Context) (context.Context, func(), error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读真实运行状态，仅running/非维护、同已打开epoch且本域屏障已released时在同mutex下签私有进程内lease。",
+          "steps": [
+            "读真实运行状态，仅running/非维护、同已打开epoch且本域屏障已released时在同mutex下签私有进程内lease。",
+            "释放只在真实所有业务及后台IO退出后调用，不以HTTP返回代替后台结束。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.SnapshotManager.signalLocked"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.WriteWindow",
+          "name": "SnapshotManager.WriteWindow",
+          "signature": "func (m *SnapshotManager) WriteWindow(ctx context.Context) (time.Time, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只认本Manager尚活跃的business/cleanup私有lease与ctx，不认外部字段。",
+          "steps": [
+            "只认本Manager尚活跃的business/cleanup私有lease与ctx，不认外部字段。",
+            "维护下只在当前BackupBarrier/RestoreStaging精确barrier/epoch和draining原截止内给收尾窗口；safe已封闭。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotCleanup.Context",
+          "name": "SnapshotCleanup.Context",
+          "signature": "func (c *SnapshotCleanup) Context(ctx context.Context) (context.Context, func(), error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅固定drain回调当次活跃期可签发已有执行清理lease，保留原actor/root/费用归属，清旧Portal proof。",
+          "steps": [
+            "仅固定drain回调当次活跃期可签发已有执行清理lease，保留原actor/root/费用归属，清旧Portal proof。",
+            "截止为min(ctx,30s,原barrier deadline)，不新建模型或重算付费。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.SnapshotManager.signalLocked"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.runDrainCallback",
+          "name": "SnapshotManager.runDrainCallback",
+          "signature": "func (m *SnapshotManager) runDrainCallback(ctx context.Context, callback func(context.Context, *SnapshotCleanup) error) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.SnapshotCleanup.Context",
+            "platform.SnapshotManager.signalLocked"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.waitCounts",
+          "name": "SnapshotManager.waitCounts",
+          "signature": "func (m *SnapshotManager) waitCounts(ctx context.Context, all bool) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.EnterBarrier",
+          "name": "SnapshotManager.EnterBarrier",
+          "signature": "func (m *SnapshotManager) EnterBarrier(ctx context.Context, input SnapshotBarrierInput) (SnapshotBarrierStatus, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "先核权威当前phase/barrier/epoch和原输入，同mutex下闭新准入并持久draining。",
+          "steps": [
+            "先核权威当前phase/barrier/epoch和原输入，同mutex下闭新准入并持久draining。",
+            "BeginDrain停领取/取消已有作业，等business全退出；Drain完成原费用、取消回执和最终outbox，关新cleanup签发并等存量清理结束。",
+            "读真实Watermark后复核当前权威和所有计数，才持久本进程safe。不以此自证全域/jobs最终安全。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.SnapshotManager.persistBarrier",
+            "platform.SnapshotManager.runDrainCallback",
+            "platform.SnapshotManager.signalLocked",
+            "platform.SnapshotManager.waitCounts",
+            "platform.integrity",
+            "platform.lockSnapshotControl"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.ReleaseBarrier",
+          "name": "SnapshotManager.ReleaseBarrier",
+          "signature": "func (m *SnapshotManager) ReleaseBarrier(ctx context.Context, barrierID string) (SnapshotBarrierStatus, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅权威已running/非维护/无restore且当前opened epoch匹配、所有在途与文件IO为0时持久released。",
+          "steps": [
+            "仅权威已running/非维护/无restore且当前opened epoch匹配、所有在途与文件IO为0时持久released。",
+            "不以释放屏障推导备份已加密持久或回收导出历史。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.SnapshotManager.persistBarrier",
+            "platform.SnapshotManager.signalLocked",
+            "platform.integrity",
+            "platform.lockSnapshotControl"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/lifecycle/snapshot_manager.go",
+      "kind": "handwritten",
+      "purpose": "公共快照manager",
+      "functions": [
+        {
+          "id": "platform.SnapshotManager.beginFileOperation",
+          "name": "SnapshotManager.beginFileOperation",
+          "signature": "func (m *SnapshotManager) beginFileOperation(ctx context.Context, barrierID string) (SnapshotSafeCut, func(), error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.SnapshotManager.signalLocked",
+            "platform.lockSnapshotControl"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.Export",
+          "name": "SnapshotManager.Export",
+          "signature": "func (m *SnapshotManager) Export(ctx context.Context, input SnapshotExportInput) (SnapshotExportResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只在真实固定safe水位时由域Capture一致SQL副本与全部权威文件、对象、发布、引用，未知不填空数组。",
+          "steps": [
+            "只在真实固定safe水位时由域Capture一致SQL副本与全部权威文件、对象、发布、引用，未知不填空数组。",
+            "原输入回执固定snapshotID；归档fsync后archive-prepared回执，再rename/目录fsync和complete回执。重试只核真实引用续接，不碰live或重算付费。",
+            "无DP真实全加密持久回执回收协议时保留导出归档。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.BuildSnapshotArchive",
+            "platform.CanonicalJSON",
+            "platform.SnapshotManager.beginFileOperation",
+            "platform.ValidatePrivatePath",
+            "platform.integrity",
+            "platform.readSnapshotJSON",
+            "platform.removeSnapshotTree",
+            "platform.snapshotDirectory",
+            "platform.snapshotIOError",
+            "platform.syncSnapshotDirectories",
+            "platform.verifySnapshotExportRecord",
+            "platform.verifySnapshotFile",
+            "platform.writeSnapshotJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.OpenArchive",
+          "name": "SnapshotManager.OpenArchive",
+          "signature": "func (m *SnapshotManager) OpenArchive(ctx context.Context, snapshotID string, expected platform.ObjectRef) (io.ReadCloser, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只读真实complete回执与精确expected ObjectRef，全文件hash核对后才返回受控流，接收方仍核整流引用。",
+          "steps": [
+            "只读真实complete回执与精确expected ObjectRef，全文件hash核对后才返回受控流，接收方仍核整流引用。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.integrity",
+            "platform.readSnapshotJSON",
+            "platform.snapshotIOError",
+            "platform.verifySnapshotExportRecord",
+            "platform.verifySnapshotFile"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.removeSnapshotTree",
+          "name": "removeSnapshotTree",
+          "signature": "func removeSnapshotTree(path string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.ValidatePrivatePath",
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.fingerprintSnapshotTree",
+          "name": "fingerprintSnapshotTree",
+          "signature": "func fingerprintSnapshotTree(ctx context.Context, root string, limit int64) (SnapshotTree, string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.ValidatePrivatePath",
+            "platform.integrity",
+            "platform.safeSnapshotRelative",
+            "platform.snapshotBudget",
+            "platform.snapshotIOError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.snapshotStageID",
+          "name": "snapshotStageID",
+          "signature": "func snapshotStageID(restoreID, snapshotID string) string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.verifySnapshotTarget",
+          "name": "verifySnapshotTarget",
+          "signature": "func verifySnapshotTarget(ctx context.Context, root string, record snapshotStageRecord) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.fingerprintSnapshotTree",
+            "platform.integrity"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.Stage",
+          "name": "SnapshotManager.Stage",
+          "signature": "func (m *SnapshotManager) Stage(ctx context.Context, input SnapshotStageInput, source io.Reader) (SnapshotStageResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核当前restore_staging的restore/barrier/host/target和本域safe；stageId=SHA256(canonical[restoreId,snapshotId])全64hex。",
+          "steps": [
+            "核当前restore_staging的restore/barrier/host/target和本域safe；stageId=SHA256(canonical[restoreId,snapshotId])全64hex。",
+            "完整认证原归档后才由真实域MigrateStage/ValidateStaged建目标代，StageBudget必须给真实完整峰值，未知失败。",
+            "不变paid/body对象按原hash核对；完整目标文件和空目录排序canonical指纹为manifestHash，与源清单hash/全tar checksum分开。",
+            "文件/目录fsync后持久prepared-stage完整原输入/源清单/host/target/目标树，rename/fsync后持久staged；重启同输入续接仍核整树和域迁移证明。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.CheckSnapshotDiskBudget",
+            "platform.ExtractSnapshotArchive",
+            "platform.SnapshotManager.beginFileOperation",
+            "platform.SnapshotManager.finishStage",
+            "platform.fingerprintSnapshotTree",
+            "platform.integrity",
+            "platform.readSnapshotJSON",
+            "platform.removeSnapshotTree",
+            "platform.snapshotBudget",
+            "platform.snapshotDirectory",
+            "platform.snapshotIOError",
+            "platform.snapshotStageID",
+            "platform.syncSnapshotDirectories",
+            "platform.verifySnapshotFile",
+            "platform.writeSnapshotJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.finishStage",
+          "name": "SnapshotManager.finishStage",
+          "signature": "func (m *SnapshotManager) finishStage(ctx context.Context, recordPath, temporary, staged string, record snapshotStageRecord, recovered bool) (SnapshotStageResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.integrity",
+            "platform.snapshotDirectoryExists",
+            "platform.snapshotIOError",
+            "platform.syncSnapshotDirectories",
+            "platform.validateSnapshotInventory",
+            "platform.verifySnapshotTarget",
+            "platform.writeSnapshotJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.SnapshotManager.Discard",
+          "name": "SnapshotManager.Discard",
+          "signature": "func (m *SnapshotManager) Discard(ctx context.Context, input SnapshotDiscardInput) (SnapshotDiscardResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只接受精确restore/scope和完整stage原回执，ReadRestoreSwapState核真实本地日志+目录组合。",
+          "steps": [
+            "只接受精确restore/scope和完整stage原回执，ReadRestoreSwapState核真实本地日志+目录组合。",
+            "仅当未换入的原restore staging、真实全域换回且running HostEpoch或全域完成且running TargetEpoch的对应scope可删。",
+            "先持久discarding意图再删目录/目录fsync/持久discarded，未知不删。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅核验或按真实证据操作本域私有快照目录与control记录，不记录秘密或正文"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.ReadRestoreSwapState",
+            "platform.integrity",
+            "platform.lockSnapshotControl",
+            "platform.readSnapshotStageRecord",
+            "platform.removeSnapshotTree",
+            "platform.snapshotDirectoryExists",
+            "platform.syncSnapshotDirectories",
+            "platform.writeSnapshotJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.verifySnapshotExportRecord",
+          "name": "verifySnapshotExportRecord",
+          "signature": "func verifySnapshotExportRecord(record snapshotExportRecord) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "实现公共快照内部单一机制",
+          "steps": [
+            "实现调用者约定的有界私有IO、整树摘要、准入计数或真实日志续接，不猜测业务清单、代次或付费结果。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "装配或输入不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原输入、屏障或既有回执绑定不一致",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "真实清单、目录、摘要或journal证据矛盾",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "清单或USTAR版本/路径不支持",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "when": "容量、文件数、清单或完整归档超预算",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "真实安全截点或当前运行决定不匹配",
+              "retryable": true
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "主机开启数据与运行或恢复代次不符",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "必需回调或权威不可用",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "指定的本域屏障不存在",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "when": "调用IO已取消",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "原屏障或ctx截止已到",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "私有IO失败，不暴露路径/材料",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "启动换目录全局互斥，运行Manager控制及文件IO各自串行。",
+          "idempotency": "原输入摘要与完整持久journal幂等续接，未知不删除、不重算付费。",
+          "dependencies": [
+            "platform.CanonicalJSON",
+            "platform.integrity"
           ],
           "resources": [],
           "contract": "reference"

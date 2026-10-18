@@ -1169,6 +1169,396 @@
       "additionalProperties": false,
       "description": "进程内可选强类型领取能力，不序列化；继承WorkerJobsClient且ClaimJobTypes经原claimJob操作按owner登记类型筛选。",
       "properties": {}
+    },
+    "DomainSnapshotManifest": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/DomainSnapshotManifest"
+    },
+    "DomainSnapshotFile": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/DomainSnapshotFile"
+    },
+    "DomainSnapshotObject": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/DomainSnapshotObject"
+    },
+    "SnapshotPublishedRevisionRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/PublishedRevisionRef"
+    },
+    "DomainSnapshotReference": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/DomainSnapshotReference"
+    },
+    "SnapshotRef": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef"
+    },
+    "SnapshotBarrierInput": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest"
+    },
+    "SnapshotBarrierStatus": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus"
+    },
+    "SnapshotSafeCut": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "SnapshotExportInput": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest"
+    },
+    "SnapshotExportResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult"
+    },
+    "SnapshotStageInput": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageRequest"
+    },
+    "SnapshotStageResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult"
+    },
+    "SnapshotStageReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "私有stage回执；manifestHash仅完整目标树证明建立后出现，不用空摘要伪装已完成。",
+      "properties": {
+        "restoreId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "stageId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "snapshotId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "manifestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "sourceEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "targetEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "inputHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "preparing",
+            "prepared-stage",
+            "staged",
+            "discarding-staged",
+            "discarding-before",
+            "discarded-staged",
+            "discarded-before"
+          ]
+        }
+      },
+      "required": [
+        "restoreId",
+        "stageId",
+        "snapshotId",
+        "sourceEpoch",
+        "targetEpoch",
+        "inputHash",
+        "state"
+      ]
+    },
+    "SnapshotDiscardInput": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotDiscardRequest"
+    },
+    "SnapshotDiscardResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotDiscardResult"
+    },
+    "SnapshotSwapEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "SnapshotConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "SnapshotAPI": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "SnapshotArchiveResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "snapshotCountedReader": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "snapshotCountedWriter": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "snapshotBarrierRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "私有屏障原输入和真实运行代次持久绑定。",
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/SnapshotBarrierInput"
+        },
+        "epoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "inputHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "status": {
+          "$ref": "#/$defs/SnapshotBarrierStatus"
+        }
+      },
+      "required": [
+        "input",
+        "epoch",
+        "inputHash",
+        "status"
+      ]
+    },
+    "SnapshotManager": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "snapshotAdmissionKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "snapshotAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "SnapshotCleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "公共快照进程内类型；不导出为影子HTTP契约",
+      "properties": {}
+    },
+    "snapshotExportRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "原导出回执，未完成不填假空清单或空引用。",
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/SnapshotExportInput"
+        },
+        "inputHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "snapshotId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "preparing",
+            "archive-prepared",
+            "complete"
+          ]
+        },
+        "result": {
+          "$ref": "#/$defs/SnapshotExportResult"
+        },
+        "manifest": {
+          "$ref": "#/$defs/DomainSnapshotManifest"
+        },
+        "sourceManifestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "resultHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        }
+      },
+      "required": [
+        "input",
+        "inputHash",
+        "snapshotId",
+        "state"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "archive-prepared",
+                  "complete"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "result",
+              "manifest",
+              "sourceManifestHash",
+              "resultHash"
+            ]
+          }
+        }
+      ]
+    },
+    "snapshotStageRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "源备份epoch与本机HostEpoch分开；preparing未知清单/树缺失，完成不允许缺证据。",
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/SnapshotStageInput"
+        },
+        "hostEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "receipt": {
+          "$ref": "#/$defs/SnapshotStageReceipt"
+        },
+        "manifest": {
+          "$ref": "#/$defs/DomainSnapshotManifest"
+        },
+        "targetTree": {
+          "$ref": "#/$defs/SnapshotTree"
+        },
+        "treeFingerprint": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "sourceManifestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        }
+      },
+      "required": [
+        "input",
+        "hostEpoch",
+        "receipt"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "receipt": {
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "prepared-stage",
+                      "staged",
+                      "discarding-staged",
+                      "discarding-before",
+                      "discarded-staged",
+                      "discarded-before"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "manifest",
+              "targetTree",
+              "treeFingerprint",
+              "sourceManifestHash"
+            ]
+          }
+        }
+      ]
+    },
+    "SnapshotTree": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "完整目标文件与目录列表，含空目录；路径排序后canonical指纹。",
+      "properties": {
+        "files": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/DomainSnapshotFile"
+          }
+        },
+        "directories": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      },
+      "required": [
+        "files",
+        "directories"
+      ]
+    },
+    "restoreLogEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "原restore-log的兼容行；旧缺完整stage/host证据保留但不能据此换入或删除。",
+      "properties": {
+        "restoreId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "prepared-switch",
+            "old-renamed",
+            "switched",
+            "prepared-rollback",
+            "new-renamed",
+            "rolled-back",
+            "aborted"
+          ]
+        },
+        "at": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "stageId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "manifestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "hostManifestHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "inputHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "hostEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "targetEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "barrierId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "runtimeRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        }
+      },
+      "required": [
+        "restoreId",
+        "action",
+        "at"
+      ]
     }
   }
 }
