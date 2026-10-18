@@ -226,11 +226,9 @@
           ],
           "purpose": "备份入口校验",
           "steps": [
-            "check backup.manage",
-            "includeSecrets=false默认，true需superadmin明确选择",
-            "读取runtime正常epoch且无restore",
-            "容量预检",
-            "外部加密key可用，secret仅拥有者受控加密export"
+            "HTTP已核backup.manage；内部核管理员和请求/当前runtime/store同epoch，必须running无restore/maintenance。",
+            "includeSecrets额外即时identity核superadmin；本机唯一可信KEK真实可读且指纹一致，隔离目录可信。",
+            "返回valid基础通过与capacityVerified=false；不以未知=0宣称空间足够。完整14域真实manifest之后，收集/封存路径按真实staging/密文/便携总预算和free bytes核容量并维持每次有界写配额。"
           ],
           "errors": [
             {
@@ -253,6 +251,26 @@
               "httpStatus": 409,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -263,6 +281,9 @@
           "concurrency": "只读runtime与容量",
           "idempotency": "同请求同结果",
           "dependencies": [
+            "data-protection.Catalog",
+            "data-protection.requireAdministrator",
+            "data-protection.configuredKEK",
             "identity:checkAuthorization",
             "site-config:readRuntimeState"
           ],
@@ -316,10 +337,10 @@
           ],
           "purpose": "建立备份操作",
           "steps": [
-            "校验",
-            "事务建requested run/outbox",
-            "提交jobs task只含backupId",
-            "job失败保留run可继续"
+            "已存在同主体operationId先核原输入hash，同输入返回原jobs回执或重交同dedupe原意图；异输入CONFLICT，不扩大原批准。",
+            "新请求ValidateBackupRequest核基础及secret额外权限；control事务写真实原批准快照、requested备份、canonical {backupId}不可变字节及ObjectRef、vault revision和requested outbox。",
+            "事务后清过期portal proof，以本域纯服务上下文和原root/site/epoch提交唯一jobs任务，仅引用真实持久输入。",
+            "严格校验jobs真实回执后持久；网络/依赖失败保留原意图，无第二任务队列、不伪AcceptedJob。返回真实202任务；后续尚未执行不得置ready。"
           ],
           "errors": [
             {
@@ -335,6 +356,26 @@
               "httpStatus": 409,
               "retryable": false,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -345,9 +386,13 @@
             "rule": "backup.manage"
           },
           "concurrency": "site级备份/恢复互斥；不阻止正常读直到maintenance建立",
-          "idempotency": "operationId/inputHash幂等",
+          "idempotency": "subject/operationId唯一原输入hash；backupId作为jobs dedupe；原输入与审批已提交后重试不复用portal proof。",
           "dependencies": [
             "data-protection.ValidateBackupRequest",
+            "data-protection.enqueueBackupState",
+            "data-protection.submitBackupJob",
+            "data-protection.Catalog",
+            "data-protection.storageError",
             "jobs:createJob"
           ],
           "resources": [],
@@ -596,6 +641,129 @@
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "data-protection.enqueueBackupState",
+          "name": "enqueueBackupState",
+          "signature": "func enqueueBackupState(ctx context.Context, tx *sql.Tx, backupID, epoch, state, manifestHash string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "备份持久意图支持：enqueueBackupState",
+          "steps": [
+            "同control事务增vault_meta修订并写outbox；requested无manifestHash不伪造，ready实际要求真实hash，溢出拒绝。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "BACKUP_CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写run/outbox"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "site级备份/恢复互斥；不阻止正常读直到maintenance建立",
+          "idempotency": "subject/operationId唯一原输入hash；backupId作为jobs dedupe；原输入与审批已提交后重试不复用portal proof。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.submitBackupJob",
+          "name": "submitBackupJob",
+          "signature": "func submitBackupJob(ctx context.Context, op OperationContext, store *Store, id string) (CreateBackupResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "备份持久意图支持：submitBackupJob",
+          "steps": [
+            "从持久原输入字节及ObjectRef核真实hash/长度与backup绑定；已存jobs回执重复返回。",
+            "纯服务提交原root/site/epoch任务，清portal proof；严格runtime schema校验真实jobs回执后持久，不拥有任务领取/重试循环。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "BACKUP_CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "condition": "真实前置条件、原输入/回执或预算不满足。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "写run/outbox"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "site级备份/恢复互斥；不阻止正常读直到maintenance建立",
+          "idempotency": "subject/operationId唯一原输入hash；backupId作为jobs dedupe；原输入与审批已提交后重试不复用portal proof。",
+          "dependencies": [
+            "data-protection.storageError"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -7120,6 +7288,27 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "data-protection.server.CreateBackup",
+          "name": "server.CreateBackup",
+          "signature": "func (s *server) CreateBackup(w http.ResponseWriter, r *http.Request, params gen.CreateBackupParams)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "可信备份创建HTTP转换",
+          "steps": [
+            "生成入口已严格校验请求；可信op注入actor/epoch，调用持久备份意图并仅返回真实jobs的202结果。"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "平台边界即时backup.manage，只允许portal用户委托。",
+          "concurrency": "本域只读短快照，不发模型或远程Git。",
+          "idempotency": "纯目录投影可重读，无配置时不构造虚假策略。",
+          "dependencies": [
+            "data-protection.CreateBackup"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -8077,6 +8266,12 @@
       "path": "modules/data-protection/migrations/0004_vault_layout.sql",
       "kind": "migration",
       "purpose": "active V2仅在旧表全空后移除旧控制表。",
+      "functions": []
+    },
+    {
+      "path": "modules/data-protection/migrations/0005_backup_intent.sql",
+      "kind": "migration",
+      "purpose": "control V3不可变备份任务输入及jobs原回执；不是第二队列。",
       "functions": []
     }
   ],

@@ -302,7 +302,7 @@ func (s *server) ListBackups(w http.ResponseWriter, r *http.Request, _ gen.ListB
 }
 
 func (s *server) CreateBackup(w http.ResponseWriter, r *http.Request, _ gen.CreateBackupParams) {
-	writeUnavailable(w, r)
+ op,ok:=platform.OperationContextFrom(r.Context());if !ok{writeProblem(w,r,platform.NewError(platform.CodeUnauthenticated,false,"缺少可信操作上下文"));return};var body gen.CreateBackupRequestBody;if err:=json.NewDecoder(r.Body).Decode(&body);err!=nil{writeProblem(w,r,platform.NewError(platform.CodeValidation,false,"备份请求正文不可读"));return};result,err:=protection.CreateBackup(r.Context(),op,protection.CreateBackupInput{IncludeSecrets:body.IncludeSecrets,Actor:op.Actor,DataEpoch:op.DataEpoch});if err!=nil{writeProblem(w,r,err);return};w.Header().Set("Content-Type","application/json");w.Header().Set("Cache-Control","no-store");w.WriteHeader(http.StatusAccepted);_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) ReadBackup(w http.ResponseWriter, r *http.Request, id string, _ gen.ReadBackupParams) {

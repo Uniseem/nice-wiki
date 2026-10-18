@@ -882,11 +882,16 @@
     "ValidateBackupRequestResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "备份入口校验成功结果；失败不返回半成功结果",
+      "description": "基础前置校验通过，不代表已保证容量；完整14域真实清单后才核容量。",
       "properties": {
         "valid": {
           "type": "boolean",
           "description": "valid 的明确真假结果，不可 null"
+        },
+        "capacityVerified": {
+          "type": "boolean",
+          "const": false,
+          "description": "本函数只做基础预检，实际始终false；容量待完整真实域清单。"
         }
       },
       "required": [
@@ -3119,14 +3124,32 @@
         },
         "manifestHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "manifestHash；UTF-8；不得为 null"
+          "description": "真实封存后清单hash；ready必填且封存路径显式核验，requested/未封存failed省略不伪造。"
         }
       },
       "required": [
         "backupId",
         "state",
-        "sourceEpoch",
-        "manifestHash"
+        "sourceEpoch"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "ready"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "manifestHash"
+            ]
+          }
+        }
       ]
     },
     "EventDataProtectionRestoreStateChangedPayload": {

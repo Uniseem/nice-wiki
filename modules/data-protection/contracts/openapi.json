@@ -2192,11 +2192,15 @@
       },
       "DomainSnapshotManifest": {
         "$ref": "../../../contracts/common.schema.json#/$defs/DomainSnapshotManifest"
+      },
+      "JobsCreateJobResult": {
+        "$ref": "../../jobs/contracts/types.json#/$defs/CreateJobResult"
       }
     }
   },
   "x-runtime-payload-schemas": [
     "BackupManifestV1",
-    "DomainSnapshotManifest"
+    "DomainSnapshotManifest",
+    "JobsCreateJobResult"
   ]
 }

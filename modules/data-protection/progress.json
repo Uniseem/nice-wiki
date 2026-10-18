@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "implementation",
-  "contractSha256": "ff09dcd9192492e33b9c9b9957043ffd36315f6f0bfc68243cf892a55200bbbc",
+  "contractSha256": "cd65b18d7ed182a6723883abf205ed457f1de3234ed7fb801d951971c599e9d5",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1收尾并行：数据保护独占",
   "branch": "codex/finish-20261018-protection",
@@ -12,23 +12,23 @@
   "files": [
     {
       "path": "modules/data-protection/internal/backup_validation.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "备份基础预检与任务意图闭环待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/internal/backup.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "备份基础预检与任务意图闭环待统一GitLab CI"
     },
     {
       "path": "modules/data-protection/internal/maintenance.go",
@@ -659,30 +659,40 @@
         "evidence": null
       },
       "blocker": "V2真实布局就绪，待统一GitLab CI"
+    },
+    {
+      "path": "modules/data-protection/migrations/0005_backup_intent.sql",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "control V3迁移待统一GitLab CI；未实际执行"
     }
   ],
   "functions": [
     {
       "id": "data-protection.ValidateBackupRequest",
       "path": "modules/data-protection/internal/backup_validation.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "备份基础预检/持久意图/jobs真实提交链就绪，待统一GitLab CI"
     },
     {
       "id": "data-protection.CreateBackup",
       "path": "modules/data-protection/internal/backup.go",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "备份基础预检/持久意图/jobs真实提交链就绪，待统一GitLab CI"
     },
     {
       "id": "data-protection.CollectSnapshots",
@@ -1948,9 +1958,42 @@
         "evidence": null
       },
       "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.enqueueBackupState",
+      "path": "modules/data-protection/internal/backup.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "备份原批准任务输入/回执支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.submitBackupJob",
+      "path": "modules/data-protection/internal/backup.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "备份原批准任务输入/回执支持就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.server.CreateBackup",
+      "path": "modules/data-protection/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "备份原批准任务输入/回执支持就绪，待统一GitLab CI"
     }
   ],
-  "rule": "累计16既有业务/界面与50实际参考支持代码就绪待统一GitLab CI；完整备份恢复镜像服务链和启动继续实施。",
+  "rule": "累计18既有业务/界面与53实际参考支持代码就绪待统一GitLab CI；备份执行屏障/归档封存与恢复/镜像服务链及完整启动继续实施。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "88cef9718165e87d431e36b327f23cb207792388",

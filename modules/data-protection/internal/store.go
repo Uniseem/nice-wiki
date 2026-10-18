@@ -22,7 +22,8 @@ import (
 )
 
 type OperationContext=platform.OperationContext
-type Store struct{Root string;Epoch string;Key platform.SigningKey;Keyring map[string]string;AllowedGitHosts []string;GitCredentialRefs map[string]string;PayloadValidators map[string]func(json.RawMessage)error;CryptoMu sync.Mutex;DB *sql.DB;Control *sql.DB;closeOnce sync.Once;closeErr error}
+type BackupJobClient interface{CreateJob(context.Context,any,string)(json.RawMessage,error)}
+type Store struct{Root string;Epoch string;Key platform.SigningKey;Keyring map[string]string;AllowedGitHosts []string;GitCredentialRefs map[string]string;Jobs BackupJobClient;Runtime func(context.Context)(platform.RuntimeView,error);Authorize func(context.Context,OperationContext,string,string)error;PayloadValidators map[string]func(json.RawMessage)error;CryptoMu sync.Mutex;DB *sql.DB;Control *sql.DB;closeOnce sync.Once;closeErr error}
 var installedStore atomic.Pointer[Store]
 
 // OpenCatalog 打开active业务库、control权威目录和独立vault；控制事实不随业务目录替换。
@@ -32,11 +33,12 @@ func OpenCatalog(ctx context.Context,root,epoch string,key platform.SigningKey)(
  catalog,err:=openDatabase(ctx,filepath.Join(root,"active","protection.db"));if err!=nil{return nil,err}
  control,err:=openDatabase(ctx,filepath.Join(root,"control","protection-control.db"));if err!=nil{_ = catalog.Close();return nil,err}
  store:=&Store{Root:root,Epoch:epoch,Key:key,DB:catalog,Control:control};success:=false;defer func(){if !success{_ = store.Close()}}()
- for _,item:=range []struct{DB *sql.DB;Name string}{{catalog,"0001_domain.sql"},{control,"0002_control.sql"}}{if err=applyMigration(ctx,item.DB,item.Name,1,2);err!=nil{return nil,err};if err=outbox.EnsureSchema(ctx,item.DB);err!=nil{return nil,err};if err=inbox.EnsureSchema(ctx,item.DB);err!=nil{return nil,err}}
+ for _,item:=range []struct{DB *sql.DB;Name string;Max int}{{catalog,"0001_domain.sql",2},{control,"0002_control.sql",3}}{if err=applyMigration(ctx,item.DB,item.Name,1,item.Max);err!=nil{return nil,err};if err=outbox.EnsureSchema(ctx,item.DB);err!=nil{return nil,err};if err=inbox.EnsureSchema(ctx,item.DB);err!=nil{return nil,err}}
  if err=rejectLegacyControllerRows(ctx,catalog);err!=nil{return nil,err}
- if err=applyMigration(ctx,control,"0003_vault_catalog.sql",2,2);err!=nil{return nil,err};if err=applyMigration(ctx,catalog,"0004_vault_layout.sql",2,2);err!=nil{return nil,err}
+ if err=applyMigration(ctx,control,"0003_vault_catalog.sql",2,3);err!=nil{return nil,err};if err=applyMigration(ctx,catalog,"0004_vault_layout.sql",2,2);err!=nil{return nil,err}
  if _,err=catalog.ExecContext(ctx,`INSERT OR IGNORE INTO catalog_meta(singleton,data_epoch,revision) VALUES(1,?,0)`,epoch);err!=nil{return nil,storageError(err)}
  var stored string;if err=catalog.QueryRowContext(ctx,`SELECT data_epoch FROM catalog_meta WHERE singleton=1`).Scan(&stored);err!=nil{return nil,storageError(err)};if stored!=epoch{return nil,platform.NewError(platform.CodeVersionMismatch,false,"目录当前代次与启动运行权威不同")}
+ if err=applyMigration(ctx,control,"0005_backup_intent.sql",3,3);err!=nil{return nil,err}
  if err=verifyVaultInventory(ctx,store);err!=nil{return nil,err}
  success=true;return store,nil
 }

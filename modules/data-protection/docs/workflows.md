@@ -74,3 +74,7 @@ manifest决定所有域同一个sourceEpoch与backupId，portal无业务数据�
 本域Vue库入口mountModuleUI使用portal注入ModuleUIBootstrap.apiClient，不构造认证头。三个既定面板支持完整备份目录/显式创建/ready流式下载、完整恢复预检与批准/只读进度、远程CAS配置与显式镜像同步；实际服务未齐的503明确失败。卸载派发nice-wiki:unmount，取消请求及轮询。只读进度token仅内存/固定header，不进URL或存储；新CreateRestoreResult兼容新增progressToken/progressExpiresAt，服务实际必写。
 
 大型下载固定X-Backup-Download-Token头，原Response.body直接pipeTo浏览器文件WritableStream，任意失败abort，不整包Blob。当前需要File System Access支持；不支持时明确不可用。版本采用已批准Vue3.5.22/Vite7.1.7/plugin-vue6.0.1/TS6.0.0-beta/vue-tsc3.1.1/pnpm9.15.9，lock只CI生成。
+
+control V3追加backup_jobs：canonical不可变{backupId}与其真实ObjectRef、原subject/operation/root/site/epoch/inputHash和jobs原回执。原批准与requested状态/outbox同事务持久，再以清portal proof的本域服务身份单次提交jobs；失败保留原意图供相同操作重试，不自建领取/重试队列。requested事件不含尚不存在的manifestHash；只有真实封存ready才必填并显式核验，不依赖生成器单独支持if/then。
+
+ValidateBackupRequest只核管理员/secret额外超管、当前running同epoch、真实本机KEK及隔离目录，valid是基础条件通过，capacityVerified始终false；取得14域完整真实manifest后再按staging/密文/便携总预算与free bytes核容量，并在有界写前维持配额。

@@ -43,3 +43,7 @@ backup_runs持久approved_by/approval_permission_revision/approval_kind/site_id/
 自身快照只导出安全设置与历史目录/完成审计投影，不打包历史vault实物或恢复controller授权。历史密文是明确external-vault审计metadata，追溯backupId/cipher SHA/bytes/keyId，不伪装活跃业务ObjectRef。恢复时真实核本机vault；跨实例缺旧包应failed+安全issue，不捏造ready。本次业务及付费结果由真正拥有域的完整快照保存。
 
 远程配置实施：可信AllowedGitHosts精确匹配ASCII主机，仅HTTPS443/SSH22及refs/heads完整安全分支；HTTP credentialRef仅选部署GitCredentialRefs的ID，空表示无凭据，不读请求路径。配置按expectedRevision CAS，原操作摘要/结果同事务幂等；修改配置不触发网络或同步。
+
+control V3追加backup_jobs：canonical不可变{backupId}与其真实ObjectRef、原subject/operation/root/site/epoch/inputHash和jobs原回执。原批准与requested状态/outbox同事务持久，再以清portal proof的本域服务身份单次提交jobs；失败保留原意图供相同操作重试，不自建领取/重试队列。requested事件不含尚不存在的manifestHash；只有真实封存ready才必填并显式核验，不依赖生成器单独支持if/then。
+
+ValidateBackupRequest只核管理员/secret额外超管、当前running同epoch、真实本机KEK及隔离目录，valid是基础条件通过，capacityVerified始终false；取得14域完整真实manifest后再按staging/密文/便携总预算与free bytes核容量，并在有界写前维持配额。
