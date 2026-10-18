@@ -1,3 +1,7 @@
+# 嵌入空间窄批交接
+
+源码3af2369：原四业务PutModel/ValidateModel/ReadModels/ValidateEmbeddingSpace及必要唯一空间生产助手ModelEmbeddingSpace就绪，均blocked待GitLab。解除历史归一化设计503，保留已有有序json.Marshal四身份hash输出五字段space，默认预处理none，不擅自归一化。新只读ModelWithSpace条目兼容embeddingSpace，MG唯一生产，knowledge严格校验DTO；不改全局Model写入结构。运行schema alias引用ReadModelsResult后根gen会保留ModelWithSpace闭包。主线尚未部署/行为验收；无本机Go或模型调用。继续原固定路线收费生产/派发/取消闭环。
+
 # 2026-10-18 模型网关费用首批交接
 
 基线770ea1c，分支codex/finish-20261018-gateway，仅modules/model-gateway。源码87a5af0；完整目标是本域剩余48职责全部写完，后续仍继续，不把本批当最终交付。

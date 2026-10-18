@@ -1,3 +1,7 @@
+# 五字段嵌入空间窄批
+
+更新2026-10-18，源码3af2369。PutModel、ValidateModel、ReadModels、ValidateEmbeddingSpace与唯一ModelEmbeddingSpace助手源码ready，统一blocked待GitLab。保留原spaceId算法，默认none，不默示L2；readModels只读ModelWithSpace新增权威embeddingSpace，未扩大模型写入DTO。知识可直接消费版本化响应；完整费用生产派发仍继续。
+
 # 模型网关费用执行首批
 
 更新：2026-10-18。用户授权继续写完剩余代码；不在75%停止。独占modules/model-gateway，分支codex/finish-20261018-gateway，基线770ea1c，源码87a5af0。
