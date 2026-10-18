@@ -312,6 +312,22 @@ func (c *JobsClient) CheckLease(ctx context.Context, jobId string, queries ...ur
 	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
+// ClaimJob POST /v1/jobs:claim（jobs:claimJob）。
+func (c *JobsClient) ClaimJob(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
+	if idempotencyKey == "" {
+		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
+	}
+	return c.do(ctx, http.MethodPost, "/v1/jobs:claim", body, idempotencyKey)
+}
+
+// CompleteJob POST /v1/jobs/{jobId}:complete（jobs:completeJob）。
+func (c *JobsClient) CompleteJob(ctx context.Context, jobId string, body any, idempotencyKey string) (json.RawMessage, error) {
+	if idempotencyKey == "" {
+		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
+	}
+	return c.do(ctx, http.MethodPost, "/v1/jobs/"+url.PathEscape(jobId)+":complete", body, idempotencyKey)
+}
+
 // CreateJob POST /v1/jobs（jobs:createJob）。
 func (c *JobsClient) CreateJob(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
 	if idempotencyKey == "" {
@@ -328,12 +344,36 @@ func (c *JobsClient) CreateSchedule(ctx context.Context, body any, idempotencyKe
 	return c.do(ctx, http.MethodPost, "/v1/schedules", body, idempotencyKey)
 }
 
+// FailJob POST /v1/jobs/{jobId}:fail（jobs:failJob）。
+func (c *JobsClient) FailJob(ctx context.Context, jobId string, body any, idempotencyKey string) (json.RawMessage, error) {
+	if idempotencyKey == "" {
+		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
+	}
+	return c.do(ctx, http.MethodPost, "/v1/jobs/"+url.PathEscape(jobId)+":fail", body, idempotencyKey)
+}
+
+// HeartbeatJob POST /v1/jobs/{jobId}:heartbeat（jobs:heartbeatJob）。
+func (c *JobsClient) HeartbeatJob(ctx context.Context, jobId string, body any, idempotencyKey string) (json.RawMessage, error) {
+	if idempotencyKey == "" {
+		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
+	}
+	return c.do(ctx, http.MethodPost, "/v1/jobs/"+url.PathEscape(jobId)+":heartbeat", body, idempotencyKey)
+}
+
 // PublishEvent POST /v1/events（jobs:publishEvent）。
 func (c *JobsClient) PublishEvent(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
 	if idempotencyKey == "" {
 		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
 	}
 	return c.do(ctx, http.MethodPost, "/v1/events", body, idempotencyKey)
+}
+
+// StartJob POST /v1/jobs/{jobId}:start（jobs:startJob）。
+func (c *JobsClient) StartJob(ctx context.Context, jobId string, body any, idempotencyKey string) (json.RawMessage, error) {
+	if idempotencyKey == "" {
+		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
+	}
+	return c.do(ctx, http.MethodPost, "/v1/jobs/"+url.PathEscape(jobId)+":start", body, idempotencyKey)
 }
 
 // SubscribeEvents GET /v1/events:subscribe（jobs:subscribeEvents）。

@@ -1195,7 +1195,7 @@ export interface components {
         EstimateRebuildPlanInput: {
             /**
              * @description 重建原因
-             * @enum {unknown}
+             * @enum {string}
              */
             reason: "embedding_space_changed" | "chunking_changed" | "manual";
         };

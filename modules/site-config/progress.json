@@ -305,20 +305,20 @@
       "state": "blocked",
       "implementationCommit": "37097fce696c8d0093bd58476f385d142ab536d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "品牌、页脚、横幅、历史与恢复已绑定真实handler；快照、屏障、资源引用列表与RelayOutbox/恢复回执仍未完成，严格平台工厂拒绝完整启动"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
       "state": "blocked",
       "implementationCommit": "37097fce696c8d0093bd58476f385d142ab536d8",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "品牌、页脚、横幅、历史与恢复已绑定真实handler；快照、屏障、资源引用列表与RelayOutbox/恢复回执仍未完成，严格平台工厂拒绝完整启动"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/site-config/go.mod",

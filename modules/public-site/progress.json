@@ -45,10 +45,10 @@
       "state": "blocked",
       "implementationCommit": "f1f6aae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批源码及前端构建入口待根CI。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "待统一GitLab检查；partial见函数记录。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/public-site/internal/sanitize.go",
@@ -85,10 +85,10 @@
       "state": "blocked",
       "implementationCommit": "f1f6aae",
       "verification": {
-        "state": "not_run",
-        "evidence": "第二批源码及前端构建入口待根CI。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "待统一GitLab检查；partial见函数记录。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/public-site/internal/navigation.go",
@@ -255,10 +255,10 @@
       "state": "blocked",
       "implementationCommit": "32ab806",
       "verification": {
-        "state": "not_run",
-        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "待统一GitLab生成与编译检查。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/public-site/internal/sitemap.go",
@@ -535,10 +535,10 @@
       "state": "blocked",
       "implementationCommit": "a50f4c4315f40c36b21ea45b7026236513ed0c80",
       "verification": {
-        "state": "not_run",
-        "evidence": "已校验配置、权威端点和真实公开链接绑定；缺任一登记操作、journal 或 activation 回执时返回错误，不返回可运行应用。pipeline 48 已编译该包，启动仍失败关闭，不记 verified。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "schema 迁移、journal 恢复、activation 回执字段、其余 OpenAPI 处理函数和后台循环尚未装配。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/public-site/internal/transport/server.go",

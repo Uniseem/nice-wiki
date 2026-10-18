@@ -185,10 +185,10 @@
       "state": "blocked",
       "implementationCommit": "f5f036b",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "事件隔离与流修订修正待GitLab"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/traffic-guard/internal/outbox.go",
@@ -345,20 +345,20 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "入口已接入platform.RunService；BuildApplication因本域业务handler、持久化与后台循环未实现而按合同返回DEPENDENCY_UNAVAILABLE"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/traffic-guard/internal/app/wire.go",
       "state": "blocked",
       "implementationCommit": "e8d9215",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码待CI；完整装配仍失败关闭。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "运行写窗口、预算key、完整其他HTTP/后台/恢复装配尚缺。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/traffic-guard/internal/transport/server.go",
@@ -565,10 +565,10 @@
       "state": "blocked",
       "implementationCommit": "e8d9215",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码待CI；完整装配仍失败关闭。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "新只追加迁移待统一GitLab编译。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/traffic-guard/internal/snapshot_archive.go",

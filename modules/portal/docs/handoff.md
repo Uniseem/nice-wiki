@@ -1,3 +1,11 @@
+# 2026-10-18 收尾检查与停止
+
+自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
+
+本域本次明确完整清单1项更新verified，准确ID见progress.json；其余blocked/planned保留，整体服务和全域保护未完成。用户要求push后停止，代理已冻结，不自动启动下一批。
+
+以下为历史记录。
+
 # 可信匿名统计转发源码待GitLab
 
 Root补portal公开正文→analytics内部签名正文，只用真实连接来源/UA及运行epoch；真实siteId从生产方readSiteConfig严格读取。新助手及实际修改待统一GitLab，完整Portal处理器/壳装配仍未齐。无本机编译、测试或真实调用。

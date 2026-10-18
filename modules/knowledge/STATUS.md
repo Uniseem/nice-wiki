@@ -1,3 +1,11 @@
+# 2026-10-18 收尾检查与停止
+
+自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
+
+本域本次明确完整清单45项更新verified，准确ID见progress.json；其余blocked/planned保留，整体服务和全域保护未完成。用户要求push后停止，代理已冻结，不自动启动下一批。
+
+以下为历史记录。
+
 # 最新源码交付（2026-10-18，待GitLab，不记完成）
 
 源码 `f46c115`、`a3ff249`、`7ec22e3` 已补后台原调用纯读恢复、真实费用终局证明、稳定资源意图/免费paid缓存恢复、全量真实估价与明确批准及UI。所有新改仍blocked待根GitLab，同源MG resolveTaskRoute/路由和价格接受事务CAS及公共ExpectedPriceSnapshot须统一生成。未本机Go/生成/测试、未真实模型/接口/服务/部署，无新增测试样例。

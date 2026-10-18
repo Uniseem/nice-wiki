@@ -4434,7 +4434,7 @@ func NewWorkerRuntime(raw *gen.JobsClient,executors platform.JobExecutorRegistry
 - 授权：permission：service；rule：仅已授权本域流程组合调用，不扩大调用方权限
 - 并发：本站同代原输入/原拥有者/fence与安全窗口；只读固定快照
 - 幂等：原输入/hash/语义身份不变，未知不换key
-- 依赖：`platform.NewPayloadValidator`、`platform.NewJobsClient`
+- 依赖：`platform.NewPayloadValidator`、`platform.NewJobsClient`、`jobs:claimJob`、`jobs:startJob`、`jobs:heartbeatJob`、`jobs:checkLease`、`jobs:completeJob`、`jobs:failJob`
 
 ## knowledge.WithWorkerRuntime
 

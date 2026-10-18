@@ -1,3 +1,11 @@
+# 2026-10-18 收尾检查与停止
+
+自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
+
+本域本次明确完整清单78项更新verified，准确ID见progress.json；其余blocked/planned保留，整体服务和全域保护未完成。用户要求push后停止，代理已冻结，不自动启动下一批。
+
+以下为历史记录。
+
 # 公共scope、两阶段屏障与签名清理交付
 
 源码 28882114d22b2df504cdf4101a48a016e385ed7c、68e5e33dc100ef1eca0d179b726b49d2d0bd8827、1904ea07ba2ebd4f20ad524ad9e6e4478d4fb4b2、94cdeeefd7f3436e780db141a0a476075a343d96。本批73个新/修改实际函数blocked待GitLab，其中43个新增登记参考函数（含原有EnsureSchema补登记），不冒称均为新增业务。未动旧verified保留原证据。本机只做Git/文字与隐私审阅，git diff --check通过，无本机/SSH编译生成、无新测试/样例/临时业务程序、无真实接口/模型/部署/push。

@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "f9a8e77f1e6b62329ac5c54aefc0299aec2f2ac579d1085097c20f3f7e49145d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "MG源码冻结，根接续完整scope/保护HTTP/应用装配",
+  "assignedSession": "用户要求push后停止；源码已通过GitLab，未完成项保留blocked/planned，不自动继续。",
   "branch": "codex/finish-20261018-gateway-final",
   "baseCommit": "ba1925675d6874e298a971cfed9f08d446ab84d4",
   "deliveryCommit": "3489670474325c0021d957e87be74fa32f128d4a",
@@ -15,10 +15,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/provider.go",
@@ -35,10 +35,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/model.go",
@@ -55,60 +55,60 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/routing/route.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/billing/quote.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/create.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/billing/reservation.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/dispatch.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/provider/adapter.go",
@@ -175,10 +175,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/tokens/budget.go",
@@ -195,10 +195,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/events/outbox.go",
@@ -215,20 +215,20 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/admin/usage.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/protection/protocol.go",
@@ -245,10 +245,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/ui/src/views/EditView.vue",
@@ -275,30 +275,30 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/admin/probe.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/fallback.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/provider/anthropic.go",
@@ -375,20 +375,20 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
       "state": "blocked",
       "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待GitLab。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "切片待CI，完整应用partial。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/go.mod",
@@ -445,10 +445,10 @@
       "state": "blocked",
       "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/ui/pnpm-lock.yaml",
@@ -465,30 +465,30 @@
       "state": "blocked",
       "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/ui/tsconfig.json",
       "state": "blocked",
       "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/ui/index.html",
       "state": "blocked",
       "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/ui/src/main.ts",
@@ -585,10 +585,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/http.go",
@@ -605,30 +605,30 @@
       "state": "blocked",
       "implementationCommit": "87a5af08293f4aa6ab1d1e0559049d1683ebc170",
       "verification": {
-        "state": "not_run",
-        "evidence": "本批源码已提交，等待根GitLab统一生成与编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "代码就绪，待GitLab"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/security/headers.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/migrations/007_provider_dispatch.sql",
       "state": "blocked",
       "implementationCommit": "0fc3227208b9dd96ef78b52dae038ec851813ae6",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码及schema007已提交，等待根GitLab生成和编译"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批代码就绪，待GitLab；完整网络派发/引用回收另列未完成"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/tokens/tokenize.go",
@@ -665,10 +665,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/finish.go",
@@ -695,10 +695,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/provider/images.go",
@@ -715,20 +715,20 @@
       "state": "blocked",
       "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
       "verification": {
-        "state": "not_run",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/runtime/retirement.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/runtime/relay.go",
@@ -745,50 +745,50 @@
       "state": "blocked",
       "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/ui/src/vue.d.ts",
       "state": "blocked",
       "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/migrations/010_model_catalog.sql",
       "state": "blocked",
       "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/lookup.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/migrations/011_invocation_lookup.sql",
       "state": "blocked",
       "implementationCommit": "a3c7536be1b172b31bb9fd951585c38655683ca5",
       "verification": {
-        "state": "not_run",
-        "evidence": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "源码就绪，待根GitLab生成/格式/readonly build/vet和结构检查；无本机Go或业务验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/snapshot_archive.go",
@@ -805,140 +805,140 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/migrations/012_usage_statistics.sql",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/bundled/catalog.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/bundled/models.dev.json",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/bundled/source.json",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/catalog/bundled/LICENSE",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/probe.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/migrations/013_admin_probe.sql",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/runtime/restore_projection.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/protection/snapshot.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/migrations/014_snapshot_authority.sql",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/migrations/015_snapshot_watermark.sql",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/migrations/016_usage_observations.sql",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     },
     {
       "path": "modules/model-gateway/internal/admin/observations.go",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
       },
-      "blocker": "本批实际文件待GitLab统一检查，源码存在不代表验收。"
+      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
     }
   ],
   "functions": [
@@ -948,21 +948,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.OpenDatabase",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.CurrentStore",
@@ -970,10 +970,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.InstallStore",
@@ -981,10 +981,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.Store.BeginTx",
@@ -992,10 +992,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.Store.Close",
@@ -1003,10 +1003,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.Store.MasterKeyRef",
@@ -1014,10 +1014,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ValidateProvider",
@@ -1069,32 +1069,32 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.RotateCredential",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.writeCredential",
       "path": "modules/model-gateway/internal/security/credential.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.loadCredentialMasterKey",
@@ -1102,10 +1102,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.credentialDigest",
@@ -1113,10 +1113,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.credentialFingerprint",
@@ -1124,10 +1124,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.readCredentialReceipt",
@@ -1135,10 +1135,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.credentialStorageError",
@@ -1146,10 +1146,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.NewCredentialHandlers",
@@ -1157,10 +1157,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.PutModel",
@@ -1212,10 +1212,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ResolveProfile",
@@ -1223,10 +1223,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.readProfileReceipt",
@@ -1234,10 +1234,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.validateProfileModels",
@@ -1245,10 +1245,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.NewProfileHandlers",
@@ -1256,10 +1256,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.readRouteProfile",
@@ -1267,10 +1267,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.applyTaskOverride",
@@ -1278,65 +1278,65 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.SelectCandidates",
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.readRouteCandidate",
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ResolveRoute",
       "path": "modules/model-gateway/internal/routing/route.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.QuoteCost",
       "path": "modules/model-gateway/internal/billing/quote.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadPriceSnapshot",
       "path": "modules/model-gateway/internal/billing/quote.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.SaveManualPrice",
@@ -1344,10 +1344,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.MakePriceSnapshot",
@@ -1355,10 +1355,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.beginPriceSnapshot",
@@ -1366,21 +1366,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.RequirePriceCaller",
       "path": "modules/model-gateway/internal/billing/quote.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.NewPriceHandlers",
@@ -1388,21 +1388,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.CreateInvocation",
       "path": "modules/model-gateway/internal/invocation/create.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReserveCost",
@@ -1410,20 +1410,20 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ComputeUsageCost",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/billing/reservation.go"
     },
     {
@@ -1431,21 +1431,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/billing/reservation.go"
     },
     {
       "id": "model-gateway.CheckFeeBudgets",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": null,
       "path": "modules/model-gateway/internal/billing/reservation.go"
     },
     {
@@ -1454,21 +1454,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ExecuteInvocation",
       "path": "modules/model-gateway/internal/invocation/execute.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.BuildProviderRequest",
@@ -1627,13 +1627,13 @@
     {
       "id": "model-gateway.GetInvocation",
       "path": "modules/model-gateway/internal/invocation/read.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.EstimateTokens",
@@ -1671,13 +1671,13 @@
     {
       "id": "model-gateway.AcquireProviderSlot",
       "path": "modules/model-gateway/internal/concurrency/lease.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReleaseProviderSlot",
@@ -1685,21 +1685,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.PublishOutbox",
       "path": "modules/model-gateway/internal/events/outbox.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 真实作用域装配未闭环。"
       },
-      "blocker": null
+      "blocker": "公共库新增强制AdmitBusiness/AdmitBatch/AdmitDelivery/BindExecutionScope；本域循环尚未绑定真实Manager回调，保持失败关闭；用户要求本次push后停止。"
     },
     {
       "id": "model-gateway.RecoverLeases",
@@ -1718,10 +1718,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.GetPriceBook",
@@ -1729,10 +1729,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ReadModels",
@@ -1740,10 +1740,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ReadProfiles",
@@ -1751,10 +1751,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ReadFeeBudgetPolicy",
@@ -1762,42 +1762,42 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.PutFeeBudgetPolicy",
       "path": "modules/model-gateway/internal/admin/read.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadAdminCatalog",
       "path": "modules/model-gateway/internal/admin/read.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.requireCatalogReader",
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1805,10 +1805,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1816,10 +1816,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1827,21 +1827,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
       "id": "model-gateway.readCatalogProviders",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": null,
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1849,10 +1849,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1860,21 +1860,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
       "id": "model-gateway.readFeePolicy",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": null,
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1882,10 +1882,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
@@ -1893,33 +1893,33 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
       "id": "model-gateway.NewAdminHandlers",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": null,
       "path": "modules/model-gateway/internal/admin/read.go"
     },
     {
       "id": "model-gateway.QueryUsage",
       "path": "modules/model-gateway/internal/admin/usage.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ledgerRuntime",
@@ -1927,10 +1927,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.validateLedgerCoverage",
@@ -1938,10 +1938,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.readLedgerRevision",
@@ -1949,10 +1949,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.readLedgerMetadata",
@@ -1960,21 +1960,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.readLedgerEntries",
       "path": "modules/model-gateway/internal/admin/usage.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.readLedgerPage",
@@ -1982,21 +1982,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.readRootMetadata",
       "path": "modules/model-gateway/internal/admin/usage.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.sumLedgerMoney",
@@ -2004,21 +2004,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.NewLedgerHandlers",
       "path": "modules/model-gateway/internal/admin/usage.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.AcquireBarrier",
@@ -2210,35 +2210,35 @@
     {
       "id": "model-gateway.RefreshModelCatalog",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.CreateConnectionProbe",
       "path": "modules/model-gateway/internal/admin/probe.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.CreateFallbackAttempt",
       "path": "modules/model-gateway/internal/invocation/fallback.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.MapAnthropicRequest",
@@ -2323,10 +2323,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.Serve",
@@ -2388,10 +2388,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2399,10 +2399,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2410,10 +2410,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2421,10 +2421,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2432,10 +2432,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2443,10 +2443,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2454,10 +2454,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2465,10 +2465,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2476,10 +2476,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2487,10 +2487,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2498,10 +2498,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2509,10 +2509,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2520,10 +2520,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2531,10 +2531,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/runtime/invocation.go"
     },
     {
@@ -2586,10 +2586,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/security/headers.go"
     },
     {
@@ -2597,10 +2597,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/security/headers.go"
     },
     {
@@ -2608,10 +2608,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/security/headers.go"
     },
     {
@@ -2619,21 +2619,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。",
       "path": "modules/model-gateway/internal/security/headers.go"
     },
     {
       "id": "model-gateway.OpenAttemptHeaders",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。",
+      "blocker": null,
       "path": "modules/model-gateway/internal/security/headers.go"
     },
     {
@@ -2697,10 +2697,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.CanonicalInvocationInput",
@@ -2708,10 +2708,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.CheckLanguageSuggestionApproval",
@@ -2730,10 +2730,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ConsumeProviderFrame",
@@ -2741,10 +2741,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ErrorCode",
@@ -2752,10 +2752,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ExecutionSnapshotHash",
@@ -2763,10 +2763,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.FinishCancelledInvocation",
@@ -2807,10 +2807,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.InvocationSafeToRetry",
@@ -2840,10 +2840,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.NewRuntimeClient",
@@ -2851,10 +2851,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.Nonempty",
@@ -2862,10 +2862,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.PrepareInvocationAttempt",
@@ -2873,10 +2873,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ProviderReportedCost",
@@ -2884,21 +2884,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ReadAttemptEvidence",
       "path": "modules/model-gateway/internal/invocation/dispatch.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadDispatchProvider",
@@ -2906,10 +2906,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ReadExecutionAttempt",
@@ -2917,10 +2917,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ReadExecutionRecord",
@@ -2928,10 +2928,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ReadImageBytes",
@@ -2950,10 +2950,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ReleaseUnacceptedAttempt",
@@ -2972,21 +2972,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.SendProviderRequest",
       "path": "modules/model-gateway/internal/provider/response.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ServiceProviderContext",
@@ -3005,10 +3005,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ValidateInvocationPayload",
@@ -3016,10 +3016,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.beginExecution",
@@ -3027,10 +3027,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ensureDataLayout",
@@ -3038,10 +3038,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.newRuntimeClient",
@@ -3049,10 +3049,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.providerIdleReader.Read",
@@ -3060,10 +3060,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.validCapability",
@@ -3104,32 +3104,32 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.DestroyRetiredSecrets",
       "path": "modules/model-gateway/internal/runtime/retirement.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.RelayOutbox",
       "path": "modules/model-gateway/internal/runtime/relay.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "b891040b9b51aae84f5bd83037971be174bc285b",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline101（源码b0e723d；生成466、三个Go分片467/468/469、前端470）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及四个实际前端类型检查/构建通过，精确2610字节生成物已回传。普通测试无测试文件，不代表业务验收或部署。"
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 真实作用域装配未闭环。"
       },
-      "blocker": null
+      "blocker": "公共库新增强制AdmitBusiness/AdmitBatch/AdmitDelivery/BindExecutionScope；本域循环尚未绑定真实Manager回调，保持失败关闭；用户要求本次push后停止。"
     },
     {
       "id": "model-gateway.clearSecrets",
@@ -3277,24 +3277,24 @@
     {
       "id": "model-gateway.refreshCatalog",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "9d0d464966b770223f6c1831ec8a86c528e61e75",
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": null
     },
     {
       "id": "model-gateway.reload",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": null
     },
     {
       "id": "model-gateway.runProbe",
@@ -3343,13 +3343,13 @@
     {
       "id": "model-gateway.savePolicy",
       "path": "modules/model-gateway/ui/src/views/OverviewView.vue",
-      "state": "blocked",
-      "implementationCommit": "c57cd4cc7cbd4acae5bbd1200ce9698856b93844",
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "源码闭环就绪，待统一GitLab CI；不代表行为验收或已部署"
+      "blocker": null
     },
     {
       "id": "model-gateway.saveProfile",
@@ -3423,10 +3423,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.Application.BackgroundTasks",
@@ -3464,13 +3464,13 @@
     {
       "id": "model-gateway.ApplyCatalogSnapshot",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.DownloadModelCatalog",
@@ -3478,10 +3478,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ModelSnapshotHash",
@@ -3489,10 +3489,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.NewCatalogRefreshHandlers",
@@ -3500,10 +3500,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.NormalizeModelCatalog",
@@ -3511,10 +3511,10 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.ReadInitializationState",
@@ -3522,54 +3522,54 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.SaveCatalogPrice",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.LookupInvocation",
       "path": "modules/model-gateway/internal/invocation/lookup.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.RequireInvocationLookupTracking",
       "path": "modules/model-gateway/internal/invocation/lookup.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadInvocationSnapshot",
       "path": "modules/model-gateway/internal/invocation/read.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadStatisticsInvocationRecord",
@@ -3577,21 +3577,21 @@
       "state": "blocked",
       "implementationCommit": null,
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 此项依赖或完整装配仍未闭环，继续blocked。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": "源码检查通过；完整启动、真实scope/屏障回调、费用投影或逐项既有业务依赖尚未闭环；本次按用户要求停止，不继续实施。"
     },
     {
       "id": "model-gateway.readInvocationRecord",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadSnapshotArchive",
@@ -3607,357 +3607,357 @@
     {
       "id": "model-gateway.ReadLegacyTextResult",
       "path": "modules/model-gateway/internal/invocation/read.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadUsageStatisticsPage",
       "path": "modules/model-gateway/internal/admin/statistics.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.readStatisticsLineage",
       "path": "modules/model-gateway/internal/admin/statistics.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.validateUsageChange",
       "path": "modules/model-gateway/internal/admin/statistics.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadGatewaySiteID",
       "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.AcceptPreparedInvocation",
       "path": "modules/model-gateway/internal/invocation/create.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadCatalogSource",
       "path": "modules/model-gateway/internal/catalog/refresh.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadLatestProbes",
       "path": "modules/model-gateway/internal/admin/probe.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.FeeProbeLimit",
       "path": "modules/model-gateway/internal/admin/probe.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadSnapshot",
       "path": "modules/model-gateway/internal/catalog/bundled/catalog.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.CreateProbeInvocation",
       "path": "modules/model-gateway/internal/invocation/probe.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.Store.SetDataEpoch",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadPriceSnapshotInTransaction",
       "path": "modules/model-gateway/internal/billing/quote.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.IsRestoredEpoch",
       "path": "modules/model-gateway/internal/runtime/restore_projection.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.IsRedactedMaterial",
       "path": "modules/model-gateway/internal/runtime/restore_projection.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.CheckProviderMaterial",
       "path": "modules/model-gateway/internal/runtime/restore_projection.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.GatewaySnapshotConfig",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.GatewayWatermark",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.CaptureGatewaySnapshot",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.GatewaySnapshotInventory",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.OpenGatewaySnapshotDB",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.GatewaySnapshotFile",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.RedactGatewaySnapshot",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.GatewayStageBudget",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.MigrateGatewayStage",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ValidateGatewayStage",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ValidateGatewayDatabase",
       "path": "modules/model-gateway/internal/protection/snapshot.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.SelectCandidatesInTransaction",
       "path": "modules/model-gateway/internal/catalog/profile.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ResolveTaskRoute",
       "path": "modules/model-gateway/internal/routing/route.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.NewRouteHandlers",
       "path": "modules/model-gateway/internal/routing/route.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.ReadUsageObservation",
       "path": "modules/model-gateway/internal/admin/observations.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     },
     {
       "id": "model-gateway.Store.runMigrations",
       "path": "modules/model-gateway/internal/runtime/bootstrap.go",
-      "state": "blocked",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "06e361cb65cd479a3035a2c63934359035bc8f85",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。"
       },
-      "blocker": "本批源码集中续写待GitLab统一生成/readonly build/vet/gofmt及完整check；完整业务依赖按合同继续收口。"
+      "blocker": null
     }
   ],
-  "rule": "本批完整独立函数通过pipeline101；Create/Lookup/tracking首次来源、完整启动及保护、probe额度/目录数据许可仍按逐项台账阻塞，不计业务验收。",
+  "rule": "逐项verified仅代表对应源码检查通过；accepted0；完整应用、全域保护、费用完整消费与部署未完成。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "26210be2b9f38c2d270c5b6f845ad67b9144c8f3",
@@ -4068,5 +4068,10 @@
       "model-gateway.Ready"
     ],
     "note": "仅源码ready待统一GitLab CI；当前完整费用V2包括无ledger held未知，金额仍可能unknown。9原启动/保护/Ready绑定由根接续；新接收者登记与原helper修订分开，不靠增加助手冒业务完成。"
+  },
+  "lastSourceVerification": {
+    "pipeline": 118,
+    "commit": "06e361cb65cd479a3035a2c63934359035bc8f85",
+    "note": "readyAwaitingCI仅原交付候选清单；当前真实状态以functions逐项为准。"
   }
 }

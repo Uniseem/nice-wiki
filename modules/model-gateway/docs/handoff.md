@@ -1,3 +1,11 @@
+# 2026-10-18 收尾检查与停止
+
+自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
+
+本域本次明确完整清单71项更新verified，准确ID见progress.json；其余blocked/planned保留，整体服务和全域保护未完成。用户要求push后停止，代理已冻结，不自动启动下一批。
+
+以下为历史记录。
+
 # 最终网关源码交接，待统一GitLab CI
 
 本域冻结于源码 `3489670`（仅接收者限定标识修正），生产源码连续提交：`9d0d464`目录、`c57cd4c`单次连接probe、`a8f2b76`真实建库及隔离快照、`82e456d`原批准路线/价目事务条件、`6171abd`完整费用观察V2；前序文本/负证明/posted页及台账原提交继续保留。精确函数ID、原源码SHA及新业务/新参考助手/旧修改分列于progress.readyAwaitingCI；所有本轮修改均blocked待统一GitLab CI，不提前verified。

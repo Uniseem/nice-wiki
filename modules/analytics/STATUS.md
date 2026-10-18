@@ -1,3 +1,11 @@
+# 2026-10-18 收尾检查与停止
+
+自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
+
+本域本次明确完整清单109项更新verified，准确ID见progress.json；其余blocked/planned保留，整体服务和全域保护未完成。用户要求push后停止，代理已冻结，不自动启动下一批。
+
+以下为历史记录。
+
 审计V2源码 2d251cf79da8e0046b49c4bfff63bd395cb47d89：3既有函数+6支持，累计8既有+20支持待统一GitLab CI；另ConsumeAuditEvent等根订阅装配不计ready。旧SUCCESS输入归一新OK，V1原hash不动；新V2含site/producer/原主体/原时间/原操作/源epoch。新migration0002连续V2，仅实际授权事实，无用户proof续用。
 
 审计V2小批：固定producer历史事实与实时兼容分支共享追加链，3个既有函数和6支持就绪待统一GitLab CI，累计8既有+20支持。ConsumeAuditEvent本体写齐，根统一订阅登记/循环后才计完整入口ready。旧V1 hash只读保留，新V2覆全来源，metadata严格白名单；修readSiteIdentity非法free costClass为空。未本地编译/生成/测试或真实调用。

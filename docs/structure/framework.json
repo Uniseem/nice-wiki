@@ -684,6 +684,11 @@
       "purpose": "公共机制第五批源码检查与双推记录"
     },
     {
+      "path": "docs/push-log/2026-10-18-0008.md",
+      "kind": "documentation",
+      "purpose": "用户要求普通双推后停止的源码检查范围、未完草稿和隐私记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"

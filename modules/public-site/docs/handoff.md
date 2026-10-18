@@ -1,3 +1,9 @@
+## 2026-10-18 用户收尾指令
+
+用户要求push后停止，全部代理已冻结。本次集成树已通过GitLab pipeline118源码检查；未完成职责保持逐项台账，不将独立WIP计入main。后续仅在新授权下接续，不自动继续。
+
+以下为历史记录。
+
 # 2026-10-18 集成检查通过
 
 pipeline60（生成261、三个Go分片262/263/264、前端265）完整通过，精确生成物已回传。逐项台账只把完整待编译清单转verified；partial、完整启动及既有设计阻塞保持blocked。所有Go模块readonly build/vet/gofmt与go test、完整make check通过；public-site前端类型检查及构建通过。go test没有测试文件，不构成业务验收。accepted=0，未部署。
