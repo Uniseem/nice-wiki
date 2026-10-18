@@ -5453,10 +5453,11 @@
     "ReadUsageStatisticsPageResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "固定append-only变更上界的posted账本页；不含无账项held/charge_unknown，completeFeeCoverage必须false，不得称全站完整费用对账/unknown=0。",
+      "description": "V2完整posted及inflight来源闭包不表示金额均已知；未知金额必须显式unknown，禁止部分已知和冒全站总额。调用和attempt原财务权威不删除，reservation held禁止删除；已关闭reservation删改真实留历史。",
       "properties": {
         "schemaVersion": {
-          "const": 1
+          "const": 2,
+          "type": "integer"
         },
         "watermark": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
@@ -5476,10 +5477,24 @@
           "maxLength": 8192
         },
         "feeCoverage": {
-          "const": "posted-only"
+          "const": "posted-and-inflight",
+          "type": "string"
         },
         "completeFeeCoverage": {
-          "const": false
+          "const": true,
+          "type": "boolean"
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UsageObservation"
+          },
+          "maxItems": 100,
+          "description": "无账项真实invocation/attempt/held闭包，与changes共用同一timeline上界；两数组合计最多100，按changeRevision合并排序"
+        },
+        "pageHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "对该响应其余全部字段（含固定上界、所有原事实及nextCursor）的完整canonical JSON UTF8作SHA256；仅计算时省略pageHash，不截断或另猜源hash。"
         }
       },
       "required": [
@@ -5489,7 +5504,9 @@
         "changes",
         "nextCursor",
         "feeCoverage",
-        "completeFeeCoverage"
+        "completeFeeCoverage",
+        "observations",
+        "pageHash"
       ]
     },
     "ConnectionProbeSummary": {
@@ -5547,6 +5564,351 @@
       "required": [
         "modelId",
         "priceSnapshotId"
+      ]
+    },
+    "UsageObservationOrigin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "operationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "rootOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "ownerService": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "sourceDataEpoch": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "costClass": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/CostClass"
+        }
+      },
+      "required": [
+        "invocationId",
+        "operationId",
+        "rootOperationId",
+        "ownerService",
+        "siteId",
+        "sourceDataEpoch",
+        "costClass"
+      ]
+    },
+    "UsageInvocationFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "reserved",
+            "dispatching",
+            "streaming",
+            "cancel_requested",
+            "cancelled",
+            "failed",
+            "succeeded",
+            "charge_unknown",
+            "reconciled"
+          ]
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "terminal": {
+          "type": "boolean"
+        },
+        "activeExecution": {
+          "type": "boolean",
+          "description": "该原观察仍有持久执行租约；过期也保守占用，不表示旧代可复活执行"
+        },
+        "attemptCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "allAttemptsFinal": {
+          "type": "boolean",
+          "description": "同一原数据库快照真实所有attempt皆succeeded/failed/reconciled，不仅outer succeeded"
+        }
+      },
+      "required": [
+        "state",
+        "createdAt",
+        "terminal",
+        "activeExecution",
+        "attemptCount",
+        "allAttemptsFinal"
+      ]
+    },
+    "UsageAttemptFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "reserved",
+            "dispatching",
+            "streaming",
+            "failed",
+            "succeeded",
+            "charge_unknown",
+            "reconciled"
+          ]
+        },
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "providerVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "modelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "modelVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "modelSnapshotHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "priceSnapshotId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "dispatched": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "attemptId",
+        "state",
+        "providerId",
+        "providerVersion",
+        "modelId",
+        "modelVersion",
+        "modelSnapshotHash",
+        "priceSnapshotId",
+        "dispatched"
+      ]
+    },
+    "UsageReservationFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reservationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "attemptId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "held",
+            "settled",
+            "released"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "amountKnown": {
+          "type": "boolean"
+        },
+        "maximumCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money"
+        },
+        "heldCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money"
+        },
+        "unknownUsageCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "reservationId",
+        "attemptId",
+        "state",
+        "version",
+        "amountKnown",
+        "unknownUsageCount"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "amountKnown": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "maximumCost",
+              "heldCost"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "maximumCost"
+                  ]
+                },
+                {
+                  "required": [
+                    "heldCost"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "UsageObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "changeRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "entityRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "invocation",
+            "attempt",
+            "reservation"
+          ]
+        },
+        "entityId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "origin": {
+          "$ref": "#/$defs/UsageObservationOrigin"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "observedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "invocation": {
+          "$ref": "#/$defs/UsageInvocationFact"
+        },
+        "attempt": {
+          "$ref": "#/$defs/UsageAttemptFact"
+        },
+        "reservation": {
+          "$ref": "#/$defs/UsageReservationFact"
+        }
+      },
+      "required": [
+        "changeRevision",
+        "entityRevision",
+        "kind",
+        "entityId",
+        "origin",
+        "deleted",
+        "observedAt"
+      ],
+      "oneOf": [
+        {
+          "properties": {
+            "kind": {
+              "const": "invocation"
+            }
+          },
+          "required": [
+            "invocation"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "attempt"
+                ]
+              },
+              {
+                "required": [
+                  "reservation"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "attempt"
+            }
+          },
+          "required": [
+            "attempt"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "invocation"
+                ]
+              },
+              {
+                "required": [
+                  "reservation"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "reservation"
+            }
+          },
+          "required": [
+            "reservation"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "invocation"
+                ]
+              },
+              {
+                "required": [
+                  "attempt"
+                ]
+              }
+            ]
+          }
+        }
       ]
     }
   }

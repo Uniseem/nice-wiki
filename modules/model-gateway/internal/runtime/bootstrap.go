@@ -96,6 +96,8 @@ func OpenDatabase(dataDirectory string) (*Store, error) {
 	}
 
  entries,e:=os.ReadDir(filepath.Join(cleanRoot,"active"));if e!=nil{return nil,mapDatabaseError(e)};exists:=false;for _,entry:=range entries{if entry.Name()==databaseName{exists=true};if (entry.Name()!=databaseName&&entry.Name()!=databaseName+"-wal"&&entry.Name()!=databaseName+"-shm")||entry.IsDir()||!entry.Type().IsRegular(){return nil,platform.NewError(platform.CodeIntegrityError,false,"模型active存在未知文件，拒绝创建新权威覆盖历史")}};if !exists&&len(entries)>0{return nil,platform.NewError(platform.CodeIntegrityError,false,"缺主库但存在旧WAL材料，不能宣称新建空历史")}
+ birthPath:=filepath.Join(cleanRoot,"control","database-origin.json")
+ if !exists{if _,e=os.Lstat(birthPath);e==nil{return nil,platform.NewError(platform.CodeIntegrityError,false,"原控制区已记录库创建但active库丢失，禁止重建空历史")}else if !errors.Is(e,os.ErrNotExist){return nil,mapDatabaseError(e)}}
  databasePath:=filepath.Join(cleanRoot,"active",databaseName)
  if err=lifecycle.ValidatePrivatePath(databasePath,"regular-file",true);err!=nil{return nil,err}
  created,createErr:=os.OpenFile(databasePath,os.O_RDWR|os.O_CREATE|os.O_EXCL,0600);fresh:=createErr==nil
@@ -117,7 +119,8 @@ func OpenDatabase(dataDirectory string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
- if fresh{proof,_:=platform.CanonicalJSON(struct{Format,Owner,InstanceID,CreatedAt string}{"nice-wiki.gateway-birth.v1","model-gateway",platform.NewIdentifier(),time.Now().UTC().Format(time.RFC3339Nano)});if _,err=store.db.Exec(`INSERT INTO database_origin(singleton,proof_json,proof_hash) VALUES(1,?,?)`,proof,platform.HashBytes(proof));err!=nil{_ = db.Close();return nil,mapDatabaseError(err)}}
+ if fresh{proof,_:=platform.CanonicalJSON(struct{Format,Owner,InstanceID,CreatedAt string}{"nice-wiki.gateway-birth.v1","model-gateway",platform.NewIdentifier(),time.Now().UTC().Format(time.RFC3339Nano)});certificate,e:=os.OpenFile(birthPath,os.O_CREATE|os.O_EXCL|os.O_WRONLY,0600);if e!=nil{_ = db.Close();return nil,platform.NewError(platform.CodeIntegrityError,false,"库创建证书冲突或缺可写控制区，不能证明新历史")};_,e=certificate.Write(proof);if e==nil{e=certificate.Sync()};_ = certificate.Close();if e==nil{directory,openErr:=os.Open(filepath.Dir(birthPath));if openErr!=nil{e=openErr}else{e=directory.Sync();_ = directory.Close()}};if e!=nil{_ = db.Close();return nil,mapDatabaseError(e)};if _,err=store.db.Exec(`INSERT INTO database_origin(singleton,proof_json,proof_hash) VALUES(1,?,?)`,proof,platform.HashBytes(proof));err!=nil{_ = db.Close();return nil,mapDatabaseError(err)}}
+
 	return store, nil
 }
 

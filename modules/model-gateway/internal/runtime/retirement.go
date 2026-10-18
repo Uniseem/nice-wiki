@@ -28,7 +28,7 @@ func DestroyRetiredSecrets(ctx context.Context, op OperationContext, tx *sql.Tx)
 	if _, err := tx.ExecContext(ctx, `DELETE FROM credentials WHERE data_epoch=? AND EXISTS(SELECT 1 FROM credential_retirements r WHERE r.provider_id=credentials.provider_id AND r.credential_version=credentials.credential_version AND r.data_epoch=credentials.data_epoch)`, op.DataEpoch); err != nil {
 		return ExecutionStorageError(err)
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE header_secrets AS h SET nonce=X'',ciphertext=X'',destroyed_at=? WHERE h.data_epoch=? AND h.destroyed_at IS NULL AND NOT EXISTS(SELECT 1 FROM route_header_refs r WHERE r.ref_id=h.ref_id AND r.released=0) AND NOT EXISTS(SELECT 1 FROM providers p,json_each(p.extra_header_secret_refs_json) j WHERE p.provider_id=h.provider_id AND p.data_epoch=h.data_epoch AND j.value=h.ref_id)`, now, op.DataEpoch); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE header_secrets AS h SET nonce=X'',ciphertext=X'',destroyed_at=? WHERE (h.data_epoch=? OR EXISTS(SELECT 1 FROM restored_epoch_sources s WHERE s.source_epoch=h.data_epoch AND s.target_epoch=?)) AND h.destroyed_at IS NULL AND NOT EXISTS(SELECT 1 FROM route_header_refs r WHERE r.ref_id=h.ref_id AND r.released=0) AND NOT EXISTS(SELECT 1 FROM providers p,json_each(p.extra_header_secret_refs_json) j WHERE p.provider_id=h.provider_id AND j.value=h.ref_id)`, now, op.DataEpoch,op.DataEpoch); err != nil {
 		return ExecutionStorageError(err)
 	}
 	return nil
