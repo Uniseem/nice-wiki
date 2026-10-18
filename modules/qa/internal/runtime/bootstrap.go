@@ -244,7 +244,7 @@ type TurnRecord struct {
 	AnswerKind        string
 	JobID             string
 	InvocationIDs     []string
-	Plan              *gen.QuestionPlan
+	Plan              *QuestionPlan
 }
 
 func ReadTurn(t *Transaction, op OperationContext, id string, owner bool) (TurnRecord, error) {
@@ -468,4 +468,18 @@ func PublicationFingerprint(ctx context.Context, op OperationContext) (string, e
 	sort.Slice(refs, func(i, j int) bool { return refs[i].DocumentId < refs[j].DocumentId })
 	encoded, _ := platform.CanonicalJSON(refs)
 	return platform.HashBytes(encoded), nil
+}
+
+// QuestionPlan是本域持久前置结果，与types.json封闭结构一致。
+type QuestionPlan struct {
+	OriginalQuestion   string        `json:"originalQuestion"`
+	CanonicalQuestion  string        `json:"canonicalQuestion"`
+	VisitorLanguage    string        `json:"visitorLanguage"`
+	Complete           bool          `json:"complete"`
+	CacheEligible      bool          `json:"cacheEligible"`
+	Subqueries         []string      `json:"subqueries"`
+	Classification     string        `json:"classification"`
+	Risk               string        `json:"risk"`
+	ContextFingerprint platform.Hash `json:"contextFingerprint"`
+	ResolvedReferences bool          `json:"resolvedReferences"`
 }

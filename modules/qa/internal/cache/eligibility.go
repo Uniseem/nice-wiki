@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"nice-wiki/libs/platform"
+ qaruntime "nice-wiki/modules/qa/internal/runtime"
 )
 
 // OperationContext 是平台可信执行上下文的本域别名。
@@ -20,18 +21,7 @@ const (
 )
 
 // QuestionPlan 是前置计划里本函数读取的封闭字段。
-type QuestionPlan struct {
-	OriginalQuestion   string        `json:"originalQuestion"`
-	CanonicalQuestion  string        `json:"canonicalQuestion"`
-	VisitorLanguage    string        `json:"visitorLanguage"`
-	Complete           bool          `json:"complete"`
-	CacheEligible      bool          `json:"cacheEligible"`
-	Subqueries         []string      `json:"subqueries"`
-	Classification     string        `json:"classification"`
-	Risk               string        `json:"risk"`
-	ContextFingerprint platform.Hash `json:"contextFingerprint"`
-	ResolvedReferences bool          `json:"resolvedReferences"`
-}
+type QuestionPlan = qaruntime.QuestionPlan
 
 // EvaluateCacheEligibilityInput 是缓存准入输入。
 type EvaluateCacheEligibilityInput struct {
