@@ -629,6 +629,11 @@
       "purpose": "第三轮四模块的授权、GitLab检查和已完成的双远程推送记录"
     },
     {
+      "path": "docs/push-log/2026-10-18-0001.md",
+      "kind": "documentation",
+      "purpose": "首批并行实施、实际GitLab检查与待推送记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"
@@ -2404,6 +2409,21 @@
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
     },
     {
+      "path": "modules/localization/internal/cache-answer/http.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/cache-answer/read.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/events/outbox.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
       "path": "modules/localization/internal/gen/clients.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改"
@@ -2417,6 +2437,56 @@
       "path": "modules/localization/internal/gen/openapi.gen.go",
       "kind": "generated",
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
+    },
+    {
+      "path": "modules/localization/internal/glossary/approved.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/glossary/change.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/glossary/http.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/glossary/read.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/glossary/rollback.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/glossary/write.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/interface/http.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/interface/read.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/interface/validate.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/interface/write.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
     },
     {
       "path": "modules/localization/internal/language/config.go",
@@ -2434,6 +2504,11 @@
       "purpose": "绑定已有语言配置HTTP操作"
     },
     {
+      "path": "modules/localization/internal/language/protocol.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
       "path": "modules/localization/internal/language/read.go",
       "kind": "handwritten",
       "purpose": "按权限列出语言；公开站点只看已启用项"
@@ -2444,9 +2519,64 @@
       "purpose": "拒绝空标签和超长标签；未写明的归一化失败关闭"
     },
     {
+      "path": "modules/localization/internal/language/transaction.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
       "path": "modules/localization/internal/runtime/bootstrap.go",
       "kind": "handwritten",
       "purpose": "本地化运行时私有持久化与启动恢复"
+    },
+    {
+      "path": "modules/localization/internal/runtime/model_client.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/edit.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/fallback.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/http.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/plan.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/prompt.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/store.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/terminology.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/tm.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/internal/translation/validate.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
     },
     {
       "path": "modules/localization/internal/transport/server.go",
@@ -2462,6 +2592,16 @@
       "path": "modules/localization/migrations/002_language_config.sql",
       "kind": "migration",
       "purpose": "只追加语言配置原回执、代次水位和本地屏障读侧"
+    },
+    {
+      "path": "modules/localization/migrations/003_glossary_catalog.sql",
+      "kind": "documentation",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/localization/migrations/004_translation_objects.sql",
+      "kind": "documentation",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
     },
     {
       "path": "modules/localization/migrations/migrations.go",
@@ -4014,9 +4154,64 @@
       "purpose": "qa依赖校验锁；由go mod tidy生成，纳入版本以可重现构建"
     },
     {
+      "path": "modules/qa/internal/admin/cache.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/admin/calibration.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/admin/policy.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/admission/permit.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/cache/curation.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
       "path": "modules/qa/internal/cache/eligibility.go",
       "kind": "handwritten",
       "purpose": "严格缓存完整问题门；指代残留未写明，不返回可共享资格"
+    },
+    {
+      "path": "modules/qa/internal/cache/exact.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/cache/invalidate.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/cache/validate.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/conversation/create.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/conversation/read.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/feedback/feedback.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
     },
     {
       "path": "modules/qa/internal/gen/clients.gen.go",
@@ -4034,9 +4229,39 @@
       "purpose": "make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改"
     },
     {
-      "path": "modules/qa/internal/turn/normalize.go",
+      "path": "modules/qa/internal/normalize/question.go",
       "kind": "handwritten",
-      "purpose": "问题规范化、缓存键与稳定锚点"
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/runtime/bootstrap.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/runtime/model_client.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/stream/read.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/stream/store.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/internal/transport/server.go",
+      "kind": "handwritten",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
+    },
+    {
+      "path": "modules/qa/migrations/001_initial.sql",
+      "kind": "documentation",
+      "purpose": "问答或本地化本轮实际源码与合同资料"
     },
     {
       "path": "modules/qa/progress.json",
@@ -4547,11 +4772,6 @@
       "path": "scripts/render_docs.py",
       "kind": "tool",
       "purpose": "标准库生成器：从各域implementation.json生成docs/functions.md与docs/files.md"
-    },
-    {
-      "path": "docs/push-log/2026-10-18-0001.md",
-      "kind": "documentation",
-      "purpose": "首批并行实施、实际GitLab检查与待推送记录"
     }
   ]
 }
