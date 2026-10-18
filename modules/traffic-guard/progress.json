@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "68de5197521b2878d5c14b87d594859441f2f4ace2399dbe3e802c080b9f00f6",
+  "contractSha256": "c26d71aded1ddb0af1b3dc194da053fac7ba7c65aeaef95c3d828aa9560ff403",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "traffic-guard第二批准入许可已交，继续挑战与事件闭环",
   "branch": "codex/traffic-guard-20261018-bulk",
@@ -1048,7 +1048,7 @@
       "id": "traffic-guard.VerifyAdmissionHTTP",
       "path": "modules/traffic-guard/internal/http_verify.go",
       "state": "blocked",
-      "implementationCommit": "5b44ea5",
+      "implementationCommit": "e61d899",
       "verification": {
         "state": "not_run",
         "evidence": "第二批完整源码待根GitLab生成/格式/readonly build/vet/check；本机未运行Go。"

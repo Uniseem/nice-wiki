@@ -88,3 +88,5 @@
 - `traffic-guard.QueueSessionAdmission`
 - `traffic-guard.readGuardPolicy`
 - `traffic-guard.NewGuardHandlers`
+
+消费核验窄修e61d899：VerifyAdmissionHTTP成功响应增加必需admissionId；无token路径也须consumed_request_id=原QA根，未消费行失败关闭。同步types/implementation，仍blocked待CI。
