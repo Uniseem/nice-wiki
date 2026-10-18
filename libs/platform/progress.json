@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "6ed28913faa101d1d1ca03e03a2ca5915127361e680e4c9d5e14d3c5e9d33bf0",
+  "contractSha256": "e8b20d827862033bbef8ecf0e1ed8b783a2c715abf7ddede115c548b5232ab86",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-17第三轮可信站点和真实任务适配",
   "branch": "codex/integration-20261017-r3",
@@ -977,6 +977,16 @@
         "evidence": null
       },
       "blocker": "代码已编写，等待本次75%集中编写后统一GitLab生成编译与结构检查"
+    },
+    {
+      "id": "platform.validatedModelLastID",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "pipeline57发现ModelEventStream缺LastID，现已补全待GitLab重跑"
     }
   ],
   "rule": "公共机制已通过自部署GitLab当前源码/生成/编译/结构检查；完整服务、业务验收和部署按各域未完成项保留。"

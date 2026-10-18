@@ -5077,7 +5077,8 @@
           "dependencies": [
             "model-gateway:resumeInference",
             "platform.validatedModelNext",
-            "platform.validatedModelClose"
+            "platform.validatedModelClose",
+            "platform.validatedModelLastID"
           ],
           "resources": [],
           "contract": "reference"
@@ -5155,6 +5156,43 @@
           "purpose": "关闭底层SSE",
           "steps": [
             "关闭底层SSE"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "客户端或六个校验器缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.validatedModelLastID",
+          "name": "validatedModelLastID",
+          "signature": "func (s *validatedModelStream) LastID() string",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "id",
+              "type": "string",
+              "description": "最后SSE事件标识",
+              "constraints": [
+                "由底层流产生"
+              ]
+            }
+          ],
+          "purpose": "保留生产方SSE续传标识",
+          "steps": [
+            "原样返回底层流LastID，不改写序号"
           ],
           "errors": [
             {

@@ -76,3 +76,5 @@ func (s *validatedModelStream) Next(ctx context.Context)(platform.StreamEvent,er
  return event,nil
 }
 func(s *validatedModelStream)Close()error{return s.source.Close()}
+
+func(s *validatedModelStream)LastID()string{return s.source.LastID()}
