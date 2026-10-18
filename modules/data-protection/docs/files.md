@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 68 个：手写 42、UI 4、生成 5、配置 10、迁移 6。函数 122 个：约束 43，参考 79。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 68 个：手写 42、UI 4、生成 5、配置 10、迁移 6。函数 123 个：约束 43，参考 80。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -47,7 +47,7 @@
 | `modules/data-protection/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
 | `modules/data-protection/cmd/data-protection/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `data-protection.main` |
 | `modules/data-protection/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `data-protection.BuildApplication` |
-| `modules/data-protection/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `data-protection.Serve`、`data-protection.Shutdown`、`data-protection.Health`、`data-protection.Ready`、`data-protection.NewApplication`（参考）、`data-protection.server.ListBackups`（参考）、`data-protection.server.ReadBackup`（参考）、`data-protection.server.ReadMirrorStatus`（参考）、`data-protection.server.ReadProtectionSettings`（参考）、`data-protection.server.ConfigureRemote`（参考）、`data-protection.server.CreateBackup`（参考）、`data-protection.server.AuthorizeBackupDownload`（参考） |
+| `modules/data-protection/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `data-protection.Serve`、`data-protection.Shutdown`、`data-protection.Health`、`data-protection.Ready`、`data-protection.NewApplication`（参考）、`data-protection.server.ListBackups`（参考）、`data-protection.server.ReadBackup`（参考）、`data-protection.server.ReadMirrorStatus`（参考）、`data-protection.server.ReadProtectionSettings`（参考）、`data-protection.server.ConfigureRemote`（参考）、`data-protection.server.CreateBackup`（参考）、`data-protection.server.AuthorizeBackupDownload`（参考）、`data-protection.server.ReadSnapshotArchive`（参考） |
 | `modules/data-protection/go.mod` | 配置 | 独立module nice-wiki/modules/data-protection；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/data-protection/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/data-protection/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/data-protection；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
