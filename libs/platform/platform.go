@@ -760,6 +760,12 @@ type EventPublisher interface {
 	PublishEvent(ctx context.Context, envelope EventEnvelope) error
 }
 
+// TypedWorkerJobsClient在领取前由jobs按登记类型筛选，避免同owner下依赖任务互占全部worker。
+type TypedWorkerJobsClient interface {
+ WorkerJobsClient
+ ClaimJobTypes(ctx context.Context, owner, workerID string, limit int, jobTypes []string) ([]ClaimedJob, error)
+}
+
 // WorkerJobsClient只暴露任务租约控制，不要求无关事件端口。
 type WorkerJobsClient interface {
 	ClaimJob(ctx context.Context, owner, workerID string, limit int) ([]ClaimedJob, error)

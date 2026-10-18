@@ -38,6 +38,7 @@ func RunWorkerLoopWithResult(ctx context.Context, client platform.WorkerJobsClie
 	if client == nil || len(config.JobTypes) == 0 || config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes || config.OperationContext == nil || config.Runtime == nil {
 		return platform.WorkerRunResult{}, platform.NewError(platform.CodeValidation, false, "worker配置不合法")
 	}
+	typed,ok:=client.(platform.TypedWorkerJobsClient);if !ok{return platform.WorkerRunResult{},platform.NewError(platform.CodeDependencyUnavailable,false,"任务客户端不支持领取前类型筛选")}
 	registered := map[string]bool{}
 	for _, jobType := range config.JobTypes {
 		if jobType == "" {
@@ -50,7 +51,7 @@ func RunWorkerLoopWithResult(ctx context.Context, client platform.WorkerJobsClie
 	}
 	work, cancel := context.WithCancel(ctx)
 	defer cancel()
-	loop := &workerLoop{cancel: cancel, client: client, config: config, registered: registered, executors: executors}
+	loop := &workerLoop{cancel: cancel, client: client, typed:typed, config: config, registered: registered, executors: executors}
 	var wg sync.WaitGroup
 	for i := 0; i < config.MaxConcurrency; i++ {
 		wg.Add(1)
@@ -69,6 +70,7 @@ type workerLoop struct {
 	errMu                                 sync.Mutex
 	err                                   error
 	client                                platform.WorkerJobsClient
+ typed platform.TypedWorkerJobsClient
 	config                                platform.WorkerConfig
 	registered                            map[string]bool
 	executors                             platform.JobExecutorRegistry
@@ -96,7 +98,7 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 			Deadline: deadline.UTC().Format(time.RFC3339Nano), CostClass: platform.CostClassBackground,
 			Actor: platform.AuthContext{Kind: "service", SubjectID: l.config.Owner, SiteID: "system",
 				ExpiresAt: deadline.UTC().Format(time.RFC3339Nano), Grants: []string{}}}
-		jobs, err := l.client.ClaimJob(platform.WithOperationContext(claimCtx, op), l.config.Owner, workerID, 1)
+		jobs, err := l.typed.ClaimJobTypes(platform.WithOperationContext(claimCtx, op), l.config.Owner, workerID, 1, l.config.JobTypes)
 		cancelClaim()
 		if err != nil {
 			if ctx.Err() != nil {

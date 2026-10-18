@@ -3012,7 +3012,8 @@
           ],
           "purpose": "任务领取循环的通用实现",
           "steps": [
-            "兼容旧签名，委托RunWorkerLoopWithResult并返回真实错误，不复制循环机制。"
+            "兼容旧签名，委托RunWorkerLoopWithResult并返回真实错误，不复制循环机制。",
+            "必须实际TypedWorkerJobsClient按config.JobTypes领取前筛选，缺少此能力失败关闭，不以本地丢弃已领取任务代替。"
           ],
           "errors": [
             {
@@ -3031,7 +3032,8 @@
           "concurrency": "并发≤maxConcurrency",
           "idempotency": "jobs按jobId与fence去重",
           "dependencies": [
-            "platform.RunWorkerLoopWithResult"
+            "platform.RunWorkerLoopWithResult",
+            "platform.ClaimJobTypes"
           ],
           "resources": [],
           "contract": "binding"
@@ -3423,7 +3425,8 @@
           "steps": [
             "配置验证及共享owner worker流程保持原权限、epoch、fence和租约；永久配置拒绝返回真实错误并停止同组worker。",
             "Claim真实成功累计claimed；CompleteJob成功回执才completed；FailJob成功回执后仅明确CANCELLED计cancelled，其余failed，任何未确认终局不计。",
-            "正常ctx退出等待所有worker及其heartbeat goroutine排空后返完整累计；不包装伪客户端、不造0统计或新任务。"
+            "正常ctx退出等待所有worker及其heartbeat goroutine排空后返完整累计；不包装伪客户端、不造0统计或新任务。",
+            "必须实际TypedWorkerJobsClient按config.JobTypes领取前筛选，缺少此能力失败关闭，不以本地丢弃已领取任务代替。"
           ],
           "errors": [
             {
@@ -3457,7 +3460,8 @@
             "platform.HeartbeatJob",
             "platform.CheckLease",
             "platform.CompleteJob",
-            "platform.FailJob"
+            "platform.FailJob",
+            "platform.ClaimJobTypes"
           ],
           "resources": [],
           "contract": "binding"
@@ -5312,8 +5316,7 @@
           ],
           "purpose": "真实jobs ClaimJob机制适配",
           "steps": [
-            "严格ClaimJobRequestBody仅发送owner/workerId/limit；epoch只经可信上下文头传递，幂等键为本次op",
-            "严格ClaimJobResult后核owner/epoch、并行fencingTokens一致及唯一jobId，完整映射job.operationId/root/inputRef/attempt/expiresAt；不得截断多领任务"
+            "委托ClaimJobTypes且省略jobTypes，保留旧接口无筛选语义。"
           ],
           "errors": [
             {
@@ -5337,9 +5340,7 @@
           "concurrency": "无共享可变业务状态；每次RPC独立上下文",
           "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
           "dependencies": [
-            "platform.workerOperation",
-            "platform.decodeWorkerResponse",
-            "jobs:claimJob"
+            "platform.ClaimJobTypes"
           ],
           "resources": [],
           "contract": "reference"
@@ -5797,6 +5798,96 @@
             "platform.workerOperation",
             "platform.decodeWorkerResponse",
             "jobs:failJob"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.ClaimJobTypes",
+          "name": "ClaimJobTypes",
+          "signature": "func (c *jobsClient) ClaimJobTypes(ctx context.Context, owner, workerID string, limit int, jobTypes []string) ([]ClaimedJob, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信任务控制上下文",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "owner",
+              "type": "string",
+              "description": "本域owner",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "workerID",
+              "type": "string",
+              "description": "当前worker",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "limit",
+              "type": "int",
+              "description": "有界数量",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "jobs",
+              "type": "[]ClaimedJob",
+              "description": "完整映射",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全错误",
+              "constraints": [
+                "仅可信装配或已校验机制链；错误不返回半结果"
+              ]
+            }
+          ],
+          "purpose": "经原claimJob操作传登记类型筛选并核真实回执。",
+          "steps": [
+            "请求body兼容可选jobTypes，由jobs持久SQL在领取前筛选；省略保留旧ClaimJob接口。",
+            "严格生产方schema后核每项owner/epoch/fence与已请求类型。返回未请求类型INTEGRITY_ERROR，不本地领取后丢弃。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "缺可信上下文或生产方响应矛盾",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "生产方成功响应不符schema或语义绑定",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "仅执行版本化jobs RPC，不在本库持久业务状态"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.workerOperation",
+            "platform.decodeWorkerResponse",
+            "jobs:claimJob"
           ],
           "resources": [],
           "contract": "reference"

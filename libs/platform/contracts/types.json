@@ -1163,6 +1163,12 @@
         "cancelled"
       ],
       "description": "真实领取与jobs终局确认累计；在途/失效lease不冒充失败或取消"
+    },
+    "TypedWorkerJobsClient": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "进程内可选强类型领取能力，不序列化；继承WorkerJobsClient且ClaimJobTypes经原claimJob操作按owner登记类型筛选。",
+      "properties": {}
     }
   }
 }
