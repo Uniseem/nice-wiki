@@ -43,3 +43,5 @@ ServiceConfig的可选`masterKeyRef`（环境覆盖`NW_MASTER_KEY_REF`）只传�
 `InvokeModelOutcome.CurrentSnapshot`只保留真实已观察的当前权威，与`Events`独立；错误或取消仍保留已接受ID、最后有效快照和已收事件，调用方不得丢弃这些事实。完整winning output可直接交付；`ModelOutput.Text`指针区分真实空文本与缺失，文本不超过64KiB UTF8，chat/vision/translation与embedding/rerank字段互斥。未知费用不抹去完整结果，也不伪造零账单。
 
 首次历史读取从排他序号0开始，最多4096条，缺号或超限失败而不静默拼接。历史终态、断流及EOF后都读当前权威；过时的StreamError/charge_unknown仍保留在Events，但不作为当前终态回调，不掩盖后来完整结果。不会合成SSE事件。旧完整文本若只有真实持久事件，仍按原序号读完并保留；缺完整证据失败关闭，不将旧付费结果当404重派。当前实际Get/Lookup故障均不能触发新模型费用。
+
+owner恢复查询使用`modelclient.ObserveInvocation(ctx,client,op,knownInvocationId)`或`LookupModelInvocation(ctx,client,op,originalInvokeRequest)`，只读原ID或完整原body/key。二者即使原付费截止仍有效也没有Create、Cancel或模型分支，不调用可创建的InvokeModel，不回调SSE；即使原截止已过也可按原scope获得fresh5秒读取。业务owner必须锁外执行网络观察，再以原持久输入/hash/阶段证明决定本地恢复，不从工具返回推导新的收费许可。

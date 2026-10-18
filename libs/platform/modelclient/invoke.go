@@ -117,3 +117,19 @@ func bindDeadline(ctx context.Context,op platform.OperationContext)(context.Cont
  deadline,err:=platform.ParseTimestamp(op.Deadline);if err!=nil{return nil,nil,platform.NewError(platform.CodeIntegrityError,false,"原模型付费截止不合法")};work,cancel:=context.WithDeadline(ctx,deadline);return work,cancel,nil
 }
 func modelInvokeSleep(ctx context.Context,d time.Duration)bool{timer:=time.NewTimer(d);defer timer.Stop();select{case<-ctx.Done():return false;case<-timer.C:return true}}
+
+// ObserveInvocation仅观察原已知调用，供owner锁外恢复查询；没有Create或Cancel分支。
+func ObserveInvocation(ctx context.Context,client platform.GatewayClient,op platform.OperationContext,invocationID platform.Identifier)(platform.GatewayInvocationSnapshot,error){
+ reader,ok:=client.(platform.CurrentInvocationReader);if !ok{return platform.GatewayInvocationSnapshot{},platform.NewError(platform.CodeUnsupportedCapability,false,"模型客户端缺当前权威只读能力")}
+ if invocationID==""{return platform.GatewayInvocationSnapshot{},platform.NewError(platform.CodeValidation,false,"原调用ID缺失")}
+ outcome:=platform.InvokeModelOutcome{InvocationID:invocationID}
+ if err:=readCurrentGatewaySnapshot(ctx,reader,op,&outcome);err!=nil{return platform.GatewayInvocationSnapshot{},err}
+ return *outcome.CurrentSnapshot,nil
+}
+
+// LookupModelInvocation仅按原完整请求和原键只读查找，原付费截止有效也不会Create。
+func LookupModelInvocation(ctx context.Context,client platform.GatewayClient,op platform.OperationContext,input platform.InvokeModelRequest)(platform.GatewayInvocationSnapshot,error){
+ reader,ok:=client.(platform.InvocationLookupReader);if !ok{return platform.GatewayInvocationSnapshot{},platform.NewError(platform.CodeUnsupportedCapability,false,"模型客户端缺原键只读查找能力")}
+ if input.IDempotencyKey==""||len(input.IDempotencyKey)>maxIdempotency{return platform.GatewayInvocationSnapshot{},platform.NewError(platform.CodeValidation,false,"模型原键查找请求不完整")}
+ read,cancel:=gatewayReadContext(ctx,op);defer cancel();return reader.LookupInference(read,input.IDempotencyKey,input.Request)
+}
