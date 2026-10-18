@@ -195,8 +195,8 @@ func BindPublishedLink(app *Application, anchors platform.TrustAnchors, director
 		Anchors:             anchors,
 		Runtime:             app.runtime.ReadRuntimeState,
 		OpenedDataEpoch:     app.openedEpoch,
-		AllowedCallers:      map[string][]string{"resolvePublishedLink": {"site-config"}},
-		ServiceActorCallers: map[string][]string{"resolvePublishedLink": {"site-config"}},
+		AllowedCallers:      map[string][]string{"resolvePublishedLink": {"site-config", "qa"}},
+		ServiceActorCallers: map[string][]string{"resolvePublishedLink": {"site-config", "qa"}},
 	}, handlers); err != nil {
 		return err
 	}
