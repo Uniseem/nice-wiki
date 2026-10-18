@@ -13601,7 +13601,8 @@
           "outputs": [],
           "purpose": "模型管理视图refreshCatalog交互",
           "steps": [
-            "本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。"
+            "本域Vue实际组件交互到达，使用portal同源apiClient和服务端CAS；秘密不入浏览器持久存储/日志，费用未知不推零。",
+            "真实响应fallback明确显示最近缓存/编译目录，不能把降级说成本次远端刷新成功。"
           ],
           "errors": [
             {
@@ -15248,9 +15249,11 @@
           "steps": [
             "管理员显式刷新或MG内部免费每日调度，固定https://models.dev/api.json单GET最多10MiB/30s，不携站点数据，禁重定向。",
             "解析公开API明确费率/上界，不把缺费率或FixedCost变成0；上游扩展字段不变成本站能力事实。",
-            "不自动创建渠道/凭据/模型；只更新已绑定catalogRef且remote/bundled且非manualOverride行的明确可变token上界及新价目，保留空间/渠道/能力原声明。",
             "同短写事务内核epoch/屏障/CAS，不可变下载版本、每模型规范摘要、模型CAS/价目/事件/回执原子提交，单条无变不刷全部模型版本。",
-            "编译内置真实bundled快照项目用户许可待回答，未借入内容；整函数仍partial不记ready。"
+            "本次用户批准models.dev MIT公开数据固定编译快照；只采用原始JSON与来源/版本/hash/原许可，不复制外部业务代码。",
+            "先固定公开远端下载并走同一Normalize；只在下载不可用时使用当前epoch最近已验证持久normalized源，没有持久源才用经过真实hash校验的编译源；远端损坏/MIME异常不冒成功。",
+            "缓存保留原origin/sourceHash/downloaded时刻；新真实远端origin/rawHash变化也追加下载记录，即使规范业务事实相同。返回source/sourceVersion，降级时明确fallback=cached或bundled。",
+            "Apply同一真实source事实/人工override优先，无catalogRef旧配置不改；bundled未给固定每次费用仍nil，不补0；同原模型CAS/价目/事件/幂等回执事务。"
           ],
           "errors": [
             {
@@ -15316,7 +15319,8 @@
             "model-gateway.ReplayExecutionReceipt",
             "model-gateway.SaveExecutionReceipt",
             "model-gateway.ExecutionTransaction.Close",
-            "model-gateway.ExecutionTransaction.Commit"
+            "model-gateway.ExecutionTransaction.Commit",
+            "model-gateway.ReadCatalogSource"
           ],
           "resources": [],
           "contract": "binding"
@@ -15480,7 +15484,7 @@
         {
           "id": "model-gateway.ApplyCatalogSnapshot",
           "name": "ApplyCatalogSnapshot",
-          "signature": "func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationContext, snapshot CatalogSnapshot) (int, int, error)",
+          "signature": "func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationContext, snapshot CatalogSnapshot, origin string) (int, int, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "ApplyCatalogSnapshot明确源身份的公开目录实际更新，manualOverride优先，不猜接口/凭据/空间。",
@@ -15561,7 +15565,7 @@
         {
           "id": "model-gateway.SaveCatalogPrice",
           "name": "SaveCatalogPrice",
-          "signature": "func SaveCatalogPrice(tx *gatewayruntime.ExecutionTransaction, op OperationContext, modelID string, version int, price billing.ManualPrice) error",
+          "signature": "func SaveCatalogPrice(tx *gatewayruntime.ExecutionTransaction, op OperationContext, modelID string, version int, price billing.ManualPrice, origin string) error",
           "inputs": [],
           "outputs": [],
           "purpose": "SaveCatalogPrice明确源身份的公开目录实际更新，manualOverride优先，不猜接口/凭据/空间。",
@@ -15713,6 +15717,88 @@
           "idempotency": "沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。",
           "dependencies": [
             "model-gateway.RefreshModelCatalog"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "model-gateway.ReadCatalogSource",
+          "name": "ReadCatalogSource",
+          "signature": "func ReadCatalogSource(ctx context.Context, op OperationContext) (CatalogSource, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "真实公开源下载及持久缓存/编译固定源选择",
+          "steps": [
+            "远端成功Normalize并保存真实raw hash；远端不可用先读当前代最近持久normalized与hash，损坏失败关闭；无持久才校验编译原始数据hash并走同一Normalize。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只在已核原owner/site/epoch/root/costClass的内部执行链或可信启动装配，不取得新权限。"
+          },
+          "concurrency": "按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。",
+          "idempotency": "沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。",
+          "dependencies": [
+            "model-gateway.DownloadModelCatalog",
+            "model-gateway.NormalizeModelCatalog",
+            "model-gateway.ReadSnapshot",
+            "model-gateway.BeginExecution"
           ],
           "resources": [],
           "contract": "reference"
@@ -24010,6 +24096,108 @@
       "path": "modules/model-gateway/migrations/012_usage_statistics.sql",
       "kind": "handwritten",
       "purpose": "只追加安全账项真实变更历史及entry修订；同原账本/void事务完整捕获，未知legacy不补造来源；修正原读水位遗漏void变化",
+      "functions": []
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/bundled/catalog.go",
+      "kind": "handwritten",
+      "purpose": "已批准MIT models.dev固定公开数据嵌入，不含外部业务代码",
+      "functions": [
+        {
+          "id": "model-gateway.ReadSnapshot",
+          "name": "ReadSnapshot",
+          "signature": "func ReadSnapshot() ([]byte, Source, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "返回真实固定数据副本和已核来源内容版本",
+          "steps": [
+            "校验固定5806411字节与实际SHA256/sourceVersion/retrievedAt/MIT来源元数据；数据版本取实际内容hash。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "时间窗或游标不合法。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "当前权限、站点或root全部owner归属不满足。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "root没有可确认的持久归属。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "代次或分页水位变化。",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "孤立费用行、持久材料或状态矛盾。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "旧数据缺必要归属/时间/价目前置或存储不可用。",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "完整结果或金额超登记响应/整数预算。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "IO已取消。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "IO截止已到。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只在已核原owner/site/epoch/root/costClass的内部执行链或可信启动装配，不取得新权限。"
+          },
+          "concurrency": "按调用方持久事务/原执行租约处理；纯计算无ctx轮询，SQL及网络贯穿ctx。",
+          "idempotency": "沿原调用/attempt唯一事实重复读取或同事务原命令回执，不自动重复模型付费。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/bundled/models.dev.json",
+      "kind": "handwritten",
+      "purpose": "MIT公开模型目录固定原始JSON，实际SHA256 80a19a3c78de1a7b0eb0a72e13e44df21180f0681d6cdf1dbd4c4c345fae3fb6",
+      "functions": []
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/bundled/source.json",
+      "kind": "handwritten",
+      "purpose": "真实URL/取得时间/ETag/内容版本/许可溯源",
+      "functions": []
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/bundled/LICENSE",
+      "kind": "handwritten",
+      "purpose": "models.dev原MIT许可与版权",
       "functions": []
     }
   ],

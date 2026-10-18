@@ -3086,6 +3086,27 @@
           "minimum": 0,
           "maximum": 9007199254740991,
           "description": "手动覆盖数"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "remote",
+            "bundled"
+          ],
+          "description": "实际采用的来源；缓存仍保留原来源"
+        },
+        "sourceVersion": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "原公开数据内容版本，不用dev分支提交猜API版本"
+        },
+        "fallback": {
+          "type": "string",
+          "enum": [
+            "cached",
+            "bundled"
+          ],
+          "description": "远端不可用才明确降级；缺失表示本次真实远端成功"
         }
       },
       "required": [

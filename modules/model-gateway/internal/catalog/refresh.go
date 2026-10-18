@@ -2,6 +2,9 @@ package catalog
 
 import (
 	"context"
+ "database/sql"
+ "errors"
+ "nice-wiki/modules/model-gateway/internal/catalog/bundled"
 	"encoding/json"
 	"io"
 	"mime"
@@ -18,7 +21,8 @@ import (
 )
 
 type RefreshModelCatalogInput = gen.RefreshModelCatalogInput
-type RefreshModelCatalogResult = gen.RefreshModelCatalogResult
+type RefreshModelCatalogResult struct{CatalogVersion int `json:"catalogVersion"`;Updated int `json:"updated"`;PreservedOverrides int `json:"preservedOverrides"`;Source string `json:"source,omitempty"`;SourceVersion string `json:"sourceVersion,omitempty"`;Fallback string `json:"fallback,omitempty"`}
+type CatalogSource struct{Snapshot CatalogSnapshot;Normalized []byte;Origin,SourceHash string;DownloadedNS int64;Fallback string}
 
 // CatalogModel是公开目录中已核的必要事实；未提供费率/上界仍缺失，不替换成零。
 type CatalogModel struct {
@@ -73,7 +77,10 @@ func NormalizeModelCatalog(raw []byte) (CatalogSnapshot, error) {
 			Output json.Number `json:"output"`
 		} `json:"cost"`
 		Limit struct {
-			Context *int `json:"context"`
+			Context *int `json:"context"
+ "database/sql"
+ "errors"
+ "nice-wiki/modules/model-gateway/internal/catalog/bundled"`
 			Input   *int `json:"input"`
 			Output  *int `json:"output"`
 		} `json:"limit"`
@@ -135,6 +142,19 @@ func NormalizeModelCatalog(raw []byte) (CatalogSnapshot, error) {
 	return result, nil
 }
 
+// ReadCatalogSource保留最近真实源；网络不可用不把旧目录冒充新鲜下载。
+func ReadCatalogSource(ctx context.Context,op OperationContext)(CatalogSource,error){
+ raw,err:=DownloadModelCatalog(ctx)
+ if err==nil{snapshot,e:=NormalizeModelCatalog(raw);if e!=nil{return CatalogSource{},e};normalized,e:=platform.CanonicalJSON(snapshot);if e!=nil{return CatalogSource{},platform.NewError(platform.CodeIntegrityError,false,"公开目录规范事实不能编码")};if len(normalized)>10<<20{return CatalogSource{},platform.NewError(platform.CodeBudgetExceeded,false,"公开目录规范事实超过10MiB")};return CatalogSource{Snapshot:snapshot,Normalized:normalized,Origin:"remote",SourceHash:platform.HashBytes(raw),DownloadedNS:time.Now().UnixNano()},nil}
+ var failure *platform.Error;if !errors.As(err,&failure)||failure.Code!=platform.CodeDependencyUnavailable{return CatalogSource{},err}
+ tx,e:=gatewayruntime.BeginExecution(ctx,op,false);if e!=nil{return CatalogSource{},e};var source CatalogSource;var normalizedHash string;var size int64
+ e=tx.Tx.QueryRowContext(tx.Context,`SELECT source,source_hash,normalized_hash,substr(normalized_json,1,10485761),length(normalized_json),downloaded_ns FROM model_catalog_downloads WHERE data_epoch=? ORDER BY version DESC LIMIT 1`,op.DataEpoch).Scan(&source.Origin,&source.SourceHash,&normalizedHash,&source.Normalized,&size,&source.DownloadedNS);tx.Close()
+ if e==nil{if size>10<<20||size<1{return CatalogSource{},platform.NewError(platform.CodeBudgetExceeded,false,"持久模型目录规范事实超过10MiB")};if !platform.ValidHash(source.SourceHash)||source.DownloadedNS<=0||(source.Origin!="remote"&&source.Origin!="bundled")||platform.HashBytes(source.Normalized)!=normalizedHash||json.Unmarshal(source.Normalized,&source.Snapshot)!=nil||len(source.Snapshot)==0{return CatalogSource{},platform.NewError(platform.CodeIntegrityError,false,"最近持久模型目录来源或摘要损坏")};canonical,_:=platform.CanonicalJSON(source.Snapshot);if platform.HashBytes(canonical)!=normalizedHash{return CatalogSource{},platform.NewError(platform.CodeIntegrityError,false,"最近持久模型目录含不可丢弃字段")};source.Fallback="cached";return source,nil}
+ if e!=sql.ErrNoRows{return CatalogSource{},gatewayruntime.ExecutionStorageError(e)}
+ raw,metadata,e:=bundled.ReadSnapshot();if e!=nil{return CatalogSource{},e};snapshot,e:=NormalizeModelCatalog(raw);if e!=nil{return CatalogSource{},e};normalized,e:=platform.CanonicalJSON(snapshot);if e!=nil{return CatalogSource{},platform.NewError(platform.CodeIntegrityError,false,"编译目录规范事实不能编码")};if len(normalized)>10<<20{return CatalogSource{},platform.NewError(platform.CodeBudgetExceeded,false,"编译目录规范事实超过10MiB")};retrieved,_:=time.Parse(time.RFC3339Nano,metadata.RetrievedAt)
+ return CatalogSource{Snapshot:snapshot,Normalized:normalized,Origin:"bundled",SourceHash:metadata.SHA256,DownloadedNS:retrieved.UnixNano(),Fallback:"bundled"},nil
+}
+
 func RefreshModelCatalog(ctx context.Context, op OperationContext, input RefreshModelCatalogInput) (RefreshModelCatalogResult, error) {
 	background := op.CallerService == "model-gateway" && op.Actor.Kind == "service" && op.Actor.SubjectID == "model-gateway"
 	if !background {
@@ -155,18 +175,9 @@ func RefreshModelCatalog(ctx context.Context, op OperationContext, input Refresh
 	if err != nil || replay {
 		return result, err
 	}
-	raw, err := DownloadModelCatalog(ctx)
-	if err != nil {
-		return result, err
-	}
-	snapshot, err := NormalizeModelCatalog(raw)
-	if err != nil {
-		return result, err
-	}
-	normalized, err := platform.CanonicalJSON(snapshot)
-	if err != nil {
-		return result, platform.NewError(platform.CodeIntegrityError, false, "公开目录规范事实不能编码")
-	}
+ source,err:=ReadCatalogSource(ctx,op)
+ if err!=nil{return result,err}
+ snapshot,normalized:=source.Snapshot,source.Normalized
 	write, err := gatewayruntime.BeginExecution(ctx, op, true)
 	if err != nil {
 		return result, err
@@ -176,14 +187,14 @@ func RefreshModelCatalog(ctx context.Context, op OperationContext, input Refresh
 	if err != nil || replay {
 		return result, err
 	}
-	var previousHash string
+	var previousHash,previousOrigin,previousSourceHash string
 	var previousVersion int
-	rows, err := write.Tx.QueryContext(write.Context, `SELECT version,normalized_hash FROM model_catalog_downloads WHERE data_epoch=? ORDER BY version DESC LIMIT 1`, op.DataEpoch)
+	rows, err := write.Tx.QueryContext(write.Context, `SELECT version,normalized_hash,source,source_hash FROM model_catalog_downloads WHERE data_epoch=? ORDER BY version DESC LIMIT 1`, op.DataEpoch)
 	if err != nil {
 		return result, gatewayruntime.ExecutionStorageError(err)
 	}
 	if rows.Next() {
-		if err := rows.Scan(&previousVersion, &previousHash); err != nil {
+		if err := rows.Scan(&previousVersion, &previousHash,&previousOrigin,&previousSourceHash); err != nil {
 			rows.Close()
 			return result, gatewayruntime.ExecutionStorageError(err)
 		}
@@ -194,9 +205,10 @@ func RefreshModelCatalog(ctx context.Context, op OperationContext, input Refresh
 		return result, gatewayruntime.ExecutionStorageError(err)
 	}
 	hash := platform.HashBytes(normalized)
+ if source.Fallback!=""&&previousVersion>0&&(previousHash!=hash||previousOrigin!=source.Origin||previousSourceHash!=source.SourceHash){return result,platform.NewError(platform.CodeVersionMismatch,true,"降级目录选定后最近源已改变，不能覆盖较新真实源")}
 	result.CatalogVersion = previousVersion
-	if previousHash != hash {
-		inserted, err := write.Tx.ExecContext(write.Context, `INSERT INTO model_catalog_downloads(data_epoch,source,source_hash,normalized_hash,normalized_json,downloaded_ns) VALUES(?,'remote',?,?,?,?)`, op.DataEpoch, platform.HashBytes(raw), hash, normalized, time.Now().UnixNano())
+	if previousHash != hash||previousOrigin!=source.Origin||previousSourceHash!=source.SourceHash {
+		inserted, err := write.Tx.ExecContext(write.Context, `INSERT INTO model_catalog_downloads(data_epoch,source,source_hash,normalized_hash,normalized_json,downloaded_ns) VALUES(?,?,?,?,?,?)`, op.DataEpoch,source.Origin,source.SourceHash,hash,normalized,source.DownloadedNS)
 		if err != nil {
 			return result, gatewayruntime.ExecutionStorageError(err)
 		}
@@ -206,10 +218,11 @@ func RefreshModelCatalog(ctx context.Context, op OperationContext, input Refresh
 		}
 		result.CatalogVersion = int(version)
 	}
-	updated, preserved, err := ApplyCatalogSnapshot(write, op, snapshot)
+	updated, preserved, err := ApplyCatalogSnapshot(write, op, snapshot,source.Origin)
 	if err != nil {
 		return result, err
 	}
+	result.Source=source.Origin;result.SourceVersion="sha256:"+source.SourceHash;result.Fallback=source.Fallback
 	result.Updated = updated
 	result.PreservedOverrides = preserved
 	if err := gatewayruntime.SaveExecutionReceipt(write, op, "model-gateway.RefreshModelCatalog", input.IdempotencyKey, input, result); err != nil {
@@ -221,7 +234,7 @@ func RefreshModelCatalog(ctx context.Context, op OperationContext, input Refresh
 	return result, nil
 }
 
-func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationContext, snapshot CatalogSnapshot) (int, int, error) {
+func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationContext, snapshot CatalogSnapshot, origin string) (int, int, error) {
 	var oldEpoch bool
 	if err := tx.Tx.QueryRowContext(tx.Context, `SELECT EXISTS(SELECT 1 FROM models WHERE data_epoch<>?)`, op.DataEpoch).Scan(&oldEpoch); err != nil {
 		return 0, 0, gatewayruntime.ExecutionStorageError(err)
@@ -284,7 +297,7 @@ func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationC
 		if remote.OutputLimit != nil {
 			outputLimit = *remote.OutputLimit
 		}
-		if item.BindingHash == sourceHash && inputLimit == item.InputLimit && outputLimit == item.OutputLimit {
+		if item.BindingHash == sourceHash && inputLimit == item.InputLimit && outputLimit == item.OutputLimit && item.Origin==origin {
 			continue
 		}
 		var capabilities []string
@@ -297,7 +310,7 @@ func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationC
 			}
 		}
 		// 空间/渠道/预处理与管理员声明能力不从attachment或模型名推断、改写。
-		changed, err := tx.Tx.ExecContext(tx.Context, `UPDATE models SET version=version+1,max_input_tokens=?,max_output_tokens=?,catalog_origin='remote',updated_at=? WHERE model_id=? AND version=? AND data_epoch=? AND manual_override=0 AND catalog_provider_id=? AND catalog_model_id=?`, inputLimit, outputLimit, platform.Now(), item.ID, item.Version, op.DataEpoch, item.Provider, item.Model)
+		changed, err := tx.Tx.ExecContext(tx.Context, `UPDATE models SET version=version+1,max_input_tokens=?,max_output_tokens=?,catalog_origin=?,updated_at=? WHERE model_id=? AND version=? AND data_epoch=? AND manual_override=0 AND catalog_provider_id=? AND catalog_model_id=?`, inputLimit, outputLimit,origin, platform.Now(), item.ID, item.Version, op.DataEpoch, item.Provider, item.Model)
 		if err != nil {
 			return 0, 0, gatewayruntime.ExecutionStorageError(err)
 		}
@@ -308,7 +321,7 @@ func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationC
 		if count != 1 {
 			return 0, 0, platform.NewError(platform.CodeVersionMismatch, false, "目录模型CAS已变化")
 		}
-		if err := SaveCatalogPrice(tx, op, item.ID, item.Version+1, remote.Price); err != nil {
+		if err := SaveCatalogPrice(tx, op, item.ID, item.Version+1, remote.Price,origin); err != nil {
 			return 0, 0, err
 		}
 		if _, err := tx.Tx.ExecContext(tx.Context, `INSERT INTO model_catalog_bindings(model_id,data_epoch,provider_id,source_model_id,source_hash) VALUES(?,?,?,?,?) ON CONFLICT(model_id,data_epoch) DO UPDATE SET provider_id=excluded.provider_id,source_model_id=excluded.source_model_id,source_hash=excluded.source_hash`, item.ID, op.DataEpoch, item.Provider, item.Model, sourceHash); err != nil {
@@ -326,14 +339,14 @@ func ApplyCatalogSnapshot(tx *gatewayruntime.ExecutionTransaction, op OperationC
 	}
 	return updated, preserved, nil
 }
-func SaveCatalogPrice(tx *gatewayruntime.ExecutionTransaction, op OperationContext, modelID string, version int, price billing.ManualPrice) error {
+func SaveCatalogPrice(tx *gatewayruntime.ExecutionTransaction, op OperationContext, modelID string, version int, price billing.ManualPrice, origin string) error {
 	now := time.Now().UTC()
-	snapshot, err := billing.MakePriceSnapshot(tx.Context, op, modelID, version, "remote", now, price)
+	snapshot, err := billing.MakePriceSnapshot(tx.Context, op, modelID, version, origin, now, price)
 	if err != nil {
 		return err
 	}
 	raw, _ := platform.CanonicalJSON(snapshot)
-	_, err = tx.Tx.ExecContext(tx.Context, `INSERT INTO price_book_entries(price_snapshot_id,model_id,model_version,data_epoch,source,effective_seconds,effective_nanos,snapshot_json,snapshot_hash) VALUES(?,?,?,?,'remote',?,?,?,?)`, snapshot.PriceSnapshotId, modelID, version, op.DataEpoch, now.Unix(), now.Nanosecond(), string(raw), platform.HashBytes(raw))
+	_, err = tx.Tx.ExecContext(tx.Context, `INSERT INTO price_book_entries(price_snapshot_id,model_id,model_version,data_epoch,source,effective_seconds,effective_nanos,snapshot_json,snapshot_hash) VALUES(?,?,?,?,?,?,?,?,?)`, snapshot.PriceSnapshotId, modelID, version, op.DataEpoch,origin, now.Unix(), now.Nanosecond(), string(raw), platform.HashBytes(raw))
 	return gatewayruntime.ExecutionStorageError(err)
 }
 func NewCatalogRefreshHandlers() map[string]http.Handler {
