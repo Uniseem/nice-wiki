@@ -16,7 +16,7 @@ BuildApplication仍blocked，不返回可运行应用。LoadPublishedBundle复�
 - 根framework登记新增源码路径；本域implementation已有未来文件。
 - 未新增测试、fixture、mock、样例或临时验证程序，未执行真实接口/模型/服务。
 
-下一项：完成internal/authority.go的CheckPublication与internal/content_client.go的精确引用装配，先读content/localization/media生产方合同。
+下一项：在internal/transport/server.go将已交付公开/预览处理函数绑定到真实handler表，先读当前OpenAPI与libs/platform统一边界。缺任一处理函数、journal或后台装配时仍失败关闭，不把本域标为完整可运行。
 
 ## 待CI核验的精确函数ID
 
