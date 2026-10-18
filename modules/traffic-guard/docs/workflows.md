@@ -53,12 +53,23 @@ attempt状态为pending→authenticated/rejected/aborted。到期仍保留pendin
 
 ## 本轮准入与模型凭证状态机
 
-可信portal以原逻辑RootOperationID请求createAdmission，requestId必须与可信op.RootOperationID相等。动作仅qa.ask、qa.followup、localization.suggest。前两个ownerCaller=qa，共享qa次数桶，并执行AI ban/挑战；语言提示ownerCaller=localization，仅既有频率/并发，永不触发模型或费用授权。audience=model-gateway不改变此边界。
+可信portal以原逻辑RootOperationID请求createAdmission，requestId必须与可信op.RootOperationID相等。动作固定qa.ask、qa.followup、qa.conversation、localization.suggest。三个QA动作ownerCaller=qa，共享qa次数桶，并执行AI ban/挑战；qa.conversation仅免费创建会话，不签模型token；语言提示ownerCaller=localization，仅既有频率/并发，永不触发模型或费用授权。audience=model-gateway不改变此边界。
 
 分配在同一事务检查会话、网络和站点三层频率桶，全部足够才扣固定1个频率令牌；网络次数字段qaPerNetworkPerMinute兼容可选，缺失默认600，范围1..100000。旧产品费用IP/会话5倍关系不用于次数。网络固定30日current+previous别名同时检查和扣减，切窗不重置已有约束。并发预留失败回滚整个扣桶savepoint；拒绝事实及安全事件独立留在外层同事务，不重复计数。
 
-active许可初始30秒、硬上限300秒，创建结果token为空，仅是持久元数据。QA原根ConsumeAdmission验证owner/root/epoch/active和捕获网络别名ban，写consumed_request_id后才复用平台签nw-admission-v1；签名结果必须在事务提交后才返回。崩溃重试只重签尚有效的同一获准期限，不重扣桶，不复活终止/过期许可。免费语言提示永不签模型token。Renew用单独控制操作原回执保持该次原期限，同时复核最新策略/ban；Release核原拥有者/site/epoch/root；已终止、过期或撤销即已无并发占用，也幂等返回released=true，不返桶。
+active许可初始30秒、硬上限300秒，创建结果token为空，仅是持久元数据。QA原根ConsumeAdmission验证owner/root/epoch/active和捕获网络别名ban，写consumed_request_id后才复用平台签nw-admission-v1；签名结果必须在事务提交后才返回。崩溃重试只重签尚有效的同一获准期限，不重扣桶，不复活终止/过期许可。免费会话创建与语言提示永不签模型token。Renew用单独控制操作原回执保持该次原期限，同时复核最新策略/ban；Release核原拥有者/site/epoch/root；已终止、过期或撤销即已无并发占用，也幂等返回released=true，不返桶。
 
 VerifyAdmission可兼容省略token，仅核持久租约；带token则先验平台原签名，再逐字段核对原QA主体、root、scope、动作与有效期限。该在线接口本身不构成模型费用授权。模型网关仍须拒绝空token和非QA动作。
 
 需人机验证时createAdmission返回CHALLENGE_REQUIRED（429、不可重试），不隐式发挑战；调用方沿已有issueChallenge取得nonce。纯频率限制返回RATE_LIMITED，只有已计算等待时附Retry-After秒数；并发等待不伪造等待时间。Ban返回FORBIDDEN，公开阅读不受影响。
+
+
+## 挑战与安全通过证明
+
+issueChallenge/verifyChallenge只接受portal可信调用。HTTP可选visitorToken只用于平台原签名及已有状态校验，不接用户自报subject/sessionId/network。正常18bits，可疑22bits；每主体6次/分钟，最多2个有效挑战，120秒过期，每挑战最多5次失败。nonce通过独立预算HMAC重构，只存哈希；重复同request同method返回原nonce，换method须新请求。PoW对1..64可打印非空白ASCII solution计算一次SHA256(nonce+":"+solution)，浏览器现有worker负责搜索。
+
+Turnstile响应携带method、公共siteKey与interactive；widget使用action=traffic_guard、cData=challengeId，可疑主体须交互。脚本加载5秒失败后沿既有备用流程申请新PoW挑战。服务端仅POST固定HTTPS siteverify，2.5秒上限，不传原IP、不跟随重定向、不重试同token；校验success、hostname、action、cdata与五分钟有效期。协议参考[供应方服务端验证说明](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/)，没有借用其实现源码，也未执行真实接口。
+
+外部调用期间释放SQL事务，返回后重新取得当前写窗口及issued状态并即时查ban。成功状态、消费CAS与10分钟通过水位同事务；仅平台SignGuardSession签证明，提交后才交portal。首次匿名证明生成独立会话，原cookie再次验证保持原人scope。sessionId原值和token只在内存/签名cookie，不存业务库或回执。portal负责nw_visitor的HttpOnly、Secure、SameSite=Lax并去除浏览器JSON中的passedToken。重复成功返回CONFLICT，不再授予。
+
+身份事件handler通过平台载荷validator与ClaimInbox，最大权限修订标记同事务；任何管理写入仍即时查identity。outbox转发只装配平台RunRelayBatch和真实生成Jobs客户端。ConsumeEvents因公共窄接口及准确退出统计尚缺保持partial，不造无关worker方法或伪填计数；完整服务仍不启动。

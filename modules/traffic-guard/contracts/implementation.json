@@ -747,75 +747,6 @@
       "purpose": "只在内存选择可信来源；同文件职责限本域以下登记函数",
       "functions": [
         {
-          "id": "traffic-guard.NormalizePeer",
-          "name": "NormalizePeer",
-          "signature": "func NormalizePeer(ctx context.Context, op OperationContext, in NormalizePeerInput) (NormalizePeerResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "调用取消与deadline；不得携带正文到日志",
-              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
-              "type": "NormalizePeerInput",
-              "description": "只在内存选择可信来源；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "NormalizePeerResult",
-              "description": "只在内存选择可信来源成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "只在内存选择可信来源",
-          "steps": [
-            "实际peer必须为配置可信代理才接受X-Forwarded-For/CF-Connecting-IP",
-            "从可信链选真实peer",
-            "IPv4单址IPv6归一化/64用于ban",
-            "原始IP仅内存，禁止记录"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "condition": "INVALID_PEER：在步骤中的对应校验或依赖失败",
-              "httpStatus": 400,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            }
-          ],
-          "sideEffects": [
-            "不写日志/数据库"
-          ],
-          "authorization": {
-            "permission": "service",
-            "rule": "service ingress"
-          },
-          "concurrency": "每请求内存，返回值禁止进入 tracing attributes",
-          "idempotency": "纯解析同输入同输出",
-          "dependencies": [],
-          "resources": [
-            "site-config 服务安全配置"
-          ],
-          "contract": "reference"
-        },
-        {
           "id": "traffic-guard.DeriveSubject",
           "name": "DeriveSubject",
           "signature": "func DeriveSubject(ctx context.Context, op OperationContext, in DeriveSubjectInput) (DeriveSubjectResult, error)",
@@ -960,8 +891,9 @@
           ],
           "purpose": "选择可信风控动作",
           "steps": [
-            "只接受qa.ask、qa.followup、localization.suggest三种可信入口动作；未知返回VALIDATION",
-            "两个QA动作ownerCaller=qa且执行AI挑战/ban；免费语言提示ownerCaller=localization，仅速率/并发，不创建费用授权"
+            "只接受qa.ask、qa.followup、qa.conversation、localization.suggest",
+            "三个QA动作均ownerCaller=qa并执行AI挑战/ban且共享qa次数桶；qa.conversation只创建免费会话，不签模型token",
+            "语言提示ownerCaller=localization，仅速率/并发，不要求AI挑战/AI ban，不创建费用授权"
           ],
           "errors": [
             {
@@ -1429,7 +1361,8 @@
             "核持久ownerCaller及epoch，原QA request必须等于op.RootOperationID，QA必须已消费",
             "即时重查当前网络AI ban与最新policy并发；free suggest不套AI ban/挑战，不签模型token",
             "同operationId绑定原admission，重复返回同获准expiry；过期/释放/撤销拒绝，不能复活",
-            "CAS expiresAt=min(now+30s,hardDeadline)，回执只存获准期限不存token；QA随后平台重签同期限，不扣桶/钱"
+            "CAS expiresAt=min(now+30s,hardDeadline)，回执只存获准期限不存token；QA随后平台重签同期限，不扣桶/钱",
+            "免费会话qa.conversation和语言提示只续原持久租约并返回空token；永不签模型凭证"
           ],
           "errors": [
             {
@@ -1676,7 +1609,8 @@
           "steps": [
             "只读取本域同站点/epoch持久lease；QA已consumed_request_id=原root、active且未过期才可签",
             "完整DTO从持久原subject/session/network/action/root组成，audience固定model-gateway；允许的receipt expiresAt只能早于等于当前获准期限",
-            "只调用平台SignAdmissionPermit，不持久token；免费localization.suggest永不签模型token"
+            "只调用平台SignAdmissionPermit，不持久token；免费localization.suggest永不签模型token",
+            "只有qa.ask/qa.followup可签nw-admission-v1；免费qa.conversation即使已消费也拒绝签名"
           ],
           "errors": [
             {
@@ -2974,10 +2908,12 @@
           ],
           "purpose": "签发挑战",
           "steps": [
-            "第一次提问优先Turnstile invis",
-            "可疑要求interactive，之后默认每5问重验",
-            "脚本加载5秒失败用PoW18bits正常/≤22可疑",
-            "每主体6次/min签nonce120s，已通过proof签问答功能session"
+            "HTTP入口只接受portal，由DeriveSubject绑定可信主体，不接自报subject/network/IP",
+            "按已保存policy核pow/turnstile开关；Turnstile必须已装配siteKey/secretRef/expectedHostname",
+            "读取原请求幂等绑定，同key不同method返回CONFLICT，原有效issued行重构原nonce与期限",
+            "通过LoadSignals/ComputeRisk拒绝有效AI ban；正常18bits，可疑22bits并要求interactive",
+            "每主体6次/分钟、最多2个有效issued；保存120秒挑战和nonce哈希，nonce由独立预算HMAC派生且支持旧key过渡，不保存token",
+            "返回method/公共siteKey/interactive供既有浏览器Turnstile及加载5秒失败后的PoW流程使用"
           ],
           "errors": [
             {
@@ -3005,7 +2941,16 @@
           "concurrency": "同主体挑战最多2个 active",
           "idempotency": "requestId 幂等，同 key method不同409",
           "dependencies": [
-            "traffic-guard.ComputeRisk"
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit",
+            "traffic-guard.readGuardPolicy",
+            "traffic-guard.LoadSignals",
+            "traffic-guard.ComputeRisk",
+            "traffic-guard.readChallengeRecord",
+            "traffic-guard.checkIssuedChallenge",
+            "traffic-guard.challengeNonce",
+            "traffic-guard.challengeResult"
           ],
           "resources": [
             "Cloudflare Turnstile配置密钥ref"
@@ -3052,9 +2997,12 @@
           ],
           "purpose": "核验并消费挑战",
           "steps": [
-            "查询 issued/同主体/epoch/120s",
-            "验proof",
-            "事务CAS issued→consumed并发10min签名通过证明"
+            "HTTP入口DeriveSubject以原可选访客cookie及签名网络scope绑定主体，内部sessionId不接受用户自报",
+            "短快照读取同站同代挑战，核issued/同subject/120秒/最多5次失败，释放SQL事务后才验PoW或调用真实外部供应方",
+            "PoW单次SHA256；Turnstile固定HTTPS、2.5秒、严格hostname/action/cdata/五分钟期限，未知外部结果不当成功",
+            "外部验证后重新获取当前写窗口和事务，重读issued及失败次数；无效证明仅持久增加失败次数",
+            "成功时即时核新ban，再CAS issued→consumed并写10分钟通过状态；首次匿名证明生成独立会话ID，原有效会话保持本人scope，凭证/session原值不落盘",
+            "通过证明仅复用平台SignGuardSession；事务提交后才向portal返回passedToken，重放已消费返回CONFLICT，不再次授予"
           ],
           "errors": [
             {
@@ -3089,11 +3037,137 @@
           "concurrency": "每 challenge最多5失败尝试；CAS阻止并发重放",
           "idempotency": "重复成功不再次授予，返回 CONFLICT",
           "dependencies": [
+            "traffic-guard.readChallengeSnapshot",
+            "traffic-guard.checkIssuedChallenge",
+            "traffic-guard.challengeNonce",
             "traffic-guard.VerifyPoW",
-            "traffic-guard.VerifyExternalChallenge"
+            "traffic-guard.VerifyExternalChallenge",
+            "traffic-guard.deriveSessionScopes",
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit",
+            "traffic-guard.readChallengeRecord",
+            "traffic-guard.LoadSignals",
+            "platform.SignGuardSession"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "traffic-guard.readChallengeRecord",
+          "name": "readChallengeRecord",
+          "signature": "func readChallengeRecord(t *guardTransaction, id string) (challengeRecord, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按站点与代次读取挑战持久快照",
+          "steps": [
+            "按站点与代次读取挑战持久快照"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信挑战链路内部调用，继承入口与外层事务"
+          },
+          "concurrency": "短事务或纯函数；外部HTTP不持有事务",
+          "idempotency": "继承原挑战状态与哈希",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.readChallengeSnapshot",
+          "name": "readChallengeSnapshot",
+          "signature": "func readChallengeSnapshot(ctx context.Context, op OperationContext, id string) (challengeRecord, GuardRuntime, string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "短事务读取后释放，再调用外部供应方",
+          "steps": [
+            "短事务读取后释放，再调用外部供应方"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信挑战链路内部调用，继承入口与外层事务"
+          },
+          "concurrency": "短事务或纯函数；外部HTTP不持有事务",
+          "idempotency": "继承原挑战状态与哈希",
+          "dependencies": [
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.readChallengeRecord"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.checkIssuedChallenge",
+          "name": "checkIssuedChallenge",
+          "signature": "func checkIssuedChallenge(row challengeRecord, now time.Time) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核issued、期限和最多5次失败，不授予通过状态",
+          "steps": [
+            "核issued、期限和最多5次失败，不授予通过状态"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信挑战链路内部调用，继承入口与外层事务"
+          },
+          "concurrency": "短事务或纯函数；外部HTTP不持有事务",
+          "idempotency": "继承原挑战状态与哈希",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.challengeNonce",
+          "name": "challengeNonce",
+          "signature": "func challengeNonce(runtime GuardRuntime, site, epoch string, row challengeRecord) (string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "以独立预算HMAC重构nonce并核持久哈希；保留旧key过渡",
+          "steps": [
+            "以独立预算HMAC重构nonce并核持久哈希；保留旧key过渡"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信挑战链路内部调用，继承入口与外层事务"
+          },
+          "concurrency": "短事务或纯函数；外部HTTP不持有事务",
+          "idempotency": "继承原挑战状态与哈希",
+          "dependencies": [
+            "platform.PrivateOperationDigest"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.challengeResult",
+          "name": "challengeResult",
+          "signature": "func challengeResult(runtime GuardRuntime, row challengeRecord, nonce string) IssueChallengeResult",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "组装原有效挑战和公开widget配置，不输出secret",
+          "steps": [
+            "组装原有效挑战和公开widget配置，不输出secret"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信挑战链路内部调用，继承入口与外层事务"
+          },
+          "concurrency": "短事务或纯函数；外部HTTP不持有事务",
+          "idempotency": "继承原挑战状态与哈希",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -3142,9 +3216,9 @@
           ],
           "purpose": "验证工作量证明",
           "steps": [
-            "solution 最大64 ASCII",
-            "SHA256(nonce||colon||solution)",
-            "要求前 difficulty bit全0，16..22"
+            "只接受1..64可打印非空白ASCII solution",
+            "计算一次SHA256(UTF8(nonce+\":\"+solution))，要求前difficulty位为0；调用链只传18/22，合同允许16..22",
+            "无有效证明返回valid=false，纯函数不检查ctx且不执行无界搜索"
           ],
           "errors": [
             {
@@ -3213,10 +3287,11 @@
           ],
           "purpose": "适配外部验证",
           "steps": [
-            "仅服务端配置Cloudflare Turnstile验证接口2.5s",
-            "校验token success/hostname/action/过期",
-            "响应token不落盘",
-            "组件加载失败走PoW备用而不是额外验证方案选择"
+            "仅可信运行装配提供siteKey、secretRef、expectedHostname；读取外部secret引用，不落日志/业务库",
+            "仅POST固定Cloudflare HTTPS siteverify，不传原IP；2.5秒上限、禁止重定向、不自动重试同token",
+            "responseToken最大2048，响应最大64KiB；未知/不可读/非200返回DEPENDENCY_UNAVAILABLE，不冒充成功",
+            "success=false明确无效；成功还需hostname、固定traffic_guard action、challengeId对应cdata及challenge_ts五分钟内匹配",
+            "浏览器加载失败按既有流程取得新PoW挑战，服务端不伪造外部成功"
           ],
           "errors": [
             {
@@ -3246,79 +3321,6 @@
           "dependencies": [],
           "resources": [
             "Cloudflare Turnstile服务端verification适配"
-          ],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/traffic-guard/internal/ban.go",
-      "kind": "handwritten",
-      "purpose": "读取作用域禁令；同文件职责限本域以下登记函数",
-      "functions": [
-        {
-          "id": "traffic-guard.CheckBan",
-          "name": "CheckBan",
-          "signature": "func CheckBan(ctx context.Context, op OperationContext, in CheckBanInput) (CheckBanResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "调用取消与deadline；不得携带正文到日志",
-              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
-            },
-            {
-              "name": "in",
-              "type": "CheckBanInput",
-              "description": "读取作用域禁令；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "CheckBanResult",
-              "description": "读取作用域禁令成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "error",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "读取作用域禁令",
-          "steps": [
-            "检查当期/前期主体 aliases",
-            "site-wide与action匹配",
-            "过期禁令忽略"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "condition": "STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 503,
-              "retryable": true,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            }
-          ],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "service",
-            "rule": "service"
-          },
-          "concurrency": "准入/续租每次查询，无跨请求安全 TTL",
-          "idempotency": "只读幂等",
-          "dependencies": [],
-          "resources": [
-            "私有 SQLite"
           ],
           "contract": "reference"
         }
@@ -3663,9 +3665,10 @@
           ],
           "purpose": "处理权限撤销通知",
           "steps": [
-            "验生产者/版本/epoch",
-            "inbox去重",
-            "使管理授权上下文失效，不把通知当授权真相"
+            "只供本域后台接受identity.authorization.changed v1；校验当前epoch、生产方payload schema和载荷site/account/permissionRevision与信封一致",
+            "平台ClaimInbox与本地最大permissionRevision标记同事务；重复/低修订确认无操作",
+            "本域管理写入没有可绕过即时identity权威的缓存，此标记只记录撤销通知，不将事件当授权真相",
+            "本地提交后返回accepted，订阅/ack仍由后续公共适配完成；失败不确认"
           ],
           "errors": [
             {
@@ -3693,6 +3696,9 @@
           "concurrency": "按 subject权限修订取max",
           "idempotency": "eventId/revision幂等",
           "dependencies": [
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit",
             "platform.ClaimInbox"
           ],
           "resources": [],
@@ -3841,9 +3847,10 @@
           ],
           "purpose": "可靠派发风控引用事件",
           "steps": [
-            "选≤100 pending",
-            "向jobs提交带版本envelope",
-            "成功mark delivered，失败5/30/120/600秒重试"
+            "仅本域后台读取当前恢复过的同代私有库，单批最多100",
+            "通过平台NewEventPublisher适配真实gen.JobsClient的publishEvent，不造无关worker方法",
+            "复用平台RunRelayBatch处理领取/原eventId发布/安全窗口内确认/退避及旧代隔离，不在本域复制循环机制",
+            "每次平台写窗口读取还核打开epoch，未知或切换后不修改旧active库；成功返回实际relayed数量"
           ],
           "errors": [
             {
@@ -3865,7 +3872,8 @@
           "idempotency": "eventId固定不因重试变",
           "dependencies": [
             "jobs:publishEvent",
-            "platform.RunRelay"
+            "platform.NewEventPublisher",
+            "platform.RunRelayBatch"
           ],
           "resources": [],
           "contract": "binding"
@@ -4876,7 +4884,8 @@
             "仅已认证QA；API无token，不假装验证不存在的proof",
             "原requestId必须等于可信op.RootOperationID，并匹配持久owner=qa/site/epoch/root/active lease/当前网络ban",
             "同事务CAS标记consumed_request_id=原root；同root重放不再消费，不同root冲突",
-            "只在消费状态可提交后调用SignPermit签完整QA DTO，提交成功才返回；崩溃重试只重签原获准期限，不扣桶/费用"
+            "只在消费状态可提交后调用SignPermit签完整QA DTO，提交成功才返回；崩溃重试只重签原获准期限，不扣桶/费用",
+            "qa.conversation持久消费后仅返回空token元数据，绝不调用SignPermit；只有单次问题qa.ask/followup可签模型凭证"
           ],
           "errors": [
             {
@@ -4916,7 +4925,8 @@
             "traffic-guard.CheckBan",
             "traffic-guard.SignPermit",
             "traffic-guard.guardTransaction.close",
-            "traffic-guard.guardTransaction.commit"
+            "traffic-guard.guardTransaction.commit",
+            "traffic-guard.permitMetadata"
           ],
           "resources": [
             "私有lease状态"
@@ -5165,7 +5175,8 @@
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
             "私有库固定view.DataEpoch；恢复store后实际构造NewLoginHandlers并交公共NewServiceHandler核完整内嵌spec，两个已完成operation只允许identity且普通维护不放行；任何其他handler缺失由工厂返回DEPENDENCY_UNAVAILABLE并关闭store，完整其余后台/恢复回执仍缺时也禁止返回Application",
-            "管理/匿名信号真实HTTP映射通过NewGuardHandlers交公共ServiceHandler；授权由统一边界即时核一次，内部marker避免重复identity调用。运行写窗口/预算key/完整其余handler及后台尚缺时仍禁止启动。"
+            "管理/匿名信号真实HTTP映射通过NewGuardHandlers交公共ServiceHandler；授权由统一边界即时核一次，内部marker避免重复identity调用。运行写窗口/预算key/完整其余handler及后台尚缺时仍禁止启动。",
+            "用生成的IdentityChanged运行载荷规格创建平台validator并注入GuardRuntime；jobs真实客户端用于公共relay。完整预算key/安全写窗口/恢复/订阅后台尚缺仍禁止启动"
           ],
           "errors": [
             {
@@ -5214,7 +5225,8 @@
             "traffic-guard.Close",
             "traffic-guard.NewLoginHandlers",
             "platform.NewServiceHandler",
-            "traffic-guard.NewGuardHandlers"
+            "traffic-guard.NewGuardHandlers",
+            "platform.NewPayloadValidator"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -6201,7 +6213,10 @@
             "traffic-guard.ConsumeAdmission",
             "traffic-guard.VerifyAdmissionHTTP",
             "traffic-guard.admissionRateError.Error",
-            "traffic-guard.admissionRateError.Unwrap"
+            "traffic-guard.admissionRateError.Unwrap",
+            "traffic-guard.IssueChallenge",
+            "traffic-guard.VerifyChallenge",
+            "traffic-guard.DeriveSubject"
           ],
           "resources": [],
           "contract": "reference"

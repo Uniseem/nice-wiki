@@ -50,3 +50,6 @@ login/bootstrap共享账号及所有网络的失败窗、锁和并发。账号5�
 owner_caller与audience分开：许可行拥有者为qa或localization，audience固定model-gateway仅表示凭证验签目标。consumed_request_id为空时不可签模型token，消费后必须等于原request_id（稳定RootOperationID）。token、访客cookie与sessionId原值不写业务库或幂等回执；回执只存分配引用、结果布尔或原期限。许可捕获原网络current/previous别名，消费/续租/在线验证及新ban撤销按该组别名核对，不接受QA自报替代scope。
 
 策略旧JSON缺qaPerNetworkPerMinute明确按600读取，新更新规范写入600；无需篡改旧迁移或重置策略。网络次数与费用比例互不推导。guard_buckets按动作、会话/网络别名/站点持久化，三层同事务先检查后扣减。
+
+
+挑战nonce只存哈希，原nonce由独立预算key及前期过渡key重构；方法、难度、120秒期限与最多5失败次数绑定同挑战。已消费不再使用。通过后的10分钟proof只保存匿名主体/会话scope及通过水位，原sessionId和签名cookie不写业务库、日志或outbox。身份撤销通知使用平台nw_inbox，与guard_identity_revisions最大修订标记同事务；标记不替代即时identity授权。

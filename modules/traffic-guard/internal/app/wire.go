@@ -76,7 +76,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
 	}
 	identityClient:=gen.NewIdentityClient(config.Dependencies["identity"],ModuleSlug,key)
-	guardRuntime:=trafficguard.GuardRuntime{Store:store,Identity:identityClient,SigningKey:key,Anchors:anchors}
+	validateIdentityEvent,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),"IdentityChanged")
+ if err!=nil { return nil,err }
+ guardRuntime:=trafficguard.GuardRuntime{Store:store,Identity:identityClient,SigningKey:key,Anchors:anchors,Jobs:gen.NewJobsClient(config.Dependencies["jobs"],ModuleSlug,key),ValidateIdentityEvent:validateIdentityEvent}
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -100,6 +102,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
             "releaseAdmission": {"qa","localization"},
             "consumeAdmission": {"qa"},
             "verifyAdmission": {"qa"},
+            "issueChallenge": {"portal"},
+            "verifyChallenge": {"portal"},
 		},
 		ServiceActorCallers:map[string][]string{"getPolicy":{"traffic-guard"}},
 		Authorize:apivalidate.NewIdentityAuthorizer(identityClient),

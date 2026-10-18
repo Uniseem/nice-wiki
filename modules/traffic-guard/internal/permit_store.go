@@ -104,7 +104,7 @@ func RenewPermit(ctx context.Context,op OperationContext,in RenewPermitInput)(Re
  }
  if receipt.Expires<=t.now.UnixNano() { return RenewPermitResult{},platform.NewError(platform.CodeStaleResult,false,"原续租期限已过，不得重签复活") }
  var permit platform.AdmissionPermit
- if row.owner=="qa" {
+ if row.owner=="qa"&&(row.action=="qa.ask"||row.action=="qa.followup") {
   expiry:=time.Unix(0,receipt.Expires).UTC().Format(time.RFC3339Nano)
   signed,err:=SignPermit(t.ctx,op,SignPermitInput{AdmissionID:row.admissionID,ExpiresAt:&expiry})
   if err!=nil { return RenewPermitResult{},err }

@@ -19,7 +19,7 @@ func SignPermit(ctx context.Context,op OperationContext,in SignPermitInput)(Sign
  defer t.close()
  row,err:=readPermitRecord(t,in.AdmissionID)
  if err!=nil { return SignPermitResult{},err }
- if op.CallerService!="qa"||row.owner!="qa"||row.consumed!=row.requestID||row.requestID!=op.RootOperationID { return SignPermitResult{},platform.NewError(platform.CodeForbidden,false,"只有原根已消费问答许可可签模型凭证") }
+ if op.CallerService!="qa"||row.owner!="qa"||(row.action!="qa.ask"&&row.action!="qa.followup")||row.consumed!=row.requestID||row.requestID!=op.RootOperationID { return SignPermitResult{},platform.NewError(platform.CodeForbidden,false,"只有原根已消费问答许可可签模型凭证") }
  if row.state!="active"||row.expires<=t.now.UnixNano() { return SignPermitResult{},platform.NewError(platform.CodeStaleResult,false,"已终止许可不得重签") }
  permit:=permitMetadata(row,op.DataEpoch)
  if in.ExpiresAt!=nil {
@@ -45,7 +45,7 @@ func ValidatePermit(ctx context.Context,op OperationContext,in ValidatePermitInp
  defer t.close()
  row,err:=readPermitRecord(t,signed.AdmissionID)
  if err!=nil { return ValidatePermitResult{},err }
- if row.owner!="qa"||row.consumed!=row.requestID||row.requestID!=in.RequestID||signed.RequestID!=in.RequestID||signed.DataEpoch!=op.DataEpoch||(in.ExpectedAction!=""&&signed.Action!=in.ExpectedAction) { return ValidatePermitResult{},platform.NewError(platform.CodeForbidden,false,"签名许可不属于原QA主体和根") }
+ if row.owner!="qa"||(row.action!="qa.ask"&&row.action!="qa.followup")||row.consumed!=row.requestID||row.requestID!=in.RequestID||signed.RequestID!=in.RequestID||signed.DataEpoch!=op.DataEpoch||(in.ExpectedAction!=""&&signed.Action!=in.ExpectedAction) { return ValidatePermitResult{},platform.NewError(platform.CodeForbidden,false,"签名许可不属于原QA主体和根") }
  expiry,err:=platform.ParseTimestamp(signed.ExpiresAt)
  if err!=nil { return ValidatePermitResult{},err }
  expected:=permitMetadata(row,op.DataEpoch)

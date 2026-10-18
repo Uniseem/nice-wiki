@@ -24,6 +24,8 @@ type GuardRuntime struct {
  BudgetKey platform.SigningKey
  PreviousBudgetKeys []platform.SigningKey
  Anchors platform.TrustAnchors
+ ValidateIdentityEvent func(json.RawMessage) error
+ Turnstile TurnstileConfig
  Jobs *gen.JobsClient
 }
 type guardRuntimeKey struct{}

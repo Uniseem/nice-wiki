@@ -28,7 +28,7 @@ func ConsumeBuckets(ctx context.Context,op OperationContext,in ConsumeBucketsInp
  var result ConsumeBucketsResult
  if found,err:=readGuardReceipt(t,"buckets.consume",receiptInput,&result);err!=nil { return ConsumeBucketsResult{},err } else if found { return result,nil }
  bucketAction:=in.Action
- if bucketAction=="qa.ask"||bucketAction=="qa.followup" { bucketAction="qa" }
+ if bucketAction=="qa.ask"||bucketAction=="qa.followup"||bucketAction=="qa.conversation" { bucketAction="qa" }
  policy,_,err:=readGuardPolicy(t)
  if err!=nil { return ConsumeBucketsResult{},err }
  type bucket struct { key string; capacity,rate,tokens,updated int64 }

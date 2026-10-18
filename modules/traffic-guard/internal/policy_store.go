@@ -17,6 +17,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/outbox"
+ "nice-wiki/libs/platform/inbox"
 	guardmigrations "nice-wiki/modules/traffic-guard/migrations"
 )
 
@@ -81,6 +82,8 @@ func OpenPolicyStore(dataRoot string, openedDataEpoch Identifier) (*PolicyStore,
 		_ = db.Close()
 		return nil, err
 	}
+
+ if err := inbox.EnsureSchema(context.Background(), db); err != nil { _ = db.Close();return nil,err }
 
 	journal, err := os.OpenFile(filepath.Join(control, policyJournalName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {

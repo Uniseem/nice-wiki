@@ -27,8 +27,11 @@ func ConsumeAdmission(ctx context.Context,op OperationContext,in ConsumeAdmissio
    WHERE admission_id=? AND site_id=? AND data_epoch=? AND revision=? AND state='active' AND consumed_request_id IS NULL`,in.RequestID,row.admissionID,t.site,op.DataEpoch,row.revision)
   if err!=nil { return ConsumeAdmissionResult{},loginDBError() }
  }
- signed,err:=SignPermit(t.ctx,op,SignPermitInput{AdmissionID:row.admissionID})
- if err!=nil { return ConsumeAdmissionResult{},err }
+ permit:=permitMetadata(row,op.DataEpoch)
+ if row.action=="qa.ask"||row.action=="qa.followup" {
+  signed,err:=SignPermit(t.ctx,op,SignPermitInput{AdmissionID:row.admissionID})
+  if err!=nil { return ConsumeAdmissionResult{},err };permit=signed.Permit
+ }
  if err=t.commit();err!=nil { return ConsumeAdmissionResult{},err }
- return ConsumeAdmissionResult{Consumed:true,Permit:signed.Permit},nil
+ return ConsumeAdmissionResult{Consumed:true,Permit:permit},nil
 }
