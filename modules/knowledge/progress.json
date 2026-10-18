@@ -2,12 +2,12 @@
   "version": 1,
   "module": "knowledge",
   "phase": "implementation",
-  "contractSha256": "eaed0eb2b2891bcd4e0422ded52002c1235370b3cc8bfa81be52b1b725d48ba8",
+  "contractSha256": "bdbea37542557db69fe707d433617740576539fa01392c45995f25a555409fa9",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-知识域文本规范化",
-  "branch": "codex/knowledge-normalize",
-  "baseCommit": "8ae6fcfc6302e2fd41a998faef18be52e2a9714c",
-  "deliveryCommit": "92f883d9e4b311620f1e25eefb5c88941b483293",
+  "assignedSession": "R1-知识持久索引与权威检索批次",
+  "branch": "codex/knowledge-20261018-bulk",
+  "baseCommit": "acc9bbcc1fe0cfbeae91d3c2835b09cea5cbe9bd",
+  "deliveryCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
   "deployment": "not_started",
   "files": [
     {
@@ -122,63 +122,63 @@
     },
     {
       "path": "modules/knowledge/internal/chunk/split.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/index/staging.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/index/lexical.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/index/embedding.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/build/validate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/build/activate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/build/cancel.go",
@@ -202,93 +202,93 @@
     },
     {
       "path": "modules/knowledge/internal/search/query.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/search/lexical.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/search/vector.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/search/fusion.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/search/visibility.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/search/rerank.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/search/context.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/search/service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/admin/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/events/inbox.go",
@@ -332,23 +332,23 @@
     },
     {
       "path": "modules/knowledge/internal/admin/diagnostics.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/search/sections.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/protection/protocol.go",
@@ -402,13 +402,13 @@
     },
     {
       "path": "modules/knowledge/internal/search/query-embedding.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/extract/attachment.go",
@@ -442,13 +442,13 @@
     },
     {
       "path": "modules/knowledge/migrations/001_initial.sql",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/cmd/knowledge/main.go",
@@ -472,13 +472,13 @@
     },
     {
       "path": "modules/knowledge/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/go.mod",
@@ -592,13 +592,13 @@
     },
     {
       "path": "modules/knowledge/internal/runtime/model_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码与合同已提交；仅本地git diff --check通过，尚未经集中GitLab生成/格式/编译/vet/make check；未行为验收"
       },
-      "blocker": null
+      "blocker": "代码就绪，等待集成会话通过GitLab集中生成与编译检查"
     },
     {
       "path": "modules/knowledge/internal/build/execute.go",
@@ -808,79 +808,200 @@
     {
       "id": "knowledge.SplitChunks",
       "path": "modules/knowledge/internal/chunk/split.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.WriteStagingChunks",
       "path": "modules/knowledge/internal/index/staging.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.NewIndexRuntime",
+      "path": "modules/knowledge/internal/index/staging.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.WithIndexRuntime",
+      "path": "modules/knowledge/internal/index/staging.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.RuntimeFromContext",
+      "path": "modules/knowledge/internal/index/staging.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.ReadBuildRecord",
+      "path": "modules/knowledge/internal/index/staging.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.BeginBuildWrite",
+      "path": "modules/knowledge/internal/index/staging.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.storageError",
+      "path": "modules/knowledge/internal/index/staging.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.ReadChunks",
+      "path": "modules/knowledge/internal/index/staging.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.ReadGeneration",
+      "path": "modules/knowledge/internal/index/staging.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.BuildLexicalIndex",
       "path": "modules/knowledge/internal/index/lexical.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.TokenizeText",
+      "path": "modules/knowledge/internal/index/lexical.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.RequestEmbeddings",
       "path": "modules/knowledge/internal/index/embedding.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.StoreEmbeddings",
       "path": "modules/knowledge/internal/index/embedding.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.DecodeVector",
+      "path": "modules/knowledge/internal/index/embedding.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.ValidateBuild",
       "path": "modules/knowledge/internal/build/validate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.validatePublication",
+      "path": "modules/knowledge/internal/build/validate.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.ActivateBuild",
       "path": "modules/knowledge/internal/build/activate.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.CancelBuild",
@@ -907,123 +1028,266 @@
     {
       "id": "knowledge.NormalizeQuery",
       "path": "modules/knowledge/internal/search/query.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.EmbedQuery",
       "path": "modules/knowledge/internal/search/query.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.SearchLexical",
       "path": "modules/knowledge/internal/search/lexical.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.SearchVector",
       "path": "modules/knowledge/internal/search/vector.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.validVector",
+      "path": "modules/knowledge/internal/search/vector.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.unitVector",
+      "path": "modules/knowledge/internal/search/vector.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.FuseCandidates",
       "path": "modules/knowledge/internal/search/fusion.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.ValidateCandidates",
       "path": "modules/knowledge/internal/search/visibility.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.RerankCandidates",
       "path": "modules/knowledge/internal/search/rerank.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.requestRerank",
+      "path": "modules/knowledge/internal/search/rerank.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.SelectContext",
       "path": "modules/knowledge/internal/search/context.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.Retrieve",
       "path": "modules/knowledge/internal/search/service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.NewSearchRuntime",
+      "path": "modules/knowledge/internal/search/service.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.WithSearchRuntime",
+      "path": "modules/knowledge/internal/search/service.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.searchRuntime",
+      "path": "modules/knowledge/internal/search/service.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.activeSnapshot",
+      "path": "modules/knowledge/internal/search/service.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.publicationKey",
+      "path": "modules/knowledge/internal/search/service.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.sortedSnapshotRows",
+      "path": "modules/knowledge/internal/search/service.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.ReadActiveSnapshot",
+      "path": "modules/knowledge/internal/search/service.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.GetBuild",
       "path": "modules/knowledge/internal/admin/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.ListBuilds",
       "path": "modules/knowledge/internal/admin/read.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.WithAdminSigningKey",
+      "path": "modules/knowledge/internal/admin/read.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.authorizeAdmin",
+      "path": "modules/knowledge/internal/admin/read.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.beginAdminRead",
+      "path": "modules/knowledge/internal/admin/read.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.ConsumeInbox",
@@ -1083,24 +1347,24 @@
     {
       "id": "knowledge.RedactDiagnostics",
       "path": "modules/knowledge/internal/admin/diagnostics.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.ReadSections",
       "path": "modules/knowledge/internal/search/sections.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.AcquireBarrier",
@@ -1204,13 +1468,24 @@
     {
       "id": "knowledge.CreateQueryEmbedding",
       "path": "modules/knowledge/internal/search/query-embedding.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.acquireQueryFlight",
+      "path": "modules/knowledge/internal/search/query-embedding.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.DescribeAttachment",
@@ -1301,6 +1576,50 @@
       "blocker": null
     },
     {
+      "id": "knowledge.NewOperationHandlers",
+      "path": "modules/knowledge/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.jsonOperation",
+      "path": "modules/knowledge/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.operationContext",
+      "path": "modules/knowledge/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.writeResult",
+      "path": "modules/knowledge/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
       "id": "knowledge.mountModuleUI",
       "path": "modules/knowledge/ui/src/main.ts",
       "state": "planned",
@@ -1314,13 +1633,46 @@
     {
       "id": "knowledge.InvokeModel",
       "path": "modules/knowledge/internal/runtime/model_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
       },
-      "blocker": null
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.NewModelRuntime",
+      "path": "modules/knowledge/internal/runtime/model_client.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.WithModelRuntime",
+      "path": "modules/knowledge/internal/runtime/model_client.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
+    },
+    {
+      "id": "knowledge.CompletedOutput",
+      "path": "modules/knowledge/internal/runtime/model_client.go",
+      "state": "blocked",
+      "implementationCommit": "8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2",
+      "verification": {
+        "state": "not_run",
+        "evidence": "完整源码已提交，尚未经GitLab编译；生成目录待统一make gen与gofmt，不宣称实现或验收完成"
+      },
+      "blocker": "代码就绪，待集中GitLab生成、readonly build/vet/gofmt与make check"
     },
     {
       "id": "knowledge.ExecuteBuild",
@@ -1356,5 +1708,5 @@
       "blocker": null
     }
   ],
-  "rule": "本轮仅 knowledge.NormalizeSource 与 go.mod 已实现但未验证；其余文件/函数仍按设计状态，不能批量宣称已完成。"
+  "rule": "本批54项代码就绪但blocked待GitLab；包含22个既有主业务函数与32个实际内部助手，未将其记implemented/verified。NormalizeSource旧状态保留；完整执行与服务启动尚未完成。"
 }

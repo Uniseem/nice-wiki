@@ -1,3 +1,63 @@
+# 索引检索批次交接（2026-10-18）
+
+本批源码提交 `8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2`，基线 `acc9bbcc1fe0cfbeae91d3c2835b09cea5cbe9bd`，分支 `codex/knowledge-20261018-bulk`，只拥有 `modules/knowledge/`。根授权的公共适配 `8c593f3`、原生重排 query `b05944f` 已作为基线分别 cherry-pick 为 `6701308`、`c042a00`，不是本域交付，不要再次作为本域代码合入。
+
+## 代码就绪，等待编译
+
+主业务 22 项（均加 `knowledge.` 前缀）：
+
+- `knowledge.SplitChunks`
+- `knowledge.WriteStagingChunks`
+- `knowledge.BuildLexicalIndex`
+- `knowledge.RequestEmbeddings`
+- `knowledge.StoreEmbeddings`
+- `knowledge.ValidateBuild`
+- `knowledge.ActivateBuild`
+- `knowledge.NormalizeQuery`
+- `knowledge.EmbedQuery`
+- `knowledge.SearchLexical`
+- `knowledge.SearchVector`
+- `knowledge.FuseCandidates`
+- `knowledge.ValidateCandidates`
+- `knowledge.RerankCandidates`
+- `knowledge.SelectContext`
+- `knowledge.Retrieve`
+- `knowledge.ReadSections`
+- `knowledge.CreateQueryEmbedding`
+- `knowledge.InvokeModel`
+- `knowledge.GetBuild`
+- `knowledge.ListBuilds`
+- `knowledge.RedactDiagnostics`
+
+内部助手 32 项全部在实际代码中被调用并已同步 implementation/progress：NewOperationHandlers、jsonOperation、operationContext、writeResult、NewModelRuntime、WithModelRuntime、CompletedOutput、WithAdminSigningKey、authorizeAdmin、beginAdminRead、validVector、unitVector、acquireQueryFlight、NewSearchRuntime、WithSearchRuntime、searchRuntime、activeSnapshot、publicationKey、sortedSnapshotRows、ReadActiveSnapshot、requestRerank、DecodeVector、TokenizeText、NewIndexRuntime、WithIndexRuntime、RuntimeFromContext、ReadBuildRecord、BeginBuildWrite、storageError、ReadChunks、ReadGeneration、validatePublication。共 54 项统一 `blocked`，原因仅为待集中 GitLab 生成/格式/编译检查；不是设计 blocked，不计 implemented/verified。NormalizeSource 旧实现未改动。
+
+## 实际行为与存储
+
+- 分块不跨稳定 block；按选定模型 tokenizer 提供的 tokenEnds 切分与重叠，逐 UTF8 字节保留源映射；输出 ID 绑定来源、上下文与区间。没有伪造模型 tokenizer。
+- 本域独立 SQL 保存完整分块/词项/向量，固定词项算法和规范清单 hash。staging 写入使用平台写窗口并绑定持久租约；active 不被改写。ValidateBuild 前后固定清单并向 content 校验，ActivateBuild 仅接受一秒内证明及活动代数 CAS，同事务写 index.ready outbox；旧代数保留。
+- 检索固定一次 SQL 只读快照及完整空间；BM25/cosine→RRF→权威过滤→可选重排→整块预算→最终权威过滤。任意权威失败不当作空成功。ReadSections 只给当前 active 精确引用和完整 sourceOffsets。
+- 查询向量按站点/代次/可信根/queryHash/spaceId 持久唯一，本进程按该身份 singleflight。原 operationId 与 MG 幂等键保留，失败/断线不重算。另有调用者幂等键→完整身份摘要映射，同键异输入 CONFLICT；保存前重取平台写窗口。
+- 模型仅使用平台 NewGatewayClient/InvokeModel；三个 MG 响应和 content 批量校验响应均用生成 PayloadValidationSpec 的严格生产方 schema。embedding 结果只读完成事件结构化 output；native rerank 显式 query；未配原生时 fast/chat 最多 800 输出 token 严格读既有 ID 排列，格式错误只追加一次独立 attempt。费用未知不重放。
+- 六个实际 HTTP 映射已提供，须由完整 app 交给平台 NewServiceHandler；缺其他 handler 时 app 应启动失败。没有给未完成功能加占位成功或把完整服务记 ready。
+
+## 合同与统一生成要求
+
+本域 types 追加 Chunk.sourceOffsets、SourceBlock 与准确 tokenEnds，向量 number 统一 double；OpenAPI 对 sections 明确证据映射，并通过 x-runtime-payload-schemas 保留 CreateInvocationResult、CancelInvocationResult、StreamEvent、ContentValidatePublicationsResult 的生产方引用闭包。源码使用未来生成的 `gen.PayloadValidationSpec`、`gen.Chunk.SourceOffsets` 和 double 向量，根候选 CI 必须先 make gen/docs，再分片编译；生成目录没有手改。
+
+实际 schemaVersion 1 迁移文件已编写，完整启动尚未应用，索引不另写第二份文件。data/workflows 已同步 SQL 清单表示和所有实际规则。实现合同及台账同步到实际 95 个函数，其中新增 32 个必要内部助手；不是增加空函数凑比例。
+
+## 验证事实
+
+仅本地 JSON 解析/状态同步、Git 隐私身份核对与 `git diff --check` 通过。未运行 Go/gofmt/build/vet/gen/docs/check、测试、模型、真实接口、业务服务或部署。作者与提交者保留用户 GitHub 代用邮箱，合著 GPT-6 使用指定 noreply。用户最新授权及时 GitLab 检查和推送，由根会话执行，本域不 push。
+
+## 尚未完成与下一项
+
+完整 ExecuteBuild、SourceBlock 的模型 tokenizer 来源、资源提取、配置/构建创建/事件执行、恢复屏障与完整 BuildApplication 尚未完成。这些原有 planned 项没有计入本批 ready。下一项先由根在 GitLab 对本批统一生成、编译和完整 make check；编译/结构问题先修，再把对应 54 项按真实证据更新。行为验收仍未授权且保持未开始。
+
+---
+
+以下旧交接是历史记录；原 SplitChunks 设计缺口已按本次根裁定修正，不能继续当作新阻塞。
+
 # 索引检索会话交接
 
 ## 集成复核修复（2026-10-15，main）

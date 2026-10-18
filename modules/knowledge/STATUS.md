@@ -1,13 +1,12 @@
 # 索引检索当前进度
 
-更新：2026-10-15。阶段：实施；本域尚未行为验收、尚未部署。
+更新：2026-10-18。R1 实施；业务验收及部署均未开始。
 
-- 2026-10-15 集成复核修复：`NormalizeSource` 按合同步骤5 施加截止 = min(ctx, op.deadline, 5000ms)。 其余修复与验证见 [handoff](docs/handoff.md)。编译、vet、gofmt 与 make check 已通过，业务验收未执行。
-- 本次认领分支：`codex/knowledge-normalize`，基线 `8ae6fcfc6302e2fd41a998faef18be52e2a9714c`，独占范围仅为 `modules/knowledge/`。
-- 已实现 2 个文件、1 个函数：`internal/chunk/normalize.go` 的 `knowledge.NormalizeSource`，以及本域 `go.mod`；实现提交为 `77fe57291ab9bcc0f53df2d35018e055e61ca12f`。
-- `NormalizeSource` 完成输入大小/UTF-8校验、CRLF/CR→LF、Unicode NFKC 和规范化 UTF-8 到原文偏移映射；无数据库、模型、媒体读取或外部副作用。
-- 当前本机无 Go/gofmt；未编译、未运行行为测试、未调用真实接口或模型。实现状态与验证状态分开记录在 [progress.json](progress.json)。
-- `git diff --check` 与本域 JSON 解析通过；`python scripts/check_docs.py` 因根 `framework.json` 未登记本轮及其他并行会话新增文件、并存在既有台账缺 SHA 而失败，未越权修改根文件。
-- `SplitChunks` 暂不实现：现有输入只有整段规范文本，输出却要求每块的 `BlockRef`，缺少块边界、blockId 与 blockHash 来源；继续实现会猜测契约。
+- 本批源码 `8632a73c68ac7be79e1cfecfaf8c7a936fe38ce2`，独占分支 `codex/knowledge-20261018-bulk`，基线 `acc9bbcc1fe0cfbeae91d3c2835b09cea5cbe9bd`。
+- 22 个既有主业务函数及 32 个实际内部助手代码就绪，统一记 `blocked`（待 GitLab 生成、格式及编译检查）；未提前记 implemented/verified。既有 `NormalizeSource` 状态未改。
+- 已编写单源块保真分块、staging SQL 写入、固定词项索引、完整空间向量请求与保存、清单验证及一秒内权威证明下的活动指针 CAS/outbox；完整权威检索链、持久 singleflight 查询嵌入、管理读取及六个真实 HTTP 映射已编写。
+- Chunk 新增必填 sourceOffsets；SplitChunks 明确可信 SourceBlock/tokenEnds；向量统一 double。真实模型调用复用平台模型网关适配及终态结构结果，不直接调用供应方。
+- 完整 `ExecuteBuild`、源正文及媒体提取、tokenizer 来源、配置/任务入口、恢复与完整服务启动仍未完成；迁移文件已编写，但完整启动尚未应用它。不提供缺路由的可运行服务。
+- 本地仅做源码/合同阅读、JSON 台账同步与 `git diff --check`；未执行 Go、gofmt、生成、编译、vet、make check、测试、真实接口、模型或服务；不 push。集成会话按用户最新要求立即送 GitLab 检查及处理推送。
 
-并行工作只改本域，公共资料交集成会话；根结构登记、公共契约修订和 VPS 检查均未在本次修改。
+精确 ready IDs 与依赖见 [交接](docs/handoff.md) 和 [逐项台账](progress.json)。
