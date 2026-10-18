@@ -4963,7 +4963,8 @@
             "2 事务递增sequence",
             "3 持久事件",
             "4 提交后向订阅者广播",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+            "序号从1开始，0为初次排他续传游标；output只允许completed，结构化结果与文本事件同样持久化"
           ],
           "errors": [
             {

@@ -518,6 +518,10 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "终态错误代码"
+        },
+        "output": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ModelOutput",
+          "description": "仅completed事件携带的持久结构化结果，可选新增兼容旧文本消费者"
         }
       },
       "required": [

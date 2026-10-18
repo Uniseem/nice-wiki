@@ -2,7 +2,7 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "bf4774c97a2fa3c7b0ab09e92873649a72842a1acea591ef85d45ceb9b397c97",
+  "contractSha256": "aa76bbec07e01ce1cead79050cc1a839ad6915661f1c5be4ac5e87a0989eabb8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-17第三轮账本与费用状态只读",
   "branch": "codex/model-20261017-r3",

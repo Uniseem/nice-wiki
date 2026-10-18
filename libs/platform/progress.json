@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "553530f0df3a4d0c4f6cadee166aedbd3615a8923a757394e5afe94605b2cf0b",
+  "contractSha256": "6ed28913faa101d1d1ca03e03a2ca5915127361e680e4c9d5e14d3c5e9d33bf0",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-17第三轮可信站点和真实任务适配",
   "branch": "codex/integration-20261017-r3",
@@ -102,13 +102,13 @@
     },
     {
       "path": "libs/platform/modelclient/invoke.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "passed",
-        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本次模型客户端改动待统一GitLab检查"
     },
     {
       "path": "libs/platform/lifecycle/config.go",
@@ -172,13 +172,13 @@
     },
     {
       "path": "libs/platform/platform.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "18449ccc9b474c8cf89f94abac5538beac8c2eb3",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本次模型客户端改动待统一GitLab检查"
     },
     {
       "path": "libs/platform/go.mod",
@@ -209,6 +209,16 @@
         "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
+    },
+    {
+      "path": "libs/platform/modelclient/client.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码已编写，等待本次75%集中编写后统一GitLab生成编译与结构检查"
     }
   ],
   "functions": [
@@ -325,13 +335,13 @@
     {
       "id": "platform.InvokeModel",
       "path": "libs/platform/modelclient/invoke.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
       "verification": {
-        "state": "passed",
-        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "持久结果续传行为已修正，旧CI证据不覆盖；待统一GitLab检查"
     },
     {
       "id": "platform.LoadServiceConfig",
@@ -897,6 +907,76 @@
         "evidence": "2026-10-17自部署GitLab pipeline32，候选ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/格式/重复生成148与三并行分片149/150/151全部success，14Go模块readonly build/vet/gofmt及完整make check通过，补丁0。p30取消，p31编译全过但整体check两类型缺失，已补后完整重跑；未本机/SSH Go或业务验收/模型/worker/服务/部署。此后源码未改。"
       },
       "blocker": null
+    },
+    {
+      "id": "platform.NewGatewayClient",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码已编写，等待本次75%集中编写后统一GitLab生成编译与结构检查"
+    },
+    {
+      "id": "platform.decodeInvocation",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码已编写，等待本次75%集中编写后统一GitLab生成编译与结构检查"
+    },
+    {
+      "id": "platform.CreateInference",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码已编写，等待本次75%集中编写后统一GitLab生成编译与结构检查"
+    },
+    {
+      "id": "platform.CancelInference",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码已编写，等待本次75%集中编写后统一GitLab生成编译与结构检查"
+    },
+    {
+      "id": "platform.ResumeInference",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码已编写，等待本次75%集中编写后统一GitLab生成编译与结构检查"
+    },
+    {
+      "id": "platform.validatedModelNext",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码已编写，等待本次75%集中编写后统一GitLab生成编译与结构检查"
+    },
+    {
+      "id": "platform.validatedModelClose",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "代码已编写，等待本次75%集中编写后统一GitLab生成编译与结构检查"
     }
   ],
   "rule": "公共机制已通过自部署GitLab当前源码/生成/编译/结构检查；完整服务、业务验收和部署按各域未完成项保留。"

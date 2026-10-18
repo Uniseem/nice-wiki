@@ -4097,6 +4097,11 @@
       "path": "scripts/render_docs.py",
       "kind": "tool",
       "purpose": "标准库生成器：从各域implementation.json生成docs/functions.md与docs/files.md"
+    },
+    {
+      "path": "libs/platform/modelclient/client.go",
+      "kind": "handwritten",
+      "purpose": "统一模型网关HTTP端口与原始事件schema适配"
     }
   ]
 }

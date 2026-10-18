@@ -30,6 +30,7 @@ func InvokeModel(ctx context.Context, client platform.GatewayClient, op platform
 	if client == nil || input.IDempotencyKey == "" || len(input.IDempotencyKey) > maxIdempotency {
 		return platform.InvokeModelOutcome{}, platform.NewError(platform.CodeValidation, false, "模型调用请求不完整")
 	}
+	ctx = platform.WithOperationContext(ctx, op)
 	ctx, cancelDeadline := bindDeadline(ctx, op)
 	defer cancelDeadline()
 	invocation, err := client.CreateInference(ctx, input.IDempotencyKey, input.Request)
@@ -37,20 +38,18 @@ func InvokeModel(ctx context.Context, client platform.GatewayClient, op platform
 		return platform.InvokeModelOutcome{}, err
 	}
 	outcome := platform.InvokeModelOutcome{InvocationID: invocation.InvocationID}
-	if state, terminal := terminalOf(invocation.State); terminal {
+	if state, terminal := terminalOf(invocation.State); terminal && invocation.State != platform.InvocationSucceeded {
 		outcome.State = state
 		return outcome, nil
 	}
-	var lastSequence int64 = -1
-	if invocation.LastSequence > 0 {
-		lastSequence = invocation.LastSequence
-	}
+	// HTTP游标为排他序号；首次从0重读持久事件，不按当前水位跳过已付费结果。
+ var lastSequence int64 = 0
 	for {
 		if err := ctx.Err(); err != nil {
 			_ = cancelCall(ctx, client, invocation.InvocationID, input.IDempotencyKey)
 			return platform.InvokeModelOutcome{}, platform.NewError(platform.CodeCancelled, false, "模型调用已取消或到达截止")
 		}
-		stream, err := client.ResumeInference(ctx, invocation.InvocationID, lastSequence+1)
+		stream, err := client.ResumeInference(ctx, invocation.InvocationID, lastSequence)
 		if err != nil {
 			if ctx.Err() != nil {
 				_ = cancelCall(ctx, client, invocation.InvocationID, input.IDempotencyKey)
@@ -88,9 +87,11 @@ func drain(ctx context.Context, client platform.GatewayClient, stream platform.M
 			continue
 		}
 		*lastSequence = event.Sequence
-		if len(outcome.Events) < maxEvents {
-			outcome.Events = append(outcome.Events, event)
-		}
+		if len(outcome.Events) >= maxEvents {
+ _ = cancelCall(ctx,client,outcome.InvocationID,input.IDempotencyKey)
+ return true,platform.NewError(platform.CodeBudgetExceeded,false,"模型持久结果超过读取事件上限")
+ }
+ outcome.Events=append(outcome.Events,event)
 		if input.Stream && input.OnEvent != nil {
 			if err := input.OnEvent(event); err != nil {
 				_ = cancelCall(ctx, client, outcome.InvocationID, input.IDempotencyKey)

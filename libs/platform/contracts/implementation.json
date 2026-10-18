@@ -2457,7 +2457,9 @@
             "model-gateway:createInference（幂等键=操作ID+步骤名）",
             "model-gateway:resumeInference按序号读取到终态，流式时逐条回调",
             "取消或截止时model-gateway:cancelInference",
-            "failed/charge_unknown按网关Problem返回，不在调用方重放"
+            "failed/charge_unknown按网关Problem返回，不在调用方重放",
+            "首次从排他序号0重读已持久事件；已succeeded调用也重读既有付费结果，不按当前lastSequence跳过",
+            "超过4096事件返回BUDGET_EXCEEDED并取消，不静默截断"
           ],
           "errors": [
             {
@@ -2483,7 +2485,8 @@
           "dependencies": [
             "model-gateway:createInference",
             "model-gateway:resumeInference",
-            "model-gateway:cancelInference"
+            "model-gateway:cancelInference",
+            "platform.NewGatewayClient"
           ],
           "resources": [],
           "contract": "binding"
@@ -4718,6 +4721,456 @@
             "platform.decodeWorkerResponse",
             "jobs:failJob"
           ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/modelclient/client.go",
+      "kind": "handwritten",
+      "purpose": "真实生成网关HTTP端口到公共模型调用机制的单一严格适配",
+      "functions": [
+        {
+          "id": "platform.NewGatewayClient",
+          "name": "NewGatewayClient",
+          "signature": "func NewGatewayClient(raw RawGatewayClient, validators GatewayResponseValidators) (GatewayClient, error)",
+          "inputs": [
+            {
+              "name": "raw",
+              "type": "RawGatewayClient",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            },
+            {
+              "name": "validators",
+              "type": "GatewayResponseValidators",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "client",
+              "type": "GatewayClient",
+              "description": "严格生产方合同结果",
+              "constraints": [
+                "成功时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共错误",
+              "constraints": [
+                "不包含原始输入"
+              ]
+            }
+          ],
+          "purpose": "启动要求CreateInvocationResult/CancelInvocationResult/StreamEvent校验器并复制映射；不执行RPC",
+          "steps": [
+            "启动要求CreateInvocationResult/CancelInvocationResult/StreamEvent校验器并复制映射；不执行RPC"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "客户端或六个校验器缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "platform.CreateInference",
+            "platform.CancelInference",
+            "platform.ResumeInference"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.decodeInvocation",
+          "name": "decodeInvocation",
+          "signature": "func (c *gatewayClient) decodeInvocation(name string, raw JSONBytes) (Invocation, error)",
+          "inputs": [
+            {
+              "name": "name",
+              "type": "string",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            },
+            {
+              "name": "raw",
+              "type": "JSONBytes",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "invocation",
+              "type": "Invocation",
+              "description": "严格生产方合同结果",
+              "constraints": [
+                "成功时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共错误",
+              "constraints": [
+                "不包含原始输入"
+              ]
+            }
+          ],
+          "purpose": "按生产方严格schema核响应再解析invocation",
+          "steps": [
+            "按生产方严格schema核响应再解析invocation"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "客户端或六个校验器缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.CreateInference",
+          "name": "CreateInference",
+          "signature": "func (c *gatewayClient) CreateInference(ctx context.Context, key string, input CreateInvocationInput) (Invocation, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            },
+            {
+              "name": "key",
+              "type": "string",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "CreateInvocationInput",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "invocation",
+              "type": "Invocation",
+              "description": "严格生产方合同结果",
+              "constraints": [
+                "成功时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共错误",
+              "constraints": [
+                "不包含原始输入"
+              ]
+            }
+          ],
+          "purpose": "幂等键入生产方body；三空数组显式[]；按真实HTTP客户端发出，不重试",
+          "steps": [
+            "幂等键入生产方body；三空数组显式[]；按真实HTTP客户端发出，不重试",
+            "响应严格校验，再核rootOperationId/costClass与可信op一致"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "客户端或六个校验器缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "model-gateway:createInference",
+            "platform.decodeInvocation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.CancelInference",
+          "name": "CancelInference",
+          "signature": "func (c *gatewayClient) CancelInference(ctx context.Context, key string, id string, reason string) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            },
+            {
+              "name": "key",
+              "type": "string",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            },
+            {
+              "name": "id",
+              "type": "string",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            },
+            {
+              "name": "reason",
+              "type": "string",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共错误",
+              "constraints": [
+                "不包含原始输入"
+              ]
+            }
+          ],
+          "purpose": "生产方body仅invocationId/reason/idempotencyKey，路径与body一致",
+          "steps": [
+            "生产方body仅invocationId/reason/idempotencyKey，路径与body一致",
+            "严格响应校验并核取消对象"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "客户端或六个校验器缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "model-gateway:cancelInference",
+            "platform.decodeInvocation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.ResumeInference",
+          "name": "ResumeInference",
+          "signature": "func (c *gatewayClient) ResumeInference(ctx context.Context, id string, after int64) (ModelEventStream, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            },
+            {
+              "name": "id",
+              "type": "string",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            },
+            {
+              "name": "after",
+              "type": "int64",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "stream",
+              "type": "ModelEventStream",
+              "description": "严格生产方合同结果",
+              "constraints": [
+                "成功时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共错误",
+              "constraints": [
+                "不包含原始输入"
+              ]
+            }
+          ],
+          "purpose": "afterSequence为排他游标；limit100",
+          "steps": [
+            "afterSequence为排他游标；limit100",
+            "生成流必须提供NextRaw，平台先严格schema后解码；缺端口关闭流并失败"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "客户端或六个校验器缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [
+            "model-gateway:resumeInference",
+            "platform.validatedModelNext",
+            "platform.validatedModelClose"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.validatedModelNext",
+          "name": "validatedModelNext",
+          "signature": "func (s *validatedModelStream) Next(ctx context.Context) (StreamEvent, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "可信装配或已校验输入",
+              "constraints": [
+                "不接受浏览器身份"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "event",
+              "type": "StreamEvent",
+              "description": "严格生产方合同结果",
+              "constraints": [
+                "成功时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共错误",
+              "constraints": [
+                "不包含原始输入"
+              ]
+            }
+          ],
+          "purpose": "原始JSON先严格schema校验，再解析；对象与流invocationId一致",
+          "steps": [
+            "原始JSON先严格schema校验，再解析；对象与流invocationId一致",
+            "output仅completed，向量空间维度一致且有限，重排与嵌入数据不得混合"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "客户端或六个校验器缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.validatedModelClose",
+          "name": "validatedModelClose",
+          "signature": "func (s *validatedModelStream) Close() error",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "安全公共错误",
+              "constraints": [
+                "不包含原始输入"
+              ]
+            }
+          ],
+          "purpose": "关闭底层SSE",
+          "steps": [
+            "关闭底层SSE"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "客户端或六个校验器缺失",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只接可信启动配置/平台上下文；域负责真实任务对象授权；不接收浏览器身份"
+          },
+          "concurrency": "无共享可变业务状态；每次RPC独立上下文",
+          "idempotency": "控制写入使用本次可信op.OperationID；重传复用相同调用，不自行重试",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }

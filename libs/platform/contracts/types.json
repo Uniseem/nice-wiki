@@ -946,6 +946,51 @@
         "cancelRequested",
         "safePointRequested"
       ]
+    },
+    "RawGatewayClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "真实生成客户端三个HTTP端口；Resume返回流还须实现NextRaw(context.Context)(json.RawMessage,error)"
+    },
+    "GatewayResponseValidators": {
+      "type": "object",
+      "x-internal": true,
+      "description": "map[string]func(json.RawMessage)error，CreateInvocationResult/CancelInvocationResult/StreamEvent严格生产方schema"
+    },
+    "gatewayClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "模型HTTP适配内部句柄，只存真实客户端和不可替换校验器"
+    },
+    "validatedModelStream": {
+      "type": "object",
+      "x-internal": true,
+      "description": "持久模型事件的原始JSON校验流，绑定invocationId"
+    },
+    "JSONBytes": {
+      "type": "object",
+      "x-internal": true,
+      "description": "json.RawMessage，不进入日志"
+    },
+    "EmbeddingSpace": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/EmbeddingSpace"
+    },
+    "ModelOutput": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ModelOutput"
+    },
+    "Invocation": {
+      "$ref": "../../../modules/model-gateway/contracts/types.json#/$defs/Invocation"
+    },
+    "CreateInvocationInput": {
+      "$ref": "../../../modules/model-gateway/contracts/types.json#/$defs/CreateInvocationInput"
+    },
+    "StreamEvent": {
+      "$ref": "../../../modules/model-gateway/contracts/types.json#/$defs/StreamEvent"
+    },
+    "ModelEventStream": {
+      "type": "object",
+      "x-internal": true,
+      "description": "Next(ctx)读取严格网关事件、Close关闭SSE"
     }
   }
 }

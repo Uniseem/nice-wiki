@@ -1379,6 +1379,71 @@
         "referenceDigest",
         "dataEpoch"
       ]
+    },
+    "ModelOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "模型结构化完成结果；仅StreamEvent.completed出现，文本仍走delta；不混用向量空间。",
+      "properties": {
+        "capability": {
+          "type": "string",
+          "enum": [
+            "embedding",
+            "rerank"
+          ]
+        },
+        "embeddingSpace": {
+          "$ref": "#/$defs/EmbeddingSpace"
+        },
+        "vectors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 65536,
+            "items": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        "candidateIds": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/Identifier"
+          }
+        }
+      },
+      "required": [
+        "capability"
+      ],
+      "oneOf": [
+        {
+          "properties": {
+            "capability": {
+              "const": "embedding"
+            }
+          },
+          "required": [
+            "embeddingSpace",
+            "vectors"
+          ]
+        },
+        {
+          "properties": {
+            "capability": {
+              "const": "rerank"
+            }
+          },
+          "required": [
+            "candidateIds"
+          ]
+        }
+      ]
     }
   }
 }
