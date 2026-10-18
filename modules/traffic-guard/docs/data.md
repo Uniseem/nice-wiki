@@ -43,3 +43,10 @@ login/bootstrap共享账号及所有网络的失败窗、锁和并发。账号5�
 只追加0003_guard_runtime.sql保存组合准入的匿名主体与current/previous网络别名、双桶、持久permit及网络关联、挑战nonce哈希、AI bans、问题信号、风险引用、FIFO等待引用及内部原安全回执。签名token、问题正文和原始IP不入这些表，签名与预算key只用外部引用。相似度与间隔是可选实测列，缺失SQL NULL；禁止用0冒充观测。现策略回执旧表保留，新完整业务回执使用guard_operation_receipts，不手改历史迁移。
 
 同一site/epoch/caller/操作种类/operationId绑定规范输入摘要；管理回执额外绑定账号，服务报告绑定既有caller及请求引用。回执、状态与outbox同一短事务。桶/并发可复用最外层事务，内层不能单独提交。QA问题信号以可信RootOperationID去重，保留最近最多8条10分钟hash/时间信号，不保留问题正文。
+
+
+## 准入持久记录的本轮规则
+
+owner_caller与audience分开：许可行拥有者为qa或localization，audience固定model-gateway仅表示凭证验签目标。consumed_request_id为空时不可签模型token，消费后必须等于原request_id（稳定RootOperationID）。token、访客cookie与sessionId原值不写业务库或幂等回执；回执只存分配引用、结果布尔或原期限。许可捕获原网络current/previous别名，消费/续租/在线验证及新ban撤销按该组别名核对，不接受QA自报替代scope。
+
+策略旧JSON缺qaPerNetworkPerMinute明确按600读取，新更新规范写入600；无需篡改旧迁移或重置策略。网络次数与费用比例互不推导。guard_buckets按动作、会话/网络别名/站点持久化，三层同事务先检查后扣减。

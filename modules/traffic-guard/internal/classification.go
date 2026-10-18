@@ -5,15 +5,14 @@ import (
  "nice-wiki/libs/platform"
 )
 
-type ClassifyActionInput struct { RouteID string }
-type ClassifyActionResult struct { Action string }
+type ClassifyActionInput struct { Action string }
+type ClassifyActionResult struct { Action string;OwnerCaller string;RequiresAIProof bool }
 
-// ClassifyAction 使用生产方OpenAPI已登记的三个匿名动作，不接受浏览器覆盖。
+// ClassifyAction 的动作由portal已登记路由产生；在本域映射拥有者与问答专属保护。
 func ClassifyAction(ctx context.Context,op OperationContext,in ClassifyActionInput)(ClassifyActionResult,error) {
- switch in.RouteID {
- case "qa.createConversation": return ClassifyActionResult{"qa.conversation"},nil
- case "qa.startTurn": return ClassifyActionResult{"qa.ask"},nil
- case "localization.suggestLanguage": return ClassifyActionResult{"localization.suggest"},nil
- default: return ClassifyActionResult{},platform.NewError(platform.CodeValidation,false,"UNKNOWN_ADMISSION_ACTION")
+ switch in.Action {
+ case "qa.conversation","qa.ask":return ClassifyActionResult{Action:in.Action,OwnerCaller:"qa",RequiresAIProof:true},nil
+ case "localization.suggest":return ClassifyActionResult{Action:in.Action,OwnerCaller:"localization",RequiresAIProof:false},nil
+ default:return ClassifyActionResult{},platform.NewError(platform.CodeValidation,false,"UNKNOWN_ADMISSION_ACTION")
  }
 }

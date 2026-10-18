@@ -169,7 +169,8 @@
           "steps": [
             "输入由严格GuardPolicy schema拒绝未知字段，无余额或费用字段",
             "校验主体/站点整数速率、burst≤主体rate与主体/站点并发1..128",
-            "GuardPolicy未提供挑战难度或ban TTL字段，不在此函数捏造额外配置"
+            "GuardPolicy未提供挑战难度或ban TTL字段，不在此函数捏造额外配置",
+            "qaPerNetworkPerMinute兼容可选，缺失规范为600，显式值按站点速率同范围1..100000校验；不推断费用5倍次数关系"
           ],
           "errors": [
             {
@@ -187,6 +188,30 @@
           },
           "concurrency": "纯函数",
           "idempotency": "同 JSON 规范化结果一致",
+          "dependencies": [
+            "traffic-guard.networkPolicyRate"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.networkPolicyRate",
+          "name": "networkPolicyRate",
+          "signature": "func networkPolicyRate(policy GuardPolicy) int",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取已确认兼容网络分钟次数默认600",
+          "steps": [
+            "读取已确认兼容网络分钟次数默认600"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信本域组合调用，继承入口与外层事务保证"
+          },
+          "concurrency": "复用调用方事务；纯函数不检查取消",
+          "idempotency": "继承原根/原记录约束",
           "dependencies": [],
           "resources": [],
           "contract": "reference"
@@ -284,7 +309,8 @@
           "dependencies": [
             "traffic-guard.authorizeGuardManagement",
             "traffic-guard.beginGuardTransaction",
-            "traffic-guard.readGuardPolicy"
+            "traffic-guard.readGuardPolicy",
+            "traffic-guard.guardTransaction.close"
           ],
           "resources": [],
           "contract": "binding"
@@ -382,7 +408,9 @@
             "traffic-guard.beginGuardTransaction",
             "traffic-guard.readGuardReceipt",
             "traffic-guard.saveGuardReceipt",
-            "traffic-guard.enqueueGuardEvent"
+            "traffic-guard.enqueueGuardEvent",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [],
           "contract": "binding"
@@ -827,11 +855,10 @@
           ],
           "purpose": "生成短期匿名风控主体",
           "steps": [
-            "HMAC各独立domain pepper：规范IP IPv4单址IPv6/64得networkKey、有效签名visitorSession得sessionKey",
-            "subjectKey组合",
-            "原始IP/token不落盘",
-            "ban按networkKey不按可换visitorToken",
-            "当期与前期别名保留过渡"
+            "只接受平台入口签名的op.NetworkBudgetScopes，current/previous固定30日、IPv6 /64；缺scope或独立预算key失败关闭，不传原IP",
+            "有效visitorToken经平台VerifyGuardSession核SiteID/dataEpoch和subject/session；预算key与前期key只在可信Runtime提供",
+            "HMAC域分离得到稳定会话/主体scope，网络scope沿原可信别名，匿名未通过时按网络分组限挑战",
+            "本域短事务保存匿名映射及当前/前期别名；不存原始IP或凭证token"
           ],
           "errors": [
             {
@@ -850,11 +877,40 @@
           "concurrency": "pepper 外部密钥容器，30 日轮换同时检查前一 epoch 未过期 ban",
           "idempotency": "同 keyEpoch 同输入同主体",
           "dependencies": [
-            "platform.VerifyGuardSession"
+            "platform.VerifyGuardSession",
+            "platform.PrivateOperationDigest",
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.deriveSessionScopes",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [
             "identity visitor token verifier"
           ],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.deriveSessionScopes",
+          "name": "deriveSessionScopes",
+          "signature": "func deriveSessionScopes(runtime GuardRuntime, site, sessionID, expectedSubject string) (string, string, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "通过独立预算key及保留旧key派生主体/会话scope",
+          "steps": [
+            "通过独立预算key及保留旧key派生主体/会话scope"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信本域组合调用，继承入口与外层事务保证"
+          },
+          "concurrency": "复用调用方事务；纯函数不检查取消",
+          "idempotency": "继承原根/原记录约束",
+          "dependencies": [
+            "platform.PrivateOperationDigest"
+          ],
+          "resources": [],
           "contract": "reference"
         }
       ]
@@ -904,23 +960,15 @@
           ],
           "purpose": "选择可信风控动作",
           "steps": [
-            "只接受固定service.operationId：qa.createConversation→qa.conversation、qa.startTurn→qa.ask、localization.suggestLanguage→localization.suggest",
-            "调用主体来自可信入口，未知routeId拒绝；旧identity.login由独立Begin/Finish登录保护负责，不套用AI许可"
+            "只接受qa.ask、qa.conversation、localization.suggest三种可信入口动作；未知返回VALIDATION",
+            "两个QA动作ownerCaller=qa且执行AI挑战/ban；免费语言提示ownerCaller=localization，仅速率/并发，不创建费用授权"
           ],
           "errors": [
             {
-              "code": "INTERNAL",
-              "condition": "UNKNOWN_ACTION：在步骤中的对应校验或依赖失败",
-              "httpStatus": 500,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
-              "code": "FORBIDDEN",
-              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
-              "httpStatus": 403,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+              "code": "VALIDATION",
+              "condition": "未知固定动作",
+              "httpStatus": 400,
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -1005,7 +1053,8 @@
           "concurrency": "统一事务读取一致 policy revision",
           "idempotency": "只读",
           "dependencies": [
-            "traffic-guard.beginGuardTransaction"
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.guardTransaction.close"
           ],
           "resources": [
             "私有 SQLite"
@@ -1202,10 +1251,11 @@
           ],
           "purpose": "原子扣频率令牌",
           "steps": [
-            "在同一事务读取主体和站点当前桶/已保存策略，cost固定1个纯频率令牌",
-            "补充整数千分令牌；时钟倒退补0且不倒退持久水位",
-            "两层都足够才同时扣并记录同操作原回执，否则两层均不扣并返回最大等待",
-            "复用准入外层事务，后续并发预留失败时整体回滚；不涉及金额或费用"
+            "同一事务读取会话、可信30日网络别名和站点三层桶及已保存策略，cost固定1个频率令牌",
+            "qaPerNetworkPerMinute缺失明确取兼容默认600，与站点默认相同，不采用费用5倍关系",
+            "当前/前期网络别名共同代表同一网络，逐别名检查与扣减保持窗口轮换连续性",
+            "补充整数千分令牌；时钟倒退补0且不倒退持久水位；三层及所有别名均足够才写入，否则全部不扣并返回最大等待",
+            "正结果回执去重；负结果不锁死原请求，复用准入外层事务并发失败整体回滚；没有金额状态"
           ],
           "errors": [
             {
@@ -1237,7 +1287,10 @@
             "traffic-guard.readGuardPolicy",
             "traffic-guard.RefillBucket",
             "traffic-guard.readGuardReceipt",
-            "traffic-guard.saveGuardReceipt"
+            "traffic-guard.saveGuardReceipt",
+            "traffic-guard.networkPolicyRate",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [],
           "contract": "reference"
@@ -1289,9 +1342,10 @@
           ],
           "purpose": "创建持久并发租约",
           "steps": [
-            "同事务清过期 lease",
-            "统计 subject/site active",
-            "限额内插入30s lease及300s hard deadline"
+            "同准入事务核原requestId=op.RootOperationID及已验证主体/原动作；QA owner=qa，免费suggest owner=localization",
+            "只忽略已过期租约统计，按最新policy检查subject/site并发，QA强制每session1及FIFO队头",
+            "插入30秒lease与300秒hard deadline，保存原根/完整scope与网络别名；同根同输入返回原行",
+            "只分配元数据token为空，不赋模型调用权；桶/并发任一步失败整体回滚"
           ],
           "errors": [
             {
@@ -1318,7 +1372,14 @@
           },
           "concurrency": "与 bucket 消耗同最终 admission 事务；失败回滚扣令牌",
           "idempotency": "requestId 唯一返回原 permit",
-          "dependencies": [],
+          "dependencies": [
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readPermitRecord",
+            "traffic-guard.readGuardPolicy",
+            "traffic-guard.ClassifyAction",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
+          ],
           "resources": [
             "私有 SQLite"
           ],
@@ -1364,9 +1425,10 @@
           ],
           "purpose": "延长活跃并发租约",
           "steps": [
-            "验证 actor绑定与 epoch",
-            "重查 ban/最新 policy",
-            "CAS expiresAt=min(now+30s,hardDeadline)，到期必须重新 admission"
+            "核持久ownerCaller及epoch，原QA request必须等于op.RootOperationID，QA必须已消费",
+            "即时重查当前网络AI ban与最新policy并发；free suggest不套AI ban/挑战，不签模型token",
+            "同operationId绑定原admission，重复返回同获准expiry；过期/释放/撤销拒绝，不能复活",
+            "CAS expiresAt=min(now+30s,hardDeadline)，回执只存获准期限不存token；QA随后平台重签同期限，不扣桶/钱"
           ],
           "errors": [
             {
@@ -1402,7 +1464,15 @@
           "idempotency": "同续租 operationId 返回同 expiry",
           "dependencies": [
             "traffic-guard.CheckBan",
-            "traffic-guard.SignPermit"
+            "traffic-guard.SignPermit",
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readPermitRecord",
+            "traffic-guard.readGuardPolicy",
+            "traffic-guard.readGuardReceipt",
+            "traffic-guard.saveGuardReceipt",
+            "traffic-guard.permitMetadata",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [],
           "contract": "binding"
@@ -1476,11 +1546,84 @@
           },
           "concurrency": "release/renew 相同事务序列",
           "idempotency": "重复 released 返回 true",
-          "dependencies": [],
+          "dependencies": [
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readPermitRecord",
+            "traffic-guard.readGuardReceipt",
+            "traffic-guard.saveGuardReceipt",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
+          ],
           "resources": [
             "私有 SQLite"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "traffic-guard.readPermitRecord",
+          "name": "readPermitRecord",
+          "signature": "func readPermitRecord(t *guardTransaction, id string) (permitRecord, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按可信站点/代次读取完整持久许可及捕获网络别名",
+          "steps": [
+            "按可信站点/代次读取完整持久许可及捕获网络别名"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信本域组合调用，继承入口与外层事务保证"
+          },
+          "concurrency": "复用调用方事务；纯函数不检查取消",
+          "idempotency": "继承原根/原记录约束",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.permitMetadata",
+          "name": "permitMetadata",
+          "signature": "func permitMetadata(row permitRecord, epoch string) platform.AdmissionPermit",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只构造空token分配元数据，不产生模型凭证",
+          "steps": [
+            "只构造空token分配元数据，不产生模型凭证"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信本域组合调用，继承入口与外层事务保证"
+          },
+          "concurrency": "复用调用方事务；纯函数不检查取消",
+          "idempotency": "继承原根/原记录约束",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.CheckBan",
+          "name": "CheckBan",
+          "signature": "func CheckBan(t *guardTransaction, networks []string) (bool, int64, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "对原许可网络别名即时核有效AI禁令并取最晚期限",
+          "steps": [
+            "对原许可网络别名即时核有效AI禁令并取最晚期限"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信本域组合调用，继承入口与外层事务保证"
+          },
+          "concurrency": "复用调用方事务；纯函数不检查取消",
+          "idempotency": "继承原根/原记录约束",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -1529,9 +1672,9 @@
           ],
           "purpose": "签名准入凭证",
           "steps": [
-            "绑定服务 audience/动作/epoch/lease ID",
-            "Ed25519 短期签名",
-            "只返回 token 不记日志"
+            "只读取本域同站点/epoch持久lease；QA已consumed_request_id=原root、active且未过期才可签",
+            "完整DTO从持久原subject/session/network/action/root组成，audience固定model-gateway；允许的receipt expiresAt只能早于等于当前获准期限",
+            "只调用平台SignAdmissionPermit，不持久token；免费localization.suggest永不签模型token"
           ],
           "errors": [
             {
@@ -1550,7 +1693,11 @@
           "concurrency": "只读密钥容器与 admission 快照",
           "idempotency": "同 admission 可重复生成等价 token",
           "dependencies": [
-            "platform.SignAdmissionPermit"
+            "platform.SignAdmissionPermit",
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readPermitRecord",
+            "traffic-guard.permitMetadata",
+            "traffic-guard.guardTransaction.close"
           ],
           "resources": [
             "外部签名密钥"
@@ -1597,9 +1744,9 @@
           ],
           "purpose": "消费前验证租约",
           "steps": [
-            "验签/audience/epoch/expiry",
-            "查询 active lease及最新 ban",
-            "匹配 request operation"
+            "仅QA；平台VerifyAdmissionPermit验原token，逐原DTO字段/原RootOperationID/epoch/QA action核对",
+            "查询同站同代active已消费lease及原ownerCaller，旧签名期限只能小于等于持久已获准期限",
+            "核本次lease固有网络别名的当前AI ban；不续租、不扣桶或费用"
           ],
           "errors": [
             {
@@ -1632,9 +1779,12 @@
           "concurrency": "服务在线查询不能只信过期的本地签名状态",
           "idempotency": "只读重复验证",
           "dependencies": [
-            "traffic-guard.GetPolicy",
+            "platform.VerifyAdmissionPermit",
             "traffic-guard.CheckBan",
-            "platform.VerifyAdmissionPermit"
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readPermitRecord",
+            "traffic-guard.permitMetadata",
+            "traffic-guard.guardTransaction.close"
           ],
           "resources": [],
           "contract": "reference"
@@ -1686,14 +1836,11 @@
           ],
           "purpose": "编排频率/挑战/并发",
           "steps": [
-            "可信runtime epoch/maintenance",
-            "首次人机验证session",
-            "按networkKey查10min AI禁令",
-            "检查IP+session频率/重复/规律信号",
-            "model风险由qa已有前置结果回报",
-            "同事务bucket+session1并发lease",
-            "新问题在qa排队不抢掉旧问题",
-            "签permit只准入不预占费用"
+            "原requestId必须等于可信op.RootOperationID；只用本域已验证subject，绑定同根规范输入防重绑",
+            "QA动作查首次/可疑挑战与当前网络AI ban；localization.suggest免费仅速率/并发，不套AI挑战/ban",
+            "同事务双桶+subject/site并发+QA session1/FIFO；失败回滚已扣桶，拒绝可在解除限制后同根重试而不重复计数",
+            "只保存成功分配的原行，拒绝审计按root/原因/策略去重；不隐式创建挑战",
+            "allow返回token为空的持久分配元数据；只有ConsumeAdmission之后平台签名才有模型凭证资格，guard不控制费用"
           ],
           "errors": [
             {
@@ -1735,11 +1882,20 @@
           "concurrency": "每站点事务；没有费用预占",
           "idempotency": "requestId+inputHash 幂等，不同 body 冲突",
           "dependencies": [
-            "site-config:readRuntimeState",
+            "traffic-guard.ClassifyAction",
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readGuardReceipt",
+            "traffic-guard.saveGuardReceipt",
+            "traffic-guard.readGuardPolicy",
+            "traffic-guard.LoadSignals",
             "traffic-guard.ComputeRisk",
             "traffic-guard.ConsumeBuckets",
             "traffic-guard.AcquireConcurrency",
-            "traffic-guard.SignPermit"
+            "traffic-guard.readPermitRecord",
+            "traffic-guard.permitMetadata",
+            "traffic-guard.recordAdmissionDenial",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [],
           "contract": "reference"
@@ -2362,6 +2518,30 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.recordAdmissionDenial",
+          "name": "recordAdmissionDenial",
+          "signature": "func recordAdmissionDenial(t *guardTransaction, request, action, reason string, revision int64, network string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "原根/原因/策略去重，私有匿名计数与安全拒绝事件同事务",
+          "steps": [
+            "原根/原因/策略去重，私有匿名计数与安全拒绝事件同事务"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信本域组合调用，继承入口与外层事务保证"
+          },
+          "concurrency": "复用调用方事务；纯函数不检查取消",
+          "idempotency": "继承原根/原记录约束",
+          "dependencies": [
+            "platform.EnqueueEvent"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2410,10 +2590,10 @@
           ],
           "purpose": "准入 HTTP",
           "steps": [
-            "服务鉴权",
-            "内存 peer 规范化与匿名 hash",
-            "EvaluateAdmission",
-            "输出 permit 或公共 Problem+retryAfter"
+            "仅portal可信服务与签名预算scope；requestId=op.RootOperationID，动作封闭白名单",
+            "DeriveSubject验证通过证明并建立匿名scope，再EvaluateAdmission",
+            "需挑战返回CHALLENGE_REQUIRED/429，不隐式issue；caller沿既有issueChallenge领取nonce",
+            "纯频率/并发RATE_LIMITED，有真实等待值时声明Retry-After；AI ban FORBIDDEN；allow只返回token空的分配元数据"
           ],
           "errors": [
             {
@@ -2424,18 +2604,23 @@
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
             },
             {
-              "code": "RATE_LIMITED",
-              "condition": "RATE_LIMITED：在步骤中的对应校验或依赖失败",
-              "httpStatus": 429,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
               "code": "DEPENDENCY_UNAVAILABLE",
               "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
               "httpStatus": 503,
               "retryable": true,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CHALLENGE_REQUIRED",
+              "condition": "QA需既有人机挑战，未隐式创建挑战",
+              "httpStatus": 429,
+              "retryable": false
+            },
+            {
+              "code": "RATE_LIMITED",
+              "condition": "纯频率或并发已满；仅实际频率等待附Retry-After",
+              "httpStatus": 429,
+              "retryable": true
             }
           ],
           "sideEffects": [
@@ -2449,10 +2634,7 @@
           "idempotency": "requestId 幂等",
           "dependencies": [
             "traffic-guard.EvaluateAdmission",
-            "traffic-guard.DeriveSubject",
-            "traffic-guard.NormalizePeer",
-            "traffic-guard.ClassifyAction",
-            "traffic-guard.LoadSignals"
+            "traffic-guard.DeriveSubject"
           ],
           "resources": [],
           "contract": "binding"
@@ -2550,6 +2732,50 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.admissionRateError.Error",
+          "name": "admissionRateError.Error",
+          "signature": "func (e *admissionRateError) Error() string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "转发公共限流错误文本，不泄漏内部状态",
+          "steps": [
+            "转发公共限流错误文本，不泄漏内部状态"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信本域组合调用，继承入口与外层事务保证"
+          },
+          "concurrency": "复用调用方事务；纯函数不检查取消",
+          "idempotency": "继承原根/原记录约束",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.admissionRateError.Unwrap",
+          "name": "admissionRateError.Unwrap",
+          "signature": "func (e *admissionRateError) Unwrap() error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "保持公共Problem错误码，同时供HTTP提取真实等待时间",
+          "steps": [
+            "保持公共Problem错误码，同时供HTTP提取真实等待时间"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信本域组合调用，继承入口与外层事务保证"
+          },
+          "concurrency": "复用调用方事务；纯函数不检查取消",
+          "idempotency": "继承原根/原记录约束",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -2619,7 +2845,9 @@
           "concurrency": "批次事务；分布多实例通过 SQLite 单写协调",
           "idempotency": "重复 sweep 无新增效果",
           "dependencies": [
-            "traffic-guard.beginGuardTransaction"
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [
             "私有 SQLite"
@@ -2688,7 +2916,9 @@
           "idempotency": "相同时间重扫幂等",
           "dependencies": [
             "traffic-guard.beginGuardTransaction",
-            "traffic-guard.enqueueGuardEvent"
+            "traffic-guard.enqueueGuardEvent",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [
             "私有 SQLite"
@@ -2858,8 +3088,7 @@
           "idempotency": "重复成功不再次授予，返回 CONFLICT",
           "dependencies": [
             "traffic-guard.VerifyPoW",
-            "traffic-guard.VerifyExternalChallenge",
-            "platform.SignGuardSession"
+            "traffic-guard.VerifyExternalChallenge"
           ],
           "resources": [],
           "contract": "binding"
@@ -3173,7 +3402,9 @@
             "traffic-guard.beginGuardTransaction",
             "traffic-guard.readGuardReceipt",
             "traffic-guard.saveGuardReceipt",
-            "traffic-guard.createNetworkBan"
+            "traffic-guard.createNetworkBan",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [],
           "contract": "binding"
@@ -3252,7 +3483,9 @@
             "traffic-guard.beginGuardTransaction",
             "traffic-guard.readGuardReceipt",
             "traffic-guard.saveGuardReceipt",
-            "traffic-guard.enqueueGuardEvent"
+            "traffic-guard.enqueueGuardEvent",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [],
           "contract": "binding"
@@ -3328,7 +3561,8 @@
             "traffic-guard.authorizeGuardManagement",
             "traffic-guard.beginGuardTransaction",
             "platform.SignCursor",
-            "platform.VerifyCursor"
+            "platform.VerifyCursor",
+            "traffic-guard.guardTransaction.close"
           ],
           "resources": [],
           "contract": "binding"
@@ -3704,7 +3938,9 @@
           "concurrency": "500项批事务；active bans/leases禁止删除",
           "idempotency": "重复清理幂等",
           "dependencies": [
-            "traffic-guard.beginGuardTransaction"
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [
             "私有 SQLite"
@@ -4494,7 +4730,9 @@
             "traffic-guard.saveGuardReceipt",
             "traffic-guard.createNetworkBan",
             "traffic-guard.LoadSignals",
-            "traffic-guard.ComputeRisk"
+            "traffic-guard.ComputeRisk",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [],
           "contract": "binding"
@@ -4577,7 +4815,9 @@
           "concurrency": "每session最多10等待，超出429；无问题正文",
           "idempotency": "requestId幂等",
           "dependencies": [
-            "traffic-guard.beginGuardTransaction"
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [
             "qa排队权威"
@@ -4631,10 +4871,10 @@
           ],
           "purpose": "QA绑定准入使用权",
           "steps": [
-            "验签permit audience/action/epoch和activelease",
-            "事务CAS minted→consumedByRequest",
-            "同request重复成功，不同request重用拒409",
-            "不重扣bucket也不扣钱"
+            "仅已认证QA；API无token，不假装验证不存在的proof",
+            "原requestId必须等于可信op.RootOperationID，并匹配持久owner=qa/site/epoch/root/active lease/当前网络ban",
+            "同事务CAS标记consumed_request_id=原root；同root重放不再消费，不同root冲突",
+            "只在消费状态可提交后调用SignPermit签完整QA DTO，提交成功才返回；崩溃重试只重签原获准期限，不扣桶/费用"
           ],
           "errors": [
             {
@@ -4669,8 +4909,12 @@
           "concurrency": "admissionId唯一request绑定，release后禁止再consume",
           "idempotency": "admissionId/requestId幂等",
           "dependencies": [
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readPermitRecord",
+            "traffic-guard.CheckBan",
             "traffic-guard.SignPermit",
-            "traffic-guard.ValidatePermit"
+            "traffic-guard.guardTransaction.close",
+            "traffic-guard.guardTransaction.commit"
           ],
           "resources": [
             "私有lease状态"
@@ -4724,10 +4968,9 @@
           ],
           "purpose": "QA在线确认准入租约",
           "steps": [
-            "服务qa身份",
-            "核admission active/request/epoch和当前networkAIban",
-            "只返回valid/expiry",
-            "model-gateway不调用此API而本地验permit签名"
+            "仅已认证QA；body requestId必须等于可信原RootOperationID",
+            "有可选token时调用ValidatePermit验签并逐字段/持久scope核对；否则只核持久owner/root/epoch/active lease及当前网络AI ban",
+            "只返回当前valid/expiry，不代表创建消费或模型费用授权，MG不反向调用此API"
           ],
           "errors": [
             {
@@ -4753,7 +4996,11 @@
           "concurrency": "只读当前lease；不能把检查缓存为永久授权",
           "idempotency": "GET语义重复安全",
           "dependencies": [
-            "traffic-guard.CheckBan"
+            "traffic-guard.ValidatePermit",
+            "traffic-guard.beginGuardTransaction",
+            "traffic-guard.readPermitRecord",
+            "traffic-guard.CheckBan",
+            "traffic-guard.guardTransaction.close"
           ],
           "resources": [
             "私有SQLite"
@@ -5447,7 +5694,8 @@
             "traffic-guard.authorizeGuardManagement",
             "traffic-guard.beginGuardTransaction",
             "platform.SignCursor",
-            "platform.VerifyCursor"
+            "platform.VerifyCursor",
+            "traffic-guard.guardTransaction.close"
           ],
           "resources": [],
           "contract": "binding"
@@ -5942,7 +6190,15 @@
             "traffic-guard.ListBans",
             "traffic-guard.ListRiskEvents",
             "traffic-guard.ReportQuestionSignals",
-            "traffic-guard.QueueSessionAdmission"
+            "traffic-guard.QueueSessionAdmission",
+            "traffic-guard.WithGuardRuntime",
+            "traffic-guard.HandleAdmission",
+            "traffic-guard.RenewPermit",
+            "traffic-guard.ReleasePermit",
+            "traffic-guard.ConsumeAdmission",
+            "traffic-guard.VerifyAdmissionHTTP",
+            "traffic-guard.admissionRateError.Error",
+            "traffic-guard.admissionRateError.Unwrap"
           ],
           "resources": [],
           "contract": "reference"

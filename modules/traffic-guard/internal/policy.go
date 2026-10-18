@@ -41,14 +41,22 @@ func ValidatePolicy(ctx context.Context, op OperationContext, in ValidatePolicyI
 		!validPolicyRate(in.PolicyJSON.QaBurst, minPolicyRate, maxBurst) ||
 		in.PolicyJSON.QaBurst > in.PolicyJSON.QaPerSubjectPerMinute ||
 		!validPolicyRate(in.PolicyJSON.QaPerSitePerMinute, minPolicyRate, maxSiteRate) ||
+		!validPolicyRate(networkPolicyRate(in.PolicyJSON), minPolicyRate, maxSiteRate) ||
 		!validPolicyRate(in.PolicyJSON.QaSubjectConcurrency, minPolicyConcurrency, maxPolicyConcurrency) ||
 		!validPolicyRate(in.PolicyJSON.QaSiteConcurrency, minPolicyConcurrency, maxPolicyConcurrency) {
 		return ValidatePolicyResult{}, platform.NewError(platform.CodeValidation, false, "风控策略不合法")
 	}
 
-	return ValidatePolicyResult{NormalizedJSON: in.PolicyJSON}, nil
+	normalized := in.PolicyJSON
+	if normalized.QaPerNetworkPerMinute == nil { rate := 600; normalized.QaPerNetworkPerMinute = &rate }
+	return ValidatePolicyResult{NormalizedJSON: normalized}, nil
 }
 
 func validPolicyRate(value, minimum, maximum int) bool {
 	return value >= minimum && value <= maximum
+}
+
+// networkPolicyRate 为旧策略缺失网络次数字段提供已确认的兼容默认，不推断费用比例。
+func networkPolicyRate(policy GuardPolicy) int {
+ if policy.QaPerNetworkPerMinute == nil { return 600 };return *policy.QaPerNetworkPerMinute
 }

@@ -501,6 +501,13 @@
           "type": "boolean",
           "default": false,
           "description": "外部challenge需显式配置密钥引用"
+        },
+        "qaPerNetworkPerMinute": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000,
+          "default": 600,
+          "description": "网络分钟次数上限；兼容可选，旧策略缺失取600，与站点默认一致；费用IP/会话5倍比例不用于次数。"
         }
       },
       "required": [
@@ -1014,11 +1021,6 @@
       "additionalProperties": false,
       "description": "生成短期匿名风控主体输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
-        "peerAddress": {
-          "type": "string",
-          "description": "peerAddress；UTF-8；不得为 null",
-          "maxLength": 8192
-        },
         "visitorToken": {
           "type": "string",
           "description": "visitorToken；UTF-8；不得为 null",
@@ -1036,7 +1038,6 @@
         }
       },
       "required": [
-        "peerAddress",
         "visitorToken",
         "siteId",
         "keyEpoch"
@@ -1062,12 +1063,18 @@
           "type": "string",
           "description": "sessionKey；UTF-8；不得为 null",
           "maxLength": 8192
+        },
+        "sessionId": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "内部已验签会话ID；挑战前匿名主体为空，不作为HTTP凭证返回。"
         }
       },
       "required": [
         "subjectKey",
         "networkKey",
-        "sessionKey"
+        "sessionKey",
+        "sessionId"
       ]
     },
     "ClassifyActionInput": {
@@ -1075,15 +1082,18 @@
       "additionalProperties": false,
       "description": "选择可信风控动作输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
-        "routeId": {
+        "action": {
           "type": "string",
-          "description": "routeId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
+          "enum": [
+            "qa.ask",
+            "qa.conversation",
+            "localization.suggest"
+          ],
+          "description": "可信入口从已登记路由映射出的固定动作。"
         }
       },
       "required": [
-        "routeId"
+        "action"
       ]
     },
     "ClassifyActionResult": {
@@ -1096,10 +1106,22 @@
           "description": "action；UTF-8；不得为 null",
           "maxLength": 2048,
           "minLength": 1
+        },
+        "ownerCaller": {
+          "type": "string",
+          "enum": [
+            "qa",
+            "localization"
+          ]
+        },
+        "requiresAIProof": {
+          "type": "boolean"
         }
       },
       "required": [
-        "action"
+        "action",
+        "ownerCaller",
+        "requiresAIProof"
       ]
     },
     "LoadSignalsInput": {
@@ -1402,7 +1424,7 @@
         },
         "requestId": {
           "type": "string",
-          "description": "requestId；UTF-8；不得为 null",
+          "description": "原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。",
           "maxLength": 128,
           "minLength": 1
         },
@@ -1445,45 +1467,14 @@
       "description": "签名准入凭证输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
         "admissionId": {
-          "type": "string",
-          "description": "admissionId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "requestId": {
-          "type": "string",
-          "description": "requestId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "subjectKey": {
-          "type": "string",
-          "description": "subjectKey；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
-        },
-        "action": {
-          "type": "string",
-          "description": "action；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         },
         "expiresAt": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
-          "description": "RFC3339 UTC 时间；不含 null"
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
         }
       },
       "required": [
-        "admissionId",
-        "requestId",
-        "subjectKey",
-        "action",
-        "expiresAt",
-        "dataEpoch"
+        "admissionId"
       ]
     },
     "SignPermitResult": {
@@ -1495,10 +1486,14 @@
           "type": "string",
           "description": "token；UTF-8；不得为 null",
           "maxLength": 8192
+        },
+        "permit": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit"
         }
       },
       "required": [
-        "token"
+        "token",
+        "permit"
       ]
     },
     "ValidatePermitInput": {
@@ -1524,13 +1519,17 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "requestId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         }
       },
       "required": [
         "token",
         "expectedAction",
         "callerService",
-        "dataEpoch"
+        "dataEpoch",
+        "requestId"
       ]
     },
     "ValidatePermitResult": {
@@ -1547,11 +1546,15 @@
         "valid": {
           "type": "boolean",
           "description": "valid 的明确真假结果，不可 null"
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
         }
       },
       "required": [
         "admissionId",
-        "valid"
+        "valid",
+        "expiresAt"
       ]
     },
     "EvaluateAdmissionInput": {
@@ -1561,7 +1564,7 @@
       "properties": {
         "requestId": {
           "type": "string",
-          "description": "requestId；UTF-8；不得为 null",
+          "description": "原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。",
           "maxLength": 128,
           "minLength": 1
         },
@@ -1598,13 +1601,27 @@
           "type": "string",
           "description": "decision；UTF-8；不得为 null",
           "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "enum": [
+            "allow",
+            "deny",
+            "challenge",
+            "queue"
+          ]
         },
         "admissionId": {
-          "type": "string",
-          "description": "admissionId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "admissionId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "只有对应实际分配时才非null；拒绝不捏造成功许可。"
         },
         "retryAfterMs": {
           "type": "integer",
@@ -1613,17 +1630,46 @@
           "description": "retryAfterMs 非负 int64；不用浮点数"
         },
         "challengeId": {
-          "type": "string",
-          "description": "challengeId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "challengeId；UTF-8；不得为 null",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "只有对应实际分配时才非null；拒绝不捏造成功许可。"
+        },
+        "reasonCode": {
+          "enum": [
+            "",
+            "FORBIDDEN",
+            "RATE_LIMITED",
+            "CHALLENGE_REQUIRED"
+          ]
+        },
+        "permit": {
+          "anyOf": [
+            {
+              "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "allow返回持久分配元数据且token为空，只有消费后签名才是模型凭证。"
         }
       },
       "required": [
         "decision",
         "admissionId",
         "retryAfterMs",
-        "challengeId"
+        "challengeId",
+        "reasonCode",
+        "permit"
       ]
     },
     "HandleAdmissionInput": {
@@ -1633,7 +1679,7 @@
       "properties": {
         "requestId": {
           "type": "string",
-          "description": "requestId；UTF-8；不得为 null",
+          "description": "原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。",
           "maxLength": 128,
           "minLength": 1
         },
@@ -1817,7 +1863,11 @@
           "type": "string",
           "description": "method；UTF-8；不得为 null",
           "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "enum": [
+            "pow",
+            "turnstile"
+          ]
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
@@ -2672,7 +2722,7 @@
         },
         "requestId": {
           "type": "string",
-          "description": "requestId；UTF-8；不得为 null",
+          "description": "原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。",
           "maxLength": 128,
           "minLength": 1
         },
@@ -2725,13 +2775,18 @@
         },
         "requestId": {
           "type": "string",
-          "description": "requestId；UTF-8；不得为 null",
+          "description": "原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。",
           "maxLength": 128,
           "minLength": 1
         },
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "token": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "兼容可选；提供时额外验原签名与逐持久字段核对，永不落盘。"
         }
       },
       "required": [
@@ -2878,7 +2933,7 @@
       "properties": {
         "requestId": {
           "type": "string",
-          "description": "requestId；UTF-8；不得为 null",
+          "description": "原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。",
           "maxLength": 128,
           "minLength": 1
         },
@@ -2929,7 +2984,16 @@
           "type": "string",
           "description": "method；UTF-8；不得为 null",
           "maxLength": 2048,
-          "minLength": 1
+          "minLength": 1,
+          "enum": [
+            "pow",
+            "turnstile"
+          ]
+        },
+        "visitorToken": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "可选原guard会话通过证明；仍需平台验签与本人/epoch匹配，不接自声明actor。"
         }
       },
       "required": [
@@ -2946,6 +3010,11 @@
           "type": "string",
           "description": "proof；UTF-8；不得为 null",
           "maxLength": 8192
+        },
+        "visitorToken": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "可选原guard会话通过证明；仍需平台验签与本人/epoch匹配，不接自声明actor。"
         }
       },
       "required": [
@@ -3040,7 +3109,7 @@
       "properties": {
         "requestId": {
           "type": "string",
-          "description": "requestId；UTF-8；不得为 null",
+          "description": "原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。",
           "maxLength": 128,
           "minLength": 1
         }
@@ -3056,9 +3125,14 @@
       "properties": {
         "requestId": {
           "type": "string",
-          "description": "requestId；UTF-8；不得为 null",
+          "description": "原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。",
           "maxLength": 128,
           "minLength": 1
+        },
+        "token": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "兼容可选；提供时额外验原签名与逐持久字段核对，永不落盘。"
         }
       },
       "required": [
@@ -3769,6 +3843,18 @@
       "x-internal": true,
       "x-go-type": "RiskEvent",
       "description": "本域分页读取的内部Go绑定类型，公开字段以原HTTP结果schema为准。"
+    },
+    "permitRecord": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "permitRecord",
+      "description": "仅本域私有记录或错误，不作为HTTP数据。"
+    },
+    "admissionRateError": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "admissionRateError",
+      "description": "仅本域私有记录或错误，不作为HTTP数据。"
     }
   }
 }

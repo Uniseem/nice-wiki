@@ -4,6 +4,7 @@ import (
  "context"
  "database/sql"
  "errors"
+ "nice-wiki/libs/platform"
 )
 
 type ConsumeBucketsInput struct {
@@ -18,7 +19,7 @@ type ConsumeBucketsResult struct {
  RetryAfterMs int64 `json:"retryAfterMs"`
 }
 
-// ConsumeBuckets 可嵌入准入事务；两个桶及后续并发预留最终一起提交。
+// ConsumeBuckets 可嵌入准入事务；会话、网络与站点三层及并发预留一起提交。
 func ConsumeBuckets(ctx context.Context,op OperationContext,in ConsumeBucketsInput)(ConsumeBucketsResult,error) {
  t,err:=beginGuardTransaction(ctx,op,true)
  if err!=nil { return ConsumeBucketsResult{},err }
@@ -33,6 +34,14 @@ func ConsumeBuckets(ctx context.Context,op OperationContext,in ConsumeBucketsInp
   {key:"subject:"+in.SubjectKey,capacity:int64(policy.QaBurst),rate:int64(policy.QaPerSubjectPerMinute)},
   {key:"site",capacity:int64(policy.QaPerSitePerMinute),rate:int64(policy.QaPerSitePerMinute)},
  }
+ // 当前与前一30日网络别名共同代表同一网络；先全部检查，再同时扣减，轮换不重置额度。
+ rows,err:=t.tx.QueryContext(t.ctx,`SELECT network_key FROM guard_network_aliases WHERE site_id=? AND data_epoch=? AND subject_key=? ORDER BY network_key`,t.site,op.DataEpoch,in.SubjectKey)
+ if err!=nil { return ConsumeBucketsResult{},loginDBError() }
+ networkCount:=0
+ for rows.Next() { var key string;if rows.Scan(&key)!=nil { rows.Close();return ConsumeBucketsResult{},loginDBError() };networkCount++;buckets=append(buckets,bucket{key:"network:"+key,capacity:int64(networkPolicyRate(policy)),rate:int64(networkPolicyRate(policy))}) }
+ rowErr:=rows.Err();rows.Close()
+ if rowErr!=nil { return ConsumeBucketsResult{},loginDBError() }
+ if networkCount==0 { return ConsumeBucketsResult{},platform.NewError(platform.CodeDependencyUnavailable,true,"可信网络次数作用域缺失") }
  required:=in.Cost*1000
  result.Allowed=true
  for i:=range buckets {
@@ -59,7 +68,7 @@ func ConsumeBuckets(ctx context.Context,op OperationContext,in ConsumeBucketsInp
    if err!=nil { return ConsumeBucketsResult{},loginDBError() }
   }
  }
- if err=saveGuardReceipt(t,"buckets.consume",receiptInput,result);err!=nil { return ConsumeBucketsResult{},err }
+ if result.Allowed { if err=saveGuardReceipt(t,"buckets.consume",receiptInput,result);err!=nil { return ConsumeBucketsResult{},err } }
  if err=t.commit();err!=nil { return ConsumeBucketsResult{},err }
  return result,nil
 }

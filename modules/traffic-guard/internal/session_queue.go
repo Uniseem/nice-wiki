@@ -26,7 +26,7 @@ func QueueSessionAdmission(ctx context.Context,op OperationContext,in QueueSessi
   return QueueSessionAdmissionResult{Queued:false,Position:0},nil
  }
  var active,waiting int64
- if t.tx.QueryRowContext(t.ctx,`SELECT COUNT(*) FROM guard_permits WHERE site_id=? AND data_epoch=? AND session_key=? AND state='active' AND expires_at_ns>?`,t.site,op.DataEpoch,in.SessionKey,t.now.UnixNano()).Scan(&active)!=nil { return QueueSessionAdmissionResult{},loginDBError() }
+ if t.tx.QueryRowContext(t.ctx,`SELECT COUNT(*) FROM guard_permits WHERE site_id=? AND data_epoch=? AND session_key=? AND owner_caller='qa' AND state='active' AND expires_at_ns>?`,t.site,op.DataEpoch,in.SessionKey,t.now.UnixNano()).Scan(&active)!=nil { return QueueSessionAdmissionResult{},loginDBError() }
  if t.tx.QueryRowContext(t.ctx,`SELECT COUNT(*) FROM guard_waiters WHERE site_id=? AND data_epoch=? AND session_key=?`,t.site,op.DataEpoch,in.SessionKey).Scan(&waiting)!=nil { return QueueSessionAdmissionResult{},loginDBError() }
  var sequence int64
  err=t.tx.QueryRowContext(t.ctx,`SELECT sequence FROM guard_waiters WHERE site_id=? AND data_epoch=? AND session_key=? AND request_id=?`,t.site,op.DataEpoch,in.SessionKey,in.RequestID).Scan(&sequence)

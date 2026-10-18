@@ -259,6 +259,7 @@ func UpdatePolicy(ctx context.Context,op OperationContext,in UpdatePolicyInput)(
  if in.SiteID!=op.Actor.SiteID||in.DataEpoch!=op.DataEpoch{return UpdatePolicyResult{},platform.NewError(platform.CodeForbidden,false,"策略作用域必须匹配可信站点")}
  if err:=authorizeGuardManagement(ctx,op,"updatePolicy");err!=nil{return UpdatePolicyResult{},err}
  validated,err:=ValidatePolicy(ctx,op,ValidatePolicyInput{in.PolicyJSON});if err!=nil{return UpdatePolicyResult{},err}
+ in.PolicyJSON=validated.NormalizedJSON
  t,err:=beginGuardTransaction(ctx,op,true);if err!=nil{return UpdatePolicyResult{},err};defer t.close()
  var result UpdatePolicyResult;if found,err:=readGuardReceipt(t,"policy.update",in,&result);err!=nil{return UpdatePolicyResult{},err}else if found{return result,nil}
  var revision int64;var epoch string

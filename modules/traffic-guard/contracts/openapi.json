@@ -16,13 +16,13 @@
       "post": {
         "operationId": "createAdmission",
         "summary": "准入 HTTP",
-        "description": "准入返回 AdmissionPermit，需挑战时 RATE_LIMITED+challengeId；body action 白名单",
+        "description": "按可信原RootOperationID分配空token准入元数据；需挑战返回CHALLENGE_REQUIRED，不隐式创建挑战。免费语言提示永不授权模型费用。",
         "x-handler": "traffic-guard.HandleAdmission",
         "x-permission": "service",
         "x-data-epoch-required": true,
         "responses": {
           "200": {
-            "description": "准入返回 AdmissionPermit，需挑战时 RATE_LIMITED+challengeId；body action 白名单",
+            "description": "已分配持久元数据，token为空；只有QA原根后续consume才能签模型凭证",
             "content": {
               "application/json": {
                 "schema": {
@@ -42,11 +42,20 @@
             }
           },
           "429": {
-            "description": "公共错误；RATE_LIMITED",
+            "description": "CHALLENGE_REQUIRED（不可重试，沿既有issueChallenge）或RATE_LIMITED（存在实际频率等待时附Retry-After）",
             "content": {
               "application/problem+json": {
                 "schema": {
                   "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "仅RATE_LIMITED已计算频率等待时给出向上取整秒数；纯并发等待不伪造时长",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
                 }
               }
             }

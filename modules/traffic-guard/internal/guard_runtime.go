@@ -22,6 +22,7 @@ type GuardRuntime struct {
  WriteWindow platform.WriteWindowConfig
  SigningKey platform.SigningKey
  BudgetKey platform.SigningKey
+ PreviousBudgetKeys []platform.SigningKey
  Anchors platform.TrustAnchors
  Jobs *gen.JobsClient
 }
@@ -98,5 +99,5 @@ func readGuardPolicy(t *guardTransaction)(GuardPolicy,int64,error){
  var raw []byte;var revision int64;var epoch string
  err:=t.tx.QueryRowContext(t.ctx,`SELECT policy_json,revision,data_epoch FROM guard_policy WHERE site_id=?`,t.site).Scan(&raw,&revision,&epoch)
  if errors.Is(err,sql.ErrNoRows){return GuardPolicy{},0,platform.NewError(platform.CodeNotFound,false,"当前站点尚未保存风控策略")};if err!=nil{return GuardPolicy{},0,loginDBError()};if epoch!=t.op.DataEpoch{return GuardPolicy{},0,platform.NewError(platform.CodeVersionMismatch,false,"风控策略代次不一致")}
- var policy GuardPolicy;if json.Unmarshal(raw,&policy)!=nil{return GuardPolicy{},0,platform.NewError(platform.CodeIntegrityError,false,"风控策略损坏")};return policy,revision,nil
+ var policy GuardPolicy;if json.Unmarshal(raw,&policy)!=nil{return GuardPolicy{},0,platform.NewError(platform.CodeIntegrityError,false,"风控策略损坏")};if policy.QaPerNetworkPerMinute==nil { rate:=600;policy.QaPerNetworkPerMinute=&rate };return policy,revision,nil
 }
