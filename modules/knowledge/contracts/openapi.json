@@ -2055,6 +2055,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "完整源/费用/预算/CAS或依赖错误；缺事实不截断或伪造零费用",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [],
@@ -2073,7 +2083,8 @@
               }
             }
           }
-        }
+        },
+        "x-timeout-ms": 180000
       }
     },
     "/v1/rebuild-plans/{planId}:approve": {
@@ -2113,6 +2124,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "完整源/费用/预算/CAS或依赖错误；缺事实不截断或伪造零费用",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -2143,7 +2164,8 @@
               }
             }
           }
-        }
+        },
+        "x-timeout-ms": 180000
       }
     },
     "/v1/index-options": {
@@ -2413,6 +2435,12 @@
       },
       "GatewayQueryUsageResult": {
         "$ref": "../../model-gateway/contracts/types.json#/$defs/QueryUsageResult"
+      },
+      "GatewayQuoteCostResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/QuoteCostResult"
+      },
+      "GatewayResolveTaskRouteResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/ResolveRouteResult"
       }
     }
   },
@@ -2444,6 +2472,8 @@
     "GetInvocationResult",
     "LookupInvocationResult",
     "JobsReadJobResult",
-    "GatewayQueryUsageResult"
+    "GatewayQueryUsageResult",
+    "GatewayQuoteCostResult",
+    "GatewayResolveTaskRouteResult"
   ]
 }

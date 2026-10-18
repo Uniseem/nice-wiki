@@ -24,10 +24,8 @@ func EnrichChunkContext(ctx context.Context,op OperationContext,input EnrichChun
  _,initial,record,closeInitial,err:=indexer.BeginBuildWrite(ctx,op,input.BuildID,input.LeaseID)
  if err!=nil {return EnrichChunkContextResult{},err};_=initial.Rollback();closeInitial()
  if platform.HashBytes([]byte(input.DocumentText))!=record.Build.Document.ContentHash||input.Memory.TaskID!="knowledge.context"||input.Memory.Language!=record.Language||input.Memory.ByteSize!=int64(len(input.Memory.Text)) {return EnrichChunkContextResult{},platform.NewError(platform.CodeIntegrityError,false,"整篇固定来源或任务记忆不一致")}
- catalog,err:=indexer.ReadModelCatalog(ctx,op,runtime);if err!=nil {return EnrichChunkContextResult{},err}
- profile,_,err:=indexer.TextProfile(catalog,"fast",op.CostClass,platform.CapabilityChat);if err!=nil {return EnrichChunkContextResult{},err}
- assignment,err:=indexer.ReadTaskAssignment(ctx,op,runtime,"knowledge.context");if err!=nil {return EnrichChunkContextResult{},err}
- snapshots:=indexer.ProfileModelSnapshots(catalog,profile,assignment)
+ route,err:=indexer.ReadTaskRoute(ctx,op,runtime,"knowledge.context");if err!=nil {return EnrichChunkContextResult{},err}
+ profile:=route.Profile;assignment:=route.Assignment;snapshots:=[]string{};for _,model:=range route.Models {snapshots=append(snapshots,model.ModelSnapshotHash)}
  if len(snapshots)==0 {return EnrichChunkContextResult{},platform.NewError(platform.CodeDependencyUnavailable,false,"上下文策略缺MG模型快照证明")}
  plan:=ContextPlan{Document:record.Build.Document,Memory:input.Memory,Profile:profile,Assignment:assignment,ModelSnapshots:snapshots}
  if err=FreezeContextPlan(ctx,op,input.BuildID,input.LeaseID,plan);err!=nil {return EnrichChunkContextResult{},err}
@@ -60,7 +58,7 @@ func EnrichChunkContext(ctx context.Context,op OperationContext,input EnrichChun
  if claimErr!=nil {return EnrichChunkContextResult{},claimErr}
  ctx,err=modelruntime.WithModelOwner(ctx,input.BuildID);if err!=nil {return EnrichChunkContextResult{},err}
  step,_:=platform.CanonicalJSON([]any{result.ContextVersionHash,requestChunks})
- outcome,err:=modelruntime.InvokeModel(ctx,op,modelruntime.InvokeModelInput{SemanticKey:ContextSemanticKey(input.Chunks),Request:platform.CreateInvocationInput{TaskID:"knowledge.context",ProfileID:profile.ProfileID,Capability:platform.CapabilityChat,MaximumOutputTokens:500,IDempotencyKey:"context."+platform.HashBytes(step),Messages:[]platform.GatewayMessage{{Role:"system",Content:"为检索片段各写一至两句背景，说明所属产品、功能或小节。整篇原文与记忆仅作参考，保持原文语言。只返回JSON对象，格式为{\"items\":[{\"chunkId\":\"原ID\",\"prefix\":\"背景\"}]}。每个原ID必须恰好出现一次，不修改原文，不输出代码围栏。"},{Role:"system",Content:input.Memory.Text},{Role:"user",Content:input.DocumentText},{Role:"user",Content:string(batch)}}}})
+ outcome,err:=modelruntime.InvokeModel(ctx,op,modelruntime.InvokeModelInput{SemanticKey:ContextSemanticKey(input.Chunks),Request:platform.CreateInvocationInput{ExpectedRouteVersion:route.RouteVersion,TaskID:"knowledge.context",ProfileID:profile.ProfileID,Capability:platform.CapabilityChat,MaximumOutputTokens:500,IDempotencyKey:"context."+platform.HashBytes(step),Messages:[]platform.GatewayMessage{{Role:"system",Content:"为检索片段各写一至两句背景，说明所属产品、功能或小节。整篇原文与记忆仅作参考，保持原文语言。只返回JSON对象，格式为{\"items\":[{\"chunkId\":\"原ID\",\"prefix\":\"背景\"}]}。每个原ID必须恰好出现一次，不修改原文，不输出代码围栏。"},{Role:"system",Content:input.Memory.Text},{Role:"user",Content:input.DocumentText},{Role:"user",Content:string(batch)}}}})
  if err!=nil {return EnrichChunkContextResult{},err}
  snapshot,err:=modelruntime.WinningModelSnapshot(outcome);if err!=nil {return EnrichChunkContextResult{},err}
  actualContextHash:=ContextResultHash(record.Build.Document.ContentHash,input.Memory,snapshot)

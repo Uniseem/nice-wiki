@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { ModuleAPIClient } from "../../../../../libs/platform/web/module-api";
 import type { operations } from "../gen/api.gen";
+export type RebuildPlan = operations["estimateRebuildPlan"]["responses"][200]["content"]["application/json"];
 type ConfigResult = operations["readIndexConfig"]["responses"][200]["content"]["application/json"];
 export type IndexConfig = ConfigResult["config"];
 export type IndexOptions = operations["readIndexOptions"]["responses"][200]["content"]["application/json"];
@@ -25,6 +26,8 @@ import EditView from "./EditView.vue";
 const props = defineProps<{ client: ModuleAPIClient }>();
 const overview = ref<LoadAdminOverviewResult>();
 const loading = ref(false); const failure = ref(""); const notice = ref(""); const editing = ref(false);
+const rebuildPlan = ref<RebuildPlan>(); const rebuildConsent = ref(false); const quotePending = ref(false);
+let estimateKey: string | undefined;
 const documentID = ref(""); const force = ref(false); const consent = ref(false); const busy = ref(false);
 let controller: AbortController | undefined;
 let disposed = false;
@@ -65,7 +68,34 @@ async function cancelBuild(buildId: string): Promise<void> {
  } catch (error) { if (!disposed) failure.value = safeCode(error); }
  finally { if (!disposed) busy.value = false; }
 }
-function afterSave(): void { editing.value = false; notice.value = "索引配置已保存。已有索引保持服务，重建需单独提交。"; void refresh(); }
+function formatQuoteMoney(value: { currency: string; micros: number } | undefined): string {
+ if (!value || !Number.isSafeInteger(value.micros) || value.micros < 0) return "金额超出浏览器精确显示范围，请重新核对权威报价";
+ return `${Math.floor(value.micros / 1000000)}.${String(value.micros % 1000000).padStart(6, "0")} 美元`;
+}
+async function estimateRebuild(): Promise<void> {
+ if (busy.value || !overview.value?.config?.enabled) return;
+ busy.value = true; quotePending.value = true; failure.value = ""; rebuildConsent.value = false;
+ estimateKey ??= crypto.randomUUID();
+ try {
+  const result = await props.client.request<RebuildPlan>("/v1/rebuild-plans", { method: "POST", body: { reason: "manual" }, idempotencyKey: estimateKey, signal: controller?.signal });
+  if (disposed) return;
+  rebuildPlan.value = result; estimateKey = undefined;
+ } catch (error) { if (!disposed) failure.value = safeCode(error); }
+ finally { if (!disposed) { busy.value = false; quotePending.value = false; } }
+}
+async function approveRebuild(): Promise<void> {
+ const plan = rebuildPlan.value;
+ if (!plan || busy.value || !rebuildConsent.value || Date.parse(plan.expiresAt) <= Date.now()) return;
+ if (plan.quote.pricingKnown && (!plan.quote.maximumCost || !Number.isSafeInteger(plan.quote.maximumCost.micros))) { failure.value = "BUDGET_EXCEEDED"; return; }
+ busy.value = true; failure.value = "";
+ try {
+  const result = await props.client.request<{ buildJobs: number }>(`/v1/rebuild-plans/${encodeURIComponent(plan.planId)}:approve`, { method: "POST", body: { planId: plan.planId, quoteHash: plan.quoteHash }, idempotencyKey: `knowledge.approve.${plan.planId}`, signal: controller?.signal });
+  if (disposed) return;
+  notice.value = `已接收 ${result.buildJobs} 个构建任务，旧索引会保留到新代数核验并启用。`; rebuildConsent.value = false; rebuildPlan.value = undefined; await refresh();
+ } catch (error) { if (!disposed) { failure.value = safeCode(error); if (["CONFLICT", "VALIDATION", "VERSION_MISMATCH"].includes(failure.value)) rebuildConsent.value = false; } }
+ finally { if (!disposed) busy.value = false; }
+}
+function afterSave(): void { rebuildPlan.value = undefined; rebuildConsent.value = false; editing.value = false; notice.value = "索引配置已保存。已有索引保持服务，重建需单独提交。"; void refresh(); }
 onMounted(() => { void refresh(); });
 onBeforeUnmount(() => { disposed = true; controller?.abort(); });
 </script>
@@ -86,6 +116,20 @@ onBeforeUnmount(() => { disposed = true; controller?.abort(); });
      <label class="knowledge-check"><input v-model="force" type="checkbox" :disabled="busy">重新构建同一发布版本</label><label class="knowledge-check"><input v-model="consent" type="checkbox" :disabled="busy">我确认提交此构建，可能产生后台模型费用</label>
      <button type="submit" :disabled="busy || !consent || !documentID || !overview.config?.enabled">{{ busy ? '提交中…' : '提交构建' }}</button>
     </form>
+   </section>
+   <section class="knowledge-card"><h2>全量重建</h2>
+    <p>先读取真实发布修订和报价，再明确批准。估价本身不会调用模型；新代数启用前保留当前索引。</p>
+    <button :disabled="busy || !overview.config?.enabled" @click="estimateRebuild">{{ quotePending ? '正在估价…' : '重新估算全量费用' }}</button>
+    <template v-if="rebuildPlan">
+     <p>{{ rebuildPlan.documentCount }} 篇文档；{{ rebuildPlan.chunkCountKnown ? '待生成向量分块' : '已知材料待生成向量分块' }} {{ rebuildPlan.chunkCount }} 个。</p>
+     <p v-if="!rebuildPlan.chunkCountKnown">部分资源文字尚未生成，完整分块数及费用上限未知。</p>
+     <p>{{ rebuildPlan.quote.pricingKnown ? `最大估价：${formatQuoteMoney(rebuildPlan.quote.maximumCost)}` : '总费用上限未知，不以零费用表示。' }}</p>
+     <p v-if="rebuildPlan.quote.warning" role="status">{{ rebuildPlan.quote.warning }}</p>
+     <details v-if="rebuildPlan.quote.components.length"><summary>查看真实报价分项</summary><ul><li v-for="item in rebuildPlan.quote.components" :key="`${item.taskId}:${item.modelId}`">{{ item.taskId }} · {{ item.modelId }} · 已知材料 {{ item.quantity }} 次 · 单次 {{ item.quote.pricingKnown ? formatQuoteMoney(item.quote.maximumCost) : '价格未知' }}</li></ul></details>
+     <p>计划有效期至 {{ new Date(rebuildPlan.expiresAt).toLocaleString('zh-CN') }}。源修订或配置等发生变化时需要重新估价。</p>
+     <label class="knowledge-check"><input v-model="rebuildConsent" type="checkbox" :disabled="busy">我已核对估价{{ rebuildPlan.quote.pricingKnown ? '' : '及未知费用提示' }}，批准后台模型费用并创建全量构建任务</label>
+     <button :disabled="busy || !rebuildConsent" @click="approveRebuild">批准此重建计划</button>
+    </template>
    </section>
    <section class="knowledge-card"><h2>构建记录</h2><p v-if="overview.builds.builds.length === 0">尚无构建记录。</p>
     <div v-else class="knowledge-table-wrap"><table><thead><tr><th>文档</th><th>代数</th><th>状态</th><th>分块进度</th><th>操作</th></tr></thead><tbody><tr v-for="build in overview.builds.builds" :key="build.buildId"><td>{{ overview.options.documents.find(item => item.documentId === build.document.documentId)?.title || build.document.documentId }}</td><td>{{ build.generation }}</td><td>{{ stateLabels[build.state] || build.state }}<span v-if="build.failureCode"> · {{ build.failureCode }}</span></td><td>{{ build.completedChunks }} / {{ build.totalChunks }}</td><td><button v-if="!['active','cancelled','failed','superseded'].includes(build.state)" :disabled="busy" @click="cancelBuild(build.buildId)">取消</button></td></tr></tbody></table></div>

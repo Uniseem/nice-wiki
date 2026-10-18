@@ -27,12 +27,12 @@ func ExecuteExtraction(ctx context.Context,op OperationContext,input JobExecutio
  if runtime.Content==nil||runtime.ValidatePublicationResult==nil {return JobExecutionResult{},platform.NewError(platform.CodeDependencyUnavailable,false,"提取发布权威未装配")}
  if _,_,err=indexer.ValidatePublication(ctx,op,runtime.Content,runtime.ValidatePublicationResult,payload.Source.Block.Document);err!=nil {return JobExecutionResult{},err}
  if err=CheckExtractionPlan(ctx,op,payload);err!=nil {return JobExecutionResult{},err}
- ctx,err=modelruntime.WithModelLease(ctx,input.CheckLease);if err!=nil {return JobExecutionResult{},err}
+ ctx,err=modelruntime.WithModelLease(ctx,func(work context.Context)error{if err:=input.CheckLease(work);err!=nil {return err};return CheckExtractionPlan(work,op,payload)});if err!=nil {return JobExecutionResult{},err}
  ctx=context.WithValue(ctx,extractionPlanKey{},payload.Plan)
  asset:=platform.AssetRef{AssetID:payload.Source.Asset.AssetID,SHA256:payload.Source.Asset.SHA256,MediaType:payload.Source.Asset.MediaType,ByteSize:payload.Source.Asset.ByteSize}
  leaseID:=indexer.ExecutionLeaseID(input.JobID,input.FencingToken)
  artifact:=ExtractionArtifact{Extraction:Extraction{ExtractionID:payload.ExtractionID,Asset:&asset,SourceBlock:&payload.Source.Block,ExtractorVersion:payload.Plan.ExtractorVersion,State:"unsupported"},Pages:[]PDFPage{}}
- switch asset.MediaType {
+ if payload.Source.Supported {switch asset.MediaType {
  case "application/pdf":value,err:=ExtractPdfText(ctx,op,ExtractPdfTextInput{ExtractionID:payload.ExtractionID,Asset:asset,Source:payload.Source,LeaseID:leaseID});if err!=nil {return JobExecutionResult{},err};artifact.Extraction=value.Extraction;artifact.Pages=value.Pages
  case "image/png","image/jpeg","image/webp","image/gif":value,err:=ExtractImageDescription(ctx,op,ExtractImageDescriptionInput{ExtractionID:payload.ExtractionID,Asset:asset,Source:payload.Source,Memory:payload.Plan.Memory,LeaseID:leaseID});if err!=nil {return JobExecutionResult{},err};artifact.Extraction=value.Extraction
  case "text/plain","text/markdown","text/csv","application/json":value,err:=DescribeAttachment(ctx,op,DescribeAttachmentInput{ExtractionID:payload.ExtractionID,Asset:asset,Source:payload.Source,Memory:payload.Plan.Memory,LeaseID:leaseID});if err!=nil {return JobExecutionResult{},err};artifact.Extraction=value.Extraction
@@ -43,7 +43,7 @@ func ExecuteExtraction(ctx context.Context,op OperationContext,input JobExecutio
   value,err:=ExtractVideoMetadata(ctx,op,ExtractVideoMetadataInput{ExtractionID:payload.ExtractionID,Document:payload.Source.Block.Document,Source:string(body),BlockID:payload.Source.Block.BlockId});if err!=nil {return JobExecutionResult{},err};artifact.Extraction=value.Extraction
 
  // 已确认无字幕的视频与未声明格式不自动转写、OCR或调用未批准模型。
- }
+ }}
  if artifact.Extraction.Text!=nil&&strings.TrimSpace(*artifact.Extraction.Text)=="" {return JobExecutionResult{},platform.NewError(platform.CodeIntegrityError,false,"提取成功没有真实文字")}
  if err=input.CheckLease(ctx);err!=nil {return JobExecutionResult{},err}
  work,tx,cancel,err:=indexer.BeginIndexWrite(ctx,op);if err!=nil {return JobExecutionResult{},err};defer cancel();defer tx.Rollback()
@@ -67,6 +67,7 @@ func CheckExtractionPlan(ctx context.Context,op OperationContext,payload Extract
  if err=runtime.DB.QueryRowContext(ctx,`SELECT count(*) FROM model_steps WHERE site_id=? AND data_epoch=? AND owner_id=? AND dispatch_started=1`,op.Actor.SiteID,op.DataEpoch,payload.ExtractionID).Scan(&steps);err!=nil {return platform.NormalizeIOError(err,platform.CodeInternal,false,"原提取模型阶段不可读")}
  if steps>0 {return nil}
  current,err:=PrepareExtractionPlan(ctx,op,payload.Source,payload.Plan.ExtractorVersion,payload.Plan.Memory.Language);if err!=nil {return err}
+ current.ExpectedPriceSnapshots=payload.Plan.ExpectedPriceSnapshots;current.PriceQuotes=payload.Plan.PriceQuotes
  oldRaw,_:=platform.CanonicalJSON(payload.Plan);newRaw,_:=platform.CanonicalJSON(current)
  if string(oldRaw)!=string(newRaw) {return platform.NewError(platform.CodeConflict,false,"原提取批准计划已变化，不能以新模型绕过原owner")};return nil
 }

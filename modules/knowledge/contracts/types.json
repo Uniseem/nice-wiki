@@ -3363,11 +3363,11 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9223372036854775807,
-          "description": "预计分块数（扣除可复用向量）"
+          "description": "已知材料真实BPE分块扣实际可复用向量数；chunkCountKnown=false不声称完整总数"
         },
         "quote": {
-          "$ref": "../../model-gateway/contracts/types.json#/$defs/QuoteCostResult",
-          "description": "网关保守估价"
+          "$ref": "#/$defs/RebuildQuote",
+          "description": "真实多任务/多候选分项报价；任何总上限未知则省略maximumCost"
         },
         "quoteHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
@@ -3376,6 +3376,10 @@
         "expiresAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
           "description": "过期时间"
+        },
+        "chunkCountKnown": {
+          "type": "boolean",
+          "description": "未生成的资源文字使完整分块数未知时false；chunkCount仍为已知材料扣实际可复用向量后的数量"
         }
       },
       "required": [
@@ -3384,7 +3388,8 @@
         "chunkCount",
         "quote",
         "quoteHash",
-        "expiresAt"
+        "expiresAt",
+        "chunkCountKnown"
       ]
     },
     "ApproveRebuildPlanInput": {
@@ -3941,6 +3946,78 @@
         "observedAt"
       ],
       "description": "仅内部原键时点未接受观察，绝不证明永久零费或批准新owner；dispatch_started仍1"
+    },
+    "RebuildQuoteComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "modelId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "该真实声明模型完整输入窗口上界，非伪造分词计数"
+        },
+        "maximumOutputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "quote": {
+          "$ref": "../../model-gateway/contracts/types.json#/$defs/QuoteCostResult"
+        }
+      },
+      "required": [
+        "taskId",
+        "modelId",
+        "quantity",
+        "inputTokens",
+        "maximumOutputTokens",
+        "quote"
+      ],
+      "description": "固定声明主备用/任务覆盖候选的真实整数报价；总计覆盖每个潜在收费候选，不表示均会派发"
+    },
+    "RebuildQuote": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pricingKnown": {
+          "type": "boolean"
+        },
+        "maximumCost": {
+          "$ref": "#/$defs/Money",
+          "description": "全部分块数和真实分项最大费已知时才提供；整数micros求和，未知不0"
+        },
+        "warning": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "components": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/RebuildQuoteComponent"
+          }
+        }
+      },
+      "required": [
+        "pricingKnown",
+        "components"
+      ],
+      "description": "真实多组件费用计划，不冒充单一PriceSnapshot；未产资源文字或缺价使总上限未知"
     }
   }
 }

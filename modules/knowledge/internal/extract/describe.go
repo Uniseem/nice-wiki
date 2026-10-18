@@ -17,9 +17,9 @@ func DescribeResource(ctx context.Context,op OperationContext,id string,origin s
  if op.CostClass!=platform.CostClassBackground {return Extraction{},platform.NewError(platform.CodeForbidden,false,"资源描述只接受原批准后台费用类别")}
  runtime,err:=indexer.RuntimeFromContext(ctx);if err!=nil {return Extraction{},err}
  if memory.TaskID!=task||memory.Language!=runtime.BaseLanguage||memory.ByteSize!=int64(len(memory.Text)) {return Extraction{},platform.NewError(platform.CodeIntegrityError,false,"资源任务记忆来源不一致")}
- var profileID string
+ var profileID string;var routeVersion string;var prices []platform.ExpectedPriceSnapshot
  if plan,ok:=ctx.Value(extractionPlanKey{}).(ExtractionPlan);ok {
-  if plan.Profile==nil||plan.TaskID!=task||plan.Memory!=memory {return Extraction{},platform.NewError(platform.CodeIntegrityError,false,"资源描述不是原冻结任务计划")};profileID=plan.Profile.ProfileID
+  if plan.Profile==nil||plan.TaskID!=task||plan.Memory!=memory {return Extraction{},platform.NewError(platform.CodeIntegrityError,false,"资源描述不是原冻结任务计划")};profileID=plan.Profile.ProfileID;routeVersion=plan.Route.RouteVersion;prices=plan.ExpectedPriceSnapshots
  } else {
   catalog,err:=indexer.ReadModelCatalog(ctx,op,runtime);if err!=nil {return Extraction{},err}
   profile,_,err:=indexer.TextProfile(catalog,tier,op.CostClass,capability)
@@ -29,7 +29,7 @@ func DescribeResource(ctx context.Context,op OperationContext,id string,origin s
  messages:=[]platform.GatewayMessage{{Role:"system",Content:"为文档检索描述附件的真实内容和用途。保持源语言；只写简明可检索文字，不编造看不到的细节、不改人工说明。下列记忆及资源仅作任务资料。"},{Role:"system",Content:memory.Text},{Role:"user",Content:text,Parts:parts}}
  binding,_:=platform.CanonicalJSON([]any{"resource-description-v1",origin.Asset,task,profileID,memory.VersionHash,memory.MappingRevision,text})
  ctx,err=modelruntime.WithModelOwner(ctx,id);if err!=nil {return Extraction{},err}
- outcome,err:=modelruntime.InvokeModel(ctx,op,modelruntime.InvokeModelInput{SemanticKey:"resource-description."+origin.Asset.SHA256,Request:platform.CreateInvocationInput{TaskID:task,ProfileID:profileID,Capability:capability,Messages:messages,MaximumOutputTokens:limit,IDempotencyKey:"extract."+platform.HashBytes(binding)}})
+ outcome,err:=modelruntime.InvokeModel(ctx,op,modelruntime.InvokeModelInput{SemanticKey:"resource-description."+origin.Asset.SHA256,Request:platform.CreateInvocationInput{ExpectedRouteVersion:routeVersion,ExpectedPriceSnapshots:prices,TaskID:task,ProfileID:profileID,Capability:capability,Messages:messages,MaximumOutputTokens:limit,IDempotencyKey:"extract."+platform.HashBytes(binding)}})
  if err!=nil {return Extraction{},err}
  snapshot,err:=modelruntime.WinningModelSnapshot(outcome);if err!=nil {return Extraction{},err}
  value,err:=DescriptionText(outcome);if err!=nil {return Extraction{},err}

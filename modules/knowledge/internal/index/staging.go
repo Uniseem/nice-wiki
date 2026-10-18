@@ -38,7 +38,7 @@ func NewIndexRuntime(runtime Runtime) (Runtime, error) {
 	}
 	runtime.ValidatePublicationResult = validator
  runtime.Validators=map[string]func(json.RawMessage)error{}
- for _,name:=range []string{"MemoryResolveContextResult","GatewayReadModelsResult","GatewayReadProfilesResult","GatewayReadTaskAssignmentsResult","GatewayTokenizeTextResult","JobsReadJobResult","JobsCreateJobResult","JobsCancelJobResult","JobsAcknowledgeEventResult","ContentReadPublishedRevisionResult","ContentReadPublicTreeResult","MediaReadAssetResult","PublicationChangedPayload","PublicationWithdrawnPayload"} {
+ for _,name:=range []string{"MemoryResolveContextResult","GatewayReadModelsResult","GatewayReadProfilesResult","GatewayReadTaskAssignmentsResult","GatewayTokenizeTextResult","GatewayQuoteCostResult","GatewayResolveTaskRouteResult","JobsReadJobResult","JobsCreateJobResult","JobsCancelJobResult","JobsAcknowledgeEventResult","ContentReadPublishedRevisionResult","ContentReadPublicTreeResult","MediaReadAssetResult","PublicationChangedPayload","PublicationWithdrawnPayload"} {
   validate,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),name)
   if err!=nil { return Runtime{},err };runtime.Validators[name]=validate
  }

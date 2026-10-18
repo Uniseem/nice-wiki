@@ -27,10 +27,14 @@ func ExecuteBuild(ctx context.Context,op OperationContext,input JobExecutionInpu
  var payload BuildJobInput
  if json.Unmarshal(execution.Input,&payload)!=nil||payload.BuildID!=execution.ObjectID||payload.Document.DataEpoch!=op.DataEpoch {return JobExecutionResult{},platform.NewError(platform.CodeIntegrityError,false,"原构建完整任务输入损坏")}
  if input.CheckLease==nil {return JobExecutionResult{},platform.NewError(platform.CodeDependencyUnavailable,false,"原构建缺权威租约检查")}
- ctx,err=modelruntime.WithModelLease(ctx,input.CheckLease);if err!=nil {return JobExecutionResult{},err}
+ var approval RebuildPolicy
+ approved,err:=ReadBuildPlan(ctx,op,payload.BuildID,"rebuild_approval",&approval);if err!=nil {return JobExecutionResult{},err}
+ if approved {ctx,err=modelruntime.WithModelExpectations(ctx,map[string]modelruntime.ModelExpectation{"knowledge.embed":{RouteVersion:approval.Embedding.RouteVersion,Prices:approval.Embedding.Prices},"knowledge.context":{RouteVersion:approval.Context.RouteVersion,Prices:approval.Context.Prices}});if err!=nil {return JobExecutionResult{},err}}
+ ctx,err=modelruntime.WithModelLease(ctx,func(work context.Context)error{if err:=input.CheckLease(work);err!=nil {return err};return CheckRebuildApproval(work,op,payload.BuildID,payload.Config)});if err!=nil {return JobExecutionResult{},err}
  leaseID:=indexer.ExecutionLeaseID(input.JobID,input.FencingToken)
  if err=input.CheckLease(ctx);err!=nil {return JobExecutionResult{},err}
  if err=SetBuildStage(ctx,op,payload.BuildID,leaseID,"fetching");err!=nil {return JobExecutionResult{},err}
+ if err=CheckRebuildApproval(ctx,op,payload.BuildID,payload.Config);err!=nil {return JobExecutionResult{},err}
  content,err:=source.FetchPublishedSource(ctx,op,source.FetchPublishedSourceInput{BuildID:payload.BuildID,LeaseID:leaseID});if err!=nil {return JobExecutionResult{},err}
  if utf8.RuneCountInString(content.Source)>65536 {return JobExecutionResult{},platform.NewError(platform.CodeBudgetExceeded,false,"完整发布上下文超过固定消息预算，保留旧索引及原结果")}
  runtime,err:=indexer.RuntimeFromContext(ctx);if err!=nil {return JobExecutionResult{},err}
@@ -94,7 +98,11 @@ func PrepareBuildChunks(ctx context.Context,op OperationContext,payload BuildJob
  for _,origin:=range assets.Sources {
   asset:=platform.AssetRef{AssetID:origin.Asset.AssetID,SHA256:origin.Asset.SHA256,MediaType:origin.Asset.MediaType,ByteSize:origin.Asset.ByteSize}
   version:="resource-description-v1";if asset.MediaType=="application/pdf" {version=extract.PDFExtractorVersion};if asset.MediaType=="video/mp4"||asset.MediaType=="video/webm" {version="video-published-metadata-v1"}
-  accepted,err:=extract.CreateExtraction(ctx,op,extract.CreateExtractionInput{BuildID:payload.BuildID,LeaseID:leaseID,Asset:asset,Source:origin,ExtractorVersion:version,IDempotencyKey:"source."+platform.HashBytes([]byte(origin.Block.BlockId+asset.SHA256))});if err!=nil {return nil,err}
+  var approved *extract.ExtractionPlan
+  var policy RebuildPolicy
+  hasApproval,err:=ReadBuildPlan(ctx,op,payload.BuildID,"rebuild_approval",&policy);if err!=nil {return nil,err}
+  if hasApproval {for _,resource:=range policy.Resources {if resource.Source==origin {saved:=resource.Plan;approved=&saved;break}};if approved==nil&&origin.Supported {return nil,platform.NewError(platform.CodeConflict,false,"资源不在全量重建原明批计划内")}}
+  accepted,err:=extract.CreateExtraction(ctx,op,extract.CreateExtractionInput{ApprovedPlan:approved,BuildID:payload.BuildID,LeaseID:leaseID,Asset:asset,Source:origin,ExtractorVersion:version,IDempotencyKey:"source."+platform.HashBytes([]byte(origin.Block.BlockId+asset.SHA256))});if err!=nil {return nil,err}
   // 此等待不领取孩子，也不建立本地续租；专用extract平台worker负责独立执行。
   var artifact extract.ExtractionArtifact
   for {

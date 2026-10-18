@@ -26,6 +26,7 @@ type ModelRuntime struct {
  ValidateUsage func(json.RawMessage)error
  DB *sql.DB
  WriteWindow platform.WriteWindowConfig
+ Expectations map[string]ModelExpectation
  OwnerID string
  BeforeDispatch func(context.Context)error
 	Gateway         platform.GatewayClient
@@ -66,7 +67,8 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 	if op.CostClass == platform.CostClassQA {
 		input.Request.AdmissionPermit = runtime.AdmissionPermit
 	}
-	semantic:=input.SemanticKey;if semantic=="" {semantic=input.Request.IDempotencyKey}
+	if expected,ok:=runtime.Expectations[input.Request.TaskID];ok {input.Request.ExpectedRouteVersion=expected.RouteVersion;input.Request.ExpectedPriceSnapshots=expected.Prices}
+ semantic:=input.SemanticKey;if semantic=="" {semantic=input.Request.IDempotencyKey}
  key := "knowledge." + platform.HashBytes([]byte(op.OperationID+":"+semantic))
 	key,original,found,err:=BeginModelStep(ctx,op,runtime,key,semantic,input.Request)
  if err!=nil {return InvokeModelResult{},err};if found {return original,nil}

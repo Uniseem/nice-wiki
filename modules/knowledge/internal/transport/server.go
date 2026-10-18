@@ -29,6 +29,8 @@ import (
 // bind 由服务装配注入存储、网关、基准配置及签名器；缺失的操作不伪造占位。
 func NewOperationHandlers(bind func(context.Context) context.Context) map[string]http.Handler {
 	return map[string]http.Handler{
+ "estimateRebuildPlan":jsonOperation(bind,build.EstimateRebuildPlan,http.StatusOK),
+ "approveRebuildPlan":http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){ctx,op,err:=operationContext(r,bind);if err!=nil {writeResult(w,op,nil,err,http.StatusOK);return};var input build.ApproveRebuildPlanInput;if json.NewDecoder(r.Body).Decode(&input)!=nil||input.PlanId!=r.PathValue("planId") {writeResult(w,op,nil,platform.NewError(platform.CodeValidation,false,"重建批准路径与正文不一致"),http.StatusOK);return};result,err:=build.ApproveRebuildPlan(ctx,op,input);writeResult(w,op,result,err,http.StatusOK)}),
  "readJobRecovery":http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){ctx,op,err:=operationContext(r,bind);if err!=nil {writeResult(w,op,nil,err,http.StatusOK);return};var input domainruntime.ReadJobRecoveryInput;if json.NewDecoder(r.Body).Decode(&input)!=nil||input.JobID!=r.PathValue("jobId") {writeResult(w,op,nil,platform.NewError(platform.CodeValidation,false,"恢复路径与原任务不一致"),http.StatusOK);return};result,err:=domainruntime.ReadJobRecovery(ctx,op,input);writeResult(w,op,result,err,http.StatusOK)}),
   "readIndexOptions":http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){ctx,op,err:=operationContext(r,bind);if err!=nil {writeResult(w,op,nil,err,http.StatusOK);return};result,err:=admin.ReadIndexOptions(ctx,op,admin.ReadIndexOptionsInput{});writeResult(w,op,result,err,http.StatusOK)}),
   "putIndexConfig":jsonOperation(bind,indexconfig.PutIndexConfig,http.StatusOK),

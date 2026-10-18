@@ -1066,7 +1066,10 @@
             "2 按asset hash/extractorVersion去重",
             "3 记录来源授权",
             "4 排队独立租约",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+            "新build全量明批资源计划传入只内部非序列化ApprovedPlan；当前计划不匹配CONFLICT，已有关联同build仍先返回原owner",
+            "意图改为稳定asset hash/MIME/size/task/extractor语义（不含可变记忆/模型），旧计划hash行回找最早真实owner再CAS建立语义索引；不同计划未终局拒新付费",
+            "优先复用合法缓存或免费恢复原完整paid描述；只jobs真终局且完整原root费用无未决、无缺接受ID已外发、当前无可用完整结果时，新明批build可CAS替换意图新owner；原任务/paid输出/关联全部保留"
           ],
           "errors": [
             {
@@ -1124,7 +1127,9 @@
             "knowledge.SameAsset",
             "knowledge.ReadExtraction",
             "knowledge.PrepareExtractionPlan",
-            "knowledge.DispatchExtraction"
+            "knowledge.DispatchExtraction",
+            "knowledge.InspectFailedExtraction",
+            "knowledge.SaveRecoveredExtraction"
           ],
           "resources": [],
           "contract": "reference"
@@ -1137,7 +1142,8 @@
           "outputs": [],
           "purpose": "首次冻结任务记忆/档位/覆盖/opaque声明；PDF免费解析、视频只原元数据、未知明确unsupported",
           "steps": [
-            "首次冻结任务记忆/档位/覆盖/opaque声明；PDF免费解析、视频只原元数据、未知明确unsupported"
+            "首次冻结任务记忆/档位/覆盖/opaque声明；PDF免费解析、视频只原元数据、未知明确unsupported",
+            "真实MG resolveTaskRoute返回档位/赋值/eligible候选/routeVersion和opaque模型hash，禁止本域手拼主备用；估价价格快照仅原全量明批注入，不重估"
           ],
           "errors": [],
           "sideEffects": [],
@@ -1150,10 +1156,7 @@
           "dependencies": [
             "knowledge.RuntimeFromContext",
             "knowledge.ResolveTaskMemory",
-            "knowledge.ReadModelCatalog",
-            "knowledge.TextProfile",
-            "knowledge.ReadTaskAssignment",
-            "knowledge.ProfileModelSnapshots"
+            "knowledge.ReadTaskRoute"
           ],
           "resources": [],
           "contract": "reference"
@@ -1978,7 +1981,9 @@
           "steps": [
             "按精确Go签名处理已校验输入和可信依赖",
             "具体分支、固定参数与共同规则见本域data及实现注释",
-            "实际装配严格MG profiles/models、jobs创建/取消及content源正文/发布事件运行载荷validator，缺生产schema启动失败"
+            "实际装配严格MG profiles/models、jobs创建/取消及content源正文/发布事件运行载荷validator，缺生产schema启动失败",
+            "严格GatewayQuoteCostResult生产schema用于真实全量费用分项，不本域复制价格计算",
+            "严格GatewayResolveTaskRouteResult alias依生产方ResolveRouteResult，所有本域候选来自同一快照"
           ],
           "errors": [
             {
@@ -6958,7 +6963,8 @@
           "purpose": "加载本域后台概览",
           "steps": [
             "调用portal apiClient并行读真实配置/公开树模型选项/构建分页，配置NOT_FOUND只表示未配置，其他故障向页面反馈",
-            "导航/刷新先取消旧请求，卸载停止控制器，过时响应不更新UI；只显示服务端真实状态，无成功或费用推断"
+            "导航/刷新先取消旧请求，卸载停止控制器，过时响应不更新UI；只显示服务端真实状态，无成功或费用推断",
+            "Overview页面接全量免费估价与逐分项/未知提示，明确勾选后提交原planId/quoteHash批准；原回执/冲突和卸载取消保留"
           ],
           "errors": [
             {
@@ -7139,6 +7145,76 @@
           "dependencies": [
             "knowledge.refresh"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.estimateRebuild",
+          "name": "estimateRebuild",
+          "signature": "async function estimateRebuild(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "管理员免费估价，真实分项/未知数量与总价提示、原幂等键和卸载取消，不提交付费",
+          "steps": [
+            "管理员免费估价，真实分项/未知数量与总价提示、原幂等键和卸载取消，不提交付费"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只消费原已授权任务权威声明，不扩模型付费批准"
+          },
+          "concurrency": "锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有",
+          "idempotency": "原hash/key/op/root/route和价格快照保留，未知不换owner",
+          "dependencies": [
+            "knowledge.EstimateRebuildPlan"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.approveRebuild",
+          "name": "approveRebuild",
+          "signature": "async function approveRebuild(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "明确勾选后按原planId/quoteHash提交批准，过期/冲突保持原输入并要求重估，不自动明批unknown",
+          "steps": [
+            "明确勾选后按原planId/quoteHash提交批准，过期/冲突保持原输入并要求重估，不自动明批unknown"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只消费原已授权任务权威声明，不扩模型付费批准"
+          },
+          "concurrency": "锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有",
+          "idempotency": "原hash/key/op/root/route和价格快照保留，未知不换owner",
+          "dependencies": [
+            "knowledge.ApproveRebuildPlan"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.formatQuoteMoney",
+          "name": "formatQuoteMoney",
+          "signature": "function formatQuoteMoney(value: { currency: string; micros: number } | undefined): string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "仅安全整数显示精确六位美元，超浏览器精确范围不伪造金额",
+          "steps": [
+            "仅安全整数显示精确六位美元，超浏览器精确范围不伪造金额"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只消费原已授权任务权威声明，不扩模型付费批准"
+          },
+          "concurrency": "锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有",
+          "idempotency": "原hash/key/op/root/route和价格快照保留，未知不换owner",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -7389,8 +7465,6 @@
           "dependencies": [
             "knowledge.RuntimeFromContext",
             "knowledge.BeginBuildWrite",
-            "knowledge.ReadModelCatalog",
-            "knowledge.TextProfile",
             "knowledge.WithModelOwner",
             "knowledge.InvokeModel",
             "knowledge.ReadContextPrefixes",
@@ -7398,10 +7472,9 @@
             "knowledge.ClaimContextIntents",
             "knowledge.ContextSemanticKey",
             "knowledge.FreezeContextPlan",
-            "knowledge.ReadTaskAssignment",
-            "knowledge.ProfileModelSnapshots",
             "knowledge.ContextResultHash",
-            "knowledge.WinningModelSnapshot"
+            "knowledge.WinningModelSnapshot",
+            "knowledge.ReadTaskRoute"
           ],
           "resources": [],
           "contract": "reference"
@@ -8799,7 +8872,9 @@
             "knowledge.CreateBuild",
             "knowledge.CancelBuild",
             "knowledge.ReadJobRecovery",
-            "knowledge.ReadIndexOptions"
+            "knowledge.ReadIndexOptions",
+            "knowledge.EstimateRebuildPlan",
+            "knowledge.ApproveRebuildPlan"
           ],
           "resources": [],
           "contract": "reference"
@@ -9229,7 +9304,8 @@
             "返回前完整终态及hash持久；网络/取消/崩溃未知保留dispatching/running及原key，后续仅原MG幂等键找回，不换操作或重扣",
             "内部非序列化SemanticKey来自原chunk/batch/资源阶段身份，不能包含可变配置本身；原MG key/op在本域持久，Root内独立QA查询以规范查询身份区分",
             "平台返回错误也保留实际InvocationID/CurrentSnapshot；短控制窗口只保存原观察；已保留完整结果不因新观察缺失而丢失，原费用未知仍由MG对账",
-            "本域原意图先prepared（dispatch_started=0），真实租约门禁后、平台RPC前原子转dispatching/1；旧记录默认1保守unknown，不能用无InvocationID推零费用"
+            "本域原意图先prepared（dispatch_started=0），真实租约门禁后、平台RPC前原子转dispatching/1；旧记录默认1保守unknown，不能用无InvocationID推零费用",
+            "原全量明批ModelExpectation按task注入expectedRouteVersion/expectedPriceSnapshots，并纳入稳定原请求hash/去凭据DTO；任一版本漂移MG原子拒绝，不自动重估或新owner"
           ],
           "errors": [
             {
@@ -9735,7 +9811,9 @@
             "knowledge.ValidateBuild",
             "knowledge.ActivateBuild",
             "knowledge.CheckEmbeddingPlan",
-            "knowledge.FinishExecutionFailure"
+            "knowledge.FinishExecutionFailure",
+            "knowledge.CheckRebuildApproval",
+            "knowledge.WithModelExpectations"
           ],
           "resources": [],
           "contract": "binding"
@@ -9767,7 +9845,8 @@
             "knowledge.BindExtractionViews",
             "knowledge.BuildMaterialBlocks",
             "knowledge.SplitChunks",
-            "knowledge.ReadExtractionJobState"
+            "knowledge.ReadExtractionJobState",
+            "knowledge.ReadBuildPlan"
           ],
           "resources": [],
           "contract": "reference"
@@ -9855,10 +9934,10 @@
           ],
           "purpose": "全量重建前估算费用",
           "steps": [
-            "knowledge.manage；content:readPublicTree列出已发布文档",
-            "按当前分块配置估算分块数，扣除同chunkHash/空间可复用向量与描述",
-            "model-gateway:quoteCost估算knowledge.embed、knowledge.context与描述任务费用；缺价保留price_unknown",
-            "保存计划（文档修订集合、quoteHash、24小时过期），不调用模型"
+            "即时knowledge.manage；免费读取完整当前公开树及固定正文/hash/真实BPE，源/策略16MiB、256文档/4096真实分块预算超限失败不截断",
+            "冻结完整空间/主备用覆盖候选/任务记忆；核真实资源、背景和向量缓存后扣实际复用；未产资源文字明确chunkCountKnown=false",
+            "逐真实模型固定输入窗口保守QuoteCost，真实整数分项汇总；缺价或完整数量未知则pricingKnown=false、省maximumCost并给warning，不以0代替",
+            "不调用模型/不建资源或paid意图；当前配置版本CAS后保存固定来源集合、真实策略/报价hash和24小时有效期，原operation回放原结果"
           ],
           "errors": [
             {
@@ -9882,8 +9961,11 @@
           "concurrency": "只读快照或CAS",
           "idempotency": "读取幂等；写入按operationId",
           "dependencies": [
-            "content:readPublicTree",
-            "model-gateway:quoteCost"
+            "knowledge.AuthorizeAdmin",
+            "knowledge.RuntimeFromContext",
+            "knowledge.PrepareRebuildSnapshot",
+            "knowledge.BeginIndexWrite",
+            "knowledge.ReadConfig"
           ],
           "resources": [],
           "contract": "binding"
@@ -9940,9 +10022,10 @@
           ],
           "purpose": "批准估价后创建全量重建任务",
           "steps": [
-            "计划未过期且quoteHash一致",
-            "为计划内每篇文档CreateBuild（force新generation，保留旧active直到新代数激活）",
-            "记录批准人与估价"
+            "即时knowledge.manage和可信background，核本站同代原管理员、未过期计划与quoteHash；已批准同输入只回原回执",
+            "锁外重新核完整源/配置/模型/记忆/报价/缓存集合不漂移，当前配置及原批准状态再CAS",
+            "一个安全写事务中为完整原集合QueueBuild(force=true)，保存各构建原明批策略、批准人/root/时点和完整任务ID回执；任一失败全部回滚",
+            "事务后只派发已提交原任务，未知保持久意图恢复；旧active保留至新代数真正核验/激活，不自动新批准"
           ],
           "errors": [
             {
@@ -9966,10 +10049,224 @@
           "concurrency": "只读快照或CAS",
           "idempotency": "读取幂等；写入按operationId",
           "dependencies": [
-            "knowledge.CreateBuild"
+            "knowledge.AuthorizeAdmin",
+            "knowledge.RuntimeFromContext",
+            "knowledge.PrepareRebuildSnapshot",
+            "knowledge.BeginIndexWrite",
+            "knowledge.ReadConfig",
+            "knowledge.QueueBuild",
+            "knowledge.DispatchBuild"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "knowledge.ReadRebuildDocuments",
+          "name": "ReadRebuildDocuments",
+          "signature": "func ReadRebuildDocuments(ctx context.Context,op OperationContext,runtime indexer.Runtime)([]gen.PublishedRevisionRef,int64,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "严格公开树生产schema取完整真实发布修订/树水位，最多256文档超预算失败不截断",
+          "steps": [
+            "严格公开树生产schema取完整真实发布修订/树水位，最多256文档超预算失败不截断"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [
+            "content:readPublicTree"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.PrepareRebuildPolicy",
+          "name": "PrepareRebuildPolicy",
+          "signature": "func PrepareRebuildPolicy(ctx context.Context,op OperationContext,runtime indexer.Runtime,config gen.IndexConfig,resources []source.AssetSource)(RebuildPolicy,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "冻结原完整空间、嵌入/上下文/各资源任务记忆和真实声明策略，估价不创建模型或资源意图",
+          "steps": [
+            "嵌入、上下文、资源均以MG免费resolveTaskRoute真实eligible候选/routeVersion为准，不手拼主备用或任务覆盖；嵌入档位及每候选完整空间必须匹配配置",
+            "冻结真实任务记忆与完整候选opaque快照；估价不建任何paid/资源意图"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [
+            "knowledge.ReadTaskRoute",
+            "knowledge.ResolveTaskMemory",
+            "knowledge.PrepareExtractionPlan"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.CheckRebuildApproval",
+          "name": "CheckRebuildApproval",
+          "signature": "func CheckRebuildApproval(ctx context.Context,op OperationContext,buildID string,config gen.IndexConfig)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "每次可能付费前重核原明批模型/任务/记忆；当前漂移CONFLICT，不换key或延批准，正常单篇无全量记录",
+          "steps": [
+            "每次可能付费前重核原明批模型/任务/记忆；当前漂移CONFLICT，不换key或延批准，正常单篇无全量记录",
+            "客户端重读只诊断策略漂移；真正付费Create必须携原expectedRouteVersion和逐候选expectedPriceSnapshots，MG事务内整路由/价格CAS，包含disabled→enabled变化；绝不拿客户端预读冒原子CAS"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [
+            "knowledge.ReadBuildPlan",
+            "knowledge.RuntimeFromContext",
+            "knowledge.PrepareRebuildPolicy"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.AddRebuildQuoteRoute",
+          "name": "AddRebuildQuoteRoute",
+          "signature": "func AddRebuildQuoteRoute(components map[string]*RebuildQuoteComponent,route RebuildRoute,quantity,output int64)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按真实固定模型窗口与已知数量聚合各任务候选，最多256完整分项且整数溢出失败关闭",
+          "steps": [
+            "按真实固定模型窗口与已知数量聚合各任务候选，最多256完整分项且整数溢出失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.QuoteRebuildComponents",
+          "name": "QuoteRebuildComponents",
+          "signature": "func QuoteRebuildComponents(ctx context.Context,op OperationContext,runtime indexer.Runtime,components map[string]*RebuildQuoteComponent,countKnown bool)(RebuildQuote,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "严格MG报价生产schema逐真实模型报价并整数汇总；任一缺价或未来材料未知则总pricingKnown=false且省maximumCost，保全部真实分项",
+          "steps": [
+            "只消费本次已冻结的真实逐候选QuoteCost回执，严格生产schema核对后做整数求和；缺价或完整材料数量未知则pricingKnown=false且省最大费，不构造单一PriceSnapshot"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.PrepareRebuildSnapshot",
+          "name": "PrepareRebuildSnapshot",
+          "signature": "func PrepareRebuildSnapshot(ctx context.Context,op OperationContext,reason string)(RebuildSnapshot,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "免费固定正文/BPE/已付费背景和向量缓存，已知材料扣真实复用；未产资源文字chunkCountKnown=false且总上限未知，不调AI凑价；完整源/策略16MiB、真实分块4096预算不截断",
+          "steps": [
+            "免费固定正文/BPE/已付费背景和向量缓存，已知材料扣真实复用；未产资源文字chunkCountKnown=false且总上限未知，不调AI凑价；完整源/策略16MiB、真实分块4096预算不截断"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [
+            "knowledge.RuntimeFromContext",
+            "knowledge.ReadConfig",
+            "knowledge.ReadRebuildDocuments",
+            "knowledge.ReadRebuildSource",
+            "knowledge.ListExtractableAssets",
+            "knowledge.PrepareRebuildPolicy",
+            "knowledge.BuildSourceBlocks",
+            "knowledge.ReadRebuildExtractionCache",
+            "knowledge.BuildMaterialBlocks",
+            "knowledge.SplitChunks",
+            "knowledge.ReadRebuildCachedContext",
+            "knowledge.HasRebuildVector",
+            "knowledge.AddRebuildQuoteRoute",
+            "knowledge.QuoteRebuildComponents",
+            "knowledge.FreezeRebuildRoutePrices"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.ReadRebuildSource",
+          "name": "ReadRebuildSource",
+          "signature": "func ReadRebuildSource(ctx context.Context,op OperationContext,runtime indexer.Runtime,document gen.PublishedRevisionRef)([]byte,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "严格真实固定发布正文16MiB/hash，必需整篇上下文超过65536字符失败关闭不截断",
+          "steps": [
+            "严格真实固定发布正文16MiB/hash，必需整篇上下文超过65536字符失败关闭不截断"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [
+            "content:readPublishedRevision"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.FreezeRebuildRoutePrices",
+          "name": "FreezeRebuildRoutePrices",
+          "signature": "func FreezeRebuildRoutePrices(ctx context.Context,op OperationContext,runtime indexer.Runtime,route *RebuildRoute,output int64)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "逐权威eligible候选免费QuoteCost、核实际PriceSnapshot模型ID，冻结expectedPriceSnapshots及完整原报价；未来材料未知仍不虚构数量或总价",
+          "steps": [
+            "逐权威eligible候选免费QuoteCost、核实际PriceSnapshot模型ID，冻结expectedPriceSnapshots及完整原报价；未来材料未知仍不虚构数量或总价"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只消费原已授权任务权威声明，不扩模型付费批准"
+          },
+          "concurrency": "锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有",
+          "idempotency": "原hash/key/op/root/route和价格快照保留，未知不换owner",
+          "dependencies": [
+            "model-gateway:quoteCost"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -11055,7 +11352,8 @@
           "outputs": [],
           "purpose": "只原批准background任务/对应记忆/配置档位/真实资源消息；模型原结果持久，机器描述不改人工caption",
           "steps": [
-            "只原批准background任务/对应记忆/配置档位/真实资源消息；模型原结果持久，机器描述不改人工caption"
+            "只原批准background任务/对应记忆/配置档位/真实资源消息；模型原结果持久，机器描述不改人工caption",
+            "全量明批资源计划显式携原routeVersion/expectedPriceSnapshots；普通资源使用MG真实免费路由版本，原key重放不改期望"
           ],
           "errors": [],
           "sideEffects": [],
@@ -11977,7 +12275,8 @@
             "PDF公共隔离runner真实提取，图片真实视觉，文本附件完整描述，上传视频只原可信正文元数据；未声明格式/无文字unsupported，无自动OCR/字幕/URL重抓",
             "新付费前通过WithModelLease回核jobs；原owner/稳定语义/原记忆档位/key找回，unknown绝不新owner或换配置重算",
             "核当前镜像fence/lease/cancel与原计划，提取结果/hash/实际模型证明和最终JobExecutionResult同事务；人工caption不动",
-            "错误边界持久当前原fence真实failure_code/state并保完整已知paid refs；如果最终业务已原子完成则只重交真实成功结果，不覆盖；控制元数据窗口不延长原批准"
+            "错误边界持久当前原fence真实failure_code/state并保完整已知paid refs；如果最终业务已原子完成则只重交真实成功结果，不覆盖；控制元数据窗口不延长原批准",
+            "来源明确unsupported时直接真实unsupported，不下载超限资源或调用模型；真实模型付费前再次CheckExtractionPlan原声明，已外发仅原key观察"
           ],
           "errors": [
             {
@@ -12469,6 +12768,220 @@
       "kind": "handwritten",
       "purpose": "只背景原DTO、独立最新真实观察与专用未接受时点证明，QA正文和许可不持久",
       "functions": []
+    },
+    {
+      "path": "modules/knowledge/internal/extract/cache.go",
+      "kind": "handwritten",
+      "purpose": "稳定资源语义拥有者、免费恢复原paid输出与新明批失败意图安全替换",
+      "functions": [
+        {
+          "id": "knowledge.InspectFailedExtraction",
+          "name": "InspectFailedExtraction",
+          "signature": "func InspectFailedExtraction(ctx context.Context,op OperationContext,buildID,intentKey string,origin source.AssetSource,plan ExtractionPlan)(FailedExtractionResolution,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "新明确批准build先只读观察原paid完整输出并核真实winner/原记忆计划；同build永远原owner；无可用输出仅jobs真终局及完整原root费用证明才允许CAS新owner；无ID已外发（含时点未接受）禁止换owner",
+          "steps": [
+            "新明确批准build先只读观察原paid完整输出并核真实winner/原记忆计划；同build永远原owner；无可用输出仅jobs真终局及完整原root费用证明才允许CAS新owner；无ID已外发（含时点未接受）禁止换owner",
+            "旧source/plan必须与ApprovedJobInput完整原inputRef hash一致；新memory/route不能改变稳定资源意图，合法完整paid输出可免费复用，即使仍费用unknown；不同计划未终局CONFLICT"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [
+            "knowledge.RuntimeFromContext",
+            "knowledge.ObserveOwnerModelSteps",
+            "knowledge.HasCompleteResult",
+            "knowledge.WinningModelSnapshot",
+            "knowledge.DescriptionText",
+            "knowledge.ReadExtractionJobState",
+            "knowledge.ApprovedJobInput",
+            "knowledge.RootFeesFinal"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.SaveRecoveredExtraction",
+          "name": "SaveRecoveredExtraction",
+          "signature": "func SaveRecoveredExtraction(ctx context.Context,tx *sql.Tx,op OperationContext,resolution FailedExtractionResolution)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只保存原完整paid输出hash证明的免费派生artifact；原失败任务、MG费用和execution_records不改，不伪造旧jobs完成回执",
+          "steps": [
+            "只保存原完整paid输出hash证明的免费派生artifact；原失败任务、MG费用和execution_records不改，不伪造旧jobs完成回执"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/knowledge/internal/build/rebuild_cache.go",
+      "kind": "handwritten",
+      "purpose": "估价只读真实原资源/背景/向量缓存，不创建意图或任务",
+      "functions": [
+        {
+          "id": "knowledge.ReadRebuildExtractionCache",
+          "name": "ReadRebuildExtractionCache",
+          "signature": "func ReadRebuildExtractionCache(ctx context.Context,op OperationContext,runtime indexer.Runtime,resource RebuildResourcePlan)(extract.ExtractionArtifact,bool,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只按原asset/任务记忆/提取器与当前模型真实snapshot读合法缓存，缺失保持未知材料",
+          "steps": [
+            "只按原asset/任务记忆/提取器与当前模型真实snapshot读合法缓存，缺失保持未知材料"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.ReadRebuildCachedContext",
+          "name": "ReadRebuildCachedContext",
+          "signature": "func ReadRebuildCachedContext(ctx context.Context,op OperationContext,runtime indexer.Runtime,document gen.PublishedRevisionRef,route RebuildRoute,value gen.Chunk)(gen.Chunk,bool,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "按真实完整源/记忆/模型/原片段身份读取已付费前缀，核hash后派生检索文字",
+          "steps": [
+            "按真实完整源/记忆/模型/原片段身份读取已付费前缀，核hash后派生检索文字"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [
+            "knowledge.ContextResultHash",
+            "knowledge.ContextSourceKey"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.HasRebuildVector",
+          "name": "HasRebuildVector",
+          "signature": "func HasRebuildVector(ctx context.Context,op OperationContext,runtime indexer.Runtime,target gen.Chunk,space gen.EmbeddingSpace)(bool,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只有完整检索文字和完整空间均一致且真实向量维度/hash合法才扣可复用数量",
+          "steps": [
+            "只有完整检索文字和完整空间均一致且真实向量维度/hash合法才扣可复用数量"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅真实已授权本域流程组合；纯估价不调用模型，原未知不批准新owner"
+          },
+          "concurrency": "SQL快照锁外读取权威，写入当前安全窗口与原scope/CAS；不复制平台机制",
+          "idempotency": "原输入/hash/owner/key不变；已付费结果保留，重复返回真实原回执",
+          "dependencies": [
+            "knowledge.RetrievalText",
+            "knowledge.DecodeVector"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/knowledge/migrations/012_recovered_extraction_results.sql",
+      "kind": "handwritten",
+      "purpose": "原paid完整输出免费恢复独立证据，保留原失败任务和费用",
+      "functions": []
+    },
+    {
+      "path": "modules/knowledge/migrations/013_rebuild_plans.sql",
+      "kind": "handwritten",
+      "purpose": "真实全量估价快照与24小时批准、创建任务回执同事务",
+      "functions": []
+    },
+    {
+      "path": "modules/knowledge/internal/index/route.go",
+      "kind": "handwritten",
+      "purpose": "严格MG resolveTaskRoute同快照resolved/candidates/routeVersion和候选modelSnapshotHash/embeddingSpace，不复制筛选/覆盖/快照hash算法",
+      "functions": [
+        {
+          "id": "knowledge.ReadTaskRoute",
+          "name": "ReadTaskRoute",
+          "signature": "func ReadTaskRoute(ctx context.Context,op OperationContext,runtime Runtime,taskID string)(TaskRoute,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "严格MG resolveTaskRoute同快照resolved/candidates/routeVersion和候选modelSnapshotHash/embeddingSpace，不复制筛选/覆盖/快照hash算法",
+          "steps": [
+            "严格MG resolveTaskRoute同快照resolved/candidates/routeVersion和候选modelSnapshotHash/embeddingSpace，不复制筛选/覆盖/快照hash算法"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只消费原已授权任务权威声明，不扩模型付费批准"
+          },
+          "concurrency": "锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有",
+          "idempotency": "原hash/key/op/root/route和价格快照保留，未知不换owner",
+          "dependencies": [
+            "model-gateway:resolveTaskRoute"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/knowledge/internal/model/expectation.go",
+      "kind": "handwritten",
+      "purpose": "只绑定原明确批准opaque路由和逐真实候选价格快照，接受事务CAS由MG统一拥有",
+      "functions": [
+        {
+          "id": "knowledge.WithModelExpectations",
+          "name": "WithModelExpectations",
+          "signature": "func WithModelExpectations(ctx context.Context,expectations map[string]ModelExpectation)(context.Context,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只绑定原明确批准opaque路由和逐真实候选价格快照，接受事务CAS由MG统一拥有",
+          "steps": [
+            "只绑定原明确批准opaque路由和逐真实候选价格快照，接受事务CAS由MG统一拥有"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "只消费原已授权任务权威声明，不扩模型付费批准"
+          },
+          "concurrency": "锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有",
+          "idempotency": "原hash/key/op/root/route和价格快照保留，未知不换owner",
+          "dependencies": [
+            "knowledge.WithModelRuntime"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
     }
   ],
   "jobHandlers": {
