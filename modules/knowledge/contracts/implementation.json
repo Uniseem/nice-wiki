@@ -9287,7 +9287,8 @@
           "steps": [
             "按精确Go签名处理已校验输入和可信依赖",
             "具体分支、固定参数与共同规则见本域data及实现注释",
-            "NewGatewayClient严格生产校验器五项：CreateInvocationResult/CancelInvocationResult/StreamEvent/GetInvocationResult/LookupInvocationResult；原key只读观察经公共客户端，不复制HTTP/SSE机制"
+            "NewGatewayClient严格生产校验器五项：CreateInvocationResult/CancelInvocationResult/StreamEvent/GetInvocationResult/LookupInvocationResult；原key只读观察经公共客户端，不复制HTTP/SSE机制",
+            "严格GatewayQueryUsageResult生产schema用于恢复完整根费用终局证明"
           ],
           "errors": [
             {
@@ -10721,7 +10722,8 @@
             "旧空semantic记录仅在原op与完整原请求hash相同时绑定原MG key；其他旧阶段不能证明则拒新付费，保留引用和原结果",
             "unknown没有真实完整结果时仅原key再观察，不永久冻结为终态；有真实完整结果保留使用，费用仍由MG持有未知预留",
             "只已知failed/cancelled或完整completed本地结果直接复用；running/pending/unknown（即使有ID）经平台原key只读观察，不能永远返回不完整旧unknown",
-            "全新稳定语义准备状态prepared/dispatch_started0只证明尚未进行RPC；不覆盖旧dispatching/unknown。实际外发标记由MarkModelDispatch在真实租约门禁后提交"
+            "全新稳定语义准备状态prepared/dispatch_started0只证明尚未进行RPC；不覆盖旧dispatching/unknown。实际外发标记由MarkModelDispatch在真实租约门禁后提交",
+            "仅background且明确owner首次prepared/0时冻结完整去凭据原Create DTO，实际RPC字段使用持久resolved key；QA正文/permit永不持久；重放原语义输入漂移CONFLICT"
           ],
           "errors": [],
           "sideEffects": [
@@ -10776,7 +10778,8 @@
           "steps": [
             "完整所有终态原结果≤16MiB及hash保存，拒不同原结果，不重算费用未知",
             "原unknown观察可推进，已完整有效原输出不可覆盖，对账须保持原winning快照；不是新attempt",
-            "不完整原观察可推进到同ID真实新观察；已经完整paid输出按winner opaque hash及真实完整Text/结构Output核不变，原结果字节保留；最新真实费用终态仅投影state，不伪造费用或事件"
+            "不完整原观察可推进到同ID真实新观察；已经完整paid输出按winner opaque hash及真实完整Text/结构Output核不变，原结果字节保留；最新真实费用终态仅投影state，不伪造费用或事件",
+            "完整paid输出字节/hash不可变；最新真实CurrentSnapshot观察另列/hash保存，费用state由真实Invocation和全部attempt投影，不能用Outcome.completed当结算"
           ],
           "errors": [],
           "sideEffects": [
@@ -10793,7 +10796,8 @@
             "knowledge.HasCompleteResult",
             "knowledge.WinningModelSnapshot",
             "knowledge.CompletedText",
-            "knowledge.CompletedOutput"
+            "knowledge.CompletedOutput",
+            "knowledge.ModelObservationState"
           ],
           "resources": [],
           "contract": "reference"
@@ -10830,7 +10834,8 @@
           "outputs": [],
           "purpose": "真实租约门禁后、平台RPC前持久原模型外发事实，旧未知不按无ID当零费",
           "steps": [
-            "真实租约门禁后、平台RPC前持久原模型外发事实，旧未知不按无ID当零费"
+            "真实租约门禁后、平台RPC前持久原模型外发事实，旧未知不按无ID当零费",
+            "同原key再次继续时清除旧时点负证明，dispatch_started保持1，不伪装从未外发"
           ],
           "errors": [],
           "sideEffects": [],
@@ -11179,6 +11184,28 @@
           "dependencies": [
             "knowledge.HasCompleteResult"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.ModelObservationState",
+          "name": "ModelObservationState",
+          "signature": "func ModelObservationState(outcome InvokeModelResult)string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只从真实Invocation及每个attempt投影费用副作用状态，Outcome.completed仅表示完整结果可消费",
+          "steps": [
+            "只从真实Invocation及每个attempt投影费用副作用状态，Outcome.completed仅表示完整结果可消费"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅原已授权结果内部纯投影"
+          },
+          "concurrency": "真实固定对象纯计算",
+          "idempotency": "相同真实对象相同输出",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -11647,11 +11674,12 @@
           "outputs": [],
           "purpose": "只jobs服务核原完整来源及失效租约后给completed/safeToRetry/pending/unknown真实证明",
           "steps": [
-            "完整inputRef/root/epoch/job/worker/expiredFence/attempt/cancel事实逐项核持久来源，未知不是安全证明",
-            "completed只返回本域最终事务不可变ResultRef和非null完整PaidResultRefs；退役索引回收不删除该证明",
-            "workflowVersion1、原批准截止仍有效、原模型结果全已知终态且完整hash证明、子任务均已完成/取消时才safeToRetry，继续原job/key/阶段计划；取消写资格已关同样条件则由jobs沿原cancel终止。未执行还须无执行/模型/子任务/分块事实",
-            "其余到期或未知模型/子任务一律pending，缺原来源unknown；不从不存在的信息推零费用或新批准",
-            "仅dispatch_started=0的prepared原步骤可证明从未RPC；已尝试外发与全部旧记录保守视为可能收费，缺ID不视零费"
+            "完整inputRef/root/epoch/job/worker/expiredFence/attempt/cancel逐项核持久来源；completed只返回本域最终事务真实ResultRef及非null完整paidRefs，不要求费用已结算",
+            "模型只读观察在SQL锁外，经公共Observe/Lookup原ID/key；背景原DTO/hash与原op/root/site/epoch齐全才能lookup，不调用InvokeModel/Create/Cancel；旧缺body/ID保持pending",
+            "prepared且dispatch_started=0仅证明未RPC；1仍可能收费，只有专用INVOCATION_NOT_ACCEPTED时点观察可继续同原key，不推永久零费或新owner",
+            "本域全部未完成模型调用真实终局且结果hash/专用观察完整，子任务全完成/取消；再读取MG完整原root窗口、显式终局/held/unknown/逐账单价格证明；任一缺失/旧epoch/超预算保持pending",
+            "上游IO后重新核原worker/fence/attempt/cancel及真实租约；workflowVersion1才safeToRetry，原批准过期仅供jobs按DEADLINE_EXCEEDED分类，不续付费或复活原批准；取消依原事实终止",
+            "新版完全未执行且无执行/模型/孩子/分块事实可证明从未执行；其余pending/unknown，不推零费用或新owner；原paidRefs始终保留"
           ],
           "errors": [
             {
@@ -11713,7 +11741,10 @@
             "knowledge.RuntimeFromContext",
             "knowledge.ApprovedJobInput",
             "knowledge.LoadExecutionRecord",
-            "knowledge.ReadPaidResultRefs"
+            "knowledge.ReadPaidResultRefs",
+            "knowledge.ObserveOwnerModelSteps",
+            "knowledge.ValidateModelNonAcceptance",
+            "knowledge.OwnerFeesFinal"
           ],
           "resources": [],
           "contract": "binding"
@@ -12297,6 +12328,147 @@
         }
       ],
       "kind": "handwritten"
+    },
+    {
+      "path": "modules/knowledge/internal/model/recovery.go",
+      "kind": "handwritten",
+      "purpose": "后台原已接受ID/完整去凭据DTO只读找回、专用时点负证明，不发模型",
+      "functions": [
+        {
+          "id": "knowledge.ObserveOwnerModelSteps",
+          "name": "ObserveOwnerModelSteps",
+          "signature": "func ObserveOwnerModelSteps(ctx context.Context,op OperationContext,objectID string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "锁外每次至多16项真实原模型观察；已知ID用公共Observe，未知ID仅完整背景原请求lookup，普通404保持未知；完整未决集合仍阻止safeToRetry",
+          "steps": [
+            "锁外每次至多16项真实原模型观察；已知ID用公共Observe，未知ID仅完整背景原请求lookup，普通404保持未知；完整未决集合仍阻止safeToRetry"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅原已批准本域背景任务的观察与恢复证明；不新增模型付费批准"
+          },
+          "concurrency": "SQL锁外真实只读上游；本地短元数据窗口只原site/epoch/owner/key，最终恢复重新核worker/fence/cancel",
+          "idempotency": "原完整请求/hash/op/root/key不变；保留原paid结果与真实观察，未知不换owner",
+          "dependencies": [
+            "platform.ObserveInvocation",
+            "platform.LookupModelInvocation",
+            "knowledge.RecordModelObservation",
+            "knowledge.RecordModelNonAcceptance"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.RecordModelNonAcceptance",
+          "name": "RecordModelNonAcceptance",
+          "signature": "func RecordModelNonAcceptance(ctx context.Context,op OperationContext,runtime ModelRuntime,key,inputHash string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只保存MG专用INVOCATION_NOT_ACCEPTED时点观察及完整原scope/hash，保持dispatch_started=1；不推永久无费或新owner",
+          "steps": [
+            "只保存MG专用INVOCATION_NOT_ACCEPTED时点观察及完整原scope/hash，保持dispatch_started=1；不推永久无费或新owner"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅原已批准本域背景任务的观察与恢复证明；不新增模型付费批准"
+          },
+          "concurrency": "SQL锁外真实只读上游；本地短元数据窗口只原site/epoch/owner/key，最终恢复重新核worker/fence/cancel",
+          "idempotency": "原完整请求/hash/op/root/key不变；保留原paid结果与真实观察，未知不换owner",
+          "dependencies": [
+            "knowledge.beginModelWrite"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.ValidateModelNonAcceptance",
+          "name": "ValidateModelNonAcceptance",
+          "signature": "func ValidateModelNonAcceptance(raw []byte,hash,site,epoch,owner,key,operation,root,inputHash string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核专用观察完整hash/原site/epoch/owner/key/op/root/input和真实时点，不能以普通404/缺ID代替",
+          "steps": [
+            "核专用观察完整hash/原site/epoch/owner/key/op/root/input和真实时点，不能以普通404/缺ID代替"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅原已批准本域背景任务的观察与恢复证明；不新增模型付费批准"
+          },
+          "concurrency": "SQL锁外真实只读上游；本地短元数据窗口只原site/epoch/owner/key，最终恢复重新核worker/fence/cancel",
+          "idempotency": "原完整请求/hash/op/root/key不变；保留原paid结果与真实观察，未知不换owner",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/knowledge/internal/model/fee-proof.go",
+      "kind": "handwritten",
+      "purpose": "恢复原root完整真实费用终局证明，不把完整输出当结算或猜零金额",
+      "functions": [
+        {
+          "id": "knowledge.RootFeesFinal",
+          "name": "RootFeesFinal",
+          "signature": "func RootFeesFinal(ctx context.Context,op OperationContext,rootID string)(bool,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "严格生产schema读原root QueryUsage有界完整窗；显式windowCoversRoot/allInvocationsFinal、held USD0、空unknown、每条pricingKnown与actualCost齐全才证明；缺字段/旧epoch/超预算未知",
+          "steps": [
+            "严格生产schema读原root QueryUsage有界完整窗；显式windowCoversRoot/allInvocationsFinal、held USD0、空unknown、每条pricingKnown与actualCost齐全才证明；缺字段/旧epoch/超预算未知"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅原已批准本域背景任务的观察与恢复证明；不新增模型付费批准"
+          },
+          "concurrency": "SQL锁外真实只读上游；本地短元数据窗口只原site/epoch/owner/key，最终恢复重新核worker/fence/cancel",
+          "idempotency": "原完整请求/hash/op/root/key不变；保留原paid结果与真实观察，未知不换owner",
+          "dependencies": [
+            "model-gateway:queryUsage"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "knowledge.OwnerFeesFinal",
+          "name": "OwnerFeesFinal",
+          "signature": "func OwnerFeesFinal(ctx context.Context,op OperationContext,objectID,rootID string)(bool,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "原已接受调用和未完成孩子按真实原root核全部费用；跨根已完成缓存免费复用无需重付证明，同根已完成孩子仍全root覆盖，paidRefs完整保留",
+          "steps": [
+            "原已接受调用和未完成孩子按真实原root核全部费用；跨根已完成缓存免费复用无需重付证明，同根已完成孩子仍全root覆盖，paidRefs完整保留"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅原已批准本域背景任务的观察与恢复证明；不新增模型付费批准"
+          },
+          "concurrency": "SQL锁外真实只读上游；本地短元数据窗口只原site/epoch/owner/key，最终恢复重新核worker/fence/cancel",
+          "idempotency": "原完整请求/hash/op/root/key不变；保留原paid结果与真实观察，未知不换owner",
+          "dependencies": [
+            "knowledge.RootFeesFinal"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/knowledge/migrations/011_background_model_requests.sql",
+      "kind": "handwritten",
+      "purpose": "只背景原DTO、独立最新真实观察与专用未接受时点证明，QA正文和许可不持久",
+      "functions": []
     }
   ],
   "jobHandlers": {

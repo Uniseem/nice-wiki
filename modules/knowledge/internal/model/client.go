@@ -23,6 +23,7 @@ type InvokeModelResult = platform.InvokeModelOutcome
 type ModelRuntime struct {
  Raw *gen.ModelGatewayClient
  ValidateTokenization func(json.RawMessage)error
+ ValidateUsage func(json.RawMessage)error
  DB *sql.DB
  WriteWindow platform.WriteWindowConfig
  OwnerID string
@@ -49,7 +50,8 @@ func NewModelRuntime(raw *gen.ModelGatewayClient, db *sql.DB, window platform.Wr
 	}
 	tokenization,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),"GatewayTokenizeTextResult")
  if err!=nil {return ModelRuntime{},err}
- return ModelRuntime{Raw:raw,ValidateTokenization:tokenization,Gateway: gateway,DB:db,WriteWindow:window}, nil
+ usage,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),"GatewayQueryUsageResult");if err!=nil {return ModelRuntime{},err}
+ return ModelRuntime{Raw:raw,ValidateUsage:usage,ValidateTokenization:tokenization,Gateway: gateway,DB:db,WriteWindow:window}, nil
 }
 func WithModelRuntime(ctx context.Context, runtime ModelRuntime) context.Context {
 	return context.WithValue(ctx, modelRuntimeKey{}, runtime)
@@ -68,6 +70,7 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
  key := "knowledge." + platform.HashBytes([]byte(op.OperationID+":"+semantic))
 	key,original,found,err:=BeginModelStep(ctx,op,runtime,key,semantic,input.Request)
  if err!=nil {return InvokeModelResult{},err};if found {return original,nil}
+ input.Request.IDempotencyKey=key // 实际RPC/lookup用持久原key；助手临时摘要不是外发幂等字段。
  if runtime.BeforeDispatch!=nil {if err=runtime.BeforeDispatch(ctx);err!=nil {if HasCompleteResult(original) {return original,nil};return InvokeModelResult{},err}}
  if err=MarkModelDispatch(ctx,op,runtime,key);err!=nil {return InvokeModelResult{},err}
  outcome,err:=modelclient.InvokeModel(platform.WithOperationContext(ctx,op),runtime.Gateway,op,platform.InvokeModelRequest{Request:input.Request,IDempotencyKey:key,Stream:true,OnEvent:func(event platform.StreamEvent)error{

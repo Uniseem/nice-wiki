@@ -2410,6 +2410,9 @@
       },
       "JobsReadJobResult": {
         "$ref": "../../jobs/contracts/types.json#/$defs/ReadJobResult"
+      },
+      "GatewayQueryUsageResult": {
+        "$ref": "../../model-gateway/contracts/types.json#/$defs/QueryUsageResult"
       }
     }
   },
@@ -2440,6 +2443,7 @@
     "MemoryResolveContextResult",
     "GetInvocationResult",
     "LookupInvocationResult",
-    "JobsReadJobResult"
+    "JobsReadJobResult",
+    "GatewayQueryUsageResult"
   ]
 }

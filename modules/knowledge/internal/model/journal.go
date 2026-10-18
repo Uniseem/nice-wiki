@@ -53,12 +53,24 @@ func BeginModelStep(ctx context.Context,op OperationContext,runtime ModelRuntime
   }
  }
  if err!=nil {return "",InvokeModelResult{},false,platform.NormalizeIOError(err,platform.CodeInternal,false,"模型稳定语义原意图读取或保存失败")}
- var hash,operation,resultHash,state string;var result []byte
- err=tx.QueryRowContext(work,`SELECT input_hash,operation_id,result_json,result_hash,state FROM model_steps WHERE site_id=? AND data_epoch=? AND owner_id=? AND step_key=?`,op.Actor.SiteID,op.DataEpoch,owner,resolved).Scan(&hash,&operation,&result,&resultHash,&state)
+ var hash,operation,resultHash,state,observationHash string;var result,observation []byte
+ err=tx.QueryRowContext(work,`SELECT input_hash,operation_id,result_json,result_hash,state,observation_json,observation_hash FROM model_steps WHERE site_id=? AND data_epoch=? AND owner_id=? AND step_key=?`,op.Actor.SiteID,op.DataEpoch,owner,resolved).Scan(&hash,&operation,&result,&resultHash,&state,&observation,&observationHash)
  if err!=nil {return "",InvokeModelResult{},false,platform.NormalizeIOError(err,platform.CodeInternal,false,"模型步骤原记录读取失败")}
  if hash!=platform.HashBytes(raw)||operation!=op.OperationID {return "",InvokeModelResult{},false,platform.NewError(platform.CodeConflict,false,"同语义模型步骤原输入或配置已变化")}
+ if op.CostClass==platform.CostClassBackground&&runtime.OwnerID!="" {
+  // 背景原文/记忆已在原任务冻结；实际key写入完整DTO，QA问题及permit始终不持久。
+  durable:=request;durable.IDempotencyKey=resolved;durable.AdmissionPermit=nil
+  requestRaw,err:=platform.CanonicalJSON(durable);if err!=nil {return "",InvokeModelResult{},false,err}
+  if len(requestRaw)>16<<20 {return "",InvokeModelResult{},false,platform.NewError(platform.CodeBudgetExceeded,false,"原背景模型完整请求超过16MiB读取预算")}
+  if _,err=tx.ExecContext(work,`UPDATE model_steps SET request_json=?,request_hash=? WHERE site_id=? AND data_epoch=? AND owner_id=? AND step_key=? AND operation_id=? AND dispatch_started=0 AND request_json IS NULL`,requestRaw,platform.HashBytes(requestRaw),op.Actor.SiteID,op.DataEpoch,owner,resolved,op.OperationID);err!=nil {return "",InvokeModelResult{},false,platform.NormalizeIOError(err,platform.CodeInternal,false,"原背景模型请求冻结失败")}
+ }
  var original InvokeModelResult
  if len(result)>0&&(resultHash!=platform.HashBytes(result)||json.Unmarshal(result,&original)!=nil||original.InvocationID=="") {return "",InvokeModelResult{},false,platform.NewError(platform.CodeIntegrityError,false,"模型付费原结果损坏")}
+ if len(observation)>0 {
+  var observed InvokeModelResult
+  if observationHash!=platform.HashBytes(observation)||json.Unmarshal(observation,&observed)!=nil||observed.InvocationID==""||(original.InvocationID!=""&&observed.InvocationID!=original.InvocationID) {return "",InvokeModelResult{},false,platform.NewError(platform.CodeIntegrityError,false,"原模型最新真实观察完整性损坏")}
+  if HasCompleteResult(observed)||!HasCompleteResult(original) {original=observed}
+ }
  if err=tx.Commit();err!=nil {return "",InvokeModelResult{},false,platform.NormalizeIOError(err,platform.CodeInternal,false,"模型步骤意图提交失败")}
  return resolved,original,len(result)>0&&(state=="failed"||state=="cancelled"||(state=="completed"&&HasCompleteResult(original))),nil
 }
@@ -82,8 +94,9 @@ func SaveModelProgress(ctx context.Context,op OperationContext,runtime ModelRunt
 // CompleteModelStep 所有终态原样保存，失败或费用未知重放也不新建调用。
 func CompleteModelStep(ctx context.Context,op OperationContext,runtime ModelRuntime,key string,outcome InvokeModelResult)error {
  if outcome.InvocationID=="" {return platform.NewError(platform.CodeDependencyUnavailable,false,"模型观察没有真实已接受调用ID")}
+ if outcome.Events==nil {outcome.Events=[]platform.StreamEvent{}}
  raw,err:=platform.CanonicalJSON(outcome)
- if err!=nil {return err};if len(raw)>16<<20 {return platform.NewError(platform.CodeBudgetExceeded,false,"模型原结果超出私有读取预算")}
+ if err!=nil {return err};observation:=raw;if len(raw)>16<<20 {return platform.NewError(platform.CodeBudgetExceeded,false,"模型原结果超出私有读取预算")}
  work,tx,cancel,err:=beginModelWrite(ctx,op,runtime)
  if err!=nil {return err};defer cancel();defer tx.Rollback()
  owner:=runtime.OwnerID;if owner=="" {owner=op.RootOperationID}
@@ -95,7 +108,7 @@ func CompleteModelStep(ctx context.Context,op OperationContext,runtime ModelRunt
   var prior InvokeModelResult
   if storedHash!=platform.HashBytes(storedResult)||json.Unmarshal(storedResult,&prior)!=nil||prior.InvocationID!=outcome.InvocationID {return platform.NewError(platform.CodeIntegrityError,false,"原模型观察结果损坏或调用身份变化")}
   if HasCompleteResult(prior) {
-   if !HasCompleteResult(outcome) {return nil} // 新观察缺证明不能删除已保留的完整付费结果。
+   if HasCompleteResult(outcome) {
    oldSnapshot,_:=WinningModelSnapshot(prior);newSnapshot,err:=WinningModelSnapshot(outcome);if err!=nil||oldSnapshot!=newSnapshot {return platform.NewError(platform.CodeIntegrityError,false,"原调用对账改变实际结果来源")}
    if prior.CurrentSnapshot!=nil&&prior.CurrentSnapshot.Output!=nil&&outcome.CurrentSnapshot!=nil&&outcome.CurrentSnapshot.Output!=nil {
     before,_:=platform.CanonicalJSON(prior.CurrentSnapshot.Output);after,_:=platform.CanonicalJSON(outcome.CurrentSnapshot.Output)
@@ -104,11 +117,12 @@ func CompleteModelStep(ctx context.Context,op OperationContext,runtime ModelRunt
     output:=outcome.CurrentSnapshot.Output
     if output.Text!=nil {oldText,err:=CompletedText(prior,65536);if err!=nil||oldText!=*output.Text {return platform.NewError(platform.CodeIntegrityError,false,"原完整文字与当前输出不一致")}} else {oldOutput,err:=CompletedOutput(prior,output.Capability);if err!=nil {return err};before,_:=platform.CanonicalJSON(oldOutput);after,_:=platform.CanonicalJSON(output);if string(before)!=string(after) {return platform.NewError(platform.CodeIntegrityError,false,"原结构结果与当前输出不一致")}}
    }
-   raw=storedResult // 业务结果不可变；最新真实费用状态独立投影到state列。
+   }
+   raw=storedResult // 业务结果不可变；最新真实观察与费用状态另存。
   }
  }
- projected:=outcome.State;if projected=="" {projected="dispatching"}
- _,err=tx.ExecContext(work,`UPDATE model_steps SET invocation_id=?,state=?,result_json=?,result_hash=? WHERE site_id=? AND data_epoch=? AND owner_id=? AND step_key=? AND operation_id=?`,outcome.InvocationID,projected,raw,platform.HashBytes(raw),op.Actor.SiteID,op.DataEpoch,owner,key,op.OperationID)
+ projected:=ModelObservationState(outcome)
+ _,err=tx.ExecContext(work,`UPDATE model_steps SET invocation_id=?,state=?,result_json=?,result_hash=?,observation_json=?,observation_hash=?,not_accepted_json=NULL,not_accepted_hash='' WHERE site_id=? AND data_epoch=? AND owner_id=? AND step_key=? AND operation_id=?`,outcome.InvocationID,projected,raw,platform.HashBytes(raw),observation,platform.HashBytes(observation),op.Actor.SiteID,op.DataEpoch,owner,key,op.OperationID)
  if err!=nil {return platform.NormalizeIOError(err,platform.CodeInternal,false,"模型原结果保存失败")};if err=tx.Commit();err!=nil {return platform.NormalizeIOError(err,platform.CodeInternal,false,"模型原结果提交失败")};return nil
 }
 
@@ -116,7 +130,7 @@ func CompleteModelStep(ctx context.Context,op OperationContext,runtime ModelRunt
 func MarkModelDispatch(ctx context.Context,op OperationContext,runtime ModelRuntime,key string)error {
  work,tx,cancel,err:=beginModelWrite(ctx,op,runtime);if err!=nil {return err};defer cancel();defer tx.Rollback()
  owner:=runtime.OwnerID;if owner=="" {owner=op.RootOperationID}
- changed,err:=tx.ExecContext(work,`UPDATE model_steps SET dispatch_started=1,state=CASE WHEN dispatch_started=0 THEN 'dispatching' ELSE state END WHERE site_id=? AND data_epoch=? AND owner_id=? AND step_key=? AND operation_id=?`,op.Actor.SiteID,op.DataEpoch,owner,key,op.OperationID)
+ changed,err:=tx.ExecContext(work,`UPDATE model_steps SET dispatch_started=1,state=CASE WHEN dispatch_started=0 OR state='not_accepted' THEN 'dispatching' ELSE state END,not_accepted_json=NULL,not_accepted_hash='' WHERE site_id=? AND data_epoch=? AND owner_id=? AND step_key=? AND operation_id=?`,op.Actor.SiteID,op.DataEpoch,owner,key,op.OperationID)
  if err!=nil {return platform.NormalizeIOError(err,platform.CodeInternal,false,"原模型派发事实保存失败")};count,err:=changed.RowsAffected();if err!=nil {return platform.NormalizeIOError(err,platform.CodeInternal,false,"原模型派发事实不可读")};if count!=1 {return platform.NewError(platform.CodeStaleResult,false,"原模型派发意图已失效")}
  if err=tx.Commit();err!=nil {return platform.NormalizeIOError(err,platform.CodeInternal,false,"原模型派发事实提交失败")};return nil
 }

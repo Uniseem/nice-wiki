@@ -3285,7 +3285,7 @@
     "InvokeModelResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "模型调用终态",
+      "description": "原已接受调用的真实观察；完整输出与费用状态独立，当前对象不伪造流事件",
       "properties": {
         "invocationId": {
           "$ref": "#/$defs/Identifier",
@@ -3296,7 +3296,14 @@
             "completed",
             "failed",
             "cancelled",
-            "charge_unknown"
+            "charge_unknown",
+            "pending",
+            "accepted",
+            "reserved",
+            "dispatching",
+            "streaming",
+            "cancel_requested",
+            "reconciled"
           ],
           "description": "网关终态"
         },
@@ -3306,7 +3313,11 @@
           "items": {
             "$ref": "../../model-gateway/contracts/types.json#/$defs/StreamEvent"
           },
-          "description": "按序号排列的全部流事件"
+          "description": "本次实际读取的真实事件；只读快照观察为空数组，不拼假SSE"
+        },
+        "currentSnapshot": {
+          "$ref": "../../model-gateway/contracts/types.json#/$defs/GetInvocationResult",
+          "description": "真实当前权威Invocation及可选完整Output；不能由部分delta合成"
         }
       },
       "required": [
@@ -3879,6 +3890,57 @@
     "SnapshotArchiveReadResult": {
       "x-internal": true,
       "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
+    },
+    "ModelNonAcceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "formatVersion": {
+          "const": 1
+        },
+        "code": {
+          "const": "INVOCATION_NOT_ACCEPTED"
+        },
+        "ownerId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "inputHash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "operationId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "rootOperationId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "dataEpoch": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "observedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "formatVersion",
+        "code",
+        "ownerId",
+        "key",
+        "inputHash",
+        "operationId",
+        "rootOperationId",
+        "siteId",
+        "dataEpoch",
+        "observedAt"
+      ],
+      "description": "仅内部原键时点未接受观察，绝不证明永久零费或批准新owner；dispatch_started仍1"
     }
   }
 }
