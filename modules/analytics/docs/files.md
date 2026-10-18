@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 71 个：手写 46、UI 8、生成 5、配置 10、迁移 2。函数 138 个：约束 33，参考 105。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 68 个：手写 46、UI 5、生成 5、配置 10、迁移 2。函数 138 个：约束 33，参考 105。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -72,8 +72,5 @@
 | `modules/analytics/internal/usage_queries.go` | 手写 | 本域私有导出/保留期参考支持 | `analytics.QueryUsageStatistics` |
 | `modules/analytics/internal/export_recovery.go` | 手写 | 本域私有导出/保留期参考支持 | `analytics.PurgeExports`（参考）、`analytics.RecoverExports`（参考）、`analytics.ExportKind`（参考）、`analytics.exportObjectNameValid`（参考） |
 | `modules/analytics/migrations/0005_export_journal.sql` | 手写 | V5导出原主体/类型/代次/准备安装journal；旧未知记录拒绝静默迁移 | 无 |
-| `modules/analytics/web/package.json` | UI | 固定批准版本的独立Vue库构建/样式，不含凭据 | 无 |
-| `modules/analytics/web/tsconfig.json` | UI | 固定批准版本的独立Vue库构建/样式，不含凭据 | 无 |
-| `modules/analytics/web/vite.config.ts` | UI | 固定批准版本的独立Vue库构建/样式，不含凭据 | 无 |
 | `modules/analytics/web/src/style.css` | UI | 固定批准版本的独立Vue库构建/样式，不含凭据 | 无 |
 | `modules/analytics/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `analytics.ReadSnapshotArchive` |

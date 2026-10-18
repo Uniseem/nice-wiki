@@ -4987,7 +4987,7 @@ func ConfigureSourceClient(client *gen.ContentClient,validators map[string]func(
 - 授权：信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。
 - 并发：固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。
 - 幂等：确定性源模板或只读版本投影，不创建独立收费操作。
-- 依赖：无
+- 依赖：`qa:readCacheTranslationSource`
 
 ## localization.ValidateSourcePayload
 

@@ -1197,7 +1197,7 @@ func ProjectQaTurn(ctx context.Context, op OperationContext, input EventDelivery
 - 授权：permission：service；rule：仅由本域ConsumeEvents调用
 - 并发：日计数行CAS
 - 幂等：eventId去重
-- 依赖：`platform.ClaimInbox`
+- 依赖：`platform.ClaimInbox`、`analytics.applyQaCounts`
 
 ## analytics.applyQaCounts
 
@@ -2701,7 +2701,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`site-config:readSiteConfig`、`platform.LoadServiceIdentity`、`analytics.OpenStore`、`analytics.readSiteIdentity`、`analytics.NewApplication`、`analytics.BindReportingTimeZone`、`analytics.RunPageBackground`、`analytics.SchedulePageAggregates`、`jobs:createJob`、`analytics.BackgroundOperation`、`analytics.RecoverExports`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`analytics.server.ReadSnapshotArchive`
+- 依赖：`site-config:registerActivation`、`analytics.FlushBeacons`、`analytics.PurgeBeacons`、`analytics.PurgeAuditHistory`、`analytics.PurgeExports`、`analytics.PublishAggregateEvents`、`analytics.ConsumeEvents`、`analytics.RunWorker`、`jobs:createSchedule`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`site-config:readSiteConfig`、`platform.LoadServiceIdentity`、`analytics.OpenStore`、`analytics.readSiteIdentity`、`analytics.NewApplication`、`analytics.BindReportingTimeZone`、`analytics.RunPageBackground`、`analytics.SchedulePageAggregates`、`jobs:createJob`、`analytics.BackgroundOperation`、`analytics.RecoverExports`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`analytics.server.ReadSnapshotArchive`、`jobs:checkLease`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## analytics.NewRuntimeClient
@@ -2849,7 +2849,7 @@ func Shutdown(ctx context.Context, app *Application) error
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：sync.Once启动drain；其他调用等待同一次结果
 - 幂等：重复Shutdown返回同一次关闭结果；已closed成功
-- 依赖：`analytics.DrainBeacons`
+- 依赖：`analytics.DrainBeacons`、`analytics.Runtime.Close`
 - 其他依赖说明：本域barrier安全点函数；本域journal/outbox flush
 
 ## analytics.Health
@@ -2963,7 +2963,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 - 授权：permission：service；rule：可信入口已建op；仅执行本域site/epoch/私有存储约束。
 - 并发：纯函数
 - 幂等：同range同结果
-- 依赖：无
+- 依赖：`analytics.server.QueryAudits`、`analytics.server.ReadAudit`、`analytics.server.QueryPageStatistics`、`analytics.server.AppendAudit`、`analytics.server.IngestTrustedBeacon`、`analytics.server.RecordCrawlerAccess`、`analytics.server.QueryContentGaps`、`analytics.server.QueryUsageStatistics`、`analytics.server.CreateExport`、`analytics.server.CreateAuditExport`、`analytics.server.createExport`、`analytics.server.DownloadStatisticsExport`、`analytics.server.DownloadAuditExport`、`analytics.server.downloadExport`、`analytics.server.ReadSnapshotArchive`、`analytics.WithRuntime`
 
 ## analytics.server.QueryAudits
 
@@ -4613,7 +4613,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
 - 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`analytics.ProjectQaTurn`、`platform.RunConsumerWithResult`
+- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`analytics.ProjectQaTurn`、`platform.RunConsumerWithResult`、`analytics.ConsumeAuditEvent`
 
 ## analytics.CreateExport
 
@@ -4656,7 +4656,7 @@ func CreateExport(ctx context.Context, op OperationContext, in CreateExportInput
 - 授权：permission：stats.read；rule：stats.read或audit.read
 - 并发：内存最多1000行块写；文件temp fsync rename再DB记录
 - 幂等：operationId/filterHash/actor幂等
-- 依赖：`analytics.ValidateDateRange`、`analytics.pageInterval`、`analytics.streamExportRows`、`analytics.installPreparedExport`、`analytics.beginWrite`
+- 依赖：`analytics.ValidateDateRange`、`analytics.pageInterval`、`analytics.streamExportRows`、`analytics.installPreparedExport`、`analytics.beginWrite`、`analytics.CheckPrivacyFields`
 
 ## analytics.writeCSVRecord
 

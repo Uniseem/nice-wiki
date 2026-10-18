@@ -8240,7 +8240,13 @@
           "idempotency": "原输入/hash/语义身份不变，未知不换key",
           "dependencies": [
             "platform.NewPayloadValidator",
-            "platform.NewJobsClient"
+            "platform.NewJobsClient",
+            "jobs:claimJob",
+            "jobs:startJob",
+            "jobs:heartbeatJob",
+            "jobs:checkLease",
+            "jobs:completeJob",
+            "jobs:failJob"
           ],
           "resources": [],
           "contract": "reference"

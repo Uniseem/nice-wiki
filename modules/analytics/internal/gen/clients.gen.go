@@ -296,6 +296,22 @@ func (c *JobsClient) AcknowledgeEvent(ctx context.Context, eventId string, body 
 	return c.do(ctx, http.MethodPost, "/v1/events/"+url.PathEscape(eventId)+":ack", body, idempotencyKey)
 }
 
+// CheckLease GET /v1/jobs/{jobId}/lease（jobs:checkLease）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *JobsClient) CheckLease(ctx context.Context, jobId string, queries ...url.Values) (json.RawMessage, error) {
+	requestPath := "/v1/jobs/" + url.PathEscape(jobId) + "/lease"
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.do(ctx, http.MethodGet, requestPath, nil, "")
+}
+
 // CreateJob POST /v1/jobs（jobs:createJob）。
 func (c *JobsClient) CreateJob(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
 	if idempotencyKey == "" {

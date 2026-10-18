@@ -7722,7 +7722,7 @@ func (m *SnapshotManager) DrainBarrier(ctx context.Context, barrierID string) (S
 - 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
 - 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
-- 依赖：`platform.SnapshotManager.requireDraining`、`platform.SnapshotManager.runDrainCallback`
+- 依赖：`platform.SnapshotManager.requireDraining`、`platform.SnapshotManager.runDrainCallback`、`platform.WithoutCleanupIssuer`
 
 ## platform.SnapshotManager.requireDraining
 

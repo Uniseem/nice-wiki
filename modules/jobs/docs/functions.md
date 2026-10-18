@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 119 个函数：约束 35 个，参考 84 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 120 个函数：约束 35 个，参考 85 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -393,6 +393,39 @@ func NewQueueHandlers() map[string]http.Handler
 - 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
 - 幂等：显式延迟属于去重材料，原成功不重新分配时刻
 - 依赖：`jobs.CreateJob`、`jobs.writeEventResponse`、`jobs.ReadJob`
+
+## jobs.currentStore
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queue.go`
+- 作用：读取启动期已安装的本域句柄
+
+```go
+func currentStore() *Store
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 持activeQueue读锁返回本域句柄，不构造新存储。
+
+**错误**
+
+- `VALIDATION` / HTTP 400：INVALID_JOB：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VERSION_MISMATCH` / HTTP 409：EPOCH_MISMATCH：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：service；rule：service所属owner
+- 并发：纯校验+runtime只读
+- 幂等：同jobSpec同结果
+- 依赖：无
 
 ## jobs.ClaimJob
 

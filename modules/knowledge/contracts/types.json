@@ -3337,7 +3337,8 @@
             "chunking_changed",
             "manual"
           ],
-          "description": "重建原因"
+          "description": "重建原因",
+          "type": "string"
         }
       },
       "required": [

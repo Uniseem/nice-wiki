@@ -519,7 +519,7 @@ func extractableMediaType(mediaType string) bool
 - 作用：按hash幂等提取资源
 
 ```go
-func CreateExtraction(ctx context.Context,op OperationContext,input CreateExtractionInput)(CreateExtractionResult,error)
+func CreateExtraction(ctx context.Context, op OperationContext,input CreateExtractionInput)(CreateExtractionResult,error)
 ```
 
 **输入**
@@ -3507,7 +3507,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 作用：加载本域后台概览
 
 ```ts
-export async function loadAdminOverview(client: ModuleAPIClient, input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult>
+export async function LoadAdminOverview(client: ModuleAPIClient, input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult>
 ```
 
 **输入**
@@ -3809,7 +3809,7 @@ function formatQuoteMoney(value: { currency: string; micros: number } | undefine
 - 作用：提交本域明确人工修改
 
 ```ts
-export async function submitPrimaryEdit(client: ModuleAPIClient, input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult>
+export async function SubmitPrimaryEdit(client: ModuleAPIClient, input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult>
 ```
 
 **输入**
@@ -4358,7 +4358,7 @@ func DescribeAttachment(ctx context.Context, op OperationContext, input Describe
 - 作用：主动领取本域持久任务
 
 ```go
-func RunWorker(ctx context.Context,op OperationContext,input RunWorkerInput)(RunWorkerResult,error)
+func RunWorker(ctx context.Context, op OperationContext,input RunWorkerInput)(RunWorkerResult,error)
 ```
 
 **输入**
@@ -4402,7 +4402,7 @@ func RunWorker(ctx context.Context,op OperationContext,input RunWorkerInput)(Run
 - 授权：permission：service；rule：仅knowledge纯后台服务；input.workerId只兼容标签，实际worker由平台生成
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`platform.RunWorkerLoopWithResult`、`knowledge.ResolveClaimedJobOperation`、`knowledge.MirrorExecutionLease`、`knowledge.RecordExecutionCancellation`
+- 依赖：`platform.RunWorkerLoopWithResult`、`knowledge.ResolveClaimedJobOperation`、`knowledge.MirrorExecutionLease`、`knowledge.RecordExecutionCancellation`、`knowledge.ExecuteBuild`、`knowledge.ExecuteExtraction`
 
 ## knowledge.NewWorkerRuntime
 
@@ -4546,7 +4546,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`platform.LoadServiceIdentity`、`platform.NewSiteConfigClient`、`platform.ReadRuntime`、`platform.ApplyRestoreSwap`、`platform.NewPayloadValidator`、`platform.NewIdentityAuthorizer`、`knowledge.OpenRepository`、`knowledge.NewIndexRuntime`、`knowledge.NewModelRuntime`、`knowledge.LoadRuntime`、`knowledge.WithIndexRuntime`、`knowledge.WithModelRuntime`、`knowledge.WithAdminSigningKey`、`knowledge.bindSearchRuntime`、`knowledge.assembleBackgroundTasks`、`knowledge.serviceOperation`、`knowledge.NewApplication`、`site-config:readSiteConfig`、`identity:checkAuthorization`、`knowledge.NewWorkerRuntime`、`knowledge.WithWorkerRuntime`、`knowledge.ExecuteBuild`、`knowledge.ExecuteExtraction`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
+- 依赖：`platform.LoadServiceIdentity`、`platform.NewSiteConfigClient`、`platform.ReadRuntime`、`platform.ApplyRestoreSwap`、`platform.NewPayloadValidator`、`platform.NewIdentityAuthorizer`、`knowledge.OpenRepository`、`knowledge.NewIndexRuntime`、`knowledge.NewModelRuntime`、`knowledge.LoadRuntime`、`knowledge.WithIndexRuntime`、`knowledge.WithModelRuntime`、`knowledge.WithAdminSigningKey`、`knowledge.bindSearchRuntime`、`knowledge.assembleBackgroundTasks`、`knowledge.serviceOperation`、`knowledge.NewApplication`、`site-config:readSiteConfig`、`identity:checkAuthorization`、`knowledge.NewWorkerRuntime`、`knowledge.WithWorkerRuntime`、`knowledge.ExecuteBuild`、`knowledge.ExecuteExtraction`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`knowledge.RecoverBuildLeases`、`knowledge.CollectRetiredIndexes`、`knowledge.PublishOutbox`、`knowledge.ConsumeEvents`、`knowledge.RunWorker`、`platform.TaskGroup.SetAdmission`、`platform.TaskGroup.CancelActive`、`platform.TaskGroup.WaitIdle`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## knowledge.NewRuntimeClient
@@ -5316,7 +5316,7 @@ func WithModelLease(ctx context.Context,check func(context.Context)error)(contex
 - 作用：执行一次文档索引构建
 
 ```go
-func ExecuteBuild(ctx context.Context,op OperationContext,input JobExecutionInput)(result JobExecutionResult,failure error)
+func ExecuteBuild(ctx context.Context, op OperationContext,input JobExecutionInput)(result JobExecutionResult,failure error)
 ```
 
 **输入**
@@ -7762,7 +7762,7 @@ func CheckEmbeddingPlan(ctx context.Context,op OperationContext,buildID string,i
 - 作用：按资源类型执行一次派生文本提取
 
 ```go
-func ExecuteExtraction(ctx context.Context,op OperationContext,input JobExecutionInput)(result JobExecutionResult,failure error)
+func ExecuteExtraction(ctx context.Context, op OperationContext,input JobExecutionInput)(result JobExecutionResult,failure error)
 ```
 
 **输入**
@@ -8397,7 +8397,7 @@ func ReadTaskRoute(ctx context.Context,op OperationContext,runtime Runtime,taskI
 - 授权：permission：service；rule：只消费原已授权任务权威声明，不扩模型付费批准
 - 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
 - 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
-- 依赖：`model-gateway:resolveTaskRoute`
+- 依赖：`model-gateway:resolveTaskRoute`、`knowledge.ReadTaskAssignment`、`knowledge.ProfileModelSnapshots`
 
 ## knowledge.WithModelExpectations
 

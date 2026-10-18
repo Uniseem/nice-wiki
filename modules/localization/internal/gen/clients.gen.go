@@ -508,6 +508,18 @@ func (c *ModelGatewayClient) ResumeInference(ctx context.Context, invocationId s
 	return modelEventStream{r: reader}, nil
 }
 
+// QaClient 调用qa服务（自动附服务断言）。
+type QaClient struct{ *producerClient }
+
+func NewQaClient(baseURL, issuer string, key platform.SigningKey) *QaClient {
+	return &QaClient{newProducerClient("qa", baseURL, issuer, key)}
+}
+
+// ReadCacheTranslationSource GET /v1/internal/cache/{cacheId}/translation-source（qa:readCacheTranslationSource）。
+func (c *QaClient) ReadCacheTranslationSource(ctx context.Context, cacheId string) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/internal/cache/"+url.PathEscape(cacheId)+"/translation-source", nil, "")
+}
+
 // SiteConfigClient 调用site-config服务（自动附服务断言）。
 type SiteConfigClient struct{ *producerClient }
 

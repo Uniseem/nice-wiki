@@ -4481,7 +4481,12 @@
             "platform.SnapshotManager.AdmitBusiness",
             "platform.SnapshotManager.WriteWindow",
             "analytics.server.ReadSnapshotArchive",
-            "jobs:checkLease"
+            "jobs:checkLease",
+            "jobs:claimJob",
+            "jobs:startJob",
+            "jobs:heartbeatJob",
+            "jobs:completeJob",
+            "jobs:failJob"
           ],
           "resources": [
             "本域implementation全部x-handler",

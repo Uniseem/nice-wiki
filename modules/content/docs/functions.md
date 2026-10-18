@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 265 个函数：约束 43 个，参考 222 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 266 个函数：约束 43 个，参考 223 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -5076,6 +5076,38 @@ func readPublicationSnapshot(ctx context.Context, tx *sql.Tx, op OperationContex
 - 并发：只读当前短事务
 - 幂等：只读
 - 依赖：无
+
+## content.validatePublicationRef
+
+- 级别：参考
+- 文件：`modules/content/internal/visibility_service.go`
+- 作用：在原SQL快照核对精确当前公开引用
+
+```go
+func validatePublicationRef(ctx context.Context, tx *sql.Tx, op OperationContext, found bool, document gen.DocumentMetadata, ref gen.PublishedRevisionRef) (gen.PublicationValidation, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按持久文档状态、epoch、publication快照与完整引用逐字段核对；不可见返回false，损坏失败关闭。
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：只在已认证本域创建/保存/读取调用链或受信运行装配内使用；私有持久身份和COMMITTED资格失败关闭
+- 并发：文件与跨服务IO不持SQL/doc guard；写窗口在doc mutex前，真实保存guard只覆盖短SQL事务
+- 幂等：完整scope与规范摘要复用首次固定材料和原回执；未知提交不转abort，COMMITTED优先
+- 依赖：`content.readPublicationSnapshot`
 
 ## content.ReadPublishedRevision
 

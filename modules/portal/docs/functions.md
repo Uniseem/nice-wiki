@@ -873,15 +873,16 @@ func adaptSessionRevocation(response *http.Response) ([]byte, []*http.Cookie, er
 - 作用：以严格公开正文和可信连接构造签名内部beacon，不记录原IP
 
 ```go
-func prepareTrustedBeacon(runtime *ProxyRuntime, op OperationContext) ([]byte, error)
+func prepareTrustedBeacon(ctx context.Context, op OperationContext, runtime *ProxyRuntime) ([]byte, error)
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `runtime` | `ProxyRuntime` | 真实请求内存上下文 | 可信启动装配 |
+| `ctx` | `context.Context` | 当前真实请求上下文 | 随下游IO传递 |
 | `op` | `OperationContext` | 本次真实入口上下文 | epoch由权威读取 |
+| `runtime` | `ProxyRuntime` | 真实请求内存上下文 | 可信启动装配 |
 
 **输出**
 
