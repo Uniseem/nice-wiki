@@ -1,3 +1,5 @@
+根集成静态审阅补充：补齐ExportDomainSnapshotInput/Result的本域手写DTO，与types.json已登记字段一致；它们未被HTTP引用，因此不能假设生成器会产出。此修正仍待GitLab编译，未提高函数状态。
+
 ## 2026-10-18单轮快照导出适配
 
 基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，分支 `codex/protection-20261018-r9`，源码候选 `a8abda3097eef31ce8e43d6aaede7d1503d6bd9e`。独占 `modules/data-protection/`；未push、未合main。

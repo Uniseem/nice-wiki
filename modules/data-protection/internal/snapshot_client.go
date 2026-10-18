@@ -17,6 +17,16 @@ import (
 	"nice-wiki/modules/data-protection/internal/gen"
 )
 
+// ExportDomainSnapshotInput保留本域types合同的单一owner与原导出请求。
+type ExportDomainSnapshotInput struct {
+	Owner   string                    `json:"owner"`
+	Request gen.SnapshotExportRequest `json:"request"`
+}
+
+type ExportDomainSnapshotResult struct {
+	Result gen.SnapshotExportResult `json:"result"`
+}
+
 // SnapshotDomainClient只暴露生产方登记的HTTP合同，不导入任何外域内部业务代码。
 type SnapshotDomainClient struct {
 	ExportSnapshot      func(context.Context, gen.SnapshotExportRequest, string) (gen.SnapshotExportResult, error)
