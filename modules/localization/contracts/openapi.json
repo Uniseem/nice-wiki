@@ -3602,6 +3602,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "当前付费批准指针完整性错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
           }
         },
         "security": [],
@@ -3690,6 +3700,16 @@
           },
           "default": {
             "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "当前付费批准指针完整性错误",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3805,6 +3825,26 @@
           },
           "default": {
             "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "当前付费批准指针完整性错误",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "当前同代批准不存在或已被新版本替代",
             "content": {
               "application/problem+json": {
                 "schema": {

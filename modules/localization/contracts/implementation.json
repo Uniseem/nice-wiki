@@ -11013,6 +11013,12 @@
               "httpStatus": 503,
               "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "当前策略指针与不可变批准历史不一致，不能付费",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -11122,6 +11128,12 @@
               "httpStatus": 503,
               "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "当前策略指针与不可变批准历史不一致，不能付费",
+              "retryable": false
             }
           ],
           "sideEffects": [
@@ -11230,6 +11242,18 @@
               "httpStatus": 503,
               "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "当前策略指针与不可变批准历史不一致，不能付费",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "当前同代批准不存在或已被新版本替代",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -11304,6 +11328,12 @@
               "httpStatus": 503,
               "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "当前策略指针与不可变批准历史不一致，不能付费",
+              "retryable": false
             }
           ],
           "sideEffects": [],
@@ -11372,6 +11402,12 @@
               "httpStatus": 503,
               "meaning": "运行权威未知、已核本站缺失或语言存储不可用。",
               "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "当前策略指针与不可变批准历史不一致，不能付费",
+              "retryable": false
             }
           ],
           "sideEffects": [],
