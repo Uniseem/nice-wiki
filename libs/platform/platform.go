@@ -54,6 +54,7 @@ const (
 	CodeUnauthenticated       = "UNAUTHENTICATED"
 	CodeForbidden             = "FORBIDDEN"
 	CodeNotFound              = "NOT_FOUND"
+ CodeInvocationNotAccepted = "INVOCATION_NOT_ACCEPTED"
 	CodeGone                  = "GONE"
 	CodeChallengeRequired     = "CHALLENGE_REQUIRED"
 	CodeConflict              = "CONFLICT"
@@ -78,6 +79,7 @@ var ProblemHTTPStatus = map[string]int{
 	CodeUnauthenticated:       401,
 	CodeForbidden:             403,
 	CodeNotFound:              404,
+ CodeInvocationNotAccepted: 404,
 	CodeGone:                  410,
 	CodeChallengeRequired:     429,
 	CodeConflict:              409,

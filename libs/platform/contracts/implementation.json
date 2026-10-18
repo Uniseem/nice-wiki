@@ -3531,11 +3531,12 @@
           ],
           "purpose": "模型调用助手的通用实现",
           "steps": [
-            "先用原完整请求和原键LookupInference，仅真可信tracking证明404且原付费截止有效才Create原键/原input；从不换键重付。",
+            "先用原完整请求和原键LookupInference，仅真可信tracking证明INVOCATION_NOT_ACCEPTED(404)且原付费截止有效才Create原键/原input；从不换键重付。",
             "有原调用只观察同ID。独立5秒fresh只读op保原owner/root/site/epoch/costClass和请求全值，不重签permit或延长付费deadline。",
             "当前真实winning output与事件历史独立返回CurrentSnapshot，未知费用不抹去完整结果，不伪造SSE或零费用。",
             "SSE从0排他序号重读已付费事件，最多4096条不截断；每次历史终态或流结束后取当前Get权威，旧charge_unknown/StreamError不遮住后来完整结果。",
-            "所有Create已接受后的错误/取消均保留真实InvocationID/CurrentSnapshot/已收事件；读取故障不伪404或重派。"
+            "所有Create已接受后的错误/取消均保留真实InvocationID/CurrentSnapshot/已收事件；读取故障不伪404或重派。",
+            "只有INVOCATION_NOT_ACCEPTED表示真实tracking证明原键未被接受；普通NOT_FOUND/旧部署路由404为未知或缺能力，绝不凭此Create。"
           ],
           "errors": [
             {
@@ -3586,6 +3587,11 @@
             {
               "code": "DEADLINE_EXCEEDED",
               "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INVOCATION_NOT_ACCEPTED",
+              "when": "仅lookup真实完整tracking的精确否证明",
               "retryable": false
             }
           ],
@@ -4456,7 +4462,8 @@
           "steps": [
             "仅用原完整body/原key在fresh5秒只读lookup，保原owner/actor/root/site/epoch/costClass。",
             "不走InvokeModel可Create分支，原deadline是否有效均不Create/Cancel/收费，不重签permit。",
-            "缺能力/marker或存储证据错误保留真实错误，不伪404。"
+            "缺能力/marker或存储证据错误保留真实错误，不伪404。",
+            "只有INVOCATION_NOT_ACCEPTED表示真实tracking证明原键未被接受；普通NOT_FOUND/旧部署路由404为未知或缺能力，绝不凭此Create。"
           ],
           "errors": [
             {
@@ -4507,6 +4514,11 @@
             {
               "code": "DEADLINE_EXCEEDED",
               "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INVOCATION_NOT_ACCEPTED",
+              "when": "仅lookup真实完整tracking的精确否证明",
               "retryable": false
             }
           ],
@@ -8747,7 +8759,8 @@
           "purpose": "使用可选RawLookupGatewayClient的原lookupInference操作，原键和完整规范输入与Create同一编码，不写任何费用。",
           "steps": [
             "使用可选RawLookupGatewayClient的原lookupInference操作，原键和完整规范输入与Create同一编码，不写任何费用。",
-            "严格LookupInvocationResult后核原root/costClass和结果能力，错误不伪404。"
+            "严格LookupInvocationResult后核原root/costClass和结果能力，错误不伪404。",
+            "只有INVOCATION_NOT_ACCEPTED表示真实tracking证明原键未被接受；普通NOT_FOUND/旧部署路由404为未知或缺能力，绝不凭此Create。"
           ],
           "errors": [
             {
@@ -8798,6 +8811,11 @@
             {
               "code": "DEADLINE_EXCEEDED",
               "when": "按真实原请求/当前权威或有界读取失败返回，保留已知接受事实",
+              "retryable": false
+            },
+            {
+              "code": "INVOCATION_NOT_ACCEPTED",
+              "when": "仅lookup真实完整tracking的精确否证明",
               "retryable": false
             }
           ],

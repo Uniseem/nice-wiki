@@ -19,13 +19,13 @@ func InvokeModel(ctx context.Context,client platform.GatewayClient,op platform.O
  paid,cancelPaid,err:=bindDeadline(original,op);if err!=nil{return outcome,err};defer cancelPaid()
  read,cancelRead:=gatewayReadContext(original,op);snapshot,lookupErr:=lookup.LookupInference(read,input.IDempotencyKey,input.Request);cancelRead()
  if lookupErr==nil{outcome.InvocationID=snapshot.Invocation.InvocationID;outcome.CurrentSnapshot=&snapshot}else{
-  var problem *platform.Error;if !errors.As(lookupErr,&problem)||problem.Code!=platform.CodeNotFound{return outcome,lookupErr}
+  var problem *platform.Error;if !errors.As(lookupErr,&problem)||problem.Code!=platform.CodeInvocationNotAccepted{return outcome,lookupErr}
   if err=paid.Err();err!=nil{return outcome,platform.NormalizeIOError(err,platform.CodeDeadlineExceeded,false,"原付费截止已到或调用已取消，未创建新模型调用")}
   invocation,createErr:=client.CreateInference(paid,input.IDempotencyKey,input.Request)
   if createErr!=nil{
    // 传输失败可能发生在真实接受之后；只查同原输入/原键，不再次Create。
    read,cancelRead=gatewayReadContext(original,op);snapshot,lookupErr=lookup.LookupInference(read,input.IDempotencyKey,input.Request);cancelRead()
-   if lookupErr!=nil{var failure *platform.Error;if !errors.As(lookupErr,&failure)||failure.Code!=platform.CodeNotFound{return outcome,lookupErr};return outcome,createErr};outcome.InvocationID=snapshot.Invocation.InvocationID;outcome.CurrentSnapshot=&snapshot
+   if lookupErr!=nil{var failure *platform.Error;if !errors.As(lookupErr,&failure)||failure.Code!=platform.CodeInvocationNotAccepted{return outcome,lookupErr};return outcome,createErr};outcome.InvocationID=snapshot.Invocation.InvocationID;outcome.CurrentSnapshot=&snapshot
   }else{
    outcome.InvocationID=invocation.InvocationID;outcome.CurrentSnapshot=&platform.GatewayInvocationSnapshot{Invocation:invocation}
    if err=readCurrentGatewaySnapshot(original,current,op,&outcome);err!=nil{return outcome,err}
