@@ -418,12 +418,18 @@
         "validatePayload": {
           "x-internal": true,
           "description": "Go函数，不序列化；按生产方payloadSchema校验载荷，返回错误即不确认"
+        },
+        "siteId": {
+          "x-internal": true,
+          "description": "可信本域站点，空值仅system控制命名空间"
         }
       },
       "required": [
         "consumerId",
         "events",
-        "maxInFlight"
+        "maxInFlight",
+        "runtime",
+        "validatePayload"
       ]
     },
     "WorkerConfig": {
@@ -1049,6 +1055,34 @@
       "type": "object",
       "x-internal": true,
       "description": "crypto/ed25519.PrivateKey，仅内存句柄"
+    },
+    "EventConsumerClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "仅SubscribeEvents/AcknowledgeEvent两个真实事件端口，不要求worker伪实现"
+    },
+    "ConsumerRunResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/ConsumeEventsResult"
+    },
+    "RawEventClient": {
+      "type": "object",
+      "x-internal": true,
+      "description": "与生成JobsClient两个事件HTTP方法同形"
+    },
+    "consumerLoop": {
+      "type": "object",
+      "x-internal": true,
+      "description": "inbox私有运行类型，不序列化也不跨域导入"
+    },
+    "eventConsumer": {
+      "type": "object",
+      "x-internal": true,
+      "description": "inbox私有运行类型，不序列化也不跨域导入"
+    },
+    "outcome": {
+      "type": "object",
+      "x-internal": true,
+      "description": "inbox私有运行类型，不序列化也不跨域导入"
     }
   }
 }

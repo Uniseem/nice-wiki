@@ -1009,19 +1009,19 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9223372036854775807,
-          "description": "处理函数提交后已确认的事件数"
+          "description": "handler成功返回并已确认的处理次数；明确跳过的投递另计skipped"
         },
         "skipped": {
           "type": "integer",
           "minimum": 0,
           "maximum": 9223372036854775807,
-          "description": "旧dataEpoch或重复事件仅确认未处理的数量"
+          "description": "旧dataEpoch或handler以ErrEventSkipped明确标记重复/无须应用，且确认成功的投递次数"
         },
         "failed": {
           "type": "integer",
           "minimum": 0,
           "maximum": 9223372036854775807,
-          "description": "处理失败未确认、等待重投的数量"
+          "description": "信封/schema、handler或确认失败的未确认尝试次数，等待jobs重投；正常运行不伪报零"
         }
       },
       "required": [

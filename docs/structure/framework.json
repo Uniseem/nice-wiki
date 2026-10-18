@@ -744,6 +744,11 @@
       "purpose": "依赖校验锁；当前无第三方依赖，保持为空"
     },
     {
+      "path": "libs/platform/inbox/client.go",
+      "kind": "handwritten",
+      "purpose": "公共事件消费窄端口与真实累计统计"
+    },
+    {
       "path": "libs/platform/inbox/consumer.go",
       "kind": "handwritten",
       "purpose": "事件订阅循环实现"

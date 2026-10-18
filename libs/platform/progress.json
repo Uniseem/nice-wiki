@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "e3349e01ca64d8e7ba896e174f8b2f2d70617122edd0e2e89d06ae02fb9162dd",
+  "contractSha256": "6e640561e698711486a199a64db21ed31ba51419f6141aa84294b73d1edfb4ca",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
   "branch": "codex/integration-20261017-r3",
@@ -229,6 +229,16 @@
         "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
       "blocker": null
+    },
+    {
+      "path": "libs/platform/inbox/client.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "公共事件消费源码就绪，待GitLab"
     }
   ],
   "functions": [
@@ -323,13 +333,13 @@
     {
       "id": "platform.RunConsumer",
       "path": "libs/platform/inbox/consumer.go",
-      "state": "verified",
-      "implementationCommit": "fa70c657322cfabbb575282f3436f4605f31d69d",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
-        "evidence": "本地与隔离VPS go vet ./...、go build ./...通过（go1.25.5）；make check本地与VPS通过"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
     },
     {
       "id": "platform.RunWorkerLoop",
@@ -1117,6 +1127,204 @@
         "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
       },
       "blocker": null
+    },
+    {
+      "id": "platform.RunConsumerWithResult",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.consumerLoop.start",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.consumerLoop.stop",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.consumerLoop.worker",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.consumerLoop.queueFor",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.consumerLoop.operation",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.consumerLoop.dispatch",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.consumerLoop.acknowledge",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.consumerLoop.process",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.consumerLoop.classify",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.inbox.eventKey",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.inbox.pauseFor",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.inbox.readRuntime",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.inbox.sleep",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.inbox.isConfigRejected",
+      "path": "libs/platform/inbox/consumer.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.NewEventConsumer",
+      "path": "libs/platform/inbox/client.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.eventConsumer.SubscribeEvents",
+      "path": "libs/platform/inbox/client.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
+    },
+    {
+      "id": "platform.eventConsumer.AcknowledgeEvent",
+      "path": "libs/platform/inbox/client.go",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "事件窄适配与准确统计源码就绪，待GitLab生成/编译/完整检查"
     }
   ],
   "rule": "公共机制已通过自部署GitLab当前源码/生成/编译/结构检查；完整服务、业务验收和部署按各域未完成项保留。"

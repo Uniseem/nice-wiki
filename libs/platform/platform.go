@@ -340,13 +340,22 @@ type RecoveryLoopConfig struct {
 
 // ConsumerConfig 事件订阅循环参数；事件为“名称@版本”。
 type ConsumerConfig struct {
+	// SiteID由本域受信装配提供；空值仅用于system控制命名空间。
+	SiteID string `json:"-"`
 	ConsumerID  string   `json:"consumerId"`
 	Events      []string `json:"events"`
 	MaxInFlight int      `json:"maxInFlight"`
-	// Runtime 读取当前运行状态；可为nil，nil时按running处理。
+	// Runtime必需；读取失败或屏障期间暂停，不按running放行。
 	Runtime func(ctx context.Context) (RuntimeView, error) `json:"-"`
-	// ValidatePayload 按生产方payloadSchema校验载荷；nil时只做信封校验。
+	// ValidatePayload必需；生产方schema不符时不确认，等待修复或死信。
 	ValidatePayload func(eventType string, version int, payload json.RawMessage) error `json:"-"`
+}
+
+// ConsumerRunResult为本次循环的实际处理/跳过确认与失败尝试计数。
+type ConsumerRunResult struct {
+	Acknowledged int64 `json:"acknowledged"`
+	Skipped int64 `json:"skipped"`
+	Failed int64 `json:"failed"`
 }
 
 // WorkerConfig 任务领取循环参数；owner为本域slug。
@@ -748,11 +757,15 @@ type WorkerJobsClient interface {
 }
 
 // JobsClient保留既有事件与任务组合端口。
+type EventConsumerClient interface {
+	SubscribeEvents(context.Context, string, string) (EventStream, error)
+	AcknowledgeEvent(context.Context, string, Identifier) error
+}
+
 type JobsClient interface {
 	WorkerJobsClient
+	EventConsumerClient
 	PublishEvent(ctx context.Context, envelope EventEnvelope) error
-	SubscribeEvents(ctx context.Context, consumerID, lastEventID string) (EventStream, error)
-	AcknowledgeEvent(ctx context.Context, consumerID, eventID Identifier) error
 }
 
 // GatewayClient model-gateway服务的调用接口；实现自动附服务断言。

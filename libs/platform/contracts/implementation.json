@@ -2204,7 +2204,7 @@
         {
           "id": "platform.RunConsumer",
           "name": "RunConsumer",
-          "signature": "func RunConsumer(ctx context.Context, client JobsClient, config ConsumerConfig, handlers EventHandlerRegistry) error",
+          "signature": "func RunConsumer(ctx context.Context, client EventConsumerClient, config ConsumerConfig, handlers EventHandlerRegistry) error",
           "inputs": [
             {
               "name": "ctx",
@@ -2216,7 +2216,7 @@
             },
             {
               "name": "client",
-              "type": "JobsClient",
+              "type": "EventConsumerClient",
               "description": "jobs客户端",
               "constraints": [
                 "带服务断言"
@@ -2273,11 +2273,518 @@
           "concurrency": "每进程一个订阅",
           "idempotency": "依赖处理函数inbox去重",
           "dependencies": [
-            "jobs:subscribeEvents",
-            "jobs:acknowledgeEvent"
+            "platform.RunConsumerWithResult"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "platform.RunConsumerWithResult",
+          "name": "RunConsumerWithResult",
+          "signature": "func RunConsumerWithResult(ctx context.Context, client EventConsumerClient, config ConsumerConfig, handlers EventHandlerRegistry) (ConsumerRunResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "进程生命周期",
+              "constraints": [
+                "取消即退出"
+              ]
+            },
+            {
+              "name": "client",
+              "type": "EventConsumerClient",
+              "description": "jobs客户端",
+              "constraints": [
+                "带服务断言"
+              ]
+            },
+            {
+              "name": "config",
+              "type": "ConsumerConfig",
+              "description": "订阅的事件名/版本与并发",
+              "constraints": [
+                "来自本域events.json"
+              ]
+            },
+            {
+              "name": "handlers",
+              "type": "EventHandlerRegistry",
+              "description": "事件名→处理函数",
+              "constraints": [
+                "与events.json handler一致"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ConsumerRunResult",
+              "description": "所有分片退出后的实际累计处理/跳过确认与失败尝试数",
+              "constraints": [
+                "不伪填零；失败不确认"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败原因；调用方映射为公共Problem",
+              "constraints": [
+                "不含密钥、正文或IP"
+              ]
+            }
+          ],
+          "purpose": "以真实窄事件端口运行订阅并返回准确计数",
+          "steps": [
+            "启动校验runtime/payload校验器、完整登记handler与并发上限；只接真实事件窄客户端",
+            "每次订阅、handler与确认建立当前epoch的有界纯服务上下文，不复用启动时失效proof/deadline",
+            "同subject串行，分片间并发；权威未知/维护屏障暂停；新代不确认，旧代确认计skipped",
+            "信封/schema错误、handler失败或缺失、确认失败均不确认且计failed；handler明确ErrEventSkipped只确认计skipped",
+            "正常提交且确认成功计acknowledged；ctx退出排空分片后返回累计计数"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "jobs不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "HTTP长连接与确认"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数，在调用服务的进程内执行，权限由调用方决定"
+          },
+          "concurrency": "每进程一个订阅",
+          "idempotency": "依赖处理函数inbox去重",
+          "dependencies": [
+            "jobs:subscribeEvents",
+            "jobs:acknowledgeEvent",
+            "platform.consumerLoop.start",
+            "platform.consumerLoop.stop",
+            "platform.consumerLoop.operation",
+            "platform.consumerLoop.dispatch",
+            "platform.inbox.readRuntime",
+            "platform.inbox.pauseFor",
+            "platform.inbox.sleep",
+            "platform.inbox.isConfigRejected"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "platform.consumerLoop.start",
+          "name": "start",
+          "signature": "func(c *consumerLoop) start(ctx context.Context)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：consumerLoop.start",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [
+            "platform.consumerLoop.worker"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.stop",
+          "name": "stop",
+          "signature": "func(c *consumerLoop) stop()",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：consumerLoop.stop",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.worker",
+          "name": "worker",
+          "signature": "func(c *consumerLoop) worker(ctx context.Context,index int)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：consumerLoop.worker",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [
+            "platform.consumerLoop.process"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.queueFor",
+          "name": "queueFor",
+          "signature": "func(c *consumerLoop) queueFor(subject string)chan EventEnvelope",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：consumerLoop.queueFor",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.operation",
+          "name": "operation",
+          "signature": "func(c *consumerLoop) operation(ctx context.Context,epoch,root string)(context.Context,context.CancelFunc)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：consumerLoop.operation",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.dispatch",
+          "name": "dispatch",
+          "signature": "func(c *consumerLoop) dispatch(ctx context.Context,stream EventStream,lastID *string)bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：consumerLoop.dispatch",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [
+            "platform.consumerLoop.classify",
+            "platform.consumerLoop.queueFor",
+            "platform.consumerLoop.acknowledge"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.acknowledge",
+          "name": "acknowledge",
+          "signature": "func(c *consumerLoop) acknowledge(ctx context.Context,event EventEnvelope,skipped bool)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：consumerLoop.acknowledge",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [
+            "platform.inbox.readRuntime",
+            "platform.inbox.pauseFor",
+            "platform.consumerLoop.operation"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.process",
+          "name": "process",
+          "signature": "func(c *consumerLoop) process(ctx context.Context,event EventEnvelope)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：consumerLoop.process",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [
+            "platform.inbox.readRuntime",
+            "platform.inbox.pauseFor",
+            "platform.consumerLoop.operation",
+            "platform.consumerLoop.acknowledge"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.consumerLoop.classify",
+          "name": "classify",
+          "signature": "func(c *consumerLoop) classify(ctx context.Context,event EventEnvelope)outcome",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：consumerLoop.classify",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [
+            "platform.inbox.readRuntime",
+            "platform.inbox.pauseFor",
+            "platform.inbox.eventKey"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.inbox.eventKey",
+          "name": "eventKey",
+          "signature": "func eventKey(name string,version int)string",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：inbox.eventKey",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.inbox.pauseFor",
+          "name": "pauseFor",
+          "signature": "func pauseFor(view RuntimeView)bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：inbox.pauseFor",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.inbox.readRuntime",
+          "name": "readRuntime",
+          "signature": "func readRuntime(ctx context.Context,provider func(context.Context)(RuntimeView,error))(RuntimeView,bool)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：inbox.readRuntime",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.inbox.sleep",
+          "name": "sleep",
+          "signature": "func sleep(ctx context.Context,d time.Duration)bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：inbox.sleep",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.inbox.isConfigRejected",
+          "name": "isConfigRejected",
+          "signature": "func isConfigRejected(err error)bool",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：inbox.isConfigRejected",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -6150,6 +6657,100 @@
           "resources": [
             "受控Ed25519密钥引用"
           ],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "libs/platform/inbox/client.go",
+      "kind": "handwritten",
+      "purpose": "真实事件订阅HTTP窄适配、失败关闭与准确累计统计",
+      "functions": [
+        {
+          "id": "platform.NewEventConsumer",
+          "name": "NewEventConsumer",
+          "signature": "func NewEventConsumer(raw RawEventClient,validateAck func(json.RawMessage)error)(EventConsumerClient,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：NewEventConsumer",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [
+            "platform.eventConsumer.SubscribeEvents",
+            "platform.eventConsumer.AcknowledgeEvent"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.eventConsumer.SubscribeEvents",
+          "name": "SubscribeEvents",
+          "signature": "func(c *eventConsumer) SubscribeEvents(ctx context.Context,consumerID,lastID string)(EventStream,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：eventConsumer.SubscribeEvents",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.eventConsumer.AcknowledgeEvent",
+          "name": "AcknowledgeEvent",
+          "signature": "func(c *eventConsumer) AcknowledgeEvent(ctx context.Context,consumerID,eventID string)error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "事件消费内部实际助手：eventConsumer.AcknowledgeEvent",
+          "steps": [
+            "按可信本域配置执行此签名职责；具体失败关闭、当前epoch、真实确认及计数规则见inbox源码及RunConsumerWithResult合同。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "真实运行权威或端口缺失",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅受信进程装配；不接受浏览器自声明"
+          },
+          "concurrency": "仅运行时自己的分片与原子计数",
+          "idempotency": "确认沿consumerId/eventId稳定幂等键",
+          "dependencies": [],
+          "resources": [],
           "contract": "reference"
         }
       ]

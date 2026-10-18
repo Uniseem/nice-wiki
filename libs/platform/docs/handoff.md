@@ -1,3 +1,7 @@
+# 2026-10-18 继续完成剩余代码：公共事件消费源码
+
+本轮用户授权继续三个子代理实现全部剩余项，及时GitLab检查后双推。原75%停止指令已被取代。新EventConsumerClient只需真实SubscribeEvents/AcknowledgeEvent；inbox.NewEventConsumer绑定严格AcknowledgeEventResult生产方校验器，RunConsumerWithResult返回退出时真实累计计数。runtime及payload校验器必需，未知/屏障暂停，schema/handler/确认失败不确认；已知旧代和ErrEventSkipped仅确认记skipped。同subject串行，分片并发；每次RPC/handler建立当前epoch和新的有界纯服务上下文，清旧proof。未CI全部blocked，不执行真实事件或新增测试。
+
 # 2026-10-18 第二批集成检查通过并已双推源码
 
 自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。

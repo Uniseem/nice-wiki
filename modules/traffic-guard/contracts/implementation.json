@@ -3757,6 +3757,7 @@
           ],
           "purpose": "从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认",
           "steps": [
+            "装配inbox.NewEventConsumer真实窄HTTP适配及严格AcknowledgeEventResult生产方schema；返回RunConsumerWithResult真实累计计数，不构造伪worker或空统计。",
             "进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连",
             "每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未换入该epoch则不确认等待重投，否则视为旧代事件记skipped并确认",
             "按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入",
@@ -3795,7 +3796,8 @@
             "jobs:subscribeEvents",
             "jobs:acknowledgeEvent",
             "traffic-guard.ConsumeIdentityEvent",
-            "platform.RunConsumer"
+            "platform.NewEventConsumer",
+            "platform.RunConsumerWithResult"
           ],
           "resources": [],
           "contract": "binding"
