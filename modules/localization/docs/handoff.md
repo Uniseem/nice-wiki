@@ -1,3 +1,17 @@
+# 第二组交付（2026-10-18）
+
+源码5e90f43d6876833467610314722150fc678fe7e6（依赖首组21c6a19+49f99b6），其后另提交本记录。新增/修改15个既有函数与19个参考helper。累计ready精确IDs和分批SHA见progress.json.readyAwaitingCI.batches，均blocked待统一GitLab CI，未做业务验收。
+
+第二组实现人工保护/权威文件、完整源树保留与摘要绑定、control代数只增不复用、SourceText缺失失败关闭、翻译记忆/增量、提示/严格标签/有限降级/术语核验、QA已就绪译文读取、固定源界面字典人工链、平台模型和outbox单批适配。新增004复合主键迁移，旧归属未知不删除不伪造。所有对象先原子落盘再SQL CAS激活，失败只留不可见孤儿，不覆盖付费旧结果；目录同步到active，control预留不随恢复回退。
+
+完整执行仍未齐：SplitTranslationUnits及原树重建、Create/ExecuteTranslation与真实任务输入/lease绑定、提交/Complete、免费估算计划/批准、UI批次模型、语言建议准入、事件订阅/恢复控制仍未完成；整体BuildApplication照旧失败关闭。固定interface_sources尚无已安装生产key清单，本轮不伪造；对应读取/校验有真实实现但未安装会明确失败。
+
+未执行本地/SSH工具链、测试、真实接口/模型、服务或部署；未新增测试/样例。git diff --check通过。生成物必须先经GitLab gen（SourceText及PayloadValidationSpec）再编译，未手改生成目录。
+
+下一步（一项）：按content的16种DocumentBody合同完成SplitTranslationUnits与编号行内模板/原树还原，固定整篇受控上下文，再接CreateTranslation的当前来源验证和持久任务输入；不得把原URL/code/公式值发模型、不得绕过protected/human代数。
+
+---
+
 # 本轮首组交付（2026-10-18）
 
 独占modules/localization，分支codex/localization-20261018-bulk，基线f1d4ce0628470eda7b253993366669759dd01cdc。源码21c6a196c990d323c73429b769a38895beca7a93，其后另提交此台账。11个既有业务/已修改函数与15个新增参考helper精确IDs见progress.json.readyAwaitingCI，均blocked待统一GitLab CI，未编译/未验收。
