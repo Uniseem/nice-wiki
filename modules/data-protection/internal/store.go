@@ -37,6 +37,8 @@ type Store struct {
 	Authorize         func(context.Context, OperationContext, string, string) error
 	PayloadValidators map[string]func(json.RawMessage) error
 	CryptoMu          sync.Mutex
+	Snapshot          *lifecycle.SnapshotManager
+	SnapshotDomains   map[string]SnapshotDomainClient
 	DB                *sql.DB
 	Control           *sql.DB
 	closeOnce         sync.Once

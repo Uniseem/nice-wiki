@@ -1050,12 +1050,26 @@
           ],
           "purpose": "统一导出单域",
           "steps": [
-            "验证owner清单和safe",
-            "HTTP exportSnapshot",
-            "核snapshot owner/epoch/schema/hash",
-            "流式接收对象到隔离目录"
+            "只接受callerService=data-protection且原actor为带session的admin；用原root/site/epoch和用户委托调用identity:checkAuthorization重核当前superadmin，不接受纯服务actor替代批准者。",
+            "只接受固定13个外部owner，核backupId/barrierId/dataEpoch及当前runtime均为同一备份安全截点。",
+            "通过已装配的生成生产方端口调用exportSnapshot，核完整SnapshotRef与request绑定。",
+            "按ObjectRef获取application/x-tar归档，以20GiB上限流式写入本域active/incoming隔离临时文件并核长度与SHA-256。",
+            "在临时文件上调用公共ExtractSnapshotArchive与严格DomainSnapshotManifest校验，核真实manifest的owner/backup/barrier/snapshot/sourceEpoch/schema/watermark/secrets与导出回执一致后才rename和fsync。",
+            "已有同完整引用文件只重核hash；未知文件或manifest不符失败关闭，不把路径、URL或半归档交给Finalize。"
           ],
           "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "调用控制方不是data-protection或缺少当前有效superadmin原用户委托",
+              "httpStatus": 403,
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "condition": "runtime不是同一备份安全截点或owner快照未完成",
+              "httpStatus": 409,
+              "retryable": false
+            },
             {
               "code": "DEPENDENCY_UNAVAILABLE",
               "condition": "DOMAIN_UNAVAILABLE：在步骤中的对应校验或依赖失败",
@@ -1081,6 +1095,8 @@
           "concurrency": "最多3并发，5s接受长任务引用；禁止直读域私有盘",
           "idempotency": "backupId/owner同请求复用snapshot",
           "dependencies": [
+            "data-protection.validateSnapshotExportResult",
+            "identity:checkAuthorization",
             "memory:readSnapshotArchive",
             "identity:readSnapshotArchive",
             "content:readSnapshotArchive",
@@ -1093,7 +1109,8 @@
             "localization:readSnapshotArchive",
             "analytics:readSnapshotArchive",
             "model-gateway:readSnapshotArchive",
-            "media:readSnapshotArchive"
+            "media:readSnapshotArchive",
+            "platform.ExtractSnapshotArchive"
           ],
           "resources": [
             "owner.exportSnapshot"
@@ -5203,9 +5220,9 @@
           ],
           "purpose": "导出本域操作目录快照",
           "steps": [
-            "safe截点",
-            "导出历史ready catalog/remote无secret配置/已完成decisions",
-            "排除当前backup/restore运行与archive实物，archive由全manifest对象收录"
+            "只接受data-protection服务身份；核backupId/barrierId/dataEpoch与当前OperationContext。",
+            "委托已装配的公共SnapshotManager.Export取得真实safe截点；管理器或回调未装配时失败关闭。",
+            "把公共类型转换为生成快照DTO，并逐值核owner/epoch/schema/watermark/ObjectRef/checksum；不递归当前archive或control实物。"
           ],
           "errors": [
             {
@@ -5233,12 +5250,44 @@
           "concurrency": "备份不无限嵌套；本轮操作journal保留控制面外部恢复锚",
           "idempotency": "backupId/barrierId幂等",
           "dependencies": [
+            "data-protection.validateSnapshotExportResult",
             "platform.SnapshotManager.Export"
           ],
           "resources": [
             "本域catalog"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "data-protection.validateSnapshotExportResult",
+          "name": "validateSnapshotExportResult",
+          "signature": "func validateSnapshotExportResult(request gen.SnapshotExportRequest, owner string, result gen.SnapshotExportResult) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "核单域快照回执与导出请求的不可变绑定",
+          "steps": [
+            "核snapshotId/owner/dataEpoch/dataSchemaVersion/revisionWatermark及ObjectRef完整身份。",
+            "要求version=1、application/x-tar、真实SHA-256、1024至20GiB长度且checksum等于ObjectRef.sha256。",
+            "未显式includeSecrets时，拒绝containsSecrets=true；任何不符返回INTEGRITY_ERROR，不产生半结果。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "快照回执与原导出范围或不可变对象身份不符",
+              "httpStatus": 422,
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "同包内部纯校验"
+          },
+          "concurrency": "无共享状态",
+          "idempotency": "同输入只读",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },

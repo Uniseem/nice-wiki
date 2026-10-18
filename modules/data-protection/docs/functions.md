@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 124 个函数：约束 43 个，参考 81 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 125 个函数：约束 43 个，参考 82 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -461,13 +461,17 @@ func ExportDomainSnapshot(ctx context.Context, op OperationContext, in ExportDom
 
 **步骤**
 
-1. 验证owner清单和safe
-2. HTTP exportSnapshot
-3. 核snapshot owner/epoch/schema/hash
-4. 流式接收对象到隔离目录
+1. 只接受callerService=data-protection且原actor为带session的admin；用原root/site/epoch和用户委托调用identity:checkAuthorization重核当前superadmin，不接受纯服务actor替代批准者。
+2. 只接受固定13个外部owner，核backupId/barrierId/dataEpoch及当前runtime均为同一备份安全截点。
+3. 通过已装配的生成生产方端口调用exportSnapshot，核完整SnapshotRef与request绑定。
+4. 按ObjectRef获取application/x-tar归档，以20GiB上限流式写入本域active/incoming隔离临时文件并核长度与SHA-256。
+5. 在临时文件上调用公共ExtractSnapshotArchive与严格DomainSnapshotManifest校验，核真实manifest的owner/backup/barrier/snapshot/sourceEpoch/schema/watermark/secrets与导出回执一致后才rename和fsync。
+6. 已有同完整引用文件只重核hash；未知文件或manifest不符失败关闭，不把路径、URL或半归档交给Finalize。
 
 **错误**
 
+- `FORBIDDEN` / HTTP 403：调用控制方不是data-protection或缺少当前有效superadmin原用户委托（不可重试）
+- `LOCKED` / HTTP 409：runtime不是同一备份安全截点或owner快照未完成（不可重试）
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：DOMAIN_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `INTEGRITY_ERROR` / HTTP 422：INTEGRITY_ERROR：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
@@ -475,7 +479,7 @@ func ExportDomainSnapshot(ctx context.Context, op OperationContext, in ExportDom
 - 授权：permission：service；rule：service+超管委托
 - 并发：最多3并发，5s接受长任务引用；禁止直读域私有盘
 - 幂等：backupId/owner同请求复用snapshot
-- 依赖：`memory:readSnapshotArchive`、`identity:readSnapshotArchive`、`content:readSnapshotArchive`、`qa:readSnapshotArchive`、`knowledge:readSnapshotArchive`、`public-site:readSnapshotArchive`、`site-config:readSnapshotArchive`、`jobs:readSnapshotArchive`、`traffic-guard:readSnapshotArchive`、`localization:readSnapshotArchive`、`analytics:readSnapshotArchive`、`model-gateway:readSnapshotArchive`、`media:readSnapshotArchive`
+- 依赖：`data-protection.validateSnapshotExportResult`、`identity:checkAuthorization`、`memory:readSnapshotArchive`、`identity:readSnapshotArchive`、`content:readSnapshotArchive`、`qa:readSnapshotArchive`、`knowledge:readSnapshotArchive`、`public-site:readSnapshotArchive`、`site-config:readSnapshotArchive`、`jobs:readSnapshotArchive`、`traffic-guard:readSnapshotArchive`、`localization:readSnapshotArchive`、`analytics:readSnapshotArchive`、`model-gateway:readSnapshotArchive`、`media:readSnapshotArchive`、`platform.ExtractSnapshotArchive`
 - 其他依赖说明：owner.exportSnapshot
 
 ## data-protection.BuildManifest
@@ -2843,9 +2847,9 @@ func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotEx
 
 **步骤**
 
-1. safe截点
-2. 导出历史ready catalog/remote无secret配置/已完成decisions
-3. 排除当前backup/restore运行与archive实物，archive由全manifest对象收录
+1. 只接受data-protection服务身份；核backupId/barrierId/dataEpoch与当前OperationContext。
+2. 委托已装配的公共SnapshotManager.Export取得真实safe截点；管理器或回调未装配时失败关闭。
+3. 把公共类型转换为生成快照DTO，并逐值核owner/epoch/schema/watermark/ObjectRef/checksum；不递归当前archive或control实物。
 
 **错误**
 
@@ -2856,8 +2860,42 @@ func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotEx
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份需backup.manage且secret需superadmin，恢复需superadmin，定时备份按超管保存的设置）
 - 并发：备份不无限嵌套；本轮操作journal保留控制面外部恢复锚
 - 幂等：backupId/barrierId幂等
-- 依赖：`platform.SnapshotManager.Export`
+- 依赖：`data-protection.validateSnapshotExportResult`、`platform.SnapshotManager.Export`
 - 其他依赖说明：本域catalog
+
+## data-protection.validateSnapshotExportResult
+
+- 级别：参考
+- 文件：`modules/data-protection/internal/snapshot.go`
+- 作用：核单域快照回执与导出请求的不可变绑定
+
+```go
+func validateSnapshotExportResult(request gen.SnapshotExportRequest, owner string, result gen.SnapshotExportResult) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核snapshotId/owner/dataEpoch/dataSchemaVersion/revisionWatermark及ObjectRef完整身份。
+2. 要求version=1、application/x-tar、真实SHA-256、1024至20GiB长度且checksum等于ObjectRef.sha256。
+3. 未显式includeSecrets时，拒绝containsSecrets=true；任何不符返回INTEGRITY_ERROR，不产生半结果。
+
+**错误**
+
+- `INTEGRITY_ERROR` / HTTP 422：快照回执与原导出范围或不可变对象身份不符（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：同包内部纯校验
+- 并发：无共享状态
+- 幂等：同输入只读
+- 依赖：无
 
 ## data-protection.StageSnapshot
 
