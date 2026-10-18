@@ -549,7 +549,7 @@ type InvokeModelRequest struct {
 	Request        CreateInvocationInput `json:"request"`
 	IDempotencyKey Identifier            `json:"idempotencyKey"`
 	Stream         bool                  `json:"stream"`
-	// OnEvent 非nil时每收到一条事件回调一次；返回错误即中止。不序列化。
+	// OnEvent回调当前有效事件；历史终态待核当前权威，过时终态仅保留Events。不序列化。
 	OnEvent func(StreamEvent) error `json:"-"`
 }
 

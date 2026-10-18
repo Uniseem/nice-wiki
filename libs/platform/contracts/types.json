@@ -512,7 +512,7 @@
         },
         "onEvent": {
           "x-internal": true,
-          "description": "Go流式回调，不序列化；非nil时每收到一条StreamEvent调用一次，返回错误即中止"
+          "description": "Go流式回调，不序列化；非终态实时回调，历史终态先核当前权威，过时终态仅原样保留Events；回调错误即中止。"
         }
       },
       "required": [
