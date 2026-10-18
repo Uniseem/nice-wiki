@@ -60,3 +60,13 @@ BuildApplication仍blocked，不返回可运行应用。LoadPublishedBundle复�
 - `public-site.markdownDestination`
 - `public-site.codeFence`
 - `public-site.markHref`
+
+## 第二批（源码f1f6aae）
+
+预览OpenAPI已先收口：请求明确draftRevisionId，旧revision可选弃用且不参与授权；返回previewId，GET原token路径新增必填query previewId。直接传递content拥有者grant，不新签第二份token。每次渲染前后都重验本人、同会话及同精确草稿；no-store/private/noindex/no-referrer，资源只接受private_no_store manifest。
+
+PreviewPanel只在内存保留HTML和grant，sandbox iframe无脚本，切稿/卸载/401/403清空；CSRF仅从portal编辑器当前页内存事件传入，不写DOM/存储。独立Vue/Vite工程已登记，锁文件由根CI pnpm生成，使用Node22；Vue3.5.22/Vite7.1.7/TypeScript6.0.0-beta/plugin-vue6.0.1沿用既定工程。根已准许Vue官方language-tools vue-tsc3.1.1作为SFC检查工具，MIT来源github.com/vuejs/language-tools，根补notice。
+
+本批新完整源码待CI共14项，另含第一批RenderTiptapHTML平台点击加载修正；精确ID以progress中源码f1f6aae的记录为准。LoadPublishedBundle与ResolvePublicMedia两项仍partial，禁止纳入完整ready：前者缺复杂富文本/SEO译文回填，后者缺原图尺寸/alt及变体URL。
+
+本域仍没有完整HTTP/router、cache存储及恢复/订阅装配，BuildApplication继续失败关闭。不将纯函数或局部HTTP源码视为服务已可运行。未新增测试/fixture/mock/样例/临时验证程序，未调用真实接口/模型/服务，未本机Go/pnpm。

@@ -627,7 +627,7 @@ func visibleResult(href, language string, ref gen.PublishedRevisionRef) (gen.Res
 		Href:             href,
 		Publication:      ref,
 		ResolvedLanguage: language,
-		Reason:           gen.Available,
+		Reason:           "available",
 		Visible:          gen.True,
 	})
 	if err != nil {

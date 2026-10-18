@@ -2,12 +2,12 @@
   "version": 1,
   "module": "public-site",
   "phase": "implementation",
-  "contractSha256": "cf2a795c2f8e887c74a55558821685c937309a61b9edde3f5ec22ba0066ca2e8",
+  "contractSha256": "5a5a515f535087b9d09909114d04cabb5a8dbf7757c96bee88c34f0c657ad65e",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "public-site集中公开导航/渲染/索引源码批次；继续本域后续入口",
+  "assignedSession": "public-site第二批精确发布/预览及前端源码已交付；待CI",
   "branch": "codex/public-site-20261018-bulk",
   "baseCommit": "acc9bbcc1fe0cfbeae91d3c2835b09cea5cbe9bd",
-  "deliveryCommit": "32ab806",
+  "deliveryCommit": "f1f6aae",
   "deployment": "not_started",
   "files": [
     {
@@ -32,23 +32,23 @@
     },
     {
       "path": "modules/public-site/internal/authority.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/content_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/sanitize.go",
@@ -73,22 +73,22 @@
     {
       "path": "modules/public-site/internal/links.go",
       "state": "blocked",
-      "implementationCommit": "32ab806",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": "待统一GitLab生成与编译检查。"
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/media_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/navigation.go",
@@ -282,43 +282,43 @@
     },
     {
       "path": "modules/public-site/internal/preview.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/preview_renderer.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/http_preview.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/beacon.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/snapshot.go",
@@ -352,13 +352,13 @@
     },
     {
       "path": "modules/public-site/web/src/PreviewPanel.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/web/src/PublicSettingsPanel.vue",
@@ -372,13 +372,13 @@
     },
     {
       "path": "modules/public-site/web/src/client.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/http_root.go",
@@ -403,12 +403,12 @@
     {
       "path": "modules/public-site/internal/tiptap_html.go",
       "state": "blocked",
-      "implementationCommit": "32ab806",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": "新源码待统一GitLab生成与编译；未改函数保留既有证据。"
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": "待统一GitLab生成与编译检查。"
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/tiptap_markdown.go",
@@ -602,13 +602,13 @@
     },
     {
       "path": "modules/public-site/web/package.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/web/pnpm-lock.yaml",
@@ -622,23 +622,23 @@
     },
     {
       "path": "modules/public-site/web/vite.config.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/web/tsconfig.json",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/web/index.html",
@@ -652,13 +652,13 @@
     },
     {
       "path": "modules/public-site/web/src/main.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码及前端构建入口待根CI。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab检查；partial见函数记录。"
     },
     {
       "path": "modules/public-site/internal/events/consume.go",
@@ -747,24 +747,24 @@
     {
       "id": "public-site.CheckPublication",
       "path": "modules/public-site/internal/authority.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     },
     {
       "id": "public-site.LoadPublishedBundle",
       "path": "modules/public-site/internal/content_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "复杂富文本译文及SEO回填未收口；仅无marks纯text子集，不计完整ready。"
     },
     {
       "id": "public-site.SanitizeHTML",
@@ -802,13 +802,13 @@
     {
       "id": "public-site.ResolvePublicMedia",
       "path": "modules/public-site/internal/media_client.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "生产方manifest缺原图尺寸/alt与变体URL，本域不虚构；完整投影仍partial。"
     },
     {
       "id": "public-site.BuildNavigation",
@@ -1055,57 +1055,57 @@
     {
       "id": "public-site.IssuePreviewToken",
       "path": "modules/public-site/internal/preview.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     },
     {
       "id": "public-site.ValidatePreviewToken",
       "path": "modules/public-site/internal/preview.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     },
     {
       "id": "public-site.RenderPreview",
       "path": "modules/public-site/internal/preview_renderer.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     },
     {
       "id": "public-site.HandlePreview",
       "path": "modules/public-site/internal/http_preview.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     },
     {
       "id": "public-site.RecordAnonymousView",
       "path": "modules/public-site/internal/beacon.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     },
     {
       "id": "public-site.CreateSnapshot",
@@ -1165,13 +1165,13 @@
     {
       "id": "public-site.LoadPreview",
       "path": "modules/public-site/web/src/PreviewPanel.vue",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     },
     {
       "id": "public-site.LoadPublicCapabilities",
@@ -1187,13 +1187,13 @@
     {
       "id": "public-site.RequestPublicNavigation",
       "path": "modules/public-site/web/src/client.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     },
     {
       "id": "public-site.HandleRootRedirect",
@@ -1221,12 +1221,12 @@
       "id": "public-site.RenderTiptapHTML",
       "path": "modules/public-site/internal/tiptap_html.go",
       "state": "blocked",
-      "implementationCommit": "32ab806",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     },
     {
       "id": "public-site.RenderTiptapMarkdown",
@@ -1396,13 +1396,13 @@
     {
       "id": "public-site.mountModuleUI",
       "path": "modules/public-site/web/src/main.ts",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
       },
-      "blocker": null
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     },
     {
       "id": "public-site.ConsumeEvents",
@@ -1601,6 +1601,61 @@
         "evidence": "集中源码交付；未运行GitLab生成、格式、编译、vet或make check；待根统一CI核验。"
       },
       "blocker": "待统一GitLab生成与readonly编译检查；chroma的go.sum仅由CI go命令生成。"
+    },
+    {
+      "id": "public-site.collectInternalLinks",
+      "path": "modules/public-site/internal/preview_renderer.go",
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
+    },
+    {
+      "id": "public-site.load",
+      "path": "modules/public-site/web/src/PreviewPanel.vue",
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
+    },
+    {
+      "id": "public-site.sameOriginURL",
+      "path": "modules/public-site/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
+    },
+    {
+      "id": "public-site.responseProblem",
+      "path": "modules/public-site/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
+    },
+    {
+      "id": "public-site.requestPreview",
+      "path": "modules/public-site/web/src/client.ts",
+      "state": "blocked",
+      "implementationCommit": "f1f6aae",
+      "verification": {
+        "state": "not_run",
+        "evidence": "第二批源码待根GitLab生成锁与检查；未本机运行Go/pnpm。"
+      },
+      "blocker": "待统一GitLab生成与readonly编译；前端锁由CI pnpm生成。"
     }
   ],
   "rule": "先集中源码再统一GitLab检查与双推；未编译不提前记implemented/verified；accepted为零。"
