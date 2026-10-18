@@ -1,5 +1,7 @@
 # 重建计划
 
+2026-10-18预算窄修：GitLab pipeline86（770b93c；生成391、Go三分片392/393/394、前端395）全部成功，预算未知金额修正与可信Git凭据索引已通过16模块readonly build/vet/gofmt、已有普通go test、完整make check和前端类型/构建；精确31561字节生成物回传到123f699f162abaee206e99fe00c3e07e89050538。普通测试无测试文件，不是业务验收。当前1449/1858（78.0%），accepted=0；三代理持续全部剩余代码。
+
 2026-10-18第二批：1449/1858函数完成（78.0%；verified1395、implemented54；planned366、in_progress10、blocked33，accepted=0）。pipeline84完整通过；三个子代理继续全部剩余代码，根接公共机制，记录复检后普通双推。
 
 2026-10-18续写：1377/1805函数完成（76.3%；verified1323、implemented54；planned382、in_progress13、blocked33，accepted=0）。用户要求完成全部剩余代码，三个子代理持续并行，root统一公共机制/契约/生成，全部编译检查经GitLab，通过即普通双推；此前75%停止仅是历史。
