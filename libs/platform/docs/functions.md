@@ -2159,6 +2159,7 @@ func LoadServiceConfig(args []string, env []string) (ServiceConfig, error)
 5. portal可配置delegationKeyRef绝对引用，与服务断言私钥区分；NW_DELEGATION_KEY_REF覆盖文件
 6. 读取trustedProxyCIDRs及逗号分隔NW_TRUSTED_PROXY_CIDRS；空值清空信任；最多32条规范IP网段，拒绝host位或IPv4映射CIDR；默认不信任任何代理
 7. 读取可选masterKeyRef与NW_MASTER_KEY_REF覆盖；非空必须绝对路径，仅传递引用，不打开密钥；免费读取不强制主密钥可用
+8. GitCredentialRefs只data-protection可信配置，最多64个Identifier到规范绝对私有路径；加载不读取秘密，业务HTTP只接受已配ID。
 
 **错误**
 
