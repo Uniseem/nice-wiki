@@ -1,3 +1,9 @@
+# 启动独立链
+
+源码6ea4576：Serve/Shutdown/Health源码ready待CI，3新实际助手Application.ConfigureBusiness/BackgroundTasks/Drain，NewRuntimeClient修改重查。Build/Ready仍partial，缺公共保护/初始化权威实际装配，服务不可运行。复用c5a0dcd LoadServiceIdentity并移除2复制身份助手。Serve取消只Drain，平台等待全部后台后才Shutdown关库；Ready不编造initialized/safePoint/Revision。
+
+无本机Go/pnpm/生成/编译/格式/测试、无真实模型或push。继续明确catalogRef来源更新、待公共保护与用户probe额度/新目录许可。
+
 # 原生PDF小批
 
 源码f9bf34b+合同c3ccdc2一起候选，依赖根dd1e399公共File；3新实际helper：ReadInputBudgetModel、MediaPartAsset、ValidateInputModel，统一model-gateway前缀，均blocked待GitLab。11既有修改函数重新待CI，无新增原业务计数。

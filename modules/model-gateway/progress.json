@@ -2,12 +2,12 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "406801b1e0cd8662d9c11c1c7c03910b9bfa57af4d2605a6a99cffd19cba74b5",
+  "contractSha256": "60a4fcda7c3dc895337ca569f18443306f670db5ae409616a86128db925a2892",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1模型网关费用执行及完整启动收尾",
   "branch": "codex/finish-20261018-gateway",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "c3ccdc2c1b43c40989f0bf87b9cb7276c557d7f4",
+  "deliveryCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
   "deployment": "not_started",
   "files": [
     {
@@ -383,22 +383,22 @@
     {
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
       "verification": {
         "state": "not_run",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "evidence": "源码ready，待GitLab。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": "切片待CI，完整应用partial。"
     },
     {
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待GitLab。"
       },
-      "blocker": null
+      "blocker": "切片待CI，完整应用partial。"
     },
     {
       "path": "modules/model-gateway/go.mod",
@@ -2184,56 +2184,56 @@
       "id": "model-gateway.BuildApplication",
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "87a5af08293f4aa6ab1d1e0559049d1683ebc170",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
       "verification": {
         "state": "not_run",
-        "evidence": "仅新增读取/回放/人工对账映射及纯服务目录allowlist；待GitLab"
+        "evidence": "源码ready，待GitLab。"
       },
-      "blocker": "本批只补任务组/执行依赖/真实HTTP map；完整启动、恢复控制、保护/探测/catalog等handler与生命周期待下一批，不可运行服务。"
+      "blocker": "完整保护及初始化权威读取待公共交付，不宣称可运行。"
     },
     {
       "id": "model-gateway.Serve",
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待GitLab。"
     },
     {
       "id": "model-gateway.Shutdown",
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待GitLab。"
     },
     {
       "id": "model-gateway.Health",
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待GitLab。"
       },
-      "blocker": null
+      "blocker": "源码ready，待GitLab。"
     },
     {
       "id": "model-gateway.Ready",
       "path": "modules/model-gateway/internal/transport/server.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码ready，待GitLab。"
       },
-      "blocker": null
+      "blocker": "完整保护及初始化权威读取待公共交付，不宣称可运行。"
     },
     {
       "id": "model-gateway.mountModuleUI",
@@ -2712,12 +2712,12 @@
       "id": "model-gateway.NewRuntimeClient",
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
       "verification": {
         "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
+        "evidence": "源码ready，待GitLab。"
       },
-      "blocker": "源码ready，待CI。"
+      "blocker": "源码ready，待GitLab。"
     },
     {
       "id": "model-gateway.Nonempty",
@@ -2897,28 +2897,6 @@
     },
     {
       "id": "model-gateway.ensureDataLayout",
-      "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
-      "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
-      },
-      "blocker": "源码ready，待CI。"
-    },
-    {
-      "id": "model-gateway.loadSigningKey",
-      "path": "modules/model-gateway/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
-      "verification": {
-        "state": "not_run",
-        "evidence": "实际参考助手已登记，源码ready待根GitLab；不提前implemented/verified。"
-      },
-      "blocker": "源码ready，待CI。"
-    },
-    {
-      "id": "model-gateway.loadTrustAnchors",
       "path": "modules/model-gateway/internal/app/wire.go",
       "state": "blocked",
       "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
@@ -3312,6 +3290,39 @@
         "evidence": "原生PDF源码ready，待根GitLab。"
       },
       "blocker": "原生PDF源码ready，待根GitLab。"
+    },
+    {
+      "id": "model-gateway.Application.BackgroundTasks",
+      "path": "modules/model-gateway/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待GitLab。"
+      },
+      "blocker": "源码ready，待GitLab。"
+    },
+    {
+      "id": "model-gateway.Application.ConfigureBusiness",
+      "path": "modules/model-gateway/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待GitLab。"
+      },
+      "blocker": "源码ready，待GitLab。"
+    },
+    {
+      "id": "model-gateway.Application.Drain",
+      "path": "modules/model-gateway/internal/transport/server.go",
+      "state": "blocked",
+      "implementationCommit": "6ea4576c917303becf6d9092ad984bc6fb6fece8",
+      "verification": {
+        "state": "not_run",
+        "evidence": "源码ready，待GitLab。"
+      },
+      "blocker": "源码ready，待GitLab。"
     }
   ],
   "rule": "费用首批11原有业务及26必要助手共37项源码ready，加2项修改过的既有账本函数重新待CI；全部blocked，不提前implemented/verified。既有未改verified保留原证据；完整生产派发及启动继续实现。"
