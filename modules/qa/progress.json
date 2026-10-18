@@ -2,12 +2,12 @@
   "version": 1,
   "module": "qa",
   "phase": "implementation",
-  "contractSha256": "4423d496cf273480964e31864603338d30c46e4aa58e226cfe6b7d42c573c9dc",
+  "contractSha256": "2efd87cd355eb059057dd0f850d88bb4970d0471390a5a5d8013cfaed354d605",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-QA语义缓存及轮次终态第三批",
   "branch": "codex/qa-20261018-bulk",
   "baseCommit": "82179b907d25a546e9f470a1fb9cf1584ab45088",
-  "deliveryCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+  "deliveryCommit": "77c450c9d8f0a210137a811a75c046a8591ecc7b",
   "deployment": "not_started",
   "files": [
     {
@@ -33,12 +33,12 @@
     {
       "path": "modules/qa/internal/conversation/create.go",
       "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "implementationCommit": "77c450c9d8f0a210137a811a75c046a8591ecc7b",
       "verification": {
         "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "evidence": "免费准入及提交后释放窄修已提交，待根GitLab验证"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": "代码就绪，待GitLab及guard同批免费动作合同"
     },
     {
       "path": "modules/qa/internal/conversation/read.go",
@@ -63,12 +63,12 @@
     {
       "path": "modules/qa/internal/admission/permit.go",
       "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "implementationCommit": "77c450c9d8f0a210137a811a75c046a8591ecc7b",
       "verification": {
         "state": "not_run",
-        "evidence": "源码已提交，等待根GitLab统一生成及编译"
+        "evidence": "免费准入及提交后释放窄修已提交，待根GitLab验证"
       },
-      "blocker": "代码就绪，待GitLab编译检查"
+      "blocker": "代码就绪，待GitLab及guard同批免费动作合同"
     },
     {
       "path": "modules/qa/internal/normalize/question.go",
@@ -103,7 +103,7 @@
     {
       "path": "modules/qa/internal/cache/semantic.go",
       "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "implementationCommit": "5fce957fbffda993224616ab448129aec4baa171",
       "verification": {
         "state": "not_run",
         "evidence": "源码已提交，等待根GitLab统一生成及编译"
@@ -1013,12 +1013,12 @@
       "id": "qa.CreateConversation",
       "path": "modules/qa/internal/conversation/create.go",
       "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "implementationCommit": "77c450c9d8f0a210137a811a75c046a8591ecc7b",
       "verification": {
         "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "evidence": "免费会话窄修源码已提交；仅Git审阅和diff检查，等待根GitLab统一生成、格式、readonly build/vet及make check"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": "代码就绪，待GitLab；guard需同步免费qa.conversation消费保持空token及幂等释放"
     },
     {
       "id": "qa.GetConversation",
@@ -1046,12 +1046,12 @@
       "id": "qa.ValidateAdmission",
       "path": "modules/qa/internal/admission/permit.go",
       "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "implementationCommit": "77c450c9d8f0a210137a811a75c046a8591ecc7b",
       "verification": {
         "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "evidence": "免费会话窄修源码已提交；仅Git审阅和diff检查，等待根GitLab统一生成、格式、readonly build/vet及make check"
       },
-      "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
+      "blocker": "代码就绪，待GitLab；guard需同步免费qa.conversation消费保持空token及幂等释放"
     },
     {
       "id": "qa.NormalizeQuestion",
@@ -1222,10 +1222,10 @@
       "id": "qa.LookupSemanticCache",
       "path": "modules/qa/internal/cache/semantic.go",
       "state": "blocked",
-      "implementationCommit": "6813f10cedd5570c7c7575fe8ad50f905c608709",
+      "implementationCommit": "5fce957fbffda993224616ab448129aec4baa171",
       "verification": {
         "state": "not_run",
-        "evidence": "源码及合同已提交；仅Git审阅与diff检查，等待根GitLab统一生成、格式、readonly build/vet及完整make check"
+        "evidence": "源码字段拼写窄修已提交；等待根GitLab生成、readonly build/vet/gofmt及make check"
       },
       "blocker": "代码就绪，待GitLab编译检查；未做业务验收"
     },

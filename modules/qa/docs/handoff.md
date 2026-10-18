@@ -1,3 +1,13 @@
+# 免费会话准入冻结窄修
+
+源码 `77c450c`：qa.conversation仍需guard人机验证/分配/持久消费/verify原root，但输入及消费回执token均为空；qa.ask/followup必须消费非空签名token，付费分支不放松。CreateConversation核原root/owner/site/epoch，首次提交与同输入回放均在结束事务后幂等释放原guard占位；释放失败保留原会话回执，重放补释放而不重新消费或创建。没有模型调用，没有新增命名助手，仍88项ready。
+
+同步ValidateAdmissionInput实际动作枚举qa.conversation/qa.ask/qa.followup；新建会话前无conversationId，该关联提示改可选。guard免费动作及过期/已释放幂等语义由根与guard域同步。本批仍blocked待GitLab，未运行本机Go/测试/真实接口/模型，无push。窄修完成即再次冻结。
+
+# 第三批冻结补记
+
+根复核发现语义模型请求字段大小写错误，源码窄修 `5fce957` 已改为公共 `IDempotencyKey`。本域暂不继续第四大包，工作树清洁后交根集中GitLab全绿与双推。仍为88项源码ready/待编译，不据此改verified。guard已过期/本就不占位释放应由权威返回幂等Released=true；QA保持消费真实回执，不自行把false当成功。
+
 # 2026-10-18 问答第三批交接
 
 - 源码 `6813f10`；只改QA。新增6个原业务ready：`qa.LookupSemanticCache`、`qa.InvalidateCache`、`qa.CompleteTurn`、`qa.CancelTurn`、`qa.DeleteConversation`、`qa.PruneExpiredRecords`。
