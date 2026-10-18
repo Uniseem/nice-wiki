@@ -2,12 +2,12 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "9f03a51c977380e3095692f415b54395a42a79a03f03806c2fa6a855dc634948",
+  "contractSha256": "c85b8b14dac6b7c505457a7b3b8cfeb305772a9542324feb9ffb59a2de926fe6",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18持续收尾：第三批GitLab检查通过，业务验收未执行",
   "branch": "codex/finish-20261018-snapshot",
   "baseCommit": "599cc7b8b9eaf879866b1eb603b1430ea7c333c1",
-  "deliveryCommit": "afae2edc1544ec3e7eaf0434d81dd8b720330c92",
+  "deliveryCommit": "81730f78c9db0e1151a6d190bcf1c83e98ac77c1",
   "deployment": "not_started",
   "files": [
     {
@@ -143,12 +143,12 @@
     {
       "path": "libs/platform/lifecycle/restore_swap.go",
       "state": "blocked",
-      "implementationCommit": "afae2edc1544ec3e7eaf0434d81dd8b720330c92",
+      "implementationCommit": "81730f78c9db0e1151a6d190bcf1c83e98ac77c1",
       "verification": {
         "state": "not_run",
-        "evidence": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+        "evidence": "续接rename后补日志前fsync两侧父目录，源码就绪待GitLab。"
       },
-      "blocker": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+      "blocker": "续接rename后补日志前fsync两侧父目录，源码就绪待GitLab。"
     },
     {
       "path": "libs/platform/lifecycle/service.go",
@@ -1704,45 +1704,45 @@
       "id": "platform.snapshotRename",
       "path": "libs/platform/lifecycle/restore_swap.go",
       "state": "blocked",
-      "implementationCommit": "afae2edc1544ec3e7eaf0434d81dd8b720330c92",
+      "implementationCommit": "81730f78c9db0e1151a6d190bcf1c83e98ac77c1",
       "verification": {
         "state": "not_run",
-        "evidence": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+        "evidence": "续接rename后补日志前fsync两侧父目录，源码就绪待GitLab。"
       },
-      "blocker": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+      "blocker": "续接rename后补日志前fsync两侧父目录，源码就绪待GitLab。"
     },
     {
       "id": "platform.snapshotSwapLog",
       "path": "libs/platform/lifecycle/restore_swap.go",
       "state": "blocked",
-      "implementationCommit": "afae2edc1544ec3e7eaf0434d81dd8b720330c92",
+      "implementationCommit": "81730f78c9db0e1151a6d190bcf1c83e98ac77c1",
       "verification": {
         "state": "not_run",
-        "evidence": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+        "evidence": "续接rename后补日志前fsync两侧父目录，源码就绪待GitLab。"
       },
-      "blocker": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+      "blocker": "续接rename后补日志前fsync两侧父目录，源码就绪待GitLab。"
     },
     {
       "id": "platform.applySnapshotSwitch",
       "path": "libs/platform/lifecycle/restore_swap.go",
       "state": "blocked",
-      "implementationCommit": "afae2edc1544ec3e7eaf0434d81dd8b720330c92",
+      "implementationCommit": "81730f78c9db0e1151a6d190bcf1c83e98ac77c1",
       "verification": {
         "state": "not_run",
-        "evidence": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+        "evidence": "续接rename后补日志前fsync两侧父目录，源码就绪待GitLab。"
       },
-      "blocker": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+      "blocker": "续接rename后补日志前fsync两侧父目录，源码就绪待GitLab。"
     },
     {
       "id": "platform.applySnapshotRollback",
       "path": "libs/platform/lifecycle/restore_swap.go",
       "state": "blocked",
-      "implementationCommit": "afae2edc1544ec3e7eaf0434d81dd8b720330c92",
+      "implementationCommit": "81730f78c9db0e1151a6d190bcf1c83e98ac77c1",
       "verification": {
         "state": "not_run",
-        "evidence": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+        "evidence": "续接rename后补日志前fsync两侧父目录，源码就绪待GitLab。"
       },
-      "blocker": "公共机制源码就绪，待根GitLab生成/格式/readonly build/vet/完整结构检查；没有业务验收或部署证据。"
+      "blocker": "续接rename后补日志前fsync两侧父目录，源码就绪待GitLab。"
     },
     {
       "id": "platform.ReadRestoreSwapState",

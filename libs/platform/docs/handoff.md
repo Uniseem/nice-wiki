@@ -1,3 +1,7 @@
+# 恢复续接目录持久次序窄修
+
+源码81730f7：snapshotSwapLog在写下一阶段日志前统一fsync数据根与本restore目录，覆盖崩溃后已发生rename但未完成日志的续接分支；snapshotRename仅负责不覆盖已存在目标的真实rename。四修改函数重新blocked待GitLab，无新函数。未本机Go/生成/格式/编译/测试、未真实业务/部署/push。随后按Root分配接公共modelclient原键只读观察。
+
 # 公共快照与恢复源码切片
 
 源码3211e23及删除边界窄修afae2ed，基线599cc7b，分支codex/finish-20261018-snapshot，独占libs/platform。实际57项函数登记待GitLab（修改原ApplyRestoreSwap；56实际新增登记参考，其中5个原先已有未登记助手，不冒称56新业务）。新增5个snapshot_*.go和重写restore_swap.go，无业务域导入。源码就绪不表示14域回调或全域安全点已完成。
