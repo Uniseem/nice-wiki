@@ -861,7 +861,7 @@
         "x-handler": "model-gateway.CreateInvocation",
         "x-permission": "service",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 新调用持久accepted及不可变输入/原根/路线/原凭据refs，取得公共TaskGroup容量后提交，异步仅沿原业务deadline执行。expectedEmbeddingSpace仅embedding，主备付费前精确核五字段。localization.suggest要求background及持久管理员languageSuggestionApprovalId，每次新attempt预留/派发读localization权威，其他任务不得带此字段。完整结果与费用分离：completed可带charge_unknown attempt，保留held，不自动重算。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -1914,7 +1914,7 @@
         "x-handler": "model-gateway.QueryUsage",
         "x-permission": "model.manage",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 AI任务owner纯服务按持久root全部同站点/同owner归属读取；portal管理员经当前model.manage授权，root多owner普通服务403。held为调用created_at在窗内的当前held，settled按ledger.created_at；未知省略完整相应总额且列出全部未知ID，不返回部分和。",
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 AI任务owner纯服务按持久root全部同站点/同owner归属读取；portal管理员经当前model.manage授权，root多owner普通服务403。held为调用created_at在窗内的当前held，settled按ledger.created_at；未知省略完整相应总额且列出全部未知ID，不返回部分和。 safeToRetry仅证明完整原root全部调用和attempt尚未派发，不以成功状态或零金额代表免费；结果已成功但费用未知仍列unknownInvocationIds。",
         "parameters": [
           {
             "name": "rootOperationId",
@@ -4542,6 +4542,18 @@
         "name": "X-Admission-Permit",
         "description": "portal为公开AI请求向traffic-guard申请的准入许可；问答服务消费，网关本地验签"
       }
+    },
+    "schemas": {
+      "MediaReadAssetResult": {
+        "$ref": "../../media/contracts/types.json#/$defs/ReadAssetResult"
+      },
+      "LanguageSuggestionApprovalResult": {
+        "$ref": "../../localization/contracts/types.json#/$defs/ReadLanguageSuggestionApprovalResult"
+      }
     }
-  }
+  },
+  "x-runtime-payload-schemas": [
+    "MediaReadAssetResult",
+    "LanguageSuggestionApprovalResult"
+  ]
 }

@@ -302,3 +302,18 @@ MG原五字段spaceId保持原有有序json.Marshal结构SHA256，不改成Canon
 ### 有限额度与未知金额
 
 `CheckFeeBudgets`在每次预留（包括未知价格）及扩大预留的同一短写事务内执行。单请求额度合计原调用全部held/settled尝试；档位UTC日以及QA全站日、真实许可会话/网络小时范围均按各自限额核对。适用额度大于0时，本次最大金额未知或范围内存在NULL未知金额都以BUDGET_EXCEEDED拒绝新增，不能当0。所有适用额度明确0不限时才允许未知金额；旧日held保留原scope且不因超时释放。
+
+
+## 付费执行、证据与恢复（schemaVersion 8）
+
+`008_execution_evidence.sql`只追加`attempt_evidence`脱敏真实供应方证据及`invocations.execution_hash`。后者绑定原request/operation/route/profile、已消费QA scope、创建时刻及owner/site/epoch；动态invocation另有hash。旧NULL不回填为可安全重试。新attempt先内存准备，Reserve同一短写事务才追加attempt、credential引用、预留与scope commitment，不先写孤立reserved。
+
+accepted固定主/备用模型、原渠道与credential版本、额外头不透明refs、每attempt价目、任务/档位版本和vision授权媒体版本。key轮换不改变原attempt。原消息/输入只留私有业务快照，不进事件/日志/回执正文。媒体只经版本化readAsset/readAssetBytes，核ready、原站点、version/hash/MIME/size，累计24MiB以保证32MiB编码体上界；不得外部URL。
+
+输出完成与费用分开：校验通过的完整结果仍持久`succeeded`与SSE`completed`，费用缺真实usage或providerRequestId时attempt保持`charge_unknown`、reservation held并发原对账事件。中间费用未知不是SSE终态，只有terminal_ns提交才EOF。未有完整结果/可靠终态时outer charge_unknown。QueryUsage查全部attempt，不将outer succeeded或0金额当可免费重试。safeToRetry实际总给，只在完整原root全部调用accepted/reserved且所有attempt从未派发时true；还需owner原输入hash、原paidRefs与阶段证明，不是新收费许可。
+
+真实供应方usage只读明确字段，embedding/rerank无生成输出可按协议0，缺输入/ID绝不按估算补齐。Anthropic cache计数加回实际总输入；存在未建模cache特殊费率时pricingComplete=false。仅明确USD金额按big.Rat转换上取整microUSD；固定OpenRouter主机可确定其usage.cost为USD，其他不猜币种。UsageDigest包含pricingComplete。账单逐attempt原价目固定，未知金额NULL，不伪零；未知费用使未来有限范围新增预留失败。
+
+人工charged证明中原收费ID未知时须当前超管明确给真实providerRequestId，已知ID必须一致；缺usage还须显式真实inputTokens/outputTokens。证明同原attempt/root/provider/epoch审计，not_charged不造账单/ID。对账只修费用，不改成功结果；全部费用resolved才释放原历史密文引用。
+
+localization.suggest只允许background及languageSuggestionApprovalId；以MG纯服务读取localization readLanguageSuggestionApproval持久管理员批准，每次新attempt预留和实际派发前核enabled=true及approvalId/siteId/dataEpoch全等，停用/换版失败关闭。其他任务带此字段拒绝，公开空token无权付费。expectedEmbeddingSpace仅embedding，接受时核主模型、主/备用各自预留与派发均核原五字段精确相等；不归一化向量、不改变space算法。

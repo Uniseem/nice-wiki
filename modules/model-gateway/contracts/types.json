@@ -1495,7 +1495,7 @@
             "$ref": "#/$defs/GatewayMessage"
           },
           "maxItems": 256,
-          "description": "chat/vision消息其余空"
+          "description": "chat/vision/translation的显式消息；其他能力空"
         },
         "texts": {
           "type": "array",
@@ -1506,7 +1506,7 @@
           },
           "maxItems": 256,
           "uniqueItems": false,
-          "description": "embedding/translation/rerank输入其余空"
+          "description": "embedding/rerank显式原文本；聊天/翻译使用messages，不隐式拼接目标语言或提示词"
         },
         "candidateIds": {
           "type": "array",
@@ -1538,6 +1538,14 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "仅rerank必需的查询；texts是与candidateIds逐项对齐的候选原文，其他能力省略"
+        },
+        "expectedEmbeddingSpace": {
+          "$ref": "#/$defs/EmbeddingSpace",
+          "description": "仅embedding可选；主/备用每次预留和真实派发前与固定模型权威五字段逐项精确相等，否则付费前失败。knowledge调用必须提供。"
+        },
+        "languageSuggestionApprovalId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "仅localization.suggest+background必需，其他任务禁止。每次新attempt前与派发前读取localization持久管理员批准，停用/换版失败关闭。"
         }
       },
       "required": [
@@ -1591,6 +1599,10 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "键"
+        },
+        "preparedAttempt": {
+          "$ref": "#/$defs/PreparedAttempt",
+          "description": "内部可选内存准备值；与预留原子提交，不作为公开HTTP字段。"
         }
       },
       "required": [
@@ -1667,12 +1679,10 @@
       "additionalProperties": false,
       "properties": {
         "invocationId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "调用"
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         },
         "leaseId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "执行租约"
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
         }
       },
       "required": [
@@ -1688,6 +1698,15 @@
         "invocation": {
           "$ref": "#/$defs/Invocation",
           "description": "当前状态"
+        },
+        "failureCode": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "私有派发错误分类；Outcome为供应方脱敏实际证据，仅本域内存/私有attempt_evidence使用，不进HTTP结果。"
+        },
+        "outcome": {
+          "$ref": "#/$defs/ProviderOutcome",
+          "description": "私有执行结果，非HTTP序列化字段"
         }
       },
       "required": [
@@ -1734,28 +1753,43 @@
           "description": "供应方目标"
         },
         "headers": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 4096
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "maxItems": 256
           },
-          "maxItems": 256,
-          "uniqueItems": false,
-          "description": "经内存拼装敏感头"
+          "description": "内存http.Header；可能含密钥，禁止日志、回执、HTTP响应和持久化"
         },
         "body": {
           "type": "string",
           "minLength": 1,
+          "maxLength": 33554432,
+          "description": "内存JSON编码请求，最终UTF8字节<=32MiB，不能写日志/事件"
+        },
+        "modelVersion": {
+          "type": "string",
+          "minLength": 1,
           "maxLength": 65536,
-          "description": "JSON编码体"
+          "description": "原尝试固定providerModelVersion"
+        },
+        "reportedCurrency": {
+          "type": "string",
+          "enum": [
+            "USD"
+          ],
+          "description": "仅权威协议/固定OpenRouter主机声明USD；其他供应方不猜价格币种"
         }
       },
       "required": [
         "method",
         "url",
         "headers",
-        "body"
+        "body",
+        "modelVersion"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -1974,12 +2008,16 @@
           "type": "string",
           "minLength": 64,
           "maxLength": 64,
-          "description": "规范使用量hash",
+          "description": "脱敏规范JSON摘要providerRequestId/inputTokens/outputTokens/reportedCost可选/pricingComplete；不含prompt",
           "pattern": "^[0-9a-f]{64}$"
         },
         "attemptId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "独立计费尝试，避免晚到用量归给后继模型"
+        },
+        "pricingComplete": {
+          "type": "boolean",
+          "description": "固定两token费率+固定费能否完整表达真实计费；cache/thought等未建模费用不伪按普通费率；有真实USD金额时优先金额。"
         }
       },
       "required": [
@@ -1988,7 +2026,8 @@
         "inputTokens",
         "outputTokens",
         "usageHash",
-        "attemptId"
+        "attemptId",
+        "pricingComplete"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -2151,6 +2190,12 @@
           "minimum": 0,
           "maximum": 9007199254740991,
           "description": "原用量未知/冲突时charged证明必须显式给真实值，与另一token字段同时提供"
+        },
+        "providerRequestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "charged时原收费ID不存在必须明确提供真实ID，原已存在必须全等；not_charged不伪造ID或账单。"
         }
       },
       "required": [
@@ -2790,6 +2835,10 @@
           "maxItems": 256,
           "uniqueItems": true,
           "description": "本次窗内完整未知金额/未知收费调用ID，不能用0代替；超响应预算失败不截断"
+        },
+        "safeToRetry": {
+          "type": "boolean",
+          "description": "兼容可选，实际生产始终给；仅完整原root全部调用accepted/reserved且全部attempt未派发为true；旧证据不完整/未知/成功结果/零金额都不表示可重算。仅继续原输入hash阶段，仍须原paidRefs与费用准入。"
         }
       },
       "required": [
@@ -4847,6 +4896,139 @@
         "byteTokenEnds",
         "textHash"
       ]
+    },
+    "PreparedAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "$ref": "#/$defs/Attempt"
+        },
+        "model": {
+          "$ref": "#/$defs/Model"
+        },
+        "provider": {
+          "$ref": "#/$defs/Provider"
+        },
+        "credentialVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": ""
+        },
+        "price": {
+          "$ref": "#/$defs/PriceSnapshot"
+        },
+        "leaseId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "leaseUntilNs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "仅本域Go int64纳秒私有准备值，禁止出HTTP或事件；不是JS安全整数DTO。"
+        },
+        "dispatchedNs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "仅本域Go int64纳秒私有准备值，禁止出HTTP或事件；不是JS安全整数DTO。"
+        },
+        "usageHash": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "inputTokenBudget": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": ""
+        },
+        "outputTokenBudget": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": ""
+        }
+      },
+      "required": [
+        "attempt",
+        "model",
+        "provider",
+        "credentialVersion",
+        "price",
+        "leaseId",
+        "leaseUntilNs",
+        "dispatchedNs",
+        "usageHash",
+        "inputTokenBudget",
+        "outputTokenBudget"
+      ],
+      "description": "本域AttemptRecord内存准备值；新预留时由PrepareInvocationAttempt产生，Reserve同事务追加attempt、凭据引用、reservation及commitment，不先持久化孤立reserved记录。"
+    },
+    "ProviderOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": ""
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": ""
+        },
+        "reportedCost": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Money"
+        },
+        "pricingComplete": {
+          "type": "boolean"
+        },
+        "output": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/ModelOutput"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "httpStatus": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": ""
+        },
+        "acceptanceProof": {
+          "enum": [
+            "unknown",
+            "accepted",
+            "not_accepted"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "outputStarted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "requestId",
+        "pricingComplete",
+        "completed",
+        "httpStatus",
+        "acceptanceProof",
+        "code",
+        "outputStarted"
+      ],
+      "description": "供应方脱敏证据；可选计数缺失保持未知，不按估算token/伪收费ID补零。"
     }
   }
 }

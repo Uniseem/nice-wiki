@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+ "time"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
@@ -16,7 +17,7 @@ import (
 	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
-	"nice-wiki/modules/model-gateway/internal/invocation"
+ "nice-wiki/modules/model-gateway/internal/invocation"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/security"
 	"nice-wiki/modules/model-gateway/internal/tokens"
@@ -69,6 +70,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	gatewayruntime.InstallStore(store, config.MasterKeyRef)
 	defer store.Close()
+ taskGroup,err:=lifecycle.NewTaskGroup(ctx,256);if err!=nil{return nil,err}
+ validators:=make(map[string]func(json.RawMessage)error)
+ for _,name:=range []string{"MediaReadAssetResult","LanguageSuggestionApprovalResult"}{validator,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),name);if err!=nil{return nil,err};validators[name]=validator}
+ mediaClient:=gen.NewMediaClient(config.Dependencies["media"],ModuleSlug,key)
+ options:=gatewayruntime.ExecutionOptions{Anchors:anchors,Tasks:taskGroup,Media:mediaClient,MediaBytes:mediaClient,Jobs:gen.NewJobsClient(config.Dependencies["jobs"],ModuleSlug,key),Validators:validators,WriteWindow:platform.WriteWindowConfig{Runtime:runtimeAuthority.ReadRuntimeState,WriteWindow:func(work context.Context)(time.Time,error){view,err:=runtimeAuthority.ReadRuntimeState(work);if err!=nil{return time.Time{},err};if view.DataEpoch!=runtimeView.DataEpoch{return time.Time{},platform.NewError(platform.CodeStaleResult,false,"模型写窗口代际已变化")};if view.Phase!=platform.PhaseRunning&&view.Phase!=platform.PhaseBackupBarrier&&view.Phase!=platform.PhaseRestoreStaging{return time.Time{},platform.NewError(platform.CodeLocked,true,"模型写窗口已关闭")};return time.Time{},nil}}}
+ if base:=config.Dependencies["localization"];base!=""{options.LanguageApprovals=gen.NewLocalizationClient(base,ModuleSlug,key)}
+ gatewayruntime.InstallExecutionOptions(options)
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
@@ -84,9 +92,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 	}
 	handlers := catalog.NewTaskAvailabilityHandlers(authorize)
-	for operationID, handler := range invocation.NewExecutionHandlers() {
-		handlers[operationID] = handler
-	}
+ for operationID,handler:=range invocation.NewExecutionHandlers(){handlers[operationID]=handler}
 	ledgerHandlers, err := admin.NewLedgerHandlers(key)
 	if err != nil {
 		return nil, err
@@ -97,10 +103,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	for operationID, handler := range billing.NewPriceHandlers() {
 		handlers[operationID] = handler
 	}
-	for operationID, handler := range tokens.NewTokenizerHandlers() {
-		handlers[operationID] = handler
-	}
-	for operationID, handler := range tokens.NewTokenHandlers() {
+	for operationID, handler := range tokens.NewTokenizerHandlers() { handlers[operationID] = handler }; for operationID, handler := range tokens.NewTokenHandlers() {
 		handlers[operationID] = handler
 	}
 	for operationID, handler := range catalog.NewCatalogHandlers() {
@@ -123,18 +126,20 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		OpenedDataEpoch:     runtimeView.DataEpoch,
 		Authorize:           authorize,
-		ServiceActorCallers: map[string][]string{"tokenizeText": {"knowledge"}, "queryUsage": assignmentCallers[1:], "readModels": assignmentCallers[1:], "readProfiles": assignmentCallers[1:], "readInference": assignmentCallers[1:], "resumeInference": assignmentCallers[1:]},
+		ServiceActorCallers: map[string][]string{"tokenizeText":{"knowledge"},"createInference":assignmentCallers[1:],"cancelInference":assignmentCallers[1:],"queryUsage": assignmentCallers[1:],"readModels":assignmentCallers[1:],"readProfiles":assignmentCallers[1:],"readInference":assignmentCallers[1:],"resumeInference":assignmentCallers[1:]},
 		AllowedCallers: map[string][]string{
 			"getLedger":            {"portal"},
-			"readInference":        assignmentCallers,
-			"resumeInference":      assignmentCallers,
-			"reconcileCharge":      {"portal"},
+ "readInference":assignmentCallers,
+ "resumeInference":assignmentCallers,
+ "reconcileCharge":{"portal"},
+ "createInference":assignmentCallers[1:],
+ "cancelInference":assignmentCallers[1:],
 			"queryUsage":           assignmentCallers,
 			"readTaskAvailability": {"qa"},
 			"getPriceBook":         {"portal"},
 			"quoteCost":            assignmentCallers[1:],
-			"tokenizeText":         {"knowledge"},
-			"estimateTokens":       {"localization"},
+			"tokenizeText":{"knowledge"},
+ "estimateTokens":       {"localization"},
 			"putTaskAssignment":    {"portal"},
 			"putProfile":           {"portal"},
 			"putProvider":          {"portal"},

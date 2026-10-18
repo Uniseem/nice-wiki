@@ -105,3 +105,14 @@ QueryUsage的portal管理员即时核model.manage；AI owner纯服务要求整�
 本轮费用首批已编写Reserve/Extend/RecordUsage/Settle/Unknown/Reconcile及调用安全读取/持久SSE、失败分类、日志白名单；全部待GitLab，完整Create/Execute/Dispatch、供应方网络适配、凭据引用回收及启动仍未完成。首批配置足够时消费者真实读写，不把暂缺原生产入口伪装成完整已上线费用链。root统一补公共snapshot/barrier与tokenizeText，本域不争用公共文件或tokenizer专用所有权。
 
 管理员额外头表单须区分“不修改”和“清空全部”：前者省略secretHeaders，后者明确[]并providerCAS；非空数组是管理员显式替换整份加密映射。秘密值不在管理回读中预填，不进入事件/日志/回执正文，不能把Provider.extraHeaderSecretRefs当配置文件引用。对应UI实际装配仍在后续完整页面批次，不把有schema称为已有界面。
+
+
+## 原调用执行与关闭窗口
+
+Create先严格owner/task/cost授权与原guard消费签名，再固定路线/价目/媒体原版本；幂等重放优先复用原结果。公共TaskGroup在持久commit前取得真实容量，回调等待commit信号；满容量回滚，不假accepted。Start保留原业务op.Deadline、原values而脱离HTTP断开，进程取消/管理员取消/原deadline仍真实取消IO。
+
+Execute领取30秒lease每10秒续租，按全保守输入+最大输出预算预留。视觉仅模型明确MaxInputTokens可作保守费用上界，不宣称真实图像token。每次新attempt与held原子产生；派发前再核lease/取消、固定space和管理员批准。仅一次供应方HTTP，无重定向/自动重试；发送前先持久dispatching/dispatched_ns。真实delta<=16KiB且累计文本<=64KiB，首delta同事务转streaming，SSE/JSON上限分别64/32MiB；错误原始正文不日志。真实终态/结构结果先核协议和维度/有限值后持久evidence，slot始终释放。
+
+取消先同事务cancel_requested/原回执再TaskGroup.Cancel。未派发或明确not_accepted证据才释放；已派发未知保留held，不能把网络取消当免费。新备用只走固定直接后继，原模型结构重试至多一次，总attempt数不超路线+1；已有完整结果不重算，已有文本不能换供应方拼接。所有attempt共享原root及业务截止。
+
+BeginFinalization专供已发生IO后的真实usage/费用/终态/释放，脱离HTTP取消建立最多5秒当前权威记账窗口；只在控制层仍允许draining时收尾，safe/failed后拒active写。它不延长持久原deadline、不创建新预留/attempt、不允许模型IO。若窗口已关闭，保留原事实给恢复，不猜0。RecoverLeases只沿原不可变hash处理；从未派发且原deadline有效才继续，否则只复用持久付费证据或收敛unknown，禁止重发。完整启动、snapshot/barrier与其精确关闭装配仍待下一批，不在本批伪造ready服务。
