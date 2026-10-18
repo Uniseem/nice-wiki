@@ -18,7 +18,7 @@ type ListLanguagesInput struct {
 type ListLanguagesResult = gen.ListLanguagesResult
 
 // LanguageForTag 在同一只读快照内按规范 BCP47 查找配置并返回展示原文。
-func LanguageForTag(ctx context.Context, tx *sql.Tx, op OperationContext, tag string) (gen.Language, error) {
+func LanguageForTag(ctx context.Context, op OperationContext, tx *sql.Tx, tag string) (gen.Language, error) {
 	wanted, err := NormalizeLanguageTag(ctx, OperationContext{}, NormalizeLanguageTagInput{Tag: tag})
 	if err != nil {
 		return gen.Language{}, err

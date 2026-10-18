@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 162 个函数：约束 48 个，参考 114 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 163 个函数：约束 48 个，参考 115 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -368,16 +368,25 @@ func rejectLanguageAlias(ctx context.Context,tx *sql.Tx,tag string)error
 - 作用：在语言计划最终CAS事务内启用已有语言的自动翻译并发布language.changed。
 
 ```go
-func EnableLanguageForPlan(ctx context.Context, tx *sql.Tx, op OperationContext, tag string, expectedVersion int) (gen.Language, error)
+func EnableLanguageForPlan(ctx context.Context, op OperationContext, tx *sql.Tx, tag string, expectedVersion int) (gen.Language, error)
 ```
 
 **输入**
 
-无
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | SQL取消与截止 | 使用调用方最终批准事务与原版本 |
+| `op` | `OperationContext` | 可信原批准上下文 | 使用调用方最终批准事务与原版本 |
+| `tx` | `Tx` | 同一本域事务 | 使用调用方最终批准事务与原版本 |
+| `tag` | `string` | 目标语言标签 | 使用调用方最终批准事务与原版本 |
+| `expectedVersion` | `int` | 原估价语言版本 | 使用调用方最终批准事务与原版本 |
 
 **输出**
 
-无
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `Language` | 版本加一后的真实语言配置 | 同一事务写入并登记outbox |
+| `error` | `error` | 错误时调用方回滚 | 只使用已登记错误码 |
 
 **步骤**
 
@@ -455,7 +464,7 @@ func ListLanguages(ctx context.Context, op OperationContext, input ListLanguages
 - 作用：在同一快照按规范BCP47查找语言配置。
 
 ```go
-func LanguageForTag(ctx context.Context, tx Tx, op OperationContext, tag string) (Language, error)
+func LanguageForTag(ctx context.Context, op OperationContext, tx *sql.Tx, tag string) (gen.Language, error)
 ```
 
 **输入**
@@ -463,8 +472,8 @@ func LanguageForTag(ctx context.Context, tx Tx, op OperationContext, tag string)
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
-| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
 | `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
 | `tag` | `string` | 目标语言 | 按实际Go签名与所属调用链边界使用 |
 
 **输出**
@@ -3643,7 +3652,7 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 - 作用：经模型网关执行一次调用并读取到终态
 
 ```go
-func InvokeModel(ctx context.Context,op OperationContext,input InvokeModelInput)(InvokeModelResult,error)
+func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInput) (InvokeModelResult, error)
 ```
 
 **输入**
@@ -3681,7 +3690,7 @@ func InvokeModel(ctx context.Context,op OperationContext,input InvokeModelInput)
 - 作用：本域参考支持 ConfigureExecutionAdapters；精确输入输出以实际Go签名为准。
 
 ```go
-func ConfigureExecutionAdapters(gateway platform.GatewayClient,publisher platform.EventPublisher)error
+func ConfigureExecutionAdapters(gateway platform.GatewayClient, publisher platform.EventPublisher) error
 ```
 
 **输入**
@@ -3720,7 +3729,7 @@ func ConfigureExecutionAdapters(gateway platform.GatewayClient,publisher platfor
 - 作用：本域参考支持 PublishBatch；精确输入输出以实际Go签名为准。
 
 ```go
-func PublishBatch(ctx context.Context,limit int)(platform.RelayBatchResult,error)
+func PublishBatch(ctx context.Context, limit int) (platform.RelayBatchResult, error)
 ```
 
 **输入**
@@ -3759,7 +3768,7 @@ func PublishBatch(ctx context.Context,limit int)(platform.RelayBatchResult,error
 - 作用：装配免费路由、token、报价与任务提交端口。
 
 ```go
-func ConfigurePlanAdapters(gateway *ModelGatewayClient, jobs *JobsClient, validators PlanValidators) error
+func ConfigurePlanAdapters(gateway *gen.ModelGatewayClient, jobs *gen.JobsClient, validators map[string]func(json.RawMessage) error) error
 ```
 
 **输入**
@@ -3800,7 +3809,7 @@ func ConfigurePlanAdapters(gateway *ModelGatewayClient, jobs *JobsClient, valida
 - 作用：对计划依赖响应执行生产方strict schema校验。
 
 ```go
-func validatePlanPayload(name string, raw RawMessage) error
+func validatePlanPayload(name string, raw json.RawMessage) error
 ```
 
 **输入**
@@ -3925,7 +3934,7 @@ func EstimatePlanTextTokens(ctx context.Context, op OperationContext, modelID st
 - 作用：读取固定价目计算保守费用。
 
 ```go
-func QuotePlanCost(ctx context.Context, op OperationContext, modelID string, inputTokens, maximumOutputTokens int64) (LanguagePlanQuote, error)
+func QuotePlanCost(ctx context.Context, op OperationContext, modelID string, inputTokens, maximumOutputTokens int64) (gen.QuoteCostResult, error)
 ```
 
 **输入**
@@ -3969,7 +3978,7 @@ func QuotePlanCost(ctx context.Context, op OperationContext, modelID string, inp
 - 作用：沿原scope提交并严格校验一条jobs任务。
 
 ```go
-func CreatePlanJob(ctx context.Context, op OperationContext, input any, idempotencyKey string) (AcceptedJob, error)
+func CreatePlanJob(ctx context.Context, op OperationContext, input any, idempotencyKey string) (gen.AcceptedJob, error)
 ```
 
 **输入**
@@ -4083,7 +4092,7 @@ func ApproveLanguagePlan(ctx context.Context, op OperationContext, input Approve
 3. 首次批准开始持久冻结完整OperationContext、原rootOperationId、批准主体、dataEpoch与deadline；进程失败后只沿该scope与未延长截止重放，不能换root/主体或延长付费许可
 4. 先持久保存逐文档与UI任务意图（固定object ref、完整任务输入hash、绑定planId的dedupeKey和原approved plan/price快照）；进程失败后复用同一完整输入和幂等键
 5. 为计划内每篇文档创建localization.document任务（按source/target/generation去重），另建一个localization.ui任务；任一任务未获持久接受时计划保持pending且不返回成功
-6. 全部jobs接受后在同一本域事务CAS pending→approved，启用该语言automatic=true并记录批准人与估价；不生成新quote、不延长原expiresAt
+6. 全部jobs接受后，在同一本域事务重新比较语言配置、术语/界面代数、固定源hash及界面缺项，再CAS pending→approved并启用automatic=true；任一变化整次回滚，不接受新报价或延长expiresAt。
 7. 翻译完成前公开页面按旧译或原文回退并提示
 
 **错误**
@@ -4098,7 +4107,7 @@ func ApproveLanguagePlan(ctx context.Context, op OperationContext, input Approve
 - 授权：permission：localization.languages；rule：语言管理员显式批准费用
 - 并发：计划CAS pending→approved
 - 幂等：同planId重复批准返回原结果
-- 依赖：`localization.RequireAdministrator`、`localization.checkLanguagePlanForApproval`、`localization.selectApprovalOperation`、`localization.checkLanguagePlanRevisions`、`localization.ensureLanguagePlanJobs`、`localization.loadLanguagePlanJobs`、`localization.CreatePlanJob`、`localization.planJobType`、`localization.planJobIdempotencyKey`、`localization.Mutate`、`localization.loadLanguagePlan`、`localization.sameApprovalOperation`、`localization.EnableLanguageForPlan`、`model-gateway:resolveTaskRoute`、`model-gateway:quoteCost`、`jobs:createJob`
+- 依赖：`localization.RequireAdministrator`、`localization.checkLanguagePlanForApproval`、`localization.selectApprovalOperation`、`localization.checkLanguagePlanRevisions`、`localization.ensureLanguagePlanJobs`、`localization.loadLanguagePlanJobs`、`localization.CreatePlanJob`、`localization.planJobType`、`localization.planJobIdempotencyKey`、`localization.Mutate`、`localization.loadLanguagePlan`、`localization.sameApprovalOperation`、`localization.EnableLanguageForPlan`、`model-gateway:resolveTaskRoute`、`model-gateway:quoteCost`、`jobs:createJob`、`localization.checkLanguagePlanLocalState`
 
 ## localization.estimateDocumentPlan
 
@@ -4107,7 +4116,7 @@ func ApproveLanguagePlan(ctx context.Context, op OperationContext, input Approve
 - 作用：统计单篇文档免费估价。
 
 ```go
-func estimateDocumentPlan(ctx context.Context, op OperationContext, target string, document PublicTreeDocument, modelID string, minimumCharacters int) (languagePlanDocument, error)
+func estimateDocumentPlan(ctx context.Context, op OperationContext, target string, document localizationruntime.PublicTreeDocument, modelID string, minimumCharacters int) (languagePlanDocument, error)
 ```
 
 **输入**
@@ -4153,7 +4162,7 @@ func estimateDocumentPlan(ctx context.Context, op OperationContext, target strin
 - 作用：统计固定界面源相对目标字典的缺项。
 
 ```go
-func readInterfacePlan(ctx context.Context, tx Tx, op OperationContext, target string) (interfacePlanData, error)
+func readInterfacePlan(ctx context.Context, op OperationContext, tx *sql.Tx, target string) (interfacePlanData, error)
 ```
 
 **输入**
@@ -4161,8 +4170,8 @@ func readInterfacePlan(ctx context.Context, tx Tx, op OperationContext, target s
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
-| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
 | `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
 | `target` | `string` | 目标语言 | 按实际Go签名与所属调用链边界使用 |
 
 **输出**
@@ -4237,7 +4246,7 @@ func conservativeOutputTokens(count, perBatch int64) (int64, error)
 - 作用：合并文档与界面任务的同一价目快照。
 
 ```go
-func combineLanguagePlanQuotes(documentQuote, interfaceQuote LanguagePlanQuote) (LanguagePlanQuote, error)
+func combineLanguagePlanQuotes(documentQuote, interfaceQuote gen.QuoteCostResult) (gen.QuoteCostResult, error)
 ```
 
 **输入**
@@ -4278,7 +4287,7 @@ func combineLanguagePlanQuotes(documentQuote, interfaceQuote LanguagePlanQuote) 
 - 作用：转换主候选为持久计划路由。
 
 ```go
-func planRouteFromRuntime(route PlanTaskRoute) languagePlanRoute
+func planRouteFromRuntime(route localizationruntime.PlanTaskRoute) languagePlanRoute
 ```
 
 **输入**
@@ -4354,7 +4363,7 @@ func checkedInt(value int64) int
 - 作用：持久保存新计划或复用同快照未过期计划。
 
 ```go
-func saveLanguagePlan(ctx context.Context, op OperationContext, snapshot languagePlanSnapshot, snapshotRaw []byte, quoteHash Hash, expiresAt Timestamp, result *EstimateLanguagePlanResult) error
+func saveLanguagePlan(ctx context.Context, op OperationContext, snapshot languagePlanSnapshot, snapshotRaw []byte, quoteHash platform.Hash, expiresAt platform.Timestamp, result *EstimateLanguagePlanResult) error
 ```
 
 **输入**
@@ -4400,7 +4409,7 @@ func saveLanguagePlan(ctx context.Context, op OperationContext, snapshot languag
 - 作用：读取既有计划原估价结果。
 
 ```go
-func readPlanResult(ctx context.Context, tx Tx, planID string, result *EstimateLanguagePlanResult) error
+func readPlanResult(ctx context.Context, tx *sql.Tx, planID string, result *EstimateLanguagePlanResult) error
 ```
 
 **输入**
@@ -4441,7 +4450,7 @@ func readPlanResult(ctx context.Context, tx Tx, planID string, result *EstimateL
 - 作用：在批准前核计划hash、期限和本域revision。
 
 ```go
-func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, input ApproveLanguagePlanInput) (storedLanguagePlan, ApproveLanguagePlanResult, error)
+func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, input ApproveLanguagePlanInput) (storedLanguagePlan, *ApproveLanguagePlanResult, error)
 ```
 
 **输入**
@@ -4462,9 +4471,10 @@ func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, inpu
 
 **步骤**
 
-1. 计划必须属于当前站点和代次
-2. hash、语言、期限、语言配置、术语/界面代数必须一致
-3. 已批准返回原结果
+1. 使用checkLanguagePlanLocalState在本次事务核对本域版本，拒绝并发编辑造成的过期计划。
+2. 计划必须属于当前站点和代次
+3. hash、语言、期限、语言配置、术语/界面代数必须一致
+4. 已批准返回原结果
 
 **错误**
 
@@ -4476,7 +4486,7 @@ func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, inpu
 - 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
 - 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
 - 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
-- 依赖：`localization.loadLanguagePlan`、`localization.NormalizeLanguageTag`、`localization.LanguageForTag`、`localization.readInterfacePlan`、`localization.StorageError`
+- 依赖：`localization.loadLanguagePlan`、`localization.NormalizeLanguageTag`、`localization.LanguageForTag`、`localization.readInterfacePlan`、`localization.StorageError`、`localization.checkLanguagePlanLocalState`
 
 ## localization.selectApprovalOperation
 
@@ -4485,7 +4495,7 @@ func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, inpu
 - 作用：冻结并选择首次或重试批准scope。
 
 ```go
-func selectApprovalOperation(ctx context.Context, current OperationContext, plan storedLanguagePlan) (OperationContext, Context, CancelFunc, error)
+func selectApprovalOperation(ctx context.Context, op OperationContext, plan storedLanguagePlan) (OperationContext, context.Context, context.CancelFunc, error)
 ```
 
 **输入**
@@ -4493,7 +4503,7 @@ func selectApprovalOperation(ctx context.Context, current OperationContext, plan
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
-| `current` | `OperationContext` | 当前已核请求 | 按实际Go签名与所属调用链边界使用 |
+| `op` | `OperationContext` | 当前已核请求 | 按实际Go签名与所属调用链边界使用 |
 | `plan` | `storedLanguagePlan` | 持久计划 | 按实际Go签名与所属调用链边界使用 |
 
 **输出**
@@ -4572,7 +4582,7 @@ func checkLanguagePlanRevisions(ctx context.Context, op OperationContext, plan s
 - 作用：读取并校验语言计划、scope与批准回执。
 
 ```go
-func loadLanguagePlan(ctx context.Context, tx Tx, op OperationContext, planID string) (storedLanguagePlan, error)
+func loadLanguagePlan(ctx context.Context, op OperationContext, tx *sql.Tx, planID string) (storedLanguagePlan, error)
 ```
 
 **输入**
@@ -4580,8 +4590,8 @@ func loadLanguagePlan(ctx context.Context, tx Tx, op OperationContext, planID st
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
-| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
 | `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
 | `planID` | `string` | 计划 | 按实际Go签名与所属调用链边界使用 |
 
 **输出**
@@ -4634,9 +4644,10 @@ func ensureLanguagePlanJobs(ctx context.Context, op OperationContext, plan *stor
 
 **步骤**
 
-1. 首次批准原子保存operation_json/root/actor/deadline与started时间
-2. 每篇需翻译文档生成一个document意图并总生成一个ui意图
-3. 重试只加载原意图，不换ObjectRef或输入
+1. 使用checkLanguagePlanLocalState在本次事务核对本域版本，拒绝并发编辑造成的过期计划。
+2. 首次批准原子保存operation_json/root/actor/deadline与started时间
+3. 每篇需翻译文档生成一个document意图并总生成一个ui意图
+4. 重试只加载原意图，不换ObjectRef或输入
 
 **错误**
 
@@ -4648,7 +4659,7 @@ func ensureLanguagePlanJobs(ctx context.Context, op OperationContext, plan *stor
 - 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
 - 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
 - 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
-- 依赖：`localization.WriteData`、`localization.loadLanguagePlan`、`localization.ensureLanguagePlanJob`、`localization.StorageError`
+- 依赖：`localization.WriteData`、`localization.loadLanguagePlan`、`localization.ensureLanguagePlanJob`、`localization.StorageError`、`localization.checkLanguagePlanLocalState`
 
 ## localization.ensureLanguagePlanJob
 
@@ -4657,7 +4668,7 @@ func ensureLanguagePlanJobs(ctx context.Context, op OperationContext, plan *stor
 - 作用：生成或复用单条不可变jobs任务意图。
 
 ```go
-func ensureLanguagePlanJob(ctx context.Context, tx Tx, op OperationContext, plan storedLanguagePlan, kind, documentID string, document *PublishedRevisionRef) error
+func ensureLanguagePlanJob(ctx context.Context, op OperationContext, tx *sql.Tx, plan storedLanguagePlan, kind, documentID string, document *gen.PublishedRevisionRef) error
 ```
 
 **输入**
@@ -4665,8 +4676,8 @@ func ensureLanguagePlanJob(ctx context.Context, tx Tx, op OperationContext, plan
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `ctx` | `context.Context` | 取消与截止 | 按实际Go签名与所属调用链边界使用 |
-| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
 | `op` | `OperationContext` | 可信操作上下文 | 按实际Go签名与所属调用链边界使用 |
+| `tx` | `Tx` | 本域事务 | 按实际Go签名与所属调用链边界使用 |
 | `plan` | `storedLanguagePlan` | 计划 | 按实际Go签名与所属调用链边界使用 |
 | `kind` | `string` | document/ui | 按实际Go签名与所属调用链边界使用 |
 | `documentID` | `string` | 文档ID | 按实际Go签名与所属调用链边界使用 |
@@ -4745,7 +4756,7 @@ func loadLanguagePlanJobs(ctx context.Context, op OperationContext, planID strin
 - 作用：比较公开树水位与完整文档引用集合。
 
 ```go
-func samePlanDocuments(snapshot languagePlanSnapshot, tree PublicTreeSnapshot) bool
+func samePlanDocuments(snapshot languagePlanSnapshot, tree localizationruntime.PublicTreeSnapshot) bool
 ```
 
 **输入**
@@ -4824,15 +4835,16 @@ func samePlanRoute(expected, current languagePlanRoute) bool
 - 作用：比较完整原批准OperationContext。
 
 ```go
-func sameApprovalOperation(expected, current OperationContext) bool
+func sameApprovalOperation(ctx context.Context, op OperationContext, expected OperationContext) bool
 ```
 
 **输入**
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `expected` | `OperationContext` | 冻结scope | 按实际Go签名与所属调用链边界使用 |
-| `current` | `OperationContext` | 待比较scope | 按实际Go签名与所属调用链边界使用 |
+| `ctx` | `context.Context` | 所属调用链上下文，仅传递 | 仅对完整原操作上下文做canonical JSON比较，不重新鉴权或解析deadline |
+| `op` | `OperationContext` | 本次沿用的原批准操作 | 仅对完整原操作上下文做canonical JSON比较，不重新鉴权或解析deadline |
+| `expected` | `OperationContext` | 持久保存的原批准操作 | 仅对完整原操作上下文做canonical JSON比较，不重新鉴权或解析deadline |
 
 **输出**
 
@@ -4933,6 +4945,49 @@ func planJobIdempotencyKey(planID, kind, documentID string) string
 - 并发：复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。
 - 幂等：沿所属计划planId、完整输入hash及显式幂等键重放。
 - 依赖：无
+
+## localization.checkLanguagePlanLocalState
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/language_plan.go`
+- 作用：在批准所用的同一本域事务内比较语言、术语和界面快照，阻止网络核对期间并发编辑穿过最终CAS。
+
+```go
+func checkLanguagePlanLocalState(ctx context.Context, op OperationContext, tx *sql.Tx, plan storedLanguagePlan) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 当前事务取消与截止 | 交给私有SQL读取 |
+| `op` | `OperationContext` | 原批准可信上下文 | 保留原站点、代次、主体与截止 |
+| `tx` | `Tx` | 调用方已开启的本域事务 | 不另开事务或进行跨域RPC |
+| `plan` | `storedLanguagePlan` | 原持久估价计划 | 对照原快照版本与界面缺项 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 版本一致为nil，否则拒绝本次批准 | 失败不提交调用方事务 |
+
+**步骤**
+
+1. 在调用方同一事务读取目标语言，比较原version、profile及automatic=false；不存在或变化时拒绝。
+2. 读取domain_versions中的真实术语和界面代数，再读取固定界面源hash与缺项数，与原计划逐项相等。
+3. 仅返回校验结果；不修改计划、不发任务、不调用模型。
+
+**错误**
+
+- `VALIDATION`：按本函数私有边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：固定快照、引用或回执损坏（不可重试）
+- `INTERNAL`：本域私有IO失败（不可重试）
+
+- 副作用：无
+- 授权：仅由已核本域入口或其登记调用方在可信OperationContext内调用。
+- 并发：估价初查、任务意图事务与最终批准事务分别比较当前本域权威，最终CAS与该次校验在同一事务。
+- 幂等：只读原计划与同一事务当前状态，不延长批准。
+- 依赖：`localization.LanguageForTag`、`localization.readInterfacePlan`、`localization.StorageError`
 
 ## localization.ReadData
 
@@ -6168,7 +6223,7 @@ func ListTranslationProgress(ctx context.Context, op OperationContext, input Lis
 - 作用：本域参考支持 ConfigureSourceClient；精确输入输出见实际Go签名。
 
 ```go
-func ConfigureSourceClient(client *gen.ContentClient,validators map[string]func(json.RawMessage)error,key platform.SigningKey)error
+func ConfigureSourceClient(client *gen.ContentClient, validators map[string]func(json.RawMessage) error, key platform.SigningKey) error
 ```
 
 **输入**
@@ -6209,7 +6264,7 @@ func ConfigureSourceClient(client *gen.ContentClient,validators map[string]func(
 - 作用：本域参考支持 ValidateSourcePayload；精确输入输出见实际Go签名。
 
 ```go
-func ValidateSourcePayload(name string,raw json.RawMessage)error
+func ValidateSourcePayload(name string, raw json.RawMessage) error
 ```
 
 **输入**
@@ -6250,7 +6305,7 @@ func ValidateSourcePayload(name string,raw json.RawMessage)error
 - 作用：本域参考支持 SourceOperation；精确输入输出见实际Go签名。
 
 ```go
-func SourceOperation(ctx context.Context,op OperationContext)context.Context
+func SourceOperation(ctx context.Context, op OperationContext) context.Context
 ```
 
 **输入**
@@ -6291,7 +6346,7 @@ func SourceOperation(ctx context.Context,op OperationContext)context.Context
 - 作用：本域参考支持 FetchPublishedSnapshot；精确输入输出见实际Go签名。
 
 ```go
-func FetchPublishedSnapshot(ctx context.Context,op OperationContext,document gen.PublishedRevisionRef)(PublishedSnapshot,error)
+func FetchPublishedSnapshot(ctx context.Context, op OperationContext, document gen.PublishedRevisionRef) (PublishedSnapshot, error)
 ```
 
 **输入**
@@ -6332,7 +6387,7 @@ func FetchPublishedSnapshot(ctx context.Context,op OperationContext,document gen
 - 作用：本域参考支持 FetchCurrentPublishedSnapshot；精确输入输出见实际Go签名。
 
 ```go
-func FetchCurrentPublishedSnapshot(ctx context.Context,op OperationContext,documentID string)(PublishedSnapshot,error)
+func FetchCurrentPublishedSnapshot(ctx context.Context, op OperationContext, documentID string) (PublishedSnapshot, error)
 ```
 
 **输入**
@@ -6373,7 +6428,7 @@ func FetchCurrentPublishedSnapshot(ctx context.Context,op OperationContext,docum
 - 作用：本域参考支持 readPublishedSnapshot；精确输入输出见实际Go签名。
 
 ```go
-func readPublishedSnapshot(ctx context.Context,op OperationContext,documentID string,expected *gen.PublishedRevisionRef)(PublishedSnapshot,error)
+func readPublishedSnapshot(ctx context.Context, op OperationContext, documentID string, expected *gen.PublishedRevisionRef) (PublishedSnapshot, error)
 ```
 
 **输入**
@@ -6414,7 +6469,7 @@ func readPublishedSnapshot(ctx context.Context,op OperationContext,documentID st
 - 作用：本域参考支持 CheckPublication；精确输入输出见实际Go签名。
 
 ```go
-func CheckPublication(ctx context.Context,op OperationContext,document gen.PublishedRevisionRef,expectedVisibility *int)(int,error)
+func CheckPublication(ctx context.Context, op OperationContext, document gen.PublishedRevisionRef, expectedVisibility *int) (int, error)
 ```
 
 **输入**
@@ -6455,7 +6510,7 @@ func CheckPublication(ctx context.Context,op OperationContext,document gen.Publi
 - 作用：本域参考支持 CursorKey；精确输入输出见实际Go签名。
 
 ```go
-func CursorKey()(platform.SigningKey,error)
+func CursorKey() (platform.SigningKey, error)
 ```
 
 **输入**

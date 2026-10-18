@@ -132,7 +132,7 @@ func EstimateLanguagePlan(ctx context.Context, op OperationContext, input Estima
 	var interfaceData interfacePlanData
 	err = language.ReadData(ctx, op, func(tx *sql.Tx) error {
 		var readErr error
-		config, readErr = language.LanguageForTag(ctx, tx, op, normalized.Tag)
+		config, readErr = language.LanguageForTag(ctx, op, tx, normalized.Tag)
 		if errors.Is(readErr, sql.ErrNoRows) {
 			return platform.NewError(platform.CodeValidation, false, "目标语言尚未配置")
 		}
@@ -151,7 +151,7 @@ func EstimateLanguagePlan(ctx context.Context, op OperationContext, input Estima
 		if readErr = tx.QueryRowContext(ctx, `SELECT glossary_generation,catalog_generation FROM domain_versions WHERE singleton=1`).Scan(&glossaryGeneration, &catalogGeneration); readErr != nil {
 			return language.StorageError(readErr)
 		}
-		interfaceData, readErr = readInterfacePlan(ctx, tx, op, normalized.Tag)
+		interfaceData, readErr = readInterfacePlan(ctx, op, tx, normalized.Tag)
 		return readErr
 	})
 	if err != nil {
@@ -299,7 +299,7 @@ func ApproveLanguagePlan(ctx context.Context, op OperationContext, input Approve
 	var result ApproveLanguagePlanResult
 	idempotencyKey := "approve." + plan.PlanID
 	err = language.Mutate(workCtx, approvalOp, "localization.ApproveLanguagePlan", idempotencyKey, input, &result, func(tx *sql.Tx) error {
-		current, lookupErr := loadLanguagePlan(workCtx, tx, approvalOp, plan.PlanID)
+		current, lookupErr := loadLanguagePlan(workCtx, approvalOp, tx, plan.PlanID)
 		if lookupErr != nil {
 			return lookupErr
 		}
@@ -313,10 +313,13 @@ func ApproveLanguagePlan(ctx context.Context, op OperationContext, input Approve
 		if current.State != "pending" || current.ApprovalStartedAt == "" {
 			return platform.NewError(platform.CodeConflict, false, "语言计划不处于可批准状态")
 		}
-		if current.ApprovalStartedAt == "" || !sameApprovalOperation(current.ApprovalOperation, approvalOp) {
+		if current.ApprovalStartedAt == "" || !sameApprovalOperation(workCtx, approvalOp, current.ApprovalOperation) {
 			return platform.NewError(platform.CodeConflict, false, "语言计划批准scope已变化")
 		}
-		if _, updateErr := language.EnableLanguageForPlan(workCtx, tx, approvalOp, current.Snapshot.Language, current.Snapshot.LanguageVersion); updateErr != nil {
+		if err := checkLanguagePlanLocalState(workCtx, approvalOp, tx, current); err != nil {
+			return err
+		}
+		if _, updateErr := language.EnableLanguageForPlan(workCtx, approvalOp, tx, current.Snapshot.Language, current.Snapshot.LanguageVersion); updateErr != nil {
 			return updateErr
 		}
 		documentJobs := 0
@@ -418,7 +421,7 @@ func estimateDocumentPlan(ctx context.Context, op OperationContext, target strin
 	return result, err
 }
 
-func readInterfacePlan(ctx context.Context, tx *sql.Tx, op OperationContext, target string) (interfacePlanData, error) {
+func readInterfacePlan(ctx context.Context, op OperationContext, tx *sql.Tx, target string) (interfacePlanData, error) {
 	var result interfacePlanData
 	var sourceCount int
 	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM interface_sources`).Scan(&sourceCount); err != nil {
@@ -627,7 +630,7 @@ func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, inpu
 	var approved *ApproveLanguagePlanResult
 	err := language.ReadData(ctx, op, func(tx *sql.Tx) error {
 		var err error
-		plan, err = loadLanguagePlan(ctx, tx, op, string(input.PlanId))
+		plan, err = loadLanguagePlan(ctx, op, tx, string(input.PlanId))
 		if err != nil {
 			return err
 		}
@@ -655,50 +658,55 @@ func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, inpu
 		if plan.ApprovalStartedAt == "" && !expires.After(time.Now().UTC()) {
 			return platform.NewError(platform.CodeValidation, false, "语言计划已过期")
 		}
-		config, configErr := language.LanguageForTag(ctx, tx, op, normalized.Tag)
-		if configErr != nil {
-			var problem *platform.Error
-			if errors.As(configErr, &problem) && problem.Code == platform.CodeNotFound {
-				return platform.NewError(platform.CodeValidation, false, "批准前目标语言配置已变化")
-			}
-			return configErr
-		}
-		if config.Version != plan.Snapshot.LanguageVersion || config.AutomaticTranslation ||
-			config.ProfileId == nil || string(*config.ProfileId) != plan.Snapshot.ProfileID {
-			return platform.NewError(platform.CodeValidation, false, "批准前语言配置revision已变化")
-		}
-		var glossaryGeneration, catalogGeneration int64
-		if err = tx.QueryRowContext(ctx, `SELECT glossary_generation,catalog_generation FROM domain_versions WHERE singleton=1`).Scan(&glossaryGeneration, &catalogGeneration); err != nil {
-			return language.StorageError(err)
-		}
-		interfaceData, interfaceErr := readInterfacePlan(ctx, tx, op, normalized.Tag)
-		if interfaceErr != nil {
-			return interfaceErr
-		}
-		if glossaryGeneration != plan.Snapshot.GlossaryGeneration ||
-			catalogGeneration != plan.Snapshot.CatalogGeneration ||
-			interfaceData.SourceHash != plan.Snapshot.InterfaceSourceHash ||
-			interfaceData.KeyCount != plan.Snapshot.InterfaceKeyCount {
-			return platform.NewError(platform.CodeValidation, false, "批准前术语或界面字典revision已变化")
-		}
-		return nil
+		return checkLanguagePlanLocalState(ctx, op, tx, plan)
 	})
 	return plan, approved, err
 }
 
-func selectApprovalOperation(ctx context.Context, current OperationContext, plan storedLanguagePlan) (OperationContext, context.Context, context.CancelFunc, error) {
-	approval := current
+// checkLanguagePlanLocalState在最终CAS所用事务核对本域可变版本，不允许批准网络调用期间的编辑漏过。
+func checkLanguagePlanLocalState(ctx context.Context, op OperationContext, tx *sql.Tx, plan storedLanguagePlan) error {
+	config, configErr := language.LanguageForTag(ctx, op, tx, plan.Snapshot.Language)
+	if configErr != nil {
+		var problem *platform.Error
+		if errors.As(configErr, &problem) && problem.Code == platform.CodeNotFound {
+			return platform.NewError(platform.CodeValidation, false, "批准前目标语言配置已变化")
+		}
+		return configErr
+	}
+	if config.Version != plan.Snapshot.LanguageVersion || config.AutomaticTranslation ||
+		config.ProfileId == nil || string(*config.ProfileId) != plan.Snapshot.ProfileID {
+		return platform.NewError(platform.CodeValidation, false, "批准前语言配置revision已变化")
+	}
+	var glossaryGeneration, catalogGeneration int64
+	if err := tx.QueryRowContext(ctx, `SELECT glossary_generation,catalog_generation FROM domain_versions WHERE singleton=1`).Scan(&glossaryGeneration, &catalogGeneration); err != nil {
+		return language.StorageError(err)
+	}
+	interfaceData, interfaceErr := readInterfacePlan(ctx, op, tx, plan.Snapshot.Language)
+	if interfaceErr != nil {
+		return interfaceErr
+	}
+	if glossaryGeneration != plan.Snapshot.GlossaryGeneration ||
+		catalogGeneration != plan.Snapshot.CatalogGeneration ||
+		interfaceData.SourceHash != plan.Snapshot.InterfaceSourceHash ||
+		interfaceData.KeyCount != plan.Snapshot.InterfaceKeyCount {
+		return platform.NewError(platform.CodeValidation, false, "批准前术语或界面字典revision已变化")
+	}
+	return nil
+}
+
+func selectApprovalOperation(ctx context.Context, op OperationContext, plan storedLanguagePlan) (OperationContext, context.Context, context.CancelFunc, error) {
+	approval := op
 	if plan.ApprovalStartedAt != "" {
 		if plan.ApprovalOperation.RootOperationID == "" ||
-			plan.ApprovalOperation.Actor.SubjectID != current.Actor.SubjectID ||
-			plan.ApprovalOperation.Actor.SiteID != current.Actor.SiteID {
+			plan.ApprovalOperation.Actor.SubjectID != op.Actor.SubjectID ||
+			plan.ApprovalOperation.Actor.SiteID != op.Actor.SiteID {
 			return OperationContext{}, nil, nil, platform.NewError(platform.CodeForbidden, false, "语言计划只能沿原批准主体继续")
 		}
 		approval = plan.ApprovalOperation
 	}
 	if approval.RootOperationID == "" || approval.OperationID == "" || approval.CostClass != platform.CostClassBackground ||
-		approval.Actor.Kind != "admin" || approval.DataEpoch != current.DataEpoch ||
-		approval.Actor.SiteID != current.Actor.SiteID {
+		approval.Actor.Kind != "admin" || approval.DataEpoch != op.DataEpoch ||
+		approval.Actor.SiteID != op.Actor.SiteID {
 		return OperationContext{}, nil, nil, platform.NewError(platform.CodeConflict, false, "语言计划原批准scope不完整")
 	}
 	deadline, err := platform.ParseTimestamp(approval.Deadline)
@@ -758,7 +766,7 @@ func checkLanguagePlanRevisions(ctx context.Context, op OperationContext, plan s
 	return nil
 }
 
-func loadLanguagePlan(ctx context.Context, tx *sql.Tx, op OperationContext, planID string) (storedLanguagePlan, error) {
+func loadLanguagePlan(ctx context.Context, op OperationContext, tx *sql.Tx, planID string) (storedLanguagePlan, error) {
 	var result storedLanguagePlan
 	var snapshotRaw, resultRaw, approvedRaw, approvalJSON []byte
 	var approvalStarted, approvalRoot, approvalActor, approvalDeadline, approvedAt, approvedBy sql.NullString
@@ -812,12 +820,15 @@ func loadLanguagePlan(ctx context.Context, tx *sql.Tx, op OperationContext, plan
 
 func ensureLanguagePlanJobs(ctx context.Context, op OperationContext, plan *storedLanguagePlan) error {
 	return language.WriteData(ctx, op, func(tx *sql.Tx) error {
-		current, err := loadLanguagePlan(ctx, tx, op, plan.PlanID)
+		current, err := loadLanguagePlan(ctx, op, tx, plan.PlanID)
 		if err != nil {
 			return err
 		}
 		if current.State != "pending" {
 			return platform.NewError(platform.CodeConflict, false, "语言计划已不能创建任务")
+		}
+		if err = checkLanguagePlanLocalState(ctx, op, tx, current); err != nil {
+			return err
 		}
 		now := string(platform.Now())
 		if current.ApprovalStartedAt == "" {
@@ -838,7 +849,7 @@ func ensureLanguagePlanJobs(ctx context.Context, op OperationContext, plan *stor
 			current.ApprovalStartedAt = now
 			current.ApprovalOperation = op
 			current.ApprovalJSON = operationRaw
-		} else if !sameApprovalOperation(current.ApprovalOperation, op) {
+		} else if !sameApprovalOperation(ctx, op, current.ApprovalOperation) {
 			return platform.NewError(platform.CodeConflict, false, "语言计划批准必须沿原OperationContext重放")
 		}
 		for _, document := range current.Snapshot.Documents {
@@ -846,11 +857,11 @@ func ensureLanguagePlanJobs(ctx context.Context, op OperationContext, plan *stor
 				continue
 			}
 			reference := document.Reference
-			if err = ensureLanguagePlanJob(ctx, tx, op, current, "document", document.DocumentID, &reference); err != nil {
+			if err = ensureLanguagePlanJob(ctx, op, tx, current, "document", document.DocumentID, &reference); err != nil {
 				return err
 			}
 		}
-		if err = ensureLanguagePlanJob(ctx, tx, op, current, "ui", "", nil); err != nil {
+		if err = ensureLanguagePlanJob(ctx, op, tx, current, "ui", "", nil); err != nil {
 			return err
 		}
 		*plan = current
@@ -858,7 +869,7 @@ func ensureLanguagePlanJobs(ctx context.Context, op OperationContext, plan *stor
 	})
 }
 
-func ensureLanguagePlanJob(ctx context.Context, tx *sql.Tx, op OperationContext, plan storedLanguagePlan, kind, documentID string, document *gen.PublishedRevisionRef) error {
+func ensureLanguagePlanJob(ctx context.Context, op OperationContext, tx *sql.Tx, plan storedLanguagePlan, kind, documentID string, document *gen.PublishedRevisionRef) error {
 	route := plan.Snapshot.DocumentRoute
 	unitCount := int64(0)
 	interfaceKeyCount := int64(0)
@@ -991,9 +1002,9 @@ func samePlanRoute(expected, current languagePlanRoute) bool {
 	return expected == current
 }
 
-func sameApprovalOperation(expected, current OperationContext) bool {
+func sameApprovalOperation(ctx context.Context, op OperationContext, expected OperationContext) bool {
 	expectedRaw, expectedErr := platform.CanonicalJSON(expected)
-	currentRaw, currentErr := platform.CanonicalJSON(current)
+	currentRaw, currentErr := platform.CanonicalJSON(op)
 	return expectedErr == nil && currentErr == nil && string(expectedRaw) == string(currentRaw)
 }
 

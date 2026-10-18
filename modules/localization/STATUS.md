@@ -1,3 +1,5 @@
+本轮恢复检查补充：批准初查、任务意图事务和最终CAS分别调用同一私有版本核对；最终事务比较语言版本/档位、术语与界面代数、界面源hash和缺项数，避免网络核对期间的并发编辑穿过批准。参考函数签名按实际Go类型、指针和ctx/op顺序同步；仍待GitLab，未提前提高完成状态。
+
 # 2026-10-18 语言计划源码候选待GitLab
 
 分支 `codex/localization-20261018-r9`，基线 `1f1e1b08cc047fe5be826cbc2bb51547a3779c02`，源码候选 `98c02a0666572f9ec011eea0040fe4e947aa6853`。本轮实现 `EstimateLanguagePlan`、`ApproveLanguagePlan` 及必需支持：公开树/翻译记忆与界面缺项免费统计、文档/UI统一token来源、免费route与quote快照、24小时计划、批准revision/价目重核、原OperationContext冻结、planId+完整输入hash任务意图、jobs接受回执后CAS启用自动翻译。

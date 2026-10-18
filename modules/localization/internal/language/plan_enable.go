@@ -9,7 +9,7 @@ import (
 )
 
 // EnableLanguageForPlan 在批准事务内把预期代次的语言切换为自动翻译。
-func EnableLanguageForPlan(ctx context.Context, tx *sql.Tx, op OperationContext, tag string, expectedVersion int) (gen.Language, error) {
+func EnableLanguageForPlan(ctx context.Context, op OperationContext, tx *sql.Tx, tag string, expectedVersion int) (gen.Language, error) {
 	existing, epoch, found, err := loadLanguage(ctx, tx, tag)
 	if err != nil {
 		return gen.Language{}, err

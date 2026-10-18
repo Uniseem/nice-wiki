@@ -787,9 +787,53 @@
         {
           "id": "localization.EnableLanguageForPlan",
           "name": "EnableLanguageForPlan",
-          "signature": "func EnableLanguageForPlan(ctx context.Context, tx *sql.Tx, op OperationContext, tag string, expectedVersion int) (gen.Language, error)",
-          "inputs": [],
-          "outputs": [],
+          "signature": "func EnableLanguageForPlan(ctx context.Context, op OperationContext, tx *sql.Tx, tag string, expectedVersion int) (gen.Language, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "SQL取消与截止",
+              "constraints": "使用调用方最终批准事务与原版本"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信原批准上下文",
+              "constraints": "使用调用方最终批准事务与原版本"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "同一本域事务",
+              "constraints": "使用调用方最终批准事务与原版本"
+            },
+            {
+              "name": "tag",
+              "type": "string",
+              "description": "目标语言标签",
+              "constraints": "使用调用方最终批准事务与原版本"
+            },
+            {
+              "name": "expectedVersion",
+              "type": "int",
+              "description": "原估价语言版本",
+              "constraints": "使用调用方最终批准事务与原版本"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "Language",
+              "description": "版本加一后的真实语言配置",
+              "constraints": "同一事务写入并登记outbox"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "错误时调用方回滚",
+              "constraints": "只使用已登记错误码"
+            }
+          ],
           "purpose": "在语言计划最终CAS事务内启用已有语言的自动翻译并发布language.changed。",
           "steps": [
             "原站/代次/版本/profile必须仍匹配；只把enabled与automatic置true，版本加一并与outbox同事务提交"
@@ -942,7 +986,7 @@
         {
           "id": "localization.LanguageForTag",
           "name": "LanguageForTag",
-          "signature": "func LanguageForTag(ctx context.Context, tx Tx, op OperationContext, tag string) (Language, error)",
+          "signature": "func LanguageForTag(ctx context.Context, op OperationContext, tx *sql.Tx, tag string) (gen.Language, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -951,15 +995,15 @@
               "constraints": "按实际Go签名与所属调用链边界使用"
             },
             {
-              "name": "tx",
-              "type": "Tx",
-              "description": "本域事务",
-              "constraints": "按实际Go签名与所属调用链边界使用"
-            },
-            {
               "name": "op",
               "type": "OperationContext",
               "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "本域事务",
               "constraints": "按实际Go签名与所属调用链边界使用"
             },
             {
@@ -7597,7 +7641,7 @@
         {
           "id": "localization.InvokeModel",
           "name": "InvokeModel",
-          "signature": "func InvokeModel(ctx context.Context,op OperationContext,input InvokeModelInput)(InvokeModelResult,error)",
+          "signature": "func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInput) (InvokeModelResult, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "经模型网关执行一次调用并读取到终态",
@@ -7654,7 +7698,7 @@
         {
           "id": "localization.ConfigureExecutionAdapters",
           "name": "ConfigureExecutionAdapters",
-          "signature": "func ConfigureExecutionAdapters(gateway platform.GatewayClient,publisher platform.EventPublisher)error",
+          "signature": "func ConfigureExecutionAdapters(gateway platform.GatewayClient, publisher platform.EventPublisher) error",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考支持 ConfigureExecutionAdapters；精确输入输出以实际Go签名为准。",
@@ -7714,7 +7758,7 @@
         {
           "id": "localization.PublishBatch",
           "name": "PublishBatch",
-          "signature": "func PublishBatch(ctx context.Context,limit int)(platform.RelayBatchResult,error)",
+          "signature": "func PublishBatch(ctx context.Context, limit int) (platform.RelayBatchResult, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考支持 PublishBatch；精确输入输出以实际Go签名为准。",
@@ -7774,7 +7818,7 @@
         {
           "id": "localization.ConfigurePlanAdapters",
           "name": "ConfigurePlanAdapters",
-          "signature": "func ConfigurePlanAdapters(gateway *ModelGatewayClient, jobs *JobsClient, validators PlanValidators) error",
+          "signature": "func ConfigurePlanAdapters(gateway *gen.ModelGatewayClient, jobs *gen.JobsClient, validators map[string]func(json.RawMessage) error) error",
           "inputs": [
             {
               "name": "gateway",
@@ -7836,7 +7880,7 @@
         {
           "id": "localization.validatePlanPayload",
           "name": "validatePlanPayload",
-          "signature": "func validatePlanPayload(name string, raw RawMessage) error",
+          "signature": "func validatePlanPayload(name string, raw json.RawMessage) error",
           "inputs": [
             {
               "name": "name",
@@ -8039,7 +8083,7 @@
         {
           "id": "localization.QuotePlanCost",
           "name": "QuotePlanCost",
-          "signature": "func QuotePlanCost(ctx context.Context, op OperationContext, modelID string, inputTokens, maximumOutputTokens int64) (LanguagePlanQuote, error)",
+          "signature": "func QuotePlanCost(ctx context.Context, op OperationContext, modelID string, inputTokens, maximumOutputTokens int64) (gen.QuoteCostResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -8122,7 +8166,7 @@
         {
           "id": "localization.CreatePlanJob",
           "name": "CreatePlanJob",
-          "signature": "func CreatePlanJob(ctx context.Context, op OperationContext, input any, idempotencyKey string) (AcceptedJob, error)",
+          "signature": "func CreatePlanJob(ctx context.Context, op OperationContext, input any, idempotencyKey string) (gen.AcceptedJob, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -8368,7 +8412,7 @@
             "首次批准开始持久冻结完整OperationContext、原rootOperationId、批准主体、dataEpoch与deadline；进程失败后只沿该scope与未延长截止重放，不能换root/主体或延长付费许可",
             "先持久保存逐文档与UI任务意图（固定object ref、完整任务输入hash、绑定planId的dedupeKey和原approved plan/price快照）；进程失败后复用同一完整输入和幂等键",
             "为计划内每篇文档创建localization.document任务（按source/target/generation去重），另建一个localization.ui任务；任一任务未获持久接受时计划保持pending且不返回成功",
-            "全部jobs接受后在同一本域事务CAS pending→approved，启用该语言automatic=true并记录批准人与估价；不生成新quote、不延长原expiresAt",
+            "全部jobs接受后，在同一本域事务重新比较语言配置、术语/界面代数、固定源hash及界面缺项，再CAS pending→approved并启用automatic=true；任一变化整次回滚，不接受新报价或延长expiresAt。",
             "翻译完成前公开页面按旧译或原文回退并提示"
           ],
           "errors": [
@@ -8424,7 +8468,8 @@
             "localization.EnableLanguageForPlan",
             "model-gateway:resolveTaskRoute",
             "model-gateway:quoteCost",
-            "jobs:createJob"
+            "jobs:createJob",
+            "localization.checkLanguagePlanLocalState"
           ],
           "resources": [],
           "contract": "binding"
@@ -8432,7 +8477,7 @@
         {
           "id": "localization.estimateDocumentPlan",
           "name": "estimateDocumentPlan",
-          "signature": "func estimateDocumentPlan(ctx context.Context, op OperationContext, target string, document PublicTreeDocument, modelID string, minimumCharacters int) (languagePlanDocument, error)",
+          "signature": "func estimateDocumentPlan(ctx context.Context, op OperationContext, target string, document localizationruntime.PublicTreeDocument, modelID string, minimumCharacters int) (languagePlanDocument, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -8526,7 +8571,7 @@
         {
           "id": "localization.readInterfacePlan",
           "name": "readInterfacePlan",
-          "signature": "func readInterfacePlan(ctx context.Context, tx Tx, op OperationContext, target string) (interfacePlanData, error)",
+          "signature": "func readInterfacePlan(ctx context.Context, op OperationContext, tx *sql.Tx, target string) (interfacePlanData, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -8535,15 +8580,15 @@
               "constraints": "按实际Go签名与所属调用链边界使用"
             },
             {
-              "name": "tx",
-              "type": "Tx",
-              "description": "本域事务",
-              "constraints": "按实际Go签名与所属调用链边界使用"
-            },
-            {
               "name": "op",
               "type": "OperationContext",
               "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "本域事务",
               "constraints": "按实际Go签名与所属调用链边界使用"
             },
             {
@@ -8665,7 +8710,7 @@
         {
           "id": "localization.combineLanguagePlanQuotes",
           "name": "combineLanguagePlanQuotes",
-          "signature": "func combineLanguagePlanQuotes(documentQuote, interfaceQuote LanguagePlanQuote) (LanguagePlanQuote, error)",
+          "signature": "func combineLanguagePlanQuotes(documentQuote, interfaceQuote gen.QuoteCostResult) (gen.QuoteCostResult, error)",
           "inputs": [
             {
               "name": "documentQuote",
@@ -8727,7 +8772,7 @@
         {
           "id": "localization.planRouteFromRuntime",
           "name": "planRouteFromRuntime",
-          "signature": "func planRouteFromRuntime(route PlanTaskRoute) languagePlanRoute",
+          "signature": "func planRouteFromRuntime(route localizationruntime.PlanTaskRoute) languagePlanRoute",
           "inputs": [
             {
               "name": "route",
@@ -8825,7 +8870,7 @@
         {
           "id": "localization.saveLanguagePlan",
           "name": "saveLanguagePlan",
-          "signature": "func saveLanguagePlan(ctx context.Context, op OperationContext, snapshot languagePlanSnapshot, snapshotRaw []byte, quoteHash Hash, expiresAt Timestamp, result *EstimateLanguagePlanResult) error",
+          "signature": "func saveLanguagePlan(ctx context.Context, op OperationContext, snapshot languagePlanSnapshot, snapshotRaw []byte, quoteHash platform.Hash, expiresAt platform.Timestamp, result *EstimateLanguagePlanResult) error",
           "inputs": [
             {
               "name": "ctx",
@@ -8916,7 +8961,7 @@
         {
           "id": "localization.readPlanResult",
           "name": "readPlanResult",
-          "signature": "func readPlanResult(ctx context.Context, tx Tx, planID string, result *EstimateLanguagePlanResult) error",
+          "signature": "func readPlanResult(ctx context.Context, tx *sql.Tx, planID string, result *EstimateLanguagePlanResult) error",
           "inputs": [
             {
               "name": "ctx",
@@ -8985,7 +9030,7 @@
         {
           "id": "localization.checkLanguagePlanForApproval",
           "name": "checkLanguagePlanForApproval",
-          "signature": "func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, input ApproveLanguagePlanInput) (storedLanguagePlan, ApproveLanguagePlanResult, error)",
+          "signature": "func checkLanguagePlanForApproval(ctx context.Context, op OperationContext, input ApproveLanguagePlanInput) (storedLanguagePlan, *ApproveLanguagePlanResult, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -9028,6 +9073,7 @@
           ],
           "purpose": "在批准前核计划hash、期限和本域revision。",
           "steps": [
+            "使用checkLanguagePlanLocalState在本次事务核对本域版本，拒绝并发编辑造成的过期计划。",
             "计划必须属于当前站点和代次",
             "hash、语言、期限、语言配置、术语/界面代数必须一致",
             "已批准返回原结果"
@@ -9058,7 +9104,8 @@
             "localization.NormalizeLanguageTag",
             "localization.LanguageForTag",
             "localization.readInterfacePlan",
-            "localization.StorageError"
+            "localization.StorageError",
+            "localization.checkLanguagePlanLocalState"
           ],
           "resources": [],
           "contract": "reference"
@@ -9066,7 +9113,7 @@
         {
           "id": "localization.selectApprovalOperation",
           "name": "selectApprovalOperation",
-          "signature": "func selectApprovalOperation(ctx context.Context, current OperationContext, plan storedLanguagePlan) (OperationContext, Context, CancelFunc, error)",
+          "signature": "func selectApprovalOperation(ctx context.Context, op OperationContext, plan storedLanguagePlan) (OperationContext, context.Context, context.CancelFunc, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -9075,7 +9122,7 @@
               "constraints": "按实际Go签名与所属调用链边界使用"
             },
             {
-              "name": "current",
+              "name": "op",
               "type": "OperationContext",
               "description": "当前已核请求",
               "constraints": "按实际Go签名与所属调用链边界使用"
@@ -9217,7 +9264,7 @@
         {
           "id": "localization.loadLanguagePlan",
           "name": "loadLanguagePlan",
-          "signature": "func loadLanguagePlan(ctx context.Context, tx Tx, op OperationContext, planID string) (storedLanguagePlan, error)",
+          "signature": "func loadLanguagePlan(ctx context.Context, op OperationContext, tx *sql.Tx, planID string) (storedLanguagePlan, error)",
           "inputs": [
             {
               "name": "ctx",
@@ -9226,15 +9273,15 @@
               "constraints": "按实际Go签名与所属调用链边界使用"
             },
             {
-              "name": "tx",
-              "type": "Tx",
-              "description": "本域事务",
-              "constraints": "按实际Go签名与所属调用链边界使用"
-            },
-            {
               "name": "op",
               "type": "OperationContext",
               "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "本域事务",
               "constraints": "按实际Go签名与所属调用链边界使用"
             },
             {
@@ -9324,6 +9371,7 @@
           ],
           "purpose": "首次冻结原批准scope并持久全部jobs任务意图。",
           "steps": [
+            "使用checkLanguagePlanLocalState在本次事务核对本域版本，拒绝并发编辑造成的过期计划。",
             "首次批准原子保存operation_json/root/actor/deadline与started时间",
             "每篇需翻译文档生成一个document意图并总生成一个ui意图",
             "重试只加载原意图，不换ObjectRef或输入"
@@ -9353,7 +9401,8 @@
             "localization.WriteData",
             "localization.loadLanguagePlan",
             "localization.ensureLanguagePlanJob",
-            "localization.StorageError"
+            "localization.StorageError",
+            "localization.checkLanguagePlanLocalState"
           ],
           "resources": [],
           "contract": "reference"
@@ -9361,7 +9410,7 @@
         {
           "id": "localization.ensureLanguagePlanJob",
           "name": "ensureLanguagePlanJob",
-          "signature": "func ensureLanguagePlanJob(ctx context.Context, tx Tx, op OperationContext, plan storedLanguagePlan, kind, documentID string, document *PublishedRevisionRef) error",
+          "signature": "func ensureLanguagePlanJob(ctx context.Context, op OperationContext, tx *sql.Tx, plan storedLanguagePlan, kind, documentID string, document *gen.PublishedRevisionRef) error",
           "inputs": [
             {
               "name": "ctx",
@@ -9370,15 +9419,15 @@
               "constraints": "按实际Go签名与所属调用链边界使用"
             },
             {
-              "name": "tx",
-              "type": "Tx",
-              "description": "本域事务",
-              "constraints": "按实际Go签名与所属调用链边界使用"
-            },
-            {
               "name": "op",
               "type": "OperationContext",
               "description": "可信操作上下文",
+              "constraints": "按实际Go签名与所属调用链边界使用"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "本域事务",
               "constraints": "按实际Go签名与所属调用链边界使用"
             },
             {
@@ -9521,7 +9570,7 @@
         {
           "id": "localization.samePlanDocuments",
           "name": "samePlanDocuments",
-          "signature": "func samePlanDocuments(snapshot languagePlanSnapshot, tree PublicTreeSnapshot) bool",
+          "signature": "func samePlanDocuments(snapshot languagePlanSnapshot, tree localizationruntime.PublicTreeSnapshot) bool",
           "inputs": [
             {
               "name": "snapshot",
@@ -9632,19 +9681,25 @@
         {
           "id": "localization.sameApprovalOperation",
           "name": "sameApprovalOperation",
-          "signature": "func sameApprovalOperation(expected, current OperationContext) bool",
+          "signature": "func sameApprovalOperation(ctx context.Context, op OperationContext, expected OperationContext) bool",
           "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "所属调用链上下文，仅传递",
+              "constraints": "仅对完整原操作上下文做canonical JSON比较，不重新鉴权或解析deadline"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "本次沿用的原批准操作",
+              "constraints": "仅对完整原操作上下文做canonical JSON比较，不重新鉴权或解析deadline"
+            },
             {
               "name": "expected",
               "type": "OperationContext",
-              "description": "冻结scope",
-              "constraints": "按实际Go签名与所属调用链边界使用"
-            },
-            {
-              "name": "current",
-              "type": "OperationContext",
-              "description": "待比较scope",
-              "constraints": "按实际Go签名与所属调用链边界使用"
+              "description": "持久保存的原批准操作",
+              "constraints": "仅对完整原操作上下文做canonical JSON比较，不重新鉴权或解析deadline"
             }
           ],
           "outputs": [
@@ -9791,6 +9846,79 @@
           "concurrency": "复用调用方事务/固定快照；持久CAS或幂等由所属用例落实。",
           "idempotency": "沿所属计划planId、完整输入hash及显式幂等键重放。",
           "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "localization.checkLanguagePlanLocalState",
+          "name": "checkLanguagePlanLocalState",
+          "signature": "func checkLanguagePlanLocalState(ctx context.Context, op OperationContext, tx *sql.Tx, plan storedLanguagePlan) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "当前事务取消与截止",
+              "constraints": "交给私有SQL读取"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "原批准可信上下文",
+              "constraints": "保留原站点、代次、主体与截止"
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "调用方已开启的本域事务",
+              "constraints": "不另开事务或进行跨域RPC"
+            },
+            {
+              "name": "plan",
+              "type": "storedLanguagePlan",
+              "description": "原持久估价计划",
+              "constraints": "对照原快照版本与界面缺项"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "版本一致为nil，否则拒绝本次批准",
+              "constraints": "失败不提交调用方事务"
+            }
+          ],
+          "purpose": "在批准所用的同一本域事务内比较语言、术语和界面快照，阻止网络核对期间并发编辑穿过最终CAS。",
+          "steps": [
+            "在调用方同一事务读取目标语言，比较原version、profile及automatic=false；不存在或变化时拒绝。",
+            "读取domain_versions中的真实术语和界面代数，再读取固定界面源hash与缺项数，与原计划逐项相等。",
+            "仅返回校验结果；不修改计划、不发任务、不调用模型。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "retryable": false,
+              "when": "按本函数私有边界失败关闭"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "retryable": false,
+              "when": "固定快照、引用或回执损坏"
+            },
+            {
+              "code": "INTERNAL",
+              "retryable": false,
+              "when": "本域私有IO失败"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "仅由已核本域入口或其登记调用方在可信OperationContext内调用。",
+          "concurrency": "估价初查、任务意图事务与最终批准事务分别比较当前本域权威，最终CAS与该次校验在同一事务。",
+          "idempotency": "只读原计划与同一事务当前状态，不延长批准。",
+          "dependencies": [
+            "localization.LanguageForTag",
+            "localization.readInterfacePlan",
+            "localization.StorageError"
+          ],
           "resources": [],
           "contract": "reference"
         }
@@ -12068,7 +12196,7 @@
         {
           "id": "localization.ConfigureSourceClient",
           "name": "ConfigureSourceClient",
-          "signature": "func ConfigureSourceClient(client *gen.ContentClient,validators map[string]func(json.RawMessage)error,key platform.SigningKey)error",
+          "signature": "func ConfigureSourceClient(client *gen.ContentClient, validators map[string]func(json.RawMessage) error, key platform.SigningKey) error",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考支持 ConfigureSourceClient；精确输入输出见实际Go签名。",
@@ -12140,7 +12268,7 @@
         {
           "id": "localization.ValidateSourcePayload",
           "name": "ValidateSourcePayload",
-          "signature": "func ValidateSourcePayload(name string,raw json.RawMessage)error",
+          "signature": "func ValidateSourcePayload(name string, raw json.RawMessage) error",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考支持 ValidateSourcePayload；精确输入输出见实际Go签名。",
@@ -12210,7 +12338,7 @@
         {
           "id": "localization.SourceOperation",
           "name": "SourceOperation",
-          "signature": "func SourceOperation(ctx context.Context,op OperationContext)context.Context",
+          "signature": "func SourceOperation(ctx context.Context, op OperationContext) context.Context",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考支持 SourceOperation；精确输入输出见实际Go签名。",
@@ -12280,7 +12408,7 @@
         {
           "id": "localization.FetchPublishedSnapshot",
           "name": "FetchPublishedSnapshot",
-          "signature": "func FetchPublishedSnapshot(ctx context.Context,op OperationContext,document gen.PublishedRevisionRef)(PublishedSnapshot,error)",
+          "signature": "func FetchPublishedSnapshot(ctx context.Context, op OperationContext, document gen.PublishedRevisionRef) (PublishedSnapshot, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考支持 FetchPublishedSnapshot；精确输入输出见实际Go签名。",
@@ -12352,7 +12480,7 @@
         {
           "id": "localization.FetchCurrentPublishedSnapshot",
           "name": "FetchCurrentPublishedSnapshot",
-          "signature": "func FetchCurrentPublishedSnapshot(ctx context.Context,op OperationContext,documentID string)(PublishedSnapshot,error)",
+          "signature": "func FetchCurrentPublishedSnapshot(ctx context.Context, op OperationContext, documentID string) (PublishedSnapshot, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考支持 FetchCurrentPublishedSnapshot；精确输入输出见实际Go签名。",
@@ -12424,7 +12552,7 @@
         {
           "id": "localization.readPublishedSnapshot",
           "name": "readPublishedSnapshot",
-          "signature": "func readPublishedSnapshot(ctx context.Context,op OperationContext,documentID string,expected *gen.PublishedRevisionRef)(PublishedSnapshot,error)",
+          "signature": "func readPublishedSnapshot(ctx context.Context, op OperationContext, documentID string, expected *gen.PublishedRevisionRef) (PublishedSnapshot, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考支持 readPublishedSnapshot；精确输入输出见实际Go签名。",
@@ -12497,7 +12625,7 @@
         {
           "id": "localization.CheckPublication",
           "name": "CheckPublication",
-          "signature": "func CheckPublication(ctx context.Context,op OperationContext,document gen.PublishedRevisionRef,expectedVisibility *int)(int,error)",
+          "signature": "func CheckPublication(ctx context.Context, op OperationContext, document gen.PublishedRevisionRef, expectedVisibility *int) (int, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考支持 CheckPublication；精确输入输出见实际Go签名。",
@@ -12571,7 +12699,7 @@
         {
           "id": "localization.CursorKey",
           "name": "CursorKey",
-          "signature": "func CursorKey()(platform.SigningKey,error)",
+          "signature": "func CursorKey() (platform.SigningKey, error)",
           "inputs": [],
           "outputs": [],
           "purpose": "本域参考支持 CursorKey；精确输入输出见实际Go签名。",

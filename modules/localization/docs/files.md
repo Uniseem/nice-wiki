@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 95 个：手写 75、UI 3、生成 5、配置 10、迁移 2。函数 162 个：约束 48，参考 114。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 95 个：手写 75、UI 3、生成 5、配置 10、迁移 2。函数 163 个：约束 48，参考 115。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -74,7 +74,7 @@
 | `modules/localization/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `localization.mountModuleUI` |
 | `modules/localization/internal/events/subscription.go` | 手写 | 订阅并分派本域登记的跨域事件 | `localization.ConsumeEvents` |
 | `modules/localization/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `localization.InvokeModel`（参考）、`localization.ConfigureExecutionAdapters`（参考）、`localization.PublishBatch`（参考）、`localization.ConfigurePlanAdapters`（参考）、`localization.validatePlanPayload`（参考）、`localization.ResolvePlanTaskRoute`（参考）、`localization.EstimatePlanTextTokens`（参考）、`localization.QuotePlanCost`（参考）、`localization.CreatePlanJob`（参考） |
-| `modules/localization/internal/translation/language_plan.go` | 手写 | 增量规划与启用前免费估价、明确批准和持久任务意图 | `localization.EstimateLanguagePlan`、`localization.ApproveLanguagePlan`、`localization.estimateDocumentPlan`（参考）、`localization.readInterfacePlan`（参考）、`localization.conservativeOutputTokens`（参考）、`localization.combineLanguagePlanQuotes`（参考）、`localization.planRouteFromRuntime`（参考）、`localization.checkedInt`（参考）、`localization.saveLanguagePlan`（参考）、`localization.readPlanResult`（参考）、`localization.checkLanguagePlanForApproval`（参考）、`localization.selectApprovalOperation`（参考）、`localization.checkLanguagePlanRevisions`（参考）、`localization.loadLanguagePlan`（参考）、`localization.ensureLanguagePlanJobs`（参考）、`localization.ensureLanguagePlanJob`（参考）、`localization.loadLanguagePlanJobs`（参考）、`localization.samePlanDocuments`（参考）、`localization.samePlanRoute`（参考）、`localization.sameApprovalOperation`（参考）、`localization.planJobType`（参考）、`localization.planJobIdempotencyKey`（参考） |
+| `modules/localization/internal/translation/language_plan.go` | 手写 | 增量规划与启用前免费估价、明确批准和持久任务意图 | `localization.EstimateLanguagePlan`、`localization.ApproveLanguagePlan`、`localization.estimateDocumentPlan`（参考）、`localization.readInterfacePlan`（参考）、`localization.conservativeOutputTokens`（参考）、`localization.combineLanguagePlanQuotes`（参考）、`localization.planRouteFromRuntime`（参考）、`localization.checkedInt`（参考）、`localization.saveLanguagePlan`（参考）、`localization.readPlanResult`（参考）、`localization.checkLanguagePlanForApproval`（参考）、`localization.selectApprovalOperation`（参考）、`localization.checkLanguagePlanRevisions`（参考）、`localization.loadLanguagePlan`（参考）、`localization.ensureLanguagePlanJobs`（参考）、`localization.ensureLanguagePlanJob`（参考）、`localization.loadLanguagePlanJobs`（参考）、`localization.samePlanDocuments`（参考）、`localization.samePlanRoute`（参考）、`localization.sameApprovalOperation`（参考）、`localization.planJobType`（参考）、`localization.planJobIdempotencyKey`（参考）、`localization.checkLanguagePlanLocalState`（参考） |
 | `modules/localization/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/localization/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/localization/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |

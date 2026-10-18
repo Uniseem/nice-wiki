@@ -2,7 +2,7 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "e109924f0fe2fef0f14f3486f8307e03639ec1f8be7d93afd9a77700ac46890a",
+  "contractSha256": "93fd98f68b46bfe243e858c58bb2e87010ed3112b8ccbc293897fe11e06bc05d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18 localization 免费估价与明确批准：源码候选 blocked 待 GitLab",
   "branch": "codex/localization-20261018-r9",
@@ -2743,6 +2743,16 @@
         "evidence": null
       },
       "blocker": "参考函数已同步实际合同和调用图；GitLab HTTP 522，未生成/编译/格式检查。"
+    },
+    {
+      "id": "localization.checkLanguagePlanLocalState",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "待本轮自部署GitLab生成、编译与结构检查。"
+      },
+      "blocker": "最终批准事务版本核对源码已补；待GitLab检查，完整HTTP成本类别装配仍缺。"
     }
   ],
   "rule": "累计32个既有业务/已改函数与58个新增实际参考辅助交付；最终复核窄修待统一GitLab CI，不冒称verified。根通知旧批已过pipeline69 Go编译，保留根已核未改项证据。新无ID结构/来源/预算修复后冻结，不扩新包；SuggestLanguage授权及其余未写链仍blocked。",
