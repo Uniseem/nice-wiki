@@ -2,12 +2,12 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "00cef7726766c14bb3c369ce9e6cf0218784dc4c805684d8f8d5d98760526462",
+  "contractSha256": "5b464671a8f94a6344c67e785295ce2eab35b08431c9f0f3ed35ff8db46adfc0",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "公共快照/恢复与原模型调用只读观察",
   "branch": "codex/finish-20261018-snapshot",
   "baseCommit": "599cc7b8b9eaf879866b1eb603b1430ea7c333c1",
-  "deliveryCommit": "2278a566f38ba25783f205b936b0dae4d8649b08",
+  "deliveryCommit": "db54fae7052b73b880a7e8ab95ff0d16b04ceb96",
   "deployment": "not_started",
   "files": [
     {
@@ -103,12 +103,12 @@
     {
       "path": "libs/platform/modelclient/invoke.go",
       "state": "blocked",
-      "implementationCommit": "2278a566f38ba25783f205b936b0dae4d8649b08",
+      "implementationCommit": "db54fae7052b73b880a7e8ab95ff0d16b04ceb96",
       "verification": {
         "state": "not_run",
-        "evidence": "原键只读观察/当前真实结果源码就绪，待根GitLab与MG/common及四消费方五校验器装配统一检查。"
+        "evidence": "owner恢复纯只读工具源码就绪，待GitLab及实际owner装配检查，无本机Go或真实模型调用。"
       },
-      "blocker": "原键只读观察/当前真实结果源码就绪，待根GitLab与MG/common及四消费方五校验器装配统一检查。"
+      "blocker": "owner恢复纯只读工具源码就绪，待GitLab及实际owner装配检查，无本机Go或真实模型调用。"
     },
     {
       "path": "libs/platform/lifecycle/config.go",
@@ -2425,6 +2425,28 @@
         "evidence": "原键只读观察/当前真实结果源码就绪，待根GitLab与MG/common及四消费方五校验器装配统一检查。"
       },
       "blocker": "原键只读观察/当前真实结果源码就绪，待根GitLab与MG/common及四消费方五校验器装配统一检查。"
+    },
+    {
+      "id": "platform.ObserveInvocation",
+      "path": "libs/platform/modelclient/invoke.go",
+      "state": "blocked",
+      "implementationCommit": "db54fae7052b73b880a7e8ab95ff0d16b04ceb96",
+      "verification": {
+        "state": "not_run",
+        "evidence": "owner恢复纯只读工具源码就绪，待GitLab及实际owner装配检查，无本机Go或真实模型调用。"
+      },
+      "blocker": "owner恢复纯只读工具源码就绪，待GitLab及实际owner装配检查，无本机Go或真实模型调用。"
+    },
+    {
+      "id": "platform.LookupModelInvocation",
+      "path": "libs/platform/modelclient/invoke.go",
+      "state": "blocked",
+      "implementationCommit": "db54fae7052b73b880a7e8ab95ff0d16b04ceb96",
+      "verification": {
+        "state": "not_run",
+        "evidence": "owner恢复纯只读工具源码就绪，待GitLab及实际owner装配检查，无本机Go或真实模型调用。"
+      },
+      "blocker": "owner恢复纯只读工具源码就绪，待GitLab及实际owner装配检查，无本机Go或真实模型调用。"
     }
   ],
   "rule": "公共机制已通过自部署GitLab当前源码/生成/编译/结构检查；完整服务、业务验收和部署按各域未完成项保留。"

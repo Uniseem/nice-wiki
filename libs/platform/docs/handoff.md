@@ -1,3 +1,9 @@
+# owner恢复纯只读观察入口
+
+源码db54fae，新增实际参考platform.ObserveInvocation、platform.LookupModelInvocation，均blocked待GitLab及owner真实装配。签名与返回沿前节公共API，二者只观察原已知InvocationID或完整原body/key；原截止有效也没有Create/Cancel/收费分支，过期也仅fresh5秒read。owner须锁外网络读取，并从原持久事实装配原root/site/epoch/costClass，不使用可能Create的InvokeModel作为恢复查询。Root登记知识等owner实际caller依赖。
+
+无本机Go/生成/格式/编译/测试，无真实接口/模型/部署/push。前批模型核心7ccc81f、说明12810da及合同2278a56、台账65826a5；快照与全域协调边界保持原记录。
+
 # 原模型调用只读观察小批
 
 源码7ccc81f，前置Text字段7d37126，说明/精确依赖同步12810da与2278a56。21项新/修改函数blocked待GitLab，其中15实际新登记reference含原先已有未登记drain/terminalOf/cancelCall/bindDeadline，不冒称15新业务。原InvokeModel绑定行为完成源码，未真实接口/模型联调或部署。
