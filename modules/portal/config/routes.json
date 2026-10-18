@@ -2308,7 +2308,7 @@
       "operationId": "resumeAnswerStream",
       "permission": "anonymous",
       "admission": null,
-      "timeoutMs": 5000,
+      "timeoutMs": 300000,
       "streaming": true
     },
     {

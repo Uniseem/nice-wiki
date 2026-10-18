@@ -606,6 +606,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CreateInvocationResult: components["schemas"]["types_CreateInvocationResult"];
+        CancelInvocationResult: components["schemas"]["types_CancelInvocationResult"];
+        StreamEvent: components["schemas"]["types_StreamEvent"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
@@ -812,6 +815,8 @@ export interface components {
             previousTargetText?: string;
             /** @description 权威译文对象 */
             fileRef: components["schemas"]["ObjectRef"];
+            /** @description 本源片段的受控模型文本，供对齐/插值/术语校验；服务始终写出，兼容旧消费者为可选 */
+            sourceText?: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         ReadTranslationResult: {
@@ -1435,6 +1440,117 @@ export interface components {
             }[];
             /** @description 分页信息 */
             pageInfo: components["schemas"]["PageInfo"];
+        };
+        /**
+         * @description 可信服务上下文决定，公开请求不能指定
+         * @enum {string}
+         */
+        CostClass: "qa" | "background" | "admin-probe";
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Attempt: {
+            /** @description 尝试ID */
+            attemptId: components["schemas"]["Identifier"];
+            /** @description 统一调用 */
+            invocationId: components["schemas"]["Identifier"];
+            /** @description 尝试序号 */
+            ordinal: number;
+            /** @description 固定模型 */
+            modelId: components["schemas"]["Identifier"];
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            state: "reserved" | "dispatching" | "streaming" | "succeeded" | "failed" | "charge_unknown" | "reconciled";
+            /** @description 独立费用预留 */
+            reservationId: components["schemas"]["Identifier"];
+            /** @description 收费标识 */
+            providerRequestId?: string;
+            /**
+             * @description 原因
+             * @enum {string}
+             */
+            retryReason: "initial" | "fallback" | "structured_retry";
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Invocation: {
+            /** @description 调用ID */
+            invocationId: components["schemas"]["Identifier"];
+            /** @description 根操作ID */
+            rootOperationId: components["schemas"]["Identifier"];
+            /** @description 可信费用类别 */
+            costClass: components["schemas"]["CostClass"];
+            /**
+             * @description 调用状态
+             * @enum {string}
+             */
+            state: "accepted" | "reserved" | "dispatching" | "streaming" | "succeeded" | "failed" | "cancel_requested" | "cancelled" | "charge_unknown" | "reconciled";
+            /** @description 预留ID */
+            reservationId?: components["schemas"]["Identifier"];
+            /** @description 供应方请求ID */
+            providerRequestId?: string;
+            /** @description 全链路截止 */
+            deadline: components["schemas"]["Timestamp"];
+            /** @description 固定价目快照 */
+            priceSnapshotId: components["schemas"]["Identifier"];
+            /** @description SSE最后序号 */
+            lastSequence: number;
+            /** @description 全部独立计费尝试 */
+            attempts: components["schemas"]["Attempt"][];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_CreateInvocationResult: {
+            /** @description accepted状态 */
+            invocation: components["schemas"]["Invocation"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_CancelInvocationResult: {
+            /** @description 取消状态 */
+            invocation: components["schemas"]["Invocation"];
+        };
+        /** @description 供应方、模型版本、维度与预处理版本共同定义空间；不同空间不得比相似度 */
+        EmbeddingSpace: {
+            /** @description 完整嵌入空间唯一ID */
+            spaceId: components["schemas"]["Hash"];
+            /** @description 供应方稳定标识 */
+            provider: string;
+            /** @description 供应方模型版本，不只用展示名 */
+            modelVersion: string;
+            /** @description 向量维度正整数 */
+            dimensions: number;
+            /** @description 规范预处理算法版本 */
+            preprocessingVersion: string;
+        };
+        /** @description 模型结构化完成结果；仅StreamEvent.completed出现，文本仍走delta；不混用向量空间。 */
+        ModelOutput: {
+            /** @enum {string} */
+            capability: "embedding" | "rerank";
+            embeddingSpace?: components["schemas"]["EmbeddingSpace"];
+            vectors?: number[][];
+            candidateIds?: components["schemas"]["Identifier"][];
+        } & ({
+            /** @constant */
+            capability?: "embedding";
+        } | {
+            /** @constant */
+            capability?: "rerank";
+        });
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_StreamEvent: {
+            /** @description 严格递增序号 */
+            sequence: number;
+            /**
+             * @description SSE事件名
+             * @enum {string}
+             */
+            event: "accepted" | "delta" | "usage" | "completed" | "error" | "cancelled";
+            /** @description 文本增量 */
+            delta?: string;
+            /** @description 状态快照 */
+            invocation?: components["schemas"]["Invocation"];
+            /** @description 终态错误代码 */
+            code?: string;
+            /** @description 仅completed事件携带的持久结构化结果，可选新增兼容旧文本消费者 */
+            output?: components["schemas"]["ModelOutput"];
         };
     };
     responses: never;

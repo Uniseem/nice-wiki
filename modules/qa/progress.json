@@ -2,7 +2,7 @@
   "version": 1,
   "module": "qa",
   "phase": "implementation",
-  "contractSha256": "826cf1f87b4e84b858ab495e21efa779cba025204d5122f26d1b30e272bd2bc7",
+  "contractSha256": "bc1be593648426c41bf7ef423b2f1a4a37ce096836d8e9c67c0758eae3ce2851",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-QA持久会话缓存及SSE首批",
   "branch": "codex/qa-20261018-bulk",

@@ -25,7 +25,6 @@ const (
 	maxLanguages        = 256
 )
 
-
 func requireActor(op OperationContext) error {
 	if !platform.ValidIdentifier(op.Actor.SubjectID) {
 		return platform.NewError(platform.CodeUnauthenticated, false, "操作主体缺失")
@@ -46,9 +45,15 @@ func requireIdempotencyKey(key string) error {
 // acceptStoredTag 只落实合同已经点名的长度和书写方向。
 // 第一个连字符前的原文与 ar/he/fa/ur 逐字相同才是 rtl，其余标签是 ltr。
 // 不折叠大小写，不删除脚本，不解释私用段，也不调用 NormalizeLanguageTag 冒充规范标签。
-func acceptStoredTag(tag string,direction gen.LanguageDirection)error{
- normalized,err:=NormalizeLanguageTag(context.Background(),OperationContext{},NormalizeLanguageTagInput{Tag:tag});if err!=nil{return err}
- if string(direction)!=normalized.Direction{return platform.NewError(platform.CodeValidation,false,"语言方向与规范语言主子标签不一致")};return nil
+func acceptStoredTag(tag string, direction gen.LanguageDirection) error {
+	normalized, err := NormalizeLanguageTag(context.Background(), OperationContext{}, NormalizeLanguageTagInput{Tag: tag})
+	if err != nil {
+		return err
+	}
+	if string(direction) != normalized.Direction {
+		return platform.NewError(platform.CodeValidation, false, "语言方向与规范语言主子标签不一致")
+	}
+	return nil
 }
 
 func openLanguage(ctx context.Context, op OperationContext) (*sql.Tx, error) {

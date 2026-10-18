@@ -474,6 +474,26 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        GuardValidatePermitResult: components["schemas"]["ValidatePermitResult"];
+        GuardConsumeAdmissionResult: components["schemas"]["ConsumeAdmissionResult"];
+        GuardReleasePermitResult: components["schemas"]["ReleasePermitResult"];
+        ContentValidatePublicationsResult: components["schemas"]["ValidatePublicationsResult"];
+        ContentReadPublishedRevisionResult: components["schemas"]["ReadPublishedRevisionResult"];
+        ContentReadPublicTreeResult: components["schemas"]["ReadPublicTreeResult"];
+        KnowledgeCreateQueryEmbeddingResult: components["schemas"]["CreateQueryEmbeddingResult"];
+        KnowledgeSearchResult: components["schemas"]["RetrieveResult"];
+        KnowledgeReadSectionsResult: components["schemas"]["ReadSectionsResult"];
+        MemoryResolveContextResult: components["schemas"]["ResolveContextResult"];
+        ModelTaskAvailabilityResult: components["schemas"]["ReadTaskAvailabilityResult"];
+        CreateInvocationResult: components["schemas"]["types_CreateInvocationResult"];
+        CancelInvocationResult: components["schemas"]["types_CancelInvocationResult"];
+        StreamEvent: components["schemas"]["types_StreamEvent"];
+        LocalizationCachedAnswerTranslationResult: components["schemas"]["ReadCacheAnswerTranslationResult"];
+        QaPolicy: components["schemas"]["types_QaPolicy"];
+        QaCacheEntry: components["schemas"]["CacheEntry"];
+        QaTurn: components["schemas"]["Turn"];
+        QaCitations: components["schemas"]["Citation"][];
+        PublicResolvePublishedLinkResult: components["schemas"]["ResolvePublishedLinkResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /**
@@ -724,7 +744,7 @@ export interface components {
             preprocessingVersion: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        QaPolicy: {
+        types_QaPolicy: {
             /** @description 策略版本 */
             version: number;
             /** @description 公开问答启用 */
@@ -813,12 +833,12 @@ export interface components {
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         PutQaPolicyResult: {
             /** @description 新策略 */
-            policy: components["schemas"]["QaPolicy"];
+            policy: components["schemas"]["types_QaPolicy"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         PutQaPolicyInput: {
             /** @description 公开策略 */
-            policy: components["schemas"]["QaPolicy"];
+            policy: components["schemas"]["types_QaPolicy"];
             /** @description CAS版本 */
             expectedVersion: number;
             /** @description 幂等键 */
@@ -827,7 +847,7 @@ export interface components {
         /** @description 读取问答策略的结果；不含密钥 */
         ReadQaPolicyResult: {
             /** @description 当前问答策略 */
-            policy: components["schemas"]["QaPolicy"];
+            policy: components["schemas"]["types_QaPolicy"];
             /** @description 策略版本 */
             version: number;
         };
@@ -1241,6 +1261,846 @@ export interface components {
             /** @enum {string} */
             reason: "available" | "not_configured" | "unavailable";
         };
+        /** @description 消费前验证租约成功结果；失败不返回半成功结果 */
+        ValidatePermitResult: {
+            /** @description admissionId；UTF-8；不得为 null */
+            admissionId: string;
+            /** @description valid 的明确真假结果，不可 null */
+            valid: boolean;
+        };
+        /** @description QA绑定准入使用权成功结果；失败不返回半成功结果 */
+        ConsumeAdmissionResult: {
+            /** @description consumed 的明确真假结果，不可 null */
+            consumed: boolean;
+            /** @description 公共 AdmissionPermit 合同，遵守其字段和空值规则 */
+            permit: components["schemas"]["AdmissionPermit"];
+        };
+        /** @description 释放并发占位成功结果；失败不返回半成功结果 */
+        ReleasePermitResult: {
+            /** @description released 的明确真假结果，不可 null */
+            released: boolean;
+        };
+        /** @description 权威可见性门禁结果；visible与matchesCurrent都成立才交付对应缓存 */
+        PublicationValidation: {
+            /** @description 需要权威校验的发布引用 */
+            reference: components["schemas"]["PublishedRevisionRef"];
+            /** @description 当前允许公开读取 */
+            visible: boolean;
+            /** @description 引用是否为当前发布修订 */
+            matchesCurrent: boolean;
+            /** @description 权威当前发布修订号 */
+            currentRevision: components["schemas"]["Revision"];
+            /** @description 发布/撤回可见性单调版本 */
+            visibilityRevision: components["schemas"]["Revision"];
+        };
+        /** @description 同步核公开引用是否仍可见且当前的结果 */
+        ValidatePublicationsResult: {
+            /** @description 输入顺序一一对应 */
+            validations: components["schemas"]["PublicationValidation"][];
+        };
+        /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
+        AssetVersionRef: {
+            /** @description 逻辑资源ID */
+            assetId: components["schemas"]["Identifier"];
+            /** @description 不可变对象版本 */
+            version: components["schemas"]["Revision"];
+            /** @description Hash */
+            sha256: components["schemas"]["Hash"];
+            /** @description 嗅探确认MIME */
+            mediaType: string;
+            /** @description 字节数 */
+            byteSize: number;
+        };
+        /** @description 树/元数据权威，与draft和published独立 */
+        DocumentMetadata: {
+            /** @description 文档 */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description 根null */
+            parentId: components["schemas"]["Identifier"] | null;
+            /** @description 文档H1标题，翻译 */
+            title: string;
+            /** @description 初次发布前待生成null */
+            pathSegment: string | null;
+            /** @description fracdex顺序key */
+            orderKey: string;
+            /** @description 初始化基准语言，保存后不重解释 */
+            sourceLanguage: string;
+            /** @description 待生成null */
+            seoDescription: string | null;
+            /**
+             * @description 来源
+             * @enum {string}
+             */
+            seoDescriptionSource: "generated" | "manual" | "pending";
+            /** @description 默认站点分享图null */
+            shareImage: components["schemas"]["AssetVersionRef"] | null;
+            /** @description 全篇唯一共享draft head */
+            draftRevisionId: components["schemas"]["Identifier"];
+            /** @description 未发布null */
+            publishedReference: components["schemas"]["PublishedRevisionRef"] | null;
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            state: "draft" | "published" | "trash" | "purged";
+            /** @description 元数据CAS */
+            revision: components["schemas"]["Revision"];
+            /** @description 公开撤回水位 */
+            visibilityRevision: components["schemas"]["Revision"];
+            /** @description 正常null */
+            trashedAt: components["schemas"]["Timestamp"] | null;
+            /** @description 未发null */
+            lastPublishedAt: components["schemas"]["Timestamp"] | null;
+        };
+        /** @description 站内链接按当前语言和树路径渲染，移动/改名不失效 */
+        LinkTarget: {
+            /** @constant */
+            kind: "internal";
+            /** @description 文档ID；不存URL */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 文档链接null */
+            blockId: components["schemas"]["Identifier"] | null;
+        } | {
+            /** @constant */
+            kind: "external";
+            /** @description 仅http/https/mailto；禁止javascript/userinfo */
+            href: string;
+        };
+        /** @description old8项行内能力：5文本marks+highlight+link+inlineMath；同种mark至多一次 */
+        InlineMark: {
+            /**
+             * @description 标准格式
+             * @enum {string}
+             */
+            type: "bold" | "italic" | "underline" | "strike" | "code";
+        } | {
+            /** @constant */
+            type: "highlight";
+            /** @description 高亮属性 */
+            attrs: {
+                /** @description 默认主题色null */
+                color: string | null;
+            };
+        } | {
+            /** @constant */
+            type: "link";
+            /** @description 链接属性 */
+            attrs: {
+                /** @description LinkTarget */
+                target: components["schemas"]["LinkTarget"];
+                /** @description 无null */
+                title: string | null;
+            };
+        };
+        /** @description Tiptap受控行内联合体，未知节点不静默丢弃 */
+        InlineNode: {
+            /** @constant */
+            type: "text";
+            /** @description Unicode原文不规范改写，不含NUL */
+            text: string;
+            /** @description marks可空 */
+            marks: components["schemas"]["InlineMark"][];
+        } | {
+            /** @constant */
+            type: "hardBreak";
+        } | {
+            /** @constant */
+            type: "inlineMath";
+            /** @description 公式属性 */
+            attrs: {
+                /** @description 原始LaTeX，不翻译；不允许文件/网络宏 */
+                latex: string;
+            };
+        };
+        /** @description Tiptap paragraph节点 */
+        ParagraphBlock: {
+            /** @constant */
+            type: "paragraph";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+            };
+            /** @description 有序行内内容 */
+            content: components["schemas"]["InlineNode"][];
+        };
+        /** @description Tiptap heading节点 */
+        HeadingBlock: {
+            /** @constant */
+            type: "heading";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+                /**
+                 * @description 正文仅H2/H3/H4；不折叠
+                 * @enum {integer}
+                 */
+                level: 2 | 3 | 4;
+            };
+            /** @description 有序行内内容 */
+            content: components["schemas"]["InlineNode"][];
+        };
+        /** @description Tiptap blockquote节点 */
+        QuoteBlock: {
+            /** @constant */
+            type: "blockquote";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+            };
+            /** @description 引用有序子块 */
+            content: components["schemas"]["Block"][];
+        };
+        /** @description Tiptap horizontalRule节点 */
+        DividerBlock: {
+            /** @constant */
+            type: "horizontalRule";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+            };
+        };
+        /** @description 列表项；可嵌套列表但受深度限制 */
+        ListItem: {
+            /** @constant */
+            type: "listItem";
+            /** @description 列表项属性 */
+            attrs: {
+                /** @description 稳定列表项 */
+                itemId: components["schemas"]["Identifier"];
+            };
+            /** @description 列表项有序子块，首项paragraph */
+            content: components["schemas"]["Block"][];
+        };
+        /** @description Tiptap bulletList节点 */
+        BulletListBlock: {
+            /** @constant */
+            type: "bulletList";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+            };
+            /** @description 无序项 */
+            content: components["schemas"]["ListItem"][];
+        };
+        /** @description Tiptap orderedList节点 */
+        OrderedListBlock: {
+            /** @constant */
+            type: "orderedList";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+                /** @description 编号起始 */
+                start: number;
+            };
+            /** @description 有序项 */
+            content: components["schemas"]["ListItem"][];
+        };
+        /** @description 任务项 */
+        TaskItem: {
+            /** @constant */
+            type: "taskItem";
+            /** @description 任务项属性 */
+            attrs: {
+                /** @description 稳定task项 */
+                itemId: components["schemas"]["Identifier"];
+                /** @description 勾选 */
+                checked: boolean;
+            };
+            /** @description 首项paragraph及嵌套任务 */
+            content: components["schemas"]["Block"][];
+        };
+        /** @description Tiptap taskList节点 */
+        TaskListBlock: {
+            /** @constant */
+            type: "taskList";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+            };
+            /** @description 任务列表 */
+            content: components["schemas"]["TaskItem"][];
+        };
+        /** @description 表格单元格，grid覆盖必须无洞无重叠 */
+        TableCell: {
+            /**
+             * @description 标准Tiptap单元格
+             * @enum {string}
+             */
+            type: "tableCell" | "tableHeader";
+            /** @description 完整表格cell属性 */
+            attrs: {
+                /** @description 稳定cell */
+                cellId: components["schemas"]["Identifier"];
+                /** @description 列跨度 */
+                colspan: number;
+                /** @description 行跨度 */
+                rowspan: number;
+                /** @description auto null */
+                colwidth: number[] | null;
+                /** @description 继承null */
+                backgroundColor: string | null;
+            };
+            /** @description cell正文有序块 */
+            content: components["schemas"]["Block"][];
+        };
+        /** @description 表格行 */
+        TableRow: {
+            /** @constant */
+            type: "tableRow";
+            /** @description 行属性 */
+            attrs: {
+                /** @description 稳定row */
+                rowId: components["schemas"]["Identifier"];
+            };
+            /** @description 仅起始cell，上一行rowspan可覆盖 */
+            content: components["schemas"]["TableCell"][];
+        };
+        /** @description Tiptap table节点 */
+        TableBlock: {
+            /** @constant */
+            type: "table";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+            };
+            /** @description 最多200行、30逻辑列 */
+            content: components["schemas"]["TableRow"][];
+        };
+        /** @description Tiptap codeBlock节点 */
+        CodeBlock: {
+            /** @constant */
+            type: "codeBlock";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+                /** @description 自动plain null */
+                language: string | null;
+            };
+            /** @description 最多一个text节点 */
+            content: {
+                /** @constant */
+                type: "text";
+                /** @description 代码原文，不翻译，保留换行 */
+                text: string;
+            }[];
+        };
+        /** @description Tiptap mathBlock节点 */
+        MathBlock: {
+            /** @constant */
+            type: "mathBlock";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+                /** @description LaTeX源码；不翻译；只含公式页加载KaTeX */
+                latex: string;
+            };
+        };
+        /** @description Tiptap callout节点 */
+        CalloutBlock: {
+            /** @constant */
+            type: "callout";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+                /**
+                 * @description 提示框
+                 * @enum {string}
+                 */
+                kind: "info" | "tip" | "warning" | "danger";
+            };
+            /** @description 提示框子块，纯文本提取附类型 */
+            content: components["schemas"]["Block"][];
+        };
+        /** @description Tiptap image节点 */
+        ImageBlock: {
+            /** @constant */
+            type: "image";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+                asset: components["schemas"]["AssetVersionRef"];
+                /** @description auto null */
+                alt: string | null;
+                /**
+                 * @description 来源
+                 * @enum {string}
+                 */
+                altSource: "auto" | "manual";
+                /** @description 有序行内内容 */
+                caption: components["schemas"]["InlineNode"][];
+                /** @description 自然宽null */
+                widthPercent: number | null;
+            };
+        };
+        /** @description Tiptap attachment节点 */
+        AttachmentBlock: {
+            /** @constant */
+            type: "attachment";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+                asset: components["schemas"]["AssetVersionRef"];
+                /** @description 文件卡片文字，默认media原始文件名 */
+                displayName: string;
+            };
+        };
+        /** @description Tiptap drawing节点 */
+        DrawingBlock: {
+            /** @constant */
+            type: "drawing";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+                scene: components["schemas"]["AssetVersionRef"];
+                lightSVG: components["schemas"]["AssetVersionRef"];
+                darkSVG: components["schemas"]["AssetVersionRef"];
+                /** @description 自然宽null */
+                widthPercent: number | null;
+                /** @description 有序行内内容 */
+                caption: components["schemas"]["InlineNode"][];
+            };
+        };
+        /** @description 上传视频，服务端不转码 */
+        UploadedVideoSource: {
+            /** @constant */
+            kind: "uploaded";
+            asset: components["schemas"]["AssetVersionRef"];
+        };
+        /**
+         * @description 四个已确认平台
+         * @enum {string}
+         */
+        PlatformProvider: "bilibili" | "youtube" | "douyin" | "tiktok";
+        /** @description 插入时一次公开快照，不自动刷新、不假造信息；失败可手填标题简介 */
+        PlatformVideoSnapshot: {
+            /** @description PlatformProvider */
+            provider: components["schemas"]["PlatformProvider"];
+            /** @description 解析不透明视频ID */
+            providerVideoId: string;
+            /** @description 允许域名规范视频URL */
+            canonicalURL: string;
+            /** @description provider构造白名单embed；YouTube nocookie */
+            embedURL: string;
+            /** @description 公开/手填标题 */
+            title: string;
+            /** @description 公开/手填简介 */
+            description: string;
+            /** @description 公开作者 */
+            author: string;
+            /** @description 未知null */
+            durationSeconds: number | null;
+            /** @description 抓取失败无封面null */
+            cover: components["schemas"]["AssetVersionRef"] | null;
+            /** @description 手填null */
+            fetchedAt: components["schemas"]["Timestamp"] | null;
+            /**
+             * @description 来源
+             * @enum {string}
+             */
+            metadataSource: "public" | "manual";
+            /**
+             * @description provider能力
+             * @enum {string}
+             */
+            capability: "available" | "manual_required" | "unsupported_embed";
+        };
+        /** @description 插入时一次公开信息快照，失败可手填 */
+        PlatformVideoSource: {
+            /** @constant */
+            kind: "platform";
+            snapshot: components["schemas"]["PlatformVideoSnapshot"];
+        };
+        /** @description Tiptap video节点 */
+        VideoBlock: {
+            /** @constant */
+            type: "video";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+                /** @description 统一视频组件来源 */
+                source: components["schemas"]["UploadedVideoSource"] | components["schemas"]["PlatformVideoSource"];
+                /** @description 用户填写或公开信息标题 */
+                title: string;
+                /** @description 用户说明或抓取公开简介 */
+                description: string;
+                /** @description 浏览器截帧/自传/平台本地封面，暂无null */
+                poster: components["schemas"]["AssetVersionRef"] | null;
+                /** @description 自然宽null */
+                widthPercent: number | null;
+            };
+        };
+        /** @description 单栏 */
+        Column: {
+            /** @constant */
+            type: "column";
+            /** @description 列属性 */
+            attrs: {
+                /** @description 稳定column */
+                columnId: components["schemas"]["Identifier"];
+            };
+            /** @description 任意块但不得含columns后代 */
+            content: components["schemas"]["Block"][];
+        };
+        /** @description Tiptap columns节点 */
+        ColumnsBlock: {
+            /** @constant */
+            type: "columns";
+            /** @description 完整块属性 */
+            attrs: {
+                /** @description 文档内稳定ID，删除后在该文档不可复用 */
+                blockId: components["schemas"]["Identifier"];
+                /** @description 2–4栏比例 */
+                widthRatios: number[];
+            };
+            /** @description 2–4栏 */
+            content: components["schemas"]["Column"][];
+        };
+        /** @description 16类Tiptap块完整联合体；schema版本在DocumentBody，不含未知attrs/原始HTML */
+        Block: components["schemas"]["ParagraphBlock"] | components["schemas"]["HeadingBlock"] | components["schemas"]["QuoteBlock"] | components["schemas"]["DividerBlock"] | components["schemas"]["BulletListBlock"] | components["schemas"]["OrderedListBlock"] | components["schemas"]["TaskListBlock"] | components["schemas"]["TableBlock"] | components["schemas"]["CodeBlock"] | components["schemas"]["MathBlock"] | components["schemas"]["CalloutBlock"] | components["schemas"]["ImageBlock"] | components["schemas"]["AttachmentBlock"] | components["schemas"]["DrawingBlock"] | components["schemas"]["VideoBlock"] | components["schemas"]["ColumnsBlock"];
+        /** @description 正文文件canonical Tiptap JSON */
+        DocumentBody: {
+            /**
+             * @description 逐级migration，不支持未来版本拒绝
+             * @constant
+             */
+            schemaVersion: 1;
+            /** @constant */
+            type: "doc";
+            /** @description 正文有序树；每个id唯一，最多10000块 */
+            content: components["schemas"]["Block"][];
+        };
+        /** @description 获取仍公开的精确正文快照的结果 */
+        ReadPublishedRevisionResult: {
+            /** @description DocumentMetadata */
+            metadata: components["schemas"]["DocumentMetadata"];
+            /** @description PublishedRevisionRef */
+            reference: components["schemas"]["PublishedRevisionRef"];
+            /** @description DocumentBody */
+            body: components["schemas"]["DocumentBody"];
+            /** @description 水位 */
+            visibilityRevision: components["schemas"]["Revision"];
+        };
+        /** @description 仅已发布公共导航节点，无drafthead */
+        PublicTreeNode: {
+            /** @description doc */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 根null */
+            parentId: components["schemas"]["Identifier"] | null;
+            /** @description 基准标题，localization按ID翻译 */
+            title: string;
+            /** @description 英文共用slug */
+            pathSegment: string;
+            /** @description 树顺序 */
+            orderKey: string;
+            /** @description PublishedRevisionRef */
+            reference: components["schemas"]["PublishedRevisionRef"];
+            /** @description 可见水位 */
+            visibilityRevision: components["schemas"]["Revision"];
+            /** @description content同一treeRevision快照计算的完整规范URL路径；各段已编码，不含语言/basePath/query/fragment；不可由消费方用缺失祖先拼接；恰好一个起始/，禁止空白/控制符/反斜杠/query/fragment，分段无点跳转，百分号只用于各段规范编码 */
+            canonicalPath: string;
+        };
+        /** @description 公开导航读取已发布文档树的结果 */
+        ReadPublicTreeResult: {
+            /** @description 已发布前序树 */
+            nodes: components["schemas"]["PublicTreeNode"][];
+            /** @description 树水位 */
+            treeRevision: components["schemas"]["Revision"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        QueryEmbedding: {
+            /** @description 规范基准查询 */
+            queryHash: components["schemas"]["Hash"];
+            /** @description 完整空间 */
+            space: components["schemas"]["EmbeddingSpace"];
+            /** @description 向量 */
+            vector: number[];
+            /** @description 向量摘要 */
+            vectorHash: components["schemas"]["Hash"];
+            /** @description 原MG调用 */
+            invocationId: components["schemas"]["Identifier"];
+            /** @description 代际 */
+            dataEpoch: components["schemas"]["Identifier"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        CreateQueryEmbeddingResult: {
+            /** @description 可复用向量 */
+            embedding: components["schemas"]["QueryEmbedding"];
+        };
+        /** @description 资源身份、哈希、媒体类型与字节数；通过media受控读取 */
+        AssetRef: {
+            /** @description media资源稳定ID */
+            assetId: components["schemas"]["Identifier"];
+            /** @description 完整字节内容SHA256 */
+            sha256: components["schemas"]["Hash"];
+            /** @description 规范媒体类型，按允许集验证 */
+            mediaType: string;
+            /** @description 完整对象字节数，读取结束复核 */
+            byteSize: number;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Chunk: {
+            /** @description 分块ID */
+            chunkId: components["schemas"]["Identifier"];
+            /** @description 权威来源 */
+            document: components["schemas"]["PublishedRevisionRef"];
+            /** @description 源块 */
+            block: components["schemas"]["BlockRef"];
+            /** @description 文内序号 */
+            ordinal: number;
+            /** @description 规范文本hash */
+            chunkHash: components["schemas"]["Hash"];
+            /** @description 仅内部检索正文 */
+            text: string;
+            /** @description 分块token */
+            tokenCount: number;
+            /** @description 源UTF8起点 */
+            byteStart: number;
+            /** @description 排他终点 */
+            byteEnd: number;
+            /** @description 资源派生来源 */
+            asset?: components["schemas"]["AssetRef"];
+            /** @description 与text的每个UTF-8字节等长；值是本源块原始UTF-8字节起点，单调且处于byteStart..byteEnd */
+            sourceOffsets: number[];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Candidate: {
+            /** @description 分块 */
+            chunk: components["schemas"]["Chunk"];
+            /** @description 词项名次0为缺失 */
+            lexicalRank: number;
+            /** @description 向量名次0为缺失 */
+            vectorRank: number;
+            /**
+             * Format: double
+             * @description RRF分数
+             */
+            score: number;
+            /** @description 权威可见性代数 */
+            visibilityRevision: number;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        SearchResult: {
+            /** @description 可引用材料 */
+            candidates: components["schemas"]["Candidate"][];
+            /** @description 所用空间 */
+            space: components["schemas"]["EmbeddingSpace"];
+            /** @description 所有active版本摘要 */
+            indexVersionHash: components["schemas"]["Hash"];
+            /** @description 是否词项降级 */
+            degraded: boolean;
+            /** @description 预算是否截断 */
+            truncated: boolean;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        RetrieveResult: {
+            /** @description 可引用结果 */
+            result: components["schemas"]["SearchResult"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        ReadSectionsResult: {
+            /** @description 当前可见分块 */
+            chunks: components["schemas"]["Chunk"][];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        ResolveContextResult: {
+            /** @description 任务 */
+            taskId: string;
+            /** @description 语言 */
+            language: string;
+            /** @description 完整注入正文；无匹配记忆时为空串，不生成占位内容 */
+            text: string;
+            /** @description 内容和映射版本hash */
+            versionHash: components["schemas"]["Hash"];
+            /** @description 映射修订 */
+            mappingRevision: number;
+            /** @description 完整注入text的UTF8字节数，包含说明与分隔，不含JSON元数据 */
+            byteSize: number;
+        };
+        /** @description 只读配置就绪投影，不代表供应方在线、费用额度或执行授权 */
+        TaskAvailability: {
+            /**
+             * @description 首页QA可配置能力检查的固定调用范围，含QA链knowledge检索核查任务
+             * @enum {string}
+             */
+            taskId: "qa.preflight" | "qa.inspect" | "qa.answer";
+            available: boolean;
+            /** @enum {string} */
+            reason: "available" | "not_configured" | "unavailable";
+        };
+        /** @description 按请求顺序逐项，禁止遗漏/多返回 */
+        ReadTaskAvailabilityResult: {
+            tasks: components["schemas"]["TaskAvailability"][];
+        };
+        /**
+         * @description 可信服务上下文决定，公开请求不能指定
+         * @enum {string}
+         */
+        CostClass: "qa" | "background" | "admin-probe";
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Attempt: {
+            /** @description 尝试ID */
+            attemptId: components["schemas"]["Identifier"];
+            /** @description 统一调用 */
+            invocationId: components["schemas"]["Identifier"];
+            /** @description 尝试序号 */
+            ordinal: number;
+            /** @description 固定模型 */
+            modelId: components["schemas"]["Identifier"];
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            state: "reserved" | "dispatching" | "streaming" | "succeeded" | "failed" | "charge_unknown" | "reconciled";
+            /** @description 独立费用预留 */
+            reservationId: components["schemas"]["Identifier"];
+            /** @description 收费标识 */
+            providerRequestId?: string;
+            /**
+             * @description 原因
+             * @enum {string}
+             */
+            retryReason: "initial" | "fallback" | "structured_retry";
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Invocation: {
+            /** @description 调用ID */
+            invocationId: components["schemas"]["Identifier"];
+            /** @description 根操作ID */
+            rootOperationId: components["schemas"]["Identifier"];
+            /** @description 可信费用类别 */
+            costClass: components["schemas"]["CostClass"];
+            /**
+             * @description 调用状态
+             * @enum {string}
+             */
+            state: "accepted" | "reserved" | "dispatching" | "streaming" | "succeeded" | "failed" | "cancel_requested" | "cancelled" | "charge_unknown" | "reconciled";
+            /** @description 预留ID */
+            reservationId?: components["schemas"]["Identifier"];
+            /** @description 供应方请求ID */
+            providerRequestId?: string;
+            /** @description 全链路截止 */
+            deadline: components["schemas"]["Timestamp"];
+            /** @description 固定价目快照 */
+            priceSnapshotId: components["schemas"]["Identifier"];
+            /** @description SSE最后序号 */
+            lastSequence: number;
+            /** @description 全部独立计费尝试 */
+            attempts: components["schemas"]["Attempt"][];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_CreateInvocationResult: {
+            /** @description accepted状态 */
+            invocation: components["schemas"]["Invocation"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_CancelInvocationResult: {
+            /** @description 取消状态 */
+            invocation: components["schemas"]["Invocation"];
+        };
+        /** @description 模型结构化完成结果；仅StreamEvent.completed出现，文本仍走delta；不混用向量空间。 */
+        ModelOutput: {
+            /** @enum {string} */
+            capability: "embedding" | "rerank";
+            embeddingSpace?: components["schemas"]["EmbeddingSpace"];
+            vectors?: number[][];
+            candidateIds?: components["schemas"]["Identifier"][];
+        } & ({
+            /** @constant */
+            capability?: "embedding";
+        } | {
+            /** @constant */
+            capability?: "rerank";
+        });
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_StreamEvent: {
+            /** @description 严格递增序号 */
+            sequence: number;
+            /**
+             * @description SSE事件名
+             * @enum {string}
+             */
+            event: "accepted" | "delta" | "usage" | "completed" | "error" | "cancelled";
+            /** @description 文本增量 */
+            delta?: string;
+            /** @description 状态快照 */
+            invocation?: components["schemas"]["Invocation"];
+            /** @description 终态错误代码 */
+            code?: string;
+            /** @description 仅completed事件携带的持久结构化结果，可选新增兼容旧文本消费者 */
+            output?: components["schemas"]["ModelOutput"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        CacheAnswerTranslation: {
+            /** @description 译文 */
+            translationId: components["schemas"]["Identifier"];
+            /** @description QA精选ID */
+            cacheId: components["schemas"]["Identifier"];
+            /** @description 源答案版本 */
+            answerRevision: number;
+            /** @description 源回答hash */
+            sourceHash: components["schemas"]["Hash"];
+            /** @description 目标语言 */
+            targetLanguage: string;
+            /** @description 问题译文 */
+            translatedQuestion: string;
+            /** @description 回答译文 */
+            translatedAnswer: string;
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            state: "queued" | "running" | "ready" | "failed" | "cancelled" | "superseded";
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        ReadCacheAnswerTranslationResult: {
+            /** @description ready公开译文 */
+            translation: components["schemas"]["CacheAnswerTranslation"];
+        };
+        /** @description 同源规范相对URL：恰好一个起始/，包含当前publicBaseURL的basePath、显式语言和content权威canonicalPath；可带已确认稳定blockId锚点，无query、外部origin、反斜杠或控制空白 */
+        PublicRelativeLink: string;
+        /** @description 规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证 */
+        types_LanguageTag: string;
+        /** @description 沿用站点配置规范语言tag；是否启用另核localization当前权威，不使用后台UILocale */
+        LanguageTag: components["schemas"]["types_LanguageTag"];
+        /** @description 已知权威结果的封闭联合；依赖或版本未知返回Problem。false不含草稿、标题、元数据或旧路径；true引用须对应请求文档和当前epoch */
+        ResolvePublishedLinkResult: {
+            /** @enum {boolean} */
+            visible: true;
+            href: components["schemas"]["PublicRelativeLink"];
+            publication: components["schemas"]["PublishedRevisionRef"];
+            /** @description 等于请求language；缺译不改变URL语言 */
+            resolvedLanguage: components["schemas"]["LanguageTag"];
+            /** @enum {string} */
+            reason: "available";
+        } | {
+            /** @enum {boolean} */
+            visible: false;
+            href: null;
+            publication: null;
+            resolvedLanguage: null;
+            /**
+             * @description unavailable统一不存在/未公开/撤回/删除；anchor_missing为当前公开正文中请求块不存在；language_unavailable仅未启用或停用，不表示译文暂缺
+             * @enum {string}
+             */
+            reason: "unavailable" | "anchor_missing" | "language_unavailable";
+        };
     };
     responses: never;
     parameters: never;
@@ -1391,6 +2251,15 @@ export interface operations {
             };
             /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description GONE：对象或流已超过保留期 */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1630,6 +2499,8 @@ export interface operations {
             header: {
                 /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
                 "X-Request-Id": components["schemas"]["Identifier"];
+                /** @description 排他续读，与afterSequence同时提供时取较大值；不启动新业务 */
+                "Last-Event-ID"?: number;
             };
             path: {
                 /** @description 必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。 */
@@ -1677,6 +2548,15 @@ export interface operations {
             };
             /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description GONE：对象或流已超过保留期 */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1914,6 +2794,15 @@ export interface operations {
             };
             /** @description FORBIDDEN：权限不足 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 登记的公共Problem错误；失败不返回部分成功结果 */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2520,6 +3409,15 @@ export interface operations {
             };
             /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description GONE：对象或流已超过保留期 */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3243,6 +4141,15 @@ export interface operations {
             };
             /** @description 公共失败关闭错误 */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 登记的公共Problem错误；失败不返回部分成功结果 */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -808,6 +808,11 @@ export interface components {
             risk: "normal" | "suspicious" | "abusive";
             /** @description 当前页历史及记忆摘要 */
             contextFingerprint: components["schemas"]["Hash"];
+            /**
+             * @description 仅可信qa.preflight Planner输出：所有代词/省略的主体与来源已落实为独立canonicalQuestion；缺失按false，不从浏览器接受
+             * @default false
+             */
+            resolvedReferences: boolean;
         };
         QuestionPlan: components["schemas"]["types_QuestionPlan"];
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */

@@ -991,6 +991,9 @@
       "type": "object",
       "x-internal": true,
       "description": "Next(ctx)读取严格网关事件、Close关闭SSE"
+    },
+    "MemoryContext": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/MemoryContext"
     }
   }
 }

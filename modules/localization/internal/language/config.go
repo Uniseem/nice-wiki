@@ -68,8 +68,10 @@ func PutLanguage(ctx context.Context, op OperationContext, input PutLanguageInpu
 	if err := rejectHeldBarrier(ctx, tx); err != nil {
 		return PutLanguageResult{}, err
 	}
-	if err:=rejectLanguageAlias(ctx,tx,input.Language.Tag);err!=nil{return PutLanguageResult{},err}
- if err := rejectOtherDefault(ctx, tx, input.Language.Tag, input.Language.IsDefault); err != nil {
+	if err := rejectLanguageAlias(ctx, tx, input.Language.Tag); err != nil {
+		return PutLanguageResult{}, err
+	}
+	if err := rejectOtherDefault(ctx, tx, input.Language.Tag, input.Language.IsDefault); err != nil {
 		return PutLanguageResult{}, err
 	}
 	_, epoch, found, err := loadLanguage(ctx, tx, input.Language.Tag)
@@ -239,8 +241,28 @@ func rejectOtherDefault(ctx context.Context, tx *sql.Tx, tag string, isDefault b
 }
 
 // rejectLanguageAlias 保留原文标签显示，但不允许两个配置代表同一规范语言。
-func rejectLanguageAlias(ctx context.Context,tx *sql.Tx,tag string)error{
- wanted,err:=NormalizeLanguageTag(ctx,OperationContext{},NormalizeLanguageTagInput{Tag:tag});if err!=nil{return err}
- rows,err:=tx.QueryContext(ctx,`SELECT language_tag FROM languages WHERE language_tag<>?`,tag);if err!=nil{return mapWriteErr(err)};defer rows.Close()
- for rows.Next(){var other string;if err=rows.Scan(&other);err!=nil{return mapWriteErr(err)};normalized,err:=NormalizeLanguageTag(ctx,OperationContext{},NormalizeLanguageTagInput{Tag:other});if err!=nil{return platform.NewError(platform.CodeIntegrityError,false,"现有语言标签不能规范解析")};if normalized.Tag==wanted.Tag{return platform.NewError(platform.CodeConflict,false,"规范语言已存在其他原文标签配置")}};return mapWriteErr(rows.Err())
+func rejectLanguageAlias(ctx context.Context, tx *sql.Tx, tag string) error {
+	wanted, err := NormalizeLanguageTag(ctx, OperationContext{}, NormalizeLanguageTagInput{Tag: tag})
+	if err != nil {
+		return err
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT language_tag FROM languages WHERE language_tag<>?`, tag)
+	if err != nil {
+		return mapWriteErr(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var other string
+		if err = rows.Scan(&other); err != nil {
+			return mapWriteErr(err)
+		}
+		normalized, err := NormalizeLanguageTag(ctx, OperationContext{}, NormalizeLanguageTagInput{Tag: other})
+		if err != nil {
+			return platform.NewError(platform.CodeIntegrityError, false, "现有语言标签不能规范解析")
+		}
+		if normalized.Tag == wanted.Tag {
+			return platform.NewError(platform.CodeConflict, false, "规范语言已存在其他原文标签配置")
+		}
+	}
+	return mapWriteErr(rows.Err())
 }

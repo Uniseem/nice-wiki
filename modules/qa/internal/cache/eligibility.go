@@ -30,7 +30,7 @@ type QuestionPlan struct {
 	Classification     string        `json:"classification"`
 	Risk               string        `json:"risk"`
 	ContextFingerprint platform.Hash `json:"contextFingerprint"`
- ResolvedReferences bool `json:"resolvedReferences"`
+	ResolvedReferences bool          `json:"resolvedReferences"`
 }
 
 // EvaluateCacheEligibilityInput 是缓存准入输入。
@@ -69,8 +69,12 @@ func EvaluateCacheEligibility(ctx context.Context, op OperationContext, input Ev
 	if !input.Plan.CacheEligible {
 		return ineligible(reasonAmbiguous), nil
 	}
- if !input.Plan.ResolvedReferences || input.Plan.CanonicalQuestion=="" || input.Plan.Classification=="needs_clarification" {return ineligible(reasonAmbiguous),nil}
- return EvaluateCacheEligibilityResult{Eligible:true,Reason:"complete"},nil
+	if !input.Plan.ResolvedReferences || input.Plan.CanonicalQuestion == "" || input.Plan.Classification == "needs_clarification" {
+		return ineligible(reasonAmbiguous), nil
+	}
+	return EvaluateCacheEligibilityResult{Eligible: true, Reason: "complete"}, nil
 }
 
-func ineligible(reason string) EvaluateCacheEligibilityResult {return EvaluateCacheEligibilityResult{Eligible:false,Reason:reason}}
+func ineligible(reason string) EvaluateCacheEligibilityResult {
+	return EvaluateCacheEligibilityResult{Eligible: false, Reason: reason}
+}

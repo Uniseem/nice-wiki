@@ -2,7 +2,7 @@
   "moduleId": "M09",
   "module": "qa",
   "version": 1,
-  "phase": "implementation",
+  "phase": "design",
   "requirements": [
     {
       "id": "M09-R01",

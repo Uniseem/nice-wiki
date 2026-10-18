@@ -31,6 +31,16 @@ type (
 	Revision = int64
 )
 
+// MemoryContext 与公共schema一致，字节数只计算完整注入文本。
+type MemoryContext struct {
+ TaskID string `json:"taskId"`
+ Language string `json:"language"`
+ Text string `json:"text"`
+ VersionHash Hash `json:"versionHash"`
+ MappingRevision Revision `json:"mappingRevision"`
+ ByteSize int64 `json:"byteSize"`
+}
+
 // CostClass 可信费用归属类别；公开请求不能指定。
 const (
 	CostClassQA         = "qa"
