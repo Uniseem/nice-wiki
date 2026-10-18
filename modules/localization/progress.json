@@ -2,12 +2,12 @@
   "version": 1,
   "module": "localization",
   "phase": "implementation",
-  "contractSha256": "ec40e890626589226b22d074a182efd3f04501b8387eadb205cabddd75e59fb7",
+  "contractSha256": "df97caf9b4d31c1b1d19cda09a7179396220171e46d7fea34d798e18dfa274ff",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1-15（Codex，集中并行实现）",
   "branch": "codex/localization-20261018-bulk",
   "baseCommit": "f1d4ce0628470eda7b253993366669759dd01cdc",
-  "deliveryCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+  "deliveryCommit": "60d2172bd00f973bc5dd3c7cc6b6c27d05677231",
   "deployment": "not_started",
   "files": [
     {
@@ -903,12 +903,12 @@
     {
       "path": "modules/localization/internal/translation/projection.go",
       "state": "blocked",
-      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "implementationCommit": "60d2172bd00f973bc5dd3c7cc6b6c27d05677231",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "最终只读复核窄修代码就绪，待统一GitLab CI"
     }
   ],
   "functions": [
@@ -1103,12 +1103,12 @@
       "id": "localization.ReadTranslation",
       "path": "modules/localization/internal/translation/read.go",
       "state": "blocked",
-      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "implementationCommit": "60d2172bd00f973bc5dd3c7cc6b6c27d05677231",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "稳定ID保护投影与真实引用语义代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "最终只读复核窄修代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.ListTranslationProgress",
@@ -2247,48 +2247,59 @@
       "id": "localization.StableSlotKey",
       "path": "modules/localization/internal/translation/projection.go",
       "state": "blocked",
-      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "implementationCommit": "60d2172bd00f973bc5dd3c7cc6b6c27d05677231",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "最终只读复核窄修代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.CollectSlotFields",
       "path": "modules/localization/internal/translation/projection.go",
       "state": "blocked",
-      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "implementationCommit": "60d2172bd00f973bc5dd3c7cc6b6c27d05677231",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "最终只读复核窄修代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.BuildProtectedProjection",
       "path": "modules/localization/internal/translation/projection.go",
       "state": "blocked",
-      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "implementationCommit": "60d2172bd00f973bc5dd3c7cc6b6c27d05677231",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "最终只读复核窄修代码就绪，待统一GitLab CI；未做业务验收"
     },
     {
       "id": "localization.ProjectProtectedUnit",
       "path": "modules/localization/internal/translation/projection.go",
       "state": "blocked",
-      "implementationCommit": "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "implementationCommit": "60d2172bd00f973bc5dd3c7cc6b6c27d05677231",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "代码就绪，待统一GitLab CI；未做业务验收"
+      "blocker": "最终只读复核窄修代码就绪，待统一GitLab CI；未做业务验收"
+    },
+    {
+      "id": "localization.ProtectedAnchorShape",
+      "path": "modules/localization/internal/translation/projection.go",
+      "state": "blocked",
+      "implementationCommit": "60d2172bd00f973bc5dd3c7cc6b6c27d05677231",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "最终只读复核新增实际参考助手，待统一GitLab CI"
     }
   ],
-  "rule": "累计32个既有业务/已改函数与57个新增实际参考辅助已交付代码，均待统一GitLab CI；ReadTranslation稳定ID保护投影已收口，失败关闭属已批准语义。SuggestLanguage模型授权及其余未写链仍blocked。按根要求冻结本域，不扩新包；合并保留根已核未改项CI证据。",
+  "rule": "累计32个既有业务/已改函数与58个新增实际参考辅助交付；最终复核窄修待统一GitLab CI，不冒称verified。根通知旧批已过pipeline69 Go编译，保留根已核未改项证据。新无ID结构/来源/预算修复后冻结，不扩新包；SuggestLanguage授权及其余未写链仍blocked。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "21c6a196c990d323c73429b769a38895beca7a93",
@@ -2297,7 +2308,9 @@
       "0096103e13f9cbd95ae4bfd8b7b99d6b9f2cc640",
       "78097582679cf251b7460eef1f6e861f5b631b9c",
       "8743c9fefb9688373328fdcda16f520afa045072",
-      "33cd264a55df396f038d693f45c8d661e2eb0cb1"
+      "33cd264a55df396f038d693f45c8d661e2eb0cb1",
+      "4a1e596d499a9ba387a7294d77b443c986e4f7d5",
+      "60d2172bd00f973bc5dd3c7cc6b6c27d05677231"
     ],
     "existingBusinessFunctions": [
       "localization.NormalizeLanguageTag",
@@ -2390,7 +2403,8 @@
       "localization.StableSlotKey",
       "localization.CollectSlotFields",
       "localization.BuildProtectedProjection",
-      "localization.ProjectProtectedUnit"
+      "localization.ProjectProtectedUnit",
+      "localization.ProtectedAnchorShape"
     ],
     "batches": [
       {
@@ -2592,6 +2606,30 @@
           "localization.SuggestLanguage"
         ],
         "note": "稳定ID保守投影已获根裁定完整代码ready；无法证明归属及source-only保护失败关闭属明确业务语义，不再把整个ReadTranslation列设计阻塞。所有本批代码待CI生成fileRef指针并编译。"
+      },
+      {
+        "sourceCommit": "60d2172bd00f973bc5dd3c7cc6b6c27d05677231",
+        "precedingFixCommit": "4a1e596d499a9ba387a7294d77b443c986e4f7d5",
+        "existingBusinessFunctions": [],
+        "newReferenceHelpers": [
+          "localization.ProtectedAnchorShape"
+        ],
+        "changedFunctions": [
+          "localization.ReadTranslation",
+          "localization.StableSlotKey",
+          "localization.CollectSlotFields",
+          "localization.BuildProtectedProjection",
+          "localization.ProjectProtectedUnit"
+        ],
+        "readyFunctions": [
+          "localization.ReadTranslation",
+          "localization.StableSlotKey",
+          "localization.CollectSlotFields",
+          "localization.BuildProtectedProjection",
+          "localization.ProjectProtectedUnit",
+          "localization.ProtectedAnchorShape"
+        ],
+        "note": "只读复核窄修：10000单元响应、真实origin、65536投影预算；同一稳定anchor无ID形状变化失败关闭，当前全部text消失亦核。保留原CI未改项证据，本批待统一CI。"
       }
     ]
   }
