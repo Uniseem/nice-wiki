@@ -8130,7 +8130,7 @@
               ]
             }
           ],
-          "purpose": "启动要求CreateInvocationResult/CancelInvocationResult/StreamEvent校验器并复制映射；不执行RPC",
+          "purpose": "统一网关生成端口并要求五个真实响应校验器，构造不RPC。",
           "steps": [
             "要求CreateInvocationResult/CancelInvocationResult/StreamEvent/GetInvocationResult/LookupInvocationResult五个真实生产方严格校验器，拷贝映射，构造不调RPC。",
             "旧RawGatewayClient三方法不破坏，读端口经可选RawCurrentGatewayClient/RawLookupGatewayClient获取；Invoke缺此能力失败关闭。"
@@ -8138,7 +8138,7 @@
           "errors": [
             {
               "code": "VALIDATION",
-              "when": "客户端或六个校验器缺失",
+              "when": "端口或五个校验器缺失",
               "retryable": false
             }
           ],
@@ -8201,7 +8201,8 @@
           ],
           "purpose": "按生产方严格schema核响应再解析invocation",
           "steps": [
-            "按生产方严格schema核响应再解析invocation"
+            "按生产方严格schema核响应再解析invocation",
+            "原始响应必须是真实UTF8。"
           ],
           "errors": [
             {
@@ -8482,7 +8483,8 @@
           "purpose": "原始JSON先严格schema校验，再解析；对象与流invocationId一致",
           "steps": [
             "原始JSON先严格schema校验，再解析；对象与流invocationId一致",
-            "output仅completed，向量空间维度一致且有限，重排与嵌入数据不得混合"
+            "output仅completed，向量空间维度一致且有限，重排与嵌入数据不得混合",
+            "原始JSON必须为真实UTF8，输出复用validateModelOutput核Text指针、64KiB与三类字段互斥。"
           ],
           "errors": [
             {
