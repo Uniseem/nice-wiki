@@ -15,7 +15,7 @@ export interface paths {
         put?: never;
         /**
          * 准入 HTTP
-         * @description 准入返回 AdmissionPermit，需挑战时 RATE_LIMITED+challengeId；body action 白名单
+         * @description 按可信原RootOperationID分配空token准入元数据；需挑战返回CHALLENGE_REQUIRED，不隐式创建挑战。免费语言提示永不授权模型费用。
          */
         post: operations["createAdmission"];
         delete?: never;
@@ -450,6 +450,7 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        IdentityChanged: components["schemas"]["types_IdentityChanged"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /**
@@ -521,7 +522,7 @@ export interface components {
         };
         /** @description 准入返回 AdmissionPermit，需挑战时 RATE_LIMITED+challengeId；body action 白名单；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         HandleAdmissionRequestBody: {
-            /** @description requestId；UTF-8；不得为 null */
+            /** @description 原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。 */
             requestId: string;
             /** @description action；UTF-8；不得为 null */
             action: string;
@@ -552,13 +553,24 @@ export interface components {
             difficulty: number;
             /** @description RFC3339 UTC 时间；不含 null */
             expiresAt: components["schemas"]["Timestamp"];
+            /** @enum {string} */
+            method: "pow" | "turnstile";
+            /** @description 仅外部挑战返回公共widget siteKey；PoW为空，绝非secret */
+            siteKey: string;
+            /** @description 可疑主体要求交互式Turnstile */
+            interactive: boolean;
         };
         /** @description 签发 PoW；限 6 次/分钟/主体且不返回主体 hash；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         IssueChallengeRequestBody: {
             /** @description requestId；UTF-8；不得为 null */
             requestId: string;
-            /** @description method；UTF-8；不得为 null */
-            method: string;
+            /**
+             * @description method；UTF-8；不得为 null
+             * @enum {string}
+             */
+            method: "pow" | "turnstile";
+            /** @description 可选原guard会话通过证明；仍需平台验签与本人/epoch匹配，不接自声明actor。 */
+            visitorToken?: string;
         };
         /** @description 核验并消费挑战成功结果；失败不返回半成功结果 */
         VerifyChallengeResult: {
@@ -571,6 +583,8 @@ export interface components {
         VerifyChallengeRequestBody: {
             /** @description proof；UTF-8；不得为 null */
             proof: string;
+            /** @description 可选原guard会话通过证明；仍需平台验签与本人/epoch匹配，不接自声明actor。 */
+            visitorToken?: string;
         };
         /** @description 无费用/余额字段的首版准入策略 */
         GuardPolicy: {
@@ -609,6 +623,11 @@ export interface components {
              * @default false
              */
             externalChallengeEnabled: boolean;
+            /**
+             * @description 网络分钟次数上限；兼容可选，旧策略缺失取600，与站点默认一致；费用IP/会话5倍比例不用于次数。
+             * @default 600
+             */
+            qaPerNetworkPerMinute: number;
         };
         /** @description 对象单调修订号 */
         Revision: number;
@@ -702,7 +721,7 @@ export interface components {
         };
         /** @description 同一QA请求消费准入，重复同request幂等，不预占费用；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         ConsumeAdmissionRequestBody: {
-            /** @description requestId；UTF-8；不得为 null */
+            /** @description 原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。 */
             requestId: string;
         };
         /** @description QA在线确认准入租约成功结果；失败不返回半成功结果 */
@@ -711,11 +730,15 @@ export interface components {
             valid: boolean;
             /** @description RFC3339 UTC 时间；不含 null */
             expiresAt: components["schemas"]["Timestamp"];
+            /** @description 与原许可路径一致的持久引用 */
+            admissionId: string;
         };
         /** @description 仅QA在线确认；gateway本地验签不反向同步依赖；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         VerifyAdmissionHTTPRequestBody: {
-            /** @description requestId；UTF-8；不得为 null */
+            /** @description 原QA/提示逻辑请求的稳定RootOperationID，必须等于可信op.RootOperationID，不是trace或当前控制RPC ID。 */
             requestId: string;
+            /** @description 兼容可选；提供时额外验原签名与逐持久字段核对，永不落盘。 */
+            token?: string;
         };
         /** @description 接收qa已有检测信号成功结果；失败不返回半成功结果 */
         ReportQuestionSignalsResult: {
@@ -724,8 +747,8 @@ export interface components {
              * @enum {string}
              */
             decision: "allow" | "deny" | "challenge";
-            /** @description banExpiresAt；UTF-8；不得为 null */
-            banExpiresAt: string;
+            /** @description 仅实际AI禁令存在时返回真实恢复时刻；无禁令省略，不用空字符串或null。 */
+            banExpiresAt?: components["schemas"]["Timestamp"];
         };
         /** @description 复评已有前置模型风险/匿名重复信号，abuse600秒AI禁令；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         ReportQuestionSignalsRequestBody: {
@@ -993,6 +1016,24 @@ export interface components {
              */
             outcome: "authenticated" | "rejected" | "aborted";
         };
+        /** @description 不含口令/IP的撤销事件 */
+        types_IdentityChanged: {
+            /** @description 账户 */
+            accountId: components["schemas"]["Identifier"];
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description 权限 */
+            permissionRevision: components["schemas"]["Revision"];
+            /** @description 凭据 */
+            credentialRevision: components["schemas"]["Revision"];
+            /**
+             * @description 原因
+             * @enum {string}
+             */
+            reason: "permissions" | "status" | "password" | "server_reset" | "restore" | "session";
+            /** @description 时间 */
+            occurredAt: components["schemas"]["Timestamp"];
+        };
     };
     responses: never;
     parameters: never;
@@ -1020,7 +1061,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 准入返回 AdmissionPermit，需挑战时 RATE_LIMITED+challengeId；body action 白名单 */
+            /** @description 已分配持久元数据，token为空；只有QA原根后续consume才能签模型凭证 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1038,9 +1079,11 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description 公共错误；RATE_LIMITED */
+            /** @description CHALLENGE_REQUIRED（不可重试，沿既有issueChallenge）或RATE_LIMITED（存在实际频率等待时附Retry-After） */
             429: {
                 headers: {
+                    /** @description 仅RATE_LIMITED已计算频率等待时给出向上取整秒数；纯并发等待不伪造时长 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {

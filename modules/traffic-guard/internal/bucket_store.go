@@ -1,76 +1,127 @@
 package trafficguard
 
 import (
- "context"
- "database/sql"
- "errors"
- "nice-wiki/libs/platform"
+	"context"
+	"database/sql"
+	"errors"
+	"nice-wiki/libs/platform"
 )
 
 type ConsumeBucketsInput struct {
- SubjectKey string
- Action string
- Cost int64
- NowMs int64
- DataEpoch string
+	SubjectKey string
+	Action     string
+	Cost       int64
+	NowMs      int64
+	DataEpoch  string
 }
 type ConsumeBucketsResult struct {
- Allowed bool `json:"allowed"`
- RetryAfterMs int64 `json:"retryAfterMs"`
+	Allowed      bool  `json:"allowed"`
+	RetryAfterMs int64 `json:"retryAfterMs"`
 }
 
 // ConsumeBuckets 可嵌入准入事务；会话、网络与站点三层及并发预留一起提交。
-func ConsumeBuckets(ctx context.Context,op OperationContext,in ConsumeBucketsInput)(ConsumeBucketsResult,error) {
- t,err:=beginGuardTransaction(ctx,op,true)
- if err!=nil { return ConsumeBucketsResult{},err }
- defer t.close()
- receiptInput:=struct{ SubjectKey,Action string; Cost int64 }{in.SubjectKey,in.Action,in.Cost}
- var result ConsumeBucketsResult
- if found,err:=readGuardReceipt(t,"buckets.consume",receiptInput,&result);err!=nil { return ConsumeBucketsResult{},err } else if found { return result,nil }
- bucketAction:=in.Action
- if bucketAction=="qa.ask"||bucketAction=="qa.followup"||bucketAction=="qa.conversation" { bucketAction="qa" }
- policy,_,err:=readGuardPolicy(t)
- if err!=nil { return ConsumeBucketsResult{},err }
- type bucket struct { key string; capacity,rate,tokens,updated int64 }
- buckets:=[]bucket{
-  {key:"subject:"+in.SubjectKey,capacity:int64(policy.QaBurst),rate:int64(policy.QaPerSubjectPerMinute)},
-  {key:"site",capacity:int64(policy.QaPerSitePerMinute),rate:int64(policy.QaPerSitePerMinute)},
- }
- // 当前与前一30日网络别名共同代表同一网络；先全部检查，再同时扣减，轮换不重置额度。
- rows,err:=t.tx.QueryContext(t.ctx,`SELECT network_key FROM guard_network_aliases WHERE site_id=? AND data_epoch=? AND subject_key=? ORDER BY network_key`,t.site,op.DataEpoch,in.SubjectKey)
- if err!=nil { return ConsumeBucketsResult{},loginDBError() }
- networkCount:=0
- for rows.Next() { var key string;if rows.Scan(&key)!=nil { rows.Close();return ConsumeBucketsResult{},loginDBError() };networkCount++;buckets=append(buckets,bucket{key:"network:"+key,capacity:int64(networkPolicyRate(policy)),rate:int64(networkPolicyRate(policy))}) }
- rowErr:=rows.Err();rows.Close()
- if rowErr!=nil { return ConsumeBucketsResult{},loginDBError() }
- if networkCount==0 { return ConsumeBucketsResult{},platform.NewError(platform.CodeDependencyUnavailable,true,"可信网络次数作用域缺失") }
- required:=in.Cost*1000
- result.Allowed=true
- for i:=range buckets {
-  current:=&buckets[i]
-  var tokens,updated int64
-  err=t.tx.QueryRowContext(t.ctx,`SELECT tokens_milli,updated_at_ms FROM guard_buckets
-   WHERE site_id=? AND data_epoch=? AND action=? AND scope_key=?`,t.site,op.DataEpoch,bucketAction,current.key).Scan(&tokens,&updated)
-  if errors.Is(err,sql.ErrNoRows) { tokens=current.capacity*1000;updated=in.NowMs } else if err!=nil { return ConsumeBucketsResult{},loginDBError() }
-  refilled,err:=RefillBucket(t.ctx,op,RefillBucketInput{tokens,current.capacity,in.NowMs-updated,current.rate})
-  if err!=nil { return ConsumeBucketsResult{},err }
-  current.tokens=refilled.TokensMilli
-  current.updated=in.NowMs;if updated>current.updated { current.updated=updated }
-  if current.tokens<required {
-   result.Allowed=false
-   retry:=((required-current.tokens)*60+current.rate-1)/current.rate
-   if retry>result.RetryAfterMs { result.RetryAfterMs=retry }
-  }
- }
- if result.Allowed {
-  for _,current:=range buckets {
-   _,err=t.tx.ExecContext(t.ctx,`INSERT INTO guard_buckets(site_id,data_epoch,action,scope_key,tokens_milli,updated_at_ms)
+func ConsumeBuckets(ctx context.Context, op OperationContext, in ConsumeBucketsInput) (ConsumeBucketsResult, error) {
+	t, err := beginGuardTransaction(ctx, op, true)
+	if err != nil {
+		return ConsumeBucketsResult{}, err
+	}
+	defer t.close()
+	receiptInput := struct {
+		SubjectKey, Action string
+		Cost               int64
+	}{in.SubjectKey, in.Action, in.Cost}
+	var result ConsumeBucketsResult
+	if found, err := readGuardReceipt(t, "buckets.consume", receiptInput, &result); err != nil {
+		return ConsumeBucketsResult{}, err
+	} else if found {
+		return result, nil
+	}
+	bucketAction := in.Action
+	if bucketAction == "qa.ask" || bucketAction == "qa.followup" || bucketAction == "qa.conversation" {
+		bucketAction = "qa"
+	}
+	policy, _, err := readGuardPolicy(t)
+	if err != nil {
+		return ConsumeBucketsResult{}, err
+	}
+	type bucket struct {
+		key                             string
+		capacity, rate, tokens, updated int64
+	}
+	buckets := []bucket{
+		{key: "subject:" + in.SubjectKey, capacity: int64(policy.QaBurst), rate: int64(policy.QaPerSubjectPerMinute)},
+		{key: "site", capacity: int64(policy.QaPerSitePerMinute), rate: int64(policy.QaPerSitePerMinute)},
+	}
+	// 当前与前一30日网络别名共同代表同一网络；先全部检查，再同时扣减，轮换不重置额度。
+	rows, err := t.tx.QueryContext(t.ctx, `SELECT network_key FROM guard_network_aliases WHERE site_id=? AND data_epoch=? AND subject_key=? ORDER BY network_key`, t.site, op.DataEpoch, in.SubjectKey)
+	if err != nil {
+		return ConsumeBucketsResult{}, loginDBError()
+	}
+	networkCount := 0
+	for rows.Next() {
+		var key string
+		if rows.Scan(&key) != nil {
+			rows.Close()
+			return ConsumeBucketsResult{}, loginDBError()
+		}
+		networkCount++
+		buckets = append(buckets, bucket{key: "network:" + key, capacity: int64(networkPolicyRate(policy)), rate: int64(networkPolicyRate(policy))})
+	}
+	rowErr := rows.Err()
+	rows.Close()
+	if rowErr != nil {
+		return ConsumeBucketsResult{}, loginDBError()
+	}
+	if networkCount == 0 {
+		return ConsumeBucketsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "可信网络次数作用域缺失")
+	}
+	required := in.Cost * 1000
+	result.Allowed = true
+	for i := range buckets {
+		current := &buckets[i]
+		var tokens, updated int64
+		err = t.tx.QueryRowContext(t.ctx, `SELECT tokens_milli,updated_at_ms FROM guard_buckets
+   WHERE site_id=? AND data_epoch=? AND action=? AND scope_key=?`, t.site, op.DataEpoch, bucketAction, current.key).Scan(&tokens, &updated)
+		if errors.Is(err, sql.ErrNoRows) {
+			tokens = current.capacity * 1000
+			updated = in.NowMs
+		} else if err != nil {
+			return ConsumeBucketsResult{}, loginDBError()
+		}
+		refilled, err := RefillBucket(t.ctx, op, RefillBucketInput{tokens, current.capacity, in.NowMs - updated, current.rate})
+		if err != nil {
+			return ConsumeBucketsResult{}, err
+		}
+		current.tokens = refilled.TokensMilli
+		current.updated = in.NowMs
+		if updated > current.updated {
+			current.updated = updated
+		}
+		if current.tokens < required {
+			result.Allowed = false
+			retry := ((required-current.tokens)*60 + current.rate - 1) / current.rate
+			if retry > result.RetryAfterMs {
+				result.RetryAfterMs = retry
+			}
+		}
+	}
+	if result.Allowed {
+		for _, current := range buckets {
+			_, err = t.tx.ExecContext(t.ctx, `INSERT INTO guard_buckets(site_id,data_epoch,action,scope_key,tokens_milli,updated_at_ms)
     VALUES(?,?,?,?,?,?) ON CONFLICT(site_id,data_epoch,action,scope_key)
-    DO UPDATE SET tokens_milli=excluded.tokens_milli,updated_at_ms=excluded.updated_at_ms`,t.site,op.DataEpoch,bucketAction,current.key,current.tokens-required,current.updated)
-   if err!=nil { return ConsumeBucketsResult{},loginDBError() }
-  }
- }
- if result.Allowed { if err=saveGuardReceipt(t,"buckets.consume",receiptInput,result);err!=nil { return ConsumeBucketsResult{},err } }
- if err=t.commit();err!=nil { return ConsumeBucketsResult{},err }
- return result,nil
+    DO UPDATE SET tokens_milli=excluded.tokens_milli,updated_at_ms=excluded.updated_at_ms`, t.site, op.DataEpoch, bucketAction, current.key, current.tokens-required, current.updated)
+			if err != nil {
+				return ConsumeBucketsResult{}, loginDBError()
+			}
+		}
+	}
+	if result.Allowed {
+		if err = saveGuardReceipt(t, "buckets.consume", receiptInput, result); err != nil {
+			return ConsumeBucketsResult{}, err
+		}
+	}
+	if err = t.commit(); err != nil {
+		return ConsumeBucketsResult{}, err
+	}
+	return result, nil
 }

@@ -15,7 +15,7 @@ export interface paths {
         put?: never;
         /**
          * 创建伪名访客会话
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 免费qa.conversation仍须人机验证和准入持久消费，消费前后token均为空；会话提交或回放后幂等释放原并发占位，不调用模型。
          */
         post: operations["createConversation"];
         delete?: never;
@@ -499,6 +499,13 @@ export interface components {
         QaDebugTurn: components["schemas"]["DebugTurn"];
         QaCompaction: components["schemas"]["Compaction"];
         QaQuestionPlan: components["schemas"]["QuestionPlan"];
+        QaEquivalenceDecision: components["schemas"]["EquivalenceDecision"];
+        ContentPublicationChanged: components["schemas"]["PublicationChangedPayload"];
+        ContentPublicationWithdrawn: components["schemas"]["PublicationWithdrawnPayload"];
+        KnowledgeIndexRetired: components["schemas"]["EventIndexRetiredPayload"];
+        MemoryContextChanged: components["schemas"]["EventMemoryContextChangedPayload"];
+        JobsRequestCancelResult: components["schemas"]["RequestCancelResult"];
+        GuardQueueSessionAdmissionResult: components["schemas"]["QueueSessionAdmissionResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /**
@@ -1277,6 +1284,7 @@ export interface components {
             admissionId: string;
             /** @description valid 的明确真假结果，不可 null */
             valid: boolean;
+            expiresAt: components["schemas"]["Timestamp"];
         };
         /** @description QA绑定准入使用权成功结果；失败不返回半成功结果 */
         ConsumeAdmissionResult: {
@@ -2146,8 +2154,8 @@ export interface components {
              * @enum {string}
              */
             decision: "allow" | "deny" | "challenge";
-            /** @description banExpiresAt；UTF-8；不得为 null */
-            banExpiresAt: string;
+            /** @description 仅实际AI禁令存在时返回真实恢复时刻；无禁令省略，不用空字符串或null。 */
+            banExpiresAt?: components["schemas"]["Timestamp"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Compaction: {
@@ -2206,6 +2214,79 @@ export interface components {
              * @default false
              */
             resolvedReferences: boolean;
+        };
+        EquivalenceDecision: {
+            /** @description 两个完整问题可以直接使用同一公开答案；未知为false */
+            equivalent: boolean;
+        };
+        /** @description 不可变发布快照引用，供public/index/translation/git镜像 */
+        PublicationChangedPayload: {
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description PublishedRevisionRef */
+            reference: components["schemas"]["PublishedRevisionRef"];
+            /** @description 可见水位 */
+            visibilityRevision: components["schemas"]["Revision"];
+            /** @description 执行发布的账号/git作者 */
+            authorAccountId: components["schemas"]["Identifier"];
+            /** @description 时间 */
+            occurredAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 只传失效引用，无正文 */
+        PublicationWithdrawnPayload: {
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description 文档 */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 发布源水位 */
+            revision: components["schemas"]["Revision"];
+            /** @description 失效水位 */
+            visibilityRevision: components["schemas"]["Revision"];
+            /** @description epoch */
+            dataEpoch: components["schemas"]["Identifier"];
+            /**
+             * @description 原因
+             * @enum {string}
+             */
+            reason: "withdrawn" | "trashed" | "purged";
+            /** @description 时间 */
+            occurredAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        EventIndexRetiredPayload: {
+            /** @description 已撤回文档 */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 原发布 */
+            publishedRevisionId: components["schemas"]["Identifier"];
+            /** @description 权威可见代数 */
+            visibilityRevision: number;
+            /** @description 索引空间 */
+            spaceId: components["schemas"]["Hash"];
+            /** @description 代际 */
+            dataEpoch: components["schemas"]["Identifier"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        EventMemoryContextChangedPayload: {
+            /** @description 受影响任务 */
+            taskIds: string[];
+            /** @description 映射版本 */
+            mappingRevision: number;
+            /** @description 记忆代数 */
+            memoryGeneration: number;
+            /** @description 数据代际 */
+            dataEpoch: components["schemas"]["Identifier"];
+        };
+        /** @description 请求取消任务成功结果；失败不返回半成功结果 */
+        RequestCancelResult: {
+            /** @description state；UTF-8；不得为 null */
+            state: string;
+        };
+        /** @description 每会话1并发其余排队成功结果；失败不返回半成功结果 */
+        QueueSessionAdmissionResult: {
+            /** @description queued 的明确真假结果，不可 null */
+            queued: boolean;
+            /** @description position 非负 int64；不用浮点数 */
+            position: number;
         };
     };
     responses: never;
@@ -2457,6 +2538,15 @@ export interface operations {
             };
             /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 资源正文已清除或保留期届满；GONE */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2758,6 +2848,15 @@ export interface operations {
             };
             /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 资源正文已清除或保留期届满；GONE */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4172,6 +4271,15 @@ export interface operations {
             };
             /** @description NOT_FOUND：不存在 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 资源正文已清除或保留期届满；GONE */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };

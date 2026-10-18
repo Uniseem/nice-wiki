@@ -218,6 +218,9 @@ func problemToError(raw []byte) error {
 	return platform.NewError(code, retryable, "%s", problem.Detail)
 }
 
+// PayloadValidationSpec保留显式登记的生产方载荷及引用闭包，不扩展HTTP接口。
+const PayloadValidationSpec = "{\"components\":{\"schemas\":{\"Identifier\":{\"description\":\"系统生成的不透明 ID，不含个人信息\",\"maxLength\":128,\"minLength\":1,\"pattern\":\"^[A-Za-z0-9._:-]+$\",\"type\":\"string\"},\"IdentityChanged\":{\"$ref\":\"#/components/schemas/types_IdentityChanged\"},\"Revision\":{\"description\":\"对象单调修订号\",\"minimum\":0,\"type\":\"integer\"},\"Timestamp\":{\"description\":\"RFC3339 UTC 时间\",\"format\":\"date-time\",\"type\":\"string\"},\"types_IdentityChanged\":{\"additionalProperties\":false,\"description\":\"不含口令/IP的撤销事件\",\"properties\":{\"accountId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"账户\"},\"credentialRevision\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"凭据\"},\"occurredAt\":{\"$ref\":\"#/components/schemas/Timestamp\",\"description\":\"时间\"},\"permissionRevision\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"权限\"},\"reason\":{\"description\":\"原因\",\"enum\":[\"permissions\",\"status\",\"password\",\"server_reset\",\"restore\",\"session\"],\"type\":\"string\"},\"siteId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"站点\"}},\"required\":[\"accountId\",\"siteId\",\"permissionRevision\",\"credentialRevision\",\"reason\",\"occurredAt\"],\"type\":\"object\"}}},\"info\":{\"title\":\"运行载荷校验\",\"version\":\"1\"},\"openapi\":\"3.0.3\",\"paths\":{}}"
+
 // DataProtectionClient 调用data-protection服务（自动附服务断言）。
 type DataProtectionClient struct{ *producerClient }
 

@@ -75,10 +75,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域内嵌接口规格不可读")
 	}
-	identityClient:=gen.NewIdentityClient(config.Dependencies["identity"],ModuleSlug,key)
-	validateIdentityEvent,err:=apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec),"IdentityChanged")
- if err!=nil { return nil,err }
- guardRuntime:=trafficguard.GuardRuntime{Store:store,Identity:identityClient,SigningKey:key,Anchors:anchors,Jobs:gen.NewJobsClient(config.Dependencies["jobs"],ModuleSlug,key),ValidateIdentityEvent:validateIdentityEvent}
+	identityClient := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
+	validateIdentityEvent, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "IdentityChanged")
+	if err != nil {
+		return nil, err
+	}
+	guardRuntime := trafficguard.GuardRuntime{Store: store, Identity: identityClient, SigningKey: key, Anchors: anchors, Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), ValidateIdentityEvent: validateIdentityEvent}
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -87,26 +89,26 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		},
 		OpenedDataEpoch: view.DataEpoch,
 		AllowedCallers: map[string][]string{
-			"beginLoginAttempt":  {"identity"},
-			"finishLoginAttempt": {"identity"},
-			"getPolicy": {"portal","traffic-guard"},
-			"updatePolicy": {"portal"},
-			"createBan": {"portal"},
-			"revokeBan": {"portal"},
-			"listBans": {"portal"},
-			"listRiskEvents": {"portal"},
-			"reportModelRisk": {"qa"},
+			"beginLoginAttempt":     {"identity"},
+			"finishLoginAttempt":    {"identity"},
+			"getPolicy":             {"portal", "traffic-guard"},
+			"updatePolicy":          {"portal"},
+			"createBan":             {"portal"},
+			"revokeBan":             {"portal"},
+			"listBans":              {"portal"},
+			"listRiskEvents":        {"portal"},
+			"reportModelRisk":       {"qa"},
 			"queueSessionAdmission": {"qa"},
-            "createAdmission": {"portal"},
-            "renewAdmission": {"qa","localization"},
-            "releaseAdmission": {"qa","localization"},
-            "consumeAdmission": {"qa"},
-            "verifyAdmission": {"qa"},
-            "issueChallenge": {"portal"},
-            "verifyChallenge": {"portal"},
+			"createAdmission":       {"portal"},
+			"renewAdmission":        {"qa", "localization"},
+			"releaseAdmission":      {"qa", "localization"},
+			"consumeAdmission":      {"qa"},
+			"verifyAdmission":       {"qa"},
+			"issueChallenge":        {"portal"},
+			"verifyChallenge":       {"portal"},
 		},
-		ServiceActorCallers:map[string][]string{"getPolicy":{"traffic-guard"}},
-		Authorize:apivalidate.NewIdentityAuthorizer(identityClient),
+		ServiceActorCallers: map[string][]string{"getPolicy": {"traffic-guard"}},
+		Authorize:           apivalidate.NewIdentityAuthorizer(identityClient),
 	}, trafficguard.NewGuardHandlers(guardRuntime))
 	if err != nil {
 		return nil, err

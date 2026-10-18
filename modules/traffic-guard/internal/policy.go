@@ -48,7 +48,10 @@ func ValidatePolicy(ctx context.Context, op OperationContext, in ValidatePolicyI
 	}
 
 	normalized := in.PolicyJSON
-	if normalized.QaPerNetworkPerMinute == nil { rate := 600; normalized.QaPerNetworkPerMinute = &rate }
+	if normalized.QaPerNetworkPerMinute == nil {
+		rate := 600
+		normalized.QaPerNetworkPerMinute = &rate
+	}
 	return ValidatePolicyResult{NormalizedJSON: normalized}, nil
 }
 
@@ -58,5 +61,8 @@ func validPolicyRate(value, minimum, maximum int) bool {
 
 // networkPolicyRate 为旧策略缺失网络次数字段提供已确认的兼容默认，不推断费用比例。
 func networkPolicyRate(policy GuardPolicy) int {
- if policy.QaPerNetworkPerMinute == nil { return 600 };return *policy.QaPerNetworkPerMinute
+	if policy.QaPerNetworkPerMinute == nil {
+		return 600
+	}
+	return *policy.QaPerNetworkPerMinute
 }

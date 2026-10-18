@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
- "nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/outbox"
 )
 
 type Identifier = platform.Identifier
@@ -306,99 +306,165 @@ func loginDBError() error {
 }
 
 type EvaluateAdmissionInput struct {
- RequestID string `json:"requestId"`
- SubjectKey string `json:"subjectKey"`
- Action string `json:"action"`
- DataEpoch string `json:"-"`
+	RequestID  string `json:"requestId"`
+	SubjectKey string `json:"subjectKey"`
+	Action     string `json:"action"`
+	DataEpoch  string `json:"-"`
 }
 type EvaluateAdmissionResult struct {
- Decision string `json:"decision"`
- AdmissionID *string `json:"admissionId"`
- RetryAfterMs int64 `json:"retryAfterMs"`
- ChallengeID *string `json:"challengeId"`
- ReasonCode string `json:"reasonCode"`
- Permit *platform.AdmissionPermit `json:"permit"`
+	Decision     string                    `json:"decision"`
+	AdmissionID  *string                   `json:"admissionId"`
+	RetryAfterMs int64                     `json:"retryAfterMs"`
+	ChallengeID  *string                   `json:"challengeId"`
+	ReasonCode   string                    `json:"reasonCode"`
+	Permit       *platform.AdmissionPermit `json:"permit"`
 }
 
 // EvaluateAdmission 只分配持久元数据；只有同根消费后的QA行才可签模型token。
-func EvaluateAdmission(ctx context.Context,op OperationContext,in EvaluateAdmissionInput)(EvaluateAdmissionResult,error) {
- if in.RequestID!=op.RootOperationID { return EvaluateAdmissionResult{},platform.NewError(platform.CodeValidation,false,"准入必须绑定原逻辑请求根") }
- classification,err:=ClassifyAction(ctx,op,ClassifyActionInput{Action:in.Action})
- if err!=nil { return EvaluateAdmissionResult{},err }
- t,err:=beginGuardTransaction(ctx,op,true)
- if err!=nil { return EvaluateAdmissionResult{},err }
- defer t.close()
- t.op.OperationID=op.RootOperationID
- var binding struct{}
- found,err:=readGuardReceipt(t,"admission.input",in,&binding)
- if err!=nil { return EvaluateAdmissionResult{},err }
- if !found { if err=saveGuardReceipt(t,"admission.input",in,binding);err!=nil { return EvaluateAdmissionResult{},err } }
- _,policyRevision,err:=readGuardPolicy(t)
- if err!=nil { return EvaluateAdmissionResult{},err }
- var network string
- err=t.tx.QueryRowContext(t.ctx,`SELECT network_key FROM guard_subjects WHERE site_id=? AND data_epoch=? AND subject_key=?`,t.site,op.DataEpoch,in.SubjectKey).Scan(&network)
- if errors.Is(err,sql.ErrNoRows) { return EvaluateAdmissionResult{},platform.NewError(platform.CodeNotFound,false,"匿名主体尚未验证") }
- if err!=nil { return EvaluateAdmissionResult{},loginDBError() }
- if classification.RequiresAIProof {
-  signals,err:=LoadSignals(t.ctx,op,LoadSignalsInput{in.SubjectKey,in.Action,t.now.UnixMilli()})
-  if err!=nil { return EvaluateAdmissionResult{},err }
-  risk,err:=ComputeRisk(t.ctx,op,ComputeRiskInput{Denials10m:signals.Denials10m,ChallengePassed:signals.ChallengePassed,ActiveBan:signals.ActiveBan,ExactRepeatCount:signals.ExactRepeatCount,SimilarityScore:signals.SimilarityScore,RegularIntervalCount:signals.RegularIntervalCount,ModelVerdict:signals.ModelVerdict})
-  if err!=nil { return EvaluateAdmissionResult{},err }
-  if risk.Decision!="allow" {
-   reason:=platform.CodeForbidden
-   if risk.Decision=="challenge" { reason=platform.CodeChallengeRequired }
-   if err=recordAdmissionDenial(t,in.RequestID,in.Action,reason,policyRevision,network);err!=nil { return EvaluateAdmissionResult{},err }
-   if err=t.commit();err!=nil { return EvaluateAdmissionResult{},err }
-   return EvaluateAdmissionResult{Decision:risk.Decision,ReasonCode:reason},nil
-  }
- }
- // 成功分配只保留一份；已过期/终止的原根不借重放重新创建。
- var existingID string
- err=t.tx.QueryRowContext(t.ctx,`SELECT admission_id FROM guard_permits WHERE site_id=? AND data_epoch=? AND owner_caller=? AND request_id=?`,t.site,op.DataEpoch,classification.OwnerCaller,in.RequestID).Scan(&existingID)
- if err==nil {
-  row,err:=readPermitRecord(t,existingID)
-  if err!=nil { return EvaluateAdmissionResult{},err }
-  if row.subject!=in.SubjectKey||row.action!=in.Action { return EvaluateAdmissionResult{},platform.NewError(platform.CodeConflict,false,"原根已绑定其他匿名主体或动作") }
-  if row.state!="active"||row.expires<=t.now.UnixNano() { return EvaluateAdmissionResult{},platform.NewError(platform.CodeStaleResult,false,"原准入已终止，不能通过重放复活") }
-  permit:=permitMetadata(row,op.DataEpoch)
-  if err=t.commit();err!=nil { return EvaluateAdmissionResult{},err }
-  return EvaluateAdmissionResult{Decision:"allow",AdmissionID:&row.admissionID,Permit:&permit},nil
- }
- if !errors.Is(err,sql.ErrNoRows) { return EvaluateAdmissionResult{},loginDBError() }
- if _,err=t.tx.ExecContext(t.ctx,`SAVEPOINT guard_quota`);err!=nil { return EvaluateAdmissionResult{},loginDBError() }
- buckets,err:=ConsumeBuckets(t.ctx,op,ConsumeBucketsInput{SubjectKey:in.SubjectKey,Action:in.Action,Cost:1,NowMs:t.now.UnixMilli(),DataEpoch:op.DataEpoch})
- if err!=nil { return EvaluateAdmissionResult{},err }
- var allocation AcquireConcurrencyResult
- if buckets.Allowed { allocation,err=AcquireConcurrency(t.ctx,op,AcquireConcurrencyInput{in.SubjectKey,in.Action,in.RequestID,op.DataEpoch}) }
- var limited *platform.Error
- concurrencyLimited:=errors.As(err,&limited)&&limited.Code==platform.CodeRateLimited
- if err!=nil&&!concurrencyLimited { return EvaluateAdmissionResult{},err }
- if !buckets.Allowed||concurrencyLimited {
-  if _,err=t.tx.ExecContext(t.ctx,`ROLLBACK TO guard_quota`);err!=nil { return EvaluateAdmissionResult{},loginDBError() }
-  if _,err=t.tx.ExecContext(t.ctx,`RELEASE guard_quota`);err!=nil { return EvaluateAdmissionResult{},loginDBError() }
-  if err=recordAdmissionDenial(t,in.RequestID,in.Action,platform.CodeRateLimited,policyRevision,network);err!=nil { return EvaluateAdmissionResult{},err }
-  if err=t.commit();err!=nil { return EvaluateAdmissionResult{},err }
-  decision:="deny"
-  if concurrencyLimited { decision="queue" }
-  return EvaluateAdmissionResult{Decision:decision,ReasonCode:platform.CodeRateLimited,RetryAfterMs:buckets.RetryAfterMs},nil
- }
- if _,err=t.tx.ExecContext(t.ctx,`RELEASE guard_quota`);err!=nil { return EvaluateAdmissionResult{},loginDBError() }
- row,err:=readPermitRecord(t,allocation.AdmissionID)
- if err!=nil { return EvaluateAdmissionResult{},err }
- permit:=permitMetadata(row,op.DataEpoch)
- if err=t.commit();err!=nil { return EvaluateAdmissionResult{},err }
- return EvaluateAdmissionResult{Decision:"allow",AdmissionID:&row.admissionID,Permit:&permit},nil
+func EvaluateAdmission(ctx context.Context, op OperationContext, in EvaluateAdmissionInput) (EvaluateAdmissionResult, error) {
+	if in.RequestID != op.RootOperationID {
+		return EvaluateAdmissionResult{}, platform.NewError(platform.CodeValidation, false, "准入必须绑定原逻辑请求根")
+	}
+	classification, err := ClassifyAction(ctx, op, ClassifyActionInput{Action: in.Action})
+	if err != nil {
+		return EvaluateAdmissionResult{}, err
+	}
+	t, err := beginGuardTransaction(ctx, op, true)
+	if err != nil {
+		return EvaluateAdmissionResult{}, err
+	}
+	defer t.close()
+	t.op.OperationID = op.RootOperationID
+	var binding struct{}
+	found, err := readGuardReceipt(t, "admission.input", in, &binding)
+	if err != nil {
+		return EvaluateAdmissionResult{}, err
+	}
+	if !found {
+		if err = saveGuardReceipt(t, "admission.input", in, binding); err != nil {
+			return EvaluateAdmissionResult{}, err
+		}
+	}
+	_, policyRevision, err := readGuardPolicy(t)
+	if err != nil {
+		return EvaluateAdmissionResult{}, err
+	}
+	var network string
+	err = t.tx.QueryRowContext(t.ctx, `SELECT network_key FROM guard_subjects WHERE site_id=? AND data_epoch=? AND subject_key=?`, t.site, op.DataEpoch, in.SubjectKey).Scan(&network)
+	if errors.Is(err, sql.ErrNoRows) {
+		return EvaluateAdmissionResult{}, platform.NewError(platform.CodeNotFound, false, "匿名主体尚未验证")
+	}
+	if err != nil {
+		return EvaluateAdmissionResult{}, loginDBError()
+	}
+	if classification.RequiresAIProof {
+		signals, err := LoadSignals(t.ctx, op, LoadSignalsInput{in.SubjectKey, in.Action, t.now.UnixMilli()})
+		if err != nil {
+			return EvaluateAdmissionResult{}, err
+		}
+		risk, err := ComputeRisk(t.ctx, op, ComputeRiskInput{Denials10m: signals.Denials10m, ChallengePassed: signals.ChallengePassed, ActiveBan: signals.ActiveBan, ExactRepeatCount: signals.ExactRepeatCount, SimilarityScore: signals.SimilarityScore, RegularIntervalCount: signals.RegularIntervalCount, ModelVerdict: signals.ModelVerdict})
+		if err != nil {
+			return EvaluateAdmissionResult{}, err
+		}
+		if risk.Decision != "allow" {
+			reason := platform.CodeForbidden
+			if risk.Decision == "challenge" {
+				reason = platform.CodeChallengeRequired
+			}
+			if err = recordAdmissionDenial(t, in.RequestID, in.Action, reason, policyRevision, network); err != nil {
+				return EvaluateAdmissionResult{}, err
+			}
+			if err = t.commit(); err != nil {
+				return EvaluateAdmissionResult{}, err
+			}
+			return EvaluateAdmissionResult{Decision: risk.Decision, ReasonCode: reason}, nil
+		}
+	}
+	// 成功分配只保留一份；已过期/终止的原根不借重放重新创建。
+	var existingID string
+	err = t.tx.QueryRowContext(t.ctx, `SELECT admission_id FROM guard_permits WHERE site_id=? AND data_epoch=? AND owner_caller=? AND request_id=?`, t.site, op.DataEpoch, classification.OwnerCaller, in.RequestID).Scan(&existingID)
+	if err == nil {
+		row, err := readPermitRecord(t, existingID)
+		if err != nil {
+			return EvaluateAdmissionResult{}, err
+		}
+		if row.subject != in.SubjectKey || row.action != in.Action {
+			return EvaluateAdmissionResult{}, platform.NewError(platform.CodeConflict, false, "原根已绑定其他匿名主体或动作")
+		}
+		if row.state != "active" || row.expires <= t.now.UnixNano() {
+			return EvaluateAdmissionResult{}, platform.NewError(platform.CodeStaleResult, false, "原准入已终止，不能通过重放复活")
+		}
+		permit := permitMetadata(row, op.DataEpoch)
+		if err = t.commit(); err != nil {
+			return EvaluateAdmissionResult{}, err
+		}
+		return EvaluateAdmissionResult{Decision: "allow", AdmissionID: &row.admissionID, Permit: &permit}, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return EvaluateAdmissionResult{}, loginDBError()
+	}
+	if _, err = t.tx.ExecContext(t.ctx, `SAVEPOINT guard_quota`); err != nil {
+		return EvaluateAdmissionResult{}, loginDBError()
+	}
+	buckets, err := ConsumeBuckets(t.ctx, op, ConsumeBucketsInput{SubjectKey: in.SubjectKey, Action: in.Action, Cost: 1, NowMs: t.now.UnixMilli(), DataEpoch: op.DataEpoch})
+	if err != nil {
+		return EvaluateAdmissionResult{}, err
+	}
+	var allocation AcquireConcurrencyResult
+	if buckets.Allowed {
+		allocation, err = AcquireConcurrency(t.ctx, op, AcquireConcurrencyInput{in.SubjectKey, in.Action, in.RequestID, op.DataEpoch})
+	}
+	var limited *platform.Error
+	concurrencyLimited := errors.As(err, &limited) && limited.Code == platform.CodeRateLimited
+	if err != nil && !concurrencyLimited {
+		return EvaluateAdmissionResult{}, err
+	}
+	if !buckets.Allowed || concurrencyLimited {
+		if _, err = t.tx.ExecContext(t.ctx, `ROLLBACK TO guard_quota`); err != nil {
+			return EvaluateAdmissionResult{}, loginDBError()
+		}
+		if _, err = t.tx.ExecContext(t.ctx, `RELEASE guard_quota`); err != nil {
+			return EvaluateAdmissionResult{}, loginDBError()
+		}
+		if err = recordAdmissionDenial(t, in.RequestID, in.Action, platform.CodeRateLimited, policyRevision, network); err != nil {
+			return EvaluateAdmissionResult{}, err
+		}
+		if err = t.commit(); err != nil {
+			return EvaluateAdmissionResult{}, err
+		}
+		decision := "deny"
+		if concurrencyLimited {
+			decision = "queue"
+		}
+		return EvaluateAdmissionResult{Decision: decision, ReasonCode: platform.CodeRateLimited, RetryAfterMs: buckets.RetryAfterMs}, nil
+	}
+	if _, err = t.tx.ExecContext(t.ctx, `RELEASE guard_quota`); err != nil {
+		return EvaluateAdmissionResult{}, loginDBError()
+	}
+	row, err := readPermitRecord(t, allocation.AdmissionID)
+	if err != nil {
+		return EvaluateAdmissionResult{}, err
+	}
+	permit := permitMetadata(row, op.DataEpoch)
+	if err = t.commit(); err != nil {
+		return EvaluateAdmissionResult{}, err
+	}
+	return EvaluateAdmissionResult{Decision: "allow", AdmissionID: &row.admissionID, Permit: &permit}, nil
 }
 
 // recordAdmissionDenial 对原根/原因/策略去重，只广播安全决定引用，不广播匿名网络key。
-func recordAdmissionDenial(t *guardTransaction,request,action,reason string,revision int64,network string)error {
- identity,_:=platform.CanonicalJSON(map[string]any{"site":t.site,"epoch":t.op.DataEpoch,"root":request,"reason":reason,"policy":revision})
- eventID:=platform.HashBytes(identity)
- payload,_:=json.Marshal(map[string]any{"admissionId":eventID,"action":action,"reasonCode":reason,"policyRevision":revision})
- decision:="deny"
- if reason==platform.CodeChallengeRequired { decision="challenge" }
- _,err:=t.tx.ExecContext(t.ctx,`INSERT INTO guard_risk_events(event_id,site_id,data_epoch,action,decision,network_key,occurred_at_ns)
-  VALUES(?,?,?,?,?,?,?) ON CONFLICT(event_id) DO NOTHING`,eventID,t.site,t.op.DataEpoch,action,decision,network,t.now.UnixNano())
- if err!=nil { return loginDBError() }
- return outbox.EnqueueEvent(t.tx,platform.EventEnvelope{EventID:eventID,EventType:"traffic-guard.admission-denied.v1",EventVersion:1,Producer:"traffic-guard",SubjectID:eventID,Revision:revision,OccurredAt:t.now.Format(time.RFC3339Nano),DataEpoch:t.op.DataEpoch,Payload:payload})
+func recordAdmissionDenial(t *guardTransaction, request, action, reason string, revision int64, network string) error {
+	identity, _ := platform.CanonicalJSON(map[string]any{"site": t.site, "epoch": t.op.DataEpoch, "root": request, "reason": reason, "policy": revision})
+	eventID := platform.HashBytes(identity)
+	payload, _ := json.Marshal(map[string]any{"admissionId": eventID, "action": action, "reasonCode": reason, "policyRevision": revision})
+	decision := "deny"
+	if reason == platform.CodeChallengeRequired {
+		decision = "challenge"
+	}
+	_, err := t.tx.ExecContext(t.ctx, `INSERT INTO guard_risk_events(event_id,site_id,data_epoch,action,decision,network_key,occurred_at_ns)
+  VALUES(?,?,?,?,?,?,?) ON CONFLICT(event_id) DO NOTHING`, eventID, t.site, t.op.DataEpoch, action, decision, network, t.now.UnixNano())
+	if err != nil {
+		return loginDBError()
+	}
+	return outbox.EnqueueEvent(t.tx, platform.EventEnvelope{EventID: eventID, EventType: "traffic-guard.admission-denied.v1", EventVersion: 1, Producer: "traffic-guard", SubjectID: eventID, Revision: revision, OccurredAt: t.now.Format(time.RFC3339Nano), DataEpoch: t.op.DataEpoch, Payload: payload})
 }

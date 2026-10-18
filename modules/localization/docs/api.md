@@ -35,7 +35,7 @@
 | POST `/v1/languages/{tag}:estimate` | `estimateLanguagePlan` | `localization.EstimateLanguagePlan` | `localization.languages` | `EstimateLanguagePlanInput` → 200 `EstimateLanguagePlanResult` | 估算启用语言翻译费用 | `VALIDATION`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/languages/{tag}:approve-plan` | `approveLanguagePlan` | `localization.ApproveLanguagePlan` | `localization.languages` | `ApproveLanguagePlanInput` → 200 `ApproveLanguagePlanResult` | 批准估价并启用语言翻译 | `VALIDATION`、`CONFLICT` |
 | POST `/v1/interface-strings/{language}:translate` | `requestInterfaceTranslation` | `localization.RequestInterfaceTranslation` | `localization.manage` | `RequestInterfaceTranslationInput` → 202 `RequestInterfaceTranslationResult` | 补译界面字符串缺项 | `VALIDATION`、`UNSUPPORTED_CAPABILITY` |
-| PUT `/v1/language-preferences` | `saveLanguagePreference` | `localization.SaveLanguagePreference` | `anonymous` | `SaveLanguagePreferenceInput` → 200 `SaveLanguagePreferenceResult` | 保存访客显式语言偏好 | `VALIDATION` |
+| PUT `/v1/language-preferences` | `saveLanguagePreference` | `localization.SaveLanguagePreference` | `anonymous` | `SaveLanguagePreferenceInput` → 200 `SaveLanguagePreferenceResult` | 保存访客显式语言偏好 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`CONFLICT`、`VERSION_MISMATCH`、`LOCKED`、`INTERNAL`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED`、`HTTP default` |
 | GET `/v1/translations/progress` | `listTranslationProgress` | `localization.ListTranslationProgress` | `localization.manage` | `—` → 200 `ListTranslationProgressResult` | 查看翻译进度 | `FORBIDDEN` |
 | GET `/v1/translations/{translationId}/units` | `readTranslationUnits` | `localization.ReadTranslationUnits` | `localization.manage` | `—` → 200 `ReadTranslationUnitsResult` | 对照编辑读取 | `FORBIDDEN`、`NOT_FOUND` |
 <!-- openapi:end -->

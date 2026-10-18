@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 120 个函数：约束 44 个，参考 76 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 126 个函数：约束 44 个，参考 82 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -987,8 +987,11 @@ func ReadTranslation(ctx context.Context, op OperationContext, input ReadTransla
 3. 新块无译文显示原文且partial顶栏目标语言提示
 4. 人工源变保留译文review，撤回文档全部禁止交付。
 5. 返回兼容可选body与bodyHash：完整还原目标树绑定当前source publication/targetLanguage/generation，canonical目标hash另算，目标正文≤16MiB；返回前二次核content visibility及本地manifest/glossary。
-6. 人工/保护table父行分组改变、旧编号无法按当前模板解析，或保护父块只能source-only时均失败关闭DEPENDENCY_UNAVAILABLE；原权威对象保留。本复杂投影分支尚未完成，本函数保持blocked，不以原文fallback假称保留人工旧译。
-7. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+6. 人工/保护旧字段按最深真实blockId/rowId/cellId/itemId/columnId、节点类型与节点内部text/alt路径对应；只在固定/可译段形状一致时复用真实旧译值并重编号，固定URL/code取当前源。新增真实子节点原文partial/review并继承父保护，投影不改旧权威对象。归属/段形状无法证明或保护块只能source-only时失败关闭DEPENDENCY_UNAVAILABLE，不以原文冒充旧人工译文。
+7. 即时fallback及新投影没有独立权威unit时省略fileRef，不写null或借用旧父对象作证明；持久化单元返回真实fileRef。body/bodyHash绑定本次精确source/target generation。
+8. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+9. 公开units最多10000，与完整content树稳定节点上限及拆分一致；completed仅计无原文回退的实际单元，不超过total；partial为存在原文回退，review不等于fallback。
+10. 同一稳定anchor内无ID inline字段/数组结构变化或全部可译slot消失时失败关闭，禁止content/0/text误匹配新插入文本。
 
 **错误**
 
@@ -1002,12 +1005,14 @@ func ReadTranslation(ctx context.Context, op OperationContext, input ReadTransla
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `BUDGET_EXCEEDED` / HTTP 409：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 500：（不可重试）
 
 - 副作用：只读不隐式启动翻译
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`content:validatePublications`、`localization.SplitTranslationUnits`、`localization.Generation`、`localization.EnabledLanguage`、`localization.ReadData`、`localization.StorageError`、`localization.ReadObject`、`localization.RestoreSourceTree`、`localization.ParseSlotValues`、`localization.LatestManifest`、`localization.FetchPublishedSnapshot`、`localization.CheckPublication`
+- 依赖：`content:validatePublications`、`localization.SplitTranslationUnits`、`localization.Generation`、`localization.EnabledLanguage`、`localization.ReadData`、`localization.StorageError`、`localization.ReadObject`、`localization.RestoreSourceTree`、`localization.ParseSlotValues`、`localization.LatestManifest`、`localization.FetchPublishedSnapshot`、`localization.CheckPublication`、`localization.BuildProtectedProjection`、`localization.ProjectProtectedUnit`
 
 ## localization.LatestManifest
 
@@ -2080,11 +2085,10 @@ func SaveLanguagePreference(ctx context.Context, op OperationContext, input Save
 
 **步骤**
 
-1. 验证伪名owner
-2. language已启用
-3. 保存30天TTL
-4. 不保存IP或浏览轨迹
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+1. 核对可信actor.kind=visitor且subjectId等于visitorSubject；不接受服务身份代写任意伪名。
+2. 在当前dataEpoch/屏障与本地事务内核对目标语言已启用，按BCP47规范标签保存，不改写语言配置显示原文。
+3. 保存expiresAt=首次成功事务时刻+30天；幂等重放返回原值/原到期时刻，不读取或持久化国家、时区、浏览器列表、IP或浏览轨迹。
+4. 偏好与七天同主体/函数/幂等键回执同事务写入；未知/禁用语言VALIDATION，SQL故障回滚。
 
 **错误**
 
@@ -2095,12 +2099,55 @@ func SaveLanguagePreference(ctx context.Context, op OperationContext, input Save
 - `CANCELLED` / HTTP 409：（不可重试）
 - `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
 - `INTERNAL` / HTTP 500：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
+- `VERSION_MISMATCH` / HTTP 409：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
+- `INTEGRITY_ERROR` / HTTP 500：（不可重试）
 
 - 副作用：写偏好
 - 授权：权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
+- 依赖：`localization.Mutate`、`localization.EnabledLanguage`、`localization.StorageError`
+
+## localization.NewPreferenceHandlers
+
+- 级别：参考
+- 文件：`modules/localization/internal/suggestion/preference.go`
+- 作用：装配已核请求到访客语言偏好用例
+
+```go
+func NewPreferenceHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用JSONHandler装配saveLanguagePreference，不重复结构/服务身份校验。
+
+**错误**
+
+- `VALIDATION`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
+- `CONFLICT`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
+- `VERSION_MISMATCH`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
+- `FORBIDDEN`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
+- `NOT_FOUND`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
+- `INTERNAL`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
+
+- 副作用：无
+- 授权：信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。
+- 并发：复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。
+- 幂等：本域原回执、代数或不可变引用；不自动创建收费重算。
+- 依赖：`localization.SaveLanguagePreference`、`localization.JSONHandler`
 
 ## localization.TranslateCachedAnswer
 
@@ -3258,7 +3305,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`localization.LoadRuntime`、`localization.RecoverTranslationLeases`、`localization.PublishOutbox`、`localization.ConsumeEvents`、`localization.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`localization.NewGlossaryHandlers`、`localization.NewTranslationHandlers`、`localization.NewInterfaceHandlers`、`localization.NewCacheTranslationHandlers`、`localization.ConfigureExecutionAdapters`、`localization.ConfigureSourceClient`
+- 依赖：`site-config:registerActivation`、`localization.LoadRuntime`、`localization.RecoverTranslationLeases`、`localization.PublishOutbox`、`localization.ConsumeEvents`、`localization.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`localization.NewGlossaryHandlers`、`localization.NewTranslationHandlers`、`localization.NewInterfaceHandlers`、`localization.NewCacheTranslationHandlers`、`localization.ConfigureExecutionAdapters`、`localization.ConfigureSourceClient`、`localization.NewPreferenceHandlers`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## localization.Serve
@@ -5220,6 +5267,208 @@ func CursorKey()(platform.SigningKey,error)
 - `INTERNAL`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
 - `BUDGET_EXCEEDED`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+
+- 副作用：无
+- 授权：信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。
+- 并发：固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。
+- 幂等：确定性源模板或只读版本投影，不创建独立收费操作。
+- 依赖：无
+
+## localization.StableSlotKey
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/projection.go`
+- 作用：安全人工保护投影的本域参考辅助：StableSlotKey
+
+```go
+func StableSlotKey(tree any, path []string) (string, any, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只用最深真实节点身份及该节点内路径；祖先数组位置不进入对应。无真实锚点/不能定位失败关闭。
+2. 只认content声明的真实节点ID属性，不把link mark等引用attrs.blockId误认成本节点身份；同时返回原稳定节点供非稳定结构签名。
+
+**错误**
+
+- `VALIDATION`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `CONFLICT`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `VERSION_MISMATCH`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `STALE_RESULT`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `FORBIDDEN`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `NOT_FOUND`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `INTERNAL`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `BUDGET_EXCEEDED`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+
+- 副作用：无
+- 授权：信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。
+- 并发：固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。
+- 幂等：确定性源模板或只读版本投影，不创建独立收费操作。
+- 依赖：无
+
+## localization.CollectSlotFields
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/projection.go`
+- 作用：安全人工保护投影的本域参考辅助：CollectSlotFields
+
+```go
+func CollectSlotFields(tree any, slots []InlineSlot) ([]slotField, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同一text/alt的固定/可译分段聚合；两条原树路径映到同一真实稳定键视为完整性失败，不猜测。
+2. 每个真实稳定anchor缓存非稳定子树结构签名；插入无ID inline/text/hardBreak等改变字段或数组形状不得沿旧路径复用。
+
+**错误**
+
+- `VALIDATION`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `CONFLICT`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `VERSION_MISMATCH`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `STALE_RESULT`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `FORBIDDEN`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `NOT_FOUND`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `INTERNAL`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `BUDGET_EXCEEDED`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+
+- 副作用：无
+- 授权：信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。
+- 并发：固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。
+- 幂等：确定性源模板或只读版本投影，不创建独立收费操作。
+- 依赖：`localization.StableSlotKey`、`localization.ProtectedAnchorShape`
+
+## localization.BuildProtectedProjection
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/projection.go`
+- 作用：安全人工保护投影的本域参考辅助：BuildProtectedProjection
+
+```go
+func BuildProtectedProjection(ctx context.Context, op OperationContext, current json.RawMessage, objects []TranslationObject) (ProtectedProjection, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只从真实人工/保护旧单元按旧私有模板解析；较新对象同字段优先。保留真实父保护关系；不将未知旧数据补造成新来源。
+2. 字段携带真实origin；仅来源human的旧译值可使投影origin=human，受保护machine不改造来源。
+3. 同一anchor只取最新人工/保护来源的完整字段集，禁止从更旧对象补已移除字段；遍历当前真实节点，即使已无可译slot仍核旧保护anchor节点类型/非稳定形状，变化失败关闭。
+
+**错误**
+
+- `VALIDATION`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `CONFLICT`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `VERSION_MISMATCH`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `STALE_RESULT`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `FORBIDDEN`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `NOT_FOUND`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `INTERNAL`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `BUDGET_EXCEEDED`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+
+- 副作用：无
+- 授权：信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。
+- 并发：固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。
+- 幂等：确定性源模板或只读版本投影，不创建独立收费操作。
+- 依赖：`localization.SplitTranslationUnits`、`localization.ParseSlotValues`、`localization.CollectSlotFields`、`localization.ProtectedAnchorShape`
+
+## localization.ProjectProtectedUnit
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/projection.go`
+- 作用：安全人工保护投影的本域参考辅助：ProjectProtectedUnit
+
+```go
+func ProjectProtectedUnit(projection ProtectedProjection, template UnitTemplate, candidate gen.TranslationUnit) (gen.TranslationUnit, bool, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 稳定字段及固定/可译段形状均匹配才复用人工译值；固定值取当前源，输出按新模板重编号。新增节点原文partial/review且继承父保护；无法证明归属继续失败关闭。只构造即时派生，不伪造fileRef或改旧权威对象。
+2. 逐段编码时核65536 Unicode字符预算，合并旧长译值与新源超限BUDGET_EXCEEDED；保留protected=true，只有复用真实human字段才标origin=human。PreviousTargetText可选：不把重编号结果伪称某个旧父整段原值。
+3. 同一真实anchor的非稳定子树签名必须一致，新增无独立ID文本不能借content数组索引假称对应；新真实稳定子节点方可按原文partial处理。
+
+**错误**
+
+- `VALIDATION`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `CONFLICT`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `VERSION_MISMATCH`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `STALE_RESULT`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `INTEGRITY_ERROR`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `FORBIDDEN`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `NOT_FOUND`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `INTERNAL`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+- `BUDGET_EXCEEDED`：按来源/水位/预算或私有IO边界失败关闭（不可重试）
+
+- 副作用：无
+- 授权：信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。
+- 并发：固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。
+- 幂等：确定性源模板或只读版本投影，不创建独立收费操作。
+- 依赖：`localization.CollectSlotFields`
+
+## localization.ProtectedAnchorShape
+
+- 级别：参考
+- 文件：`modules/localization/internal/translation/projection.go`
+- 作用：计算真实稳定节点内部无ID树形签名以拒绝inline数组误对应
+
+```go
+func ProtectedAnchorShape(root any) string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只保留节点type和字段/数组形状，不含文本及URL实际值；真实稳定子节点另行定锚。用于证明同一anchor内text/alt路径未因无ID节点增删而改变。
+
+**错误**
+
+- 无
 
 - 副作用：无
 - 授权：信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 89 个：手写 69、UI 3、生成 5、配置 10、迁移 2。函数 120 个：约束 44，参考 76。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 90 个：手写 70、UI 3、生成 5、配置 10、迁移 2。函数 126 个：约束 44，参考 82。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -36,7 +36,7 @@
 | `modules/localization/internal/interface/translate.go` | 手写 | 显式翻译界面缺项所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.TranslateInterfaceCatalog`、`localization.RequestInterfaceTranslation` |
 | `modules/localization/internal/interface/read.go` | 手写 | 读取运行界面字典所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReadInterfaceCatalog`、`localization.EnabledLanguage`（参考）、`localization.ReadMerged`（参考） |
 | `modules/localization/internal/suggestion/select.go` | 手写 | 给访客语言建议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.SuggestLanguage` |
-| `modules/localization/internal/suggestion/preference.go` | 手写 | 保存显式访客语言偏好所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.SaveLanguagePreference` |
+| `modules/localization/internal/suggestion/preference.go` | 手写 | 保存显式访客语言偏好所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.SaveLanguagePreference`、`localization.NewPreferenceHandlers`（参考） |
 | `modules/localization/internal/cache-answer/create.go` | 手写 | 接受QA精选翻译命令所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.TranslateCachedAnswer`、`localization.ExecuteCacheAnswerTranslation` |
 | `modules/localization/internal/cache-answer/commit.go` | 手写 | 保存精选翻译供QA审核所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.CommitCacheAnswerTranslation`（参考） |
 | `modules/localization/internal/events/withdraw.go` | 手写 | 处理源撤回所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.InvalidateDocumentTranslations` |
@@ -95,3 +95,4 @@
 | `modules/localization/internal/translation/source.go` | 手写 | 本域完整源模板/只读交付或权威客户端的实际实现。 | `localization.FetchTranslationSource`（参考） |
 | `modules/localization/internal/translation/progress.go` | 手写 | 本域完整源模板/只读交付或权威客户端的实际实现。 | `localization.ListTranslationProgress` |
 | `modules/localization/internal/runtime/source_client.go` | 手写 | 本域完整源模板/只读交付或权威客户端的实际实现。 | `localization.ConfigureSourceClient`（参考）、`localization.ValidateSourcePayload`（参考）、`localization.SourceOperation`（参考）、`localization.FetchPublishedSnapshot`（参考）、`localization.FetchCurrentPublishedSnapshot`（参考）、`localization.readPublishedSnapshot`（参考）、`localization.CheckPublication`（参考）、`localization.CursorKey`（参考） |
+| `modules/localization/internal/translation/projection.go` | 手写 | 按真实稳定节点和字段段形状保留人工/保护译值，不按全局位置猜映射。 | `localization.StableSlotKey`（参考）、`localization.CollectSlotFields`（参考）、`localization.BuildProtectedProjection`（参考）、`localization.ProjectProtectedUnit`（参考）、`localization.ProtectedAnchorShape`（参考） |

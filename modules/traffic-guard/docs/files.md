@@ -2,27 +2,26 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 57 个：手写 36、UI 4、生成 5、配置 10、迁移 2。函数 80 个：约束 32，参考 48。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 56 个：手写 35、UI 4、生成 5、配置 10、迁移 2。函数 91 个：约束 32，参考 59。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
-| `modules/traffic-guard/internal/policy.go` | 手写 | 校验风控参数；同文件职责限本域以下登记函数 | `traffic-guard.ValidatePolicy`（参考） |
+| `modules/traffic-guard/internal/policy.go` | 手写 | 校验风控参数；同文件职责限本域以下登记函数 | `traffic-guard.ValidatePolicy`（参考）、`traffic-guard.networkPolicyRate`（参考） |
 | `modules/traffic-guard/internal/policy_store.go` | 手写 | 私有策略与登录保护库的打开代次、迁移、control journal和可信上下文注入；策略读写仍待后续 | `traffic-guard.GetPolicy`、`traffic-guard.UpdatePolicy`、`traffic-guard.OpenPolicyStore`（参考）、`traffic-guard.WithPolicyStore`（参考）、`traffic-guard.RunMigrations`（参考）、`traffic-guard.RecoverJournal`（参考）、`traffic-guard.Close`（参考）、`traffic-guard.readPolicyJournal`（参考） |
-| `modules/traffic-guard/internal/subject.go` | 手写 | 只在内存选择可信来源；同文件职责限本域以下登记函数 | `traffic-guard.NormalizePeer`（参考）、`traffic-guard.DeriveSubject`（参考） |
+| `modules/traffic-guard/internal/subject.go` | 手写 | 只在内存选择可信来源；同文件职责限本域以下登记函数 | `traffic-guard.DeriveSubject`（参考）、`traffic-guard.deriveSessionScopes`（参考） |
 | `modules/traffic-guard/internal/classification.go` | 手写 | 选择可信风控动作；同文件职责限本域以下登记函数 | `traffic-guard.ClassifyAction`（参考） |
 | `modules/traffic-guard/internal/signals.go` | 手写 | 读取有限匿名信号；同文件职责限本域以下登记函数 | `traffic-guard.LoadSignals`（参考） |
 | `modules/traffic-guard/internal/risk.go` | 手写 | 确定挑战规则；同文件职责限本域以下登记函数 | `traffic-guard.ComputeRisk`（参考） |
 | `modules/traffic-guard/internal/bucket.go` | 手写 | 整数补充令牌；同文件职责限本域以下登记函数 | `traffic-guard.RefillBucket`（参考） |
 | `modules/traffic-guard/internal/bucket_store.go` | 手写 | 原子扣频率令牌；同文件职责限本域以下登记函数 | `traffic-guard.ConsumeBuckets`（参考） |
-| `modules/traffic-guard/internal/permit_store.go` | 手写 | 创建持久并发租约；同文件职责限本域以下登记函数 | `traffic-guard.AcquireConcurrency`（参考）、`traffic-guard.RenewPermit`、`traffic-guard.ReleasePermit` |
+| `modules/traffic-guard/internal/permit_store.go` | 手写 | 创建持久并发租约；同文件职责限本域以下登记函数 | `traffic-guard.AcquireConcurrency`（参考）、`traffic-guard.RenewPermit`、`traffic-guard.ReleasePermit`、`traffic-guard.readPermitRecord`（参考）、`traffic-guard.permitMetadata`（参考）、`traffic-guard.CheckBan`（参考） |
 | `modules/traffic-guard/internal/permit_sign.go` | 手写 | 签名准入凭证；同文件职责限本域以下登记函数 | `traffic-guard.SignPermit`（参考）、`traffic-guard.ValidatePermit`（参考） |
-| `modules/traffic-guard/internal/admission.go` | 手写 | 编排频率/挑战/并发；同文件职责限本域以下登记函数 | `traffic-guard.EvaluateAdmission`（参考）、`traffic-guard.BeginLoginAttempt`、`traffic-guard.FinishLoginAttempt`、`traffic-guard.beginLoginTransaction`（参考）、`traffic-guard.loginTransaction.close`（参考）、`traffic-guard.loginInputHash`（参考）、`traffic-guard.checkLoginScope`（参考）、`traffic-guard.loadLoginAttempt`（参考）、`traffic-guard.recordLoginFailure`（参考）、`traffic-guard.loginDBError`（参考） |
-| `modules/traffic-guard/internal/http_admission.go` | 手写 | 准入 HTTP；同文件职责限本域以下登记函数 | `traffic-guard.HandleAdmission`、`traffic-guard.NewLoginHandlers`（参考）、`traffic-guard.writeLoginResponse`（参考） |
+| `modules/traffic-guard/internal/admission.go` | 手写 | 编排频率/挑战/并发；同文件职责限本域以下登记函数 | `traffic-guard.EvaluateAdmission`（参考）、`traffic-guard.BeginLoginAttempt`、`traffic-guard.FinishLoginAttempt`、`traffic-guard.beginLoginTransaction`（参考）、`traffic-guard.loginTransaction.close`（参考）、`traffic-guard.loginInputHash`（参考）、`traffic-guard.checkLoginScope`（参考）、`traffic-guard.loadLoginAttempt`（参考）、`traffic-guard.recordLoginFailure`（参考）、`traffic-guard.loginDBError`（参考）、`traffic-guard.recordAdmissionDenial`（参考） |
+| `modules/traffic-guard/internal/http_admission.go` | 手写 | 准入 HTTP；同文件职责限本域以下登记函数 | `traffic-guard.HandleAdmission`、`traffic-guard.NewLoginHandlers`（参考）、`traffic-guard.writeLoginResponse`（参考）、`traffic-guard.admissionRateError.Error`（参考）、`traffic-guard.admissionRateError.Unwrap`（参考） |
 | `modules/traffic-guard/internal/sweeper.go` | 手写 | 回收过期并发；同文件职责限本域以下登记函数 | `traffic-guard.ExpireLeases`（参考）、`traffic-guard.ExpireBans`（参考） |
-| `modules/traffic-guard/internal/challenge.go` | 手写 | 签发挑战；同文件职责限本域以下登记函数 | `traffic-guard.IssueChallenge`、`traffic-guard.VerifyChallenge` |
+| `modules/traffic-guard/internal/challenge.go` | 手写 | 签发挑战；同文件职责限本域以下登记函数 | `traffic-guard.IssueChallenge`、`traffic-guard.VerifyChallenge`、`traffic-guard.readChallengeRecord`（参考）、`traffic-guard.readChallengeSnapshot`（参考）、`traffic-guard.checkIssuedChallenge`（参考）、`traffic-guard.challengeNonce`（参考）、`traffic-guard.challengeResult`（参考） |
 | `modules/traffic-guard/internal/pow.go` | 手写 | 验证工作量证明；同文件职责限本域以下登记函数 | `traffic-guard.VerifyPoW`（参考） |
 | `modules/traffic-guard/internal/captcha.go` | 手写 | 适配外部验证；同文件职责限本域以下登记函数 | `traffic-guard.VerifyExternalChallenge`（参考） |
-| `modules/traffic-guard/internal/ban.go` | 手写 | 读取作用域禁令；同文件职责限本域以下登记函数 | `traffic-guard.CheckBan`（参考） |
 | `modules/traffic-guard/internal/ban_store.go` | 手写 | 管理员建立临时禁令；同文件职责限本域以下登记函数 | `traffic-guard.CreateBan`、`traffic-guard.RevokeBan`、`traffic-guard.ListBans`、`traffic-guard.createNetworkBan`（参考） |
 | `modules/traffic-guard/internal/events.go` | 手写 | 处理权限撤销通知；同文件职责限本域以下登记函数 | `traffic-guard.ConsumeIdentityEvent`、`traffic-guard.ConsumeEvents` |
 | `modules/traffic-guard/internal/outbox.go` | 手写 | 可靠派发风控引用事件；同文件职责限本域以下登记函数 | `traffic-guard.PublishGuardEvents` |

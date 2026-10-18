@@ -16,8 +16,8 @@ import (
 	_ "modernc.org/sqlite"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/inbox"
 	"nice-wiki/libs/platform/outbox"
- "nice-wiki/libs/platform/inbox"
 	guardmigrations "nice-wiki/modules/traffic-guard/migrations"
 )
 
@@ -83,7 +83,10 @@ func OpenPolicyStore(dataRoot string, openedDataEpoch Identifier) (*PolicyStore,
 		return nil, err
 	}
 
- if err := inbox.EnsureSchema(context.Background(), db); err != nil { _ = db.Close();return nil,err }
+	if err := inbox.EnsureSchema(context.Background(), db); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 
 	journal, err := os.OpenFile(filepath.Join(control, policyJournalName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
@@ -245,37 +248,103 @@ func readPolicyJournal(name string) ([]policyJournalEntry, error) {
 }
 
 // GetPolicy 的站点和代次只来自可信上下文，不接受GET请求自选站点。
-type GetPolicyInput struct { SiteID string; DataEpoch string }
-type GetPolicyResult struct { PolicyJSON GuardPolicy `json:"policyJSON"`; Revision int64 `json:"revision"` }
-type UpdatePolicyInput struct { SiteID string `json:"siteId"`; ExpectedRevision int64 `json:"expectedRevision"`; PolicyJSON GuardPolicy `json:"policyJSON"`; DataEpoch string `json:"-"` }
-type UpdatePolicyResult struct { Revision int64 `json:"revision"` }
+type GetPolicyInput struct {
+	SiteID    string
+	DataEpoch string
+}
+type GetPolicyResult struct {
+	PolicyJSON GuardPolicy `json:"policyJSON"`
+	Revision   int64       `json:"revision"`
+}
+type UpdatePolicyInput struct {
+	SiteID           string      `json:"siteId"`
+	ExpectedRevision int64       `json:"expectedRevision"`
+	PolicyJSON       GuardPolicy `json:"policyJSON"`
+	DataEpoch        string      `json:"-"`
+}
+type UpdatePolicyResult struct {
+	Revision int64 `json:"revision"`
+}
 
-func GetPolicy(ctx context.Context,op OperationContext,in GetPolicyInput)(GetPolicyResult,error){
- if in.SiteID!=op.Actor.SiteID||in.DataEpoch!=op.DataEpoch{return GetPolicyResult{},platform.NewError(platform.CodeForbidden,false,"策略作用域必须匹配可信站点")}
- if !(op.Actor.Kind=="service"&&op.CallerService=="traffic-guard"){if err:=authorizeGuardManagement(ctx,op,"getPolicy");err!=nil{return GetPolicyResult{},err}}
- t,err:=beginGuardTransaction(ctx,op,false);if err!=nil{return GetPolicyResult{},err};defer t.close()
- policy,revision,err:=readGuardPolicy(t);if err!=nil{return GetPolicyResult{},err};return GetPolicyResult{policy,revision},nil
+func GetPolicy(ctx context.Context, op OperationContext, in GetPolicyInput) (GetPolicyResult, error) {
+	if in.SiteID != op.Actor.SiteID || in.DataEpoch != op.DataEpoch {
+		return GetPolicyResult{}, platform.NewError(platform.CodeForbidden, false, "策略作用域必须匹配可信站点")
+	}
+	if !(op.Actor.Kind == "service" && op.CallerService == "traffic-guard") {
+		if err := authorizeGuardManagement(ctx, op, "getPolicy"); err != nil {
+			return GetPolicyResult{}, err
+		}
+	}
+	t, err := beginGuardTransaction(ctx, op, false)
+	if err != nil {
+		return GetPolicyResult{}, err
+	}
+	defer t.close()
+	policy, revision, err := readGuardPolicy(t)
+	if err != nil {
+		return GetPolicyResult{}, err
+	}
+	return GetPolicyResult{policy, revision}, nil
 }
 
 // UpdatePolicy 在同一短事务中保存策略、原修订回执及outbox；首次仅允许0→1。
-func UpdatePolicy(ctx context.Context,op OperationContext,in UpdatePolicyInput)(UpdatePolicyResult,error){
- if in.SiteID!=op.Actor.SiteID||in.DataEpoch!=op.DataEpoch{return UpdatePolicyResult{},platform.NewError(platform.CodeForbidden,false,"策略作用域必须匹配可信站点")}
- if err:=authorizeGuardManagement(ctx,op,"updatePolicy");err!=nil{return UpdatePolicyResult{},err}
- validated,err:=ValidatePolicy(ctx,op,ValidatePolicyInput{in.PolicyJSON});if err!=nil{return UpdatePolicyResult{},err}
- in.PolicyJSON=validated.NormalizedJSON
- t,err:=beginGuardTransaction(ctx,op,true);if err!=nil{return UpdatePolicyResult{},err};defer t.close()
- var result UpdatePolicyResult;if found,err:=readGuardReceipt(t,"policy.update",in,&result);err!=nil{return UpdatePolicyResult{},err}else if found{return result,nil}
- var revision int64;var epoch string
- err=t.tx.QueryRowContext(t.ctx,`SELECT revision,data_epoch FROM guard_policy WHERE site_id=?`,t.site).Scan(&revision,&epoch)
- if err!=nil&&!errors.Is(err,sql.ErrNoRows){return UpdatePolicyResult{},loginDBError()}
- exists:=err==nil
- if exists&&epoch!=op.DataEpoch{return UpdatePolicyResult{},platform.NewError(platform.CodeVersionMismatch,false,"风控策略代次已变化")}
- if revision!=in.ExpectedRevision||revision==9223372036854775807{return UpdatePolicyResult{},platform.NewError(platform.CodeVersionMismatch,false,"风控策略修订已变化")}
- raw,err:=json.Marshal(validated.NormalizedJSON);if err!=nil{return UpdatePolicyResult{},platform.NewError(platform.CodeInternal,false,"策略无法编码")}
- result.Revision=revision+1
- if exists{_,err=t.tx.ExecContext(t.ctx,`UPDATE guard_policy SET revision=?,policy_json=? WHERE site_id=? AND data_epoch=? AND revision=?`,result.Revision,raw,t.site,op.DataEpoch,revision)}else{_,err=t.tx.ExecContext(t.ctx,`INSERT INTO guard_policy(site_id,revision,policy_json,data_epoch) VALUES(?,?,?,?)`,t.site,result.Revision,raw,op.DataEpoch)}
- if err!=nil{return UpdatePolicyResult{},loginDBError()}
- if err=saveGuardReceipt(t,"policy.update",in,result);err!=nil{return UpdatePolicyResult{},err}
- if err=enqueueGuardEvent(t,"traffic-guard.policy-changed.v1",t.site,result.Revision,map[string]any{"policyRevision":result.Revision,"changedBy":op.Actor.SubjectID});err!=nil{return UpdatePolicyResult{},err}
- if err=t.commit();err!=nil{return UpdatePolicyResult{},err};return result,nil
+func UpdatePolicy(ctx context.Context, op OperationContext, in UpdatePolicyInput) (UpdatePolicyResult, error) {
+	if in.SiteID != op.Actor.SiteID || in.DataEpoch != op.DataEpoch {
+		return UpdatePolicyResult{}, platform.NewError(platform.CodeForbidden, false, "策略作用域必须匹配可信站点")
+	}
+	if err := authorizeGuardManagement(ctx, op, "updatePolicy"); err != nil {
+		return UpdatePolicyResult{}, err
+	}
+	validated, err := ValidatePolicy(ctx, op, ValidatePolicyInput{in.PolicyJSON})
+	if err != nil {
+		return UpdatePolicyResult{}, err
+	}
+	in.PolicyJSON = validated.NormalizedJSON
+	t, err := beginGuardTransaction(ctx, op, true)
+	if err != nil {
+		return UpdatePolicyResult{}, err
+	}
+	defer t.close()
+	var result UpdatePolicyResult
+	if found, err := readGuardReceipt(t, "policy.update", in, &result); err != nil {
+		return UpdatePolicyResult{}, err
+	} else if found {
+		return result, nil
+	}
+	var revision int64
+	var epoch string
+	err = t.tx.QueryRowContext(t.ctx, `SELECT revision,data_epoch FROM guard_policy WHERE site_id=?`, t.site).Scan(&revision, &epoch)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return UpdatePolicyResult{}, loginDBError()
+	}
+	exists := err == nil
+	if exists && epoch != op.DataEpoch {
+		return UpdatePolicyResult{}, platform.NewError(platform.CodeVersionMismatch, false, "风控策略代次已变化")
+	}
+	if revision != in.ExpectedRevision || revision == 9223372036854775807 {
+		return UpdatePolicyResult{}, platform.NewError(platform.CodeVersionMismatch, false, "风控策略修订已变化")
+	}
+	raw, err := json.Marshal(validated.NormalizedJSON)
+	if err != nil {
+		return UpdatePolicyResult{}, platform.NewError(platform.CodeInternal, false, "策略无法编码")
+	}
+	result.Revision = revision + 1
+	if exists {
+		_, err = t.tx.ExecContext(t.ctx, `UPDATE guard_policy SET revision=?,policy_json=? WHERE site_id=? AND data_epoch=? AND revision=?`, result.Revision, raw, t.site, op.DataEpoch, revision)
+	} else {
+		_, err = t.tx.ExecContext(t.ctx, `INSERT INTO guard_policy(site_id,revision,policy_json,data_epoch) VALUES(?,?,?,?)`, t.site, result.Revision, raw, op.DataEpoch)
+	}
+	if err != nil {
+		return UpdatePolicyResult{}, loginDBError()
+	}
+	if err = saveGuardReceipt(t, "policy.update", in, result); err != nil {
+		return UpdatePolicyResult{}, err
+	}
+	if err = enqueueGuardEvent(t, "traffic-guard.policy-changed.v1", t.site, result.Revision, map[string]any{"policyRevision": result.Revision, "changedBy": op.Actor.SubjectID}); err != nil {
+		return UpdatePolicyResult{}, err
+	}
+	if err = t.commit(); err != nil {
+		return UpdatePolicyResult{}, err
+	}
+	return result, nil
 }

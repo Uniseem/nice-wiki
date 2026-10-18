@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 70 个：手写 51、UI 3、生成 5、配置 10、迁移 1。函数 114 个：约束 39，参考 75。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 70 个：手写 51、UI 3、生成 5、配置 10、迁移 1。函数 119 个：约束 39，参考 80。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -15,7 +15,7 @@
 | `modules/qa/internal/normalize/question.go` | 手写 | 稳定规范问题和cache锚点所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.NormalizeQuestion`（参考）、`qa.validInputText`（参考）、`qa.normalizeWhitespace`（参考）、`qa.foldNaturalCase`（参考）、`qa.isProtectedToken`（参考）、`qa.hasSignificantUppercase`（参考）、`qa.extractAnchors`（参考）、`qa.isAnchorToken`（参考） |
 | `modules/qa/internal/turn/context.go` | 手写 | 固定回答上下文版本所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ResolveTurnContext`（参考） |
 | `modules/qa/internal/cache/exact.go` | 手写 | 查询精确精选缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.LookupExactCache`（参考）、`qa.ScopeHash`（参考）、`qa.ReadCache`（参考）、`qa.SaveCache`（参考）、`qa.InsertCache`（参考）、`qa.EmitCacheChanged`（参考） |
-| `modules/qa/internal/cache/semantic.go` | 手写 | 保守查询语义缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.LookupSemanticCache`（参考） |
+| `modules/qa/internal/cache/semantic.go` | 手写 | 保守查询语义缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.LookupSemanticCache`（参考）、`qa.cosineSimilarity`（参考） |
 | `modules/qa/internal/cache/validate.go` | 手写 | 验证缓存仍可公开交付所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ValidateCachedAnswer`（参考） |
 | `modules/qa/internal/answer/retrieve.go` | 手写 | 取有源可见证据所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.RetrieveEvidence`（参考） |
 | `modules/qa/internal/answer/prompt.go` | 手写 | 构造有界回答提示所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.BuildAnswerPrompt`（参考） |
@@ -23,8 +23,8 @@
 | `modules/qa/internal/answer/citation.go` | 手写 | 逐条保护引用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ValidateCitation`（参考） |
 | `modules/qa/internal/stream/store.go` | 手写 | 持久流式输出事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.AppendAnswerEvent`（参考）、`qa.SaveEvent`（参考） |
 | `modules/qa/internal/stream/read.go` | 手写 | SSE断线重连所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ResumeAnswerStream` |
-| `modules/qa/internal/turn/complete.go` | 手写 | 原子结束可见答案所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.CompleteTurn`（参考） |
-| `modules/qa/internal/turn/cancel.go` | 手写 | 取消问答及所有子调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.CancelTurn` |
+| `modules/qa/internal/turn/complete.go` | 手写 | 原子结束可见答案所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.CompleteTurn`（参考）、`qa.replayCompletedTurn`（参考）、`qa.releaseTurnPermit`（参考） |
+| `modules/qa/internal/turn/cancel.go` | 手写 | 取消问答及所有子调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.CancelTurn`、`qa.cancelTurnDependencies`（参考） |
 | `modules/qa/internal/feedback/feedback.go` | 手写 | 保存访客单条反馈所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.RecordFeedback` |
 | `modules/qa/internal/cache/curation.go` | 手写 | 人工创建精选候选所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ProposeCacheEntry`、`qa.ApproveCacheEntry`、`qa.DisableCacheEntry` |
 | `modules/qa/internal/cache/embedding.go` | 手写 | 为已批准缓存构建语义向量所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.BuildCacheEmbedding` |
@@ -38,7 +38,7 @@
 | `modules/qa/internal/conversation/delete.go` | 手写 | 删除自有对话数据所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.DeleteConversation` |
 | `modules/qa/internal/runtime/recovery.go` | 手写 | 恢复崩溃问答所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.RecoverTurns`（参考） |
 | `modules/qa/internal/events/outbox.go` | 手写 | 发布问答脱敏事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.PublishOutbox` |
-| `modules/qa/internal/runtime/prune.go` | 手写 | 清理到期记录所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.PruneExpiredRecords`（参考） |
+| `modules/qa/internal/runtime/prune.go` | 手写 | 清理到期记录所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.PruneExpiredRecords`（参考）、`qa.RedactConversation`（参考） |
 | `modules/qa/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.AcquireBarrier`、`qa.ReleaseBarrier`、`qa.ExportSnapshot`、`qa.StageSnapshot`、`qa.DiscardSnapshot` |
 | `modules/qa/ui/src/views/OverviewView.vue` | UI | 加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `qa.LoadAdminOverview`（参考） |
 | `modules/qa/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `qa.SubmitPrimaryEdit`（参考） |

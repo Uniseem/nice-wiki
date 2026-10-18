@@ -816,8 +816,8 @@ export interface components {
             status: "normal" | "review" | "fallback";
             /** @description 在新译文完成前交付旧译文 */
             previousTargetText?: string;
-            /** @description 权威译文对象 */
-            fileRef: components["schemas"]["ObjectRef"];
+            /** @description 可选真实持久单元权威引用；即时fallback/source-only或保护投影无独立权威unit时省略，不写null、不冒充旧父单元证明。公开交付以body/bodyHash及精确source/target generation绑定。 */
+            fileRef?: components["schemas"]["ObjectRef"];
             /** @description 本源片段的受控模型文本，供对齐/插值/术语校验；服务始终写出，兼容旧消费者为可选 */
             sourceText?: string;
             /** @description 表格按真实rowId拆分时追溯原blockId；其他单元为本块ID，稳定原树ID不改 */
@@ -1277,7 +1277,7 @@ export interface components {
         ReadTranslationResult: {
             /** @description 源版本信息 */
             translation: components["schemas"]["Translation"];
-            /** @description 可交付旧译文或原文 */
+            /** @description 最多10000个真实源单元的可交付旧译文、保护投影或原文；与content全树节点限及SplitTranslationUnits一致 */
             units: components["schemas"]["TranslationUnit"][];
             /** @description 存在原文回退 */
             partial: boolean;
@@ -4338,6 +4338,69 @@ export interface operations {
             };
             /** @description VALIDATION：语言未启用 */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：伪名owner不一致 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT、LOCKED或VERSION_MISMATCH */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTERNAL */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEADLINE_EXCEEDED */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };

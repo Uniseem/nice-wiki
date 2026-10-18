@@ -9,7 +9,7 @@
 
 | 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
 |---|---|---|---|---|---|---|
-| POST `/v1/admissions` | `createAdmission` | `traffic-guard.HandleAdmission` | `service` | `HandleAdmissionRequestBody` → 200 `HandleAdmissionResult` | 准入 HTTP | `FORBIDDEN`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/admissions` | `createAdmission` | `traffic-guard.HandleAdmission` | `service` | `HandleAdmissionRequestBody` → 200 `HandleAdmissionResult` | 准入 HTTP | `FORBIDDEN`、`RATE_LIMITED`、`CHALLENGE_REQUIRED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/admissions/{admissionId}:renew` | `renewAdmission` | `traffic-guard.RenewPermit` | `service` | `RenewPermitRequestBody` → 200 `RenewPermitResult` | 延长活跃并发租约 | `STALE_RESULT`、`FORBIDDEN` |
 | POST `/v1/admissions/{admissionId}:release` | `releaseAdmission` | `traffic-guard.ReleasePermit` | `service` | `ReleasePermitRequestBody` → 200 `ReleasePermitResult` | 释放并发占位 | `FORBIDDEN`、`VERSION_MISMATCH` |
 | POST `/v1/challenges` | `issueChallenge` | `traffic-guard.IssueChallenge` | `anonymous` | `IssueChallengeRequestBody` → 200 `IssueChallengeResult` | 签发挑战 | `RATE_LIMITED`、`VALIDATION` |
