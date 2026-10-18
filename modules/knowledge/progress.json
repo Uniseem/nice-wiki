@@ -2,7 +2,7 @@
   "version": 1,
   "module": "knowledge",
   "phase": "implementation",
-  "contractSha256": "e7a65b625244563687b0ca30972081c7ef7b4184c089327fa4bbad725111ea7f",
+  "contractSha256": "cde7baf32f90903ef19b7d72fa0bda0df64b2d1b621ff0375d4ad8a8845d367f",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18首批并行实现，pipeline60通过；持续向75%推进",
   "branch": "codex/knowledge-20261018-bulk",
@@ -652,6 +652,16 @@
     },
     {
       "path": "modules/knowledge/internal/build/rebuild.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": null
+    },
+    {
+      "path": "modules/knowledge/internal/source/tokenize.go",
       "state": "planned",
       "implementationCommit": null,
       "verification": {
@@ -1715,6 +1725,17 @@
       "verification": {
         "state": "passed",
         "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "knowledge.TokenizeSource",
+      "path": "modules/knowledge/internal/source/tokenize.go",
+      "state": "planned",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     }

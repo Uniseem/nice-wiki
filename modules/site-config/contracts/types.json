@@ -3333,6 +3333,9 @@
         "themeColor",
         "defaultShareImage"
       ]
+    },
+    "RuntimeView": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/RuntimeView"
     }
   }
 }

@@ -1981,6 +1981,36 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "site-config.RuntimeStore.ReadRuntimeView",
+          "name": "RuntimeStore.ReadRuntimeView",
+          "signature": "func (s *RuntimeStore) ReadRuntimeView(ctx context.Context) (RuntimeView, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "从真实控制状态投影公共运行视图及revision/barrierId",
+          "steps": [
+            "读取同一控制库RuntimeState，原样传递DataEpoch/Phase/Maintenance/TargetDataEpoch/Revision/BarrierId；不伪造Ready水位。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "active数据库或journal不可读",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "schema、epoch、journal或索引矛盾",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "service启动控制面；由匿名Ready调用",
+          "concurrency": "只读快照，可并发检查",
+          "idempotency": "只读",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -5363,7 +5393,8 @@
             "site-config.ConfigureHome",
             "site-config.RecoverHomeReferenceState",
             "site-config.BackgroundTasks",
-            "site-config.RecoverHomeReferences"
+            "site-config.RecoverHomeReferences",
+            "site-config.RuntimeStore.ReadRuntimeView"
           ],
           "resources": [
             "本域implementation全部x-handler",

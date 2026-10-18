@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "608666832e39c4b177622a81ab43aa71f5db15be13745c4a9901612458b57d45",
+  "contractSha256": "7879fec9de3aa4f8ec105b12354bfd0cc57625a04b34c5ab417b0ef3ec931d7e",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "品牌页脚横幅与配置历史（pipeline 42 已记 verified；完整启动仍 blocked）",
   "branch": "codex/site-config-20261017-r4",
@@ -1428,6 +1428,17 @@
       "verification": {
         "state": "passed",
         "evidence": "2026-10-15最终实际集成树88210ba：隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8，make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），生成回传零变化。公共SSE和首页权限/幂等/CAS/来源决定/封存/恢复/关闭经交叉复核。未新增或运行业务测试、SQL行为验收、真实API/模型、服务/镜像/部署；verified仅代表现阶段检查。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "site-config.RuntimeStore.ReadRuntimeView",
+      "path": "modules/site-config/internal/runtime_store.go",
+      "state": "verified",
+      "implementationCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
+      "verification": {
+        "state": "passed",
+        "evidence": "GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。"
       },
       "blocker": null
     }

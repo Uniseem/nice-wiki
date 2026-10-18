@@ -644,6 +644,11 @@
       "purpose": "继续全部剩余代码首批检查和授权记录"
     },
     {
+      "path": "docs/push-log/2026-10-18-0004.md",
+      "kind": "documentation",
+      "purpose": "第二批网关/公共机制源码检查与推送记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"
