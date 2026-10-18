@@ -479,6 +479,10 @@
         "onLeaseRenewed": {
           "x-internal": true,
           "description": "可选本域真实租约镜像CAS回调；初次start后及每次权威续约后调用，失败停止执行，不再调CheckLease或伪造心跳"
+        },
+        "onCancellationObserved": {
+          "x-internal": true,
+          "description": "可选Go可信回调(context.Context, OperationContext, ClaimedJob) error；仅真实HeartbeatJob.cancelRequested时在取消执行前调用一次，绑定原worker/fence/epoch持久取消事实，不重查租约、不写业务结果或触发模型；safePoint不调用。"
         }
       },
       "required": [

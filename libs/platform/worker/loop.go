@@ -149,6 +149,7 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 	}
 	defer lease.timer.Stop()
 	lease.onRenewed = l.config.OnLeaseRenewed
+	lease.onCancellationObserved = l.config.OnCancellationObserved
 	startCtx, cancelStart := executionLeaseContext(lease, jobCtx)
 	err = l.client.StartJob(workerControlContext(startCtx, op), job.JobID, workerID, job.FencingToken)
 	cancelStart()
@@ -244,6 +245,7 @@ var errJobCancelled = errors.New("job cancellation requested")
 
 // executionLease以独立定时器限制本地执行权；续租RPC串行，避免旧回执覆盖新截止。
 type executionLease struct {
+	onCancellationObserved func(context.Context, platform.OperationContext, platform.ClaimedJob) error
 	onRenewed func(context.Context, platform.OperationContext, platform.ClaimedJob, platform.HeartbeatInfo) error
 	ctx       context.Context
 	op        platform.OperationContext
@@ -297,6 +299,18 @@ func renewExecutionLease(ctx context.Context, lease *executionLease, verify bool
 		return err
 	}
 	if info.CancelRequested {
+		if lease.onCancellationObserved != nil {
+			work, cancel = executionLeaseContext(lease, ctx)
+			callbackOp := lease.op
+			deadline, _ := work.Deadline()
+			callbackOp.Deadline = deadline.UTC().Format(time.RFC3339Nano)
+			err = lease.onCancellationObserved(platform.WithOperationContext(platform.WithPortalProof(work, ""), callbackOp), callbackOp, lease.job)
+			cancel()
+			if err != nil {
+				lease.cancel(errJobCancelled)
+				return err
+			}
+		}
 		lease.cancel(errJobCancelled)
 		return platform.NewError(platform.CodeCancelled, false, "任务已请求取消")
 	}

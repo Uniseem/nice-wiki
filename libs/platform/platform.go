@@ -362,6 +362,7 @@ type ConsumerRunResult struct {
 
 // WorkerConfig 任务领取循环参数；owner为本域slug。
 type WorkerConfig struct {
+	OnCancellationObserved func(context.Context, OperationContext, ClaimedJob) error `json:"-"`
 	OnLeaseRenewed func(context.Context, OperationContext, ClaimedJob, HeartbeatInfo) error `json:"-"`
 	Owner          string                                                                   `json:"owner"`
 	JobTypes       []string                                                                 `json:"jobTypes"`

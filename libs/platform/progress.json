@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "01b1c0bda7f005cc332d6347b4848d1bd4793bbacba43d878049a8bb1bb86353",
+  "contractSha256": "11c1d84e0bcb5a3bc8c86a81d6dcc989e089b636059c513116bd0e45322ddba3",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-18持续收尾：第三批GitLab检查通过，业务验收未执行",
   "branch": "codex/integration-20261017-r3",
@@ -870,13 +870,13 @@
     {
       "id": "platform.renewExecutionLease",
       "path": "libs/platform/worker/loop.go",
-      "state": "verified",
+      "state": "blocked",
       "implementationCommit": "62ed7c398b6a080a64f52d8134916170589b3707",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17自部署GitLab pipeline12（候选fccc375）生成/格式/重复gen、三个同时分片覆盖14Go模块readonly build/vet/gofmt及完整make check通过（878文件/1435函数/379HTTP/2328类型）。首轮pipeline11客户端依赖、CI临时身份及结构登记失败已修复并完整重跑；对应公共源码与回传格式一致。只证明当前编译和设计结构，未新增或运行测试/SQL/HTTP行为验收、真实接口/模型、服务或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "真实任务取消事实回调待GitLab"
     },
     {
       "id": "platform.SignOutboundRequest",
@@ -1560,7 +1560,7 @@
         "state": "passed",
         "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
-      "blocker": null
+      "blocker": "真实任务取消事实回调待GitLab"
     }
   ],
   "rule": "公共机制已通过自部署GitLab当前源码/生成/编译/结构检查；完整服务、业务验收和部署按各域未完成项保留。"

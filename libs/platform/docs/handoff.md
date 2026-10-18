@@ -1,3 +1,7 @@
+# 实际取消回调待GitLab
+
+worker收到真实cancelRequested时先调用OnCancellationObserved持久精确worker/fence/epoch取消事实，再取消执行；safePoint不当取消，失败停止，回调不触发业务/model。仅源码与合同，待Root后续集成GitLab，未本机编译或真实任务。
+
 # 2026-10-18第三批源码检查通过
 
 自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。

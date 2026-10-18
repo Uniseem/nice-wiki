@@ -3261,6 +3261,7 @@
           "steps": [
             "续租互斥覆盖整个请求与回执安装，RPC使用当前lease截止",
             "即时HeartbeatJob读取cancelRequested/safePointRequested；停止或未知则取消执行权并拒绝",
+            "仅真实cancelRequested时，取消执行前以原job/worker/fence/epoch调用OnCancellationObserved持久本域取消事实；回调在当前租约和原操作截止内，失败仍立即停执行。safePoint不调用取消回调；不重查CheckLease或生成新业务副作用。",
             "旧本地截止仍有效且新expiry有效时才重置独立到期定时器；不得复活已取消执行权",
             "verify=true时继续按新截止读取CheckLease，绑定jobId/workerId/fence；RPC返回后再次核本地任务是否仍有效"
           ],
