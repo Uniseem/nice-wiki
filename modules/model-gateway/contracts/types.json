@@ -73,7 +73,7 @@
           },
           "maxItems": 256,
           "uniqueItems": false,
-          "description": "允许附加头名"
+          "description": "服务器生成的只读兼容元数据；PutProvider不使用客户端值控制秘密，secretHeaders缺失保留原映射，[]才清空"
         },
         "extraHeaderSecretRefs": {
           "type": "array",
@@ -84,7 +84,7 @@
           },
           "maxItems": 256,
           "uniqueItems": false,
-          "description": "等长加密secret引用"
+          "description": "服务器生成的只读兼容元数据；PutProvider不使用客户端值控制秘密，secretHeaders缺失保留原映射，[]才清空"
         },
         "concurrencyLimit": {
           "type": "integer",
@@ -1025,6 +1025,14 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "幂等键"
+        },
+        "secretHeaders": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/SecretHeader"
+          },
+          "description": "缺失保留原映射，显式[]清空；服务器生成同provider/epoch不可变加密refs，不接受本机路径"
         }
       },
       "required": [
@@ -3188,6 +3196,20 @@
           "minimum": 0,
           "maximum": 9007199254740991,
           "description": "预算"
+        },
+        "images": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "contentEncoding": "base64",
+            "description": "受media版本化字节读取并核完整AssetRef/hash后提供的图像内容"
+          },
+          "description": "仅内部内存材料，key是完整AssetRef规范JSON摘要，不是URL/本机路径"
+        },
+        "stream": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否映射供应方流协议"
         }
       },
       "required": [
@@ -3209,7 +3231,7 @@
         },
         "system": {
           "type": "string",
-          "minLength": 1,
+          "minLength": 0,
           "maxLength": 65536,
           "description": "独立系统段"
         }
@@ -3241,12 +3263,55 @@
           "minimum": 0,
           "maximum": 9007199254740991,
           "description": "预算"
+        },
+        "images": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "contentEncoding": "base64",
+            "description": "受media版本化字节读取并核完整AssetRef/hash后提供的图像内容"
+          },
+          "description": "仅内部内存材料，key是完整AssetRef规范JSON摘要，不是URL/本机路径"
+        },
+        "stream": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否映射供应方流协议"
+        },
+        "capability": {
+          "type": "string",
+          "enum": [
+            "chat",
+            "vision",
+            "translation",
+            "embedding"
+          ]
+        },
+        "texts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "maxItems": 256,
+          "uniqueItems": false,
+          "description": "embedding/translation/rerank输入其余空"
+        },
+        "dimensions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65536,
+          "description": "embedding固定空间维度，其余0"
         }
       },
       "required": [
         "messages",
         "modelId",
-        "maximumOutputTokens"
+        "maximumOutputTokens",
+        "capability",
+        "texts",
+        "dimensions"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -3265,7 +3330,8 @@
           "enum": [
             "generateContent",
             "streamGenerateContent",
-            "embedContent"
+            "embedContent",
+            "batchEmbedContents"
           ],
           "description": "端点能力"
         }
@@ -3313,21 +3379,11 @@
           },
           "maxItems": 256,
           "uniqueItems": true,
-          "description": "候选排序"
-        },
-        "scores": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          },
-          "minItems": 1,
-          "maxItems": 65536,
-          "description": "等长分数"
+          "description": "已评分项稳定降序，未返回项按输入原序排末；不伪造缺失分数"
         }
       },
       "required": [
-        "orderedIds",
-        "scores"
+        "orderedIds"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -4710,6 +4766,28 @@
         "enabled"
       ],
       "description": "readModels安全模型声明，embedding配置完整时附MG权威五字段空间；不改变PutModel输入"
+    },
+    "SecretHeader": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "合法且非路由/认证/凭据/cookie协议控制头"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "仅superadmin显式写入的秘密值，拒CRLF/NUL；不进响应/事件/回执正文/日志"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ]
     }
   }
 }

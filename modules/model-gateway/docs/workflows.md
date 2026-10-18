@@ -103,3 +103,5 @@ QueryUsage的portal管理员即时核model.manage；AI owner纯服务要求整�
 同root全部reservation先核held/settled/released合同三态，非法状态422而非过滤成空；合法settled/released不聚合，不套held金额字段规则，仅held参与当前预留校验和汇总。
 
 本轮费用首批已编写Reserve/Extend/RecordUsage/Settle/Unknown/Reconcile及调用安全读取/持久SSE、失败分类、日志白名单；全部待GitLab，完整Create/Execute/Dispatch、供应方网络适配、凭据引用回收及启动仍未完成。首批配置足够时消费者真实读写，不把暂缺原生产入口伪装成完整已上线费用链。root统一补公共snapshot/barrier与tokenizeText，本域不争用公共文件或tokenizer专用所有权。
+
+管理员额外头表单须区分“不修改”和“清空全部”：前者省略secretHeaders，后者明确[]并providerCAS；非空数组是管理员显式替换整份加密映射。秘密值不在管理回读中预填，不进入事件/日志/回执正文，不能把Provider.extraHeaderSecretRefs当配置文件引用。对应UI实际装配仍在后续完整页面批次，不把有schema称为已有界面。

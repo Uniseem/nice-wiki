@@ -291,3 +291,9 @@ maximumCost=0与日额度0同义不限；profile日预算按site+UTC日+profile�
 新增ExecutionTransaction仅装配平台NewWriteContext；写入同时要求site-config权威epoch/写窗口及本地所有未释放屏障允许。幂等执行回执和付费结果持久保留，不因HTTP断线、超时或跨日重算。流序号从1开始，0是初读排他游标；delta只接受完整UTF8且≤16KiB，accepted/终态与状态同事务。SSE复用平台心跳/背压，5分钟连接上限，重连只读持久事件，缺保留区GONE/410。
 
 MG原五字段spaceId保持原有有序json.Marshal结构SHA256，不改成CanonicalJSON排序身份。readModels的ModelWithSpace只读投影兼容新增embeddingSpace；配置完整且确有embedding能力才返回，消费者严格比对DTO。预处理显式默认none，返回原始向量只核维度/有限值，不自动L2归一化；预处理算法更改须新版本和space。PutModel原归一化设计守卫按根裁定解除，其余不可变身份/CAS/原回执保持。
+
+007追加固定route凭据/额外头引用及保守tracking标记，启动装配真实引用生产链后才可启用回收，不能以当前空表推断无在途引用。PutProvider新增secretHeaders{name,value}：缺失保留，显式[]清空；原Provider names/refs只读兼容、由服务器覆盖，不作为路径或任意凭据ID。非空秘密命令使用主密钥域分离HMAC而非可枚举普通secret SHA，回执仅安全Provider结果及result_hash，旧NULL hash回执保留原精确结果比较。AES-GCM AAD固定格式/provider/version/canonical header name/ref/epoch，每项随机nonce和不透明ref，派发只解原route refs；密钥临时字节清零，不承诺Go字符串副本擦除。
+
+额外头禁止Host/Content-Length/Transfer-Encoding/Cookie/Authorization/主协议key、代理/转发/压缩/幂等控制头；拒非法header name、CRLF/NUL及重复名称，不输出秘密值。原attempt固定旧refs，省略更新不读旧密文，显式清空也不删除在途引用的密文。并发按固定provider/profile的数量小于配置规则，0表示无可领取槽位；每租约30秒且不超过原deadline，执行器每10秒续租，不以槽释放推免费账单。
+
+供应方映射参考官方协议说明，独立实现且未复制外部源码：[Anthropic Messages](https://docs.anthropic.com/en/api/messages)、[Gemini generateContent](https://ai.google.dev/api/generate-content)、[OpenAI Chat Completions](https://platform.openai.com/docs/api-reference/chat/create)。系统文本不丢text parts，图像只用经media授权/hash核对的固定资源字节，禁止任意URL。rerank只接受显式有限评分/原index，稳定排序并将未返回项原序排末，不伪造缺失分数。
