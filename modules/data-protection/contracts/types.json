@@ -1739,6 +1739,16 @@
         "job": {
           "$ref": "../../../contracts/common.schema.json#/$defs/AcceptedJob",
           "description": "公共 AcceptedJob 合同，遵守其字段和空值规则"
+        },
+        "progressToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192,
+          "description": "新服务实际必写，只读绑定本restoreId；仅内存保存，不进URL、存储或日志。"
+        },
+        "progressExpiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "只读进度令牌绝对过期时刻；新服务实际必写。"
         }
       },
       "required": [
@@ -2556,6 +2566,10 @@
           "type": "string",
           "description": "remoteHead；UTF-8；不得为 null",
           "maxLength": 8192
+        },
+        "mirrorId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "实际镜像记录ID，供显式同步精确绑定；未配置仍NOT_FOUND。"
         }
       },
       "required": [

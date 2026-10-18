@@ -1360,6 +1360,17 @@
               "description": "公共 Identifier 合同，遵守其字段和空值规则"
             },
             "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          },
+          {
+            "in": "header",
+            "name": "X-Backup-Download-Token",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8192
+            },
+            "description": "AuthorizeBackupDownload签发的单用途令牌；流入口实际要求，兼容字段只通过请求头，不进URL。"
           }
         ],
         "security": [

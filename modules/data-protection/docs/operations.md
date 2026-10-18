@@ -17,3 +17,7 @@ data-protection停机：已开始maintenance由runtime持久维持；各域不�
 恢复（ADR0003）：全域snapshot完整→全部域暂存→持久切换决定→各服务重启换入→全部回执与readiness→解除maintenance。control区不随恢复替换。切换后故障可继续等待或整体换回，不允许部分回滚。免费派生索引清空可重建，已付费结果引用必须保留，不能自动发模型请求。
 
 2026-10-17 的启动切片只装配进程生命周期。健康检查不查询远程依赖、数据库或模型。就绪在 journal 未恢复、备份业务未实现或运行视图没有修订号时失败关闭。业务路由不返回空备份、空恢复进度或镜像成功。没有真实服务、模型或 Git 远程操作，没有运行业务验收。
+
+本域Vue库入口mountModuleUI使用portal注入ModuleUIBootstrap.apiClient，不构造认证头。三个既定面板支持完整备份目录/显式创建/ready流式下载、完整恢复预检与批准/只读进度、远程CAS配置与显式镜像同步；实际服务未齐的503明确失败。卸载派发nice-wiki:unmount，取消请求及轮询。只读进度token仅内存/固定header，不进URL或存储；新CreateRestoreResult兼容新增progressToken/progressExpiresAt，服务实际必写。
+
+大型下载固定X-Backup-Download-Token头，原Response.body直接pipeTo浏览器文件WritableStream，任意失败abort，不整包Blob。当前需要File System Access支持；不支持时明确不可用。版本采用已批准Vue3.5.22/Vite7.1.7/plugin-vue6.0.1/TS6.0.0-beta/vue-tsc3.1.1/pnpm9.15.9，lock只CI生成。

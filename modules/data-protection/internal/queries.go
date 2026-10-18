@@ -16,7 +16,7 @@ type ListBackupsResult=gen.ListBackupsResult
 type ReadBackupInput struct{BackupId string `json:"backupId"`;Actor platform.AuthContext `json:"actor"`}
 type ReadBackupResult=gen.ReadBackupResult
 type ReadMirrorStatusInput struct{MirrorId string `json:"mirrorId,omitempty"`;Actor platform.AuthContext `json:"actor"`}
-type ReadMirrorStatusResult=gen.ReadMirrorStatusResult
+type ReadMirrorStatusResult struct{State string `json:"state"`;CommitHash string `json:"commitHash"`;RemoteHead string `json:"remoteHead"`;MirrorID string `json:"mirrorId,omitempty"`}
 type backupCursor struct{CreatedAt string `json:"createdAt"`;ID string `json:"id"`;Revision int64 `json:"revision"`;ExpiresAt int64 `json:"expiresAt"`}
 
 func ListBackups(ctx context.Context,op OperationContext,in ListBackupsInput)(ListBackupsResult,error){
@@ -35,6 +35,6 @@ func ReadBackup(ctx context.Context,op OperationContext,in ReadBackupInput)(Read
  err=store.Control.QueryRowContext(ctx,`SELECT manifest_json,status,issues_json FROM backup_runs WHERE backup_id=?`,in.BackupId).Scan(&result.ManifestJSON,&result.State,&issues);if errors.Is(err,sql.ErrNoRows){return ReadBackupResult{},platform.NewError(platform.CodeNotFound,false,"备份目录不存在")};if err!=nil{return ReadBackupResult{},storageError(err)};if json.Unmarshal([]byte(issues),&result.Issues)!=nil||result.Issues==nil{return ReadBackupResult{},platform.NewError(platform.CodeIntegrityError,false,"备份安全报告损坏")};if result.ManifestJSON!=""{if _,err=decodeBackupManifest(store,result.ManifestJSON);err!=nil{return ReadBackupResult{},err}}else if result.State=="ready"{return ReadBackupResult{},platform.NewError(platform.CodeIntegrityError,false,"ready备份缺少安全清单")};return result,nil
 }
 func ReadMirrorStatus(ctx context.Context,op OperationContext,in ReadMirrorStatusInput)(ReadMirrorStatusResult,error){
- if err:=requireAdministrator(op);err!=nil{return ReadMirrorStatusResult{},err};store,err:=Catalog(op);if err!=nil{return ReadMirrorStatusResult{},err};query:=`SELECT state,local_commit,remote_ref FROM mirror_runs`;args:=[]any{};if in.MirrorId!=""{query+=` WHERE mirror_id=?`;args=append(args,in.MirrorId)};query+=` ORDER BY created_at DESC,mirror_id DESC LIMIT 1`;var result ReadMirrorStatusResult
- err=store.DB.QueryRowContext(ctx,query,args...).Scan(&result.State,&result.CommitHash,&result.RemoteHead);if errors.Is(err,sql.ErrNoRows){return ReadMirrorStatusResult{},platform.NewError(platform.CodeNotFound,false,"尚无镜像记录")};if err!=nil{return ReadMirrorStatusResult{},storageError(err)};if result.State=="syncing"{result.State="needs-reconcile"};return result,nil
+ if err:=requireAdministrator(op);err!=nil{return ReadMirrorStatusResult{},err};store,err:=Catalog(op);if err!=nil{return ReadMirrorStatusResult{},err};query:=`SELECT mirror_id,state,local_commit,remote_ref FROM mirror_runs`;args:=[]any{};if in.MirrorId!=""{query+=` WHERE mirror_id=?`;args=append(args,in.MirrorId)};query+=` ORDER BY created_at DESC,mirror_id DESC LIMIT 1`;var result ReadMirrorStatusResult
+ err=store.DB.QueryRowContext(ctx,query,args...).Scan(&result.MirrorID,&result.State,&result.CommitHash,&result.RemoteHead);if errors.Is(err,sql.ErrNoRows){return ReadMirrorStatusResult{},platform.NewError(platform.CodeNotFound,false,"尚无镜像记录")};if err!=nil{return ReadMirrorStatusResult{},storageError(err)};if result.State=="syncing"{result.State="needs-reconcile"};return result,nil
 }

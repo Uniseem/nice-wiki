@@ -2,7 +2,7 @@
   "version": 1,
   "module": "data-protection",
   "phase": "implementation",
-  "contractSha256": "340a4f059590d12afe4ead9d3f38a6679ff951a5b64ae79179d0512a1f9a4e81",
+  "contractSha256": "ff09dcd9192492e33b9c9b9957043ffd36315f6f0bfc68243cf892a55200bbbc",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1收尾并行：数据保护独占",
   "branch": "codex/finish-20261018-protection",
@@ -292,33 +292,33 @@
     },
     {
       "path": "modules/data-protection/web/src/BackupPanel.vue",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
     },
     {
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
     },
     {
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
     },
     {
       "path": "modules/data-protection/internal/backup_schedule.go",
@@ -482,13 +482,13 @@
     },
     {
       "path": "modules/data-protection/web/package.json",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
     },
     {
       "path": "modules/data-protection/web/pnpm-lock.yaml",
@@ -502,43 +502,43 @@
     },
     {
       "path": "modules/data-protection/web/vite.config.ts",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
     },
     {
       "path": "modules/data-protection/web/tsconfig.json",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
     },
     {
       "path": "modules/data-protection/web/index.html",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
     },
     {
       "path": "modules/data-protection/web/src/main.ts",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本域UI源码就绪，依赖锁只由统一GitLab生成并检查"
     },
     {
       "path": "modules/data-protection/internal/worker.go",
@@ -842,12 +842,12 @@
       "id": "data-protection.ReadMirrorStatus",
       "path": "modules/data-protection/internal/queries.go",
       "state": "verified",
-      "implementationCommit": "0881c49c085bbbfc643e43998e9fd673608ef534",
+      "implementationCommit": null,
       "verification": {
         "state": "passed",
         "evidence": "GitLab pipeline76（8332b6c；生成341，三分片342/343/344，前端345）全部成功。16个Go模块readonly build/vet/gofmt、普通go test与完整make check、Vue类型检查/构建通过；159373字节生成物已精确回传至0881c49c085bbbfc643e43998e9fd673608ef534。普通go test无测试文件；不代表业务验收。"
       },
-      "blocker": null
+      "blocker": "UI及精确镜像ID代码就绪，待统一GitLab CI；公共portal端口装配另核"
     },
     {
       "id": "data-protection.ReadProtectionSettings",
@@ -1215,35 +1215,35 @@
     {
       "id": "data-protection.RequestBackup",
       "path": "modules/data-protection/web/src/BackupPanel.vue",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "UI及精确镜像ID代码就绪，待统一GitLab CI；公共portal端口装配另核"
     },
     {
       "id": "data-protection.ApproveFullRestore",
       "path": "modules/data-protection/web/src/RestoreWizard.vue",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "UI及精确镜像ID代码就绪，待统一GitLab CI；公共portal端口装配另核"
     },
     {
       "id": "data-protection.RequestMirrorSync",
       "path": "modules/data-protection/web/src/GitSyncPanel.vue",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "UI及精确镜像ID代码就绪，待统一GitLab CI；公共portal端口装配另核"
     },
     {
       "id": "data-protection.ScheduleLocalBackup",
@@ -1380,13 +1380,13 @@
     {
       "id": "data-protection.mountModuleUI",
       "path": "modules/data-protection/web/src/main.ts",
-      "state": "planned",
+      "state": "blocked",
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "UI及精确镜像ID代码就绪，待统一GitLab CI；公共portal端口装配另核"
     },
     {
       "id": "data-protection.RunWorker",
@@ -1805,9 +1805,152 @@
         "evidence": null
       },
       "blocker": "远程配置HTTP转换待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.failBackup",
+      "path": "modules/data-protection/web/src/BackupPanel.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.loadBackups",
+      "path": "modules/data-protection/web/src/BackupPanel.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.submitBackup",
+      "path": "modules/data-protection/web/src/BackupPanel.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.downloadBackup",
+      "path": "modules/data-protection/web/src/BackupPanel.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.failRestore",
+      "path": "modules/data-protection/web/src/RestoreWizard.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.validateRestore",
+      "path": "modules/data-protection/web/src/RestoreWizard.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.refreshRestoreProgress",
+      "path": "modules/data-protection/web/src/RestoreWizard.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.submitRestore",
+      "path": "modules/data-protection/web/src/RestoreWizard.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.failMirror",
+      "path": "modules/data-protection/web/src/GitSyncPanel.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.loadMirrorSettings",
+      "path": "modules/data-protection/web/src/GitSyncPanel.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.saveRemote",
+      "path": "modules/data-protection/web/src/GitSyncPanel.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.buildMirror",
+      "path": "modules/data-protection/web/src/GitSyncPanel.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
+    },
+    {
+      "id": "data-protection.submitSync",
+      "path": "modules/data-protection/web/src/GitSyncPanel.vue",
+      "state": "blocked",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本域UI支持代码就绪，待统一GitLab CI"
     }
   ],
-  "rule": "累计12既有业务与37实际参考支持代码就绪待统一GitLab CI；完整备份恢复镜像启动UI继续实施。",
+  "rule": "累计16既有业务/界面与50实际参考支持代码就绪待统一GitLab CI；完整备份恢复镜像服务链和启动继续实施。",
   "readyAwaitingCI": {
     "sourceCommits": [
       "88cef9718165e87d431e36b327f23cb207792388",

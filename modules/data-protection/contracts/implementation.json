@@ -2438,7 +2438,8 @@
             "checkbackup.manage",
             "安全状态和无凭证URL",
             "未知push状态标needs-reconcile",
-            "未指定mirrorId读真实最新记录；没有记录NOT_FOUND，syncing只报needs-reconcile不推定远程成功。"
+            "未指定mirrorId读真实最新记录；没有记录NOT_FOUND，syncing只报needs-reconcile不推定远程成功。",
+            "兼容可选mirrorId返回真实目录ID，浏览器显式sync精确绑定，不从commit反推。"
           ],
           "errors": [
             {
@@ -5212,10 +5213,202 @@
           ],
           "purpose": "Vue3模块交互：RequestBackup",
           "steps": [
-            "展示全域水位和失败域",
-            "仅ready允许申请下载，不允许半份快照被标成功",
-            "处理401重新登录、403清空敏感界面",
-            "按operationId重试不重复提交"
+            "显式提交includeSecrets，secret选项只向有superadmin能力者展示；稳定operationId在同输入失败重试保留。",
+            "目录按真实游标分批读取，各备份真实ReadBackup显示state/域水位/问题；旧游标失效要求刷新。",
+            "只有ready且超管才申请单用途下载令牌，固定请求头消费；Response到浏览器WritableStream有界保存，不用Blob吞完整包，不支持浏览器明确不可用。",
+            "401/403清敏感状态，取消不更新卸载组件；不把503/错误呈现为空成功。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.failBackup",
+          "name": "failBackup",
+          "signature": "function failBackup(problem: unknown): void",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：failBackup",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.loadBackups",
+          "name": "loadBackups",
+          "signature": "function loadBackups(more: boolean): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：loadBackups",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.submitBackup",
+          "name": "submitBackup",
+          "signature": "function submitBackup(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：submitBackup",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.downloadBackup",
+          "name": "downloadBackup",
+          "signature": "function downloadBackup(backup: Backup): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：downloadBackup",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
           ],
           "errors": [
             {
@@ -5298,10 +5491,10 @@
           ],
           "purpose": "Vue3模块交互：ApproveFullRestore",
           "steps": [
-            "先展示完整校验结果及维护影响",
-            "明确批准仅该backup/target后提交restore，不支持选部分域",
-            "提交后进入进度页：恢复期间后台会话会失效，进度页凭只读令牌刷新，完成后提示用备份中的账号重新登录",
-            "按operationId重试不重复提交"
+            "对精确backupId+新targetEpoch先全域validate，显示完整issue与维护/会话失效影响；只在valid=true且用户明确批准后提交。",
+            "稳定operationId保留同输入失败重试，批准不支持部分域。",
+            "进度token及expiry只留内存，经X-Restore-Progress-Token；轮询遇终态/blocked/失败停止，不入URL/storage/log。",
+            "身份换入后令牌可读进度，完成提示备份账号重新登录；控制取消/整体换回仍等公共独立grant，不把只读token当写许可。"
           ],
           "errors": [
             {
@@ -5332,6 +5525,198 @@
           "authorization": {
             "permission": "superadmin",
             "rule": "superadmin"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.failRestore",
+          "name": "failRestore",
+          "signature": "function failRestore(problem: unknown): void",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：failRestore",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.validateRestore",
+          "name": "validateRestore",
+          "signature": "function validateRestore(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：validateRestore",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.refreshRestoreProgress",
+          "name": "refreshRestoreProgress",
+          "signature": "function refreshRestoreProgress(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：refreshRestoreProgress",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.submitRestore",
+          "name": "submitRestore",
+          "signature": "function submitRestore(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：submitRestore",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
           },
           "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
           "idempotency": "mutation稳定operationId/query只读重复安全",
@@ -5384,10 +5769,249 @@
           ],
           "purpose": "Vue3模块交互：RequestMirrorSync",
           "steps": [
-            "展示无secret remote/branch/local commit后显式触发sync",
-            "分叉提示冲突无force选项",
-            "处理401重新登录、403清空敏感界面",
-            "按operationId重试不重复提交"
+            "展示实际已保存无secret remote/branch以及真实local commit/remote head，显式同步精确mirrorId/expectedRemoteHead。",
+            "操作稳定幂等key，同输入失败重试保留；409提示刷新核对，无force路径。",
+            "配置CAS单独保存，不自动同步；401/403清敏感状态，取消不更新卸载组件。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.failMirror",
+          "name": "failMirror",
+          "signature": "function failMirror(problem: unknown): void",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：failMirror",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.loadMirrorSettings",
+          "name": "loadMirrorSettings",
+          "signature": "function loadMirrorSettings(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：loadMirrorSettings",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.saveRemote",
+          "name": "saveRemote",
+          "signature": "function saveRemote(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：saveRemote",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.buildMirror",
+          "name": "buildMirror",
+          "signature": "function buildMirror(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：buildMirror",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 503,
+              "retryable": true,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "CONFLICT",
+              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
+              "httpStatus": 409,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [
+            "更新组件本地状态；仅明确提交动作调用已授权API"
+          ],
+          "authorization": {
+            "permission": "backup.manage",
+            "rule": "backup.manage"
+          },
+          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
+          "idempotency": "mutation稳定operationId/query只读重复安全",
+          "dependencies": [],
+          "resources": [
+            "data-protection OpenAPI HTTP/JSON/SSE"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "data-protection.submitSync",
+          "name": "submitSync",
+          "signature": "function submitSync(): Promise<void>",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "本域页面参考支持：submitSync",
+          "steps": [
+            "只经portal注入端口调用本域版本化API；请求取消后不更新组件，401/403清敏感状态，不输出原异常或token。"
           ],
           "errors": [
             {
@@ -6585,9 +7209,9 @@
           "outputs": [],
           "purpose": "本域Vue3应用/岛的唯一UI构建入口",
           "steps": [
-            "校验rootElement与bootstrap module/capabilities；按本域已登记Vue页面导入模块路由，createApp挂载，不注册别域业务组件",
-            "只装配同源HTTP/JSON/SSE客户端和已有权限清理/语言逻辑，复用identity/qa会话，缺AI能力保持关闭提示",
-            "同DOM重复mount先复用既有实例；unmount停止AbortController/SSE/listeners，不能清服务端业务记录"
+            "校验真实HTMLElement/module/buildRevision/capabilities及注入apiClient；同DOM/buildRevision复用，变更先unmount。",
+            "createApp只挂本域既定备份/恢复/镜像三个组件，经公共apiClient请求同源接口；UI无服务凭据。",
+            "nice-wiki:unmount或Vue卸载取消全部本域请求和轮询；不清服务端记录。"
           ],
           "errors": [
             {
@@ -6606,7 +7230,11 @@
           },
           "concurrency": "同DOM一个Vue实例，AbortController取消旧请求",
           "idempotency": "同DOM/buildRevision重复挂载复用实例",
-          "dependencies": [],
+          "dependencies": [
+            "data-protection.RequestBackup",
+            "data-protection.ApproveFullRestore",
+            "data-protection.RequestMirrorSync"
+          ],
           "resources": [
             "本域已登记UI页面函数"
           ],
