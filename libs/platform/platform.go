@@ -169,6 +169,7 @@ type OperationContext struct {
 	CostClass          string      `json:"costClass,omitempty"`
 	CancellationID     Identifier  `json:"cancellationId,omitempty"`
 	LoginNetworkScopes []Hash      `json:"-"`
+ NetworkBudgetScopes []Hash `json:"-"`
 }
 
 // EventEnvelope 持久至少一次事件信封；载荷须符合生产方events.json。
@@ -226,6 +227,7 @@ type AssertionClaims struct {
 	ExpiresAt          Timestamp  `json:"expiresAt"`
 	JTI                Identifier `json:"jti"`
 	LoginNetworkScopes []Hash     `json:"loginNetworkScopes,omitempty"`
+ NetworkBudgetScopes []Hash `json:"networkBudgetScopes,omitempty"`
 	SiteID             Identifier `json:"siteId,omitempty"`
 }
 
@@ -404,6 +406,16 @@ type AdmissionPermit struct {
 	NetworkBudgetScope Identifier `json:"networkBudgetScope"`
 	DataEpoch          Identifier `json:"dataEpoch"`
 	Audience           string     `json:"audience"`
+}
+
+// GuardSessionClaims是风控挑战通过证明，不授予模型调用或账户权限。
+type GuardSessionClaims struct {
+ SubjectID Identifier `json:"subjectId"`
+ SiteID Identifier `json:"siteId"`
+ SessionID Identifier `json:"sessionId"`
+ DataEpoch Identifier `json:"dataEpoch"`
+ ExpiresAt Timestamp `json:"expiresAt"`
+ Audience string `json:"audience"`
 }
 
 // 网关能力枚举。
