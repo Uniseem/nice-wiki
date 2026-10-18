@@ -436,16 +436,18 @@ type GuardSessionClaims struct {
 const (
 	CapabilityChat        = "chat"
 	CapabilityVision      = "vision"
+	CapabilityFile        = "file"
 	CapabilityEmbedding   = "embedding"
 	CapabilityRerank      = "rerank"
 	CapabilityTranslation = "translation"
 )
 
-// GatewayPart 视觉输入片段；kind=text须带text，kind=image须带image。
+// GatewayPart 视觉输入片段；text/image/file互斥，文件只带受控原版本引用。
 type GatewayPart struct {
 	Kind  string    `json:"kind"`
 	Text  string    `json:"text,omitempty"`
 	Image *AssetRef `json:"image,omitempty"`
+	File  *AssetRef `json:"file,omitempty"`
 }
 
 // GatewayMessage chat/vision消息。
