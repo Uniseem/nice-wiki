@@ -188,7 +188,8 @@
         "DEPENDENCY_UNAVAILABLE",
         "STALE_RESULT",
         "INTEGRITY_ERROR",
-        "INTERNAL"
+        "INTERNAL",
+        "CHALLENGE_REQUIRED"
       ],
       "description": "ErrorCode的公共协议类型；字段及范围按本schema"
     },
@@ -559,7 +560,7 @@
         },
         "requestId": {
           "$ref": "#/$defs/Identifier",
-          "description": "本次请求唯一追踪ID"
+          "description": "原QA问题的稳定RootOperationID；不是当前RPC的追踪RequestID"
         },
         "subjectId": {
           "$ref": "#/$defs/Identifier",
@@ -571,7 +572,7 @@
         },
         "token": {
           "type": "string",
-          "description": "短期签名凭证，禁止记录"
+          "description": "mint分配阶段为空串，不构成模型凭证；仅QA按原根持久消费后签发非空凭证，禁止记录"
         },
         "expiresAt": {
           "$ref": "#/$defs/Timestamp",
@@ -607,7 +608,7 @@
         "dataEpoch",
         "audience"
       ],
-      "description": "guard短期签名准入；签名覆盖全部字段、动作、请求/主体、作用域、代次、到期与audience。MG本地验签，再从可信作用域构建额度，不接受客户端任选费用scope。"
+      "description": "guard分配元数据；token空表示未消费。仅消费后的QA许可具有nw-admission-v1签名并可提交MG。签名覆盖全部字段，MG仍核原根/代次/QA动作；免费语言提示从不签模型token。"
     },
     "AcceptedJob": {
       "type": "object",

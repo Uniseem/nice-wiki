@@ -4176,7 +4176,8 @@
             "4 同幂等键同hash返回原调用，不同CONFLICT；此时不派发供应方请求",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
             "5 新调用持久accepted后启动ExecuteInvocation；调用方经resumeInference读取流直到终态",
-            "capability=rerank时query非空，texts与candidateIds等长逐项对应；其他能力省略query；不得把查询与候选拼接猜测供应方语义"
+            "capability=rerank时query非空，texts与candidateIds等长逐项对应；其他能力省略query；不得把查询与候选拼接猜测供应方语义",
+            "costClass=qa仅接受非空token的已消费QA许可：platform.VerifyAdmissionPermit验traffic-guard签名，permit.requestId等于可信op.RootOperationID，当前epoch一致且action只许qa.ask或qa.followup；subject保留原匿名主体，不改成二跳服务ID；localization.suggest永不授权付费"
           ],
           "errors": [
             {
@@ -4237,7 +4238,8 @@
           "dependencies": [
             "identity:checkAuthorization",
             "media:readAsset",
-            "model-gateway.ExecuteInvocation"
+            "model-gateway.ExecuteInvocation",
+            "platform.VerifyAdmissionPermit"
           ],
           "resources": [],
           "contract": "binding"

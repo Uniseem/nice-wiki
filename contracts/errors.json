@@ -18,7 +18,8 @@
     "DEPENDENCY_UNAVAILABLE",
     "STALE_RESULT",
     "INTEGRITY_ERROR",
-    "INTERNAL"
+    "INTERNAL",
+    "CHALLENGE_REQUIRED"
   ],
   "httpStatus": {
     "VALIDATION": 400,
@@ -38,6 +39,7 @@
     "STALE_RESULT": 409,
     "INTEGRITY_ERROR": 422,
     "INTERNAL": 500,
-    "GONE": 410
+    "GONE": 410,
+    "CHALLENGE_REQUIRED": 429
   }
 }

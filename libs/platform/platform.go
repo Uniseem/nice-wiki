@@ -55,6 +55,7 @@ const (
 	CodeForbidden             = "FORBIDDEN"
 	CodeNotFound              = "NOT_FOUND"
 	CodeGone                  = "GONE"
+ CodeChallengeRequired = "CHALLENGE_REQUIRED"
 	CodeConflict              = "CONFLICT"
 	CodeVersionMismatch       = "VERSION_MISMATCH"
 	CodeLocked                = "LOCKED"
@@ -78,6 +79,7 @@ var ProblemHTTPStatus = map[string]int{
 	CodeForbidden:             403,
 	CodeNotFound:              404,
 	CodeGone:                  410,
+ CodeChallengeRequired: 429,
 	CodeConflict:              409,
 	CodeVersionMismatch:       409,
 	CodeLocked:                409,
