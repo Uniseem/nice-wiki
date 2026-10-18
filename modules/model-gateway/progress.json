@@ -2,12 +2,12 @@
   "version": 1,
   "module": "model-gateway",
   "phase": "implementation",
-  "contractSha256": "d2e7d9ef33b6dae1b31acf1c370740020537e90749ba3bb3738d3f9bd8505bb4",
+  "contractSha256": "7573ac90016917c77c2bec694b4eb30b34655f23eeb7bad06c211ba03b76a0c8",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "R1模型网关费用执行及完整启动收尾",
   "branch": "codex/finish-20261018-gateway",
   "baseCommit": "770ea1c86a4afcc4cb968f4f6feb1808d467e7c7",
-  "deliveryCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+  "deliveryCommit": "2b4c261b3e69f987447978bf10026880a0112645",
   "deployment": "not_started",
   "files": [
     {
@@ -153,12 +153,12 @@
     {
       "path": "modules/model-gateway/internal/billing/reconcile.go",
       "state": "verified",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "2b4c261b3e69f987447978bf10026880a0112645",
       "verification": {
         "state": "passed",
-        "evidence": "未本机Go检查；提交后交根CI。"
+        "evidence": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
       },
-      "blocker": "本批源码或契约待根GitLab；完整app/wire仍partial。"
+      "blocker": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/cancel.go",
@@ -173,12 +173,12 @@
     {
       "path": "modules/model-gateway/internal/invocation/read.go",
       "state": "verified",
-      "implementationCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
+      "implementationCommit": "2b4c261b3e69f987447978bf10026880a0112645",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。"
+        "evidence": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/tokens/budget.go",
@@ -593,12 +593,12 @@
     {
       "path": "modules/model-gateway/internal/runtime/invocation.go",
       "state": "verified",
-      "implementationCommit": "48b210ec5e2a999997849add80e6090596b4c6c6",
+      "implementationCommit": "2b4c261b3e69f987447978bf10026880a0112645",
       "verification": {
         "state": "passed",
-        "evidence": "源码ready，待根GitLab。"
+        "evidence": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
     },
     {
       "path": "modules/model-gateway/internal/invocation/http.go",
@@ -1457,12 +1457,12 @@
       "id": "model-gateway.MarkUnknownCharge",
       "path": "modules/model-gateway/internal/billing/reconcile.go",
       "state": "verified",
-      "implementationCommit": "b6d8ae03f48dde1468ceb2be1b637e681c0ee7e7",
+      "implementationCommit": "2b4c261b3e69f987447978bf10026880a0112645",
       "verification": {
         "state": "passed",
-        "evidence": "仅本地源码/契约阅读与git diff --check；未Go/gofmt/gen/build/vet/测试/真实接口/模型/服务/部署。"
+        "evidence": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
       },
-      "blocker": "源码ready；原调用执行/费用证据/取消恢复闭环待根GitLab生成、编译与结构检查。"
+      "blocker": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.ReconcileCharge",
@@ -1490,12 +1490,12 @@
       "id": "model-gateway.GetInvocation",
       "path": "modules/model-gateway/internal/invocation/read.go",
       "state": "verified",
-      "implementationCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
+      "implementationCommit": "2b4c261b3e69f987447978bf10026880a0112645",
       "verification": {
         "state": "passed",
-        "evidence": "GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。"
+        "evidence": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
       },
-      "blocker": null
+      "blocker": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.EstimateTokens",
@@ -2821,12 +2821,12 @@
       "id": "model-gateway.ReleaseResolvedReferences",
       "path": "modules/model-gateway/internal/runtime/invocation.go",
       "state": "blocked",
-      "implementationCommit": "91bfe36ea30a3b265ce3bc8949b2a2bc795c1106",
+      "implementationCommit": "2b4c261b3e69f987447978bf10026880a0112645",
       "verification": {
         "state": "not_run",
-        "evidence": "源码ready，待根GitLab。"
+        "evidence": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
       },
-      "blocker": "源码ready，待根GitLab。"
+      "blocker": "原结果output及未知费用保留窄修源码ready，待根GitLab。"
     },
     {
       "id": "model-gateway.ReleaseUnacceptedAttempt",

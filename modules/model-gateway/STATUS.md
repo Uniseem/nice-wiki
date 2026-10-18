@@ -1,3 +1,9 @@
+# 原完整结果只读窄修
+
+源码2b4c261：GetInvocationResult可选output，仅原resultAttemptId对应持久完整有效evidence与record.Output摘要全等才返回；不以费用状态猜，不造SSE/模型调用。winner缺证据Integrity，不伪404诱发重算。MarkUnknown不回退已终态结果，引用释放还查未解决price_unknown账单及未reconciled用量冲突，未知费用不退休原密钥。3旧函数重新blocked待CI，无新函数/迁移。
+
+无本机Go/格式/生成/编译/测试，未真实接口/模型/部署/push；公共readInference适配根统一处理。其余审批和公共保护依赖见下方。
+
 # 目录来源与真实结果身份
 
 源码48b210e，7新增实际helper（如下），无新增原业务ready。Refresh远端链已写，但真实bundled快照借用许可待用户答复，整项partial。schema010、catalog/refresh.go需根索引。Model.catalogRef显式两列，手工覆盖优先、无ref旧行保留；固定源30s/10MiB真实公开下载、规范事实/每条hash、模型CAS/价目/事件/原回执同事务，无自动新渠道/凭据。已读API字段说明，未借入快照/SDK或真实下载。
