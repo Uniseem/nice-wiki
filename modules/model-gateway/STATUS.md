@@ -1,3 +1,60 @@
+# 付费执行第4批交接
+
+源码`b6d8ae0`，7原业务ready：CreateInvocation、ExecuteInvocation、DispatchInvocation、CancelInvocation、CreateFallbackAttempt、RecoverLeases、BuildProviderRequest（统一model-gateway前缀）。均blocked待GitLab，不提前verified。既有QueryUsage、SSE、费用/预留/结算/释放和HTTP映射修改重新待CI。完整BuildApplication仍partial；下一批继续完整启动/保护、管理员catalog/probe、凭据引用回收与UI，不以本批启动成功。
+
+新增42实际参考助手IDs：
+
+- `model-gateway.AuthorizeImages`
+- `model-gateway.BeginFinalization`
+- `model-gateway.CanonicalInvocationInput`
+- `model-gateway.CheckLanguageSuggestionApproval`
+- `model-gateway.ClaimInvocationLease`
+- `model-gateway.ConsumeProviderFrame`
+- `model-gateway.ErrorCode`
+- `model-gateway.ExecutionSnapshotHash`
+- `model-gateway.FinishCancelledInvocation`
+- `model-gateway.FinishInterruptedInvocation`
+- `model-gateway.FinishInvocation`
+- `model-gateway.InvocationResultState`
+- `model-gateway.InvocationSafeToRetry`
+- `model-gateway.LoadImages`
+- `model-gateway.MergeProviderUsage`
+- `model-gateway.NewRuntimeClient`
+- `model-gateway.Nonempty`
+- `model-gateway.PrepareInvocationAttempt`
+- `model-gateway.ProviderReportedCost`
+- `model-gateway.ReadAttemptEvidence`
+- `model-gateway.ReadDispatchProvider`
+- `model-gateway.ReadExecutionAttempt`
+- `model-gateway.ReadExecutionRecord`
+- `model-gateway.ReadImageBytes`
+- `model-gateway.ReleaseResolvedReferences`
+- `model-gateway.ReleaseUnacceptedAttempt`
+- `model-gateway.RenewInvocationLease`
+- `model-gateway.SendProviderRequest`
+- `model-gateway.ServiceProviderContext`
+- `model-gateway.StartAcceptedInvocation`
+- `model-gateway.ValidateInvocationPayload`
+- `model-gateway.beginExecution`
+- `model-gateway.embeddingSpaceID`
+- `model-gateway.ensureDataLayout`
+- `model-gateway.loadSigningKey`
+- `model-gateway.loadTrustAnchors`
+- `model-gateway.newRuntimeClient`
+- `model-gateway.providerIdleReader.Read`
+- `model-gateway.validCapability`
+- `model-gateway.validCatalogOrigin`
+- `model-gateway.validModelString`
+- `model-gateway.validateConfig`
+
+root候选前置：59ef42d平台TaskGroup/二进制客户端、8a56a5e localization权威批准与公共ExpectedEmbeddingSpace。root须保留9875896 tokenizer实际3ID、app token handler和caller allowlist；本分支未整pick公共提交，避免冲突。MG x-runtime alias引用localization ReadLanguageSuggestionApprovalResult和media ReadAssetResult。schema008_execution_evidence.sql独占，后续从009追加；RecoverLeases移至invocation/recovery.go、ExecuteInvocation移execute.go，同ID职责已同步。根维护公共结构索引。
+
+结果与费用独立；完整真实结果可succeeded/completed但attempt未知/held，缺usage/收费ID不伪零、不重算。QueryUsage核完整不可变execution hash及全部attempt，safeToRetry仅原root全部accepted/reserved未派发；SSE terminal看terminal_ns，费用中间unknown不早EOF。取消只明确未派发/未接收才释放。管理员语言建议每新attempt准备/派发读持久批准，不允许公开空token。expected space主接受及各候选真正预留/派发时核五字段，备用不符不得收费。有限预算未知安全补丁50ab2ae与台账504c7a3已另交根CI86。
+
+未新增测试/样例/临时业务验证程序，未本机Go/生成/格式/编译/vet、未真实接口/模型、未部署/推送。供应方协议依据已阅读官方API说明，未复制第三方源码或新增依赖。仅git diff --check和文档结构/隐私阅读。
+
+# 费用预算安全窄修
+
 # 2026-10-18预算与可信配置修正已通过
 
 GitLab pipeline86（770b93c；生成391、Go三分片392/393/394、前端395）全部成功，预算未知金额修正与可信Git凭据索引已通过16模块readonly build/vet/gofmt、已有普通go test、完整make check和前端类型/构建；精确31561字节生成物回传到123f699f162abaee206e99fe00c3e07e89050538。普通测试无测试文件，不是业务验收。
