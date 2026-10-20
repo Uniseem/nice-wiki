@@ -704,6 +704,11 @@
       "purpose": "验签单元最终收尾、停止范围与GitLab复核记录"
     },
     {
+      "path": "docs/push-log/2026-10-21-0001.md",
+      "kind": "documentation",
+      "purpose": "B1正式交付、GitLab源码证据与双远端推送记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"

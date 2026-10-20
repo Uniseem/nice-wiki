@@ -2,6 +2,14 @@
 
 从 B1 green 记录 `ddaab834` 独立接入 public-site clean `82db36cf`（源码 `0c25307d`），集成候选 `a6d5da6ba43356887c2083415c5dfb1ac5337ec1` 的 GitLab pipeline196（IID153）生成 job811、foundation812、content-media813、其余Go814、前端815全部成功；job811 `generated.patch` 为0字节，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。本单元只覆盖 metadataRevision/v2缓存键纯函数，真实调用点、事件消费、media多来源proof、整条OG仍 blocked；content/media合同未合入。
 
+# 2026-10-21 正式交付冻结
+
+本次正式交付以源码/合同 GitLab pipeline196 五绿零漂移候选 `a6d5da6ba43356887c2083415c5dfb1ac5337ec1` 为代码基线，只追加纯根记录 `c2c2f19c9b550d7e9f382c2327434a20a8adb52c` 和本次 push-log/状态收尾。没有合入 `39af2b7a`、`4e5a0fd6` 或其他未 CI 的 content shareImage、metadata-source、public-site metadata-event、media manifest WIP；`28c38e5b` 根 proof-set 审查树继续独立保留。
+
+本次保留的 CI 证据为 pipeline196（IID153）：job811/812/813/814/815 全部成功，生成补丁为0字节，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。这只证明该精确源码候选的 GitLab 生成、三 Go 分片、前端和完整检查，不提升业务 accepted、完整 OG、BuildApplication、VerifyGlobalSeal 或协调 writer。
+
+隔离保留：content metadata-source clean `b11ad73a` 未 CI，新增路径待 framework；public-site metadata-event `b76d684c` 未 CI且模块交接仍有未提交修改；media manifest `0dba8612` 为未 CI合同草案。它们均不进入本次 main 双推。
+
 # B1 content→media 顺序集成（2026-10-21）
 
 以 traffic green 记录基线 `b44e13143094b1832508a43595c95e8ebd84b5d2` 建立独立 B1 分支，按 content `27344e0f8dc8b35258699ce53fea769c654b404d`、media `151858e1791f4094ae92a0b880c5040a9e959dfc` 顺序合入。合入后的源码/合同候选 `cb72d741d9d6192757b3a9eee7a40f78e3c4d9a0` 触发 GitLab pipeline194（IID151）：生成 job801、foundation job802、content-media/traffic job803、其余Go job804、前端 job805 全部成功。
