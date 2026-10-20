@@ -2,11 +2,11 @@
 
 ## 计划状态
 
-本计划已于 2026-10-20 经主代理审核通过并冻结，是当前唯一总计划，覆盖 R1 全部 15 个业务域、`libs/platform`、部署编排、UI、任务与事件、保护/恢复、R2 和最终发布交接。用户已决定结束本轮源码实施并只正式交付计划及准确收尾记录；R1-00 新功能与公共接口扩展停止。
+本计划已于 2026-10-20 经主代理审核通过并冻结，是当前唯一总计划，覆盖 R1 全部 15 个业务域、`libs/platform`、部署编排、UI、任务与事件、保护/恢复、R2 和最终发布交接。`main=a32f3f4c`代表此前文档收尾基线；用户于 2026-10-20 随后恢复 R1 源码实施，当前候选仍须严格留在本计划冻结工作包和既有恢复合同内，R1-00 不新增产品或第二套公共协议。
 
-本轮推送不包含 identity、site-config、jobs 或公共平台 WIP，也不把部分源码检查当成 R1 完成。四路 WIP 保留在各自分支，当前计数仍为 1645/2414 函数达到源码检查门槛，accepted 为 0；没有真实业务验收、模型调用或部署。
+此前文档收尾基线不包含 identity、site-config、jobs 或公共平台 WIP，也不把部分源码检查当成 R1 完成。四路旧 WIP 仍保留在各自分支，当前计数仍为 1645/2414 函数达到源码检查门槛，accepted 为 0；没有真实业务验收、模型调用或部署。
 
-本轮只完成文档收尾：
+截至 `main=a32f3f4c` 的收尾事实如下；源码恢复候选另按当前交接记录：
 
 - 基线为 `b986443d0dddf5482f7c3430e3dc7c8b99a24232`，GitLab pipeline 162 已通过且生成补丁为 0。
 - 本地计划收尾基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，pipeline 163 的生成、三个 Go 分片、前端和完整 `make check` 全绿且生成补丁为 0。
@@ -15,7 +15,8 @@
 - 15 域文件台账有 638 项未到 verified；platform 另为 26 项，deploy 为 5 项。
 - 同域 Dockerfile/Makefile/manifest 共 45 项，状态为 verified 3、implemented 29、blocked 3、planned 10；`deploy/` 的 5 个总编排文件全部为 planned。
 - 固定接口基线为 408 个 HTTP operation、377 个 path template、18 个 jobTypes、68 个 backgroundTasks、73 条事件记录（50 publish、23 consume，映射到 15 个唯一消费 handler）。这些只是覆盖清单；完成目标仍按业务职责、页面和端到端链判断。
-- 本次仅交付冻结计划与收尾记录；未完成的源码 WIP 不进入 main，不启动新代码、真实接口、模型、镜像、运行服务或部署。
+- `main` 此前仅交付冻结计划与收尾记录；未完成的源码 WIP 不进入 `main`。当前仅推进已授权的源码候选，不启动真实接口、模型、镜像、运行服务或部署。
+- 当前首个公共候选从 `main` 独立建立，范围仅为激活回执 Claims、统一 `recordedAt` 为 UTC `RFC3339Nano` 的参考助手、严格规范 JSON 解码助手和 `VerifyActivationReceipt`；site-config 需从 `main` 独立接通 `RegisterActivation` 后再合成 CI 候选。旧 e85 公共 WIP 的 `SignActivationReceipt` 与 outbox 事务变体继续保留，未计入完成数。
 
 计划依据按优先级为：根 `AGENTS.md`、`STATUS.md`、[全局需求](requirements.md)、[产品保留矩阵](product-preservation.md)、[界面装配](frontend.md)、已确认 ADR、各域机器合同、各域 STATUS/progress/handoff。历史只通过 [push-log](push-log/) 追溯，不在本计划继续复制流水账。
 
