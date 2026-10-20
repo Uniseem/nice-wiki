@@ -20,5 +20,21 @@
     "jobs": "http://jobs:8111",
     "analytics": "http://analytics:8112"
   },
-  "masterKeyRef": "/run/secrets/master-key"
+  "masterKeyRef": "/run/secrets/master-key",
+  "backupSources": {
+    "portal": "/sources/portal",
+    "public-site": "/sources/public-site",
+    "identity": "/sources/identity",
+    "site-config": "/sources/site-config",
+    "content": "/sources/content",
+    "media": "/sources/media",
+    "model-gateway": "/sources/model-gateway",
+    "knowledge": "/sources/knowledge",
+    "qa": "/sources/qa",
+    "localization": "/sources/localization",
+    "memory": "/sources/memory",
+    "traffic-guard": "/sources/traffic-guard",
+    "jobs": "/sources/jobs",
+    "analytics": "/sources/analytics"
+  }
 }

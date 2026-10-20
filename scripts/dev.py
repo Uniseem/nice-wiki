@@ -47,6 +47,8 @@ def setup():
             cfg["masterKeyRef"] = master
         if slug in ("portal", "traffic-guard"):
             cfg["budgetKeyRef"] = path("secrets", "budget", "budget-key.json")
+        if slug == "data-protection":
+            cfg["backupSources"] = {m: path("data", m) for m in PORTS if m != slug}
         if slug == "analytics":
             cfg["reportingTimeZone"] = "Asia/Shanghai"
         if slug == "site-config":

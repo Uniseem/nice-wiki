@@ -623,6 +623,8 @@ type ServiceConfig struct {
 	PublicBaseURL     string            `json:"publicBaseURL,omitempty"`
 	AllowLocalHTTP    bool              `json:"allowLocalHTTP,omitempty"`
 	TrustedProxyCIDRs []string          `json:"trustedProxyCIDRs,omitempty"`
+	// BackupSources 仅 data-protection 使用：服务 slug → 该服务数据目录（只读挂载），简易备份据此打包。
+	BackupSources map[string]string `json:"backupSources,omitempty"`
 }
 
 // SwapResult 启动时换目录结果。

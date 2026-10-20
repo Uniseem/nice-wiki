@@ -72,6 +72,8 @@ def service_config(slug, port):
         cfg["reportingTimeZone"] = "Asia/Shanghai"
     if slug in ("model-gateway", "data-protection"):
         cfg["masterKeyRef"] = "/run/secrets/master-key"
+    if slug == "data-protection":
+        cfg["backupSources"] = {s: f"/sources/{s}" for s in SERVICES if s != slug}
     return cfg
 
 
@@ -99,7 +101,8 @@ def compose():
         if slug in ("model-gateway", "data-protection"):
             lines += [f"      - ./secrets/{slug}/master-key:/run/secrets/master-key:ro"]
         if slug == "data-protection":
-            lines += ["      - backups:/backups"]
+            # 简易备份只读取各服务数据目录（代码里只读打开，SQLite 用 VACUUM INTO 取快照）；WAL 库需要能访问 -shm，所以不加 :ro。
+            lines += ["      - backups:/backups"] + [f"      - {s}-data:/sources/{s}" for s in SERVICES if s != slug]
         lines.append("")
     lines += ["  caddy:", "    image: caddy:2-alpine", "    restart: unless-stopped", "    networks: [internal]",
               "    ports: [\"80:80\", \"443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",

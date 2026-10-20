@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -332,16 +331,7 @@ func (s *server) Ready(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) ListBackups(w http.ResponseWriter, r *http.Request, _ gen.ListBackupsParams) {
-	op, ok := platform.OperationContextFrom(r.Context())
-	if !ok {
-		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信操作上下文"))
-		return
-	}
-	limit := 20
-	if raw := r.URL.Query().Get("limit"); raw != "" {
-		limit, _ = strconv.Atoi(raw)
-	}
-	result, err := protection.ListBackups(r.Context(), op, protection.ListBackupsInput{Cursor: r.URL.Query().Get("cursor"), Limit: limit, Actor: op.Actor})
+	result, err := s.simpleListBackups()
 	if err != nil {
 		writeProblem(w, r, err)
 		return
@@ -362,7 +352,7 @@ func (s *server) CreateBackup(w http.ResponseWriter, r *http.Request, _ gen.Crea
 		writeProblem(w, r, platform.NewError(platform.CodeValidation, false, "备份请求正文不可读"))
 		return
 	}
-	result, err := protection.CreateBackup(r.Context(), op, protection.CreateBackupInput{IncludeSecrets: body.IncludeSecrets, Actor: op.Actor, DataEpoch: op.DataEpoch})
+	result, err := s.simpleCreateBackup(r.Context(), op, body.IncludeSecrets)
 	if err != nil {
 		writeProblem(w, r, err)
 		return
@@ -374,12 +364,7 @@ func (s *server) CreateBackup(w http.ResponseWriter, r *http.Request, _ gen.Crea
 }
 
 func (s *server) ReadBackup(w http.ResponseWriter, r *http.Request, id string, _ gen.ReadBackupParams) {
-	op, ok := platform.OperationContextFrom(r.Context())
-	if !ok {
-		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信操作上下文"))
-		return
-	}
-	result, err := protection.ReadBackup(r.Context(), op, protection.ReadBackupInput{BackupId: id, Actor: op.Actor})
+	result, err := s.simpleReadBackup(id)
 	if err != nil {
 		writeProblem(w, r, err)
 		return
@@ -389,8 +374,10 @@ func (s *server) ReadBackup(w http.ResponseWriter, r *http.Request, id string, _
 	_ = json.NewEncoder(w).Encode(result)
 }
 
-func (s *server) StreamPortableBackup(w http.ResponseWriter, r *http.Request, _ string, _ gen.StreamPortableBackupParams) {
-	writeUnavailable(w, r)
+func (s *server) StreamPortableBackup(w http.ResponseWriter, r *http.Request, id string, _ gen.StreamPortableBackupParams) {
+	if err := s.simpleStreamBackup(w, r, id); err != nil {
+		writeProblem(w, r, err)
+	}
 }
 
 func (s *server) AuthorizeBackupDownload(w http.ResponseWriter, r *http.Request, id string, _ gen.AuthorizeBackupDownloadParams) {
@@ -399,7 +386,7 @@ func (s *server) AuthorizeBackupDownload(w http.ResponseWriter, r *http.Request,
 		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信操作上下文"))
 		return
 	}
-	result, err := protection.AuthorizeBackupDownload(r.Context(), op, protection.AuthorizeBackupDownloadInput{BackupId: id, Actor: op.Actor})
+	result, err := s.simpleAuthorizeDownload(op, id)
 	if err != nil {
 		writeProblem(w, r, err)
 		return
