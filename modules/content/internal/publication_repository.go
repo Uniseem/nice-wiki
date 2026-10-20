@@ -636,8 +636,7 @@ func enqueuePublication(ctx context.Context, op OperationContext, visibility int
 			return err
 		}
 	}
-	_, err := PublishContentEvent(ctx, op, PublishContentEventInput{References: &resourceReferencesChangedPayload{SiteID: op.Actor.SiteID, DocumentID: documentID, SourceRevision: sourceVersion, References: refs, RemovedReferenceIDs: []Identifier{}, DataEpoch: op.DataEpoch}, EventID: platform.NewIdentifier(), Revision: visibility})
-	return err
+	return nil
 }
 
 func enqueueTreeChanged(ctx context.Context, tx *sql.Tx, op OperationContext, treeRevision int64, changed []Identifier) error {

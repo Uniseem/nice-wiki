@@ -95,6 +95,9 @@ func publicationTx(ctx context.Context) (*sql.Tx, bool) {
 
 // PublishContentEvent只把一种发布载荷写入当前业务事务的outbox，不调用jobs。
 func PublishContentEvent(ctx context.Context, op OperationContext, input PublishContentEventInput) (PublishContentEventResult, error) {
+	if input.References != nil {
+		return PublishContentEventResult{}, platform.NewError(platform.CodeValidation, false, "发布事件不能生产旧版资源引用载荷")
+	}
 	tx, ok := publicationTx(ctx)
 	if !ok {
 		return PublishContentEventResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "发布事件只能写入当前业务事务")
@@ -109,10 +112,8 @@ func PublishContentEvent(ctx context.Context, op OperationContext, input Publish
 		payload, eventType, subject, revision, occurred = input.Changed, "content.publication.changed", input.Changed.Reference.DocumentId, int64(input.Changed.VisibilityRevision), input.Changed.OccurredAt
 	case input.Withdrawn != nil && input.Changed == nil && input.References == nil:
 		payload, eventType, subject, revision, occurred = input.Withdrawn, "content.publication.withdrawn", input.Withdrawn.DocumentID, int64(input.Withdrawn.VisibilityRevision), input.Withdrawn.OccurredAt
-	case input.References != nil && input.Changed == nil && input.Withdrawn == nil:
-		payload, eventType, subject, revision = input.References, "content.resources.changed", input.References.DocumentID, int64(input.References.SourceRevision)
 	default:
-		return PublishContentEventResult{}, platform.NewError(platform.CodeValidation, false, "发布事件必须且只能有一种载荷")
+		return PublishContentEventResult{}, platform.NewError(platform.CodeValidation, false, "发布事件只能有一种发布或撤回载荷，不能生产资源引用事件")
 	}
 	if input.Revision > 0 {
 		revision = int64(input.Revision)

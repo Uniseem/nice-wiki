@@ -413,16 +413,24 @@ func (t *draftCommitTransaction) Commit(ctx context.Context, request DraftCommit
 	if _, err := t.tx.ExecContext(work, `UPDATE draft_operation_intents SET state='committed',result_json=? WHERE site_id=? AND data_epoch=? AND operation_id=? AND state='pending'`, string(fullRaw), op.Actor.SiteID, op.DataEpoch, op.OperationID); err != nil {
 		return result, contentStorageError()
 	}
-	payload, _ := json.Marshal(struct {
-		SiteID         Identifier              `json:"siteId"`
-		DocumentID     Identifier              `json:"documentId"`
-		SourceRevision int                     `json:"sourceRevision"`
-		References     []gen.ResourceReference `json:"references"`
-		Removed        []Identifier            `json:"removedReferenceIds"`
-		DataEpoch      Identifier              `json:"dataEpoch"`
-	}{op.Actor.SiteID, plan.DocumentID, plan.SourceVersion, plan.References, []Identifier{}, op.DataEpoch})
-	if err := outbox.EnqueueEvent(t.tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.resources.changed", EventVersion: 1, Producer: "content", SubjectID: plan.DocumentID, Revision: int64(plan.SourceVersion), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
-		return result, err
+	if t.store.record.Action == "save" {
+		// 原意图中的规范材料已与事务内plan_json核对；空集合仍编码为[]。
+		payload, err := json.Marshal(struct {
+			SourceService     string                `json:"sourceService"`
+			SourceOperationID Identifier            `json:"sourceOperationId"`
+			SiteID            Identifier            `json:"siteId"`
+			SourceObjectID    Identifier            `json:"sourceObjectId"`
+			SourceRevisionID  Identifier            `json:"sourceRevisionId"`
+			SourceVersion     int                   `json:"sourceVersion"`
+			ReferenceDigest   Hash                  `json:"referenceDigest"`
+			References        []draftMediaReference `json:"references"`
+		}{"content", op.OperationID, op.Actor.SiteID, plan.DocumentID, plan.RevisionID, plan.SourceVersion, plan.ReferenceDigest, plan.MediaReferences})
+		if err != nil {
+			return result, platform.NewError(platform.CodeIntegrityError, false, "草稿资源事件载荷无法编码")
+		}
+		if err := outbox.EnqueueEvent(t.tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.resources.changed", EventVersion: 2, Producer: "content", SubjectID: plan.DocumentID, Revision: int64(plan.SourceVersion), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+			return result, err
+		}
 	}
 	err := t.tx.Commit()
 	// database/sql的Commit已终结事务；任何错误都保留原意图与pin，由真实回执重试解决。
