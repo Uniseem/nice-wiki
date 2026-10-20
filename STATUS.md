@@ -18,6 +18,10 @@ GitLab 隔离 CI 候选 `9b359c0e70ffb8857189d77dfa0adaccb00200cd` 已推送到 
 
 基于本地依赖修正提交 `7fbd7918535a3c941084a7f2b48d85d8f6d306af` 的候选已应用job731原始生成补丁；`make docs` 未产生额外差异，全仓JSON解析、`git diff --check` 与 `make privacy` 均通过。当前只保留identity barrier的预期格式改动及本次状态记录，未运行Go、测试、pnpm或`make check`，候选仍待主代理复核，不标记为verified/accepted。
 
+精确候选 `2de5fa21d40c07ae80ae69cc7c8fb96a5f8f0a3d` 已普通快进推至 GitLab 隔离分支 `codex/ci-20261020-r1-9b359c0e`，pipeline 181 结果为 failed：生成 job 736、content-media job 738、AI job 739、前端 job 740 成功；foundation job 737 在 `modules/site-config/internal/resource_reference_reader.go:88,91,95` 使用不存在的 `historyRevision.RevisionID`（生成类型字段为 `RevisionId`）时失败，`make check` 尚未执行。job 736 的 `generated.patch` 为829字节，SHA-256 `68a7a99c30d58deebf61e5003301cee95b2d9d54925ca16ee0232158d78bf024`，仅含生成的 `modules/identity/internal/gen/clients.gen.go` RegisterActivation client，已通过本地 `git apply --check` 但未应用。未推送第二个SHA，原树未作源码/合同修复。
+
+此前“结构摘要检查失败203项”只属于旧 `9b359c0e` job726 follow-up 树上直接运行的 `check_docs.py --summary`，不对应 `2de5fa21`；不能作为本轮 `make check` 结果外推。当前需另行授权后再处理 foundation 编译缺口。
+
 已从job726重新下载并应用原始`generated.patch`（SHA-256 `e56c0714c2f483045d9864e0e8e206145c1557d96bbf8686d8f49df951a93a9e`）；40个非冲突artifact路径已写入本地，两个已窄修源码路径保留本地修复。JSON、`git diff --check`、`make privacy`通过；`check_docs.py --summary`仍因203项合同类型/函数可达性/交接摘要漂移失败。未运行Go、测试、pnpm或make check，未推送新SHA。
 
 历史远端推送基线为 `b986443d0dddf5482f7c3430e3dc7c8b99a24232`，对应 pipeline 162 全绿且生成补丁 0；当前本地 `origin/main` 与 `gitlab/main` 跟踪 ref 均为 `6204dfc94510f28752fe8da81df9f3a4d3ce781d`。本地计划收尾基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，对应 pipeline 163 全绿且生成补丁 0；当前集成提交和模块候选尚未推送。
