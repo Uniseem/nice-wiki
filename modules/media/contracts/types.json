@@ -3938,7 +3938,7 @@
     },
     "ApplyReferenceEventInput": {
       "type": "object",
-      "description": "消费引用事件的完整快照。来源身份与pin相同，空集合也必须带齐；另保留eventId，不另造来源键",
+      "description": "消费content.resources.changed v2的完整pin快照。来源身份与pin相同，空集合也必须带齐；eventId仅由jobs信封映射注入，不属于v2 payload",
       "additionalProperties": false,
       "properties": {
         "references": {
@@ -3980,7 +3980,7 @@
         },
         "eventId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "去重"
+          "description": "jobs信封eventId；仅供本域inbox去重"
         }
       },
       "required": [

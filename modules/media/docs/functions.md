@@ -3049,9 +3049,9 @@ func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyRe
 
 **步骤**
 
-1. 验证生产方为已登记content、活动epoch，并用平台校验器核与pin相同的完整来源身份和引用schema；空集合也必须带sourceOperationId/siteId/sourceObjectId/sourceRevisionId/sourceVersion/referenceDigest，另保留eventId
-2. 同一事务调用platform.ClaimInbox按eventId与subject修订去重；sourceVersion低于当前水位只确认不覆写
-3. 原sourceOperationId已持久为confirmed且规范来源材料（含完整引用集合与referenceDigest）逐字相同的事件回放，按对象head水位补齐该pin的reference_entries与必要的reference_heads；不重复提升generation，低版本只保留history并返回原applied/generation结果；同版本异材料或异digest返回INTEGRITY_ERROR
+1. 验证jobs信封来自已登记content、事件版本为2且属于活动epoch；用平台校验器核ResourceReferencesChangedPayloadV2与pin相同的完整来源身份和引用schema；payload不含eventId，空集合也必须带sourceService/sourceOperationId/siteId/sourceObjectId/sourceRevisionId/sourceVersion/referenceDigest，eventId只取jobs信封
+2. 同一事务调用platform.ClaimInboxBeforeWrite按jobs信封eventId与规范payloadHash隔离去重；sourceVersion低于当前水位只确认不覆写，v1不按v2静默解码
+3. 原sourceOperationId已持久为confirmed且规范来源材料（含完整pending_pin引用集合与referenceDigest）逐字相同的事件回放，按对象head水位补齐该pin的reference_entries与必要的reference_heads；没有相交清理计划的纯修复不重复提升reference_generation，低版本只保留history并返回原applied/generation结果；若取消delete_pending清理计划触发真实保护动作，允许该动作推进asset generation；同版本异材料或异digest返回INTEGRITY_ERROR
 4. 事务把完整快照写入既有reference_heads/reference_entries并做history分类，提升generation，只取消已经存在的相交人工清理计划
 5. 已经明确终止sealed的同源修订不得由迟到事件复活；与持久终止来源矛盾时INTEGRITY_ERROR，保留原引用保护
 6. 事件认领为事务首项写入，统一ClaimInboxBeforeWrite只提交冲突隔离，不把业务错误回滚成未隔离。
@@ -3065,7 +3065,7 @@ func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyRe
 - 副作用：本域inbox与reference_heads/reference_entries同事务；不写删除许可
 - 授权：service:jobs可信事件投递
 - 并发：sourceOperation→sourceObject→asset升序→store→SQL
-- 幂等：eventId唯一+sourceversion单调+已确认完整来源材料回放
+- 幂等：jobs信封eventId+payloadHash唯一、sourceVersion单调+已确认完整来源材料回放
 - 依赖：`platform.ClaimInboxBeforeWrite`、`media.mediaWriteContext`、`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.canonicalReferenceInput`、`media.referenceBindingHash`、`media.referenceObjectAssets`、`media.referenceCleanupAssets`、`media.cancelReferenceCleanupPlans`、`media.readReferenceRecord`、`media.readReferenceAsset`、`media.advanceReferenceGeneration`、`media.writeReferenceResolution`
 
 ## media.lockReferenceKey
@@ -5844,7 +5844,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 受信安装opened epoch与真实running写窗口，启动核chunk水位；统一工厂只绑定真实已实现handler，缺其余操作失败并关本地库，不填占位
 8. WriteWindow回调第二次runtime读取先核DataEpoch：未知503，已知不等于Build打开epoch为409，再判phase/maintenance；不能只信NewWriteContext第一次view
-9. 真实raw jobs客户端同时用于原人工批准CreateJob和公共窄worker适配，生产者响应schema由本域规格别名提供；构造两个背景闭包但只在全量handler/恢复门槛成功后安装，不启动部分应用，loop/relay由平台启动和停止
+9. 真实raw jobs客户端同时用于原人工批准CreateJob、公共窄worker适配和v2事件消费适配，生产者响应及content ResourceReferencesChangedPayloadV2 schema由本域规格别名提供；构造事件消费、worker、relay三个背景闭包但只在全量handler/恢复门槛成功后安装，不启动部分应用，循环由平台启动和停止
 10. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
@@ -6277,23 +6277,23 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 
 **步骤**
 
-1. 进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json中consume登记的事件名与版本；断线按Last-Event-ID续传，1/2/4秒指数退避（上限60秒）重连
-2. 每条事件校验信封、生产方payloadSchema与dataEpoch：不在登记清单的事件隔离报警并确认；dataEpoch不等于当前active epoch时，若本域尚未换入该epoch则不确认等待重投，否则视为旧代事件记skipped并确认
-3. 按events.json该事件的handler字段调用本域处理函数；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入
+1. 进程启动后以服务身份调用jobs:subscribeEvents（durable模式SSE），只订阅本域events.json登记的content.resources.changed@2；断线按Last-Event-ID续传，公共循环负责退避与重连；v1不登记、不解码，需由上游迁移或管理重放到v2
+2. 每条事件校验jobs信封、ResourceReferencesChangedPayloadV2与dataEpoch；payload严格拒绝未知字段，eventId只来自信封，sourceObjectId/sourceVersion必须分别匹配信封subjectId/revision；旧代事件按公共循环规则等待或跳过确认
+3. 按events.json的handler字段调用本域映射；映射只把v2完整pending_pin数组和来源字段转为ApplyReferenceEventInput，并注入信封eventId，不把条目改成current/confirmed或重算referenceDigest；处理函数在同一本地事务内完成inbox(eventId+payloadHash)去重、subject revision单调检查与业务写入
 4. 处理函数成功提交（含重复或低revision的无操作）后才调用jobs:acknowledgeEvent；失败不确认，等jobs确认租约到期重投，连续失败由jobs转dead-letter供管理重放
 5. 屏障draining时停止领取新事件，等在途处理完成后报告安全点；维护期间不确认未处理事件
 
 **错误**
 
 - `DEPENDENCY_UNAVAILABLE`：jobs订阅或确认不可用；重连后续传（可重试）
-- `VALIDATION`：事件信封或载荷不符合登记schema；隔离并确认（不可重试）
+- `VALIDATION`：事件信封或v2载荷不符合登记schema；拒绝按v2解码并交jobs重试或死信（不可重试）
 - `INTEGRITY_ERROR`：同eventId异payloadHash；隔离报警（不可重试）
 
 - 副作用：HTTP长连接jobs:subscribeEvents；调用本域登记的事件处理函数；HTTP调用jobs:acknowledgeEvent
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责
-- 幂等：jobs至少一次投递；本域inbox按eventId+payloadHash去重，重复投递只重新确认
-- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`media.ApplyReferenceEvent`、`platform.RunConsumer`
+- 幂等：jobs至少一次投递；本域inbox按信封eventId+payloadHash去重，重复投递只重新确认
+- 依赖：`jobs:subscribeEvents`、`jobs:acknowledgeEvent`、`media.ApplyReferenceEvent`、`platform.NewEventConsumer`、`platform.NewPayloadValidator`、`platform.RunConsumer`
 
 ## media.RunWorker
 
@@ -6441,10 +6441,10 @@ func NewCleanupWorkerClient(client *gen.JobsClient) (platform.WorkerJobsClient, 
 
 - 级别：参考
 - 文件：`modules/media/internal/worker.go`
-- 作用：只构造两个可信背景任务：平台worker和统一周期调用本域relay单批，未完整装配不启动
+- 作用：只构造三个可信背景任务：事件消费、平台worker和统一周期调用本域relay单批，未完整装配不启动
 
 ```go
-func NewMediaBackgroundTasks(op OperationContext, jobs platform.WorkerJobsClient) ([]platform.BackgroundTask, error)
+func NewMediaBackgroundTasks(op OperationContext, jobs *gen.JobsClient) ([]platform.BackgroundTask, error)
 ```
 
 **输入**
@@ -6457,7 +6457,8 @@ func NewMediaBackgroundTasks(op OperationContext, jobs platform.WorkerJobsClient
 
 **步骤**
 
-1. 只构造两个可信背景任务：平台worker和统一周期调用本域relay单批，未完整装配不启动
+1. 校验真实jobs客户端、严格确认回执schema与v2事件payload schema；用公共inbox.RunConsumer装配content.resources.changed@2订阅，v1明确拒绝，不在映射层改写pending_pin引用或重算digest
+2. 只构造三个可信背景任务：事件消费、平台worker和统一周期调用本域relay单批；事件处理成功提交本域inbox/reference_heads/reference_entries后才确认jobs，未完整装配不启动
 
 **错误**
 
@@ -6467,7 +6468,7 @@ func NewMediaBackgroundTasks(op OperationContext, jobs platform.WorkerJobsClient
 - 授权：仅受信启动或平台生命周期；不提供HTTP/浏览器入口
 - 并发：初始化顺序装配；任务由平台取消/等待，Drain不关库，Shutdown最后关闭
 - 幂等：保留原任务/事件/决定；不产生新人工批准，不执行时不产生业务副作用
-- 依赖：`media.cleanupStore`、`media.RunWorker`、`media.RelayOutbox`、`platform.RunRecoveryLoop`
+- 依赖：`media.cleanupStore`、`media.NewCleanupWorkerClient`、`platform.NewEventConsumer`、`platform.RunConsumer`、`media.ConsumeEvents`、`media.RunWorker`、`media.RelayOutbox`、`platform.RunRecoveryLoop`
 
 ## media.All
 

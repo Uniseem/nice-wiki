@@ -21,7 +21,7 @@
 
 | 事件 | 版本 | 处理函数 | 作用 |
 |---|---|---|---|
-| `content.resources.changed` | 1 | `media.ApplyReferenceEvent` | 更新当前/历史refs，不以迟到事件替代最终权威检查 |
+| `content.resources.changed` | 2 | `media.ApplyReferenceEvent` | 消费content提交后发出的完整pin材料，更新当前/历史refs，不以迟到事件替代最终权威检查 |
 
 ### 异步任务
 
@@ -59,7 +59,7 @@
 
 本轮完成链：当前media.upload/已打开epoch → 固定原完成回执 → 新操作running窗口/owner/site/创建epoch/receiving/到期/revision/已收齐 → SQL chunk前缀/完整SHA → MIME与SVG/scene语义 → PREPARED → 复制同时核hash/length → file fsync/rename/两目录fsync → 再核运行窗口 → 同事务ready+complete CAS+COMMITTED+原回执+新资源outbox。校验拒绝只持久blocked及原安全错误，不造ready。原回执不重做新写窗口；所有未提交写入都必须通过公共窗口。完整HTTP、引用pins、公开bytes、RelayOutbox/后台及业务验收仍未完成。
 
-两轮并行第一轮引用：可信content/site-config纯服务 → 已打开epoch与完整pending材料/规范摘要 → 源互斥 → sealed/异材料拒绝或原pin回放 → assetId稳定锁 → store提交互斥 → 公共running写窗口 → SQL内来源复核与真实ready/站点/精确版本/hash/长度/MIME/fence → fence+generation CAS和至少24h pin原结果同事务。空集合走同一来源协议。delete_pending一律失败关闭；尚未实现真实计划取消、Confirm/Release与引用事件，完整服务仍不可运行。
+两轮并行第一轮引用：可信content/site-config纯服务 → 已打开epoch与完整pending材料/规范摘要 → 源互斥 → sealed/异材料拒绝或原pin回放 → assetId稳定锁 → store提交互斥 → 公共running写窗口 → SQL内来源复核与真实ready/站点/精确版本/hash/长度/MIME/fence → fence+generation CAS和至少24h pin原结果同事务。空集合走同一来源协议。delete_pending仍按真实清理计划保护；本轮已补齐content.resources.changed@2的完整pending_pin消费映射，v1不静默解码，content v2生产合同与jobs订阅配置待集成。
 
 第二轮Confirm/Release：本域当前epoch/可信来源与原材料 → 原终局回执优先 → 无锁固定源决定API与共享schema → 完整材料和明确committed或aborted/rejected → 无锁重新runtime写窗口 → sourceOperation/sourceObject互斥 → 完整受影响asset稳定锁 → store互斥 → SQL内重核来源/终局 → 单调current/history或sealed与原回执同事务。低版本提交历史不丢弃，空集合推进head，无pin终止仍封存，原pin_assets保留，pending/404/未知永不释放。真实清理计划取消仍未实现，Acquire/Confirm保持partial，完整服务仍blocked。
 

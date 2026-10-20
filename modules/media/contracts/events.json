@@ -16,15 +16,15 @@
     },
     {
       "name": "content.resources.changed",
-      "version": 1,
+      "version": 2,
       "direction": "consume",
       "payloadSchema": {
-        "$ref": "../../content/contracts/types.json#/$defs/ResourceReferencesChangedPayload"
+        "$ref": "../../content/contracts/types.json#/$defs/ResourceReferencesChangedPayloadV2"
       },
-      "purpose": "更新当前/历史refs，不以迟到事件替代最终权威检查",
+      "purpose": "消费content提交后发出的完整pin材料，更新当前/历史refs，不以迟到事件替代最终权威检查",
       "delivery": "at-least-once",
-      "ordering": "sourceRevision单调，低版只ack",
-      "idempotency": "eventId+sourceVersion去重",
+      "ordering": "sourceVersion单调，低版只确认；subject/revision来自jobs信封",
+      "idempotency": "jobs信封eventId+payloadHash去重，sourceVersion单调",
       "handler": "media.ApplyReferenceEvent"
     }
   ]

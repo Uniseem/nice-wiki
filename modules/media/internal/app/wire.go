@@ -88,10 +88,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := mediaDomain.InstallCleanupJobsClient(jobs); err != nil {
 		return nil, err
 	}
-	workerJobs, err := mediaDomain.NewCleanupWorkerClient(jobs)
-	if err != nil {
-		return nil, err
-	}
 	if err := mediaDomain.InstallAssetListingKey(key); err != nil {
 		return nil, err
 	}
@@ -127,7 +123,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	background, err := mediaDomain.NewMediaBackgroundTasks(startup, workerJobs)
+	background, err := mediaDomain.NewMediaBackgroundTasks(startup, jobs)
 	if err != nil {
 		return nil, err
 	}

@@ -154,7 +154,7 @@ func NewCleanupWorkerClient(client *gen.JobsClient) (platform.WorkerJobsClient, 
 }
 
 // NewMediaBackgroundTasks仅构造闭包，完整应用门槛失败时不会启动任何业务后台。
-func NewMediaBackgroundTasks(op OperationContext, jobs platform.WorkerJobsClient) ([]platform.BackgroundTask, error) {
+func NewMediaBackgroundTasks(op OperationContext, jobs *gen.JobsClient) ([]platform.BackgroundTask, error) {
 	if op.CallerService != "media" || op.Actor.Kind != "service" || op.Actor.SubjectID != "media" {
 		return nil, platform.NewError(platform.CodeForbidden, false, "资源后台装配仅接受本域可信启动")
 	}
@@ -165,9 +165,30 @@ func NewMediaBackgroundTasks(op OperationContext, jobs platform.WorkerJobsClient
 	if jobs == nil || s.cleanupJobs == nil || s.window.Runtime == nil || s.window.WriteWindow == nil {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "资源后台真实客户端或窗口未装配")
 	}
+	workerJobs, err := NewCleanupWorkerClient(jobs)
+	if err != nil {
+		return nil, err
+	}
+	eventClient, err := newMediaEventConsumer(jobs)
+	if err != nil {
+		return nil, err
+	}
+	eventAdmission := newMediaEventAdmission(s.window)
 	return []platform.BackgroundTask{
+		{Name: "media.ConsumeEvents", Run: func(ctx context.Context) error {
+			work := platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op)
+			_, err := ConsumeEvents(work, op, ConsumeEventsInput{
+				Client:        eventClient,
+				Runtime:       s.window.Runtime,
+				AdmitBatch:    eventAdmission,
+				AdmitDelivery: eventAdmission,
+				ConsumerID:    "media",
+				MaxInFlight:   4,
+			})
+			return err
+		}},
 		{Name: "media.RunWorker", Run: func(ctx context.Context) error {
-			_, err := RunWorker(ctx, op, WorkerLoopInput{MaxConcurrency: 2, Client: jobs})
+			_, err := RunWorker(ctx, op, WorkerLoopInput{MaxConcurrency: 2, Client: workerJobs})
 			return err
 		}},
 		{Name: "media.RelayOutbox", Run: func(ctx context.Context) error {

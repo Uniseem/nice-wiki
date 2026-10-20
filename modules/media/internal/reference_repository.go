@@ -661,8 +661,8 @@ type referenceHeadView struct {
 	Digest      Hash
 }
 
-// ApplyReferenceEvent 把完整来源快照写入既有 reference_heads/reference_entries。
-// 订阅循环尚未接通：生产方载荷还不能解码成这个输入。
+// ApplyReferenceEvent 把v2完整来源快照写入既有 reference_heads/reference_entries。
+// eventId由订阅映射从jobs信封注入，references保留content提交时的pending_pin材料。
 func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyReferenceEventInput) (ApplyReferenceEventResult, error) {
 	if err := authorizeReferenceEvent(op, input); err != nil {
 		return ApplyReferenceEventResult{}, err
@@ -733,14 +733,21 @@ func prepareReferenceEvent(s *localBlobStore, op OperationContext, input ApplyRe
 }
 
 func (s *localBlobStore) commitReferenceEvent(ctx context.Context, op OperationContext, input ApplyReferenceEventInput, material AcquireResourceReferencesInput, binding Hash, assets, affected, locked []gen.AssetVersionRef, plans []Identifier) (ApplyReferenceEventResult, error) {
-	payloadInput := input
-	payloadInput.References = material.References
-	payload, err := platform.CanonicalJSON(payloadInput)
+	payload, err := platform.CanonicalJSON(resourceReferencesChangedPayloadV2{
+		References:        material.References,
+		SourceService:     input.SourceService,
+		SourceOperationId: input.SourceOperationId,
+		SiteId:            input.SiteId,
+		SourceObjectId:    input.SourceObjectId,
+		SourceRevisionId:  input.SourceRevisionId,
+		SourceVersion:     input.SourceVersion,
+		ReferenceDigest:   input.ReferenceDigest,
+	})
 	if err != nil {
 		return ApplyReferenceEventResult{}, err
 	}
 	// OccurredAt只满足信封格式；ClaimInbox的去重哈希只覆盖规范后的消费者输入。
-	envelope := platform.EventEnvelope{EventID: input.EventId, EventType: "content.resources.changed", EventVersion: 1, Producer: input.SourceService, SubjectID: input.SourceObjectId, Revision: int64(input.SourceVersion), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: json.RawMessage(payload)}
+	envelope := platform.EventEnvelope{EventID: input.EventId, EventType: "content.resources.changed", EventVersion: 2, Producer: input.SourceService, SubjectID: input.SourceObjectId, Revision: int64(input.SourceVersion), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: json.RawMessage(payload)}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return ApplyReferenceEventResult{}, mapMediaDBError(err, "开始引用事件事务失败")
@@ -934,6 +941,9 @@ func ensureReferenceEntries(ctx context.Context, tx *sql.Tx, material AcquireRes
 	}
 	if err := rows.Err(); err != nil {
 		return mapMediaDBError(err, "遍历确认引用集合失败")
+	}
+	if err := rows.Close(); err != nil {
+		return mapMediaDBError(err, "关闭确认引用集合读取失败")
 	}
 	if len(actual) > len(expected) {
 		return platform.NewError(platform.CodeIntegrityError, false, "确认引用集合数量损坏")
