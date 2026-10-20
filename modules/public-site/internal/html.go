@@ -20,12 +20,14 @@ type ComposeHTMLInput struct {
 	Previous     []Breadcrumb
 	Next         []Breadcrumb
 	Announcement string
+	Languages    []LanguageLink
 	Footer       string
 	Untranslated bool
 	AIEnabled    bool
 	AskURL       string
 	MarkdownURL  string
 }
+type LanguageLink struct{ Tag, Href string }
 type ComposeHTMLResult struct{ HTML string }
 
 // ComposeHTML 正文、导航及目录由 Go 完整输出，脚本只增强交互。
@@ -41,7 +43,20 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 	} else {
 		output.WriteString("<span title=\"尚未配置 AI 能力\">AI 未启用</span>")
 	}
-	output.WriteString("<span>" + html.EscapeString(in.Locale) + "</span><button type=\"button\" data-theme-toggle>亮 / 暗</button></header><div class=\"layout\"><nav class=\"tree\" aria-label=\"文档树\">")
+	if len(in.Languages) > 1 {
+		output.WriteString("<select aria-label=\"语言\" onchange=\"location.href=this.value\">")
+		for _, link := range in.Languages {
+			selected := ""
+			if link.Tag == in.Locale {
+				selected = " selected"
+			}
+			output.WriteString("<option value=\"" + html.EscapeString(link.Href) + "\"" + selected + ">" + html.EscapeString(link.Tag) + "</option>")
+		}
+		output.WriteString("</select>")
+	} else {
+		output.WriteString("<span>" + html.EscapeString(in.Locale) + "</span>")
+	}
+	output.WriteString("<button type=\"button\" data-theme-toggle>亮 / 暗</button></header><div class=\"layout\"><nav class=\"tree\" aria-label=\"文档树\">")
 	nodes, err := navigationOrder(in.Navigation)
 	if err != nil {
 		return ComposeHTMLResult{}, err

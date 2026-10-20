@@ -247,6 +247,7 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		DocumentID:   node.DocumentID,
 		MarkdownURL:  node.CanonicalPath + ".md",
 		Announcement: loadAnnouncement(ctx, op),
+		Languages:    languageLinks(ctx, node.CanonicalPath, locale),
 		AIEnabled:    qaAvailable(ctx, op),
 		AskURL:       "/" + locale + "/ask",
 	})

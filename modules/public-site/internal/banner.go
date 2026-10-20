@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/url"
+	"sort"
+	"strings"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -79,4 +81,27 @@ func loadAnnouncement(ctx context.Context, op platform.OperationContext) string 
 func qaAvailable(ctx context.Context, op platform.OperationContext) bool {
 	directory, err := directoryFrom(ctx)
 	return err == nil && directory.QA.Available(ctx, op)
+}
+
+// languageLinks 列出已启用语言各自对应的本页地址（把路径开头的语言段换掉）；少于两种语言时返回空。
+func languageLinks(ctx context.Context, canonicalPath, current string) []LanguageLink {
+	directory, err := directoryFrom(ctx)
+	if err != nil || directory.Localization == nil || !strings.HasPrefix(canonicalPath, "/"+current+"/") {
+		return nil
+	}
+	snapshot, err := readLanguageSnapshot(ctx, directory.Localization)
+	if err != nil || len(snapshot.versions) < 2 {
+		return nil
+	}
+	tags := make([]string, 0, len(snapshot.versions))
+	for tag := range snapshot.versions {
+		tags = append(tags, tag)
+	}
+	sort.Strings(tags)
+	rest := strings.TrimPrefix(canonicalPath, "/"+current)
+	links := make([]LanguageLink, 0, len(tags))
+	for _, tag := range tags {
+		links = append(links, LanguageLink{Tag: tag, Href: "/" + tag + rest})
+	}
+	return links
 }
