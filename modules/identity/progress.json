@@ -2,13 +2,13 @@
   "version": 1,
   "module": "identity",
   "phase": "implementation",
-  "contractSha256": "9c159b23a2ca710341aeaa5af06e5d3c45224873b99f6561ae99ecee4cd53b58",
+  "contractSha256": "38fa95a0659d46912dfeab9b5657870876d8ae3ea39e051284eca51472970969",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-F01 identity 接管：屏障/快照/归档与真实保护装配",
-  "branch": "codex/resume-20261020-identity",
-  "baseCommit": "5466c47d22249c224d57009a329786f1d019fa80",
-  "deliveryCommit": "5962be0953753b7fc88c990362da60c20260926d",
-  "rule": "本轮先合并main=6204dfc9（merge 111281ed5f6458f663de719c124ca8ab5eab5809），再收紧restoreIdentityAfterSwap对真实RegisterActivation响应的核对，并将恢复迁移调用对齐集成树的outbox.MigrateRestoredDatabase。未通过GitLab CI的新改Go函数均保持in_progress或blocked；公共SignActivationReceipt、分阶段VerifyGlobalSeal与CI仍按具体缺口阻塞，accepted=0。非jobs只核真实协调阶段和同一proof，不等待最终broker；jobs最后才核13域回执及最终broker水位。公共合同ID仍待根集成代理审查，本域implementation.json暂保留platform.MigrateRestoredDatabase登记。",
+  "assignedSession": "R1-F01 identity 结构收口：真实依赖、私有类型与交接台账",
+  "branch": "codex/structure-identity-20261020",
+  "baseCommit": "6f25dd57386081b5903bc6c02f448ea769466618",
+  "deliveryCommit": "6f25dd57386081b5903bc6c02f448ea769466618",
+  "rule": "本轮从候选6f25dd57386081b5903bc6c02f448ea769466618新建identity独占工作树；按真实源码补齐readJournal、启动/HTTP/后台/恢复/SnapshotManager调用依赖，implementation机器合同使用platform.RegisterWorkTable/platform.MigrateRestoredDatabase，Go调用保留outbox包。types.json只登记identity私有Store与RestoreArchiveClient，不复制公共platform/lifecycle/gen或标准库类型。未通过GitLab CI的新改合同/台账保持in_progress或blocked；checker限定包名、标准库语法和reference签名误报由唯一集成代理修正，accepted=0。",
   "deployment": "not_started",
   "files": [
     {
@@ -169,7 +169,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "恢复迁移调用已对齐集成树outbox.MigrateRestoredDatabase；本域implementation.json仍登记platform.MigrateRestoredDatabase，待根公共合同审查统一修改；全域VerifyGlobalSeal仍失败关闭，未运行GitLab CI"
+      "blocker": "实际Go调用为outbox.MigrateRestoredDatabase；机器合同依赖已登记platform.MigrateRestoredDatabase/platform.RegisterWorkTable；全域VerifyGlobalSeal仍失败关闭，未运行GitLab CI"
     },
     {
       "path": "modules/identity/internal/storage.go",
@@ -1585,12 +1585,13 @@
 {"id":"identity.captureIdentitySnapshot","path":"modules/identity/internal/snapshot_service.go","state":"in_progress","implementationCommit":"f2806d4ba5c5dda35b6b05c0ab49d456d765b69d","verification":{"state":"not_run","evidence":null},"blocker":"捕获前后使用同库真实workRevision；待公共实现合入与CI"},
     {"id":"identity.validateIdentitySnapshotManifest","path":"modules/identity/internal/snapshot_service.go","state":"in_progress","implementationCommit":"7720ba1d","verification":{"state":"not_run","evidence":null},"blocker":"未运行GitLab CI"},
     {"id":"identity.identityStageBudget","path":"modules/identity/internal/snapshot_service.go","state":"in_progress","implementationCommit":"7720ba1d","verification":{"state":"not_run","evidence":null},"blocker":"未运行GitLab CI"},
-{"id":"identity.migrateIdentityStage","path":"modules/identity/internal/snapshot_service.go","state":"in_progress","implementationCommit":"5962be0953753b7fc88c990362da60c20260926d","verification":{"state":"not_run","evidence":null},"blocker":"源码已调用集成树的outbox.MigrateRestoredDatabase；本域implementation.json的platform合同ID待根公共合同审查统一修改；未运行GitLab CI"},
+{"id":"identity.migrateIdentityStage","path":"modules/identity/internal/snapshot_service.go","state":"in_progress","implementationCommit":"5962be0953753b7fc88c990362da60c20260926d","verification":{"state":"not_run","evidence":null},"blocker":"实际Go调用为outbox.MigrateRestoredDatabase，机器合同依赖为platform.MigrateRestoredDatabase/platform.RegisterWorkTable；未运行GitLab CI"},
     {"id":"identity.validateIdentityStaged","path":"modules/identity/internal/snapshot_service.go","state":"in_progress","implementationCommit":"7720ba1d","verification":{"state":"not_run","evidence":null},"blocker":"未运行GitLab CI；activation receipt仍未接入"},
     {"id":"identity.openIdentitySnapshotDB","path":"modules/identity/internal/snapshot_service.go","state":"in_progress","implementationCommit":"7720ba1d","verification":{"state":"not_run","evidence":null},"blocker":"未运行GitLab CI"},
-{"id":"identity.migrateIdentitySnapshotDB","path":"modules/identity/internal/snapshot_service.go","state":"in_progress","implementationCommit":"5962be0953753b7fc88c990362da60c20260926d","verification":{"state":"not_run","evidence":null},"blocker":"源码已调用集成树的outbox.MigrateRestoredDatabase；本域implementation.json的platform合同ID待根公共合同审查统一修改；未运行GitLab CI"},
+{"id":"identity.migrateIdentitySnapshotDB","path":"modules/identity/internal/snapshot_service.go","state":"in_progress","implementationCommit":"5962be0953753b7fc88c990362da60c20260926d","verification":{"state":"not_run","evidence":null},"blocker":"实际Go调用为outbox.MigrateRestoredDatabase，机器合同依赖为platform.MigrateRestoredDatabase/platform.RegisterWorkTable；未运行GitLab CI"},
     {"id":"identity.validateIdentitySnapshotDatabase","path":"modules/identity/internal/snapshot_service.go","state":"in_progress","implementationCommit":"7720ba1d","verification":{"state":"not_run","evidence":null},"blocker":"认证代次与数据代次已分开校验；未运行GitLab CI"},
-{"id":"identity.EnsureOutbox","path":"modules/identity/internal/storage.go","state":"in_progress","implementationCommit":"f2806d4ba5c5dda35b6b05c0ab49d456d765b69d","verification":{"state":"not_run","evidence":null},"blocker":"启动后登记全部identity业务work表；待公共实现合入与CI"},
+    {"id":"identity.readJournal","path":"modules/identity/internal/storage.go","state":"in_progress","implementationCommit":"6f25dd57386081b5903bc6c02f448ea769466618","verification":{"state":"not_run","evidence":null},"blocker":"真实控制日志读取助手已登记；待结构检查器修正限定类型解析及GitLab CI"},
+    {"id":"identity.EnsureOutbox","path":"modules/identity/internal/storage.go","state":"in_progress","implementationCommit":"f2806d4ba5c5dda35b6b05c0ab49d456d765b69d","verification":{"state":"not_run","evidence":null},"blocker":"启动后登记全部identity业务work表；机器合同使用platform.RegisterWorkTable，待公共实现合入与CI"},
     {"id":"identity.SnapshotManager","path":"modules/identity/internal/transport/server.go","state":"in_progress","implementationCommit":"7720ba1d","verification":{"state":"not_run","evidence":null},"blocker":"BuildApplication仍受真实全域封口、activation receipt与CI阻塞"},
     {"id":"identity.validSuperadminDelegation","path":"modules/identity/internal/snapshot_archive.go","state":"in_progress","implementationCommit":"7720ba1d","verification":{"state":"not_run","evidence":null},"blocker":"未运行GitLab CI；委托仅接受已验证admin主体、站点、会话与superadmin grant"},
     {"id":"identity.restoreIdentityAfterSwap","path":"modules/identity/internal/app/wire.go","state":"blocked","implementationCommit":"e6c131dfbbb1bf117e60c6eaca1faa5b3a809743","verification":{"state":"not_run","evidence":null},"blocker":"已接真实RegisterActivation并核对site-config持久回执；待集成代理提供serviceauth.SignActivationReceipt公共实现、分阶段VerifyGlobalSeal端口并跑GitLab CI"},
@@ -1604,5 +1605,5 @@
     {"id":"identity.BackgroundTasks","path":"modules/identity/internal/transport/server.go","state":"in_progress","implementationCommit":"5466c47d22249c224d57009a329786f1d019fa80","verification":{"state":"not_run","evidence":null},"blocker":"源码已落盘；未运行GitLab CI，待统一验证"},
     {"id":"identity.InstallBackgroundTasks","path":"modules/identity/internal/transport/server.go","state":"in_progress","implementationCommit":"5466c47d22249c224d57009a329786f1d019fa80","verification":{"state":"not_run","evidence":null},"blocker":"源码已落盘；未运行GitLab CI，待统一验证"}
   ],
-  "rule": "本轮已接通identity业务表work gate、同库真实revision、公共隔离恢复迁移、屏障状态读取、恢复会话失效与后台装配合同，并收紧真实RegisterActivation响应核对；未新增迁移或产品能力。未通过GitLab CI的新改Go函数均保持in_progress或blocked；公共SignActivationReceipt、分阶段VerifyGlobalSeal、公共实现合入与CI仍按具体缺口阻塞，accepted=0。非jobs只核真实协调阶段和同一proof，不等待最终broker；jobs最后才核13域回执及最终broker水位。"
+  "rule": "本轮已按真实源码补齐identity结构依赖、登记readJournal并同步私有类型与交接；未新增产品能力、迁移或公共实现。未通过GitLab CI的新改合同/台账保持in_progress或blocked；公共SignActivationReceipt、分阶段VerifyGlobalSeal与CI仍按具体缺口阻塞，accepted=0。非jobs只核真实协调阶段和同一proof，不等待最终broker；jobs最后才核13域回执及最终broker水位。"
 }
