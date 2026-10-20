@@ -15,7 +15,24 @@ const controller = new AbortController();
 const signal = AbortSignal.any([controller.signal, props.parentSignal]);
 let operationId = '', operationInput = '';
 onBeforeUnmount(() => controller.abort());
-onMounted(() => { if (canManage.value) void loadBackups(false); });
+const keepCount = ref(7), scheduleSaved = ref('');
+onMounted(() => { if (canManage.value) { void loadBackups(false); void loadSchedule(); } });
+async function loadSchedule(): Promise<void> {
+  try {
+    const settings = await props.bootstrap.apiClient.request<components['schemas']['ReadProtectionSettingsResult']>('/v1/settings', { signal });
+    if (settings.schedule && !signal.aborted) { keepCount.value = settings.schedule.keepCount; scheduleSaved.value = `已开启：每天 03:00（${settings.schedule.timezone}）自动备份，保留 ${settings.schedule.keepCount} 份。`; }
+  } catch { /* 读取失败不影响手动备份 */ }
+}
+async function saveSchedule(): Promise<void> {
+  if (busy.value || !canManage.value) return;
+  busy.value = true; error.value = '';
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    await props.bootstrap.apiClient.request('/v1/local-backup-schedule', { method: 'PUT', body: { keepCount: keepCount.value, timezone }, signal, idempotencyKey: crypto.randomUUID() });
+    if (!signal.aborted) { scheduleSaved.value = `已开启：每天 03:00（${timezone}）自动备份，保留 ${keepCount.value} 份。`; }
+  } catch (problem) { failBackup(problem); }
+  finally { if (!signal.aborted) busy.value = false; }
+}
 
 function failBackup(problem: unknown): void {
   if (signal.aborted) return;
@@ -82,6 +99,11 @@ async function downloadBackup(backup: Backup): Promise<void> {
       <form @submit.prevent="submitBackup">
         <label v-if="isSuperadmin"><input v-model="includeSecrets" type="checkbox" :disabled="busy">包含密钥和敏感配置</label>
         <button type="submit" :disabled="busy">{{ busy ? '正在提交…' : '创建完整备份' }}</button>
+      </form>
+      <form @submit.prevent="saveSchedule">
+        <label>每日自动备份，保留份数 <input v-model.number="keepCount" type="number" min="1" max="60" :disabled="busy"></label>
+        <button type="submit" :disabled="busy">保存自动备份设置</button>
+        <p v-if="scheduleSaved" role="status">{{ scheduleSaved }}</p>
       </form>
       <p role="status">{{ notice }}</p><p v-if="error" role="alert">{{ error }}</p>
       <button :disabled="loading" @click="loadBackups(false)">刷新备份目录</button>

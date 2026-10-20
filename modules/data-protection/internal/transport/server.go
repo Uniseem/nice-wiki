@@ -195,6 +195,7 @@ func Serve(ctx context.Context, app *Application) error {
 		return platform.NewError(platform.CodeConflict, false, "同Application重复启动Serve")
 	}
 	app.state.Store(stateReady)
+	go (&server{app: app}).runSchedule(ctx)
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -438,7 +439,24 @@ func (s *server) ConfigureRemote(w http.ResponseWriter, r *http.Request, _ gen.C
 }
 
 func (s *server) ScheduleLocalBackup(w http.ResponseWriter, r *http.Request, _ gen.ScheduleLocalBackupParams) {
-	writeUnavailable(w, r)
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信操作上下文"))
+		return
+	}
+	var body gen.ScheduleLocalBackupRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeProblem(w, r, platform.NewError(platform.CodeValidation, false, "自动备份设置正文不可读"))
+		return
+	}
+	result, err := s.simpleSchedule(op, body)
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) BuildMirror(w http.ResponseWriter, r *http.Request, _ gen.BuildMirrorParams) {
@@ -503,6 +521,9 @@ func (s *server) ReadProtectionSettings(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		writeProblem(w, r, err)
 		return
+	}
+	if schedule, ok := s.readSchedule(); ok {
+		result.Schedule = &protection.ProtectionScheduleSettings{Timezone: schedule.Timezone, KeepCount: int64(schedule.KeepCount), ScheduleID: schedule.ScheduleID, Revision: schedule.Revision}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")

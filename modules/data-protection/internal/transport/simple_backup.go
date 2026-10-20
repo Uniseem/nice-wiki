@@ -61,20 +61,28 @@ func (s *server) simpleCreateBackup(ctx context.Context, op platform.OperationCo
 	if op.Actor.Kind != "admin" {
 		return gen.CreateBackupResult{}, platform.NewError(platform.CodeForbidden, false, "只有后台管理员可以创建备份")
 	}
+	id, err := s.createBackup(ctx)
+	if err != nil {
+		return gen.CreateBackupResult{}, err
+	}
+	return gen.CreateBackupResult{BackupId: id, Job: gen.AcceptedJob{JobId: platform.NewIdentifier(), OperationId: op.OperationID, State: "succeeded"}}, nil
+}
+
+func (s *server) createBackup(ctx context.Context) (string, error) {
 	if len(s.app.config.BackupSources) == 0 {
-		return gen.CreateBackupResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "未配置备份来源目录")
+		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "未配置备份来源目录")
 	}
 	backupMu.Lock()
 	defer backupMu.Unlock()
 	id := platform.NewIdentifier()
 	dir := filepath.Join(s.backupRoot(), id)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return gen.CreateBackupResult{}, platform.NewError(platform.CodeInternal, true, "无法创建备份目录")
+		return "", platform.NewError(platform.CodeInternal, true, "无法创建备份目录")
 	}
 	manifest, err := writeBackupArchive(ctx, filepath.Join(dir, "backup.zip"), s.app.config.BackupSources)
 	if err != nil {
 		_ = os.RemoveAll(dir)
-		return gen.CreateBackupResult{}, err
+		return "", err
 	}
 	manifest.BackupID = id
 	manifest.CreatedAt = time.Now().UTC().Format(time.RFC3339)
@@ -83,9 +91,9 @@ func (s *server) simpleCreateBackup(ctx context.Context, op platform.OperationCo
 	raw, _ := json.Marshal(manifest)
 	if err := os.WriteFile(filepath.Join(dir, "manifest.json"), raw, 0o600); err != nil {
 		_ = os.RemoveAll(dir)
-		return gen.CreateBackupResult{}, platform.NewError(platform.CodeInternal, true, "无法写入备份清单")
+		return "", platform.NewError(platform.CodeInternal, true, "无法写入备份清单")
 	}
-	return gen.CreateBackupResult{BackupId: id, Job: gen.AcceptedJob{JobId: platform.NewIdentifier(), OperationId: op.OperationID, State: "succeeded"}}, nil
+	return id, nil
 }
 
 func writeBackupArchive(ctx context.Context, target string, sources map[string]string) (backupManifest, error) {
@@ -276,4 +284,93 @@ func (s *server) simpleStreamBackup(w http.ResponseWriter, r *http.Request, id s
 	w.Header().Set("Cache-Control", "no-store")
 	_, _ = io.Copy(w, f)
 	return nil
+}
+
+// 每日本地备份：配置存成 simple-backups/schedule.json，后台每分钟检查一次，
+// 当天（所选时区）03:00 之后还没有新备份就创建一份，并按 keepCount 删除最旧的。
+type backupSchedule struct {
+	ScheduleID string `json:"scheduleId"`
+	KeepCount  int    `json:"keepCount"`
+	Timezone   string `json:"timezone"`
+	Revision   int64  `json:"revision"`
+}
+
+func (s *server) readSchedule() (backupSchedule, bool) {
+	raw, err := os.ReadFile(filepath.Join(s.backupRoot(), "schedule.json"))
+	if err != nil {
+		return backupSchedule{}, false
+	}
+	var schedule backupSchedule
+	if json.Unmarshal(raw, &schedule) != nil {
+		return backupSchedule{}, false
+	}
+	return schedule, true
+}
+
+func (s *server) simpleSchedule(op platform.OperationContext, body gen.ScheduleLocalBackupRequestBody) (gen.ScheduleLocalBackupResult, error) {
+	if op.Actor.Kind != "admin" {
+		return gen.ScheduleLocalBackupResult{}, platform.NewError(platform.CodeForbidden, false, "只有后台管理员可以设置自动备份")
+	}
+	if body.KeepCount < 1 || body.KeepCount > 60 {
+		return gen.ScheduleLocalBackupResult{}, platform.NewError(platform.CodeValidation, false, "保留份数需在 1 到 60 之间")
+	}
+	if _, err := time.LoadLocation(body.Timezone); err != nil {
+		return gen.ScheduleLocalBackupResult{}, platform.NewError(platform.CodeValidation, false, "时区不合法")
+	}
+	schedule, ok := s.readSchedule()
+	if !ok {
+		schedule.ScheduleID = platform.NewIdentifier()
+	}
+	schedule.KeepCount, schedule.Timezone, schedule.Revision = body.KeepCount, body.Timezone, schedule.Revision+1
+	raw, _ := json.Marshal(schedule)
+	if err := os.MkdirAll(s.backupRoot(), 0o700); err != nil {
+		return gen.ScheduleLocalBackupResult{}, platform.NewError(platform.CodeInternal, true, "无法创建备份目录")
+	}
+	if err := os.WriteFile(filepath.Join(s.backupRoot(), "schedule.json"), raw, 0o600); err != nil {
+		return gen.ScheduleLocalBackupResult{}, platform.NewError(platform.CodeInternal, true, "无法保存自动备份设置")
+	}
+	return gen.ScheduleLocalBackupResult{ScheduleId: schedule.ScheduleID}, nil
+}
+
+func (s *server) runSchedule(ctx context.Context) {
+	tick := time.NewTicker(time.Minute)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+			s.scheduledBackupOnce(ctx)
+		}
+	}
+}
+
+func (s *server) scheduledBackupOnce(ctx context.Context) {
+	schedule, ok := s.readSchedule()
+	if !ok || len(s.app.config.BackupSources) == 0 {
+		return
+	}
+	loc, err := time.LoadLocation(schedule.Timezone)
+	if err != nil {
+		return
+	}
+	now := time.Now().In(loc)
+	due := time.Date(now.Year(), now.Month(), now.Day(), 3, 0, 0, 0, loc)
+	if now.Before(due) {
+		return
+	}
+	list, err := s.simpleListBackups()
+	if err == nil && len(list.BackupIds) > 0 {
+		if info, err := os.Stat(filepath.Join(s.backupRoot(), list.BackupIds[0], "manifest.json")); err == nil && info.ModTime().After(due) {
+			return
+		}
+	}
+	if _, err := s.createBackup(ctx); err != nil {
+		return
+	}
+	if list, err = s.simpleListBackups(); err == nil && len(list.BackupIds) > schedule.KeepCount {
+		for _, id := range list.BackupIds[schedule.KeepCount:] {
+			_ = os.RemoveAll(filepath.Join(s.backupRoot(), id))
+		}
+	}
 }

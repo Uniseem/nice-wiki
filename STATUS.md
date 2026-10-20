@@ -20,7 +20,7 @@ python3 scripts/dev.py up
 - 问答（M3 第一版）：访客在文档页右下角提问 → 准入（traffic-guard）→ 检索知识库 → 模型流式回答 → 引用来源。需要先在后台配好模型接入（供应方/模型/档位/任务）、知识库索引、防滥用策略和问答策略；用本机假供应方联调通过，没有用真实模型。简化项：没有前置分类/检索核查/语义缓存/压缩，轮次在 qa 进程内执行（不走 jobs）；人机验证用浏览器里的 PoW（Turnstile 没做）。
 - 文档翻译（M3）：后台“语言”页给每篇已发布文档一个“翻译”按钮 → 按块调模型翻译（保留行内格式）→ 访客在 /<语言>/… 看到译文。用假供应方联调通过。简化项：没有术语表/翻译记忆/反思润色，翻译在 localization 进程内执行；语言开了“自动翻译”后，localization 每 10 秒扫一遍公开树，给还没有译文的当前发布修订补译（每轮最多 3 篇，失败的不自动重试）；“启用语言时按估价批量翻译”（approve-plan）批准后会把该语言的自动翻译打开，实际翻译由上面的自动补译完成，它建的 jobs 任务没有执行器、会一直排队（无害）；界面文案翻译、语言建议、缓存回答翻译未接。
 - 后台页面：文档、站点设置（含首页主视觉、公告横幅）、资源库、账号与权限、语言、模型接入（供应方/模型/档位/任务）、知识库索引、长期记忆、问答管理、防滥用、任务队列、统计与审计、备份与恢复（界面壳在 portal/web，各域 module.js 由壳挂载）。
-- 备份（简易版）：后台“备份与恢复”页可创建/列出/下载完整备份。data-protection 同步把配置里 `backupSources` 列出的各服务数据目录打成一个 zip（SQLite 用 VACUUM INTO 取一致快照，不含密钥），下载用 2 分钟一次性令牌；本地 dev 和 compose 配置都已带 `backupSources`。简化项：没有跨域屏障/水位、没有加密包与 includeSecrets（忽略）、没有定时备份、在线恢复和镜像仍是 DEPENDENCY_UNAVAILABLE；恢复暂用 `deploy/restore.sh` 一类的手工方式（zip 里是各服务数据目录原样结构）。docker 里没跑过。
+- 备份（简易版）：后台“备份与恢复”页可创建/列出/下载完整备份。data-protection 同步把配置里 `backupSources` 列出的各服务数据目录打成一个 zip（SQLite 用 VACUUM INTO 取一致快照，不含密钥），下载用 2 分钟一次性令牌；备份页可开“每日自动备份”（每天 03:00 按浏览器时区、保留 N 份，设置存在 simple-backups/schedule.json，已本地验证到点自动创建并清理）；本地 dev 和 compose 配置都已带 `backupSources`。简化项：没有跨域屏障/水位、没有加密包与 includeSecrets（忽略）、在线恢复和镜像仍是 DEPENDENCY_UNAVAILABLE；恢复暂用 `deploy/restore.sh` 一类的手工方式（zip 里是各服务数据目录原样结构）。docker 里没跑过。
 - 部署文件（未部署过）：各域 Dockerfile、`deploy/docker-compose.yml`、Caddyfile、`deploy/init-secrets.sh`，由 `scripts/gen_deploy.py` 生成。
 
 ## 下一步（按顺序）
