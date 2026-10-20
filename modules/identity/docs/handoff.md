@@ -1,10 +1,18 @@
 # 本轮接管交接：屏障、快照与保护入口（2026-10-20）
 
+## 结构收口接管（2026-10-20）
+
+- 工作树 `/private/tmp/nice-wiki-structure-identity-20261020`，分支 `codex/structure-identity-20261020`，基线候选 `6f25dd57386081b5903bc6c02f448ea769466618`，交付提交 `2f52be9cf8a79e5db6e6b9b1f7cb6265c31ece4f`；只拥有 `modules/identity/`。
+- 本轮按真实源码登记 `identity.readJournal`，补齐 BuildApplication/NewApplication、HTTP handler、后台循环、恢复换目录和 SnapshotManager 回调的实际依赖边；未添加虚构 caller。
+- `types.json` 只新增 identity 私有 `Store` 与 `RestoreArchiveClient`；公共 platform/lifecycle/gen 类型及 `sql/time/interface` 语法由 checker 的 shared/限定名规则负责，本域不复制占位类型。
+- identity implementation 依赖使用冻结机器 ID `platform.RegisterWorkTable`、`platform.MigrateRestoredDatabase`；Go 实现仍调用 `outbox.RegisterWorkTable`/`outbox.MigrateRestoredDatabase`。
+- 本地旧 checker 仍会报告限定包名、标准库语法和 reference helper `(ctx, op)` 规则；这些属于集成代理修 checker 的公共请求。identity 不改纯助手真实签名，不运行本机 Go/CI。
+
 - 工作树 `/private/tmp/nice-wiki-resume-identity`，分支 `codex/resume-20261020-identity`；接管基线 `5466c47d22249c224d57009a329786f1d019fa80`，源码组初始提交 `7720ba1d`，代次/接口/台账校正提交 `8a6c6840c32aa4a44f320e1d2c3c43a7b01495dd`，合同字段/依赖更正提交 `aedbe4ce74a882da42216d5cbd9edf23f4db5397`，work gate/恢复接线提交 `f2806d4ba5c5dda35b6b05c0ab49d456d765b69d`，activation接线提交 `3310d07aa84fbc1354390af5ff2bbb75136038fb`，activation合同ID修正提交 `9fbc7a11365595fb9149873465b0b1b5847be83c`；先合并 `main=6204dfc9`，合并提交 `111281ed5f6458f663de719c124ca8ab5eab5809`，恢复激活核对提交 `e6c131dfbbb1bf117e60c6eaca1faa5b3a809743`，恢复迁移调用修正提交 `5962be0953753b7fc88c990362da60c20260926d`。仅拥有 `modules/identity/`，未修改公共源码、主仓或远程；合并带入的公共/他域文件不在本轮编辑范围。
 - 本轮继续修改 `internal/app/wire.go`：`restoreIdentityAfterSwap` 在真实 `RegisterActivation` 返回后核对控制runtime字段和持久化的完整 identity receipt，确保恢复切换/换回回执已经由site-config保存；未CI项目不标implemented/verified。
 - `internal/barrier_service.go`、`internal/snapshot_service.go`、`internal/snapshot_archive.go` 已落盘六个保护源码单元和归档流；HTTP 入口把 data-protection caller、controller/maintenance 规则和同一 manager scope 接通。因未通过 GitLab CI，相关文件/函数保持 `in_progress/not_run`，不记 `implemented`。
 - identity `SnapshotConfig` 已落盘真实回调：读取同一 SQLite 的 outbox/业务水位，在 safe 截点使用平台 `CaptureSnapshotFiles` 复制 `active/identity.db`，生成 V1 manifest；staged 只在公共认证归档后经 `MigrateRestoredDatabase` 迁移已登记schema、登记work表并验证目标库。控制库、reset 文件和服务密钥不进入快照。
-- `migrateIdentitySnapshotDB` 已改为调用 integration 树实际存在的 `outbox.MigrateRestoredDatabase`（`libs/platform/outbox/restore.go:14`）。本域 `implementation.json` 暂保留公共合同当前登记的 `platform.MigrateRestoredDatabase`，待根集成代理审查公共合同 ID 后统一同步，不在本域擅改公共合同。
+- `migrateIdentitySnapshotDB` 的实际Go调用仍是 `outbox.MigrateRestoredDatabase`（`libs/platform/outbox/restore.go:14`）；本域 `implementation.json` 已将机器合同依赖统一登记为 `platform.MigrateRestoredDatabase`/`platform.RegisterWorkTable`，不改公共源码包路径。
 - `VerifyGlobalSeal` 当前只是硬返回 `DEPENDENCY_UNAVAILABLE`，没有读取真实 jobs 协调阶段、14 域封口回执或最终 broker 水位；因此不能把完整 `SnapshotManager` 或 `BuildApplication` 记作完成。源码已直接调用冻结的公共 `Store.ObserveTx/SealTx/ResumeTx`、`RegisterWorkTable`、`MigrateRestoredDatabase` 和 `ReadBarrierStatus`，公共实现由集成代理提供。
 - staged 身份库校验保留两种代次职责：`auth_state.auth_epoch` 是认证权威，session family 的 `auth_epoch` 必须与其一致；session family 的 `data_epoch` 单独必须等于快照 manifest 的 `SourceEpoch`。workRevision复用同库outbox真实revision，ObserveWork、Watermark、SealWork、Capture不再使用分散表MAX/COUNT近似。
 - 33 个新增助手及本轮后台/恢复接线助手的合同已同步真实inputs/outputs字段和公共机器依赖ID；本轮不新增保护能力或迁移。恢复会话失效已接入公共换目录证据，activation receipt仍待公共签名接口。

@@ -2263,6 +2263,18 @@
       "required": [],
       "description": "普通匿名GET无请求body；细节只含安全状态"
     },
+    "Store": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*Store",
+      "description": "仅identity进程内使用的active/control存储句柄"
+    },
+    "RestoreArchiveClient": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "RestoreArchiveClient",
+      "description": "data-protection受控归档读取端口，不序列化或接受路径输入"
+    },
     "SnapshotArchiveReadInput": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",
       "description": "本域已完成归档精确引用"
