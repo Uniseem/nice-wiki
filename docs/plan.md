@@ -2,9 +2,9 @@
 
 ## 计划状态
 
-本计划自 2026-10-20 起按最后一次独立覆盖审核意见定稿，是当前唯一总计划。本提交供主代理复核；实施尚未开始。它覆盖 R1 全部 15 个业务域、`libs/platform`、部署编排、UI、任务与事件、保护/恢复、R2 和最终发布交接。
+本计划已于 2026-10-20 经主代理审核通过并冻结，是当前唯一总计划。R1-00 已开始，当前处于公共接口核对阶段；规划/审计代理已运行，实施代理尚未启动。它覆盖 R1 全部 15 个业务域、`libs/platform`、部署编排、UI、任务与事件、保护/恢复、R2 和最终发布交接。
 
-用户已经明确要求继续推进，并要求全部实际任务由子代理执行。当前仅暂停下发任务以完成计划审核；审核通过并冻结后直接执行既定工作包，不再重复请求 R1 实施许可。R2、真实模型/接口、实际部署和正式推送仍按本文及既有规则规定的独立授权边界执行。
+用户已经明确要求继续推进，并要求全部实际任务由子代理执行。R1-00 已按冻结计划启动；各模块任务须等接口核对和主代理放行后下发，不重复请求 R1 实施许可。R2、真实模型/接口、实际部署和正式推送仍按本文及既有规则规定的独立授权边界执行。
 
 本轮只完成规划落盘：
 
@@ -101,7 +101,7 @@
 ### R1-00 公共接口冻结与 platform
 
 - 范围：`libs/platform` 全部 94 个未 verified 函数及 26 个未 verified 文件；根 `contracts/`、错误表、生成器和必要公共类型。覆盖 serviceauth/opctx、请求边界、outbox relay、inbox consumer、worker lease/scope、runtime/write context、TaskGroup、modelclient 只读观察、snapshot/barrier/archive/swap、cleanup scope 与 secret 封装。
-- 先固定两阶段屏障 API、14 个有状态参与域（portal 不参与）、jobs broker 水位、cleanupScope、真实 user/service scope、snapshot V1/V2 和 model-result 读取形状；旧 Acquire/Release 名称只做兼容映射，不能出现两套协议。
+- 先固定 `PrepareBarrier → DrainBarrier → ObserveBarrier → SealBarrier → ResumeDrain` 协议、14 个有状态参与域（portal 不参与）、jobs broker 水位、cleanupScope、真实 user/service scope、snapshot V1/V2 和 model-result 读取形状；旧 Acquire/Release 名称只做兼容映射，不能出现两套协议。
 - 交付证据：合同与生成物先更新；平台单模块及全树 GitLab CI 通过；每个平台函数能由真实入口或登记任务到达；所有消费方引用的名称/字段一致。
 - 停止边界：若某一域需要新行为而非合同补齐，暂停该域，登记一条决策；平台不得为各域复制私有逻辑。R1-00 通过源码检查后只因实际缺陷重开，消费者接线在对应包完成。
 
