@@ -20,7 +20,7 @@
 
 当前最终候选函数台账为 1652/2421（68.2%，已含 platform）：verified 1611、implemented 41；未完成状态 planned 267、in_progress 8、blocked 494，accepted 0；未完成状态合计769。15域完整 `BuildApplication` 均未闭合。
 
-文件台账共1055项：verified 392、implemented 107、in_progress 13、planned 269、blocked 274；未到verified 663。运行时文件由implemented转verified后的统计已按当前progress复算，不沿用旧108/391数字。同域Dockerfile/Makefile/manifest共45项，`deploy/`的5个总编排文件仍全部planned。
+文件台账共1060项：verified 392、implemented 107、in_progress 13、planned 274、blocked 274；未到verified 668。该总数包含deploy的5个总编排文件；运行时文件由implemented转verified后的统计已按当前progress复算，不沿用旧108/391数字。同域Dockerfile/Makefile/manifest共45项，`deploy/`的5个总编排文件仍全部planned。
 
 冻结覆盖口径：
 
