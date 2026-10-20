@@ -28,7 +28,7 @@ python3 scripts/dev.py up
 2. M2 余项：media 消费 content 事件；翻译的自动触发现在是轮询，不是事件。
 3. M3 补完：前置分类/检索核查/语义缓存、approve-plan 批量翻译执行器、界面文案翻译、语言建议。
 4. M4：各域屏障与快照导出、恢复换目录、data-protection 备份/恢复/镜像。
-5. M5：在服务器上部署（需要你当次同意）；secrets 文件权限与容器用户的关系还没在真实 docker 里验证。
+5. M5：在服务器上部署（需要你当次同意）；qa 与 portal 两个镜像在本机 docker 里构建通过（顺带修了 init-secrets 把密钥写错目录、构建上下文带上宿主机 node_modules 两个问题）；其余 13 个镜像和整套 compose 启动还没跑过。
 
 ## 已知缺口
 

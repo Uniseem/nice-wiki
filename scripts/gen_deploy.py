@@ -27,7 +27,7 @@ def dockerfile(slug, port):
         builds = "\n".join(
             f"COPY modules/{m}/web/ modules/{m}/web/\nRUN cd modules/{m}/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/{m} --emptyOutDir"
             for m in WEB_MODULES)
-        web = f"""FROM node:24-alpine AS web
+        web = f"""FROM node:24-slim AS web
 RUN npm install -g pnpm@9.15.9
 WORKDIR /src
 COPY libs/platform/web/ libs/platform/web/
@@ -124,6 +124,15 @@ def main():
 """)
     write("deploy/config/services.json", json.dumps({"version": 1, "services": [
         {"slug": s, "url": f"http://{s}:{p}", "port": p, "dataVolume": f"/data/{s}", "secretsDir": f"deploy/secrets/{s}"} for s, p in SERVICES.items()]}, indent=2, ensure_ascii=False) + "\n")
+    write(".dockerignore", """# 构建上下文是仓库根：不带上本机的依赖目录、构建产物、开发数据和密钥。
+**/node_modules
+**/dist
+.git
+.local
+deploy/secrets
+deploy/.env
+vps.txt
+""")
     write("deploy/.env.example", """# 部署变量模板；不含任何密钥。复制为 .env 后修改。
 SITE_DOMAIN=docs.example.com
 NW_VERSION=dev
@@ -134,7 +143,11 @@ GOMEMLIMIT=256MiB
 # 需要 Go；私钥只写入 deploy/secrets（已在 .gitignore 里），不要提交。
 set -eu
 cd "$(dirname "$0")/.."
-(cd libs/platform && go run ./cmd/nw-keys --services ../../deploy/config/services.json --out ../../deploy/config/trust-anchors.json --budget-dir ../../deploy/secrets/budget)
+# secretsDir 是相对仓库根的路径，所以要在仓库根运行工具（先编译出来）。
+tool=$(mktemp)
+(cd libs/platform && go build -o "$tool" ./cmd/nw-keys)
+"$tool" --services deploy/config/services.json --out deploy/config/trust-anchors.json --budget-dir deploy/secrets/budget
+rm -f "$tool"
 budget=$(ls deploy/secrets/budget/budget-*.pem | head -n1)
 cp "$budget" deploy/secrets/budget/budget.pem
 printf '{"keyId":"%s","privateKeyRef":"/run/secrets/budget.pem"}\\n' "$(basename "$budget" .pem | sed 's/^budget-//')" > deploy/secrets/budget/budget-key.json

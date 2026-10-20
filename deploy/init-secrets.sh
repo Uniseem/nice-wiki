@@ -3,7 +3,11 @@
 # 需要 Go；私钥只写入 deploy/secrets（已在 .gitignore 里），不要提交。
 set -eu
 cd "$(dirname "$0")/.."
-(cd libs/platform && go run ./cmd/nw-keys --services ../../deploy/config/services.json --out ../../deploy/config/trust-anchors.json --budget-dir ../../deploy/secrets/budget)
+# secretsDir 是相对仓库根的路径，所以要在仓库根运行工具（先编译出来）。
+tool=$(mktemp)
+(cd libs/platform && go build -o "$tool" ./cmd/nw-keys)
+"$tool" --services deploy/config/services.json --out deploy/config/trust-anchors.json --budget-dir deploy/secrets/budget
+rm -f "$tool"
 budget=$(ls deploy/secrets/budget/budget-*.pem | head -n1)
 cp "$budget" deploy/secrets/budget/budget.pem
 printf '{"keyId":"%s","privateKeyRef":"/run/secrets/budget.pem"}\n' "$(basename "$budget" .pem | sed 's/^budget-//')" > deploy/secrets/budget/budget-key.json

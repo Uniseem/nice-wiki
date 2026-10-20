@@ -1,5 +1,5 @@
 # portal 域独立镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
-FROM node:24-alpine AS web
+FROM node:24-slim AS web
 RUN npm install -g pnpm@9.15.9
 WORKDIR /src
 COPY libs/platform/web/ libs/platform/web/

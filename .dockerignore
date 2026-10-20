@@ -1,0 +1,8 @@
+# 构建上下文是仓库根：不带上本机的依赖目录、构建产物、开发数据和密钥。
+**/node_modules
+**/dist
+.git
+.local
+deploy/secrets
+deploy/.env
+vps.txt
