@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { api, messageOf } from './client';
 import Editor from './Editor.vue';
 import { fromBody, newId, toBody, type JSONNode } from './convert';
@@ -265,8 +265,15 @@ async function refreshMeta() {
   await loadTree();
 }
 
-async function create(parentId: string | null) {
-  const name = window.prompt('新文档的标题');
+// 新建文档：在左栏里就地填标题（不用浏览器弹窗）。
+const creating = ref<{ parentId: string | null } | null>(null);
+const newTitle = ref('');
+const titleInput = ref<HTMLInputElement | null>(null);
+function create(parentId: string | null) { creating.value = { parentId }; newTitle.value = ''; void nextTick(() => titleInput.value?.focus()); }
+async function submitCreate() {
+  const name = newTitle.value.trim();
+  const parentId = creating.value?.parentId ?? null;
+  creating.value = null;
   if (!name) return;
   const created = await run(() => api<any>('/v1/documents', { method: 'POST', body: { title: name, parentId, beforeDocumentId: null } }));
   if (created) {
@@ -328,6 +335,11 @@ onBeforeUnmount(() => { void save().then(releaseLock); });
         <a href="#" @click.prevent="view = 'docs'" :style="{ fontWeight: view === 'docs' ? 700 : 400 }">全部文档</a> ·
         <a href="#" @click.prevent="showTrash" :style="{ fontWeight: view === 'trash' ? 700 : 400 }">回收站</a>
       </p>
+      <form v-if="creating" class="row" @submit.prevent="submitCreate" style="margin-bottom:.6rem">
+        <input ref="titleInput" type="text" v-model="newTitle" placeholder="新文档的标题" required style="flex:1;min-width:0">
+        <button class="primary">创建</button>
+        <button type="button" @click="creating = null">取消</button>
+      </form>
       <p v-if="selected" class="hint">新建的文档会放在当前文档下；<a href="#" @click.prevent="create(null)">改为新建顶层文档</a></p>
       <div v-if="view === 'trash'" class="tree">
         <ul>
