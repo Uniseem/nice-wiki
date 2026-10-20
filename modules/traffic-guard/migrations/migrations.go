@@ -10,6 +10,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"path"
 	"regexp"
 	"sort"
 	"strconv"
@@ -53,7 +54,7 @@ func load(files fs.FS, dir string) ([]Migration, error) {
 		if err != nil {
 			return nil, fmt.Errorf("迁移编号不合法: %s", entry.Name())
 		}
-		raw, err := fs.ReadFile(files, dir+"/"+entry.Name())
+		raw, err := fs.ReadFile(files, path.Join(dir, entry.Name()))
 		if err != nil {
 			return nil, fmt.Errorf("读取迁移文件失败: %s", entry.Name())
 		}

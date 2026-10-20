@@ -44,6 +44,8 @@ type Application struct {
 	shutdownOnce        sync.Once
 	shutdownErr         error
 	httpServer          *http.Server
+	closers             []func() error
+	router              *apivalidate.PathRouter
 }
 
 // NewApplication 创建仅含匿名状态路由的容器。businessReady 必须由后续
@@ -59,14 +61,18 @@ func NewApplication(config platform.ServiceConfig, runtime platform.SiteConfigCl
 	}
 	mux := http.NewServeMux()
 	application.registerStatusRoutes(mux)
+	application.router = apivalidate.NewPathRouter(mux)
 	application.httpServer = &http.Server{
 		Addr:              config.Listen,
-		Handler:           mux,
+		Handler:           application.router,
 		ReadHeaderTimeout: 5 * time.Second,
 		MaxHeaderBytes:    64 << 10,
 	}
 	return application
 }
+
+// OnShutdown 登记随进程关闭的资源（数据库、编辑锁等）。
+func (a *Application) OnShutdown(closer func() error) { a.closers = append(a.closers, closer) }
 
 // Serve 与 Shutdown 实现 platform.Application，供进程模板调用。
 func (a *Application) Serve(ctx context.Context) error    { return Serve(ctx, a) }
@@ -116,6 +122,9 @@ func Shutdown(ctx context.Context, app *Application) error {
 			}
 			app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭HTTP服务失败")
 			return
+		}
+		for i := len(app.closers) - 1; i >= 0; i-- {
+			_ = app.closers[i]()
 		}
 		app.state.Store(stateClosed)
 	})
@@ -245,16 +254,15 @@ func RegisterReferenceRoutes(app *Application, runtime content.ReferenceRuntime,
 			writeJSON(w, http.StatusOK, result)
 		}),
 	}
-	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch,
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch),
 		AllowedCallers:        map[string][]string{"listResourceReferences": {"media", "site-config", "data-protection", "portal"}, "readReferenceDecision": {"media"}},
 		ServiceActorCallers:   map[string][]string{"listResourceReferences": {"media", "site-config", "data-protection"}},
 		MaintenanceOperations: map[string]bool{"listResourceReferences": true, "readReferenceDecision": true}}, handlers)
 	if err != nil {
 		return err
 	}
-	mux := app.httpServer.Handler.(*http.ServeMux)
-	mux.Handle("GET /v1/resource-references", handler)
-	mux.Handle("GET /v1/reference-decisions/{sourceOperationId}", handler)
+	app.router.Handle("GET", "/v1/resource-references", handler)
+	app.router.Handle("GET", "/v1/reference-decisions/{sourceOperationId}", handler)
 	return nil
 }
 
@@ -353,18 +361,17 @@ func RegisterTreeRoutes(app *Application, runtime content.TreeRuntime, anchors p
 		}
 		return generalAuthorize(ctx, op, permission, action)
 	}
-	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, Authorize: authorize,
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch), Authorize: authorize,
 		AllowedCallers:        map[string][]string{"readDocumentTree": {"portal"}, "listDocuments": {"portal"}, "moveDocument": {"portal"}, "reorderChildren": {"portal"}, "updateDocumentMetadata": {"portal"}},
 		MaintenanceOperations: map[string]bool{"readDocumentTree": true, "listDocuments": true}}, handlers)
 	if err != nil {
 		return err
 	}
-	mux := app.httpServer.Handler.(*http.ServeMux)
-	mux.Handle("GET /v1/tree", handler)
-	mux.Handle("GET /v1/documents", handler)
-	mux.Handle("POST /v1/tree:move", handler)
-	mux.Handle("POST /v1/tree:reorder", handler)
-	mux.Handle("PUT /v1/documents/{documentId}/metadata", handler)
+	app.router.Handle("GET", "/v1/tree", handler)
+	app.router.Handle("GET", "/v1/documents", handler)
+	app.router.Handle("POST", "/v1/tree:move", handler)
+	app.router.Handle("POST", "/v1/tree:reorder", handler)
+	app.router.Handle("PUT", "/v1/documents/{documentId}/metadata", handler)
 	return nil
 }
 
@@ -499,7 +506,7 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 		}
 		return platform.NewError(platform.CodeForbidden, false, "发布路由没有该操作的用户授权")
 	}
-	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, Authorize: authorize,
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch), Authorize: authorize,
 		AllowedCallers: map[string][]string{
 			"publishDocument":     {"portal"},
 			"readRevisionHistory": {"portal"}, "diffRevisions": {"portal"},
@@ -512,14 +519,13 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 	if err != nil {
 		return err
 	}
-	mux := app.httpServer.Handler.(*http.ServeMux)
-	mux.Handle("POST /v1/documents/{documentId}:publish", handler)
-	mux.Handle("POST /v1/documents/{documentId}:withdraw", handler)
-	mux.Handle("POST /v1/publications:validate", handler)
-	mux.Handle("GET /v1/documents/{documentId}/published", handler)
-	mux.Handle("GET /v1/documents/{documentId}/history", handler)
-	mux.Handle("POST /v1/documents/{documentId}/history:diff", handler)
-	mux.Handle("GET /v1/public-tree", handler)
-	mux.Handle("GET /v1/public-path:resolve", handler)
+	app.router.Handle("POST", "/v1/documents/{documentId}:publish", handler)
+	app.router.Handle("POST", "/v1/documents/{documentId}:withdraw", handler)
+	app.router.Handle("POST", "/v1/publications:validate", handler)
+	app.router.Handle("GET", "/v1/documents/{documentId}/published", handler)
+	app.router.Handle("GET", "/v1/documents/{documentId}/history", handler)
+	app.router.Handle("POST", "/v1/documents/{documentId}/history:diff", handler)
+	app.router.Handle("GET", "/v1/public-tree", handler)
+	app.router.Handle("GET", "/v1/public-path:resolve", handler)
 	return nil
 }

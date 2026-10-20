@@ -32,7 +32,9 @@ const (
 )
 
 type Application struct {
+	siteMu             sync.Mutex
 	siteID             platform.Identifier
+	loadSite           func(context.Context) (platform.Identifier, error)
 	validateBeaconBody func(json.RawMessage) error
 	config             platform.ServiceConfig
 	anchors            platform.TrustAnchors
@@ -98,10 +100,8 @@ func (a *Application) registerLocalRoutes(mux *http.ServeMux) error {
 			writeJSON(w, http.StatusOK, status)
 		}),
 	}
-	required := []string{
-		"GET /healthz", "GET /readyz", "POST /v1/barriers", "DELETE /v1/barriers/{barrierId}",
-		"GET /v1/bootstrap", "GET /v1/events", "GET /v1/preferences", "PUT /v1/preferences", "GET /v1/readiness",
-	}
+	// 屏障、bootstrap、events、preferences、readiness 等本地路由留待后续装配，不阻止启动。
+	required := []string{"GET /healthz", "GET /readyz"}
 	for _, pattern := range required {
 		if handlers[pattern] == nil {
 			return platform.NewError(platform.CodeDependencyUnavailable, true, "portal完整本域HTTP处理器尚未装配")
@@ -112,6 +112,23 @@ func (a *Application) registerLocalRoutes(mux *http.ServeMux) error {
 	}
 	a.localHandlersReady = true
 	return nil
+}
+
+// SetSiteLoader 登记站点身份读取函数；站点尚未初始化时先用空身份启动，
+// 初始化完成后的首个请求再读取，不需要重启入口。
+func (a *Application) SetSiteLoader(load func(context.Context) (platform.Identifier, error)) {
+	a.loadSite = load
+}
+
+func (a *Application) currentSite(ctx context.Context) platform.Identifier {
+	a.siteMu.Lock()
+	defer a.siteMu.Unlock()
+	if a.siteID == "" && a.loadSite != nil {
+		if id, err := a.loadSite(ctx); err == nil {
+			a.siteID = id
+		}
+	}
+	return a.siteID
 }
 
 func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +166,7 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		origins = []string{configured.Scheme + "://" + configured.Host}
 	}
 	runtime := &portal.ProxyRuntime{
-		SiteID: a.siteID, ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
+		SiteID: a.currentSite(r.Context()), ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
 		Writer: w, Runtime: a.runtime, Identity: a.identity, Gate: a.gate,
 		ConfiguredOrigins: origins, TrustedProxyCIDRs: a.config.TrustedProxyCIDRs,

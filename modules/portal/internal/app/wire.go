@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"nice-wiki/libs/platform/apivalidate"
 	"os"
 	"path/filepath"
@@ -71,10 +72,18 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		authResolver = portal.IdentityAuthResolver{Client: client}
 	}
 	siteID, err := readSiteIdentity(ctx, config, key, view.DataEpoch)
+	var failure *platform.Error
+	if err != nil && !(errors.As(err, &failure) && failure.Code == platform.CodeNotFound) {
+		return nil, err
+	}
+	application, err := transport.NewApplication(config, anchors, key, delegationKey, runtimeClient, csrfVerifier, authResolver, routes, view.DataEpoch, siteID)
 	if err != nil {
 		return nil, err
 	}
-	return transport.NewApplication(config, anchors, key, delegationKey, runtimeClient, csrfVerifier, authResolver, routes, view.DataEpoch, siteID)
+	application.SetSiteLoader(func(work context.Context) (platform.Identifier, error) {
+		return readSiteIdentity(work, config, key, view.DataEpoch)
+	})
+	return application, nil
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，不在此函数中缓存

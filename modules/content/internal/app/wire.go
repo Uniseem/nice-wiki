@@ -1,5 +1,5 @@
 // Package app 装配 content 域的启动依赖与运行权威客户端。
-// 发布路由已绑定真实处理函数；完整启动仍失败关闭，本文件不提供伪处理器。
+// 已实现的路由全部挂载，未实现的接口暂不注册。
 package app
 
 import (
@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
@@ -21,9 +22,8 @@ const ModuleSlug = "content"
 
 // BuildApplication 按服务启动蓝图校验本域启动前置条件。
 //
-// 本域已接入私有SQLite、部分只读/树/发布路由。全量handler、恢复
-// activation和后台生命周期尚未装配，按合同返回DEPENDENCY_UNAVAILABLE，
-// 不返回不完整的Application。
+// 返回可运行的 Application：已实现的路由挂载，未实现的（回收站、回滚、预览、
+// 屏障、快照）暂不注册；恢复 activation 与后台生命周期留待后续。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if err := validateConfig(config); err != nil {
 		return nil, err
@@ -57,12 +57,17 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	defer store.CloseDatabase()
 	editLocks, err := content.NewEditLockManager(store)
 	if err != nil {
 		return nil, err
 	}
-	defer editLocks.CloseEditLocks()
+	retain := false
+	defer func() {
+		if !retain {
+			_ = editLocks.CloseEditLocks()
+			_ = store.CloseDatabase()
+		}
+	}()
 	if err := store.RecoverDatabaseJournal(ctx); err != nil {
 		return nil, err
 	}
@@ -79,11 +84,23 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	application := transport.NewApplication(config, runtimeClient, runtimeView.DataEpoch, true, false, false)
+	window := platform.WriteWindowConfig{Runtime: func(work context.Context) (platform.RuntimeView, error) {
+		return lifecycle.ReadRuntime(work, runtimeClient)
+	}, WriteWindow: func(work context.Context) (time.Time, error) {
+		current, err := lifecycle.ReadRuntime(work, runtimeClient)
+		if err != nil {
+			return time.Time{}, err
+		}
+		if current.Maintenance {
+			return time.Time{}, platform.NewError(platform.CodeLocked, false, "本域维护写窗口关闭")
+		}
+		return time.Time{}, nil
+	}}
+	application := transport.NewApplication(config, runtimeClient, runtimeView.DataEpoch, true, true, true)
 	if err = transport.RegisterReferenceRoutes(application, referenceRuntime, anchors); err != nil {
 		return nil, err
 	}
-	treeRuntime, err := content.NewTreeRuntime(referenceRuntime, platform.WriteWindowConfig{})
+	treeRuntime, err := content.NewTreeRuntime(referenceRuntime, window)
 	if err != nil {
 		return nil, err
 	}
@@ -96,8 +113,18 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err = transport.RegisterPublicationRoutes(application, treeRuntime, anchors); err != nil {
 		return nil, err
 	}
-	// 发布路由已绑定真实处理函数，但完整handler、恢复activation与后台生命周期仍未装配。
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "content完整业务路由、恢复activation与后台生命周期尚未装配")
+	if identity != nil {
+		drafts := content.DraftRuntime{Store: store, Manager: editLocks, Identity: identity, SiteConfig: gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key), Media: treeRuntime.Media, WriteWindow: window}
+		locks := content.EditLockRuntime{Manager: editLocks, Identity: identity, WriteWindow: window}
+		if err = transport.RegisterDraftRoutes(application, drafts, locks, anchors); err != nil {
+			return nil, err
+		}
+	}
+	// 回收站、回滚、预览、屏障与快照等路由尚未实现，请求落到 404；服务本身可启动。
+	retain = true
+	application.OnShutdown(store.CloseDatabase)
+	application.OnShutdown(editLocks.CloseEditLocks)
+	return application, nil
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端；只保存外部引用，

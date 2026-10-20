@@ -41,7 +41,7 @@ func RunService(spec platform.ServiceSpec) int {
 	defer stopSignals()
 	application, err := spec.BuildApplication(ctx, config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "装配失败，errorCode=%s\n", errorCodeOf(err))
+		fmt.Fprintf(os.Stderr, "装配失败，errorCode=%s %s\n", errorCodeOf(err), messageOf(err))
 		return ExitFailure
 	}
 	hosted, hasBackground := application.(platform.BackgroundApplication)
@@ -114,7 +114,7 @@ func RunService(spec platform.ServiceSpec) int {
 			return finish(ExitOK)
 		}
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "运行失败，errorCode=%s\n", errorCodeOf(err))
+			fmt.Fprintf(os.Stderr, "运行失败，errorCode=%s %s\n", errorCodeOf(err), messageOf(err))
 		}
 		return finish(ExitFailure)
 	case err := <-restart:
@@ -149,6 +149,15 @@ func shutdown(application platform.Application) error {
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
 	defer cancel()
 	return application.Shutdown(ctx)
+}
+
+// messageOf 只取登记错误里的固定中文说明，不含密钥或请求内容。
+func messageOf(err error) string {
+	var libErr *platform.Error
+	if errors.As(err, &libErr) {
+		return libErr.Message
+	}
+	return ""
 }
 
 func errorCodeOf(err error) string {

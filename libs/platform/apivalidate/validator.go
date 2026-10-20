@@ -56,6 +56,14 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 	if spec == nil || config.Self == "" || config.Runtime == nil || config.MaxBodyBytes < 0 {
 		return nil, platform.NewError(platform.CodeValidation, false, "服务入口配置不完整")
 	}
+	// oapi-codegen 内嵌规格会把 operationId 改成首字母大写，这里统一还原为合同里的 lowerCamel。
+	for _, item := range spec.Paths.Map() {
+		for _, operation := range item.Operations() {
+			if operation.OperationID != "" {
+				operation.OperationID = strings.ToLower(operation.OperationID[:1]) + operation.OperationID[1:]
+			}
+		}
+	}
 	validate, err := NewRequestValidator(spec)
 	if err != nil {
 		return nil, err
@@ -65,12 +73,18 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "服务入口路由不可读")
 	}
 	knownOperations := map[string]bool{}
+	// 尚未实现的接口不阻止服务启动：请求在身份校验前直接得到 DEPENDENCY_UNAVAILABLE。
+	unbound := map[string]bool{}
 	for _, item := range spec.Paths.Map() {
 		for _, operation := range item.Operations() {
 			id := operation.OperationID
 			knownOperations[id] = true
-			if id == "" || handlers[id] == nil {
-				return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "存在未绑定的接口处理函数")
+			if id == "" {
+				return nil, platform.NewError(platform.CodeIntegrityError, false, "接口缺少 operationId")
+			}
+			if handlers[id] == nil {
+				unbound[id] = true
+				continue
 			}
 			if id == "health" || id == "ready" {
 				continue
@@ -104,6 +118,10 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 			return
 		}
 		id := route.Operation.OperationID
+		if unbound[id] {
+			_ = problem.WriteProblem(w, problem.FromError(platform.NewError(platform.CodeDependencyUnavailable, true, "该接口尚未实现"), platform.NewIdentifier()))
+			return
+		}
 		for name, value := range params {
 			r.SetPathValue(name, value)
 		}

@@ -1,5 +1,4 @@
 // Package app 装配 public-site 的启动依赖。
-// 真实公开链接处理函数会进入路由表；缺任一登记操作或权威依赖时不返回可运行应用。
 package app
 
 import (
@@ -21,8 +20,8 @@ import (
 // ModuleSlug 是本域固定的服务身份。
 const ModuleSlug = "public-site"
 
-// BuildApplication 校验启动配置、恢复换目录和权威依赖，并绑定已实现的处理函数。
-// schema 迁移、journal、其余 OpenAPI 操作和后台循环尚未落地，因此失败关闭，不返回应用。
+// BuildApplication 校验启动配置、恢复换目录和权威依赖，并挂载已实现的公开路由；
+// 预览、屏障、快照等尚未实现的操作不注册。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if err := validateConfig(config); err != nil {
 		return nil, err
@@ -60,11 +59,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err = clients.ready(); err != nil {
 		return nil, err
 	}
-	application := transport.NewApplication(config, runtimeClient, view.DataEpoch, false, false, false)
-	if err = transport.BindPublishedLink(application, anchors, clients.directory()); err != nil {
+	application := transport.NewApplication(config, runtimeClient, view.DataEpoch, true, true, true)
+	if err = transport.BindRoutes(application, anchors, clients.directory()); err != nil {
 		return nil, err
 	}
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域schema迁移、journal恢复、其余处理函数与后台循环尚未装配")
+	return application, nil
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端。

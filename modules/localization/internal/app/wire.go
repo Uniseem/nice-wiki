@@ -33,8 +33,7 @@ const ModuleSlug = "localization"
 // BuildApplication 验证本域配置，建立 active/control/restore 目录布局，
 // 加载服务身份材料，读取运行权威并执行恢复换目录，然后装配 HTTP 容器。
 //
-// 语言配置的三个操作会绑定真实处理函数。其余 OpenAPI 操作、事件订阅、
-// outbox 转发和任务循环仍未实现，因此本函数继续失败关闭。
+// 已实现的处理函数全部挂载；事件订阅、outbox 转发和任务循环留待后续。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if config.Module != ModuleSlug {
 		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
@@ -88,9 +87,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	localizationruntime.InstallLanguageGateway(store, runtimeAuthority)
+	retain := false
 	defer func() {
-		localizationruntime.ClearLanguageGateway()
-		_ = store.Close()
+		if !retain {
+			localizationruntime.ClearLanguageGateway()
+			_ = store.Close()
+		}
 	}()
 	validators := modelclient.GatewayResponseValidators{}
 	for _, name := range []string{"CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult"} {
@@ -143,13 +145,14 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			handlers[id] = handler
 		}
 	}
-	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
 		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
 			return lifecycle.ReadRuntime(ctx, runtimeAuthority)
 		},
 		OpenedDataEpoch: view.DataEpoch,
+		AdmitBusiness:   lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, view.DataEpoch),
 		Authorize:       apivalidate.NewIdentityAuthorizer(identity),
 		ServiceActorCallers: map[string][]string{"readLanguageSuggestionApproval": {"model-gateway"},
 			"listLanguages": {"public-site"},
@@ -167,7 +170,19 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域其余业务处理器、事件订阅与任务循环尚未实现")
+	paths := map[string][]string{}
+	for path, item := range spec.Paths.Map() {
+		for method := range item.Operations() {
+			paths[path] = append(paths[path], method)
+		}
+	}
+	application := transport.NewApplication(config, anchors, runtimeAuthority, view.DataEpoch)
+	retain = true
+	application.Mount(handler, paths, func() {
+		localizationruntime.ClearLanguageGateway()
+		_ = store.Close()
+	})
+	return application, nil
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，供进程模板与 Ready
