@@ -9,7 +9,8 @@ import (
 
 func NewTranslationHandlers() map[string]http.Handler {
 	return map[string]http.Handler{
-		"readTranslation": language.JSONHandler(ReadTranslation),
+		"readTranslation":   language.JSONHandler(ReadTranslation),
+		"createTranslation": language.JSONHandler(CreateTranslation),
 		"estimateLanguagePlan": language.JSONHandler(EstimateLanguagePlan, func(i *EstimateLanguagePlanInput, r *http.Request) error {
 			if i.Language != r.PathValue("tag") {
 				return platform.NewError(platform.CodeValidation, false, "语言估价路径与正文语言不一致")

@@ -72,6 +72,7 @@ func LoadPublishedBundle(ctx context.Context, op platform.OperationContext, in L
 					Document       gen.PublishedRevisionRef `json:"document"`
 					TargetLanguage string                   `json:"targetLanguage"`
 				} `json:"translation"`
+				Body  json.RawMessage `json:"body"`
 				Units []struct {
 					UnitID             string                   `json:"unitId"`
 					Document           gen.PublishedRevisionRef `json:"document"`
@@ -85,6 +86,7 @@ func LoadPublishedBundle(ctx context.Context, op platform.OperationContext, in L
 			if json.Unmarshal(translated, &payload) != nil || payload.Translation == nil || !samePublication(payload.Translation.Document, in.Publication) || payload.Translation.TargetLanguage != in.Locale {
 				return LoadPublishedBundleResult{}, dependency("译文来源无法核验")
 			}
+			translatedBody := payload.Body
 			for _, unit := range payload.Units {
 				if !samePublication(unit.Document, in.Publication) || unit.TargetLanguage != in.Locale {
 					return LoadPublishedBundleResult{}, stale()
@@ -97,6 +99,16 @@ func LoadPublishedBundle(ctx context.Context, op platform.OperationContext, in L
 					return LoadPublishedBundleResult{}, platform.NewError(platform.CodeIntegrityError, false, "TRANSLATION_HASH_MISMATCH")
 				}
 				units[unit.UnitID] = text
+				if unit.Status == "fallback" {
+					result.UntranslatedBlockIDs = append(result.UntranslatedBlockIDs, unit.UnitID)
+				}
+			}
+			// 译文服务已按块还原好完整目标树：直接用它，保留行内格式；只有没有目标树时才逐块替换文字。
+			if len(translatedBody) > 0 {
+				if tree, treeErr := ParseTiptapDocument(ctx, op, ParseTiptapDocumentInput{translatedBody, publishedBodyLimit}); treeErr == nil {
+					result.Document = tree.Document
+					units = map[string]string{}
+				}
 			}
 		}
 		if readErr != nil {

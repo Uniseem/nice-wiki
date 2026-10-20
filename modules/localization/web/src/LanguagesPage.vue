@@ -9,10 +9,18 @@ const error = ref('');
 const notice = ref('');
 const busy = ref(false);
 const tag = ref('');
+const nodes = ref<any[]>([]);
+const progress = ref<any[]>([]);
+const target = ref('');
 const rtlPrefixes = ['ar', 'he', 'fa', 'ur'];
 
 async function load() {
   languages.value = (await api<{ languages: Language[] }>('/v1/languages?includeDisabled=true')).languages;
+  const targets = languages.value.filter((l) => l.enabled && !l.isDefault);
+  if (!targets.some((l) => l.tag === target.value)) target.value = targets[0]?.tag ?? '';
+  const base = languages.value.find((l) => l.isDefault)?.tag;
+  try { nodes.value = base ? await (await fetch(`/${base}/navigation`)).json() : []; } catch { nodes.value = []; }
+  try { progress.value = (await api<{ languages: any[] }>('/v1/translations/progress')).languages; } catch { progress.value = []; }
 }
 async function run(action: () => Promise<void>, done = '') {
   busy.value = true; error.value = ''; notice.value = '';
@@ -33,6 +41,14 @@ const setEnabled = (language: Language, enabled: boolean) => run(async () => {
   const idempotencyKey = key();
   await api(`/v1/languages/${encodeURIComponent(language.tag)}/enabled`, { method: 'POST', idempotencyKey, body: { tag: language.tag, enabled, expectedVersion: language.version, idempotencyKey } });
 });
+
+const translate = (node: any) => {
+  if (!confirm(`翻译「${node.title ?? node.documentId}」到 ${target.value} 会调用模型，可能产生费用。继续？`)) return;
+  return run(async () => {
+    const idempotencyKey = key();
+    await api('/v1/translations', { method: 'POST', idempotencyKey, body: { document: node.publication, targetLanguage: target.value, idempotencyKey } });
+  }, '已开始翻译，完成后访客就能看到该语言的页面；稍后刷新查看进度。');
+};
 
 onMounted(() => run(async () => {}));
 </script>
@@ -58,6 +74,24 @@ onMounted(() => run(async () => {}));
         </tr>
       </tbody>
     </table>
+    <h2>文档译文</h2>
+    <p v-if="!languages.some((l) => l.enabled && !l.isDefault)" class="hint">先启用一个非基准语言，才能翻译文档。</p>
+    <template v-else>
+      <div class="row">
+        <label>目标语言</label>
+        <select v-model="target" style="width:auto"><option v-for="l in languages.filter((x) => x.enabled && !x.isDefault)" :key="l.tag" :value="l.tag">{{ l.tag }}</option></select>
+        <span v-for="p in progress.filter((x) => x.language === target)" :key="p.language" class="hint">已完成 {{ p.completedUnits }} 块，进行中 {{ p.queuedUnits }}，待复核 {{ p.reviewUnits }}</span>
+      </div>
+      <table>
+        <thead><tr><th>已发布文档</th><th></th></tr></thead>
+        <tbody>
+          <tr v-for="n in nodes" :key="n.documentId"><td>{{ n.title ?? n.documentId }}</td><td><button :disabled="busy" @click="translate(n)">翻译</button></td></tr>
+          <tr v-if="!nodes.length"><td colspan="2" class="hint">还没有已发布文档。</td></tr>
+        </tbody>
+      </table>
+    </template>
+
+    <h2>添加语言</h2>
     <form class="row" @submit.prevent="add">
       <input type="text" v-model="tag" placeholder="语言标签，如 en、ja、zh-Hant" required pattern="[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*" style="max-width:16rem">
       <button class="primary" :disabled="busy">添加语言</button>

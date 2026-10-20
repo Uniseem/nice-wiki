@@ -18,6 +18,7 @@ python3 scripts/dev.py up
 - 公开页：Go 直接输出完整 HTML（首页主视觉按钮与背景色、公告横幅、三栏、目录、代码高亮、公式（浏览器端 KaTeX）、图片、嵌套路径、旧路径 301、删除 410）、首页、导航、robots、sitemap、llms；页面访问信标到 analytics。
 - 审计：各服务 HTTP 边界在后台写操作成功后自动向 analytics 追加审计（libs/platform/audit，只覆盖合同枚举内的动作，metadata 为空）。
 - 问答（M3 第一版）：访客在文档页右下角提问 → 准入（traffic-guard）→ 检索知识库 → 模型流式回答 → 引用来源。需要先在后台配好模型接入（供应方/模型/档位/任务）、知识库索引、防滥用策略和问答策略；用本机假供应方联调通过，没有用真实模型。简化项：没有前置分类/检索核查/语义缓存/压缩，轮次在 qa 进程内执行（不走 jobs）；人机验证用浏览器里的 PoW（Turnstile 没做）。
+- 文档翻译（M3）：后台“语言”页给每篇已发布文档一个“翻译”按钮 → 按块调模型翻译（保留行内格式）→ 访客在 /<语言>/… 看到译文。用假供应方联调通过。简化项：没有术语表/翻译记忆/反思润色，翻译在 localization 进程内执行；“启用语言时按估价批量翻译”（approve-plan）仍只建 jobs 任务、没有执行器；界面文案翻译、语言建议、缓存回答翻译未接。
 - 后台页面：文档、站点设置、账号与权限、任务队列、统计与审计、备份与恢复（界面壳在 portal/web，各域 module.js 由壳挂载）。
 - 部署文件（未部署过）：各域 Dockerfile、`deploy/docker-compose.yml`、Caddyfile、`deploy/init-secrets.sh`，由 `scripts/gen_deploy.py` 生成。
 
@@ -33,7 +34,7 @@ python3 scripts/dev.py up
 - portal 本地路由（bootstrap、events、preferences、屏障）未实现，只有 healthz/readyz；data-protection 的 readyz 仍是 503（备份业务未实现）。
 - 分片 sitemap 未挂。
 - 各服务用 `lifecycle.SimpleAdmission` 代替快照屏障准入，M4 再换。
-- media 的 readVideoMetadata（平台视频链接）、localization 的翻译与界面文案、qa 的问答与调试台、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
+- media 的 readVideoMetadata（平台视频链接）、localization 的界面文案翻译/语言建议/缓存回答翻译/approve-plan 执行器、qa 的调试台/缓存/前置分类、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
 - 后台界面：各域都有页面了（知识库索引页只能配置与查看，没有模型档位时无法实际建索引）。
 
 ## 未合并的旧工作

@@ -164,7 +164,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"approveLanguagePlan":  {"portal"},
 			"listLanguages":        {"portal", "public-site"},
 			"putGlossaryTerm":      {"portal"}, "deleteGlossaryTerm": {"portal"}, "listGlossary": {"portal"}, "rollbackAutomaticGlossaryBatch": {"portal"}, "applyApprovedGlossaryProposal": {"memory"},
-			"saveLanguagePreference": {"public-site"}, "readTranslation": {"public-site"}, "listTranslationProgress": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "readCacheAnswerTranslation": {"qa"},
+			"saveLanguagePreference": {"public-site"}, "readTranslation": {"public-site"}, "listTranslationProgress": {"portal"}, "createTranslation": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "readCacheAnswerTranslation": {"qa"},
 		},
 	}, handlers)
 	if err != nil {
