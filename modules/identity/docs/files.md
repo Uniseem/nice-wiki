@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 37 个：手写 22、生成 4、配置 6、迁移 5。函数 150 个：约束 30，参考 120。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 37 个：手写 22、生成 4、配置 6、迁移 5。函数 151 个：约束 30，参考 121。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -22,7 +22,7 @@
 | `modules/identity/internal/restore_security.go` | 手写 | 恢复数据后使备份登录失效 | `identity.InvalidateRestoredSessions`（参考）、`identity.WithIdentityRestoreID`（参考） |
 | `modules/identity/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `identity.AcquireBarrier`、`identity.ReleaseBarrier`、`identity.requireProtectionService`（参考）、`identity.barrierMode`（参考）、`identity.snapshotSealProof`（参考）、`identity.barrierStatus`（参考）、`identity.barrierStatusValue`（参考） |
 | `modules/identity/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `identity.ExportSnapshot`、`identity.StageSnapshot`、`identity.DiscardSnapshot`、`identity.WithSnapshotManager`（参考）、`identity.WithSnapshotRuntime`（参考）、`identity.WithRestoreArchiveClient`（参考）、`identity.snapshotManagerFromContext`（参考）、`identity.snapshotRuntimeFromContext`（参考）、`identity.restoreArchiveClientFromContext`（参考）、`identity.snapshotRefToLifecycle`（参考）、`identity.snapshotRefFromLifecycle`（参考）、`identity.NewSnapshotManager`（参考）、`identity.beginIdentityDrain`（参考）、`identity.drainIdentityWork`（参考）、`identity.observeIdentityWork`（参考）、`identity.readIdentityWorkRevision`（参考）、`identity.readIdentityPendingWorkQuery`（参考）、`identity.identityWatermark`（参考）、`identity.sealIdentityWork`（参考）、`identity.resumeIdentityWork`（参考）、`identity.captureIdentitySnapshot`（参考）、`identity.validateIdentitySnapshotManifest`（参考）、`identity.identityStageBudget`（参考）、`identity.migrateIdentityStage`（参考）、`identity.validateIdentityStaged`（参考）、`identity.openIdentitySnapshotDB`（参考）、`identity.migrateIdentitySnapshotDB`（参考）、`identity.validateIdentitySnapshotDatabase`（参考） |
-| `modules/identity/internal/storage.go` | 手写 | 打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志 | `identity.OpenDatabase`（参考）、`identity.RunMigrations`（参考）、`identity.RecoverJournal`（参考）、`identity.openIdentityControl`（参考）、`identity.AppendDecision`（参考）、`identity.CompleteDecision`（参考）、`identity.EnsureOutbox`（参考） |
+| `modules/identity/internal/storage.go` | 手写 | 打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志 | `identity.OpenDatabase`（参考）、`identity.RunMigrations`（参考）、`identity.RecoverJournal`（参考）、`identity.openIdentityControl`（参考）、`identity.AppendDecision`（参考）、`identity.CompleteDecision`（参考）、`identity.readJournal`（参考）、`identity.EnsureOutbox`（参考） |
 | `modules/identity/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005），校验编号从1起连续 | `identity.All`（参考）、`identity.ControlSchema`（参考） |
 | `modules/identity/migrations/0001_domain.sql` | 迁移 | 初始权威表：accounts（唯一超管部分唯一索引）、credentials、account_permissions、sessions、preferences、operation_receipts、schema_migrations；nw_outbox/nw_inbox由平台EnsureSchema创建不在此登记 | 无 |
 | `modules/identity/cmd/identity/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `identity.main` |

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 150 个函数：约束 30 个，参考 120 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 151 个函数：约束 30 个，参考 121 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2935,7 +2935,7 @@ func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig pl
 - 授权：仅完整启动装配
 - 并发：受信后台串行或纯函数
 - 幂等：按输入/既有持久回执
-- 依赖：`identity.waitForIdentitySite`、`platform.RunRecoveryLoop`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`identity.ObserveSuperadminResetFile`
+- 依赖：`identity.waitForIdentitySite`、`identity.identityBackgroundOperation`、`platform.RunRecoveryLoop`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`identity.ObserveSuperadminResetFile`
 
 ## identity.runOutboxRelay
 
@@ -2976,7 +2976,7 @@ func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteC
 - 授权：仅完整启动装配
 - 并发：受信后台串行或纯函数
 - 幂等：按输入/既有持久回执
-- 依赖：`identity.waitForIdentitySite`、`platform.RunRecoveryLoop`、`platform.SnapshotManager.AdmitEventBatch`、`platform.SnapshotManager.BindOutboxEventScope`、`platform.SnapshotManager.WriteWindow`、`identity.RelayOutbox`
+- 依赖：`identity.waitForIdentitySite`、`identity.identityBackgroundOperation`、`identity.WithRelayRuntime`、`platform.RunRecoveryLoop`、`platform.SnapshotManager.AdmitEventBatch`、`platform.SnapshotManager.BindOutboxEventScope`、`platform.SnapshotManager.WriteWindow`、`identity.RelayOutbox`
 
 ## identity.waitForIdentitySite
 
@@ -3015,7 +3015,7 @@ func waitForIdentitySite(ctx context.Context, store *Store, interval time.Durati
 - 授权：仅完整启动装配
 - 并发：受信后台串行或纯函数
 - 幂等：按输入/既有持久回执
-- 依赖：`identity.readUniqueSuperadmin`
+- 依赖：`identity.readUniqueSuperadmin`、`identity.identityDBError`
 
 ## identity.identityBackgroundOperation
 
@@ -3402,7 +3402,7 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
 - 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
-- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.EnterBarrier`、`platform.SnapshotManager.ReadBarrierStatus`
+- 依赖：`identity.requireProtectionService`、`identity.barrierMode`、`identity.snapshotSealProof`、`identity.barrierStatus`、`identity.snapshotManagerFromContext`、`site-config:readRuntimeState`、`platform.SnapshotManager.EnterBarrier`、`platform.SnapshotManager.ReadBarrierStatus`
 
 ## identity.ReleaseBarrier
 
@@ -3445,7 +3445,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input ReleaseBarri
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.ReleaseBarrier`
+- 依赖：`identity.requireProtectionService`、`identity.snapshotManagerFromContext`、`identity.barrierStatusValue`、`site-config:readRuntimeState`、`platform.SnapshotManager.ReleaseBarrier`
 
 ## identity.requireProtectionService
 
@@ -3677,7 +3677,7 @@ func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExpo
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
 - 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
-- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.Export`
+- 依赖：`identity.requireProtectionService`、`identity.snapshotManagerFromContext`、`identity.snapshotRefFromLifecycle`、`site-config:readRuntimeState`、`platform.SnapshotManager.Export`
 
 ## identity.StageSnapshot
 
@@ -3724,7 +3724,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
-- 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`、`platform.SnapshotManager.Stage`
+- 依赖：`identity.validSuperadminDelegation`、`identity.restoreArchiveClientFromContext`、`identity.snapshotManagerFromContext`、`identity.snapshotRefToLifecycle`、`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`、`platform.SnapshotManager.Stage`
 
 ## identity.DiscardSnapshot
 
@@ -3767,7 +3767,7 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行
 - 幂等：重复删除返回removed=false
-- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.Discard`
+- 依赖：`identity.validSuperadminDelegation`、`identity.snapshotManagerFromContext`、`site-config:readRuntimeState`、`platform.SnapshotManager.Discard`
 
 ## identity.WithSnapshotManager
 
@@ -4297,7 +4297,7 @@ func readIdentityPendingWorkQuery(ctx context.Context, query interface { QueryRo
 - 授权：本域SnapshotManager回调或启动可信装配
 - 并发：由外层SnapshotManager或恢复控制串行
 - 幂等：按外层操作或持久阶段回执
-- 依赖：无
+- 依赖：`identity.readJournal`
 
 ## identity.identityWatermark
 
@@ -4566,7 +4566,7 @@ func migrateIdentityStage(ctx context.Context, manifest lifecycle.DomainSnapshot
 **步骤**
 
 1. 核platform.SnapshotStageBinding
-2. 调用identity.migrateIdentitySnapshotDB经outbox.MigrateRestoredDatabase执行已登记迁移和旧资格隔离
+2. 调用identity.migrateIdentitySnapshotDB经platform.MigrateRestoredDatabase执行已登记迁移和旧资格隔离
 3. 验证数据库
 
 **错误**
@@ -4686,8 +4686,8 @@ func migrateIdentitySnapshotDB(ctx context.Context, db *sql.DB) error
 
 **步骤**
 
-1. 调用outbox.MigrateRestoredDatabase；回调只执行identity.All登记迁移
-2. 迁移完成后按identityWorkTables调用outbox.RegisterWorkTable；不重标原队列epoch
+1. 调用platform.MigrateRestoredDatabase；回调只执行identity.All登记迁移
+2. 迁移完成后按identityWorkTables调用platform.RegisterWorkTable；不重标原队列epoch
 
 **错误**
 
@@ -4697,7 +4697,7 @@ func migrateIdentitySnapshotDB(ctx context.Context, db *sql.DB) error
 - 授权：本域SnapshotManager回调或启动可信装配
 - 并发：公共恢复数据库事务串行
 - 幂等：按schema_migrations与公共恢复回执
-- 依赖：`outbox.MigrateRestoredDatabase`、`outbox.RegisterWorkTable`、`identity.All`
+- 依赖：`platform.MigrateRestoredDatabase`、`platform.RegisterWorkTable`、`identity.All`
 
 ## identity.validateIdentitySnapshotDatabase
 
@@ -4943,6 +4943,38 @@ func (s *Store) CompleteDecision(id string) error
 - 幂等：按外层操作回执或决定水位，纯读取无副作用
 - 依赖：无
 
+## identity.readJournal
+
+- 级别：参考
+- 文件：`modules/identity/internal/storage.go`
+- 作用：读取本域控制决定日志的有效末行状态
+
+```go
+func readJournal(file *os.File) (map[string]journalEntry, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按日志顺序解析决定条目并保留每个决定ID的最后状态；损坏或未知状态失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域启动恢复或SnapshotManager回调
+- 并发：由外层文件锁与启动恢复串行
+- 幂等：只读确定性
+- 依赖：无
+
 ## identity.EnsureOutbox
 
 - 级别：参考
@@ -4968,7 +5000,7 @@ func (s *Store) EnsureOutbox(ctx context.Context) error
 
 **步骤**
 
-1. 调用platform.EnsureSchema；按identityWorkTables逐表调用outbox.RegisterWorkTable
+1. 调用platform.EnsureSchema；按identityWorkTables逐表调用platform.RegisterWorkTable
 2. 不复制公共SQL，不使用MAX/COUNT构造版本
 
 **错误**
@@ -4979,7 +5011,7 @@ func (s *Store) EnsureOutbox(ctx context.Context) error
 - 授权：启动装配
 - 并发：单连接串行
 - 幂等：注册接口幂等
-- 依赖：`platform.EnsureSchema`、`outbox.RegisterWorkTable`
+- 依赖：`platform.EnsureSchema`、`platform.RegisterWorkTable`
 
 ## identity.All
 
@@ -5080,7 +5112,7 @@ func main()
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
-- 依赖：`identity.BuildApplication`、`identity.Serve`、`identity.Shutdown`、`identity.ReadServerAccountIndex`、`platform.RunService`
+- 依赖：`identity.BuildApplication`、`identity.Serve`、`identity.Shutdown`、`identity.BackgroundTasks`、`identity.ReadServerAccountIndex`、`platform.RunService`
 
 ## identity.BuildApplication
 
@@ -5129,7 +5161,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`identity.restoreIdentityAfterSwap`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`platform.CanonicalPublicOrigin`、`platform.NewServiceHandler`、`identity.NewApplication`、`platform.ValidatePrivatePath`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
+- 依赖：`identity.restoreIdentityAfterSwap`、`identity.ObserveSuperadminResetFile`、`identity.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`identity.OpenDatabase`、`identity.RunMigrations`、`identity.EnsureOutbox`、`identity.RecoverJournal`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`platform.CanonicalPublicOrigin`、`platform.NewServiceHandler`、`identity.NewApplication`、`identity.SnapshotManager`、`identity.InstallBackgroundTasks`、`platform.ValidatePrivatePath`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；本域无独立web/UI；内部Go API继续由identity OpenAPI生成，portal浏览器认证副本由portal OpenAPI x-browser-auth-adapters与Browser*类型合成，禁止将内部token响应类型直接供浏览器
 
 ## identity.restoreIdentityAfterSwap
@@ -5175,7 +5207,7 @@ func restoreIdentityAfterSwap(ctx context.Context, dataRoot string, runtime plat
 - 授权：启动可信装配；不接受HTTP输入
 - 并发：启动恢复互斥；依赖本域事务与持久journal串行
 - 幂等：按restoreId+state派生稳定activation operationId；会话失效与site-config登记均可重试
-- 依赖：`platform.ReadRestoreSwapState`、`identity.InvalidateRestoredSessions`、`platform.SignActivationReceipt`、`site-config:registerActivation`
+- 依赖：`platform.ReadRestoreSwapState`、`identity.WithIdentityStore`、`identity.WithIdentityRestoreID`、`identity.InvalidateRestoredSessions`、`platform.SignActivationReceipt`、`site-config:registerActivation`
 
 ## identity.Serve
 
@@ -5374,7 +5406,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 - 授权：固定服务caller与平台用户权威回调；健康就绪匿名
 - 并发：只读应用容器，事务由本域用例负责
 - 幂等：以业务用例回执为准
-- 依赖：`platform.NewServiceHandler`、`identity.operationHandlers`、`identity.authorizeOperation`
+- 依赖：`platform.NewServiceHandler`、`identity.NewSnapshotManager`、`identity.operationHandlers`、`identity.authorizeOperation`
 
 ## identity.identityContext
 
@@ -5406,7 +5438,7 @@ func (a *Application) identityContext(ctx context.Context) context.Context
 - 授权：固定服务caller与平台用户权威回调；健康就绪匿名
 - 并发：只读应用容器，事务由本域用例负责
 - 幂等：以业务用例回执为准
-- 依赖：`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`identity.WithSessionCursorKey`、`identity.WithIdentityStore`
+- 依赖：`identity.WithSessionRuntime`、`identity.WithLoginRuntime`、`identity.WithRegistrationRuntime`、`identity.WithSessionCursorKey`、`identity.WithIdentityStore`、`identity.WithSnapshotManager`、`identity.WithSnapshotRuntime`、`identity.WithRestoreArchiveClient`
 
 ## identity.authorizeOperation
 
@@ -5472,7 +5504,7 @@ func (a *Application) operationHandlers() map[string]http.Handler
 - 授权：固定服务caller与平台用户权威回调；健康就绪匿名
 - 并发：只读应用容器，事务由本域用例负责
 - 幂等：以业务用例回执为准
-- 依赖：`identity.jsonOperation`、`identity.ReadRegistrationState`、`identity.RegisterFirstSuperadmin`、`identity.CreateSession`、`identity.RefreshSession`、`identity.CreateAccount`、`identity.ReadSelf`、`identity.ChangePassword`、`identity.VerifySessionCSRF`、`identity.CheckAuthorization`、`identity.ReadSessions`、`identity.RevokeSession`、`identity.Health`、`identity.Ready`、`identity.ListAccounts`、`identity.SetAccountStatus`、`identity.SetAccountPermissions`、`identity.ResetAccountPassword`、`identity.ReadPreferences`、`identity.UpdatePreferences`
+- 依赖：`identity.jsonOperation`、`identity.ReadRegistrationState`、`identity.RegisterFirstSuperadmin`、`identity.CreateSession`、`identity.RefreshSession`、`identity.CreateAccount`、`identity.ReadSelf`、`identity.ChangePassword`、`identity.VerifySessionCSRF`、`identity.CheckAuthorization`、`identity.ReadSessions`、`identity.RevokeSession`、`identity.Health`、`identity.Ready`、`identity.ListAccounts`、`identity.SetAccountStatus`、`identity.SetAccountPermissions`、`identity.ResetAccountPassword`、`identity.ReadPreferences`、`identity.UpdatePreferences`、`identity.AcquireBarrier`、`identity.ReleaseBarrier`、`identity.ExportSnapshot`、`identity.StageSnapshot`、`identity.DiscardSnapshot`、`identity.ReadSnapshotArchive`
 
 ## identity.SnapshotManager
 
@@ -5662,7 +5694,7 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 - 授权：permission：superadmin；rule：仅data-protection服务身份加已验证superadmin委托；绑定本域精确完成归档与维护屏障
 - 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
 - 幂等：同完整引用只读复用，不生成或重算归档
-- 依赖：`platform.SnapshotManager.OpenArchive`
+- 依赖：`identity.validSuperadminDelegation`、`identity.snapshotRuntimeFromContext`、`identity.snapshotManagerFromContext`、`platform.SnapshotManager.OpenArchive`
 
 ## identity.validSuperadminDelegation
 
