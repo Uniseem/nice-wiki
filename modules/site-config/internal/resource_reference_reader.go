@@ -85,14 +85,14 @@ func ListResourceReferences(ctx context.Context, op platform.OperationContext, i
 		if historical.ConfigRevision > watermark {
 			return ListResourceReferencesResult{}, platform.NewError(platform.CodeIntegrityError, false, "资源引用历史超过当前水位")
 		}
-		if historical.ConfigRevision == watermark && historical.RevisionID != currentRevisionID {
+		if historical.ConfigRevision == watermark && historical.RevisionId != currentRevisionID {
 			return ListResourceReferencesResult{}, platform.NewError(platform.CodeIntegrityError, false, "资源引用当前修订存在歧义")
 		}
-		config, record, _, err := store.readIndexedConfig(ctx, tx, historical.RevisionID)
+		config, record, _, err := store.readIndexedConfig(ctx, tx, historical.RevisionId)
 		if err != nil {
 			return ListResourceReferencesResult{}, err
 		}
-		if record.RevisionID != historical.RevisionID || record.Object.Version != historical.ConfigRevision || record.DataEpoch != op.DataEpoch {
+		if record.RevisionID != historical.RevisionId || record.Object.Version != historical.ConfigRevision || record.DataEpoch != op.DataEpoch {
 			return ListResourceReferencesResult{}, platform.NewError(platform.CodeIntegrityError, false, "资源引用历史与配置索引不一致")
 		}
 		kind := gen.AssetReferenceKind("history")
