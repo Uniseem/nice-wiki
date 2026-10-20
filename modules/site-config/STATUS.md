@@ -1,6 +1,6 @@
 # 2026-10-20 R1-F02结构合同收口
 
-本工作树从集成候选 `6f25dd57386081b5903bc6c02f448ea769466618` 建立，分支为 `codex/structure-site-config-20261020`，只修改 `modules/site-config/`。本轮清理 activation verifier 的重复函数登记、合并重复的 `snapshot_service.go` future file、按平台权威来源登记真实快照/恢复/outbox叶类型、补实际 caller 依赖边，并删除无源码 caller 的 GlobalSeal 配置hook；`verifyGlobalSeal` 保持失败关闭。
+本工作树从集成候选 `6f25dd57386081b5903bc6c02f448ea769466618` 建立，分支为 `codex/structure-site-config-20261020`；结构合同收口提交为 `536dabb89c20cb1ade669345ba328b624c26031a`，只修改 `modules/site-config/`。本轮清理 activation verifier 的重复函数登记、合并重复的 `snapshot_service.go` future file、按平台权威来源登记真实快照/恢复/outbox叶类型、补实际 caller 依赖边，并删除无源码 caller 的 GlobalSeal 配置hook；`verifyGlobalSeal` 保持失败关闭。
 
 机器合同使用冻结的 `platform.RegisterWorkTable` 与 `platform.MigrateRestoredDatabase` ID，实际 Go 包调用仍由公共 outbox 实现。当前 checker 剩余 package/标准库限定符误报、父树尚未合入的公共 platform ID，以及生成文档待集成 `make docs`；本轮不升 `implemented`/`verified`，未运行 Go、测试、pnpm、make check 或真实服务。
 

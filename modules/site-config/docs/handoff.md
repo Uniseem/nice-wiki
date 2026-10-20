@@ -1,6 +1,6 @@
 # 2026-10-20 R1-F02恢复WIP接入main后的窄修交接
 
-本工作树继续旧恢复WIP `30ac79fcf878d1f3eb3fafb472204edae19bae4b`，已普通 merge `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`；源码与合并窄修提交为 `c3c7c10c11320ebff45c994f8458e54604a75343`。主线 pipeline173/174 已验证的激活回执验签与 `RegisterActivation` 实作保留在合并源码中；本轮新/改恢复、快照、Relay、Build 接线仍待 GitLab CI，继续保持待验证。
+本工作树从集成候选 `6f25dd57386081b5903bc6c02f448ea769466618` 建立，分支为 `codex/structure-site-config-20261020`；结构合同收口提交为 `536dabb89c20cb1ade669345ba328b624c26031a`。主线 pipeline173/174 已验证的激活回执验签与 `RegisterActivation` 实作保留在合并源码中；本轮新/改恢复、快照、Relay、Build 接线仍待 GitLab CI，继续保持待验证。
 
 本轮只在 `modules/site-config/` 内修复公告 journal 单条隔离，并按公共屏障协议复核：非 jobs 只封本域真实水位并使用同一无 `nonJobs` 字段 proof，不等待最终 broker 回执；最终 broker 与13域回执由 jobs 阶段核验。恢复迁移机器合同依赖统一记为 `platform.MigrateRestoredDatabase`，实际Go包调用仍由公共outbox实现；公共 `RegisterWorkTable` 同样按 `platform.RegisterWorkTable` 机器ID登记。当前无真实GlobalSeal协调器caller，已删除未使用的配置hook源码/合同；`verifyGlobalSeal` 保持失败关闭，等待jobs协调器和集成启动合同冻结。未运行本机/SSH Go、pnpm、生成、格式化、编译、vet、test、make check、真实接口、模型、服务或部署；不 push。
 

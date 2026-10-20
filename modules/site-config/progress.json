@@ -7,7 +7,7 @@
   "assignedSession": "2026-10-20 site-config结构合同收口；从集成候选6f25dd57建立，未CI、未push",
   "branch": "codex/structure-site-config-20261020",
   "baseCommit": "6f25dd57386081b5903bc6c02f448ea769466618",
-  "deliveryCommit": "c3c7c10c11320ebff45c994f8458e54604a75343",
+  "deliveryCommit": "536dabb89c20cb1ade669345ba328b624c26031a",
   "deployment": "not_started",
   "files": [
     {
@@ -223,7 +223,7 @@
     {
       "path": "modules/site-config/internal/snapshot_service.go",
       "state": "in_progress",
-      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "implementationCommit": "536dabb89c20cb1ade669345ba328b624c26031a",
       "verification": {
         "state": "not_run",
         "evidence": null
