@@ -19,6 +19,7 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/modules/qa/internal/events"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"nice-wiki/modules/qa/internal/transport"
@@ -131,6 +132,20 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 		}
 	}
 	application := NewApplication(config, anchors, runtimeAuthority, view.DataEpoch)
+	application.SetBackgroundTasks([]platform.BackgroundTask{{Name: "qa.outbox", Run: func(work context.Context) error {
+		return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(tick context.Context) error {
+			var site string
+			if err := db.QueryRowContext(tick, `SELECT site_id FROM qa_identity WHERE singleton=1`).Scan(&site); err != nil {
+				return nil // 还没有任何请求建立站点身份，没有事件可转发
+			}
+			deadline := time.Now().UTC().Add(30 * time.Second)
+			id := platform.NewIdentifier()
+			op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline.Format(time.RFC3339Nano), DataEpoch: view.DataEpoch,
+				Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: site, ExpiresAt: deadline.Format(time.RFC3339Nano), Grants: []string{}}}
+			_, err := events.PublishOutbox(qaruntime.WithRuntime(platform.WithOperationContext(tick, op), runtime), op, events.PublishOutboxInput{Limit: 100})
+			return err
+		}})
+	}}})
 	retain = true
 	application.Mount(handler, paths, func() { _ = db.Close() })
 	return application, nil

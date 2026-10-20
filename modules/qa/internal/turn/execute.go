@@ -106,7 +106,11 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 			return err
 		}
 	}
-	_, err = CompleteTurn(ctx, op, CompleteTurnInput{TurnID: turnID, Answer: text, Citations: evidence.Citations, LeaseID: lease, AnswerKind: "generated", TokenCount: len(text)/4 + 1})
+	kind := "answered"
+	if len(evidence.Citations) == 0 {
+		kind = "no_evidence"
+	}
+	_, err = CompleteTurn(ctx, op, CompleteTurnInput{TurnID: turnID, Answer: text, Citations: evidence.Citations, LeaseID: lease, AnswerKind: kind, TokenCount: len(text)/4 + 1})
 	return err
 }
 
