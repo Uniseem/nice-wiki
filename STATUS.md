@@ -28,7 +28,7 @@ python3 scripts/dev.py up
 2. M2 余项：media 消费 content 事件；翻译的自动触发现在是轮询，不是事件。
 3. M3 补完：前置分类/检索核查/语义缓存、approve-plan 批量翻译执行器、界面文案翻译、语言建议。
 4. M4：各域屏障与快照导出、恢复换目录、data-protection 备份/恢复/镜像。
-5. M5：在服务器上部署（需要你当次同意）；qa 与 portal 两个镜像在本机 docker 里构建通过（顺带修了 init-secrets 把密钥写错目录、构建上下文带上宿主机 node_modules 两个问题）；其余 13 个镜像只做了静态核对（COPY 路径、cmd、go.mod 都在，Go 编译由 make build 覆盖；15 份 deploy 配置都能被服务配置加载器读通，compose 文件 `config` 校验通过），整套 compose 启动没跑过；这台开发机上的 colima 在一次磁盘写满后起不来了，换环境再验证。
+5. M5：在服务器上部署（需要你当次同意）；15 个镜像里 14 个已在本机 docker 里逐个构建通过（顺带修了 init-secrets 把密钥写错目录、构建上下文带上宿主机 node_modules 两个问题）；只差 data-protection 没构建（磁盘余量到了保护线，它与其他服务同一套模板）。15 份 deploy 配置都能被服务配置加载器读通，compose 文件 `config` 校验通过；整套 compose 启动没跑过。
 
 ## 已知缺口
 
