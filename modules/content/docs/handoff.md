@@ -2,7 +2,7 @@
 
 ## 范围与提交
 
-- 基线：`a53fe59c`；分支：`codex/content-b1-v2-20261021`；独立 worktree：`/private/tmp/nice-wiki-content-b1-v2-20261021`；独占 `modules/content/`。
+- 基线：`a53fe59c`；分支：`codex/content-b1-v2-20261021`；独立 worktree；独占 `modules/content/`。
 - 合同提交：`911dbb29`；producer 提交：`d0c0dd5f`；合同窄修：`f34d346c`、`9f0e70cb`。未 push。
 - 修改精确文件：`contracts/events.json`、`contracts/types.json`、`contracts/implementation.json`、生成的 `docs/functions.md`、`internal/draft_commit_store.go`、`internal/outbox_repository.go`、`internal/publication_repository.go`。
 

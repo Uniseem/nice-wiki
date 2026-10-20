@@ -1,6 +1,6 @@
 # 2026-10-21 B1 资源事件来源 v2（已提交，待 GitLab CI）
 
-本轮从 `a53fe59c` 建立独立 worktree `/private/tmp/nice-wiki-content-b1-v2-20261021`，分支为 `codex/content-b1-v2-20261021`，独占 `modules/content/`。源码与合同提交已顺序完成：合同 `911dbb29`，producer `d0c0dd5f`，合同窄修 `f34d346c`，移除已完成 content 阻塞的合同修正 `9f0e70cb`。
+本轮从 `a53fe59c` 建立独立 worktree，分支为 `codex/content-b1-v2-20261021`，独占 `modules/content/`。源码与合同提交已顺序完成：合同 `911dbb29`，producer `d0c0dd5f`，合同窄修 `f34d346c`，移除已完成 content 阻塞的合同修正 `9f0e70cb`。
 
 - `content.resources.changed` 保留 v1 `$defs/ResourceReferencesChangedPayload` 原样作历史只读兼容；新增 v2 `$defs/ResourceReferencesChangedPayloadV2`。v2 的来源身份包含 `sourceService=content`、`sourceOperationId`、`siteId`、`sourceObjectId=documentId`、`sourceRevisionId`、`sourceVersion`、`referenceDigest` 和完整 `AssetReference[]`，`eventId` 只在 jobs 信封中。
 - v2 引用数组直接复用已持久 `draftMediaReferences`：`kind=pending_pin`、`confirmed=false`、`expiresAt=null`、原 `asset`、稳定 `referenceId` 与原 `referenceDigest`；空集合仍保留完整来源身份。没有把条目改为 `current/confirmed`，不重新计算摘要。
