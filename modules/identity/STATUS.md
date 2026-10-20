@@ -1,6 +1,6 @@
 # R1-F01 identity 结构收口（2026-10-20，待 GitLab CI）
 
-本轮从候选 `6f25dd57386081b5903bc6c02f448ea769466618` 新建工作树 `/private/tmp/nice-wiki-structure-identity-20261020`，分支 `codex/structure-identity-20261020`，只修改 `modules/identity/`。结构检查已按真实源码补齐 `readJournal`、启动/HTTP/后台/恢复调用依赖和本域私有类型登记；公共限定包名、标准库语法与 binding/reference 签名规则的误报留给唯一集成代理修 checker。未运行本机 Go、gofmt、build、vet、测试、生成或 `make check`，未 push、未调用真实接口/模型、未部署。
+本轮从候选 `6f25dd57386081b5903bc6c02f448ea769466618` 新建工作树 `/private/tmp/nice-wiki-structure-identity-20261020`，分支 `codex/structure-identity-20261020`，只修改 `modules/identity/`；交付提交为 `2f52be9cf8a79e5db6e6b9b1f7cb6265c31ece4f`。结构检查已按真实源码补齐 `readJournal`、启动/HTTP/后台/恢复调用依赖和本域私有类型登记；公共限定包名、标准库语法与 binding/reference 签名规则的误报留给唯一集成代理修 checker。未运行本机 Go、gofmt、build、vet、测试、生成或 `make check`，未 push、未调用真实接口/模型、未部署。
 
 - 本域 implementation 机器依赖已使用冻结的 `platform.RegisterWorkTable`、`platform.MigrateRestoredDatabase`；源码包调用保持 `outbox.*`。
 - 未复制公共 `SnapshotManager`、`EventPublisher`、`BackgroundTask`、`RuntimeView`、`SigningKey`、`Tx` 或标准库 `sql/time` 类型；types.json 只补 identity 私有 `Store`、`RestoreArchiveClient`。

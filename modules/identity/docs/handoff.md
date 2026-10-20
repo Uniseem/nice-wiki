@@ -2,7 +2,7 @@
 
 ## 结构收口接管（2026-10-20）
 
-- 工作树 `/private/tmp/nice-wiki-structure-identity-20261020`，分支 `codex/structure-identity-20261020`，基线候选 `6f25dd57386081b5903bc6c02f448ea769466618`；只拥有 `modules/identity/`。
+- 工作树 `/private/tmp/nice-wiki-structure-identity-20261020`，分支 `codex/structure-identity-20261020`，基线候选 `6f25dd57386081b5903bc6c02f448ea769466618`，交付提交 `2f52be9cf8a79e5db6e6b9b1f7cb6265c31ece4f`；只拥有 `modules/identity/`。
 - 本轮按真实源码登记 `identity.readJournal`，补齐 BuildApplication/NewApplication、HTTP handler、后台循环、恢复换目录和 SnapshotManager 回调的实际依赖边；未添加虚构 caller。
 - `types.json` 只新增 identity 私有 `Store` 与 `RestoreArchiveClient`；公共 platform/lifecycle/gen 类型及 `sql/time/interface` 语法由 checker 的 shared/限定名规则负责，本域不复制占位类型。
 - identity implementation 依赖使用冻结机器 ID `platform.RegisterWorkTable`、`platform.MigrateRestoredDatabase`；Go 实现仍调用 `outbox.RegisterWorkTable`/`outbox.MigrateRestoredDatabase`。

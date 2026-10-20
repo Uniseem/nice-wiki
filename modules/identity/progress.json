@@ -7,7 +7,7 @@
   "assignedSession": "R1-F01 identity 结构收口：真实依赖、私有类型与交接台账",
   "branch": "codex/structure-identity-20261020",
   "baseCommit": "6f25dd57386081b5903bc6c02f448ea769466618",
-  "deliveryCommit": "6f25dd57386081b5903bc6c02f448ea769466618",
+  "deliveryCommit": "2f52be9cf8a79e5db6e6b9b1f7cb6265c31ece4f",
   "rule": "本轮从候选6f25dd57386081b5903bc6c02f448ea769466618新建identity独占工作树；按真实源码补齐readJournal、启动/HTTP/后台/恢复/SnapshotManager调用依赖，implementation机器合同使用platform.RegisterWorkTable/platform.MigrateRestoredDatabase，Go调用保留outbox包。types.json只登记identity私有Store与RestoreArchiveClient，不复制公共platform/lifecycle/gen或标准库类型。未通过GitLab CI的新改合同/台账保持in_progress或blocked；checker限定包名、标准库语法和reference签名误报由唯一集成代理修正，accepted=0。",
   "deployment": "not_started",
   "files": [
