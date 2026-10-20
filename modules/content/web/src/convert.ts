@@ -50,6 +50,12 @@ function block(node: JSONNode): any {
       const text = (node.content ?? []).map((c) => c.text ?? '').join('');
       return { type: 'codeBlock', attrs: { blockId, language: node.attrs?.language || null }, content: text ? [{ type: 'text', text }] : [] };
     }
+    case 'image': {
+      const alt = typeof node.attrs?.alt === 'string' && node.attrs.alt !== '' ? node.attrs.alt : null;
+      const a = node.attrs?.asset;
+      if (!a) throw new Error('图片缺少资源引用');
+      return { type: 'image', attrs: { blockId, asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize }, alt, altSource: alt ? 'manual' : 'auto', caption: [], widthPercent: node.attrs?.widthPercent ?? null } };
+    }
     default: throw new Error(`编辑器含暂不支持保存的块：${node.type}`);
   }
 }

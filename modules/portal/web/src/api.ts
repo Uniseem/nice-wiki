@@ -65,6 +65,12 @@ export async function request<T>(path: string, options: ModuleAPIRequest = {}, r
       body = JSON.stringify(options.body);
     }
   }
+  if (options.uploadChunk) {
+    headers['Content-Type'] = 'application/octet-stream';
+    headers['X-Upload-Offset'] = String(options.uploadChunk.offset);
+    headers['X-Chunk-SHA256'] = options.uploadChunk.sha256;
+    headers['If-Match'] = String(options.uploadChunk.revision);
+  }
   if (method !== 'GET') {
     headers['Idempotency-Key'] = options.idempotencyKey ?? newKey();
     headers['X-CSRF-Token'] = csrf();

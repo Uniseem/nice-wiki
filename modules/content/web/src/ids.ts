@@ -2,7 +2,7 @@ import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { newId } from './convert';
 
-const blockTypes = ['paragraph', 'heading', 'blockquote', 'horizontalRule', 'bulletList', 'orderedList', 'taskList', 'codeBlock'];
+const blockTypes = ['paragraph', 'heading', 'blockquote', 'horizontalRule', 'bulletList', 'orderedList', 'taskList', 'codeBlock', 'image'];
 const itemTypes = ['listItem', 'taskItem'];
 
 // 给每个块/列表项补稳定 ID；粘贴或拆分产生重复 ID 时，保留第一个，其余换新 ID。

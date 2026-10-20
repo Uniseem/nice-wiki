@@ -37,6 +37,19 @@ def call(method, path, body=None, base=PORTAL, headers=None):
         return resp.status, raw
 
 
+def upload_png():
+    import base64, hashlib
+    png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==")
+    sha = hashlib.sha256(png).hexdigest()
+    up = step("声明上传", call("POST", "/v1/uploads", {"sha256": sha, "byteSize": len(png), "originalName": "red.png", "kind": "image"}))["upload"]
+    req = urllib.request.Request(PORTAL + f"/v1/uploads/{up['uploadId']}/chunks", data=png, method="PUT")
+    for k, v in {"Origin": PORTAL, "Cookie": state["cookie"], "X-CSRF-Token": state["csrf"], "Idempotency-Key": uuid.uuid4().hex, "Content-Type": "application/octet-stream",
+                 "X-Upload-Offset": "0", "X-Chunk-SHA256": sha, "If-Match": str(up["revision"])}.items():
+        req.add_header(k, v)
+    up = json.loads(urllib.request.urlopen(req).read())["upload"]
+    return step("完成上传", call("POST", f"/v1/uploads/{up['uploadId']}:complete", {"expectedRevision": up["revision"]}))["asset"]["ref"]
+
+
 def step(name, result):
     status, body = result
     print(f"[{status}] {name}: {json.dumps(body, ensure_ascii=False)[:300] if isinstance(body, (dict, list)) else str(body)[:300]}")
@@ -71,6 +84,9 @@ def main():
     body = {"schemaVersion": 1, "type": "doc", "content": [
         {"type": "heading", "attrs": {"blockId": uuid.uuid4().hex, "level": 2}, "content": [{"type": "text", "text": "欢迎", "marks": []}]},
         {"type": "paragraph", "attrs": {"blockId": uuid.uuid4().hex}, "content": [{"type": "text", "text": "这是第一篇文档。", "marks": []}]}]}
+    if "img" in sys.argv:
+        ref = upload_png()
+        body["content"].append({"type": "image", "attrs": {"blockId": uuid.uuid4().hex, "asset": ref, "alt": "一个红点", "altSource": "manual", "caption": [], "widthPercent": None}})
     saved = step("保存草稿", call("PUT", f"/v1/documents/{doc_id}/draft", {
         "body": body, "expectedDraftVersion": draft["draftVersion"], "expectedDraftRevisionId": draft["revisionId"],
         "leaseId": lease["leaseId"], "fencingToken": lease["fencingToken"], "serverBootId": lease["serverBootId"]}))
@@ -83,7 +99,7 @@ def main():
         "draftRevisionId": new_draft["revisionId"], "expectedDraftVersion": new_draft["draftVersion"], "expectedRevision": revision,
         "manualPathSegment": slug, "manualSEO": "第一篇文档"}))
     step("释放编辑锁", call("DELETE", f"/v1/documents/{doc_id}/lock", {"leaseId": lease["leaseId"], "serverBootId": lease["serverBootId"]}))
-    if len(sys.argv) > 2:
+    if "trash" in sys.argv:
         tree = call("GET", "/v1/tree")[1]
         node = next(n for n in tree["documents"] if n["documentId"] == doc_id)
         step("删除到回收站", call("POST", f"/v1/documents/{doc_id}:trash", {"expectedRevision": node["revision"], "expectedTreeRevision": tree["treeRevision"], "includeSubtree": False, "replacementDocumentId": None}))

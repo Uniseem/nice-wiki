@@ -19,7 +19,7 @@ var forwardableHeaders = map[string]bool{
 	"content-type": true, "accept-language": true,
 	"if-match": true, "if-none-match": true, "if-modified-since": true,
 	"if-unmodified-since": true, "if-range": true, "range": true,
-	"last-event-id": true,
+	"last-event-id": true, "x-upload-offset": true, "x-chunk-sha256": true,
 }
 
 // ValidateEnvelope 对入口请求执行有界检查；正文句柄只允许由入口生成。

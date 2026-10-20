@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { onBeforeUnmount, watch } from 'vue';
+import { onBeforeUnmount, ref, watch } from 'vue';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Highlight from '@tiptap/extension-highlight';
 import { StableIds } from './ids';
+import { ImageBlock } from './image';
+import { uploadImage } from './upload';
+import { messageOf } from './client';
 import type { JSONNode } from './convert';
 
 const props = defineProps<{ doc: JSONNode; editable: boolean }>();
@@ -17,7 +20,7 @@ const editor = useEditor({
   extensions: [
     // 链接需要 LinkTarget 结构，暂不开放；标题只允许 H2–H4。
     StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: false }),
-    TaskList, TaskItem.configure({ nested: true }), Highlight, StableIds,
+    TaskList, TaskItem.configure({ nested: true }), Highlight, ImageBlock, StableIds,
   ],
   // 只有用户在编辑器里操作（获得焦点）才算修改，加载时补稳定 ID 不触发保存。
   onUpdate: ({ editor }) => { if (editor.isFocused) emit('change', editor.getJSON() as JSONNode); },
@@ -25,6 +28,23 @@ const editor = useEditor({
 
 watch(() => props.editable, (value) => editor.value?.setEditable(value));
 onBeforeUnmount(() => editor.value?.destroy());
+
+const fileInput = ref<HTMLInputElement | null>(null);
+const uploading = ref(false);
+const uploadError = ref('');
+
+async function insertImage(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file || !editor.value) return;
+  uploading.value = true;
+  uploadError.value = '';
+  try {
+    const asset = await uploadImage(file);
+    editor.value.chain().focus().insertContent({ type: 'image', attrs: { asset, alt: null } }).run();
+  } catch (e) { uploadError.value = `图片上传失败：${messageOf(e)}`; } finally { uploading.value = false; }
+}
 
 const buttons = [
   { label: '加粗', run: (e: any) => e.chain().focus().toggleBold().run(), on: (e: any) => e.isActive('bold') },
@@ -52,7 +72,10 @@ const buttons = [
   <div v-if="editor">
     <div class="toolbar">
       <button v-for="b in buttons" :key="b.label" type="button" :class="{ on: b.on(editor) }" :disabled="!editable" @click="b.run(editor)">{{ b.label }}</button>
+      <button type="button" :disabled="!editable || uploading" @click="fileInput?.click()">{{ uploading ? '上传中…' : '图片' }}</button>
+      <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden @change="insertImage">
     </div>
+    <p v-if="uploadError" class="error">{{ uploadError }}</p>
     <EditorContent :editor="editor" />
   </div>
 </template>

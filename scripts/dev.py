@@ -94,6 +94,7 @@ def up(slugs):
         build_web()
     os.makedirs(path("run"), exist_ok=True)
     for s in slugs:
+        stop(s)
         log = open(path("logs", s + ".log"), "w")
         p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True, cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_WEB_DIR": path("web")})
         open(pidfile(s), "w").write(str(p.pid))
@@ -102,6 +103,21 @@ def up(slugs):
             if p.poll() is not None or port_open(PORTS[s]):
                 break
         print(("运行中 " if p.poll() is None else "已退出 ") + s, f"(:{PORTS[s]})")
+
+
+def stop(slug):
+    """停掉该服务已有的进程（若有），避免新进程因端口占用而悄悄失败。"""
+    f = pidfile(slug)
+    if os.path.exists(f):
+        try:
+            os.killpg(int(open(f).read()), signal.SIGTERM)
+        except (ProcessLookupError, ValueError):
+            pass
+        os.remove(f)
+        for _ in range(50):
+            if not port_open(PORTS[slug]):
+                break
+            time.sleep(0.1)
 
 
 def down():

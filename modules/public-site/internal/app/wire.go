@@ -126,6 +126,8 @@ func (c domainClients) directory() publicsite.LinkDirectory {
 		SiteConfig:   c.siteConfig,
 		Content:      c.content,
 		Localization: c.localization,
+		Media:        c.media,
+		Identity:     c.identity,
 	}
 }
 
