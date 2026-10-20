@@ -159,7 +159,17 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		op.NetworkBudgetScopes = scopes
 		ctx = platform.WithOperationContext(ctx, op)
 	}
-	if route.Definition.Admission != "" {
+	if route.Definition.Owner == "qa" && route.Definition.Permission.Permission == "anonymous" {
+		body, visitorProof, visitorOp, err := prepareVisitorQA(ctx, op, runtime, route)
+		if err != nil {
+			return ProxyRequestResult{}, err
+		}
+		op, proof = visitorOp, visitorProof
+		runtime.Body = body
+		validated.Envelope.BodyBytes = int64(len(body))
+		validated.Envelope.BodyDigest = platform.HashBytes(body)
+		ctx = platform.WithOperationContext(ctx, op)
+	} else if route.Definition.Admission != "" {
 		return ProxyRequestResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "公开准入服务尚未装配")
 	}
 	if route.Definition.Owner == "analytics" && route.Definition.UpstreamOperationID == "ingestBeacon" {

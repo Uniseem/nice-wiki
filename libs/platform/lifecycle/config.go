@@ -302,6 +302,8 @@ func applyEnv(env []string, config *platform.ServiceConfig) error {
 			config.DelegationKeyRef = value
 		case "MASTER_KEY_REF":
 			config.MasterKeyRef = value
+		case "BUDGET_KEY_REF":
+			config.BudgetKeyRef = value
 		case "PUBLIC_BASE_URL":
 			config.PublicBaseURL = value
 		case "TRUSTED_PROXY_CIDRS":
@@ -351,6 +353,9 @@ func validateConfig(config platform.ServiceConfig) error {
 	}
 	if config.DelegationKeyRef != "" && !filepath.IsAbs(config.DelegationKeyRef) {
 		return platform.NewError(platform.CodeValidation, false, "委托私钥引用必须为绝对路径")
+	}
+	if config.BudgetKeyRef != "" && !filepath.IsAbs(config.BudgetKeyRef) {
+		return platform.NewError(platform.CodeValidation, false, "预算密钥引用必须为绝对路径")
 	}
 	if config.MasterKeyRef != "" && !filepath.IsAbs(config.MasterKeyRef) {
 		return platform.NewError(platform.CodeValidation, false, "主密钥引用必须为绝对路径")

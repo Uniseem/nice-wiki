@@ -345,7 +345,7 @@ func EvaluateAdmission(ctx context.Context, op OperationContext, in EvaluateAdmi
 			return EvaluateAdmissionResult{}, err
 		}
 	}
-	_, policyRevision, err := readGuardPolicy(t)
+	policy, policyRevision, err := readGuardPolicy(t)
 	if err != nil {
 		return EvaluateAdmissionResult{}, err
 	}
@@ -362,7 +362,7 @@ func EvaluateAdmission(ctx context.Context, op OperationContext, in EvaluateAdmi
 		if err != nil {
 			return EvaluateAdmissionResult{}, err
 		}
-		risk, err := ComputeRisk(t.ctx, op, ComputeRiskInput{Denials10m: signals.Denials10m, ChallengePassed: signals.ChallengePassed, ActiveBan: signals.ActiveBan, ExactRepeatCount: signals.ExactRepeatCount, SimilarityScore: signals.SimilarityScore, RegularIntervalCount: signals.RegularIntervalCount, ModelVerdict: signals.ModelVerdict})
+		risk, err := ComputeRisk(t.ctx, op, ComputeRiskInput{Denials10m: signals.Denials10m, ChallengePassed: signals.ChallengePassed || !policy.ChallengeEnabled, ActiveBan: signals.ActiveBan, ExactRepeatCount: signals.ExactRepeatCount, SimilarityScore: signals.SimilarityScore, RegularIntervalCount: signals.RegularIntervalCount, ModelVerdict: signals.ModelVerdict})
 		if err != nil {
 			return EvaluateAdmissionResult{}, err
 		}

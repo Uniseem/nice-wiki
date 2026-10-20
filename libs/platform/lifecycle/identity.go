@@ -80,3 +80,21 @@ func LoadPortalDelegation(config platform.ServiceConfig, anchors platform.TrustA
 	}
 	return key, nil
 }
+
+// LoadBudgetKey 装配 portal 与 traffic-guard 共用的匿名预算密钥；它独立于可轮换的服务签名密钥，没有配置时返回空密钥。
+func LoadBudgetKey(config platform.ServiceConfig) (platform.SigningKey, error) {
+	var key platform.SigningKey
+	if config.BudgetKeyRef == "" {
+		return key, nil
+	}
+	if err := readIdentityConfig(config.BudgetKeyRef, &key); err != nil {
+		return platform.SigningKey{}, err
+	}
+	if key.KeyID == "" || !filepath.IsAbs(key.PrivateKeyRef) {
+		return platform.SigningKey{}, platform.NewError(platform.CodeIntegrityError, false, "预算密钥材料不完整")
+	}
+	if _, err := serviceauth.LoadSigningKey(key); err != nil {
+		return platform.SigningKey{}, err
+	}
+	return key, nil
+}

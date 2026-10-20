@@ -65,16 +65,17 @@ const (
 func main() {
 	servicesPath := flag.String("services", "deploy/config/services.json", "服务清单路径")
 	anchorsPath := flag.String("out", "deploy/config/trust-anchors.json", "公钥表输出路径")
+	budgetDir := flag.String("budget-dir", "", "匿名预算密钥目录；给出时确保其中有一把预算密钥")
 	rotate := flag.Bool("rotate", false, "生成新keyId并保留旧公钥一个过渡期")
 	delegationKeys := flag.Int("delegation-keys", 1, "portal委托密钥对数量")
 	flag.Parse()
-	if err := run(*servicesPath, *anchorsPath, *rotate, *delegationKeys); err != nil {
+	if err := run(*servicesPath, *anchorsPath, *rotate, *delegationKeys, *budgetDir); err != nil {
 		fmt.Fprintf(os.Stderr, "nw-keys: %s\n", err)
 		os.Exit(failExitCode)
 	}
 }
 
-func run(servicesPath, anchorsPath string, rotate bool, delegationCount int) error {
+func run(servicesPath, anchorsPath string, rotate bool, delegationCount int, budgetDir string) error {
 	if delegationCount < 1 || delegationCount > maxDelegationKeys {
 		return usageError("portal委托密钥对数量必须在1到4之间")
 	}
@@ -97,6 +98,16 @@ func run(servicesPath, anchorsPath string, rotate bool, delegationCount int) err
 	}
 	if err := ensureDelegationKeys(listing, rotate, delegationCount, &anchors); err != nil {
 		return err
+	}
+	if budgetDir != "" {
+		if err := os.MkdirAll(budgetDir, privateDirMode); err != nil {
+			return usageError("创建预算密钥目录失败")
+		}
+		if len(existingKeyIDs(budgetDir, "budget-")) == 0 {
+			if _, err := writeKeyPair(filepath.Join(budgetDir, "budget-"+newKeyID("budget")+".pem")); err != nil {
+				return err
+			}
+		}
 	}
 	sortAnchors(&anchors)
 	return writeAnchors(anchorsPath, anchors)

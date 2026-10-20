@@ -79,16 +79,19 @@ func ExecuteInvocation(ctx context.Context, op OperationContext, input ExecuteIn
 		if record.ActiveAttemptID == "" {
 			prepared, err := PrepareInvocationAttempt(work, op, record, 0, "initial")
 			if err != nil {
+				debugErr(err)
 				_ = FinishInvocation(ctx, op, input.InvocationID, "failed", ErrorCode(err))
 				return ExecuteInvocationResult{}, err
 			}
 			maximum, err := billing.ComputeUsageCost(prepared.Price, prepared.InputTokenBudget, prepared.OutputTokenBudget)
 			if err != nil {
+				debugErr(err)
 				_ = FinishInvocation(ctx, op, input.InvocationID, "failed", ErrorCode(err))
 				return ExecuteInvocationResult{}, err
 			}
 			_, err = billing.ReserveCost(work, op, billing.ReserveCostInput{InvocationID: input.InvocationID, AttemptID: prepared.Attempt.AttemptId, MaximumCost: maximum, PricingKnown: maximum != nil, IdempotencyKey: "reserve." + prepared.Attempt.AttemptId, PreparedAttempt: &prepared})
 			if err != nil {
+				debugErr(err)
 				_ = FinishInvocation(ctx, op, input.InvocationID, "failed", ErrorCode(err))
 				return ExecuteInvocationResult{}, err
 			}

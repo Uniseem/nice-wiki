@@ -83,6 +83,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	application.SetSiteLoader(func(work context.Context) (platform.Identifier, error) {
 		return readSiteIdentity(work, config, key, view.DataEpoch)
 	})
+	budgetKey, err := lifecycle.LoadBudgetKey(config)
+	if err != nil {
+		return nil, err
+	}
+	application.SetBudgetKey(budgetKey)
 	application.MountWeb(webDirectory())
 	return application, nil
 }

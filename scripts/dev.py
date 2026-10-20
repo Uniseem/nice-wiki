@@ -24,7 +24,10 @@ def setup():
     os.makedirs(path("config"), exist_ok=True)
     json.dump({"version": 1, "services": services}, open(path("config", "services.json"), "w"))
     subprocess.check_call(["go", "run", "./cmd/nw-keys", "--services", path("config", "services.json"),
-                           "--out", path("config", "trust-anchors.json")], cwd=os.path.join(ROOT, "libs/platform"))
+                           "--out", path("config", "trust-anchors.json"), "--budget-dir", path("secrets", "budget")], cwd=os.path.join(ROOT, "libs/platform"))
+    budget_pem = sorted(glob.glob(path("secrets", "budget", "budget-*.pem")))[-1]
+    budget_id = os.path.basename(budget_pem)[len("budget-"):-len(".pem")]
+    json.dump({"keyId": budget_id, "privateKeyRef": budget_pem}, open(path("secrets", "budget", "budget-key.json"), "w"))
     for slug in PORTS:
         sec = path("secrets", slug)
         pem = sorted(glob.glob(os.path.join(sec, "signing-*.pem")))[-1]
@@ -42,6 +45,8 @@ def setup():
                     f.write(os.urandom(32))
                 os.chmod(master, 0o600)
             cfg["masterKeyRef"] = master
+        if slug in ("portal", "traffic-guard"):
+            cfg["budgetKeyRef"] = path("secrets", "budget", "budget-key.json")
         if slug == "analytics":
             cfg["reportingTimeZone"] = "Asia/Shanghai"
         if slug == "site-config":

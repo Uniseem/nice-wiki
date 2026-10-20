@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	qaruntime "nice-wiki/modules/knowledge/internal/model"
+	"os"
 	"sync"
 
 	"nice-wiki/libs/platform"
@@ -111,7 +113,12 @@ func CreateQueryEmbedding(ctx context.Context, op OperationContext, input Create
 	}
 	operationID, raw, err := load(ctx)
 	if err == sql.ErrNoRows {
-		work, view, cancel, err := lifecycle.NewWriteContext(platform.WithOperationContext(ctx, op), store.WriteWindow)
+		var (
+			work   context.Context
+			view   platform.RuntimeView
+			cancel context.CancelFunc
+		)
+		work, view, cancel, err = lifecycle.NewWriteContext(platform.WithOperationContext(ctx, op), store.WriteWindow)
 		if err != nil {
 			return CreateQueryEmbeddingResult{}, err
 		}
@@ -127,6 +134,9 @@ func CreateQueryEmbedding(ctx context.Context, op OperationContext, input Create
 		operationID, raw, err = load(ctx)
 	}
 	if err != nil {
+		if os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "查询嵌入读取失败 原因=%v\n", err)
+		}
 		return CreateQueryEmbeddingResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "查询嵌入读取失败")
 	}
 	if len(raw) > 0 {

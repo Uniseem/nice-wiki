@@ -144,10 +144,9 @@ func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayrunt
 		var enabled bool
 		var sessionLimit, multiplier, daily int64
 		var site, epoch string
-		if err := tx.Tx.QueryRowContext(tx.Context, `SELECT site_id,data_epoch,hourly_limits_enabled,session_hourly_limit_micro_usd,network_multiplier,daily_qa_limit_micro_usd FROM fee_budget_policy WHERE singleton=1`).Scan(&site, &epoch, &enabled, &sessionLimit, &multiplier, &daily); err != nil {
+		if err := tx.Tx.QueryRowContext(tx.Context, `SELECT site_id,data_epoch,hourly_limits_enabled,session_hourly_limit_micro_usd,network_multiplier,daily_qa_limit_micro_usd FROM fee_budget_policy WHERE singleton=1`).Scan(&site, &epoch, &enabled, &sessionLimit, &multiplier, &daily); err != nil && err != sql.ErrNoRows {
 			return gatewayruntime.ExecutionStorageError(err)
-		}
-		if site != record.Operation.Actor.SiteID || epoch != record.Operation.DataEpoch {
+		} else if err == nil && (site != record.Operation.Actor.SiteID || epoch != record.Operation.DataEpoch) {
 			return platform.NewError(platform.CodeStaleResult, false, "费用策略站点或代际不匹配")
 		}
 		budgets = append(budgets, budget{daily, "cost_class", "qa", day})

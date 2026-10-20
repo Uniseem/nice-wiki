@@ -8,6 +8,7 @@ import (
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"os"
+	"runtime/debug"
 	"time"
 )
 
@@ -105,7 +106,7 @@ func FinishCancelledInvocation(ctx context.Context, op OperationContext, record 
 }
 func FinishInvocation(ctx context.Context, op OperationContext, id, state, code string) error {
 	if os.Getenv("NW_DEBUG") != "" && state != "succeeded" {
-		fmt.Fprintf(os.Stderr, "调用结束 invocation=%s 状态=%s 错误码=%s\n", id, state, code)
+		fmt.Fprintf(os.Stderr, "调用结束 invocation=%s 状态=%s 错误码=%s\n%s\n", id, state, code, debugStack())
 	}
 	tx, err := gatewayruntime.BeginFinalization(ctx, op)
 	if err != nil {
@@ -212,4 +213,17 @@ func FinishInterruptedInvocation(ctx context.Context, op OperationContext, id, s
 		}
 	}
 	return FinishInvocation(ctx, op, id, state, code)
+}
+
+func debugStack() string {
+	if os.Getenv("NW_DEBUG_STACK") == "" {
+		return ""
+	}
+	return string(debug.Stack())
+}
+
+func debugErr(err error) {
+	if os.Getenv("NW_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "调用失败原因：%v\n", err)
+	}
 }

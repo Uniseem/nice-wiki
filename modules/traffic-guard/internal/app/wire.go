@@ -92,7 +92,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
+	budgetKey, err := lifecycle.LoadBudgetKey(config)
+	if err != nil {
+		return nil, err
+	}
 	guardRuntime := trafficguard.GuardRuntime{
+		BudgetKey:             budgetKey,
 		Store:                 store,
 		Identity:              identityClient,
 		Runtime:               runtimeReader,

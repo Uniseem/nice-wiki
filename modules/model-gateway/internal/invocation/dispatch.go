@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/concurrency"
@@ -12,6 +13,7 @@ import (
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/stream"
 	"nice-wiki/modules/model-gateway/internal/tokens"
+	"os"
 	"time"
 )
 
@@ -35,6 +37,9 @@ func DispatchInvocation(ctx context.Context, op OperationContext, input Dispatch
 		return DispatchInvocationResult{}, err
 	}
 	failure := func(cause error) (DispatchInvocationResult, error) {
+		if os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "派发失败 invocation=%s 原因=%v\n", input.InvocationID, cause)
+		}
 		return DispatchInvocationResult{Invocation: record.Invocation, Outcome: provider.ProviderOutcome{AcceptanceProof: "not_accepted", Code: ErrorCode(cause)}, FailureCode: ErrorCode(cause)}, nil
 	}
 	if record.LeaseID != input.LeaseID || record.LeaseUntilNS <= time.Now().UnixNano() || record.CancelRequested || attempt.DispatchedNS != 0 || attempt.Attempt.State != "reserved" {

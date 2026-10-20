@@ -7,7 +7,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
+	"os"
 	"slices"
 	"sort"
 	"time"
@@ -268,8 +270,27 @@ func ReadTurn(t *Transaction, op OperationContext, id string, owner bool) (TurnR
 	if redacted != 0 {
 		return TurnRecord{}, platform.NewError(platform.CodeGone, false, "问答正文已按会话保留规则清除")
 	}
-	if DecodeResponse(t.Runtime, "QaTurn", turnRaw, &record.Turn) != nil || DecodeResponse(t.Runtime, "QaCitations", citationsRaw, &record.Citations) != nil || json.Unmarshal(permitRaw, &record.Permit) != nil || json.Unmarshal(operationRaw, &record.Operation) != nil || json.Unmarshal(invocationsRaw, &record.InvocationIDs) != nil {
-		return TurnRecord{}, platform.NewError(platform.CodeIntegrityError, false, "问答轮次持久数据损坏")
+	var citationsError error
+	if string(citationsRaw) != "[]" && string(citationsRaw) != "null" { // 合同要求引用列表非空；没有引用的轮次存空数组
+		citationsError = DecodeResponse(t.Runtime, "QaCitations", citationsRaw, &record.Citations)
+	}
+	decoded := []struct {
+		name string
+		err  error
+	}{
+		{"turn", DecodeResponse(t.Runtime, "QaTurn", turnRaw, &record.Turn)},
+		{"citations", citationsError},
+		{"permit", json.Unmarshal(permitRaw, &record.Permit)},
+		{"operation", json.Unmarshal(operationRaw, &record.Operation)},
+		{"invocations", json.Unmarshal(invocationsRaw, &record.InvocationIDs)},
+	}
+	for _, item := range decoded {
+		if item.err != nil {
+			if os.Getenv("NW_DEBUG") != "" {
+				fmt.Fprintf(os.Stderr, "问答轮次持久数据损坏 字段=%s err=%v raw=%s\n", item.name, item.err, string(turnRaw))
+			}
+			return TurnRecord{}, platform.NewError(platform.CodeIntegrityError, false, "问答轮次持久数据损坏")
+		}
 	}
 	if len(planRaw) > 0 {
 		if DecodeResponse(t.Runtime, "QaQuestionPlan", planRaw, &record.Plan) != nil {

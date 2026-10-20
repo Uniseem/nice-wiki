@@ -36,6 +36,7 @@ const (
 type Application struct {
 	siteMu             sync.Mutex
 	siteID             platform.Identifier
+	budgetKey          platform.SigningKey
 	loadSite           func(context.Context) (platform.Identifier, error)
 	webDir             string
 	validateBeaconBody func(json.RawMessage) error
@@ -78,6 +79,9 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	}
 	return application, nil
 }
+
+// SetBudgetKey 装配匿名预算密钥（与 traffic-guard 共用），没有时匿名风控路由不可用。
+func (a *Application) SetBudgetKey(key platform.SigningKey) { a.budgetKey = key }
 
 func (a *Application) Serve(ctx context.Context) error { return Serve(ctx, a) }
 
@@ -199,6 +203,9 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
 		Writer: w, Runtime: a.runtime, Identity: a.identity, Gate: a.gate,
 		ConfiguredOrigins: origins, TrustedProxyCIDRs: a.config.TrustedProxyCIDRs,
+	}
+	if a.budgetKey.KeyID != "" {
+		runtime.NetworkScopeKeys = []platform.SigningKey{a.budgetKey}
 	}
 	ctx := portal.WithProxyRuntime(r.Context(), runtime)
 	ctx = portal.WithAuthResolver(ctx, a.authResolver)
