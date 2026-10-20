@@ -7855,9 +7855,9 @@
       "functions": []
     },
     {
-      "path": "modules/media/internal/event_subscription.go",
+      "path": "modules/media/internal/worker.go",
       "kind": "handwritten",
-      "purpose": "订阅并分派本域登记的跨域事件",
+      "purpose": "主动领取本域持久任务的循环",
       "functions": [
         {
           "id": "media.ConsumeEvents",
@@ -7945,7 +7945,7 @@
             "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发"
           },
           "concurrency": "每进程一个订阅循环；同subject串行，不同subject最多maxInFlight并发；事务与CAS由处理函数负责",
-      "idempotency": "jobs至少一次投递；本域inbox按信封eventId+payloadHash去重，重复投递只重新确认",
+          "idempotency": "jobs至少一次投递；本域inbox按信封eventId+payloadHash去重，重复投递只重新确认",
           "dependencies": [
             "jobs:subscribeEvents",
             "jobs:acknowledgeEvent",
@@ -7956,14 +7956,7 @@
           ],
           "resources": [],
           "contract": "binding"
-        }
-      ]
-    },
-    {
-      "path": "modules/media/internal/worker.go",
-      "kind": "handwritten",
-      "purpose": "主动领取本域持久任务的循环",
-      "functions": [
+        },
         {
           "id": "media.RunWorker",
           "name": "RunWorker",

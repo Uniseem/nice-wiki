@@ -1,3 +1,10 @@
+# 当前交付状态（2026-10-21，B1 v2，未跑CI）
+
+- 基线 `a53fe59cd1ef11ad51be4508788ec13132784417`，分支 `codex/media-b1-v2-20261021`，独占 `modules/media/`。本轮纳入 `1127e16e2ead5dcdab7df31a98ca5d3f131daf33` 源码修复与 `c29a68e3878676d9d2f9895491aa4788618a8e5a` media-only 交接记录；源码候选 `41e6d5c9c4de1d6937cf3b050cde9aceb8f93805`。
+- media 事件合同已升级为 `content.resources.changed@2`，events/OpenAPI 指向 content `ResourceReferencesChangedPayloadV2`；严格映射保留 `pending_pin` 原材料，eventId只从jobs信封注入。v1不静默解码。消费实现登记在已存在的 `worker.go`，不修改根结构文件。
+- content 合同 `911dbb29a56f8c26f286c73ddd4f8ad082a9d92d` 已只读核对；content 源码生产迁移、根 jobs v2 producer/subscription登记和生成物更新仍是集成前置。
+- 本域静态检查完成：`make docs`、四份合同JSON解析、`git diff --check`、隐私扫描。`python3 scripts/check_docs.py` 当前剩余3项预期跨域错误（两条 content v2 JSON pointer、一条 v2 producer未合并）；未运行Go/pnpm/build/vet/gofmt/make check或CI，不能记verified/accepted。
+
 # 2026-10-20：确认来源事件幂等回放修复（未跑CI）
 
 本轮从 `main=6204dfc9` 独立接续，仅修改 `modules/media/`。源码、media 实现合同与生成函数文档已提交：`1127e16e2ead5dcdab7df31a98ca5d3f131daf33`。

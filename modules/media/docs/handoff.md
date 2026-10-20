@@ -1,3 +1,13 @@
+# 2026-10-21：media B1 v2 事件消费闭环（未跑CI）
+
+- 基线 `a53fe59cd1ef11ad51be4508788ec13132784417`，分支 `codex/media-b1-v2-20261021`，独占 `modules/media/`。已纳入源码提交 `1127e16e2ead5dcdab7df31a98ca5d3f131daf33` 与其 media-only 记录提交 `c29a68e3878676d9d2f9895491aa4788618a8e5a`；当前源码候选为 `41e6d5c9c4de1d6937cf3b050cde9aceb8f93805` 及本次交接窄修。
+- content v2 机器合同已只读核对：`911dbb29a56f8c26f286c73ddd4f8ad082a9d92d` 新增 `ResourceReferencesChangedPayloadV2` 与 `ContentResourceEventReferenceV2`，保留 v1 历史只读。media events/OpenAPI 已引用新 `$defs`；content 源码生产迁移仍待后续提交。
+- 消费实现归并到已登记的 `modules/media/internal/worker.go`，避免修改根 `docs/structure/framework.json`；`ConsumeEvents` 只订阅 `content.resources.changed@2`，严格校验 v2，v1不静默解码。映射只从jobs信封注入eventId，保留原 `pending_pin/confirmed=false/expiresAt=null` 数组与digest，再调用 `ApplyReferenceEvent`。
+- `ApplyReferenceEvent` 保留 c29 前父提交的同料 confirmed 回放修复；同版本异材料/异digest失败关闭。`ensureReferenceEntries` 已在写入前显式关闭rows；取消已有delete_pending清理计划造成的真实generation推进按合同保留。
+- 本域已执行 `make docs`、合同JSON解析、`git diff --check` 和一次 `python3 scripts/check_docs.py`。当前 check_docs 仅剩 3 项跨域阻塞：media events/openapi 指向 content SHA `911dbb29` 尚未合入当前树的两条 v2 JSON pointer，以及 jobs 当前没有 v2 producer/subscription登记；不把它们记为本域通过。未运行本机Go/pnpm/build/vet/gofmt/make check、GitLab CI、业务接口、真实服务或部署。
+
+下一步：集成 content `911dbb29` 后续源码迁移与根 jobs v2 订阅配置，运行生成器更新 media 的两个生成文件，再由 GitLab CI执行 media/全仓 readonly build、vet、gofmt 与完整 make check。
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。

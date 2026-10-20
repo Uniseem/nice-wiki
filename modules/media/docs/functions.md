@@ -6253,7 +6253,7 @@ func (a *Application) Drain(ctx context.Context) error
 ## media.ConsumeEvents
 
 - 级别：约束
-- 文件：`modules/media/internal/event_subscription.go`
+- 文件：`modules/media/internal/worker.go`
 - 作用：从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认
 
 ```go

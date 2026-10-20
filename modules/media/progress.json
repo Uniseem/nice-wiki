@@ -2,12 +2,12 @@
   "version": 1,
   "module": "media",
   "phase": "implementation",
-  "contractSha256": "06b9314e19408759ed06dcc4e0e4aa96e688d940835790c461706a5bf8fed239",
+  "contractSha256": "f776d986b0207a99a3156f13fa131d07f30a3ea1ab07b2ce3d397b1b97a5ef9a",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "用户授权本轮只处理media.ApplyReferenceEvent确认来源的幂等回放；源码与本域实现合同已提交，未运行CI或本机Go检查，等待GitLab CI。",
-  "branch": "codex/media-idempotent-replay-20261020",
-  "baseCommit": "6204dfc9",
-  "deliveryCommit": "1127e16e2ead5dcdab7df31a98ca5d3f131daf33",
+  "assignedSession": "2026-10-21用户授权media B1 v2：基线a53fe59cd1ef11ad51be4508788ec13132784417；纳入1127e16与c29a68e，接通content.resources.changed@2消费、严格信封映射与确认来源回放；content v2合同911dbb29已只读核对。未运行CI、本机Go/pnpm/build/check或业务验收。",
+  "branch": "codex/media-b1-v2-20261021",
+  "baseCommit": "a53fe59cd1ef11ad51be4508788ec13132784417",
+  "deliveryCommit": "41e6d5c9c4de1d6937cf3b050cde9aceb8f93805",
   "deployment": "not_started",
   "files": [
     {
@@ -86,7 +86,7 @@
       "implementationCommit": "b439c516fcf58d7df32d6227dc6df18ceb0871ce",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17第三轮GitLab pipeline32=ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成148、三同时分片149/150/151全部success，14模块readonly build/vet/gofmt与完整make check通过，最终生成补丁0；根精确回传本域19路径（含p31格式/生成）。p30取消，p31Go分片全通过但整体check缺两个类型，不作完整依据。真实源码b439c516fcf58d7df32d6227dc6df18ceb0871ce；回传后未改Go/HTTP/schema行为，仅根批准订正Drawing首step来源文案，保留CI原生成文档待实际集成CI重新make docs。交审发现公共适配器多发领域Input字段，根修正为jobs HTTP RequestBody后核对通过；manifest18闭包/六Result/paid refs无其余阻塞。旧六schema被prune仅静态发现非行为验收。无本机/SSH Go/gen/check、测试或样例、SQL/HTTP业务执行、模型、worker/删除、启动或部署；verified仅表示R1既有检查。"
+        "evidence": "本轮contracts/openapi.json已新增运行载荷schema，但按约束未手改生成目录；未运行make gen、GitLab CI、本机Go/gofmt/build/vet/check或业务验收。"
       },
       "blocker": null
     },
@@ -116,7 +116,7 @@
       "implementationCommit": "b439c516fcf58d7df32d6227dc6df18ceb0871ce",
       "verification": {
         "state": "passed",
-        "evidence": "2026-10-17第三轮GitLab pipeline32=ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成148、三同时分片149/150/151全部success，14模块readonly build/vet/gofmt与完整make check通过，最终生成补丁0；根精确回传本域19路径（含p31格式/生成）。p30取消，p31Go分片全通过但整体check缺两个类型，不作完整依据。真实源码b439c516fcf58d7df32d6227dc6df18ceb0871ce；回传后未改Go/HTTP/schema行为，仅根批准订正Drawing首step来源文案，保留CI原生成文档待实际集成CI重新make docs。交审发现公共适配器多发领域Input字段，根修正为jobs HTTP RequestBody后核对通过；manifest18闭包/六Result/paid refs无其余阻塞。旧六schema被prune仅静态发现非行为验收。无本机/SSH Go/gen/check、测试或样例、SQL/HTTP业务执行、模型、worker/删除、启动或部署；verified仅表示R1既有检查。"
+        "evidence": "本轮contracts/openapi.json已新增运行载荷schema，但按约束未手改生成目录；未运行make gen、GitLab CI、本机Go/gofmt/build/vet/check或业务验收。"
       },
       "blocker": null
     },
@@ -132,13 +132,13 @@
     },
     {
       "path": "modules/media/internal/reference_repository.go",
-    "state": "in_progress",
-    "implementationCommit": "1127e16e2ead5dcdab7df31a98ca5d3f131daf33",
+    "state": "implemented",
+    "implementationCommit": "41e6d5c9c4de1d6937cf3b050cde9aceb8f93805",
       "verification": {
       "state": "not_run",
-      "evidence": "本轮仅完成静态合同、JSON、文档生成一致性与差异核验；未运行GitLab CI、本机Go/gofmt/build/vet/test、真实接口或服务。"
+      "evidence": "本轮纳入1127e16回放修复并适配v2事件；完成静态合同、JSON、make docs、差异与隐私核验；未运行GitLab CI、本机Go/gofmt/build/vet/test、真实接口或服务。"
       },
-    "blocker": "待用户自部署GitLab CI运行生成、readonly build/vet/gofmt与完整make check；未取得CI证据前不得恢复verified。"
+    "blocker": "待用户自部署GitLab CI先生成更新后的OpenAPI/clients，再运行readonly build/vet/gofmt与完整make check；未取得CI证据前不得恢复verified。"
     },
     {
       "path": "modules/media/internal/reference_reader.go",
@@ -333,12 +333,12 @@
     {
       "path": "modules/media/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "b439c516fcf58d7df32d6227dc6df18ceb0871ce",
+      "implementationCommit": "41e6d5c9c4de1d6937cf3b050cde9aceb8f93805",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第三轮GitLab pipeline32=ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成148、三同时分片149/150/151全部success，14模块readonly build/vet/gofmt与完整make check通过，最终生成补丁0；根精确回传本域19路径（含p31格式/生成）。p30取消，p31Go分片全通过但整体check缺两个类型，不作完整依据。真实源码b439c516fcf58d7df32d6227dc6df18ceb0871ce；回传后未改Go/HTTP/schema行为，仅根批准订正Drawing首step来源文案，保留CI原生成文档待实际集成CI重新make docs。交审发现公共适配器多发领域Input字段，根修正为jobs HTTP RequestBody后核对通过；manifest18闭包/六Result/paid refs无其余阻塞。旧六schema被prune仅静态发现非行为验收。无本机/SSH Go/gen/check、测试或样例、SQL/HTTP业务执行、模型、worker/删除、启动或部署；verified仅表示R1既有检查。 整文件仅已实现范围通过，服务外围继续partial。"
+        "state": "not_run",
+        "evidence": "本轮修改BuildApplication后台装配以接入事件消费；仅完成静态合同、JSON、make docs、差异与隐私核验，未运行GitLab CI或本机Go检查。"
       },
-      "blocker": "真实worker/relay及Drain/Shutdown已检查；完整HTTP、bytes、引用事件、控制恢复和其他后台未齐，整文件partial/完整启动blocked"
+      "blocker": "完整HTTP、bytes、控制恢复、全量后台与生成物CI仍未齐，整文件partial/完整启动blocked。"
     },
     {
       "path": "modules/media/internal/transport/server.go",
@@ -411,44 +411,34 @@
       "blocker": null
     },
     {
-      "path": "modules/media/internal/event_subscription.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/media/internal/worker.go",
+      "state": "implemented",
+      "implementationCommit": "41e6d5c9c4de1d6937cf3b050cde9aceb8f93805",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "本轮扩展后台装配为事件消费、worker、relay三条闭包；仅完成静态合同、JSON、make docs、差异与隐私核验，未运行GitLab CI或本机Go检查。"
       },
-      "blocker": null
-    },
-    {
-      "path": "modules/media/internal/worker.go",
-      "state": "verified",
-      "implementationCommit": "b439c516fcf58d7df32d6227dc6df18ceb0871ce",
-      "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第三轮GitLab pipeline32=ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成148、三同时分片149/150/151全部success，14模块readonly build/vet/gofmt与完整make check通过，最终生成补丁0；根精确回传本域19路径（含p31格式/生成）。p30取消，p31Go分片全通过但整体check缺两个类型，不作完整依据。真实源码b439c516fcf58d7df32d6227dc6df18ceb0871ce；回传后未改Go/HTTP/schema行为，仅根批准订正Drawing首step来源文案，保留CI原生成文档待实际集成CI重新make docs。交审发现公共适配器多发领域Input字段，根修正为jobs HTTP RequestBody后核对通过；manifest18闭包/六Result/paid refs无其余阻塞。旧六schema被prune仅静态发现非行为验收。无本机/SSH Go/gen/check、测试或样例、SQL/HTTP业务执行、模型、worker/删除、启动或部署；verified仅表示R1既有检查。"
-      },
-      "blocker": null
+      "blocker": "待生成PayloadValidationSpec并由GitLab CI运行readonly build/vet/gofmt与完整make check。"
     },
     {
       "path": "modules/media/internal/gen/openapi.gen.go",
-      "state": "verified",
-      "implementationCommit": "b439c516fcf58d7df32d6227dc6df18ceb0871ce",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
+        "state": "not_run",
         "evidence": "2026-10-17第三轮GitLab pipeline32=ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成148、三同时分片149/150/151全部success，14模块readonly build/vet/gofmt与完整make check通过，最终生成补丁0；根精确回传本域19路径（含p31格式/生成）。p30取消，p31Go分片全通过但整体check缺两个类型，不作完整依据。真实源码b439c516fcf58d7df32d6227dc6df18ceb0871ce；回传后未改Go/HTTP/schema行为，仅根批准订正Drawing首step来源文案，保留CI原生成文档待实际集成CI重新make docs。交审发现公共适配器多发领域Input字段，根修正为jobs HTTP RequestBody后核对通过；manifest18闭包/六Result/paid refs无其余阻塞。旧六schema被prune仅静态发现非行为验收。无本机/SSH Go/gen/check、测试或样例、SQL/HTTP业务执行、模型、worker/删除、启动或部署；verified仅表示R1既有检查。"
       },
-      "blocker": null
+      "blocker": "contracts/openapi.json新增ContentResourcesChangedPayloadV2与JobsAcknowledgeEventResult；生成目录禁止手改，待集成make gen生成并由GitLab CI验证。"
     },
     {
       "path": "modules/media/internal/gen/clients.gen.go",
-      "state": "verified",
-      "implementationCommit": "b439c516fcf58d7df32d6227dc6df18ceb0871ce",
+      "state": "blocked",
+      "implementationCommit": null,
       "verification": {
-        "state": "passed",
+        "state": "not_run",
         "evidence": "2026-10-17第三轮GitLab pipeline32=ae7b334dbd9f7c102ade242afe8be6c4ccd676f9：生成/重复生成148、三同时分片149/150/151全部success，14模块readonly build/vet/gofmt与完整make check通过，最终生成补丁0；根精确回传本域19路径（含p31格式/生成）。p30取消，p31Go分片全通过但整体check缺两个类型，不作完整依据。真实源码b439c516fcf58d7df32d6227dc6df18ceb0871ce；回传后未改Go/HTTP/schema行为，仅根批准订正Drawing首step来源文案，保留CI原生成文档待实际集成CI重新make docs。交审发现公共适配器多发领域Input字段，根修正为jobs HTTP RequestBody后核对通过；manifest18闭包/六Result/paid refs无其余阻塞。旧六schema被prune仅静态发现非行为验收。无本机/SSH Go/gen/check、测试或样例、SQL/HTTP业务执行、模型、worker/删除、启动或部署；verified仅表示R1既有检查。"
       },
-      "blocker": null
+      "blocker": "运行载荷schema尚未由make gen生成，当前PayloadValidationSpec缺v2事件与确认回执；禁止手改生成目录，待content v2集成后由GitLab CI生成验证。"
     },
     {
       "path": "modules/media/internal/gen/oapi-codegen.yaml",
@@ -1145,14 +1135,14 @@
     },
     {
       "id": "media.ConsumeEvents",
-      "path": "modules/media/internal/event_subscription.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "path": "modules/media/internal/worker.go",
+      "state": "implemented",
+      "implementationCommit": "41e6d5c9c4de1d6937cf3b050cde9aceb8f93805",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "实现content.resources.changed@2公共消费循环、严格v2 schema校验、信封eventId映射与ApplyReferenceEvent转发；仅完成静态合同、JSON、make docs、差异与隐私核验，未运行GitLab CI或本机Go检查。"
       },
-      "blocker": null
+      "blocker": "待content源码v2迁移、根jobs订阅配置更新、make gen生成新的PayloadValidationSpec后由GitLab CI运行readonly build/vet/gofmt与完整make check。"
     },
     {
       "id": "media.RunWorker",
