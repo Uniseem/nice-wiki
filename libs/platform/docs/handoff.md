@@ -1,8 +1,8 @@
 # 2026-10-20 R1-00公共机制续接
 
-当前独占集成worktree分支`codex/resume-20261020-integration`，已安全合入本地main `6204dfc94510f28752fe8da81df9f3a4d3ce781d`；e85 WIP和用户未跟踪文件均保留。main的pipeline173/174验签与site-config接线已吸收，不重复实现。
+当前公共结构修复在独立worktree分支`codex/r1-structure-fix-20261020`进行，基于暂停推送的本地候选`6f25dd57386081b5903bc6c02f448ea769466618`；原CI worktree与GitLab隔离分支保持不变。模块代理分别修复identity/site-config本域合同，platform公共合同由本集成会话维护。
 
-当前公共源码候选包含`SignActivationReceipt`、`ObserveTx/SealTx/ResumeTx`、`SnapshotManager.ReadBarrierStatus`和`MigrateRestoredDatabase`。签发/验签共用UTC `RFC3339Nano`、canonical header/proof与合法`keyId`；本候选对验签补充kid校验后需重新GitLab，不能沿用旧验证SHA。恢复迁移只在认证staged scope内同事务执行已登记schema/索引迁移、撤销旧代活动资格并固定host sealHash，原payload/epoch/费用事实保留。
+当前公共源码候选包含`SignActivationReceipt`、`ObserveTx/SealTx/ResumeTx`、`SnapshotManager.ReadBarrierStatus`和`MigrateRestoredDatabase`。机器合同函数ID统一按共享模块slug登记为`platform.RegisterWorkTable`与`platform.MigrateRestoredDatabase`，真实Go实现仍位于`libs/platform/outbox/`包；调用方依赖随后按该合同ID同步。签发/验签共用UTC `RFC3339Nano`、canonical header/proof与合法`keyId`；本候选对验签补充kid校验后需重新GitLab，不能沿用旧验证SHA。恢复迁移只在认证staged scope内同事务执行已登记schema/索引迁移、撤销旧代活动资格并固定host sealHash，原payload/epoch/费用事实保留。
 
 全域封口合同已修正为分阶段：13个非jobs先用同一不含`nonJobs`字段的proof封口，非jobs `VerifyGlobalSeal`只读持久prepare/drain/epoch和协调阶段；jobs最后才核13份持久`SnapshotSealReceipt{owner,sealProofHash}`、原proof hash及最终broker稳定水位。`ActivationReceipt`只属于恢复换目录后的独立签名来源验签，不是barrier回执。jobs当前OpenAPI尚未把`step=observe`拆成service-only授权，identity/site-config跨域回调保持失败关闭；prepare/drain/seal/resume-drain仍仅由data-protection加超管委托。
 

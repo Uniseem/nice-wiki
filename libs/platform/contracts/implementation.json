@@ -2063,7 +2063,7 @@
           "contract": "binding"
         },
         {
-          "id": "outbox.RegisterWorkTable",
+          "id": "platform.RegisterWorkTable",
           "name": "RegisterWorkTable",
           "signature": "func RegisterWorkTable(ctx context.Context, db *sql.DB, table string) error",
           "inputs": [
@@ -16265,7 +16265,7 @@
       "purpose": "真实已认证恢复隔离副本机制",
       "functions": [
         {
-          "id": "outbox.MigrateRestoredDatabase",
+          "id": "platform.MigrateRestoredDatabase",
           "name": "MigrateRestoredDatabase",
           "signature": "func MigrateRestoredDatabase(ctx context.Context, db *sql.DB, migrate func(*sql.Tx) error) error",
           "inputs": [
