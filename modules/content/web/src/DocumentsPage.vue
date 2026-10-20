@@ -77,6 +77,43 @@ async function showTrash() {
   await run(loadTrash);
 }
 
+async function reorder(doc: Meta, delta: number) {
+  const siblings = docs.value.filter((d) => (d.parentId ?? null) === (doc.parentId ?? null) && d.state !== 'trash' && d.state !== 'purged').sort((a, b) => (a.orderKey < b.orderKey ? -1 : 1));
+  const index = siblings.findIndex((d) => d.documentId === doc.documentId);
+  const target = index + delta;
+  if (target < 0 || target >= siblings.length) return;
+  const ids = siblings.map((d) => d.documentId);
+  [ids[index], ids[target]] = [ids[target], ids[index]];
+  await run(async () => {
+    await api('/v1/tree:reorder', { method: 'POST', body: { parentId: doc.parentId ?? null, orderedDocumentIds: ids, expectedTreeRevision: treeRevision.value } });
+    await loadTree();
+  });
+}
+
+// 可选的新父节点：除自己和自己的后代之外的所有活动文档。
+const moveTargets = computed(() => {
+  if (!meta.value) return [];
+  const banned = new Set<string>([meta.value.documentId]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const d of docs.value) if (d.parentId && banned.has(d.parentId) && !banned.has(d.documentId)) { banned.add(d.documentId); grew = true; }
+  }
+  return rows.value.filter((r) => !banned.has(r.doc.documentId));
+});
+
+async function moveTo(event: Event) {
+  const value = (event.target as HTMLSelectElement).value;
+  if (!meta.value || value === '__keep') return;
+  await save();
+  const id = meta.value.documentId;
+  await run(async () => {
+    await api('/v1/tree:move', { method: 'POST', body: { documentId: id, newParentId: value === '__root' ? null : value, beforeDocumentId: null, expectedTreeRevision: treeRevision.value } });
+    await refreshMeta();
+  });
+  (event.target as HTMLSelectElement).value = '__keep';
+}
+
 async function remove() {
   if (!meta.value) return;
   const hasChildren = docs.value.some((d) => d.parentId === meta.value!.documentId && d.state !== 'trash');
@@ -306,6 +343,7 @@ onBeforeUnmount(() => { void save().then(releaseLock); });
           <li v-for="r in rows" :key="r.doc.documentId" :class="{ sel: r.doc.documentId === selected }" :style="{ paddingLeft: r.depth * 14 + 'px' }">
             <div @click="select(r.doc.documentId)">
               <span style="flex:1">{{ r.doc.title }}</span>
+              <span class="move"><button title="上移" @click.stop="reorder(r.doc, -1)">↑</button><button title="下移" @click.stop="reorder(r.doc, 1)">↓</button></span>
               <span class="badge" :class="{ pub: r.doc.state === 'published' }">{{ r.doc.state === 'published' ? '已发布' : '草稿' }}</span>
             </div>
           </li>
@@ -323,6 +361,10 @@ onBeforeUnmount(() => { void save().then(releaseLock); });
           <button :disabled="!dirty || !writable" @click="save">保存草稿</button>
           <button class="primary" :disabled="busy || !writable" @click="publish">{{ meta.state === 'published' ? '发布更新' : '发布' }}</button>
           <button v-if="meta.state === 'published'" class="danger" :disabled="busy" @click="withdraw">撤回</button>
+          <select :disabled="busy || !writable" style="width:auto" aria-label="移动到" @change="moveTo">
+            <option value="__keep">移动到…</option><option value="__root">顶层</option>
+            <option v-for="r in moveTargets" :key="r.doc.documentId" :value="r.doc.documentId">{{ '　'.repeat(r.depth) + r.doc.title }}</option>
+          </select>
           <button :disabled="busy" @click="preview">预览</button>
           <button :disabled="busy" @click="toggleHistory">发布历史</button>
           <button class="danger" :disabled="busy" @click="remove">删除</button>

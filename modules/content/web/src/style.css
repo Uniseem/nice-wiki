@@ -36,3 +36,4 @@
 .ProseMirror .math-block { text-align: center; }
 .ProseMirror .attachment { border: 1px solid #8886; border-radius: 6px; padding: .4rem .8rem; display: inline-block; margin: .4rem 0; }
 .ProseMirror a { color: #2563eb; }
+.tree .move { display: none; } .tree li > div:hover .move { display: inline-flex; gap: 2px; } .tree .move button { padding: 0 .3rem; font-size: .8em; }
