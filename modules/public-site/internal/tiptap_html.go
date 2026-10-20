@@ -162,7 +162,14 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 			}
 			if node.Type == "video" {
 				poster, _ := media(node.Attrs["poster"])
-				return "<video" + idAttribute + " controls playsinline preload=\"metadata\" src=\"" + html.EscapeString(delivery.URL) + "\" poster=\"" + html.EscapeString(poster.URL) + "\"></video><p>" + html.EscapeString(attrString(node.Attrs, "description")) + "</p>", nil
+				posterAttr, description := "", ""
+				if poster.URL != "" {
+					posterAttr = " poster=\"" + html.EscapeString(poster.URL) + "\""
+				}
+				if text := attrString(node.Attrs, "description"); text != "" {
+					description = "<p>" + html.EscapeString(text) + "</p>"
+				}
+				return "<video" + idAttribute + " controls playsinline preload=\"metadata\" src=\"" + html.EscapeString(delivery.URL) + "\"" + posterAttr + "></video>" + description, nil
 			}
 			if label == "" {
 				label = delivery.Alt

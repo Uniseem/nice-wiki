@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """主链路冒烟：注册/登录 → 初始化站点 → 新建文档 → 加锁 → 保存草稿 → 发布 → 读公开页。
 需要先 `python3 scripts/dev.py up`；重复运行会复用已有账号与站点。"""
-import json, sys, urllib.request, urllib.error, uuid
+import json, os, sys, urllib.request, urllib.error, uuid
 
 PORTAL = "http://127.0.0.1:8080"
 PUBLIC = "http://127.0.0.1:8081"
@@ -38,10 +38,14 @@ def call(method, path, body=None, base=PORTAL, headers=None):
 
 
 def upload_png():
-    import base64, hashlib
-    png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==")
+    import base64
+    return upload_bytes(base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=="), "red.png", "image")
+
+
+def upload_bytes(png, name, kind):
+    import hashlib
     sha = hashlib.sha256(png).hexdigest()
-    up = step("声明上传", call("POST", "/v1/uploads", {"sha256": sha, "byteSize": len(png), "originalName": "red.png", "kind": "image"}))["upload"]
+    up = step("声明上传", call("POST", "/v1/uploads", {"sha256": sha, "byteSize": len(png), "originalName": name, "kind": kind}))["upload"]
     req = urllib.request.Request(PORTAL + f"/v1/uploads/{up['uploadId']}/chunks", data=png, method="PUT")
     for k, v in {"Origin": PORTAL, "Cookie": state["cookie"], "X-CSRF-Token": state["csrf"], "Idempotency-Key": uuid.uuid4().hex, "Content-Type": "application/octet-stream",
                  "X-Upload-Offset": "0", "X-Chunk-SHA256": sha, "If-Match": str(up["revision"])}.items():
@@ -87,6 +91,11 @@ def main():
         {"type": "paragraph", "attrs": {"blockId": uuid.uuid4().hex}, "content": [{"type": "text", "text": "这是第一篇文档。", "marks": []}]}]}
     if "math" in sys.argv:
         body["content"].append({"type": "mathBlock", "attrs": {"blockId": uuid.uuid4().hex, "latex": "E = mc^2"}})
+    for arg in sys.argv:
+        if arg.startswith("video="):
+            path = arg[6:]
+            ref = upload_bytes(open(path, "rb").read(), os.path.basename(path), "video")
+            body["content"].append({"type": "video", "attrs": {"blockId": uuid.uuid4().hex, "source": {"kind": "uploaded", "asset": ref}, "title": "演示视频", "description": "", "poster": None, "widthPercent": None}})
     if "img" in sys.argv:
         ref = upload_png()
         body["content"].append({"type": "image", "attrs": {"blockId": uuid.uuid4().hex, "asset": ref, "alt": "一个红点", "altSource": "manual", "caption": [], "widthPercent": None}})

@@ -10,7 +10,8 @@ import Link from '@tiptap/extension-link';
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import { Attachment, Callout, MathBlock } from './blocks';
 import { ImageBlock } from './image';
-import { uploadAsset, uploadImage } from './upload';
+import { VideoBlock } from './video';
+import { uploadAsset } from './upload';
 import { messageOf } from './client';
 import type { JSONNode } from './convert';
 
@@ -26,7 +27,7 @@ const editor = useEditor({
     StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: false }),
     Link.configure({ openOnClick: false, autolink: false, protocols: ['mailto'], HTMLAttributes: { rel: 'noopener noreferrer nofollow' } }),
     Table.configure({ resizable: false }), TableRow, TableHeader, TableCell,
-    TaskList, TaskItem.configure({ nested: true }), Highlight, ImageBlock, Callout, MathBlock, Attachment, StableIds,
+    TaskList, TaskItem.configure({ nested: true }), Highlight, ImageBlock, VideoBlock, Callout, MathBlock, Attachment, StableIds,
   ],
   // 只有用户在编辑器里操作（获得焦点）才算修改，加载时补稳定 ID 不触发保存。
   onUpdate: ({ editor }) => { if (editor.isFocused) emit('change', editor.getJSON() as JSONNode); },
@@ -65,6 +66,7 @@ const slashCommands = [
   { label: '警告框', key: 'warning', run: (e: any) => e.chain().focus().wrapIn('callout', { kind: 'warning' }).run() },
   { label: '公式', key: 'math latex', run: (e: any) => { const latex = window.prompt('LaTeX 公式'); if (latex) e.chain().focus().insertContent({ type: 'mathBlock', attrs: { latex } }).run(); } },
   { label: '图片', key: 'image', run: () => fileInput.value?.click() },
+  { label: '视频', key: 'video mp4 webm', run: () => videoInput.value?.click() },
   { label: '附件', key: 'file attachment', run: () => attachInput.value?.click() },
 ];
 const slashItems = computed(() => {
@@ -112,15 +114,20 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const uploading = ref(false);
 const uploadError = ref('');
 
-async function insertFile(file: File, kind: 'image' | 'attachment') {
+const kindLabel = { image: '图片', attachment: '附件', video: '视频' };
+
+async function insertFile(file: File, kind: 'image' | 'attachment' | 'video') {
   if (!editor.value) return;
   uploading.value = true;
   uploadError.value = '';
   try {
-    const asset = kind === 'image' ? await uploadImage(file) : await uploadAsset(file, 'attachment');
-    const content = kind === 'image' ? { type: 'image', attrs: { asset, alt: null } } : { type: 'attachment', attrs: { asset, displayName: file.name.slice(0, 255) } };
+    if (kind === 'video' && file.size > videoLimit) throw new Error('视频超过 500MB，请压缩后再上传');
+    const asset = await uploadAsset(file, kind);
+    const content = kind === 'image' ? { type: 'image', attrs: { asset, alt: null } }
+      : kind === 'video' ? { type: 'video', attrs: { source: { kind: 'uploaded', asset }, title: file.name.replace(/\.[^.]+$/, '').slice(0, 500), description: '', poster: null, widthPercent: null } }
+      : { type: 'attachment', attrs: { asset, displayName: file.name.slice(0, 255) } };
     editor.value.chain().focus().insertContent(content).run();
-  } catch (e) { uploadError.value = `${kind === 'image' ? '图片' : '附件'}上传失败：${messageOf(e)}`; } finally { uploading.value = false; }
+  } catch (e) { uploadError.value = `${kindLabel[kind]}上传失败：${messageOf(e)}`; } finally { uploading.value = false; }
 }
 
 async function insertImage(event: Event) {
@@ -128,6 +135,15 @@ async function insertImage(event: Event) {
   const file = input.files?.[0];
   input.value = '';
   if (file) await insertFile(file, 'image');
+}
+
+const videoLimit = 500 << 20;
+const videoInput = ref<HTMLInputElement | null>(null);
+async function insertVideo(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (file) await insertFile(file, 'video');
 }
 
 const attachInput = ref<HTMLInputElement | null>(null);
@@ -203,6 +219,8 @@ ready = true;
       <button v-for="b in buttons" :key="b.label" type="button" :class="{ on: b.on(editor) }" :disabled="!editable" @click="b.run(editor)">{{ b.label }}</button>
       <button type="button" :disabled="!editable || uploading" @click="fileInput?.click()">{{ uploading ? '上传中…' : '图片' }}</button>
       <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden @change="insertImage">
+      <button type="button" :disabled="!editable || uploading" @click="videoInput?.click()">视频</button>
+      <input ref="videoInput" type="file" accept="video/mp4,video/webm" hidden @change="insertVideo">
       <button type="button" :disabled="!editable || uploading" @click="attachInput?.click()">附件</button>
       <input ref="attachInput" type="file" hidden @change="insertAttachment">
     </div>

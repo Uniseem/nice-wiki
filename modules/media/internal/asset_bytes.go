@@ -62,8 +62,11 @@ func ServeAssetBytes(w http.ResponseWriter, r *http.Request, op OperationContext
 	etag := `"` + ref.Sha256 + `"`
 	byteRange := ByteRange{Start: 0, End: int64(ref.ByteSize) - 1, Total: int64(ref.ByteSize)}
 	if header := r.Header.Get("Range"); header != "" {
-		ifRange := r.Header.Get("If-Range")
-		parsed, parseErr := ParseByteRange(ParseByteRangeInput{Header: &header, Total: int64(ref.ByteSize), IfRange: &ifRange, Etag: etag})
+		var ifRange *string
+		if value := r.Header.Get("If-Range"); value != "" {
+			ifRange = &value
+		}
+		parsed, parseErr := ParseByteRange(ParseByteRangeInput{Header: &header, Total: int64(ref.ByteSize), IfRange: ifRange, Etag: etag})
 		if parseErr != nil {
 			w.Header().Set("Content-Range", "bytes */"+strconv.Itoa(ref.ByteSize))
 			w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)

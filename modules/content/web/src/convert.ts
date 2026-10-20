@@ -61,6 +61,12 @@ function block(node: JSONNode): any {
       return { type: 'attachment', attrs: { blockId, asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize }, displayName: node.attrs?.displayName || '附件' } };
     }
     case 'table': return { type: 'table', attrs: { blockId }, content: (node.content ?? []).map(tableRow) };
+    case 'video': {
+      const a = node.attrs?.source?.asset;
+      if (!a) throw new Error('视频缺少资源引用');
+      const poster = node.attrs?.poster;
+      return { type: 'video', attrs: { blockId, source: { kind: 'uploaded', asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize } }, title: node.attrs?.title ?? '', description: node.attrs?.description ?? '', poster: poster ? { assetId: poster.assetId, version: poster.version, sha256: poster.sha256, mediaType: poster.mediaType, byteSize: poster.byteSize } : null, widthPercent: node.attrs?.widthPercent ?? null } };
+    }
     case 'image': {
       const alt = typeof node.attrs?.alt === 'string' && node.attrs.alt !== '' ? node.attrs.alt : null;
       const a = node.attrs?.asset;
