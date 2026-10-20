@@ -106,31 +106,38 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 
 	var proof InternalProof
 	var currentSessionID Identifier
-	if route.Definition.Permission.Permission != "anonymous" {
+	// 少数匿名接口对已登录管理员给出更多内容（如含停用语言的列表）：带有效会话时附上委托，失败则当访客处理。
+	optionalAdmin := route.Definition.Permission.Permission == "anonymous" && requestHasSession && optionalAdminOperations[route.Definition.Owner+":"+route.Definition.UpstreamOperationID]
+	if route.Definition.Permission.Permission != "anonymous" || optionalAdmin {
 		required := route.Definition.Permission
+		if optionalAdmin {
+			required.Permission = "portal.use"
+		}
 		required.Action = route.Definition.Owner + ":" + route.Definition.UpstreamOperationID
 		authResult, authErr := ResolveAuthContext(ctx, op, ResolveAuthContextInput{
 			Cookies:  SessionCookies{SessionToken: cookieValue(runtime.Request, "nw_sid"), CSRFCookie: runtime.Request.Header.Get("X-CSRF-Token")},
 			Required: required,
 		})
-		if authErr != nil {
+		if authErr != nil && !optionalAdmin {
 			return ProxyRequestResult{}, authErr
 		}
-		if _, err := AuthorizeRoute(AuthorizeRouteInput{Auth: authResult.Auth, Route: route}); err != nil {
-			return ProxyRequestResult{}, err
+		if authErr == nil {
+			if _, err := AuthorizeRoute(AuthorizeRouteInput{Auth: authResult.Auth, Route: route}); err != nil && !optionalAdmin {
+				return ProxyRequestResult{}, err
+			}
+			currentSessionID = authResult.Auth.SessionID
+			// 服务断言的站点必须与用户委托里的站点一致。
+			op.Actor.SiteID = authResult.Auth.SiteID
+			ctx = platform.WithOperationContext(ctx, op)
+			proofResult, proofErr := BuildInternalProof(WithPortalSigner(ctx, runtime.DelegationKey), op, BuildInternalProofInput{
+				Auth: inputAuth(authResult.Auth), Route: route, RequestDigest: validated.Envelope.BodyDigest,
+				ExpiresAt: proofExpiry(op, authResult.Auth),
+			})
+			if proofErr != nil {
+				return ProxyRequestResult{}, proofErr
+			}
+			proof = proofResult.Proof
 		}
-		currentSessionID = authResult.Auth.SessionID
-		// 服务断言的站点必须与用户委托里的站点一致。
-		op.Actor.SiteID = authResult.Auth.SiteID
-		ctx = platform.WithOperationContext(ctx, op)
-		proofResult, proofErr := BuildInternalProof(WithPortalSigner(ctx, runtime.DelegationKey), op, BuildInternalProofInput{
-			Auth: inputAuth(authResult.Auth), Route: route, RequestDigest: validated.Envelope.BodyDigest,
-			ExpiresAt: proofExpiry(op, authResult.Auth),
-		})
-		if proofErr != nil {
-			return ProxyRequestResult{}, proofErr
-		}
-		proof = proofResult.Proof
 	}
 	if route.Definition.Owner == "traffic-guard" && route.Definition.Permission.Permission == "anonymous" {
 		if runtime.SiteID == "" || len(runtime.NetworkScopeKeys) == 0 || len(runtime.NetworkScopeKeys) > 2 {
@@ -612,3 +619,6 @@ func prepareTrustedBeacon(ctx context.Context, op OperationContext, runtime *Pro
 	}
 	return encoded, nil
 }
+
+// optionalAdminOperations 是匿名路由里允许对已登录管理员附带委托证明的操作。
+var optionalAdminOperations = map[string]bool{"localization:listLanguages": true}

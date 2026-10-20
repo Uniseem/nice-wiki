@@ -112,6 +112,8 @@ def up(slugs):
             if p.poll() is not None or port_open(PORTS[s]):
                 break
         print(("运行中 " if p.poll() is None else "已退出 ") + s, f"(:{PORTS[s]})")
+    if not os.path.exists(path("run", "watch.pid")):
+        subprocess.Popen([sys.executable, os.path.abspath(__file__), "watch", *slugs], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def stop(slug):
@@ -120,7 +122,7 @@ def stop(slug):
     if os.path.exists(f):
         try:
             os.killpg(int(open(f).read()), signal.SIGTERM)
-        except (ProcessLookupError, ValueError):
+        except (ProcessLookupError, ValueError, PermissionError):
             pass
         os.remove(f)
         for _ in range(50):
@@ -129,11 +131,53 @@ def stop(slug):
             time.sleep(0.1)
 
 
+def start_one(s):
+    log = open(path("logs", s + ".log"), "a")
+    p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True,
+                         cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_WEB_DIR": path("web")})
+    open(pidfile(s), "w").write(str(p.pid))
+    return p
+
+
+def alive(slug):
+    f = pidfile(slug)
+    if not os.path.exists(f):
+        return False
+    try:
+        os.kill(int(open(f).read()), 0)
+        return True
+    except (ProcessLookupError, ValueError, PermissionError):
+        return False
+
+
+def watch(slugs):
+    """模拟部署时的进程守护（restart: unless-stopped）：服务因依赖未就绪或站点未初始化而退出时，隔几秒重新拉起。"""
+    open(path("run", "watch.pid"), "w").write(str(os.getpid()))
+    children = {}  # 自己拉起的子进程要 poll() 才会回收，否则退出后成僵尸，kill(pid, 0) 仍成功
+    while True:
+        for s in slugs:
+            child = children.get(s)
+            if child is not None and child.poll() is not None:
+                children.pop(s)
+                if os.path.exists(pidfile(s)) and open(pidfile(s)).read() == str(child.pid):
+                    os.remove(pidfile(s))
+            if os.path.exists(pidfile(s)) and not alive(s):
+                children[s] = start_one(s)
+        time.sleep(3)
+
+
 def down():
+    wp = path("run", "watch.pid")
+    if os.path.exists(wp):
+        try:
+            os.kill(int(open(wp).read()), signal.SIGTERM)
+        except (ProcessLookupError, ValueError, PermissionError):
+            pass
+        os.remove(wp)
     for f in glob.glob(path("run", "*.pid")):
         try:
             os.killpg(int(open(f).read()), signal.SIGTERM)
-        except (ProcessLookupError, ValueError):
+        except (ProcessLookupError, ValueError, PermissionError):
             pass
         os.remove(f)
     subprocess.run(["pkill", "-f", path("bin") + "/"])
@@ -147,7 +191,7 @@ def status():
             try:
                 os.kill(int(open(f).read()), 0)
                 alive = True
-            except (ProcessLookupError, ValueError):
+            except (ProcessLookupError, ValueError, PermissionError):
                 pass
         print(("运行中 " if alive else "未运行 ") + s)
 
@@ -158,6 +202,8 @@ if __name__ == "__main__":
         up(sys.argv[2:] or DEFAULT_UP)
     elif cmd == "down":
         down()
+    elif cmd == "watch":
+        watch(sys.argv[2:])
     elif cmd == "reset":
         down()
         subprocess.run(["rm", "-rf", path("data")])
