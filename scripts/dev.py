@@ -10,7 +10,7 @@ DEV = os.path.join(ROOT, ".local", "dev")
 PORTS = {"portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103,
          "media": 8104, "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108,
          "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113}
-DEFAULT_UP = ["site-config", "identity", "jobs", "traffic-guard", "localization", "content", "public-site", "portal"]
+DEFAULT_UP = ["site-config", "identity", "jobs", "traffic-guard", "media", "localization", "content", "public-site", "portal"]
 
 
 def path(*parts):

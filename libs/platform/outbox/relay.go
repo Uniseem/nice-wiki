@@ -92,7 +92,16 @@ func (p eventPublisher) PublishEvent(ctx context.Context, event platform.EventEn
 
 // RunRelayBatch领取并处理一批已提交事件；每次写入都重新取得安全窗口。
 func RunRelayBatch(ctx context.Context, store platform.OutboxStore, client platform.EventPublisher, config platform.RelayConfig) (platform.RelayBatchResult, error) {
-	if config.BatchLimit < 1 || config.BatchLimit > maxBatchLimit || config.Runtime == nil || config.WriteWindow == nil || config.AdmitBatch == nil || config.BindEventScope == nil {
+	// 未接入快照屏障的服务可以不提供准入与逐事件作用域，此时直接放行。
+	if config.AdmitBatch == nil {
+		config.AdmitBatch = func(ctx context.Context) (context.Context, func(), error) { return ctx, func() {}, nil }
+	}
+	if config.BindEventScope == nil {
+		config.BindEventScope = func(ctx context.Context, _ platform.OutboxRow) (context.Context, func(), error) {
+			return ctx, func() {}, nil
+		}
+	}
+	if config.BatchLimit < 1 || config.BatchLimit > maxBatchLimit || config.Runtime == nil || config.WriteWindow == nil {
 		return platform.RelayBatchResult{}, platform.NewError(platform.CodeValidation, false, "outbox转发参数或写窗口未装配")
 	}
 	scoped, releaseScope, scopeErr := config.AdmitBatch(ctx)

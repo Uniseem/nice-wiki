@@ -136,7 +136,7 @@ func RunService(spec platform.ServiceSpec) int {
 		if errors.Is(err, ErrRestartForRestore) {
 			return finish(ExitForRestore)
 		}
-		fmt.Fprintf(os.Stderr, "后台入口提前结束，errorCode=%s\n", errorCodeOf(err))
+		fmt.Fprintf(os.Stderr, "后台入口提前结束，errorCode=%s %s\n", errorCodeOf(err), messageOf(err))
 		return finish(ExitFailure)
 	case <-ctx.Done():
 		fmt.Fprint(os.Stderr, "收到停止信号，开始安全关闭\n")

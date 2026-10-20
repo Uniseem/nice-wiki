@@ -63,7 +63,10 @@ func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) 
 		return WorkerLoopResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务租约客户端或运行权威未装配")
 	}
 	var completed, failed atomic.Int64
-	config := platform.WorkerConfig{Owner: "media", JobTypes: []string{"media.cleanup"}, MaxConcurrency: input.MaxConcurrency, Runtime: s.window.Runtime, OperationContext: s.cleanupWorkerOperation}
+	config := platform.WorkerConfig{Owner: "media", JobTypes: []string{"media.cleanup"}, MaxConcurrency: input.MaxConcurrency, Runtime: s.window.Runtime, OperationContext: s.cleanupWorkerOperation,
+		AdmitBusiness: lifecycle.SimpleAdmission(s.window.Runtime, ""), BindExecutionScope: func(scoped context.Context, _ platform.OperationContext, _ platform.ClaimedJob) (context.Context, error) {
+			return scoped, nil
+		}}
 	executors := platform.JobExecutorRegistry{"media.cleanup": func(taskCtx context.Context, job platform.JobExecutionInput) (platform.JobExecutionResult, error) {
 		taskOp, ok := platform.OperationContextFrom(taskCtx)
 		if !ok {
@@ -197,7 +200,7 @@ func NewMediaBackgroundTasks(op OperationContext, jobs *gen.JobsClient) ([]platf
 		}},
 		{Name: "media.RelayOutbox", Run: func(ctx context.Context) error {
 			work := platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op)
-			return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: s.window.Runtime, WriteWindow: s.window.WriteWindow, Recover: func(batchCtx context.Context) error {
+			return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 1000, AdmitBatch: lifecycle.SimpleAdmission(s.window.Runtime, ""), Runtime: s.window.Runtime, WriteWindow: s.window.WriteWindow, Recover: func(batchCtx context.Context) error {
 				batchOp, _ := platform.OperationContextFrom(batchCtx)
 				_, err := RelayOutbox(batchCtx, batchOp, RelayOutboxInput{BatchLimit: 100})
 				return err

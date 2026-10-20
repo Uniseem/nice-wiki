@@ -108,7 +108,7 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		metadata += "<meta name=\"description\" content=\"" + html.EscapeString(bundle.Description) + "\">"
 	}
 	composed, err := ComposeHTML(ctx, op, ComposeHTMLInput{
-		SafeHTML:   "<h1>" + html.EscapeString(bundle.Title) + "</h1>" + body.SafeHTML,
+		SafeHTML:   body.SafeHTML,
 		Title:      bundle.Title,
 		TOC:        toc.Items,
 		Navigation: navigation.Tree,

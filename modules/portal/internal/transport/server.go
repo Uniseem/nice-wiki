@@ -155,10 +155,14 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		operationID = platform.NewIdentifier()
 	}
 	deadline := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)
+	site := a.currentSite(r.Context())
+	if site == "" {
+		site = "system"
+	}
 	op := platform.OperationContext{
 		RequestID: requestID, OperationID: operationID, RootOperationID: operationID,
 		CallerService: moduleName, Deadline: platform.Timestamp(deadline), DataEpoch: a.openedEpoch,
-		Actor: platform.AuthContext{Kind: "visitor", SubjectID: "anonymous", SiteID: "system", ExpiresAt: platform.Timestamp(deadline)},
+		Actor: platform.AuthContext{Kind: "visitor", SubjectID: "anonymous", SiteID: site, ExpiresAt: platform.Timestamp(deadline)},
 	}
 	headers := headerMap(r.Header)
 	var origins []string

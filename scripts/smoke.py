@@ -57,8 +57,36 @@ def main():
     print("initialization", init)
     if not (init.get("initialized") if isinstance(init, dict) else False):
         step("初始化站点", call("POST", "/v1/initialization", {"name": "示例文档站", "baseLanguage": "zh-Hans"}))
+    status, langs = call("GET", "/v1/languages?includeDisabled=false")
+    if not langs.get("languages"):
+        step("启用基准语言", call("PUT", "/v1/languages/zh-Hans", {"expectedVersion": 0, "idempotencyKey": uuid.uuid4().hex, "language": {
+            "tag": "zh-Hans", "version": 1, "enabled": True, "isDefault": True, "automaticTranslation": False, "direction": "ltr",
+            "reflectionEnabled": False, "batchOutputTokens": 1000, "translationMemoryMinimumCharacters": 20}}))
     doc = step("新建文档", call("POST", "/v1/documents", {"title": "快速开始", "parentId": None, "beforeDocumentId": None}))
-    print(json.dumps(doc, ensure_ascii=False, indent=1)[:1500])
+    doc_id = doc["draft"]["documentId"]
+    slug = "quick-start" if len(sys.argv) < 2 else "page-" + uuid.uuid4().hex[:6]
+    draft = doc["draft"]
+    lock = step("获取编辑锁", call("POST", f"/v1/documents/{doc_id}/lock", {"tabId": uuid.uuid4().hex}))
+    lease = lock["lease"]
+    body = {"schemaVersion": 1, "type": "doc", "content": [
+        {"type": "heading", "attrs": {"blockId": uuid.uuid4().hex, "level": 2}, "content": [{"type": "text", "text": "欢迎", "marks": []}]},
+        {"type": "paragraph", "attrs": {"blockId": uuid.uuid4().hex}, "content": [{"type": "text", "text": "这是第一篇文档。", "marks": []}]}]}
+    saved = step("保存草稿", call("PUT", f"/v1/documents/{doc_id}/draft", {
+        "body": body, "expectedDraftVersion": draft["draftVersion"], "expectedDraftRevisionId": draft["revisionId"],
+        "leaseId": lease["leaseId"], "fencingToken": lease["fencingToken"], "serverBootId": lease["serverBootId"]}))
+    meta = call("GET", "/v1/tree")[1]
+    print("tree", json.dumps(meta, ensure_ascii=False)[:400])
+    node = next(n for n in meta["documents"] if n["documentId"] == doc_id)
+    revision = node["revision"]
+    new_draft = saved["draft"]
+    pub = step("发布", call("POST", f"/v1/documents/{doc_id}:publish", {
+        "draftRevisionId": new_draft["revisionId"], "expectedDraftVersion": new_draft["draftVersion"], "expectedRevision": revision,
+        "manualPathSegment": slug, "manualSEO": "第一篇文档"}))
+    step("释放编辑锁", call("DELETE", f"/v1/documents/{doc_id}/lock", {"leaseId": lease["leaseId"], "serverBootId": lease["serverBootId"]}))
+    for path in ["/", "/zh-Hans/", "/zh-Hans/" + slug, "/zh-Hans/navigation", "/robots.txt"]:
+        status, page = call("GET", path, base=PORTAL)
+        print("公开", path, status, str(page)[:160].replace("\n", " "))
+
 
 
 if __name__ == "__main__":

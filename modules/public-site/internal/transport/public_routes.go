@@ -4,9 +4,11 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
+	"nice-wiki/libs/platform/lifecycle"
 	publicsite "nice-wiki/modules/public-site/internal"
 	"nice-wiki/modules/public-site/internal/gen"
 )
@@ -133,7 +135,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			continue
 		}
 		for method, operation := range item.Operations() {
-			if handlers[operation.OperationID] == nil {
+			if handlers[strings.ToLower(operation.OperationID[:1])+operation.OperationID[1:]] == nil {
 				item.SetOperation(method, nil)
 				continue
 			}
@@ -143,12 +145,19 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			spec.Paths.Delete(path)
 		}
 	}
+	// 访客页面都经 portal 代理进来；只有已发布链接解析给 site-config 与 qa 用。
+	callers := map[string][]string{}
+	for id := range handlers {
+		callers[id] = []string{"portal"}
+	}
+	callers["resolvePublishedLink"] = []string{"site-config", "qa"}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:                moduleName,
 		Anchors:             anchors,
 		Runtime:             app.runtime.ReadRuntimeState,
 		OpenedDataEpoch:     app.openedEpoch,
-		AllowedCallers:      map[string][]string{"resolvePublishedLink": {"site-config", "qa"}},
+		AdmitBusiness:       lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch),
+		AllowedCallers:      callers,
 		ServiceActorCallers: map[string][]string{"resolvePublishedLink": {"site-config", "qa"}},
 	}, handlers)
 	if err != nil {
