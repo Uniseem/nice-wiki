@@ -115,8 +115,8 @@ func barrierInput(op OperationContext, request BarrierRequest) (lifecycle.Snapsh
 	if !ok || (mode != "backup" && mode != "restore") {
 		return lifecycle.SnapshotBarrierInput{}, "", platform.NewError(platform.CodeValidation, false, "屏障模式不合法")
 	}
-	deadline, err := platform.ParseTimestamp(platform.Timestamp(request.Deadline))
-	if err != nil {
+	deadline := request.Deadline.UTC()
+	if deadline.IsZero() {
 		return lifecycle.SnapshotBarrierInput{}, "", platform.NewError(platform.CodeValidation, false, "屏障截止不合法")
 	}
 	step := "prepare"
