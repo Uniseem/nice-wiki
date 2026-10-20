@@ -40,7 +40,7 @@ async function signedIn(next: any) {
   await ensureBaseLanguage();
   phase.value = 'app';
   if (location.pathname === '/admin/login' || location.pathname === '/admin/setup' || location.pathname === '/admin' || location.pathname === '/admin/') {
-    history.replaceState(null, '', '/admin/content');
+    history.replaceState(null, '', '/admin/dashboard');
   }
 }
 

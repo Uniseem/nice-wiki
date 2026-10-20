@@ -2,12 +2,14 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { ModuleUIBootstrap } from '../../../../libs/platform/web/module-api';
 import { apiClient, currentGrants } from './api';
+import Dashboard from './Dashboard.vue';
 
 defineProps<{ account: any }>();
 defineEmits<{ (e: 'sign-out'): void }>();
 
 // 已有界面的模块；portal 只负责导航与挂载，页面由各域自己的 module.js 提供。
 const modules = [
+  { id: 'dashboard', label: '概览' },
   { id: 'content', label: '文档' },
   { id: 'site-config', label: '站点设置' },
   { id: 'media', label: '资源库' },
@@ -24,6 +26,7 @@ const modules = [
 
 const path = ref(location.pathname);
 const current = computed(() => modules.find((m) => path.value === `/admin/${m.id}` || path.value.startsWith(`/admin/${m.id}/`)) ?? modules[0]);
+const builtin = computed(() => current.value.id === 'dashboard');
 const mountPoint = ref<HTMLElement | null>(null);
 const failure = ref('');
 
@@ -35,10 +38,12 @@ const onPop = () => { path.value = location.pathname; };
 
 async function mountCurrent() {
   failure.value = '';
+  // 先让当前挂着的模块界面卸载（此时旧挂载点还在 DOM 里）。
+  mountPoint.value?.dispatchEvent(new Event('nice-wiki:unmount'));
   await nextTick();
+  if (builtin.value) return;
   const el = mountPoint.value;
   if (!el) return;
-  el.dispatchEvent(new Event('nice-wiki:unmount'));
   el.replaceChildren();
   try {
     if (!document.querySelector(`link[data-module="${current.value.id}"]`)) {
@@ -76,7 +81,8 @@ watch(() => current.value.id, mountCurrent);
     </nav>
     <main>
       <p v-if="failure" class="error">{{ failure }}</p>
-      <div id="module-root" ref="mountPoint"></div>
+      <Dashboard v-if="builtin" />
+      <div v-else id="module-root" ref="mountPoint"></div>
     </main>
   </div>
 </template>
