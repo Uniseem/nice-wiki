@@ -5237,7 +5237,6 @@
             "platform.NewServiceHandler",
             "traffic-guard.NewGuardHandlers",
             "platform.NewPayloadValidator",
-            "platform.NewSnapshotManager",
             "traffic-guard.NewTrafficSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
             "platform.SnapshotManager.WriteWindow"
