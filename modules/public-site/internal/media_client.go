@@ -42,6 +42,8 @@ func ResolvePublicMedia(ctx context.Context, op platform.OperationContext, in Re
 				Asset       AssetVersionRef `json:"asset"`
 				URL         string          `json:"url"`
 				CachePolicy string          `json:"cachePolicy"`
+				Width       int             `json:"width"`
+				Height      int             `json:"height"`
 				Variants    []struct {
 					Width  int             `json:"width"`
 					Height int             `json:"height"`
@@ -62,7 +64,13 @@ func ResolvePublicMedia(ctx context.Context, op platform.OperationContext, in Re
 		if !requested[item.Asset] || item.CachePolicy != "immutable_public" || !safeLink(item.URL) {
 			return ResolvePublicMediaResult{}, platform.NewError(platform.CodeIntegrityError, false, "MEDIA_MANIFEST_MISMATCH")
 		}
-		asset := PublicAsset{Asset: item.Asset, URL: item.URL, Srcset: []ImageSource{}}
+		asset := PublicAsset{Asset: item.Asset, URL: item.URL, Width: item.Width, Height: item.Height, Srcset: []ImageSource{}}
+		for _, variant := range item.Variants {
+			asset.Srcset = append(asset.Srcset, ImageSource{Width: variant.Width, URL: "/v1/assets/" + variant.Asset.AssetID + "/bytes?sha=" + variant.Asset.SHA256})
+		}
+		if len(asset.Srcset) > 0 && item.Width > 0 {
+			asset.Srcset = append(asset.Srcset, ImageSource{Width: item.Width, URL: item.URL})
+		}
 		assets = append(assets, asset)
 	}
 	return ResolvePublicMediaResult{assets}, nil

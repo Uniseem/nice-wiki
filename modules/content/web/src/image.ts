@@ -16,9 +16,9 @@ export const ImageBlock = Node.create({
   },
   parseHTML() { return [{ tag: 'img[data-image-block]' }]; },
   renderHTML({ node }) {
-    const asset = node.attrs.asset as { assetId: string } | null;
+    const asset = node.attrs.asset as { assetId: string; sha256: string } | null;
     return ['img', {
-      'data-image-block': '', src: asset ? `/v1/assets/${asset.assetId}/bytes` : '', alt: node.attrs.alt ?? '',
+      'data-image-block': '', src: asset ? `/v1/assets/${asset.assetId}/bytes?sha=${asset.sha256}` : '', alt: node.attrs.alt ?? '',
       style: `max-width:${node.attrs.widthPercent ?? 100}%;height:auto`,
     }];
   },

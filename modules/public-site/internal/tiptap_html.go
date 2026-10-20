@@ -188,7 +188,7 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 			if delivery.Width > 0 && delivery.Height > 0 {
 				dimensions = fmt.Sprintf(" width=\"%d\" height=\"%d\"", delivery.Width, delivery.Height)
 			}
-			image := "<img" + idAttribute + " loading=\"lazy\" src=\"" + html.EscapeString(delivery.URL) + "\" alt=\"" + html.EscapeString(label) + "\" srcset=\"" + srcset.String() + "\"" + dimensions + ">"
+			image := "<img" + idAttribute + " loading=\"lazy\" src=\"" + html.EscapeString(delivery.URL) + "\" alt=\"" + html.EscapeString(label) + "\" srcset=\"" + srcset.String() + "\" sizes=\"(max-width:900px) 100vw, 760px\"" + dimensions + ">"
 			if node.Type == "drawing" {
 				dark, available := media(node.Attrs["darkSVG"])
 				if available {

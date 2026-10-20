@@ -14,7 +14,7 @@ python3 scripts/dev.py up
 
 已完成：
 - 文档：新建、嵌套、移动、编辑锁与自动保存草稿、发布/撤回、回收站（删除/恢复/彻底删除，已发布的留 410 或跳转）、发布历史与回滚、草稿预览。
-- 编辑器（Tiptap）：标题、列表、任务、引用、代码（含语言）、链接、表格、提示框、公式、图片/视频/附件上传（视频暂无封面与时长信息）。
+- 编辑器（Tiptap）：标题、列表、任务、引用、代码（含语言）、链接、表格、提示框、公式、图片（上传后浏览器生成 640/1280/1920 的 WebP 变体，公开页用 srcset）、视频（暂无封面与时长）、附件上传。
 - 公开页：Go 直接输出完整 HTML（首页主视觉按钮与背景色、公告横幅、三栏、目录、代码高亮、公式（浏览器端 KaTeX）、图片、嵌套路径、旧路径 301、删除 410）、首页、导航、robots、sitemap、llms；页面访问信标到 analytics。
 - 审计：各服务 HTTP 边界在后台写操作成功后自动向 analytics 追加审计（libs/platform/audit，只覆盖合同枚举内的动作，metadata 为空）。
 - 后台页面：文档、站点设置、账号与权限、任务队列、统计与审计、备份与恢复（界面壳在 portal/web，各域 module.js 由壳挂载）。
@@ -32,7 +32,7 @@ python3 scripts/dev.py up
 - portal 本地路由（bootstrap、events、preferences、屏障）未实现，只有 healthz/readyz；data-protection 的 readyz 仍是 503（备份业务未实现）。
 - 分片 sitemap 未挂。
 - 各服务用 `lifecycle.SimpleAdmission` 代替快照屏障准入，M4 再换。
-- media 的 attachImageVariants / readVideoMetadata、localization 的翻译与界面文案、qa 的问答与调试台、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
+- media 的 readVideoMetadata（平台视频链接）、localization 的翻译与界面文案、qa 的问答与调试台、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
 - 后台界面：各域都有页面了（知识库索引页只能配置与查看，没有模型档位时无法实际建索引）。
 
 ## 未合并的旧工作

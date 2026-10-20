@@ -798,6 +798,18 @@
             "inline",
             "attachment"
           ]
+        },
+        "width": {
+          "type": "integer",
+          "description": "原图像素宽，静态图片才有",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "height": {
+          "type": "integer",
+          "description": "原图像素高，静态图片才有",
+          "minimum": 1,
+          "maximum": 100000
         }
       },
       "required": [

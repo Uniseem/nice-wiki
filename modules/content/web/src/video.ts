@@ -18,9 +18,9 @@ export const VideoBlock = Node.create({
   },
   parseHTML() { return [{ tag: 'video[data-video-block]' }]; },
   renderHTML({ node }) {
-    const asset = node.attrs.source?.asset as { assetId: string } | undefined;
+    const asset = node.attrs.source?.asset as { assetId: string; sha256: string } | undefined;
     return ['video', {
-      'data-video-block': '', controls: '', preload: 'metadata', src: asset ? `/v1/assets/${asset.assetId}/bytes` : '',
+      'data-video-block': '', controls: '', preload: 'metadata', src: asset ? `/v1/assets/${asset.assetId}/bytes?sha=${asset.sha256}` : '',
       style: `max-width:${node.attrs.widthPercent ?? 100}%;height:auto`,
     }];
   },

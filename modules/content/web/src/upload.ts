@@ -11,6 +11,35 @@ const chunkSize = 4 << 20;
 
 // 内容寻址上传：声明 sha256 → 顺序分块（每块带自己的 sha256）→ 完成后得到就绪资源。
 export async function uploadAsset(file: File, kind: 'image' | 'attachment' | 'video'): Promise<AssetRef> {
+  return (await uploadAssetFull(file, kind)).ref;
+}
+
+type AssetInfo = { ref: AssetRef; width: number | null; height: number | null; animated: boolean; revision: number; imageVariants: unknown[] };
+
+const variantWidths = [640, 1280, 1920];
+
+// 图片：上传原图后在浏览器里按 640/1280/1920 宽生成 WebP 变体（不放大、动图不处理）并关联；变体失败不影响插入原图。
+export async function uploadImage(file: File): Promise<AssetRef> {
+  const original = await uploadAssetFull(file, 'image');
+  try {
+    if (original.animated || original.imageVariants.length || !original.width) return original.ref;
+    const bitmap = await createImageBitmap(file);
+    const variants: { width: number; height: number; asset: AssetRef }[] = [];
+    for (const width of variantWidths.filter((w) => w < bitmap.width)) {
+      const height = Math.max(1, Math.round((bitmap.height * width) / bitmap.width));
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d')!.drawImage(bitmap, 0, 0, width, height);
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.82));
+      if (!blob || blob.type !== 'image/webp') break;
+      variants.push({ width, height, asset: await uploadAsset(new File([blob], `${width}.webp`, { type: 'image/webp' }), 'image') });
+    }
+    if (variants.length) await api(`/v1/assets/${original.ref.assetId}/variants`, { method: 'PUT', body: { original: original.ref, variants, expectedRevision: original.revision } });
+  } catch { /* 变体只是优化，失败时原图照常使用 */ }
+  return original.ref;
+}
+
+async function uploadAssetFull(file: File, kind: 'image' | 'attachment' | 'video'): Promise<AssetInfo> {
   const bytes = await file.arrayBuffer();
   const begin = await api<{ upload: any }>('/v1/uploads', { method: 'POST', body: { sha256: await sha256(bytes), byteSize: bytes.byteLength, originalName: file.name.slice(0, 255), kind } });
   let upload = begin.upload;
@@ -21,6 +50,6 @@ export async function uploadAsset(file: File, kind: 'image' | 'attachment' | 'vi
     });
     upload = response.upload;
   }
-  const done = await api<{ asset: { ref: AssetRef } }>(`/v1/uploads/${upload.uploadId}:complete`, { method: 'POST', body: { expectedRevision: upload.revision } });
-  return done.asset.ref;
+  const done = await api<{ asset: AssetInfo }>(`/v1/uploads/${upload.uploadId}:complete`, { method: 'POST', body: { expectedRevision: upload.revision } });
+  return done.asset;
 }

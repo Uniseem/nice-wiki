@@ -2,6 +2,7 @@ package media
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -120,17 +121,23 @@ func BuildDeliveryManifest(r *http.Request, op OperationContext, input BuildDeli
 	}
 	items := make([]gen.DeliveryItem, 0, len(input.Assets))
 	for _, ref := range input.Assets {
-		var site, sha, state string
-		err := s.db.QueryRowContext(r.Context(), `SELECT site_id,sha256,state FROM assets WHERE asset_id=?`, ref.AssetId).Scan(&site, &sha, &state)
+		var site, sha, state, assetJSON string
+		err := s.db.QueryRowContext(r.Context(), `SELECT site_id,sha256,state,asset_json FROM assets WHERE asset_id=?`, ref.AssetId).Scan(&site, &sha, &state, &assetJSON)
 		if errors.Is(err, sql.ErrNoRows) || (err == nil && (site != op.Actor.SiteID || state != "ready" || sha != ref.Sha256)) {
 			return BuildDeliveryManifestResult{}, platform.NewError(platform.CodeStaleResult, false, "引用的资源不存在或已变化")
 		}
 		if err != nil {
 			return BuildDeliveryManifestResult{}, mapMediaDBError(err, "读取资源失败")
 		}
-		disposition := gen.DeliveryItemContentDisposition("inline")
-		cache := gen.DeliveryItemCachePolicy("immutable_public")
-		items = append(items, gen.DeliveryItem{Asset: ref, Url: "/v1/assets/" + ref.AssetId + "/bytes?sha=" + sha, CachePolicy: cache, ContentDisposition: disposition, Variants: []gen.ImageVariant{}})
+		item := gen.DeliveryItem{Asset: ref, Url: "/v1/assets/" + ref.AssetId + "/bytes?sha=" + sha, CachePolicy: gen.DeliveryItemCachePolicy("immutable_public"), ContentDisposition: gen.DeliveryItemContentDisposition("inline"), Variants: []gen.ImageVariant{}}
+		var asset gen.Asset
+		if json.Unmarshal([]byte(assetJSON), &asset) == nil && !asset.Animated {
+			item.Width, item.Height = asset.Width, asset.Height
+			if asset.ImageVariants != nil {
+				item.Variants = asset.ImageVariants
+			}
+		}
+		items = append(items, item)
 	}
 	return BuildDeliveryManifestResult{Manifest: gen.DeliveryManifest{Items: items, PublishedReference: input.PublishedReference, PreviewId: input.PreviewId, ExpiresAt: time.Now().UTC().Add(10 * time.Minute)}}, nil
 }

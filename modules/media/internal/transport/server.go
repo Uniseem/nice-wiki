@@ -57,9 +57,9 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体HTTP规格不可读")
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: activeDataEpoch, AdmitBusiness: lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, activeDataEpoch),
-		AllowedCallers:        map[string][]string{"beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge"}, "readAssetBytes": {"portal"}, "headAssetBytes": {"portal"}, "buildDeliveryManifest": {"public-site", "content", "portal"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "listAssets": {"portal"}, "listUnusedAssets": {"portal"}, "proposeManualCleanup": {"portal"}, "confirmManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}},
+		AllowedCallers:        map[string][]string{"beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "attachImageVariants": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge"}, "readAssetBytes": {"portal"}, "headAssetBytes": {"portal"}, "buildDeliveryManifest": {"public-site", "content", "portal"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "listAssets": {"portal"}, "listUnusedAssets": {"portal"}, "proposeManualCleanup": {"portal"}, "confirmManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}},
 		ServiceActorCallers:   map[string][]string{"buildDeliveryManifest": {"public-site", "content"}, "readAsset": {"content", "site-config", "public-site", "localization", "knowledge"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}},
-		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true, "completeUpload": true, "acquireResourceReferences": true, "confirmResourceReferences": true, "releaseResourceReferences": true, "proposeManualCleanup": true, "confirmManualCleanup": true, "cancelManualCleanup": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20}, Authorize: authorize}, application.serviceHandlers())
+		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true, "completeUpload": true, "attachImageVariants": true, "acquireResourceReferences": true, "confirmResourceReferences": true, "releaseResourceReferences": true, "proposeManualCleanup": true, "confirmManualCleanup": true, "cancelManualCleanup": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20}, Authorize: authorize}, application.serviceHandlers())
 	if err != nil {
 		return nil, err
 	}
@@ -294,6 +294,20 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 				return
 			}
 			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"attachImageVariants": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var body gen.AttachImageVariantsRequest
+			if json.NewDecoder(r.Body).Decode(&body) != nil {
+				writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "变体参数无法转换"))
+				return
+			}
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := mediaDomain.AttachImageVariants(r.Context(), op, mediaDomain.AttachImageVariantsInput{AssetId: r.PathValue("assetId"), Original: body.Original, Variants: body.Variants, ExpectedRevision: body.ExpectedRevision})
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
 			writeJSON(w, http.StatusOK, result)
 		}),
 		"readAsset": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
