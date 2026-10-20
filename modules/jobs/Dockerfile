@@ -7,7 +7,7 @@ WORKDIR /src/modules/jobs
 RUN CGO_ENABLED=0 go build -trimpath -o /out/jobs ./cmd/jobs
 
 FROM alpine:3.20
-RUN adduser -D -u 10012 jobs
+RUN adduser -D -u 10012 jobs && mkdir -p /data/jobs && chown 10012:10012 /data/jobs
 COPY --from=build /out/jobs /jobs
 USER 10012:10012
 EXPOSE 8111

@@ -46,7 +46,7 @@ WORKDIR /src/modules/{slug}
 RUN CGO_ENABLED=0 go build -trimpath -o /out/{slug} ./cmd/{slug}
 
 FROM alpine:3.20
-RUN adduser -D -u {uid} {slug}
+RUN adduser -D -u {uid} {slug} && mkdir -p /data/{slug} && chown {uid}:{uid} /data/{slug}
 COPY --from=build /out/{slug} /{slug}
 {copy_web}USER {uid}:{uid}
 EXPOSE {port}

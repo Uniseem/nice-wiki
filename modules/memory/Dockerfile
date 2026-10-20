@@ -7,7 +7,7 @@ WORKDIR /src/modules/memory
 RUN CGO_ENABLED=0 go build -trimpath -o /out/memory ./cmd/memory
 
 FROM alpine:3.20
-RUN adduser -D -u 10010 memory
+RUN adduser -D -u 10010 memory && mkdir -p /data/memory && chown 10010:10010 /data/memory
 COPY --from=build /out/memory /memory
 USER 10010:10010
 EXPOSE 8109

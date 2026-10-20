@@ -7,7 +7,7 @@ WORKDIR /src/modules/qa
 RUN CGO_ENABLED=0 go build -trimpath -o /out/qa ./cmd/qa
 
 FROM alpine:3.20
-RUN adduser -D -u 10008 qa
+RUN adduser -D -u 10008 qa && mkdir -p /data/qa && chown 10008:10008 /data/qa
 COPY --from=build /out/qa /qa
 USER 10008:10008
 EXPOSE 8107

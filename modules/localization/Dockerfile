@@ -7,7 +7,7 @@ WORKDIR /src/modules/localization
 RUN CGO_ENABLED=0 go build -trimpath -o /out/localization ./cmd/localization
 
 FROM alpine:3.20
-RUN adduser -D -u 10009 localization
+RUN adduser -D -u 10009 localization && mkdir -p /data/localization && chown 10009:10009 /data/localization
 COPY --from=build /out/localization /localization
 USER 10009:10009
 EXPOSE 8108

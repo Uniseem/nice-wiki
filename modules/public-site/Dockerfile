@@ -7,7 +7,7 @@ WORKDIR /src/modules/public-site
 RUN CGO_ENABLED=0 go build -trimpath -o /out/public-site ./cmd/public-site
 
 FROM alpine:3.20
-RUN adduser -D -u 10001 public-site
+RUN adduser -D -u 10001 public-site && mkdir -p /data/public-site && chown 10001:10001 /data/public-site
 COPY --from=build /out/public-site /public-site
 USER 10001:10001
 EXPOSE 8081

@@ -7,7 +7,7 @@ WORKDIR /src/modules/identity
 RUN CGO_ENABLED=0 go build -trimpath -o /out/identity ./cmd/identity
 
 FROM alpine:3.20
-RUN adduser -D -u 10002 identity
+RUN adduser -D -u 10002 identity && mkdir -p /data/identity && chown 10002:10002 /data/identity
 COPY --from=build /out/identity /identity
 USER 10002:10002
 EXPOSE 8101

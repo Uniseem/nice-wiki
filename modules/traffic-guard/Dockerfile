@@ -7,7 +7,7 @@ WORKDIR /src/modules/traffic-guard
 RUN CGO_ENABLED=0 go build -trimpath -o /out/traffic-guard ./cmd/traffic-guard
 
 FROM alpine:3.20
-RUN adduser -D -u 10011 traffic-guard
+RUN adduser -D -u 10011 traffic-guard && mkdir -p /data/traffic-guard && chown 10011:10011 /data/traffic-guard
 COPY --from=build /out/traffic-guard /traffic-guard
 USER 10011:10011
 EXPOSE 8110

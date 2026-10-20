@@ -7,7 +7,7 @@ WORKDIR /src/modules/analytics
 RUN CGO_ENABLED=0 go build -trimpath -o /out/analytics ./cmd/analytics
 
 FROM alpine:3.20
-RUN adduser -D -u 10013 analytics
+RUN adduser -D -u 10013 analytics && mkdir -p /data/analytics && chown 10013:10013 /data/analytics
 COPY --from=build /out/analytics /analytics
 USER 10013:10013
 EXPOSE 8112

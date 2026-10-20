@@ -7,7 +7,7 @@ WORKDIR /src/modules/model-gateway
 RUN CGO_ENABLED=0 go build -trimpath -o /out/model-gateway ./cmd/model-gateway
 
 FROM alpine:3.20
-RUN adduser -D -u 10006 model-gateway
+RUN adduser -D -u 10006 model-gateway && mkdir -p /data/model-gateway && chown 10006:10006 /data/model-gateway
 COPY --from=build /out/model-gateway /model-gateway
 USER 10006:10006
 EXPOSE 8105
