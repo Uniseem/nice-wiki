@@ -17,15 +17,21 @@ type HandlePageInput struct {
 	DataEpoch string
 }
 type HandlePageResult struct {
-	Status   int
-	HTML     string
-	ETag     string
-	Location string
+	Status      int
+	HTML        string
+	ETag        string
+	Location    string
+	ContentType string // 空表示 HTML
 }
 
 // HandlePage 每次请求都读权威：导航树确认已发布，再取精确发布正文渲染成完整 HTML。
 func HandlePage(ctx context.Context, op platform.OperationContext, in HandlePageInput) (HandlePageResult, error) {
-	page, err := renderPage(ctx, op, in.Locale, in.DataEpoch, func(nodes []NavigationNode) (NavigationNode, bool) {
+	// /语言/路径.md 是同一篇文档的 Markdown 版本。
+	markdown := strings.HasSuffix(in.Slug, ".md")
+	if markdown {
+		in.Slug = strings.TrimSuffix(in.Slug, ".md")
+	}
+	page, err := renderPage(ctx, op, in.Locale, in.DataEpoch, markdown, func(nodes []NavigationNode) (NavigationNode, bool) {
 		segments := strings.Split(in.Slug, "/")
 		for i := range segments {
 			segments[i] = url.PathEscape(segments[i])
@@ -47,7 +53,11 @@ func HandlePage(ctx context.Context, op platform.OperationContext, in HandlePage
 		}
 		return HandlePageResult{}, err
 	}
-	return HandlePageResult{200, page, "\"" + string(platform.HashBytes([]byte(page))) + "\"", ""}, nil
+	result := HandlePageResult{Status: 200, HTML: page, ETag: "\"" + string(platform.HashBytes([]byte(page))) + "\""}
+	if markdown {
+		result.ContentType = "text/markdown; charset=utf-8"
+	}
+	return result, nil
 }
 
 // resolveMoved 页面不在公开树里时，向 content 查旧路径：改名/移动得到 301，删除得到 410。
@@ -143,7 +153,7 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 	return HandleHomeResult{Status: 200, HTML: page}, nil
 }
 
-func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch string, pick func([]NavigationNode) (NavigationNode, bool)) (string, error) {
+func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch string, markdown bool, pick func([]NavigationNode) (NavigationNode, bool)) (string, error) {
 	navigation, err := BuildNavigation(ctx, op, BuildNavigationInput{locale, epoch, 10000})
 	if err != nil {
 		return "", err
@@ -159,6 +169,13 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 	media, err := ResolvePublicMedia(ctx, op, ResolvePublicMediaInput{MediaRefs: bundle.MediaRefs, Publication: node.Publication})
 	if err != nil {
 		return "", err
+	}
+	if markdown {
+		text, mdErr := RenderTiptapMarkdown(ctx, op, RenderTiptapMarkdownInput{Document: bundle.Document, Locale: locale, Assets: markdownAssets(media.Assets)})
+		if mdErr != nil {
+			return "", mdErr
+		}
+		return "# " + bundle.Title + "\n\n" + text.Markdown, nil
 	}
 	body, err := RenderTiptapHTML(ctx, op, RenderTiptapHTMLInput{Document: bundle.Document, Locale: locale, Assets: media.Assets})
 	if err != nil {
@@ -188,13 +205,14 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		metadata += "<meta name=\"description\" content=\"" + html.EscapeString(bundle.Description) + "\">"
 	}
 	composed, err := ComposeHTML(ctx, op, ComposeHTMLInput{
-		SafeHTML:   body.SafeHTML,
-		Title:      bundle.Title,
-		TOC:        toc.Items,
-		Navigation: navigation.Tree,
-		Metadata:   metadata,
-		Locale:     locale,
-		DocumentID: node.DocumentID,
+		SafeHTML:    body.SafeHTML,
+		Title:       bundle.Title,
+		TOC:         toc.Items,
+		Navigation:  navigation.Tree,
+		Metadata:    metadata,
+		Locale:      locale,
+		DocumentID:  node.DocumentID,
+		MarkdownURL: node.CanonicalPath + ".md",
 	})
 	if err != nil {
 		return "", err
@@ -210,3 +228,5 @@ func plainText(node TiptapNode) string {
 	}
 	return out.String()
 }
+
+func markdownAssets(assets []PublicAsset) []PublicAsset { return assets }

@@ -79,6 +79,9 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 				return
 			}
 			w.Header().Set("Content-Type", htmlType)
+			if result.ContentType != "" {
+				w.Header().Set("Content-Type", result.ContentType)
+			}
 			w.Header().Set("Cache-Control", "no-cache")
 			if result.Status == http.StatusMovedPermanently {
 				http.Redirect(w, r, result.Location, result.Status)
