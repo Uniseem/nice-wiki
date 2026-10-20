@@ -257,7 +257,7 @@
         },
         "recordedAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
-          "description": "域完成切换或换回的真实时间"
+          "description": "域完成切换或换回的真实时间；参与签名摘要前统一为UTC RFC3339Nano"
         }
       },
       "required": [
@@ -381,52 +381,6 @@
       "type": "object",
       "x-internal": true,
       "description": "本域数据库事务句柄（Go接口，不序列化）"
-    },
-    "Observation": {
-      "type": "object",
-      "x-internal": true,
-      "additionalProperties": false,
-      "description": "outbox真实控制水位与全部活动行计数；未知状态不当作0",
-      "properties": {
-        "Revision": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "outbox行变更单调revision"
-        },
-        "Pending": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "全部未relayed/discarded活动行"
-        },
-        "Leased": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "其中持有租约的活动行"
-        },
-        "Quarantined": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "隔离且未终局的活动行"
-        },
-        "Isolated": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "已明确撤活动资格但保留审计的行"
-        },
-        "SealHash": {
-          "type": "string",
-          "pattern": "^$|^[0-9a-f]{64}$",
-          "description": "当前outbox封口摘要；未封口为空"
-        }
-      },
-      "required": [
-        "Revision",
-        "Pending",
-        "Leased",
-        "Quarantined",
-        "Isolated",
-        "SealHash"
-      ]
     },
     "OutboxStore": {
       "type": "object",
@@ -1385,7 +1339,7 @@
     "SnapshotConfig": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Go启动可信必需回调：Runtime/BeginDrain/Drain/Watermark/Capture/MigrateStage/ValidateStaged/StageBudget/ValidateManifest/ObserveWork/SealWork/ResumeWork/VerifyGlobalSeal。ObserveWork真实全未决持久活动，SealWork同域事务CAS全部写水位与gate，VerifyGlobalSeal核真实14域协调器和最终broker回执；缺一失败。CleanupRoutes固定编译策略，AuthorizeCleanupOrigin核drain回调原批准任务，不能以协调器随机root代替。",
+      "description": "Go启动可信必需回调：Runtime/BeginDrain/Drain/Watermark/Capture/MigrateStage/ValidateStaged/StageBudget/ValidateManifest/ObserveWork/SealWork/ResumeWork/VerifyGlobalSeal。ObserveWork真实全未决持久活动，SealWork同域事务CAS全部写水位与gate；非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，jobs最后才核13域回执与最终broker水位，缺一或证据未知失败。CleanupRoutes固定编译策略，AuthorizeCleanupOrigin核drain回调原批准任务，不能以协调器随机root代替。",
       "properties": {}
     },
     "SnapshotAPI": {
@@ -1863,7 +1817,7 @@
         "brokerBefore",
         "brokerAfter"
       ],
-      "description": "14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。"
+      "description": "14域按owner排序唯一全覆盖；非jobs阶段只携带合法broker观察并由VerifyGlobalSeal核持久prepare/drain/epoch，不要求broker前后相等或pending/lease为0。jobs最终proof必须保留同一观察与broker水位，核broker前后同水位且事件pending/lease=0，并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。"
     },
     "SnapshotSealReceipt": {
       "type": "object",

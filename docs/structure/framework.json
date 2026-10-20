@@ -699,6 +699,11 @@
       "purpose": "冻结总计划、四路WIP边界、文档候选检查和普通双推记录"
     },
     {
+      "path": "docs/push-log/2026-10-20-0002.md",
+      "kind": "documentation",
+      "purpose": "验签单元最终收尾、停止范围与GitLab复核记录"
+    },
+    {
       "path": "docs/push-log/INDEX.md",
       "kind": "documentation",
       "purpose": "全局INDEX设计/手册/状态记录"

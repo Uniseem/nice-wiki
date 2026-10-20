@@ -4,9 +4,9 @@
   "phase": "implementation",
   "contractSha256": "18a56bbb959bd4c85d3a2c5f55d5b3a026ce6e1bb03f54afcab8cfbbd893d006",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "R1-00集成：恢复激活回执签验与outbox同事务变体；待GitLab源码检查。",
-  "branch": "codex/closeout-20261020-integration",
-  "baseCommit": "1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8",
+  "assignedSession": "2026-10-20集成：合入main已验证验签，保留Sign/Tx WIP并补只读屏障与恢复迁移公共单元；待GitLab源码检查。",
+  "branch": "codex/resume-20261020-integration",
+  "baseCommit": "6204dfc94510f28752fe8da81df9f3a4d3ce781d",
   "deliveryCommit": null,
   "deployment": "not_started",
   "files": [
@@ -440,9 +440,31 @@
       "implementationCommit": null,
       "verification": {
         "state": "not_run",
-        "evidence": "R1-00源码已写，待隔离GitLab源码检查；未更新完成数。"
+        "evidence": "沿用main的UTC规范化验签实现，并补充header kid的合法Identifier校验；本候选待GitLab源码检查。"
       },
-      "blocker": "尚待GitLab生成、三个Go分片、前端及完整make check。"
+      "blocker": "本候选补充key.KeyID/header kid合法性校验，旧pipeline173/174不覆盖该源码差异。"
+    },
+    {
+      "id": "platform.normalizeActivationReceiptClaims",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "verified",
+      "implementationCommit": "7137f9423274f73044fad6f17cb43ecffd4931ee",
+      "verification": {
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173与收尾pipeline174：生成/格式、三个Go分片、前端与完整检查通过，generated.patch为0字节；仅源码检查，不代表业务验收或部署。"
+      },
+      "blocker": null
+    },
+    {
+      "id": "platform.decodeCanonicalReceiptJSON",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "verified",
+      "implementationCommit": "7137f9423274f73044fad6f17cb43ecffd4931ee",
+      "verification": {
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173与收尾pipeline174：生成/格式、三个Go分片、前端与完整检查通过，generated.patch为0字节；仅源码检查，不代表业务验收、真实接口、模型或部署。"
+      },
+      "blocker": null
     },
     {
       "id": "platform.SignAssertion",
@@ -2995,6 +3017,28 @@
         "evidence": "自部署GitLab pipeline118：16模块readonly build/vet/gofmt、已有普通go test、完整make check与六前端类型/构建通过；非业务验收，14域真实回调仍未齐。"
       },
       "blocker": null
+    },
+    {
+      "id": "platform.SnapshotManager.ReadBarrierStatus",
+      "path": "libs/platform/lifecycle/snapshot_barrier.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "已从main合入只读屏障状态源码并登记合同；待本次候选精确GitLab源码检查。"
+      },
+      "blocker": "尚无本次候选精确GitLab SHA；只读状态不导出私有snapshot-barrier.json。"
+    },
+    {
+      "id": "platform.MigrateRestoredDatabase",
+      "path": "libs/platform/outbox/restore.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "已审查bd51b89d中的窄恢复迁移实现并在本候选选入；待GitLab源码检查。"
+      },
+      "blocker": "尚无本次候选精确GitLab SHA；三域MigrateStage真实回调仍未闭合。"
     },
     {
       "id": "platform.SnapshotStageBinding",

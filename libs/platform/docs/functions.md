@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 240 个函数：约束 21 个，参考 219 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 244 个函数：约束 21 个，参考 223 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -475,7 +475,7 @@ func SignActivationReceipt(key SigningKey, claims ActivationReceiptClaims) (stri
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `key` | `SigningKey` | 完成恢复切换或换回的有状态域部署密钥 | 只从受控secret文件读取，不进日志或返回值 |
+| `key` | `SigningKey` | 完成恢复切换或换回的有状态域部署密钥 | keyId必须是合法Identifier；私钥只从受控secret文件读取，不进日志或返回值 |
 | `claims` | `ActivationReceiptClaims` | 与实际stage、目标代次和持久回执完全一致的规范声明 | restoreId、module、stageId、targetDataEpoch、state、manifestHash、recordedAt齐全 |
 
 **输出**
@@ -487,10 +487,11 @@ func SignActivationReceipt(key SigningKey, claims ActivationReceiptClaims) (stri
 
 **步骤**
 
-1. 校验version=1及restoreId/module/stageId/targetDataEpoch为合法Identifier，state仅为switched或rolled-back，manifestHash为SHA-256，recordedAt为有效UTC时间
-2. 从部署secret加载模块Ed25519私钥；不为缺失或错误密钥生成弱签名
-3. 以既有CanonicalJSON编码完整claims，头固定NW-ACTIVATION-RECEIPT与EdDSA，证明中含issuer、purpose及payloadHash
-4. 返回可持久验收据签名；认证服务断言另行发行，不复用回执签名作为HTTP调用凭据
+1. 校验version=1及restoreId/module/stageId/targetDataEpoch为合法Identifier，state仅为switched或rolled-back，manifestHash为SHA-256，recordedAt可解析为RFC3339时间
+2. 将recordedAt统一为UTC RFC3339Nano后再生成载荷摘要
+3. 从部署secret加载模块Ed25519私钥；不为缺失或错误密钥生成弱签名
+4. 以既有CanonicalJSON编码完整claims，头固定NW-ACTIVATION-RECEIPT与EdDSA，证明中含issuer、purpose及payloadHash
+5. 返回可持久验收据签名；认证服务断言另行发行，不复用回执签名作为HTTP调用凭据
 
 **错误**
 
@@ -501,7 +502,83 @@ func SignActivationReceipt(key SigningKey, claims ActivationReceiptClaims) (stri
 - 授权：permission：service；rule：只由完成本次snapshot Stage/ApplyRestoreSwap并持有本模块部署密钥的有状态域调用
 - 并发：纯签名函数，可并发
 - 幂等：同一密钥与完整claims产生同一签名；重复调用不改变持久状态
-- 依赖：`platform.LoadSigningKey`、`platform.CanonicalJSON`
+- 依赖：`platform.normalizeActivationReceiptClaims`、`platform.LoadSigningKey`、`platform.CanonicalJSON`
+
+## platform.normalizeActivationReceiptClaims
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：为激活回执签名和验签提供唯一的Claims结构校验与时间规范化
+
+```go
+func normalizeActivationReceiptClaims(claims ActivationReceiptClaims) (ActivationReceiptClaims, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `claims` | `ActivationReceiptClaims` | 待验证的激活回执规范声明 | 字段必须满足ActivationReceiptClaims schema；recordedAt可为合法RFC3339输入表示 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `claims` | `ActivationReceiptClaims` | 可稳定摘要的规范声明 | recordedAt统一为UTC RFC3339Nano；失败时结果无效 |
+| `error` | `error` | 声明结构或时间格式不合法 | 不含密钥、正文或原始回执 |
+
+**步骤**
+
+1. 校验version=1、restoreId/module/stageId/targetDataEpoch为合法Identifier，state仅为switched或rolled-back，manifestHash为SHA-256，recordedAt为可解析RFC3339时间
+2. 将recordedAt解析为UTC并以RFC3339Nano重新编码后写回Claims；其他字段不改写
+
+**错误**
+
+- `VALIDATION`：声明字段缺失、枚举不符、摘要不合法或recordedAt不可解析（不可重试）
+
+- 副作用：无
+- 授权：纯函数，调用方负责外层服务授权
+- 并发：纯函数，可并发调用
+- 幂等：同一输入产生同一规范声明
+- 依赖：无
+
+## platform.decodeCanonicalReceiptJSON
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：严格解码激活回执的固定头与证明，并核对CanonicalJSON字节不漂移
+
+```go
+func decodeCanonicalReceiptJSON(raw []byte, target any) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `raw` | `[]byte` | 待核验的JWS头或证明JSON字节 | 必须是单个JSON值；未知字段和尾随值拒绝 |
+| `target` | `any` | 固定结构的解码目标 | 只由激活回执验签内部调用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 严格解码或规范JSON核对失败 | 不返回部分可信结构 |
+
+**步骤**
+
+1. 使用DisallowUnknownFields解码单个JSON值并拒绝尾随值
+2. 对解码目标重新执行CanonicalJSON，要求结果与输入字节完全一致
+
+**错误**
+
+- `INTEGRITY_ERROR`：未知字段、尾随值或规范编码不一致（不可重试）
+
+- 副作用：无
+- 授权：纯函数，仅由VerifyActivationReceipt内部调用
+- 并发：纯函数，可并发调用
+- 幂等：同一输入产生相同解码结论
+- 依赖：`platform.CanonicalJSON`
 
 ## platform.VerifyActivationReceipt
 
@@ -530,22 +607,22 @@ func VerifyActivationReceipt(anchors TrustAnchors, issuer string, claims Activat
 
 **步骤**
 
-1. 要求外层caller=issuer=claims.module，再重做ActivationReceiptClaims结构约束；外层HTTP服务断言继续由公共入口单独验证
-2. 解码并严格核规范JWS头NW-ACTIVATION-RECEIPT/EdDSA/kid与登记的公钥，不允许alg替换或未登记key
+1. 要求外层caller=issuer=claims.module，再经normalizeActivationReceiptClaims重做ActivationReceiptClaims结构约束并规范化recordedAt；外层HTTP服务断言继续由公共入口单独验证
+2. 解码并严格核规范JWS头NW-ACTIVATION-RECEIPT/EdDSA/合法Identifier kid与登记的公钥，不允许alg替换或未登记key
 3. 只从issuer名下TrustAnchors取公钥验证Ed25519签名；issuer不能由body自报替代
 4. 严格解码规范证明并核purpose及payloadHash；claims任一字段改变、restoreId替换或其他恢复回执重放均失败
-5. 返回空error仅表示持久来源与完整字段绑定成立；site-config仍须核当前phase、expectedRevision、restoreId和域覆盖
+5. 以规范化后的Claims执行CanonicalJSON和payloadHash核对；返回空error仅表示持久来源与完整字段绑定成立，site-config仍须核当前phase、expectedRevision、restoreId和域覆盖
 
 **错误**
 
-- `UNAUTHENTICATED`：caller/issuer/key/header或签名无效（不可重试）
+- `UNAUTHENTICATED`：caller/issuer/key/header或签名无效，或声明结构不合法（不可重试）
 - `INTEGRITY_ERROR`：规范编码或签名载荷摘要不一致（不可重试）
 
 - 副作用：无
 - 授权：permission：service；rule：由site-config在同请求结构、服务断言、caller/module及控制阶段校验后调用
 - 并发：纯函数，可并发
 - 幂等：无状态；相同证据返回相同结论
-- 依赖：`platform.CanonicalJSON`
+- 依赖：`platform.normalizeActivationReceiptClaims`、`platform.decodeCanonicalReceiptJSON`、`platform.CanonicalJSON`
 
 ## platform.VerifyDelegation
 
@@ -1083,7 +1160,7 @@ func EnqueueEvent(tx Tx, envelope EventEnvelope) error
 
 - 级别：参考
 - 文件：`libs/platform/outbox/outbox.go`
-- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+- 作用：按封口owner分阶段校验真实proof；非jobs不等待最终broker，jobs最后校验broker与13份原回执
 
 ```go
 func EnsureSchema(ctx context.Context, db *sql.DB) error
@@ -1099,7 +1176,9 @@ func EnsureSchema(ctx context.Context, db *sql.DB) error
 
 **步骤**
 
-1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+1. 校验14个owner观察按顺序唯一且本域与全域真实持久活动为零；broker观察字段缺失或负值失败关闭
+2. owner不是jobs时拒绝nonJobsSeals/nonJobsProofHash，但不要求brokerBefore与brokerAfter相等或pending/lease为0
+3. owner是jobs时要求brokerBefore与brokerAfter完全相等且pending/lease为0，并核13份nonJobsSeals和原nonJobsProofHash；未知来源、原根、状态或回执失败关闭。
 
 **错误**
 
@@ -7881,11 +7960,47 @@ func (m *SnapshotManager) ObserveBarrier(ctx context.Context, barrierID string) 
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
 - 依赖：`platform.SnapshotManager.requireDraining`、`platform.Store.Observe`
 
+## platform.SnapshotManager.ReadBarrierStatus
+
+- 级别：参考
+- 文件：`libs/platform/lifecycle/snapshot_barrier.go`
+- 作用：为Ready和lease读取既有屏障状态与deadline，不让域解析私有snapshot-barrier.json
+
+```go
+func (m *SnapshotManager) ReadBarrierStatus() (*SnapshotBarrierStatus, time.Time)
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `status` | `*SnapshotBarrierStatus` | Manager当前已加载的持久屏障状态副本 | 无当前记录时为nil；不返回私有文件路径或内部指针 |
+| `deadline` | `time.Time` | 当前屏障原输入的截止时间 | 无当前记录时为零time.Time；只复制既有记录，不重新计算 |
+
+**步骤**
+
+1. 在Manager互斥锁内复制已加载record.Status和record.Input.Deadline；无record返回nil与零时间
+2. 只读既有内存控制事实，不执行IO、不持久新观察、不生成回执、不改变drain或seal阶段
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：纯本地只读公共机制；服务入口的身份与权限由调用方负责
+- 并发：在Manager互斥锁内复制，可与控制操作并发调用
+- 幂等：同一已加载记录返回同一状态副本
+- 依赖：无
+
 ## platform.SnapshotManager.SealBarrier
 
 - 级别：参考
 - 文件：`libs/platform/lifecycle/snapshot_barrier.go`
-- 作用：核14owner唯一排序全覆盖、全部在途0、broker前后同实际revision与0事件pending/lease。
+- 作用：核14owner唯一排序全覆盖与本域真实零在途；非jobs阶段不等待最终broker，jobs最后才核broker稳定水位与13域回执。
 
 ```go
 func (m *SnapshotManager) SealBarrier(ctx context.Context, proof SnapshotSealProof) (SnapshotBarrierStatus, error)
@@ -7901,8 +8016,8 @@ func (m *SnapshotManager) SealBarrier(ctx context.Context, proof SnapshotSealPro
 
 **步骤**
 
-1. 核14owner唯一排序全覆盖、全部在途0、broker前后同实际revision与0事件pending/lease。
-2. 真实VerifyGlobalSeal权威回调证明全域阶段；13非jobs先CAS封口，jobs必须最后核全部原proof回执与最终broker同水位。
+1. 核proof包含14个按owner排序且唯一的真实观察；非jobs只核broker字段为合法观察值，不能要求broker前后相等或pending/lease为0。
+2. 调用真实VerifyGlobalSeal核当前持久prepare/drain/epoch；13非jobs使用同一不含nonJobs字段的proof先CAS本域封口，jobs最后才核13份原回执、原proof hash与broker前后同水位且pending/lease为0。
 3. mutex关闭新cleanup并SealWork事务CAS全部持久写水位，持久safe与proofHash后方可导出。
 
 **错误**
@@ -9304,6 +9419,52 @@ func SnapshotStageBinding(ctx context.Context) (string, string, string, error)
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
 - 依赖：无
 
+## platform.MigrateRestoredDatabase
+
+- 级别：参考
+- 文件：`libs/platform/outbox/restore.go`
+- 作用：把已认证staged数据库迁移、旧outbox资格撤销和host封口收敛到同一事务
+
+```go
+func MigrateRestoredDatabase(ctx context.Context, db *sql.DB, migrate func(*sql.Tx) error) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 恢复迁移事务截止 | 取消或截止只通过ctx传播 |
+| `db` | `SQLDB` | 当前已认证staged SQLite数据库句柄 | 主文件必须属于SnapshotStageBinding返回的隔离root；必须已有真实nw_outbox |
+| `migrate` | `RestoredDatabaseMigration` | 在同一staged事务内执行本域已登记schema/派生索引迁移的回调 | 只能执行DDL/索引迁移；不得改写原epoch、payload、root、费用或事件事实；仅PrepareRestoredOutbox兼容路径可为nil |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 隔离归属、迁移回调或最终封口失败 | 任一失败整体回滚，不返回已迁移或半封口成功 |
+
+**步骤**
+
+1. 通过SnapshotStageBinding核当前私有stage、targetEpoch和host sealHash，并用PRAGMA main路径核数据库仍属于该隔离root且含真实outbox
+2. 幂等确保既有outbox control/schema存在；开启同一SQLite事务，先核未知状态和冒称目标代活动，再临时清空sealed_hash打开原gate
+3. 在原事务内调用migrate执行本域已登记schema/派生索引迁移；回调失败回滚，不允许修改原epoch、payload、root、费用或事件事实
+4. 回调成功后撤销旧epoch pending/quarantined投递资格，写入本次host sealHash到sealed_hash与last_seal_hash并提交；PrepareRestoredOutbox以nil回调复用本入口
+
+**错误**
+
+- `VALIDATION`：迁移上下文或回调约束不合法（不可重试）
+- `FORBIDDEN`：staged数据库主文件不属于认证隔离root（不可重试）
+- `LOCKED`：当前stage不再处于允许迁移的安全屏障（可重试）
+- `CONFLICT`：恢复绑定、旧事实或控制水位在事务边界内改变（可重试）
+- `INTEGRITY_ERROR`：outbox状态未知、源历史缺失或迁移回调违反不改事实约束（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：数据库、控制表或stage权威不可用（可重试）
+
+- 副作用：仅修改已认证隔离副本；迁移事务提交前不改变active目录；撤旧资格只改变其活动投影并保留原行事实
+- 授权：service：仅由本域MigrateStage在SnapshotManager私有stage scope内调用
+- 并发：认证stage绑定、同库单事务和sealed gate共同串行；不自行创建第二控制表或协调服务
+- 幂等：同一stage绑定和幂等schema迁移可重试；未知失败关闭，不重复创建业务历史
+- 依赖：`platform.SnapshotStageBinding`、`platform.ValidatePrivatePath`、`platform.EnsureSchema`、`platform.NormalizeIOError`
+
 ## platform.PrepareRestoredOutbox
 
 - 级别：参考
@@ -9324,9 +9485,9 @@ func PrepareRestoredOutbox(ctx context.Context, db *sql.DB) error
 
 **步骤**
 
-1. 通过公共SnapshotStageBinding核已认证隔离阶段并用PRAGMA主文件精确核staged路径，源须已有真实outbox表，不创建空历史。
+1. 以nil迁移回调调用MigrateRestoredDatabase，复用其认证隔离路径核验、同事务开gate、旧代资格撤销和host封口。
 2. 同SQLite事务暂开复制的源gate，未知状态或冒称目标代活动失败；旧代pending/quarantine撤资格且保全原行。
-3. 保持原payload/epoch/费用事实，把gate绑定本次host真实sealHash封口，目标全局activate/Release前不能新发布。
+3. 保持原payload/epoch/费用事实；该兼容入口不执行schema/派生索引迁移，目标全局activate/Release前不能新发布。
 
 **错误**
 
@@ -9339,7 +9500,7 @@ func PrepareRestoredOutbox(ctx context.Context, db *sql.DB) error
 - 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
 - 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
-- 依赖：`platform.SnapshotStageBinding`、`platform.ValidatePrivatePath`、`platform.EnsureSchema`
+- 依赖：`platform.MigrateRestoredDatabase`
 
 ## platform.SealTaskSecret
 

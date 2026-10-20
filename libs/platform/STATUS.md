@@ -1,10 +1,12 @@
-# 2026-10-20 R1-00公共机制源码候选
+# 2026-10-20 R1-00公共机制集成候选
 
-新增恢复激活回执签验：`ActivationReceiptClaims`、`SignActivationReceipt`、`VerifyActivationReceipt`。签名绑定restoreId及完整receiver字段，外层caller=module仍由site-config控制入口校验；该接口待首批消费者接线。
+本工作树已合入最新本地main `6204dfc94510f28752fe8da81df9f3a4d3ce781d`，保留e85公共WIP记录。main中pipeline173/174已验证的`normalizeActivationReceiptClaims`、`decodeCanonicalReceiptJSON`和`VerifyActivationReceipt`及site-config `RegisterActivation`不重复实现；本候选为签发端/事务变体接回和公共恢复/屏障合同审查。
 
-新增outbox同事务变体：`ObserveTx`、`SealTx`、`ResumeTx`。域业务水位CAS与outbox封口须共用调用方持有的同一`platform.Tx`，不新增SnapshotWorkCallbacks框架。
+`ActivationReceiptClaims`、`SignActivationReceipt`、`VerifyActivationReceipt`绑定restoreId及完整回执字段，签发与验签共用UTC `RFC3339Nano`规范化、canonical header/proof和`keyId`合法Identifier约束；当前候选对验签补充了`kid`严格校验，需重新GitLab源码检查，不能沿用旧pipeline173/174完成状态。
 
-GitLab pipeline164首先发现动态错误消息导致的vet失败，已在`b46ce3d9`修正。pipeline165的生成、三个Go分片、前端与既有普通go test通过，生成补丁0；foundation的完整make check只失败于5个新接口尚无消费者依赖边。接口源码可冻结供首批接线，但台账保持blocked，完成数未增加。未接真实业务、模型、部署，未新增tests/fixture/mock/样例。
+`ObserveTx`、`SealTx`、`ResumeTx`要求域业务水位CAS与outbox封口/重开共用调用方同一`platform.Tx`。`ReadBarrierStatus`只复制Manager内已加载的持久状态；`MigrateRestoredDatabase`只在认证staged scope内把schema/索引迁移、旧代活动资格撤销和host封口放入同一事务，保留原payload/epoch/费用事实。
+
+全域封口已按阶段收紧：13个非jobs用同一不含`nonJobs`字段的proof先封口，`VerifyGlobalSeal`只读prepare/drain/epoch和协调事实，不等待最终broker；jobs最后才核13份真实回执与broker稳定水位。jobs OpenAPI当前仍未拆出service-only `step=observe`授权，跨域接线保持阻塞。所有新增/修改源码待GitLab，未接真实业务、模型、部署，未新增tests/fixture/mock/样例。
 
 以下为历史记录。
 

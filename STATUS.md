@@ -2,6 +2,10 @@
 
 主代理已审核通过并冻结 [docs/plan.md](docs/plan.md)；覆盖 15 个业务域、`libs/platform`、UI、任务与事件、保护与恢复、部署源码、R2 和最终发布交接。用户已恢复 R1 源码实施，并改为主代理只拆解、指挥、协调与复核，多个子代理负责实际修改、集成和 CI；每模块独立 worktree，公共文件由唯一集成子代理维护。本轮仍不授权 R2、真实业务接口/模型调用、服务运行、镜像构建或部署。
 
+本次集成已将本地 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d` 安全合入当前集成树，保留 `e85dde0583938bb4207bc3a1117e62549d21018c` WIP记录；main 已包含 pipeline173/174 验证的 `VerifyActivationReceipt` 与 site-config `RegisterActivation`。当前公共候选继续保留 e85 的 `SignActivationReceipt`、`ObserveTx/SealTx/ResumeTx`，并新增只读 `ReadBarrierStatus`、`MigrateRestoredDatabase`及非jobs不等待最终broker的分阶段封口合同；这些新增/修改源码尚无本次候选GitLab SHA，仍按blocked/in_progress记录。
+
+identity源码交付 `e6c131dfbbb1bf117e60c6eaca1faa5b3a809743`、clean HEAD `0c56660baa6dd2d5a93bb42da550328a45cfccf5`；jobs源码交付 `879a41d430b89af5a0b88dd8d86d24f8f25763e3`、clean HEAD `7bc01a2917302324b84e3f594c5f249b7fc22c4e`。两模块暂不合入：均等待平台公共合同和jobs `step=observe` service-only授权分支明确；identity/site-config的 `VerifyGlobalSeal` 缺协调只读证据时必须失败关闭。用户未跟踪的 `kangaroo-down-under.html` 未触碰。
+
 远端推送基线仍为 `b986443d0dddf5482f7c3430e3dc7c8b99a24232`，对应 pipeline 162 全绿且生成补丁 0。本地计划收尾基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，对应 pipeline 163 全绿且生成补丁 0。本轮不把任何源码 WIP 或失败候选计入正式交付。
 
 四路 WIP 原样保留，不 reset、不强推：

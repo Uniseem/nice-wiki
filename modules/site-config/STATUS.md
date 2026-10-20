@@ -1,3 +1,17 @@
+# 2026-10-20 持久激活回执验签源码单元已通过，用户要求结束并push
+
+独立候选分支 `codex/activation-receipt-20261020-site-config` 从 main=`a32f3f4c4876f94ce798826e9dee0b170bbb612a` 建立；实现提交 `1075bcb8824838874e6a3ed775778f4194fa6969`。本轮只拥有 `modules/site-config/`，没有带入资源引用列表或Relay旧WIP。
+
+- `BuildApplication` 保留 `NewRuntimeClient(config)` 的进程模板固定签名；可信Build在control store打开后装配已加载的TrustAnchors。runtime监视器调用只读工厂，不传空锚、不覆盖已装配验签器。
+- `RegisterActivation` 保留原HTTP输入/输出形状和同operationId幂等回放顺序；新操作在当前dataEpoch、revision、restoreId、phase/state检查后，以 `input.restoreId` 和receipt全部签名字段构造 `ActivationReceiptClaims`，调用精确 `serviceauth.VerifyActivationReceipt`，再沿原control.db CAS事务upsert。
+- `RecordedAt`在claims及规范化input中统一为UTC `RFC3339Nano`；公共Sign/Verify两端的同一时间规范化是集成公共首单元的窄依赖，不在本提交修改公共文件或引入新签名框架/schemaVersion。
+- `modules/site-config/contracts/implementation.json` 已登记Build→Configure→RuntimeStore.Configure、Register→getter/verify→platform.Verify的真实边；progress.json 已同步合同哈希和本轮函数/文件状态。
+- pipeline173（候选`eb96455b2366ac8511c471e7955de41b5ffdab97`）的生成/格式696、foundation697、content-media698、ai699、前端700全部成功，generated.patch为0字节。pipeline171的TrustAnchors类型登记缺口已由候选元数据修正；本轮只证明源码检查，不代表业务验收、完整Build或部署。
+
+本轮未运行本机Go/pnpm编译、格式化、lint、测试或生成；未新增测试、样例、fixture、mock，未运行真实接口/模型/服务/部署。8个源码函数及runtime_store/runtime_transition文件按pipeline173证据verified；BuildApplication、wire、完整启动和业务验收仍blocked。用户当前要求结束并push，停止后续实施；identity/jobs/site-config整包WIP不进入交付。
+
+以下为历史记录。
+
 # 2026-10-18第三批源码检查通过
 
 自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。

@@ -9,8 +9,9 @@ import (
 	"strings"
 )
 
-// PrepareRestoredOutbox只改变已认证隔离副本的活动投影；原payload/epoch/费用事实完整保留。
-func PrepareRestoredOutbox(ctx context.Context, db *sql.DB) error {
+// MigrateRestoredDatabase在已认证隔离副本内把域迁移与outbox重新封口放进同一事务。
+// migrate只能执行已登记schema/派生索引迁移，不得改写原epoch、payload、root或费用事实。
+func MigrateRestoredDatabase(ctx context.Context, db *sql.DB, migrate func(*sql.Tx) error) error {
 	root, targetEpoch, sealHash, err := lifecycle.SnapshotStageBinding(ctx)
 	if err != nil {
 		return err
@@ -76,6 +77,11 @@ func PrepareRestoredOutbox(ctx context.Context, db *sql.DB) error {
 	if _, err = tx.ExecContext(ctx, `UPDATE nw_outbox_control SET sealed_hash='' WHERE id=1`); err != nil {
 		return platform.NewError(platform.CodeInternal, true, "打开隔离副本迁移gate失败")
 	}
+	if migrate != nil {
+		if err = migrate(tx); err != nil {
+			return platform.NormalizeIOError(err, platform.CodeIntegrityError, false, "staged数据库迁移失败")
+		}
+	}
 	if _, err = tx.ExecContext(ctx, `UPDATE nw_outbox SET state='discarded',lease_until='' WHERE data_epoch<>? AND state IN ('pending','quarantined')`, targetEpoch); err != nil {
 		return platform.NewError(platform.CodeInternal, true, "撤销源事件活动资格失败")
 	}
@@ -86,4 +92,9 @@ func PrepareRestoredOutbox(ctx context.Context, db *sql.DB) error {
 		return platform.NewError(platform.CodeInternal, true, "提交staged事件隔离失败")
 	}
 	return nil
+}
+
+// PrepareRestoredOutbox只改变已认证隔离副本的活动投影；原payload/epoch/费用事实完整保留。
+func PrepareRestoredOutbox(ctx context.Context, db *sql.DB) error {
+	return MigrateRestoredDatabase(ctx, db, nil)
 }

@@ -1,3 +1,31 @@
+# 2026-10-20 持久激活回执验签源码单元已通过
+
+## 交付
+
+- 候选分支 `codex/activation-receipt-20261020-site-config`，基线 `a32f3f4c4876f94ce798826e9dee0b170bbb612a`。
+- 实现提交 `1075bcb8824838874e6a3ed775778f4194fa6969`，共同作者 `GPT-6 <noreply@openai.com>`。
+- 独占修改四个源码/合同文件：`internal/app/wire.go`、`internal/runtime_store.go`、`internal/runtime_transition.go`、`contracts/implementation.json`；未修改公共 `libs/platform`、OpenAPI/types、生成目录、根文件或旧WIP。
+
+## 本轮实际完成
+
+- `BuildApplication` 继续通过既有 `NewRuntimeClient(config)` 工厂满足 `ServiceSpec.RuntimeClient` 固定签名；随后调用本域 `ConfigureActivationVerifier(anchors)`，把已加载信任锚装入同一 `RuntimeStore`。runtime monitor 的无锚调用只打开/复用读取器，不覆盖验签锚。
+- `RegisterActivation` 规范化 `RecordedAt` 为UTC `RFC3339Nano`，保持同operationId同摘要直接回放；新操作校验当前epoch、revision、restoreId、phase/state后读取可信锚，绑定 `restoreId` 与receipt的 module/stageId/targetDataEpoch/state/manifestHash/recordedAt，调用 e85 分支精确接口 `serviceauth.VerifyActivationReceipt`，验签通过后才写现有回执/CAS事务。
+- 合同新增并登记 `ConfigureActivationVerifier`、`RuntimeStore.ConfigureActivationVerifier`、`RuntimeStore.activationVerifierAnchors`、`verifyActivationReceipt`，HTTP形状没有变化。公共平台首单元只需提供 Verify 所需助手，并须让 Sign/Verify 在hash前采用相同 UTC `RFC3339Nano` 时间规范。
+
+## 检查与状态
+
+已执行 `jq` JSON解析与 `git diff --check`，均通过。按用户规则未在本机/SSH运行Go或pnpm生成、编译、vet、gofmt、lint、类型检查或测试；未执行真实接口、模型、服务或部署。pipeline173（候选`eb96455b2366ac8511c471e7955de41b5ffdab97`）的生成/格式696、foundation697、content-media698、ai699、前端700全部成功，generated.patch为0字节；本轮8个函数及runtime_store/runtime_transition文件按范围verified，BuildApplication/wire/完整服务仍blocked。
+
+CI170在`make docs`阶段因本轮新增合同的非空输入/输出缺少`constraints`触发KeyError，尚未编译。修正提交 `aaa35cbd` 仅补齐 `RuntimeStore.activationVerifierAnchors` 两个outputs、`verifyActivationReceipt` 三个inputs和一个output的constraints；progress合同哈希已同步为 `b3a1647f9ad5fa168bfba5ffeb8701d779d9f683146436c1996ef8407adc91eb`，源码与状态等级不变。
+
+旧的 `resource_reference_reader.go`、RelayOutbox及其状态只存在于原 `codex/resume-20261020-site-config` WIP工作树/历史链；本候选从main基线独立建立，集成时不应整条cherry-pick旧WIP。
+
+### 收尾
+
+主代理已复核本源码单元范围。用户当前要求结束并push，停止后续实施；完整BuildApplication、wire、Relay、快照/屏障和恢复回执继续blocked，后续WIP只留本地，不进入本次交付。
+
+以下为历史记录。
+
 # 2026-10-18第三批源码检查通过
 
 自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。

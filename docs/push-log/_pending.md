@@ -20,4 +20,18 @@
 
 `decodeCanonicalReceiptJSON` 已登记为实际参考助手，并在合同中登记 `VerifyActivationReceipt → normalizeActivationReceiptClaims/decodeCanonicalReceiptJSON/CanonicalJSON`、助手自身的规范解码→`CanonicalJSON` 依赖边。`SignActivationReceipt` 与 `ObserveTx/SealTx/ResumeTx` 仍只留在 e85 WIP，不纳入本首候选。待 site-config 从 main 独立接通最小 `RegisterActivation` 消费者后，才合成并上传既有 GitLab CI；不推送远端。
 
-VerifyGlobalSeal 的 `coordinateBarrier` observe 方案仍待主代理复核：step=observe 只读取 prepare/drain/seal 已持久的 barrier、epoch 和协调事实，不在纯读分支写观察或回执；没有既存证明时明确不可用。14 域服务仅可在既有服务认证下读取当前 barrier/epoch，其他变更步骤仍由 data-protection 加超管授权；当前不改 API、不作为首单元 CI 前置。
+本次合入main后保留上述WIP并接回Sign/Tx公共源码；Sign与Verify现都先规范化UTC时间，且签发`key.KeyID`与验签header`kid`均要求合法Identifier。该严格kid校验是本候选相对pipeline173/174的新源码差异，Verify/Sign及本轮平台窄单元均待新的GitLab精确SHA，不把旧验证证据外推。
+
+## 全域封口 `step=observe` 合同决策
+
+已确认非jobs不能等待最终broker：13个非jobs先使用同一份不含`nonJobsSeals/nonJobsProofHash`的`SnapshotSealProof`执行本域封口；其`VerifyGlobalSeal`只读协调阶段、持久prepare/drain事实和`dataEpoch`。jobs最后才核13个真实激活回执、原`nonJobsProofHash`以及broker前后同水位且pending/lease为0。所有缺证据、epoch/barrier不符、阶段倒退或未知状态都失败关闭；prepare/drain/seal/resume-drain仍由data-protection服务身份加超管委托驱动。
+
+三模块代理的精确可调用合同如下：
+
+- `identity`：在其真实`SnapshotConfig.VerifyGlobalSeal`装配中实现`func(context.Context, SnapshotSealProof, string) error`这一回调边界；非jobs分支只能使用既有服务身份调用jobs `POST /v1/barriers:coordinate` 的`step:"observe"`，请求复用`operationId/barrierId/mode/deadline`，不得带`sealProof`或`expectedSealHash`、用户委托或自报actor。只接受jobs返回的持久`barrierId/state/dataEpoch/revisionWatermark`与原操作一致，并把缺失/不可达映射为失败关闭。不得读取jobs数据库、伪造broker/回执或在observe分支写本域观察。identity已交源码`e6c131dfbbb1bf117e60c6eaca1faa5b3a809743`、clean HEAD `0c56660baa6dd2d5a93bb42da550328a45cfccf5`；待平台公共候选和jobs observe合同先定后顺序集成。
+
+- `site-config`：复用同一`SnapshotConfig.VerifyGlobalSeal(ctx, proof, proofHash)`只读回调和上述service assertion；RegisterActivation仍只消费已验签的`ActivationReceipt`，不得把`ReadBarrierStatus`或当前runtime自报当13域封口证据。非jobs阶段不等待`nonJobsSeals`或最终broker；缺jobs持久observe证据即返回依赖不可用/完整性错误并保持维护。
+
+- `jobs`：当前`coordinateBarrier`合同把整个operation绑定为data-protection+超管委托，故跨域observe暂阻塞。必须先在jobs OpenAPI/类型/实现合同中把同一路径的`step:"observe"`明确为service-only、caller为已登记有状态域且无userDelegation；prepare/drain/seal/resume-drain继续只接受data-protection+超管委托。`jobs.CoordinateBarrier(ctx, op, in)`的observe分支只读持久barrier/epoch/协调记录，不写stop claims、不发回执、不推进状态；最终jobs `VerifyGlobalSeal`再用同一base proof核13个真实回执和broker最终水位。未完成该合同拆分前，identity/site-config不得接线或伪造替代端口。
+
+因此当前阻塞是jobs OpenAPI/实现授权分支缺失，而不是让各域自行实现协调。平台已登记`ReadBarrierStatus`、分阶段`SealBarrier`校验和恢复迁移窄接口，待该合同变更后再顺序吸收identity。

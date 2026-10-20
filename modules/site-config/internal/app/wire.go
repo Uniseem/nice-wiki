@@ -52,6 +52,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
+	if err := siteconfig.ConfigureActivationVerifier(anchors); err != nil {
+		_ = closeRuntime(runtimeAuthority)
+		return nil, err
+	}
 	view, err := lifecycle.ReadRuntime(ctx, runtimeAuthority)
 	if err != nil {
 		_ = closeRuntime(runtimeAuthority)
@@ -153,9 +157,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 }
 
 // NewRuntimeClient 构造本域运行权威读取器（platform.SiteConfigClient），
-// 供进程模板的运行状态监视使用。site-config 是运行状态权威，读取目标
-// 是本域控制库而非远端 HTTP，因此不需要自身依赖地址；控制库打开与
-// 读取随 runtime_state_service 工作包接入。
+// 供进程模板的运行状态监视使用。site-config是运行状态权威，读取目标
+// 是本域控制库而非远端HTTP；它不接收或覆盖激活回执验签锚。
 func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient, error) {
 	if config.Module != ModuleSlug {
 		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")

@@ -3337,6 +3337,10 @@
     "RuntimeView": {
       "$ref": "../../../libs/platform/contracts/types.json#/$defs/RuntimeView"
     },
+    "TrustAnchors": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/TrustAnchors",
+      "description": "可信Build装配的服务公钥表"
+    },
     "SnapshotArchiveReadInput": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",
       "description": "本域已完成归档精确引用"

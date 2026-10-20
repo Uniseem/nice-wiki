@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/site-config/internal/gen"
 )
 
@@ -100,6 +102,7 @@ func RegisterActivation(ctx context.Context, op platform.OperationContext, input
 	if store == nil {
 		return gen.RegisterActivationResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "运行控制库不可用")
 	}
+	input.Receipt.RecordedAt = input.Receipt.RecordedAt.UTC()
 	inputHash, err := hashInput(input)
 	if err != nil {
 		return gen.RegisterActivationResult{}, err
@@ -118,13 +121,20 @@ func RegisterActivation(ctx context.Context, op platform.OperationContext, input
 	} else if found {
 		return gen.RegisterActivationResult{State: stored}, nil
 	}
-	if op.DataEpoch != "" && string(current.DataEpoch) != string(op.DataEpoch) {
+	if string(current.DataEpoch) != string(op.DataEpoch) {
 		return gen.RegisterActivationResult{}, platform.NewError(platform.CodeVersionMismatch, false, "运行状态dataEpoch已变化")
 	}
 	if input.ExpectedRevision != current.Revision {
 		return gen.RegisterActivationResult{}, platform.NewError(platform.CodeVersionMismatch, false, "运行状态revision已变化")
 	}
 	if err := validateActivationInput(current, input); err != nil {
+		return gen.RegisterActivationResult{}, err
+	}
+	anchors, err := store.activationVerifierAnchors()
+	if err != nil {
+		return gen.RegisterActivationResult{}, err
+	}
+	if err := verifyActivationReceipt(anchors, op.CallerService, input); err != nil {
 		return gen.RegisterActivationResult{}, err
 	}
 	next := current
@@ -145,6 +155,28 @@ func RegisterActivation(ctx context.Context, op platform.OperationContext, input
 		return gen.RegisterActivationResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "提交激活回执事务失败")
 	}
 	return gen.RegisterActivationResult{State: next}, nil
+}
+
+func verifyActivationReceipt(anchors platform.TrustAnchors, issuer string, input gen.RegisterActivationInput) error {
+	receipt := input.Receipt
+	claims := serviceauth.ActivationReceiptClaims{
+		Version:         1,
+		RestoreID:       platform.Identifier(input.RestoreId),
+		Module:          string(receipt.Module),
+		StageID:         platform.Identifier(receipt.StageId),
+		TargetDataEpoch: platform.Identifier(receipt.TargetDataEpoch),
+		State:           string(receipt.State),
+		ManifestHash:    platform.Hash(receipt.ManifestHash),
+		RecordedAt:      platform.Timestamp(receipt.RecordedAt.UTC().Format(time.RFC3339Nano)),
+	}
+	if err := serviceauth.VerifyActivationReceipt(anchors, issuer, claims, receipt.Signature); err != nil {
+		var failure *platform.Error
+		if errors.As(err, &failure) && failure.Code == platform.CodeUnauthenticated {
+			return platform.NewError(platform.CodeIntegrityError, false, "激活回执验签失败")
+		}
+		return err
+	}
+	return nil
 }
 
 func validateTransitionFields(current gen.RuntimeState, command gen.RuntimeTransition) error {

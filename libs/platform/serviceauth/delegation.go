@@ -46,10 +46,14 @@ type activationReceiptProof struct {
 
 // SignActivationReceipt 签名规范回执；restoreId及全部回执字段绑定到本服务。
 func SignActivationReceipt(key platform.SigningKey, claims ActivationReceiptClaims) (string, error) {
-	if !validActivationReceiptClaims(claims) {
-		return "", platform.NewError(platform.CodeValidation, false, "激活回执声明不合法")
+	normalized, err := normalizeActivationReceiptClaims(claims)
+	if err != nil {
+		return "", err
 	}
-	payload, err := platform.CanonicalJSON(claims)
+	if !platform.ValidIdentifier(key.KeyID) {
+		return "", platform.NewError(platform.CodeValidation, false, "激活回执密钥ID不合法")
+	}
+	payload, err := platform.CanonicalJSON(normalized)
 	if err != nil {
 		return "", err
 	}
@@ -63,7 +67,7 @@ func SignActivationReceipt(key platform.SigningKey, claims ActivationReceiptClai
 	}
 	proof, err := platform.CanonicalJSON(activationReceiptProof{
 		Version:     1,
-		Issuer:      claims.Module,
+		Issuer:      normalized.Module,
 		Purpose:     activationReceiptPurpose,
 		PayloadHash: platform.HashBytes(payload),
 	})
@@ -79,7 +83,8 @@ func VerifyActivationReceipt(anchors platform.TrustAnchors, issuer string, claim
 	invalid := func(message string) error {
 		return platform.NewError(platform.CodeUnauthenticated, false, "%s", message)
 	}
-	if !validActivationReceiptClaims(claims) || issuer == "" || issuer != claims.Module {
+	normalized, err := normalizeActivationReceiptClaims(claims)
+	if err != nil || issuer == "" || issuer != normalized.Module {
 		return invalid("激活回执声明或发行方不合法")
 	}
 	if len(signature) == 0 || len(signature) > 4096 {
@@ -94,7 +99,7 @@ func VerifyActivationReceipt(anchors platform.TrustAnchors, issuer string, claim
 		return invalid("激活回执头不可解码")
 	}
 	var header activationReceiptHeader
-	if err := decodeCanonicalReceiptJSON(headerRaw, &header); err != nil || header.Algorithm != algEdDSA || header.KeyID == "" || header.Type != "NW-ACTIVATION-RECEIPT" {
+	if err := decodeCanonicalReceiptJSON(headerRaw, &header); err != nil || header.Algorithm != algEdDSA || !platform.ValidIdentifier(header.KeyID) || header.Type != "NW-ACTIVATION-RECEIPT" {
 		return invalid("激活回执头不合法")
 	}
 	publicKeyRaw := anchors.ServiceKeyID(issuer, header.KeyID)
@@ -114,26 +119,31 @@ func VerifyActivationReceipt(anchors platform.TrustAnchors, issuer string, claim
 	if err := decodeCanonicalReceiptJSON(proofRaw, &proof); err != nil || proof.Version != 1 || proof.Issuer != issuer || proof.Purpose != activationReceiptPurpose || !platform.ValidHash(proof.PayloadHash) {
 		return invalid("激活回执证明声明不合法")
 	}
-	payload, err := platform.CanonicalJSON(claims)
+	payload, err := platform.CanonicalJSON(normalized)
 	if err != nil || platform.HashBytes(payload) != proof.PayloadHash {
 		return platform.NewError(platform.CodeIntegrityError, false, "激活回执载荷与签名绑定不符")
 	}
 	return nil
 }
 
-func validActivationReceiptClaims(claims ActivationReceiptClaims) bool {
+// normalizeActivationReceiptClaims 统一回执时间表示后返回可摘要的Claims。
+func normalizeActivationReceiptClaims(claims ActivationReceiptClaims) (ActivationReceiptClaims, error) {
 	recordedAt, err := platform.ParseTimestamp(claims.RecordedAt)
 	if err != nil || recordedAt.IsZero() {
-		return false
+		return ActivationReceiptClaims{}, platform.NewError(platform.CodeValidation, false, "激活回执时间不合法")
 	}
-	return claims.Version == 1 &&
-		platform.ValidIdentifier(claims.RestoreID) &&
-		len(claims.Module) <= 64 &&
-		platform.ValidIdentifier(claims.Module) &&
-		platform.ValidIdentifier(claims.StageID) &&
-		platform.ValidIdentifier(claims.TargetDataEpoch) &&
-		(claims.State == "switched" || claims.State == "rolled-back") &&
-		platform.ValidHash(claims.ManifestHash)
+	if claims.Version != 1 ||
+		!platform.ValidIdentifier(claims.RestoreID) ||
+		len(claims.Module) > 64 ||
+		!platform.ValidIdentifier(claims.Module) ||
+		!platform.ValidIdentifier(claims.StageID) ||
+		!platform.ValidIdentifier(claims.TargetDataEpoch) ||
+		(claims.State != "switched" && claims.State != "rolled-back") ||
+		!platform.ValidHash(claims.ManifestHash) {
+		return ActivationReceiptClaims{}, platform.NewError(platform.CodeValidation, false, "激活回执声明不合法")
+	}
+	claims.RecordedAt = platform.Timestamp(recordedAt.UTC().Format(time.RFC3339Nano))
+	return claims, nil
 }
 
 func decodeCanonicalReceiptJSON(raw []byte, target any) error {

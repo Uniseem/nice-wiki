@@ -432,8 +432,11 @@ func validateSnapshotSealProof(proof SnapshotSealProof, owner string) (SnapshotB
 	seen := map[string]bool{}
 	var own SnapshotBarrierObservation
 	before, after := proof.BrokerBefore, proof.BrokerAfter
-	if before.Revision < 1 || before != after || before.PendingDeliveries != 0 || before.ActiveLeases != 0 || len(proof.Observations) != len(owners) {
-		return own, integrity("broker稳定截点或全域观察不完整")
+	if before.Revision < 1 || after.Revision < 1 || before.PendingDeliveries < 0 || before.ActiveLeases < 0 || after.PendingDeliveries < 0 || after.ActiveLeases < 0 || len(proof.Observations) != len(owners) {
+		return own, integrity("broker观察或全域观察不完整")
+	}
+	if owner == "jobs" && (before != after || before.PendingDeliveries != 0 || before.ActiveLeases != 0) {
+		return own, integrity("最终jobs封口缺broker稳定截点")
 	}
 	for i, observation := range proof.Observations {
 		if i > 0 && proof.Observations[i-1].Owner >= observation.Owner {

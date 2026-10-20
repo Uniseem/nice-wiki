@@ -1,12 +1,12 @@
 # 2026-10-20 R1-00公共机制续接
 
-当前独占集成worktree分支`codex/closeout-20261020-integration`，基线`1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`。
+当前独占集成worktree分支`codex/resume-20261020-integration`，已安全合入本地main `6204dfc94510f28752fe8da81df9f3a4d3ce781d`；e85 WIP和用户未跟踪文件均保留。main的pipeline173/174验签与site-config接线已吸收，不重复实现。
 
-激活回执公共API已写入`serviceauth`：`ActivationReceiptClaims`含version/restoreId/module/stageId/targetDataEpoch/state/manifestHash/recordedAt；signature独立绑定全部字段，`VerifyActivationReceipt`另收外层已验签caller issuer。site-config登记时仍须核caller=module、input.restoreId、current phase、expectedRevision与域覆盖。标准JWS/CanonicalJSON复用既有底层。
+当前公共源码候选包含`SignActivationReceipt`、`ObserveTx/SealTx/ResumeTx`、`SnapshotManager.ReadBarrierStatus`和`MigrateRestoredDatabase`。签发/验签共用UTC `RFC3339Nano`、canonical header/proof与合法`keyId`；本候选对验签补充kid校验后需重新GitLab，不能沿用旧验证SHA。恢复迁移只在认证staged scope内同事务执行已登记schema/索引迁移、撤销旧代活动资格并固定host sealHash，原payload/epoch/费用事实保留。
 
-outbox新增`Store.ObserveTx/SealTx/ResumeTx`：只接收调用方同一SQLite `platform.Tx`，原Observe/Seal/Resume与事务变体复用同一SQL；不新增回调框架。域须把真实工作水位/CAS和outbox状态同事务提交，多文件或多DB只在真实SnapshotManager文件scope及本域journal证据内收敛，不使用统一“多文件必失败”替代正文权威捕获。
+全域封口合同已修正为分阶段：13个非jobs先用同一不含`nonJobs`字段的proof封口，非jobs `VerifyGlobalSeal`只读持久prepare/drain/epoch和协调阶段；jobs最后才核13份原回执、原proof hash及最终broker稳定水位。jobs当前OpenAPI尚未把`step=observe`拆成service-only授权，identity/site-config跨域回调保持失败关闭；prepare/drain/seal/resume-drain仍仅由data-protection加超管委托。
 
-GitLab pipeline164首先发现`VerifyActivationReceipt`动态错误消息的vet失败；`b46ce3d9`修正后，pipeline165的生成、三个Go分片、前端与既有普通go test通过，生成补丁0。foundation的完整make check只失败于5个新接口尚无消费者依赖边，因此接口源码可冻结给首批接线，台账仍保持blocked/not_run，完成数不增加。jobs全域封口权威与restore control epoch规则仅形成待审提案，未在根或任何域写替代实现。未吸收identity/site-config/jobs未审准提交，无真实接口/模型/部署。
+新增平台源码与合同均未取得本次候选GitLab精确SHA，台账保持blocked/in_progress；未运行本机Go、make check、pnpm、测试、真实接口/模型或部署。
 
 以下为历史交接。
 
