@@ -9,8 +9,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -53,6 +55,9 @@ func BuildOperationContext(r *http.Request, anchors platform.TrustAnchors, self 
 	}
 	op.Deadline, err = deadline(r)
 	if err != nil {
+		if os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "入口拒绝期限 caller=%s path=%s deadline=%q err=%v\n", claims.Issuer, r.URL.Path, r.Header.Get(platform.HeaderDeadline), err)
+		}
 		return platform.OperationContext{}, err
 	}
 	op.LoginNetworkScopes = append([]platform.Hash(nil), claims.LoginNetworkScopes...)

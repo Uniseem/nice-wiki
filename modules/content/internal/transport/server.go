@@ -46,6 +46,7 @@ type Application struct {
 	httpServer          *http.Server
 	closers             []func() error
 	router              *apivalidate.PathRouter
+	background          []platform.BackgroundTask
 }
 
 // NewApplication 创建仅含匿名状态路由的容器。businessReady 必须由后续
@@ -69,6 +70,23 @@ func NewApplication(config platform.ServiceConfig, runtime platform.SiteConfigCl
 		MaxHeaderBytes:    64 << 10,
 	}
 	return application
+}
+
+// SetBackground 登记随进程运行的后台任务（事件转发等）。
+func (a *Application) SetBackground(tasks []platform.BackgroundTask) { a.background = tasks }
+
+// BackgroundTasks 实现 platform.BackgroundApplication。
+func (a *Application) BackgroundTasks() []platform.BackgroundTask {
+	return append([]platform.BackgroundTask{}, a.background...)
+}
+
+// Drain 只停止接收新 HTTP 并等待在途请求；后台任务退出后才由 Shutdown 关闭存储。
+func (a *Application) Drain(ctx context.Context) error {
+	a.state.CompareAndSwap(stateReady, stateDraining)
+	if err := a.httpServer.Shutdown(ctx); err != nil {
+		return platform.NewError(platform.CodeDeadlineExceeded, true, "关闭期限内未能安全停止在途操作")
+	}
+	return nil
 }
 
 // OnShutdown 登记随进程关闭的资源（数据库、编辑锁等）。

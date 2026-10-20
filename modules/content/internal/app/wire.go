@@ -121,6 +121,36 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 	}
 	// 回收站、回滚、预览、屏障与快照等路由尚未实现，请求落到 404；服务本身可启动。
+	jobsClient := gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)
+	relay := content.RelayRuntime{Store: store, Jobs: jobsClient, WriteWindow: window}
+	epoch := runtimeView.DataEpoch
+	application.SetBackground([]platform.BackgroundTask{
+		{Name: "content.relay-outbox", Run: func(ctx context.Context) error {
+			return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(batch context.Context) error {
+				site, bound := store.SiteID(batch)
+				println("DEBUGRELAY bound", bound)
+				if !bound {
+					return nil
+				}
+				res, err := content.RelayOutbox(content.WithRelayRuntime(batch, relay), content.ServiceOperation(site, epoch), content.RelayOutboxInput{BatchLimit: 100})
+				println("DEBUGRELAY2", res.Pending, res.Relayed, res.Quarantined, err != nil)
+				if err != nil {
+					println("DEBUGERR", err.Error())
+				}
+				return err
+			}})
+		}},
+		{Name: "content.expire-idle-locks", Run: func(ctx context.Context) error {
+			return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 5000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(batch context.Context) error {
+				site, bound := store.SiteID(batch)
+				if !bound {
+					return nil
+				}
+				_, err := content.ExpireIdleLocks(content.WithEditLockRuntime(batch, content.EditLockRuntime{Manager: editLocks, Identity: identity, WriteWindow: window}), content.ServiceOperation(site, epoch), content.ExpireIdleLocksInput{Now: time.Now().UTC()})
+				return err
+			}})
+		}},
+	})
 	retain = true
 	application.OnShutdown(store.CloseDatabase)
 	application.OnShutdown(editLocks.CloseEditLocks)

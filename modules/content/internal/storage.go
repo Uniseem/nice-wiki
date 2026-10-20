@@ -658,3 +658,20 @@ func contentStorageError() error {
 	return platform.NewError(platform.CodeDependencyUnavailable, true, "正文私有存储不可用")
 }
 func (s *Store) CloseDatabase() error { return s.db.Close() }
+
+// SiteID 读取私有存储绑定的站点；尚无任何写入（未绑定）时返回 false。
+func (s *Store) SiteID(ctx context.Context) (Identifier, bool) {
+	var site sql.NullString
+	if err := s.db.QueryRowContext(ctx, `SELECT site_id FROM store_identity WHERE singleton=1`).Scan(&site); err != nil || !site.Valid {
+		return "", false
+	}
+	return site.String, true
+}
+
+// ServiceOperation 构造后台循环使用的本域服务操作上下文。
+func ServiceOperation(site, epoch Identifier) OperationContext {
+	id := platform.NewIdentifier()
+	deadline := platform.Timestamp(time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano))
+	return OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: "content", Deadline: deadline, DataEpoch: epoch,
+		Actor: platform.AuthContext{Kind: "service", SubjectID: "content", SiteID: site, Grants: []string{}, ExpiresAt: deadline}}
+}

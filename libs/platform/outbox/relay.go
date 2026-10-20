@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -97,7 +99,13 @@ func RunRelayBatch(ctx context.Context, store platform.OutboxStore, client platf
 		config.AdmitBatch = func(ctx context.Context) (context.Context, func(), error) { return ctx, func() {}, nil }
 	}
 	if config.BindEventScope == nil {
-		config.BindEventScope = func(ctx context.Context, _ platform.OutboxRow) (context.Context, func(), error) {
+		// 每个事件以自己的 eventId 作操作根，jobs 才能按事件幂等接收。
+		config.BindEventScope = func(ctx context.Context, row platform.OutboxRow) (context.Context, func(), error) {
+			if op, ok := platform.OperationContextFrom(ctx); ok {
+				op.RootOperationID = row.EventID
+				op.OperationID = row.EventID
+				ctx = platform.WithOperationContext(ctx, op)
+			}
 			return ctx, func() {}, nil
 		}
 	}
@@ -152,6 +160,9 @@ func RunRelayBatch(ctx context.Context, store platform.OutboxStore, client platf
 				return nil
 			}
 			publishErr := client.PublishEvent(work, envelopeOf(row))
+			if publishErr != nil && os.Getenv("NW_DEBUG") != "" {
+				fmt.Fprintf(os.Stderr, "事件转发失败 type=%s：%v\n", row.EventType, publishErr)
+			}
 			cancel()
 			// 网络调用后重新核对窗口，不能在安全截止后写确认或重试状态。
 			work, view, cancel, err = relayWriteContext(ctx, config)

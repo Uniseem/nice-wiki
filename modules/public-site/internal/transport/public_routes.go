@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -95,6 +96,35 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			}
 			_, _ = w.Write([]byte(result.HTML))
 		}),
+		"issuePreviewToken": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var input publicsite.IssuePreviewTokenInput
+			if json.NewDecoder(r.Body).Decode(&input) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "预览请求无法转换"))
+				return
+			}
+			result, err := publicsite.IssuePreviewToken(publicsite.WithLinkDirectory(r.Context(), directory), op, input)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"handlePreview": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := publicsite.HandlePreview(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandlePreviewInput{PreviewID: r.URL.Query().Get("previewId"), Token: r.PathValue("token")})
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			for _, header := range result.Headers {
+				w.Header().Set(header.Name, header.Value)
+			}
+			w.Header().Set("Content-Type", htmlType)
+			w.WriteHeader(result.Status)
+			_, _ = w.Write([]byte(result.HTML))
+		}),
 		"handleNavigation": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			result, err := publicsite.HandleNavigation(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandleNavigationInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
@@ -165,11 +195,14 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 		callers[id] = []string{"portal"}
 	}
 	callers["resolvePublishedLink"] = []string{"site-config", "qa"}
+	callers["issuePreviewToken"] = []string{"portal"}
+	callers["handlePreview"] = []string{"portal"}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:                moduleName,
 		Anchors:             anchors,
 		Runtime:             app.runtime.ReadRuntimeState,
 		OpenedDataEpoch:     app.openedEpoch,
+		Authorize:           apivalidate.NewIdentityAuthorizer(directory.Identity),
 		AdmitBusiness:       lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch),
 		AllowedCallers:      callers,
 		ServiceActorCallers: map[string][]string{"resolvePublishedLink": {"site-config", "qa"}},

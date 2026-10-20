@@ -247,6 +247,14 @@ async function publish() {
   });
 }
 
+async function preview() {
+  if (!meta.value || !(await save())) return;
+  await run(async () => {
+    const grant = await api<{ previewId: string; token: string }>('/v1/preview/tokens', { method: 'POST', body: { documentId: meta.value!.documentId, draftRevisionId: draft.value.revisionId } });
+    window.open(`/v1/preview/${encodeURIComponent(grant.token)}?previewId=${encodeURIComponent(grant.previewId)}`, '_blank', 'noopener');
+  });
+}
+
 async function withdraw() {
   if (!meta.value || !window.confirm('撤回后公开页将不可访问，确认撤回？')) return;
   await run(async () => {
@@ -300,6 +308,7 @@ onBeforeUnmount(() => { void save().then(releaseLock); });
           <button :disabled="!dirty || !writable" @click="save">保存草稿</button>
           <button class="primary" :disabled="busy || !writable" @click="publish">{{ meta.state === 'published' ? '发布更新' : '发布' }}</button>
           <button v-if="meta.state === 'published'" class="danger" :disabled="busy" @click="withdraw">撤回</button>
+          <button :disabled="busy" @click="preview">预览</button>
           <button :disabled="busy" @click="toggleHistory">发布历史</button>
           <button class="danger" :disabled="busy" @click="remove">删除</button>
         </div>

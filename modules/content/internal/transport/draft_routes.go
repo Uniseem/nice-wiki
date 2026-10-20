@@ -23,6 +23,8 @@ func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks co
 		"/v1/documents/{documentId}/lock":               true,
 		"/v1/documents/{documentId}/lock:force-release": true,
 		"/v1/documents/{documentId}/draft":              true,
+		"/v1/previews":                                  true,
+		"/v1/previews:validate":                         true,
 	}
 	for path := range spec.Paths.Map() {
 		if !keep[path] {
@@ -95,6 +97,24 @@ func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks co
 			result, err := content.ForceReleaseEditLock(draftCtx(r), op, content.ForceReleaseEditLockInput{DocumentId: r.PathValue("documentId"), ExpectedLeaseId: body.ExpectedLeaseId})
 			reply(w, result, err)
 		}),
+		"createPreviewGrant": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var input content.CreatePreviewGrantInput
+			if !decode(w, r, &input) {
+				return
+			}
+			result, err := content.CreatePreviewGrant(draftCtx(r), op, input)
+			reply(w, result, err)
+		}),
+		"validatePreviewGrant": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var input content.ValidatePreviewGrantInput
+			if !decode(w, r, &input) {
+				return
+			}
+			result, err := content.ValidatePreviewGrant(draftCtx(r), op, input)
+			reply(w, result, err)
+		}),
 		"readDraft": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			result, err := content.ReadDraft(draftCtx(r), op, content.ReadDraftInput{DocumentId: r.PathValue("documentId")})
@@ -114,7 +134,7 @@ func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks co
 	authorize := func(ctx context.Context, op platform.OperationContext, permission, action string) error { return nil }
 	portal := []string{"portal"}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch), Authorize: authorize,
-		AllowedCallers:        map[string][]string{"createDocument": portal, "acquireEditLock": portal, "renewEditLock": portal, "releaseEditLock": portal, "forceReleaseEditLock": portal, "readDraft": portal, "saveDraft": portal},
+		AllowedCallers:        map[string][]string{"createDocument": portal, "acquireEditLock": portal, "renewEditLock": portal, "releaseEditLock": portal, "forceReleaseEditLock": portal, "readDraft": portal, "saveDraft": portal, "createPreviewGrant": {"public-site"}, "validatePreviewGrant": {"public-site"}},
 		MaintenanceOperations: map[string]bool{"readDraft": true}}, handlers)
 	if err != nil {
 		return err
@@ -124,6 +144,8 @@ func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks co
 	app.router.Handle("PUT", "/v1/documents/{documentId}/lock", handler)
 	app.router.Handle("DELETE", "/v1/documents/{documentId}/lock", handler)
 	app.router.Handle("POST", "/v1/documents/{documentId}/lock:force-release", handler)
+	app.router.Handle("POST", "/v1/previews", handler)
+	app.router.Handle("POST", "/v1/previews:validate", handler)
 	app.router.Handle("GET", "/v1/documents/{documentId}/draft", handler)
 	app.router.Handle("PUT", "/v1/documents/{documentId}/draft", handler)
 	return nil

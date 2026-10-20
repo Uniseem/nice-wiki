@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -106,6 +107,9 @@ func RunRecoveryLoop(ctx context.Context, config platform.RecoveryLoopConfig) er
 		}
 		if ctx.Err() != nil {
 			return nil
+		}
+		if err != nil && os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "恢复循环批次失败：%v\n", err)
 		}
 		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 			var failure *platform.Error
@@ -222,6 +226,14 @@ type siteConfigClient struct {
 }
 
 func (c *siteConfigClient) ReadRuntimeState(ctx context.Context) (platform.RuntimeView, error) {
+	// 调用链上的操作上下文可能带着早已过期的期限（长期循环沿用旧上下文）；运行状态读取自己给 10 秒。
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	if op, ok := platform.OperationContextFrom(ctx); ok {
+		deadline, _ := ctx.Deadline()
+		op.Deadline = deadline.UTC().Format(time.RFC3339Nano)
+		ctx = platform.WithOperationContext(ctx, op)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint, nil)
 	if err != nil {
 		return platform.RuntimeView{}, platform.NewError(platform.CodeInternal, false, "运行状态请求构造失败")

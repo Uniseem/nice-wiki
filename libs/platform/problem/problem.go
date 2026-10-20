@@ -26,7 +26,7 @@ func WriteProblem(w http.ResponseWriter, problem platform.Problem) error {
 	problem.Detail = sanitizeDetail(problem.Detail)
 	if problem.Status >= 500 || (problem.Status >= 400 && os.Getenv("NW_DEBUG") != "") {
 		// 服务端错误（或调试时的全部错误）留一行日志：固定说明文字，不含请求内容。
-		fmt.Fprintf(os.Stderr, "问题响应 status=%d code=%s detail=%s requestId=%s\n", problem.Status, problem.Code, problem.Detail, problem.RequestID)
+		fmt.Fprintf(os.Stderr, "问题响应 status=%d code=%s detail=%s requestId=%s issues=%v\n", problem.Status, problem.Code, problem.Detail, problem.RequestID, problem.Issues)
 	}
 	body, err := json.Marshal(problem)
 	if err != nil {
