@@ -90,7 +90,7 @@
   "sitemapUrlsPerShard": 10000,
   "publicCacheBytes": 268435456,
   "previewTokenTTLSeconds": 120,
-  "etagAlgorithm": "sha256(epoch, documentId, publicationRevision, locale, themeRevision)",
+  "etagAlgorithm": "sha256(epoch, documentId, publicationRevision, metadataRevision, locale, themeRevision)",
   "rootRedirectStatus": 302,
   "renamedRouteRedirectStatus": 301,
   "htmlCacheControl": "no-cache",

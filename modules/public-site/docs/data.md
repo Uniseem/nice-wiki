@@ -2,7 +2,7 @@
 
 未来私有目录 `data/public-site/active/` 保存SQLite和领域对象；`data/public-site/restore/<restoreId>/staged|before/` 为恢复暂存与换出的旧数据；`data/public-site/control/` 保存不随业务恢复替换的barrier、恢复回执和操作journal。外域不得直接读这些路径。
 
-- `render_cache(cache_key PK, data_epoch, document_id, publication_revision, locale, theme_revision, html_path, sha256, expires_at, bytes, last_access_at)`
+- `render_cache(cache_key PK, data_epoch, document_id, publication_revision, metadata_revision, locale, theme_revision, html_path, sha256, expires_at, bytes, last_access_at)`
 
 - `navigation_projection(site_id, locale, projection_revision, nodes_json, data_epoch; PK site_id/locale)`
 

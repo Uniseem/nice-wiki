@@ -1464,7 +1464,7 @@
               "name": "in",
               "type": "BuildCacheKeyInput",
               "description": "固定派生缓存身份；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+              "constraints": "严格schema，拒未知字段；metadataRevision必须来自content当前公开读取或content.metadata.changed/v1水位，未知值由调用方失败关闭；不得以默认0或publicationRevision代替；字段约束与默认参数见types/requirements"
             }
           ],
           "outputs": [
@@ -1483,8 +1483,8 @@
           ],
           "purpose": "固定派生缓存身份",
           "steps": [
-            "按字段长度编码序列",
-            "加入 rendererVersion",
+            "以 public-site-renderer-v2 作为 rendererVersion；按 dataEpoch、documentId、publicationRevision、metadataRevision、locale、themeRevision 的稳定顺序逐字段长度编码",
+            "不复用或读取 public-site-renderer-v1 生成的缓存键，避免旧正文缓存复活旧 OG",
             "SHA-256 生成路径"
           ],
           "errors": [
@@ -1502,7 +1502,7 @@
             "rule": "内部调用"
           },
           "concurrency": "纯函数",
-          "idempotency": "相同身份同 key",
+          "idempotency": "相同 dataEpoch、documentId、publicationRevision、metadataRevision、locale、themeRevision 同 key；任一维度变化均生成不同 v2 key",
           "dependencies": [],
           "resources": [],
           "contract": "reference"

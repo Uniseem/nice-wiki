@@ -1,3 +1,15 @@
+## 2026-10-21 B1 metadataRevision缓存键增量
+
+从已绿 B1 集成基线 `ddaab834aafb5e66704eef456c32971f5fccec4a` 建立独立分支 `codex/public-site-b1-metadata-20261021`，本会话独占 `modules/public-site/`。源码与合同提交 `0c25307d`，未推送。
+
+`BuildCacheKeyInput` 新增必填 `metadataRevision`。`BuildCacheKey` 使用稳定的 `public-site-renderer-v2`，按 `dataEpoch`、`documentId`、`publicationRevision`、`metadataRevision`、`locale`、`themeRevision` 长度编码后生成 SHA-256；v1 key 不读取、不复活。缓存表与 etag 规格同步登记 `metadata_revision`。
+
+当前函数可作为独立纯函数记 `implemented`，但没有任何真实调用点，仍未做 Go 编译验证。未来调用方必须从 content 当前公开读取或 `content.metadata.changed/v1` 水位取得精确 `metadataRevision`；未知值必须失败关闭，不能以默认 `0` 或旧 `publicationRevision` 代替。该项不代表分享图或整条 OG 即时更新，`InvalidatePublication`、事件消费/预热和真实公开读取仍 blocked。
+
+跨域审查记录：content 分享图合同仍由 content 会话冻结，public-site 只读；media 当前单个正文 `ContentDeliveryAssetSetProofV2` 不能证明正文、文档自有分享图和 site-config 默认图的来源全集，需多个独立来源证明或逐资产归属证明，并取得默认图的 site-config 权威证明后才能解除 manifest 依赖。本轮未修改 content/media。
+
+本轮静态检查：合同 JSON 解析通过，`make docs` 通过，`git diff --check` 通过；按用户授权未运行本机 Go、pnpm、build 或 `make check`，未执行真实服务、接口、模型和测试。
+
 ## 2026-10-18 用户收尾指令
 
 用户要求push后停止，全部代理已冻结。本次集成树已通过GitLab pipeline118源码检查；未完成职责保持逐项台账，不将独立WIP计入main。后续仅在新授权下接续，不自动继续。

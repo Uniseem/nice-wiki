@@ -1625,6 +1625,10 @@
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "publicationRevision 非负 int64；不用浮点数"
         },
+        "metadataRevision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "当前已提交公开 metadataRevision 非负 int64；必须是content当前公开读取或content.metadata.changed/v1提供的精确值；0仅在权威值确为0时有效，不表示未知"
+        },
         "locale": {
           "type": "string",
           "description": "locale；UTF-8；不得为 null",
@@ -1646,6 +1650,7 @@
       "required": [
         "documentId",
         "publicationRevision",
+        "metadataRevision",
         "locale",
         "themeRevision",
         "dataEpoch"

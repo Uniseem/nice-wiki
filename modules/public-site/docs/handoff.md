@@ -1,3 +1,27 @@
+# 2026-10-21 B1 metadataRevision缓存键增量
+
+基线 `ddaab834aafb5e66704eef456c32971f5fccec4a`，分支 `codex/public-site-b1-metadata-20261021`，独占 `modules/public-site/`。源码与合同增量提交 `0c25307d`；最终交接提交包含本台账更新，未推送。
+
+## 本次完成
+
+- `contracts/types.json` 的 `BuildCacheKeyInput` 新增必填 `metadataRevision`，并声明它必须是 content 当前公开读取或 `content.metadata.changed/v1` 提供的精确值；权威值为0时才可用0，未知不能按0处理。
+- `contracts/implementation.json` 明确 `public-site-renderer-v2` 的字段顺序和 v1 key 不复用规则；`internal/cache_key.go` 已实现同一 v2 纯函数，key 包含 `dataEpoch`、`documentId`、`publicationRevision`、`metadataRevision`、`locale`、`themeRevision`。
+- `docs/functions.md` 已由 `make docs` 重生成；`docs/data.md` 与 `docs/requirements.md` 同步缓存列和 etag 维度。
+
+## 精确边界与阻塞
+
+当前 `BuildCacheKey` 没有任何真实调用点。未来调用方若默认构造 `MetadataRevision=0`，分享图变化不会换 key；调用链必须读取 content 当前公开 metadata 水位或消费 `content.metadata.changed/v1` 的精确水位，未知必须失败关闭，不能回退到0或旧发布修订。v2 纯函数已记 `implemented`，未编译验证。
+
+content 的 `content.metadata.changed/v1` 仍由 content 会话冻结，payload 的 `metadataRevision`、当前 `PublishedRevisionRef`、`visibilityRevision` 和可空 `shareImageSource` 不能在本域猜测。`InvalidatePublication`、`ConsumeEvents`、`PrewarmPublication`、当前公开读取和整条 OG 即时更新仍 blocked，不能依赖旧 publication ref 或缓存推断新分享图。
+
+media 的单个 `ContentDeliveryAssetSetProofV2` 固定证明正文 `documentId` 来源，不能授权正文、文档分享图、site-config 默认图三种来源的全集；解除该依赖前必须有多个精确来源证明或逐资产归属证明，并取得 site-config 默认分享图的权威证明。本轮不改 media manifest 草案。
+
+## 检查与下一步
+
+已执行：模块合同 JSON 解析、`make docs`、`git diff --check`。未执行：本机 Go/pnpm/build/check、测试、真实服务/接口/模型。合同摘要已同步到 `progress.json`，`BuildCacheKey` 与 `cache_key.go` 状态为 `implemented`，verification 为 `not_run`，等待用户自部署 GitLab CI。
+
+下一步：待 content 冻结 `content.metadata.changed/v1` 后，先按其精确水位合同修订 `InvalidatePublication` 的事件输入、inbox/单调水位和预热幂等键，再接当前公开读取；media 多来源 delivery proof 与 site-config 默认图证明未就绪时保持失败关闭。
+
 ## 2026-10-18 用户收尾指令
 
 用户要求push后停止，全部代理已冻结。本次集成树已通过GitLab pipeline118源码检查；未完成职责保持逐项台账，不将独立WIP计入main。后续仅在新授权下接续，不自动继续。

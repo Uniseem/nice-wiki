@@ -735,7 +735,7 @@ func BuildCacheKey(ctx context.Context, op OperationContext, in BuildCacheKeyInp
 |---|---|---|---|
 | `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
 | `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
-| `in` | `BuildCacheKeyInput` | 固定派生缓存身份；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+| `in` | `BuildCacheKeyInput` | 固定派生缓存身份；字段见本域types.json对应$defs | 严格schema，拒未知字段；metadataRevision必须来自content当前公开读取或content.metadata.changed/v1水位，未知值由调用方失败关闭；不得以默认0或publicationRevision代替；字段约束与默认参数见types/requirements |
 
 **输出**
 
@@ -746,8 +746,8 @@ func BuildCacheKey(ctx context.Context, op OperationContext, in BuildCacheKeyInp
 
 **步骤**
 
-1. 按字段长度编码序列
-2. 加入 rendererVersion
+1. 以 public-site-renderer-v2 作为 rendererVersion；按 dataEpoch、documentId、publicationRevision、metadataRevision、locale、themeRevision 的稳定顺序逐字段长度编码
+2. 不复用或读取 public-site-renderer-v1 生成的缓存键，避免旧正文缓存复活旧 OG
 3. SHA-256 生成路径
 
 **错误**
@@ -757,7 +757,7 @@ func BuildCacheKey(ctx context.Context, op OperationContext, in BuildCacheKeyInp
 - 副作用：无
 - 授权：permission：service；rule：内部调用
 - 并发：纯函数
-- 幂等：相同身份同 key
+- 幂等：相同 dataEpoch、documentId、publicationRevision、metadataRevision、locale、themeRevision 同 key；任一维度变化均生成不同 v2 key
 - 依赖：无
 
 ## public-site.ReadRenderCache
