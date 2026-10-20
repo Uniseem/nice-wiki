@@ -85,6 +85,8 @@ def main():
     body = {"schemaVersion": 1, "type": "doc", "content": [
         {"type": "heading", "attrs": {"blockId": uuid.uuid4().hex, "level": 2}, "content": [{"type": "text", "text": "欢迎", "marks": []}]},
         {"type": "paragraph", "attrs": {"blockId": uuid.uuid4().hex}, "content": [{"type": "text", "text": "这是第一篇文档。", "marks": []}]}]}
+    if "math" in sys.argv:
+        body["content"].append({"type": "mathBlock", "attrs": {"blockId": uuid.uuid4().hex, "latex": "E = mc^2"}})
     if "img" in sys.argv:
         ref = upload_png()
         body["content"].append({"type": "image", "attrs": {"blockId": uuid.uuid4().hex, "asset": ref, "alt": "一个红点", "altSource": "manual", "caption": [], "widthPercent": None}})
