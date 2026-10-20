@@ -254,7 +254,7 @@ func closeRuntime(client platform.SiteConfigClient) error {
 	return nil
 }
 
-func registerActivationAfterSwap(ctx context.Context, runtime platform.SiteConfigClient, key platform.SigningKey, view platform.RuntimeView, swap platform.SwapResult, evidence platform.SnapshotSwapEvidence) error {
+func registerActivationAfterSwap(ctx context.Context, runtime platform.SiteConfigClient, key platform.SigningKey, view platform.RuntimeView, swap platform.SwapResult, evidence lifecycle.SnapshotSwapEvidence) error {
 	if !evidence.Known || !platform.ValidIdentifier(platform.Identifier(swap.RestoreID)) || !platform.ValidIdentifier(platform.Identifier(evidence.StageID)) || !platform.ValidHash(platform.Hash(evidence.ManifestHash)) || !platform.ValidHash(platform.Hash(evidence.HostManifestHash)) || !platform.ValidIdentifier(platform.Identifier(evidence.HostEpoch)) || !platform.ValidIdentifier(platform.Identifier(evidence.TargetEpoch)) || evidence.HostEpoch != string(view.DataEpoch) || evidence.TargetEpoch != string(view.TargetDataEpoch) || evidence.TargetEpoch == string(view.DataEpoch) {
 		return platform.NewError(platform.CodeIntegrityError, false, "恢复换目录证据不完整")
 	}
