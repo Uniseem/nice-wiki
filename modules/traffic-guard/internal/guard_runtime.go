@@ -375,7 +375,7 @@ func NewTrafficSnapshotManager(store *PolicyStore, dataRoot string, openedEpoch 
 		Drain: func(ctx context.Context, _ *lifecycle.SnapshotCleanup) error {
 			return drainGuardWork(ctx, store)
 		},
-		Watermark:  func(ctx context.Context) (int64, error) { return guardWorkWatermark(ctx, store) },
+		Watermark:   func(ctx context.Context) (int64, error) { return guardWorkWatermark(ctx, store) },
 		ObserveWork: store.ObserveWork,
 		SealWork:    store.SealWork,
 		ResumeWork:  store.ResumeWork,
@@ -511,7 +511,7 @@ func guardStageBudget(_ context.Context, manifest lifecycle.DomainSnapshotManife
 	if budget > lifecycle.MaxArchiveBytes || budget > lifecycle.MaxArchiveBytes/3 {
 		return 0, platform.NewError(platform.CodeBudgetExceeded, false, "风控恢复峰值超过归档上限")
 	}
-	return budget*3, nil
+	return budget * 3, nil
 }
 
 func migrateGuardStage(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error {

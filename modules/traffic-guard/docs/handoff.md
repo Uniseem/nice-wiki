@@ -1,3 +1,9 @@
+# 2026-10-21 pipeline192 失败与下一候选
+
+署名候选 `767a64052cb11f4783513f854e20334224dd4054` 在 GitLab 隔离分支 `codex/ci-20261020-r1b-traffic-gpt6` 触发 pipeline192（IID149）。生成与格式 job791、foundation job792、其余Go job794、前端 job795 成功；content-media job793 在 `snapshot_archive.go:47` 报 `undefined: ModuleSlug`，因此本候选不记 verified。job791 的原始 `generated.patch` 为 43714 字节、SHA-256 `45a131346785b6c2b112f5573eacdece50672a6893524b41d7467457e6720bf0`，已原样应用，范围仅本域格式化与生成文件。
+
+本地提交 `88e6d0af` 将归档引用owner改为包可见的合同固定值 `traffic-guard`，下一候选待 GitLab 复核。旧未署名候选 `61a7514d` 及其远端分支保留为历史记录，不强推覆盖。`VerifyGlobalSeal` 仍失败关闭，完整 `BuildApplication`、协调 writer、safe/export 和 accepted 仍 blocked。
+
 # 2026-10-21 SnapshotManager drain 复核
 
 `BeginDrain`/`Drain` 的真实边界已核对：它们读取并轮询 `guard_permits` 的 active 行、`guard_challenges` 的 issued 行、`guard_waiters` 和 outbox 活动水位，不自动清理这些事实。当前已有的 `ExpireLeases` 只处理普通后台到期许可；挑战没有独立到期终结入口，等待队列只有原 QA 会话按 requestId 取消/消费路径。

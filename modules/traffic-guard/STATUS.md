@@ -1,3 +1,10 @@
+# 2026-10-21 pipeline192 失败与归档读取窄修
+
+署名候选 `767a64052cb11f4783513f854e20334224dd4054` 已推送 GitLab 隔离分支 `codex/ci-20261020-r1b-traffic-gpt6`，pipeline192（IID149）结果为 failed。生成与格式 job791、foundation job792、其余Go job794、前端 job795 成功；content-media job793 失败于 `modules/traffic-guard/internal/snapshot_archive.go:47:14: undefined: ModuleSlug`。
+
+- job791 原始 `generated.patch` 已下载并核验：43714字节，SHA-256 `45a131346785b6c2b112f5573eacdece50672a6893524b41d7467457e6720bf0`；仅含本域格式化、OpenAPI/TypeScript生成物，已原样应用。
+- 本地窄修提交 `88e6d0af` 将跨包不可见的 `ModuleSlug` 改为合同固定owner `traffic-guard`；下一候选仍待 GitLab。`VerifyGlobalSeal`、完整 `BuildApplication`、协调 writer、safe/export 和 accepted 继续 blocked。
+
 # 2026-10-21 复核：SnapshotManager drain 保持 partial/blocked
 
 已核实本域当前 `BeginDrain/Drain` 只读取并轮询真实 `guard_permits(state=active)`、`guard_challenges(state=issued)`、`guard_waiters` 和 outbox 工作水位；没有在屏障期间自动把这些事实改成终局状态。`ExpireLeases` 是普通后台入口，`guard_challenges` 没有独立到期终结后台，等待队列也没有可证明的批量清理授权。
