@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import TaskList from '@tiptap/extension-task-list';
@@ -17,6 +17,7 @@ import type { JSONNode } from './convert';
 const props = defineProps<{ doc: JSONNode; editable: boolean }>();
 const emit = defineEmits<{ (e: 'change', doc: JSONNode): void }>();
 
+let ready = false; // 斜杠菜单依赖后面才声明的变量，脚本跑完前不处理编辑器事务
 const editor = useEditor({
   content: props.doc,
   editable: props.editable,
@@ -29,7 +30,80 @@ const editor = useEditor({
   ],
   // 只有用户在编辑器里操作（获得焦点）才算修改，加载时补稳定 ID 不触发保存。
   onUpdate: ({ editor }) => { if (editor.isFocused) emit('change', editor.getJSON() as JSONNode); },
+  onTransaction: ({ editor }) => refreshSlash(editor),
+  editorProps: {
+    // 粘贴或拖入图片文件：直接上传并插入。
+    handlePaste: (_view, event) => handleFiles(event.clipboardData?.files),
+    handleDrop: (_view, event) => handleFiles((event as DragEvent).dataTransfer?.files),
+    handleKeyDown: (_view, event) => slashKey(event),
+  },
 });
+
+function handleFiles(files: FileList | null | undefined): boolean {
+  const images = Array.from(files ?? []).filter((f) => f.type.startsWith('image/'));
+  if (!images.length) return false;
+  void (async () => { for (const file of images) await insertFile(file, 'image'); })();
+  return true;
+}
+
+// 斜杠菜单：在空段落里输入“/”，按名称过滤，方向键选择、回车执行、Esc 关闭。
+const wrapper = ref<HTMLElement | null>(null);
+const slash = ref<{ left: number; top: number; query: string } | null>(null);
+const slashIndex = ref(0);
+const slashCommands = [
+  { label: '标题 2', key: 'h2', run: (e: any) => e.chain().focus().setHeading({ level: 2 }).run() },
+  { label: '标题 3', key: 'h3', run: (e: any) => e.chain().focus().setHeading({ level: 3 }).run() },
+  { label: '标题 4', key: 'h4', run: (e: any) => e.chain().focus().setHeading({ level: 4 }).run() },
+  { label: '无序列表', key: 'ul list', run: (e: any) => e.chain().focus().toggleBulletList().run() },
+  { label: '有序列表', key: 'ol list', run: (e: any) => e.chain().focus().toggleOrderedList().run() },
+  { label: '任务列表', key: 'todo task', run: (e: any) => e.chain().focus().toggleTaskList().run() },
+  { label: '引用', key: 'quote', run: (e: any) => e.chain().focus().toggleBlockquote().run() },
+  { label: '代码块', key: 'code', run: (e: any) => e.chain().focus().toggleCodeBlock().run() },
+  { label: '分割线', key: 'hr divider', run: (e: any) => e.chain().focus().setHorizontalRule().run() },
+  { label: '表格', key: 'table', run: (e: any) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+  { label: '提示框', key: 'callout info', run: (e: any) => e.chain().focus().wrapIn('callout', { kind: 'info' }).run() },
+  { label: '警告框', key: 'warning', run: (e: any) => e.chain().focus().wrapIn('callout', { kind: 'warning' }).run() },
+  { label: '公式', key: 'math latex', run: (e: any) => { const latex = window.prompt('LaTeX 公式'); if (latex) e.chain().focus().insertContent({ type: 'mathBlock', attrs: { latex } }).run(); } },
+  { label: '图片', key: 'image', run: () => fileInput.value?.click() },
+  { label: '附件', key: 'file attachment', run: () => attachInput.value?.click() },
+];
+const slashItems = computed(() => {
+  const q = slash.value?.query.trim().toLowerCase() ?? '';
+  return slashCommands.filter((c) => !q || c.label.includes(q) || c.key.includes(q));
+});
+
+function refreshSlash(e: any) {
+  if (!ready) return;
+  const { state, view } = e;
+  const { $from, empty } = state.selection;
+  const text: string = $from.parent.textContent;
+  if (!empty || $from.parent.type.name !== 'paragraph' || !text.startsWith('/') || $from.parentOffset !== text.length || !props.editable) {
+    slash.value = null;
+    return;
+  }
+  const coords = view.coordsAtPos($from.pos);
+  const host = wrapper.value?.getBoundingClientRect();
+  slash.value = { left: coords.left - (host?.left ?? 0), top: coords.bottom - (host?.top ?? 0) + 4, query: text.slice(1) };
+  if (slashIndex.value >= slashItems.value.length) slashIndex.value = 0;
+}
+
+function runSlash(command: (typeof slashCommands)[number]) {
+  const e = editor.value;
+  if (!e) return;
+  const { $from } = e.state.selection;
+  e.chain().focus().deleteRange({ from: $from.start(), to: $from.pos }).run();
+  slash.value = null;
+  command.run(e);
+}
+
+function slashKey(event: KeyboardEvent): boolean {
+  if (!slash.value || !slashItems.value.length) return false;
+  if (event.key === 'ArrowDown') { slashIndex.value = (slashIndex.value + 1) % slashItems.value.length; return true; }
+  if (event.key === 'ArrowUp') { slashIndex.value = (slashIndex.value + slashItems.value.length - 1) % slashItems.value.length; return true; }
+  if (event.key === 'Enter') { runSlash(slashItems.value[slashIndex.value]); return true; }
+  if (event.key === 'Escape') { slash.value = null; return true; }
+  return false;
+}
 
 watch(() => props.editable, (value) => editor.value?.setEditable(value));
 onBeforeUnmount(() => editor.value?.destroy());
@@ -38,17 +112,22 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const uploading = ref(false);
 const uploadError = ref('');
 
+async function insertFile(file: File, kind: 'image' | 'attachment') {
+  if (!editor.value) return;
+  uploading.value = true;
+  uploadError.value = '';
+  try {
+    const asset = kind === 'image' ? await uploadImage(file) : await uploadAsset(file, 'attachment');
+    const content = kind === 'image' ? { type: 'image', attrs: { asset, alt: null } } : { type: 'attachment', attrs: { asset, displayName: file.name.slice(0, 255) } };
+    editor.value.chain().focus().insertContent(content).run();
+  } catch (e) { uploadError.value = `${kind === 'image' ? '图片' : '附件'}上传失败：${messageOf(e)}`; } finally { uploading.value = false; }
+}
+
 async function insertImage(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
-  if (!file || !editor.value) return;
-  uploading.value = true;
-  uploadError.value = '';
-  try {
-    const asset = await uploadImage(file);
-    editor.value.chain().focus().insertContent({ type: 'image', attrs: { asset, alt: null } }).run();
-  } catch (e) { uploadError.value = `图片上传失败：${messageOf(e)}`; } finally { uploading.value = false; }
+  if (file) await insertFile(file, 'image');
 }
 
 const attachInput = ref<HTMLInputElement | null>(null);
@@ -57,13 +136,7 @@ async function insertAttachment(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
-  if (!file || !editor.value) return;
-  uploading.value = true;
-  uploadError.value = '';
-  try {
-    const asset = await uploadAsset(file, 'attachment');
-    editor.value.chain().focus().insertContent({ type: 'attachment', attrs: { asset, displayName: file.name.slice(0, 255) } }).run();
-  } catch (e) { uploadError.value = `附件上传失败：${messageOf(e)}`; } finally { uploading.value = false; }
+  if (file) await insertFile(file, 'attachment');
 }
 
 function setLink(e: any) {
@@ -121,10 +194,11 @@ const buttons = [
   { label: '撤销', run: (e: any) => e.chain().focus().undo().run(), on: () => false },
   { label: '重做', run: (e: any) => e.chain().focus().redo().run(), on: () => false },
 ];
+ready = true;
 </script>
 
 <template>
-  <div v-if="editor">
+  <div v-if="editor" ref="wrapper" style="position:relative">
     <div class="toolbar">
       <button v-for="b in buttons" :key="b.label" type="button" :class="{ on: b.on(editor) }" :disabled="!editable" @click="b.run(editor)">{{ b.label }}</button>
       <button type="button" :disabled="!editable || uploading" @click="fileInput?.click()">{{ uploading ? '上传中…' : '图片' }}</button>
@@ -134,5 +208,8 @@ const buttons = [
     </div>
     <p v-if="uploadError" class="error">{{ uploadError }}</p>
     <EditorContent :editor="editor" />
+    <ul v-if="slash && slashItems.length" class="slash-menu" :style="{ left: slash.left + 'px', top: slash.top + 'px' }">
+      <li v-for="(c, i) in slashItems" :key="c.label" :class="{ on: i === slashIndex }" @mousedown.prevent="runSlash(c)">{{ c.label }}</li>
+    </ul>
   </div>
 </template>
