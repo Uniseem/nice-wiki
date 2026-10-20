@@ -204,6 +204,7 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		Writer: w, Runtime: a.runtime, Identity: a.identity, Gate: a.gate,
 		ConfiguredOrigins: origins, TrustedProxyCIDRs: a.config.TrustedProxyCIDRs,
 	}
+	runtime.Anchors = a.anchors
 	if a.budgetKey.KeyID != "" {
 		runtime.NetworkScopeKeys = []platform.SigningKey{a.budgetKey}
 	}

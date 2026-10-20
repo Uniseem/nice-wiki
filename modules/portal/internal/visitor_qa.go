@@ -39,12 +39,23 @@ func prepareVisitorQA(ctx context.Context, op OperationContext, runtime *ProxyRu
 	op.Actor.SiteID = runtime.SiteID
 	op.NetworkBudgetScopes = scopes
 	body := runtime.Body
+	// 完成人机验证后，浏览器在 X-Guard-Session 里带回 traffic-guard 签的通过证明；它决定访客主体。
+	token := runtime.Request.Header.Get("X-Guard-Session")
 	subject, err := visitorSubject(runtime.NetworkScopeKeys[0], runtime.SiteID, scopes[0])
 	if err != nil {
 		return nil, InternalProof{}, op, err
 	}
+	if token != "" && len(token) <= 8192 {
+		if claims, verr := serviceauth.VerifyGuardSession(runtime.Anchors, token); verr == nil && claims.SiteID == runtime.SiteID {
+			subject = claims.SubjectID
+		} else {
+			token = ""
+		}
+	} else {
+		token = ""
+	}
 	if action := route.Definition.Admission; action != "" {
-		permit, err := createAdmission(ctx, op, runtime, action)
+		permit, err := createAdmission(ctx, op, runtime, action, token)
 		if err != nil {
 			return nil, InternalProof{}, op, err
 		}
@@ -74,12 +85,12 @@ func prepareVisitorQA(ctx context.Context, op OperationContext, runtime *ProxyRu
 }
 
 // createAdmission 以入口身份向 traffic-guard 申请本次提问/建会话的准入许可。
-func createAdmission(ctx context.Context, op OperationContext, runtime *ProxyRuntime, action string) (platform.AdmissionPermit, error) {
+func createAdmission(ctx context.Context, op OperationContext, runtime *ProxyRuntime, action, visitorToken string) (platform.AdmissionPermit, error) {
 	base := strings.TrimRight(runtime.Dependencies["traffic-guard"], "/")
 	if base == "" {
 		return platform.AdmissionPermit{}, platform.NewError(platform.CodeDependencyUnavailable, true, "风控服务地址未配置")
 	}
-	raw, _ := json.Marshal(map[string]string{"requestId": op.RootOperationID, "action": action, "visitorToken": ""})
+	raw, _ := json.Marshal(map[string]string{"requestId": op.RootOperationID, "action": action, "visitorToken": visitorToken})
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/v1/admissions", bytes.NewReader(raw))
 	if err != nil {
 		return platform.AdmissionPermit{}, platform.NewError(platform.CodeInternal, false, "准入请求构造失败")
