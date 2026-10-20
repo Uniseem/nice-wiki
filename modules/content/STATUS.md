@@ -1,3 +1,19 @@
+# 2026-10-21 B1 资源事件来源 v2（已提交，待 GitLab CI）
+
+本轮从 `a53fe59c` 建立独立 worktree `/private/tmp/nice-wiki-content-b1-v2-20261021`，分支为 `codex/content-b1-v2-20261021`，独占 `modules/content/`。源码与合同提交已顺序完成：合同 `911dbb29`，producer `d0c0dd5f`，合同窄修 `f34d346c`，移除已完成 content 阻塞的合同修正 `9f0e70cb`。
+
+- `content.resources.changed` 保留 v1 `$defs/ResourceReferencesChangedPayload` 原样作历史只读兼容；新增 v2 `$defs/ResourceReferencesChangedPayloadV2`。v2 的来源身份包含 `sourceService=content`、`sourceOperationId`、`siteId`、`sourceObjectId=documentId`、`sourceRevisionId`、`sourceVersion`、`referenceDigest` 和完整 `AssetReference[]`，`eventId` 只在 jobs 信封中。
+- v2 引用数组直接复用已持久 `draftMediaReferences`：`kind=pending_pin`、`confirmed=false`、`expiresAt=null`、原 `asset`、稳定 `referenceId` 与原 `referenceDigest`；空集合仍保留完整来源身份。没有把条目改为 `current/confirmed`，不重新计算摘要。
+- `draft_commit_store.Commit` 仅在 `action=save` 的 COMMITTED 草稿保存事务内写 v2 outbox；Create 共用提交路径但不生产资源事件。`PublishContentEvent` 拒绝旧 v1 引用载荷，发布/撤回不再生成资源来源事件；发布内部仍只复制已确认草稿引用到发布快照。
+- `ReadReferenceDecision` 继续以已提交、`action=save` 的原来源决定作为非空发布引用资格。分享图 metadata pin、公开 OG 新水位与缓存失效仍是后续独立工作项；当前非空 shareImage 继续失败关闭，旧正文快照不可改写。
+- 静态 JSON、范围、隐私、`git diff --check` 已通过；未运行本机 Go、pnpm、build、check 或业务验收。producer 文件/函数只记 `implemented`/`not_run`，不能记 `verified` 或 `accepted`。
+
+## 下一步（一项）
+
+由集成会话复核本域提交并在用户自部署 GitLab CI 运行生成、readonly build/vet/gofmt 与完整结构检查；media 侧需注册 `content.resources.changed` v2、从 jobs 信封传入 `eventId` 并接入 `media.ApplyReferenceEvent`。v1 只读兼容不能补造 v2 来源。
+
+---
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。

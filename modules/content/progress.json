@@ -2,12 +2,12 @@
   "version": 1,
   "module": "content",
   "phase": "implementation",
-  "contractSha256": "5f74ec518f87fbcdbdc87cbd998e8633396a57b25275182ed04107645fb391f0",
+  "contractSha256": "135942737e3806c55fbfbd7b1f6dfa43023d54ee8110526215b5f9e34f058314",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "用户要求push后停止；源码已通过GitLab，未完成项保留blocked/planned，不自动继续。",
-  "branch": "codex/content-20261017-r4",
-  "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
-  "deliveryCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
+  "assignedSession": "2026-10-21 content B1 资源事件来源 v2；合同与SaveDraft producer已完成，待GitLab CI；media v2消费接线和metadata pin保持阻塞。",
+  "branch": "codex/content-b1-v2-20261021",
+  "baseCommit": "a53fe59cd1ef11ad51be4508788ec13132784417",
+  "deliveryCommit": "9f0e70cbb757c6c0e68822fe1d1a16df3b694e62",
   "deployment": "not_started",
   "files": [
     {
@@ -183,12 +183,12 @@
     {
       "path": "modules/content/internal/publication_repository.go",
       "state": "implemented",
-      "implementationCommit": "67f35e4857ee66970b3ff6b84184d7e9eb92c447",
+      "implementationCommit": "d0c0dd5fee60f7b63d01ba2be5c3bab341d88ae9",
       "verification": {
         "state": "not_run",
-        "evidence": "confirm 使用已提交草稿保存操作的来源身份，源码仍未编译，GitLab CI 未跑，不能记为 verified。"
+        "evidence": "本轮停止于静态合同/producer核对；未运行 Go、gofmt、GitLab CI 或业务验收，不能记为 verified。"
       },
-      "blocker": null
+      "blocker": "ShareImage metadata pin与公开OG新水位仍是后续工作项；本轮发布路径仅停止生产资源来源事件。"
     },
     {
       "path": "modules/content/internal/visibility_service.go",
@@ -263,12 +263,12 @@
     {
       "path": "modules/content/internal/outbox_repository.go",
       "state": "implemented",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "implementationCommit": "d0c0dd5fee60f7b63d01ba2be5c3bab341d88ae9",
       "verification": {
         "state": "not_run",
-        "evidence": "本轮只完成源码与合同同步，未跑 GitLab CI，不能记为 verified。"
+        "evidence": "本轮实现v1资源载荷拒绝和发布/撤回隔离；未运行 Go、gofmt、GitLab CI 或业务验收，不能记为 verified。"
       },
-      "blocker": null
+      "blocker": "media v2订阅与ApplyReferenceEvent接线尚待media agent和集成会话完成。"
     },
     {
       "path": "modules/content/internal/barrier_service.go",
@@ -682,13 +682,13 @@
     },
     {
       "path": "modules/content/internal/draft_commit_store.go",
-      "state": "verified",
-      "implementationCommit": "7f7ec904b5bb9563bb801750512fea3483513cf6",
+      "state": "implemented",
+      "implementationCommit": "d0c0dd5fee60f7b63d01ba2be5c3bab341d88ae9",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
+        "state": "not_run",
+        "evidence": "SaveDraft COMMITTED事务已接入v2 outbox，Create不发事件；未运行 Go、gofmt、GitLab CI 或业务验收，不能记为 verified。"
       },
-      "blocker": null
+      "blocker": "media v2 consumer尚未登记；当前仅完成content本域生产。"
     },
     {
       "path": "modules/content/migrations/0004_draft_commits.sql",
@@ -1173,11 +1173,11 @@
     {
       "id": "content.SaveDraft",
       "path": "modules/content/internal/draft_service.go",
-      "state": "verified",
-      "implementationCommit": "7f7ec904b5bb9563bb801750512fea3483513cf6",
+      "state": "implemented",
+      "implementationCommit": "d0c0dd5fee60f7b63d01ba2be5c3bab341d88ae9",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
+        "state": "not_run",
+        "evidence": "本轮依赖Commit事务接入v2资源事件，未运行 Go、gofmt、GitLab CI 或业务验收，不能记为 verified。"
       },
       "blocker": null
     },
@@ -2064,11 +2064,11 @@
     {
       "id": "content.PublishContentEvent",
       "path": "modules/content/internal/outbox_repository.go",
-      "state": "verified",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "state": "implemented",
+      "implementationCommit": "d0c0dd5fee60f7b63d01ba2be5c3bab341d88ae9",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
+        "state": "not_run",
+        "evidence": "本轮PublishContentEvent改为拒绝旧v1资源载荷，未运行 Go、gofmt、GitLab CI 或业务验收，不能记为 verified。"
       },
       "blocker": null
     },
@@ -2976,11 +2976,11 @@
     },
     {
       "id": "content.Commit",
-      "state": "verified",
-      "implementationCommit": "7f7ec904b5bb9563bb801750512fea3483513cf6",
+      "state": "implemented",
+      "implementationCommit": "d0c0dd5fee60f7b63d01ba2be5c3bab341d88ae9",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-16根统一最终冻结候选：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、8个Go源码gofmt、14模块-mod=readonly build/vet/gofmt及完整make check通过（876文件/1403函数/379HTTP/2317类型），其他域跟踪漂移0。首次build因未使用time导入失败；第二次build/vet/gofmt通过但check4条可达性失败；删除死GuardLease及补真实调用边后完整重跑通过。根/交叉复核收口独立引用水位、首次配额与pending guard、COMMITTED当前pin刷新和prepare终态分派。只证明编译与设计结构；未新增或运行测试/fixture/mock/样例/临时业务程序、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署。本域未运行本机Go或push。"
+        "state": "not_run",
+        "evidence": "本轮Commit只完成SaveDraft v2 outbox生产的源码接入，未运行 Go、gofmt、GitLab CI 或业务验收，不能记为 verified。"
       },
       "blocker": null,
       "path": "modules/content/internal/draft_commit_store.go"
@@ -3549,11 +3549,11 @@
     {
       "id": "content.enqueuePublication",
       "path": "modules/content/internal/publication_repository.go",
-      "state": "verified",
-      "implementationCommit": "b6d27b3dc3ddeaa0311c8f687052bfedd58a29e5",
+      "state": "implemented",
+      "implementationCommit": "d0c0dd5fee60f7b63d01ba2be5c3bab341d88ae9",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-17第四轮根统一自部署GitLab CI pipeline 42，候选2e282a31a5ce739886eed9807fc5efcfac44989c：生成/格式/重复生成job188补丁0字节，三个并行编译分片job189/190/191全部success，覆盖14个Go模块-mod=readonly build/vet/gofmt，foundation分片运行完整make check。pipeline40三分片vet失败，pipeline41在格式修正后编译通过并回传生成补丁。只证明编译与结构检查，未新增或运行测试、样例、SQL/HTTP验收、真实接口、模型、业务worker、镜像或部署，未在本机或SSH编译。"
+        "state": "not_run",
+        "evidence": "本轮发布/撤回只继续排队各自事件并停止资源事件生产，未运行 Go、gofmt、GitLab CI 或业务验收，不能记为 verified。"
       },
       "blocker": null
     },

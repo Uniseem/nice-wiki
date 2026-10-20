@@ -1,3 +1,34 @@
+# 2026-10-21 B1 资源事件来源 v2 交接
+
+## 范围与提交
+
+- 基线：`a53fe59c`；分支：`codex/content-b1-v2-20261021`；独立 worktree：`/private/tmp/nice-wiki-content-b1-v2-20261021`；独占 `modules/content/`。
+- 合同提交：`911dbb29`；producer 提交：`d0c0dd5f`；合同窄修：`f34d346c`、`9f0e70cb`。未 push。
+- 修改精确文件：`contracts/events.json`、`contracts/types.json`、`contracts/implementation.json`、生成的 `docs/functions.md`、`internal/draft_commit_store.go`、`internal/outbox_repository.go`、`internal/publication_repository.go`。
+
+## 已完成
+
+- v1 `$defs/ResourceReferencesChangedPayload` 保持原 schema，事件条目保留 v1 历史只读兼容；v2 `$defs/ResourceReferencesChangedPayloadV2` 与 v2 事件条目完整声明来源身份和 `AssetReference[]`，`eventId` 不进 payload。
+- v2 producer 只在 SaveDraft 的 COMMITTED 事务中写 outbox，使用持久原 `sourceOperationId`、`sourceVersion`、`referenceDigest` 和 `draftMediaReferences` 原数组。每项保持 `pending_pin`、`confirmed=false`、`expiresAt=null`；空集合仍带完整身份。Create 不发资源事件，发布/撤回不再生产 v1/v2 资源来源。
+- `PublishContentEvent` 的 references 输入固定拒绝；发布引用复制仍把已确认 `current_draft` 投影为 `current_published`，不创建新的 media 来源。`ReadReferenceDecision` 的 save/committed 资格范围未扩大。
+
+## 阻塞与边界
+
+- media `events.json` v2 consume、jobs 信封 `eventId` 到 `ApplyReferenceEvent` 的适配仍由 media agent 负责；当前 content v2 合同不把该跨域接线伪装为完成。
+- ShareImage metadata pin、公开元数据新水位/缓存失效和 public-site SEO 读取仍是后续独立工作项。当前 `publication_reader.go` 与 `publication_repository.go` 对非空 shareImage 继续失败关闭；不能通过等待下一次 Publish 或改写旧正文快照解决。
+- 本轮未新增测试、样例、fixture、生成目录改动或根/其他域文件；未运行 Go/pnpm/build/check、真实接口、真实模型或部署。
+
+## 检查证据
+
+- 通过：四份合同 JSON 解析、`git diff --check`、本域变更范围审阅、隐私静态审阅。
+- 未运行：Go 编译、vet、gofmt、make check、业务行为验收和 GitLab CI。producer 相关实现保持 `implemented`/`not_run`。
+
+## 下一步（一项）
+
+先由集成会话在同一候选上运行用户自部署 GitLab CI；media agent 完成 v2 consumer 后再做跨域事件接线复核。metadata pin 不并入本轮 v2。
+
+---
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
