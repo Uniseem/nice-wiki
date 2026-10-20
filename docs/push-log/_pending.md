@@ -49,3 +49,5 @@ traffic-guard 已按本域静态审查结果接入 clean HEAD `85fc4639b34d0d321
 本地窄修已写入工作树但尚未推送：补公共 `ReadBarrierStatus`、`outbox.RegisterWorkTable`，修identity四处类型转换，traffic-guard使用固定本域slug；后续CI需用户另行授权新SHA。本机未运行Go/build/vet/test/pnpm/make check。
 
 job726原始`generated.patch`已重新下载并应用到本地follow-up；仅排除两个已窄修源码路径，其他artifact均由CI原patch写入，包含gofmt/gen/docs/路由生成，无lock或私有路径。应用后JSON与`git diff --check`通过，`make privacy`通过；结构摘要检查失败203项，具体为新增合同类型未登记、重复函数/未来文件、函数可达性与handoff摘要过期，未以本次9b候选名义修复或重推。
+
+候选 `284737bee5c95632ddcce4ce8fb034d72e7f7f96` 的pipeline180结果：生成/格式、content-media、AI、前端成功；foundation job 732 失败，`modules/identity/internal/app/wire.go:199` 调用 `gen.SiteConfigClient.RegisterActivation`，但当前生成client未提供该方法。job731的`generated.patch`大小792字节，SHA-256 `f15530fd247b4c195af91d1e40691a36453e0f6e8a5d3e8949647b2d35de3211`，仅为identity barrier格式生成差异。未修改或推送第三个SHA。

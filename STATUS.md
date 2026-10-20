@@ -12,6 +12,8 @@ traffic-guard 已接入 clean HEAD `85fc4639b34d0d321c59e59f3b6169319f7dfcba`（
 
 GitLab 隔离 CI 候选 `9b359c0e70ffb8857189d77dfa0adaccb00200cd` 已推送到 `codex/ci-20261020-r1-9b359c0e`，pipeline 179 生成/前端/AI 成功，foundation 与 content-media 因公共/模块编译缺口失败；`generated.patch` 非零（803264字节）。原SHA保持不变；本地已记录窄修但未推送新SHA，等待下一次授权。
 
+精确修正候选 `284737bee5c95632ddcce4ce8fb034d72e7f7f96` 已快进推送同一GitLab分支，pipeline 180：生成/格式、content-media、AI、前端成功；foundation job 732 失败于 `identity/internal/app/wire.go:199` 调用的生成 `SiteConfigClient` 缺少 `RegisterActivation`。job 731 的 `generated.patch` 为792字节，SHA-256 `f15530fd247b4c195af91d1e40691a36453e0f6e8a5d3e8949647b2d35de3211`，仅含identity barrier源码格式生成差异；本次未继续修改或推送第三个SHA。
+
 已从job726重新下载并应用原始`generated.patch`（SHA-256 `e56c0714c2f483045d9864e0e8e206145c1557d96bbf8686d8f49df951a93a9e`）；40个非冲突artifact路径已写入本地，两个已窄修源码路径保留本地修复。JSON、`git diff --check`、`make privacy`通过；`check_docs.py --summary`仍因203项合同类型/函数可达性/交接摘要漂移失败。未运行Go、测试、pnpm或make check，未推送新SHA。
 
 历史远端推送基线为 `b986443d0dddf5482f7c3430e3dc7c8b99a24232`，对应 pipeline 162 全绿且生成补丁 0；当前本地 `origin/main` 与 `gitlab/main` 跟踪 ref 均为 `6204dfc94510f28752fe8da81df9f3a4d3ce781d`。本地计划收尾基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，对应 pipeline 163 全绿且生成补丁 0；当前集成提交和模块候选尚未推送。
