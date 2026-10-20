@@ -24,8 +24,40 @@ STANDARD_TYPE_PACKAGES = {
 }
 
 
+def _split_top_level(text, separator=','):
+    parts, start, depth = [], 0, 0
+    pairs = {'(': ')', '[': ']', '{': '}'}
+    closing = set(pairs.values())
+    for index, char in enumerate(text):
+        if char in pairs:
+            depth += 1
+        elif char in closing:
+            depth = max(0, depth - 1)
+        elif char == separator and depth == 0:
+            parts.append(text[start:index])
+            start = index + 1
+    parts.append(text[start:])
+    return parts
+
+
+def _strip_parameter_name(text):
+    tokens = re.findall(r'\.\.\.|[A-Za-z_][A-Za-z0-9_]*|[^\s]', text.strip())
+    if len(tokens) < 2 or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', tokens[0]):
+        return text
+    if tokens[1] in ('.', '[', '(', '{', '}', ']', ',', ';'):
+        return text
+    return text[text.find(tokens[1]):]
+
+
+def _sanitize_interface_body(body):
+    # Method names are syntax, while every type inside their parameters and
+    # results remains part of the contract and must be checked later.
+    body = re.sub(r'(^|[;\n])\s*[A-Za-z_][A-Za-z0-9_]*\s*(?=\()', r'\1', body)
+    return ','.join(_strip_parameter_name(part) for part in _split_top_level(body))
+
+
 def _without_inline_interface_body(type_text):
-    """去掉Go inline interface的方法体，避免方法名/参数名伪装成业务类型。"""
+    """保留inline interface方法中的参数/返回类型，只去掉方法和参数名。"""
     text = type_text
     while True:
         match = re.search(r'\binterface\s*\{', text)
@@ -43,21 +75,25 @@ def _without_inline_interface_body(type_text):
                     break
         if end is None:
             return text[:match.start()] + ' interface '
-        text = text[:match.start()] + ' interface ' + text[end:]
+        body = text[match.end():end - 1]
+        text = text[:match.start()] + ' interface ' + _sanitize_interface_body(body) + text[end:]
 
 
-def contract_type_names(type_text):
-    """提取应由合同登记的叶子类型，忽略包限定符和标准库限定类型。"""
+def contract_type_references(type_text):
+    """提取(限定包,叶子类型)，标准库限定类型整体不作为业务类型。"""
     text = _without_inline_interface_body(str(type_text or ''))
+    references = []
 
     def replace_qualified(match):
         package, leaf = match.group(1), match.group(2)
         if package in STANDARD_TYPE_PACKAGES:
             return ''
-        return leaf
+        references.append((package, leaf))
+        return ''
 
     text = re.sub(r'\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b', replace_qualified, text)
-    return re.findall(r'[A-Za-z_][A-Za-z0-9_]*', text)
+    references.extend((None, name) for name in re.findall(r'[A-Za-z_][A-Za-z0-9_]*', text))
+    return references
 
 
 def fail(label, message):
@@ -151,8 +187,9 @@ def check_modules(modules, permissions, codes, shared=()):
     shared_slugs = {c['slug'] for c in shared}
     shared_types = {}
     for component in shared:
-        shared_types[component['slug']] = load_json(ROOT / component['root'] / 'contracts/types.json').get('$defs', {})
-    shared_type_names = set().union(*(set(defs) for defs in shared_types.values()))
+        types_path = ROOT / component['root'] / 'contracts/types.json'
+        if types_path.is_file():
+            shared_types[component['slug']] = load_json(types_path).get('$defs', {})
     count = {'modules': len(modules), 'shared': len(shared), 'files': 0, 'functions': 0, 'operations': 0, 'types': 0}
     for module in list(modules) + list(shared):
         slug = module['slug']
@@ -213,9 +250,11 @@ def check_modules(modules, permissions, codes, shared=()):
                     for param in fn.get(group, []):
                         if not all(key in param for key in ('name', 'type', 'description', 'constraints')):
                             fail(fid, '输入输出字段不完整')
-                        type_names = contract_type_names(param.get('type', ''))
-                        for name in type_names:
-                            if name not in types and name not in common and name not in shared_type_names and name not in BUILTINS:
+                        for qualifier, name in contract_type_references(param.get('type', '')):
+                            known = name in types or name in common or name in BUILTINS
+                            if qualifier in ('platform', 'lifecycle', 'outbox'):
+                                known = known or name in shared_types.get('platform', {})
+                            if not known:
                                 fail(fid, '未登记类型 ' + name)
                 for error in fn.get('errors', []):
                     code = error.get('code') if isinstance(error, dict) else error
