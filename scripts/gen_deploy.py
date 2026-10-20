@@ -151,6 +151,39 @@ chmod -R go-rwx deploy/secrets
 echo "密钥已生成；下一步：cp deploy/.env.example deploy/.env 并修改域名，然后 docker compose -f deploy/docker-compose.yml up -d --build"
 """)
     os.chmod(os.path.join(ROOT, "deploy/init-secrets.sh"), 0o755)
+    volumes = " ".join(f"nice-wiki_{s}-data" for s in SERVICES)
+    write("deploy/backup.sh", f"""#!/bin/sh
+# 过渡方案：整站停机，把各服务数据卷打成一个 tar.gz，再启动。data-protection 的在线一致备份完成后由它取代。
+# 用法：deploy/backup.sh [输出目录，默认 ./backups]
+set -eu
+cd "$(dirname "$0")"
+out="${{1:-./backups}}"
+mkdir -p "$out"
+stamp=$(date -u +%Y%m%dT%H%M%SZ)
+docker compose stop
+trap 'docker compose start' EXIT
+for volume in {volumes}; do
+	docker run --rm -v "$volume":/data -v "$(cd "$out" && pwd)":/out alpine tar czf "/out/$volume-$stamp.tar.gz" -C /data .
+done
+echo "备份已写入 $out（时间戳 $stamp）；请同时妥善保管 deploy/secrets，没有密钥无法恢复。"
+""")
+    os.chmod(os.path.join(ROOT, "deploy/backup.sh"), 0o755)
+    write("deploy/restore.sh", f"""#!/bin/sh
+# 过渡方案：从 backup.sh 生成的备份恢复。会覆盖当前数据卷，请先确认。
+# 用法：deploy/restore.sh <备份目录> <时间戳>
+set -eu
+cd "$(dirname "$0")"
+dir="$1"; stamp="$2"
+printf '将用备份 %s 覆盖当前所有数据卷，输入 yes 继续：' "$stamp"
+read answer
+[ "$answer" = yes ] || exit 1
+docker compose stop
+for volume in {volumes}; do
+	docker run --rm -v "$volume":/data -v "$(cd "$dir" && pwd)":/in alpine sh -c "rm -rf /data/* /data/.[!.]* 2>/dev/null; tar xzf /in/$volume-$stamp.tar.gz -C /data"
+done
+docker compose start
+""")
+    os.chmod(os.path.join(ROOT, "deploy/restore.sh"), 0o755)
 
 
 if __name__ == "__main__":
