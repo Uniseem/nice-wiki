@@ -19,6 +19,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/modules/jobs/internal/gen"
 	jobsmigrations "nice-wiki/modules/jobs/migrations"
 )
@@ -30,6 +31,28 @@ const (
 	jobEventType    = "jobs.job-state-changed.v1"
 	jobEventVersion = 1
 )
+
+// jobsWorkTables 是本域全部16张运行期业务表。schema_migrations 只在启动
+// 迁移阶段写入，不属于运行期业务工作门；nw_outbox 由平台自身登记。
+// 使用定长数组使表门数量在编译期固定为16，避免遗漏表后仍宣称全域封口。
+var jobsWorkTables = [16]string{
+	"jobs",
+	"leases",
+	"progress",
+	"job_results",
+	"events",
+	"deliveries",
+	"schedules",
+	"barriers",
+	"lease_operations",
+	"job_outcomes",
+	"job_orphans",
+	"event_sequence",
+	"consumer_offsets",
+	"event_operations",
+	"job_management_operations",
+	"schedule_operations",
+}
 
 // CreateJobInput 是内部任务提交合同；HTTP层的 dataEpoch 来自可信操作上下文，
 // 不从浏览器请求正文读取。
@@ -45,12 +68,16 @@ type CreateJobInput struct {
 // CreateJobResult 复用生成的成功响应类型，确保 AcceptedJob 与 OpenAPI 一致。
 type CreateJobResult = gen.CreateJobResult
 
+// SiteIDProvider 只在真实服务读取或恢复任务需要站点作用域时读取当前
+// site-config 权威，不在启动阶段把未初始化站点当作已就绪。
+type SiteIDProvider func(context.Context, platform.Identifier) (string, error)
+
 // Store 是 jobs active 区数据库句柄。单连接保证短写事务串行执行；
 // outbox 与任务状态使用同一个 SQLite 事务。
 type Store struct {
 	db              *sql.DB
 	mu              sync.RWMutex
-	siteID          string
+	siteID          SiteIDProvider
 	closed          bool
 	leaseRuntime    LeaseRuntimeProvider
 	identity        *gen.IdentityClient
@@ -59,6 +86,11 @@ type Store struct {
 	progressStreams map[string]int
 	eventMu         sync.Mutex
 	eventStreams    map[string]int
+	backgroundAdmit      platform.WorkAdmission
+	backgroundEventScope func(context.Context, platform.OutboxRow) (context.Context, func(), error)
+	snapshotManager      *lifecycle.SnapshotManager
+	journalRecovered     bool
+	dataProtection       *gen.DataProtectionClient
 }
 
 var activeQueue struct {
@@ -68,7 +100,7 @@ var activeQueue struct {
 
 // InstallStore 将启动阶段打开的本域存储安装为当前任务入口使用的存储。
 // 装配完整 handler 前不会调用 CreateJob，因此不会用空存储伪造服务就绪。
-func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker, siteID string) {
+func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker, siteID SiteIDProvider) {
 	store.siteID = siteID
 	store.recovery = recovery
 	store.identity = identity
@@ -76,6 +108,21 @@ func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.Iden
 	activeQueue.Lock()
 	activeQueue.store = store
 	activeQueue.Unlock()
+}
+
+// ConfigureBackgroundScope 安装后台任务和outbox共用的真实业务scope；缺失时后台保持失败关闭。
+func (s *Store) ConfigureBackgroundScope(admit platform.WorkAdmission, bindEventScope func(context.Context, platform.OutboxRow) (context.Context, func(), error)) error {
+	if s == nil || admit == nil || bindEventScope == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "后台业务scope尚未完整装配")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "任务存储已关闭")
+	}
+	s.backgroundAdmit = admit
+	s.backgroundEventScope = bindEventScope
+	return nil
 }
 
 func currentStore() *Store {
@@ -113,6 +160,11 @@ func OpenDatabase(dataRoot string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
+	if err := registerJobsWorkTables(context.Background(), db); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store.journalRecovered = true
 	return store, nil
 }
 
@@ -412,6 +464,22 @@ func (s *Store) runMigrations() error {
 		}
 		if err := tx.Commit(); err != nil {
 			return platform.NewError(platform.CodeInternal, false, "提交任务迁移失败")
+		}
+	}
+	return nil
+}
+
+// registerJobsWorkTables 在本域迁移完成后把可信业务表登记到平台统一
+// revision 与 sealed gate；表清单只来自本域已登记迁移，不接受配置自报。
+func registerJobsWorkTables(ctx context.Context, db *sql.DB) error {
+	seen := make(map[string]struct{}, len(jobsWorkTables))
+	for _, table := range jobsWorkTables {
+		if _, ok := seen[table]; ok {
+			return platform.NewError(platform.CodeIntegrityError, false, "jobs业务写门表清单重复")
+		}
+		seen[table] = struct{}{}
+		if err := outbox.RegisterWorkTable(ctx, db, table); err != nil {
+			return err
 		}
 	}
 	return nil

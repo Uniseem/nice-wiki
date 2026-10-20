@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 120 个函数：约束 35 个，参考 85 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 165 个函数：约束 35 个，参考 130 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -150,7 +150,7 @@ func FailJob(ctx context.Context, op OperationContext, in FailJobInput) (FailJob
 - 作用：安装本域Store及可信runtime/control屏障读取钩子
 
 ```go
-func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker, siteID string)
+func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker, siteID SiteIDProvider)
 ```
 
 **输入**
@@ -168,7 +168,7 @@ func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.Iden
 
 **步骤**
 
-1. 只安装已从site-config严格响应取得的真实siteID及真实runtime/recovery/identity客户端，不从scheduler actor或任务旧行推当前站点。
+1. 安装按需读取真实siteID的provider及已验证runtime/recovery/identity客户端；启动阶段不得调用readSiteConfig，只有真实服务读取或恢复任务需要站点作用域时才读取，未初始化、空值或读取失败均失败关闭并从任务旧行推断站点。
 
 **错误**
 
@@ -184,7 +184,7 @@ func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.Iden
 
 - 级别：参考
 - 文件：`modules/jobs/internal/queue.go`
-- 作用：打开私有库并执行全部已知追加迁移，随后完整装配前不可用
+- 作用：打开私有库并执行全部已知追加迁移，随后登记全部运行期业务写门，完整装配前不可用
 
 ```go
 func OpenDatabase(dataRoot string) (*Store, error)
@@ -205,7 +205,7 @@ func OpenDatabase(dataRoot string) (*Store, error)
 
 **步骤**
 
-1. 打开私有库并执行全部已知追加迁移，随后完整装配前不可用
+1. 打开私有库并执行全部已知追加迁移；迁移完成后按本域可信业务表清单调用platform.RegisterWorkTable；随后完整装配前不可用
 
 **错误**
 
@@ -217,7 +217,7 @@ func OpenDatabase(dataRoot string) (*Store, error)
 - 授权：permission：service；rule：可信装配或已授权进度流内部
 - 并发：短事务；网络核权/等待不持数据库锁
 - 幂等：只读原进度；配额幂等归还
-- 依赖：`jobs.runMigrations`
+- 依赖：`jobs.runMigrations`、`jobs.registerJobsWorkTables`
 
 ## jobs.runMigrations
 
@@ -256,7 +256,45 @@ func (s *Store) runMigrations() error
 - 幂等：只读原进度；配额幂等归还
 - 依赖：`jobs.All`
 
-## jobs.Store.Close
+## jobs.registerJobsWorkTables
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queue.go`
+- 作用：将本域可信登记表纳入platform统一revision和sealed gate
+
+```go
+func registerJobsWorkTables(ctx context.Context, db *sql.DB) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 本域启动或恢复阶段的取消上下文 | 仅可信装配调用；取消透传平台IO，不携带业务正文 |
+| `db` | `*sql.DB` | 已完成本域迁移的jobs私有数据库 | 仅当前active或已认证隔离stage数据库；表名不由配置提供 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 任一业务表写门登记失败 | 成功nil；失败不宣称本域已可写 |
+
+**步骤**
+
+1. 按jobsWorkTables逐表调用platform.RegisterWorkTable；不登记schema_migrations或nw_outbox
+
+**错误**
+
+- 无
+
+- 副作用：在本域数据库安装平台业务写门与revision触发器
+- 授权：permission：service；rule：可信启动装配
+- 并发：逐表短事务，由platform登记操作保证幂等
+- 幂等：重复登记同一表不重复创建触发器
+- 依赖：`platform.RegisterWorkTable`
+- 其他依赖说明：本域SQLite
+
+## jobs.CloseStore
 
 - 级别：参考
 - 文件：`modules/jobs/internal/queue.go`
@@ -393,6 +431,38 @@ func NewQueueHandlers() map[string]http.Handler
 - 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
 - 幂等：显式延迟属于去重材料，原成功不重新分配时刻
 - 依赖：`jobs.CreateJob`、`jobs.writeEventResponse`、`jobs.ReadJob`
+
+## jobs.ConfigureBackgroundScope
+
+- 级别：参考
+- 文件：`modules/jobs/internal/queue.go`
+- 作用：安装后台恢复与outbox共享的真实业务scope
+
+```go
+func (s *Store) ConfigureBackgroundScope(admit platform.WorkAdmission, bindEventScope func(context.Context, platform.OutboxRow) (context.Context, func(), error)) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 拒绝任一scope为空；保存同一SnapshotManager派生的准入与事件绑定
+
+**错误**
+
+- 无
+
+- 副作用：更新进程内后台scope引用
+- 授权：permission：service；rule：可信启动装配
+- 并发：Store mutex
+- 幂等：同一装配重复写入幂等
+- 依赖：`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.BindOutboxEventScope`
 
 ## jobs.currentStore
 
@@ -2610,7 +2680,7 @@ func RelayOutbox(ctx context.Context, op OperationContext, client EventPublisher
 |---|---|---|---|
 | `ctx` | `context.Context` | 本域生命周期取消 | 停止时由平台循环退出并保留持久outbox |
 | `op` | `OperationContext` | jobs可信后台上下文 | callerService=jobs，不使用浏览器actor |
-| `client` | `EventPublisher` | 生成self JobsClient经platform.NewEventPublisher适配 | 受信config.Dependencies[jobs]地址；不从Host推断，未装配失败关闭 |
+| `client` | `EventPublisher` | 生成self JobsClient经platform.NewEventPublisher适配；由启动装配按可选self地址提供 | 如配置Dependencies[jobs]则必须是受信self地址；不从Host推断。缺失时本域后台保持休眠，直接调用本函数仍返回DEPENDENCY_UNAVAILABLE |
 
 **输出**
 
@@ -2635,7 +2705,7 @@ func RelayOutbox(ctx context.Context, op OperationContext, client EventPublisher
 - 并发：复用平台有界串行转发，不持Store锁调用HTTP
 - 幂等：原eventId/完整信封哈希；平台每event稳定控制键
 - 依赖：`platform.RunRelay`、`platform.NewEventPublisher`、`jobs:publishEvent`
-- 其他依赖说明：platform.outbox.NewStore；config.Dependencies[jobs]
+- 其他依赖说明：platform.Store；可选config.Dependencies[jobs]
 
 ## jobs.RequeueExpiredDeliveries
 
@@ -3155,7 +3225,7 @@ func NewScheduleHandlers() map[string]http.Handler
 
 - 级别：约束
 - 文件：`modules/jobs/internal/barrier_coordinator.go`
-- 作用：等待全域安全点
+- 作用：读取或推进全域安全点
 
 ```go
 func CoordinateBarrier(ctx context.Context, op OperationContext, in CoordinateBarrierInput) (CoordinateBarrierResult, error)
@@ -3166,7 +3236,7 @@ func CoordinateBarrier(ctx context.Context, op OperationContext, in CoordinateBa
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
 | `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
-| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
+| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor由服务断言构建；observe要求actor.kind=service且caller在已登记非jobs owner集合；服务身份不接受客户端自声明；deadline不超过上游 |
 | `in` | `CoordinateBarrierInput` | 等待全域安全点；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
 
 **输出**
@@ -3178,22 +3248,159 @@ func CoordinateBarrier(ctx context.Context, op OperationContext, in CoordinateBa
 
 **步骤**
 
-1. 验证data-protection服务身份（用户授权已由data-protection核验）
-2. 持久stop claims/newjobs/schedules
-3. 向每有状态域acquireBarrier
-4. SSE等待所有safe和领域fence水位
+1. step=observe时只允许已登记13个非jobs有状态域的service actor；读取jobs barriers持久行与v1 domain_status_json，核barrierId、dataEpoch、draining状态、截止、phase、14个owner集合、selectedProofHash及前后相同的零broker基础观察，返回selectedProof；缺任何证据失败关闭且不写入
+2. prepare/drain/seal/resume-drain仍只接受data-protection服务身份，用户授权由data-protection既有流程核验；本域不因observe分支放宽变更授权
+3. 变更步骤的全域stop/acquire/等待仍由协调器依赖提供；本函数不把本域SnapshotManager状态或sealProofHash冒充全域基础proof
 
 **错误**
 
 - `DEADLINE_EXCEEDED` / HTTP 504：BARRIER_TIMEOUT：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：DOMAIN_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `FORBIDDEN` / HTTP 403：observe调用者不是已登记非jobs服务，或变更步骤不是data-protection（不可重试）；无写入，无需回滚
+- `INTEGRITY_ERROR` / HTTP 422：domain_status_json缺字段、owner集合、phase、hash或broker零水位不一致（不可重试）；无写入，无需回滚
 
-- 副作用：写barrier/领域维护调用
-- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
-- 并发：不能只等jobs lease；每域实际在途写入/文件恢复日志都到安全点
-- 幂等：barrierId重复查询并继续原协调
-- 依赖：`site-config:readRuntimeState`
-- 其他依赖说明：各域acquireBarrier
+- 副作用：observe无副作用；变更步骤写barrier/领域维护调用
+- 授权：permission：service；rule：observe仅已登记13个非jobs有状态域service actor且caller属于selectedProof.owners；prepare/drain/seal/resume-drain仅data-protection服务身份，用户授权仍由data-protection在发起时核验
+- 并发：observe为单SQLite只读事务；变更步骤不能只等jobs lease，每域实际在途写入/文件恢复日志都到安全点
+- 幂等：observe按barrierId/dataEpoch/selectedProofHash重复读取；变更步骤按barrierId重复查询并继续原协调
+- 依赖：`jobs.coordinateBarrierRequest`、`jobs.observeBarrier`、`site-config:readRuntimeState`
+- 其他依赖说明：jobs.barriers.domain_status_json；各域acquireBarrier
+
+## jobs.observeBarrier
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier_coordinator.go`
+- 作用：只读返回协调器已持久选择的稳定零broker基础proof
+
+```go
+func observeBarrier(ctx context.Context, op OperationContext, input lifecycle.SnapshotBarrierInput) (CoordinateBarrierResult, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在单一SQLite只读事务读取barriers行，不读取control私有文件，不调用SnapshotManager的本域safe封口hash
+2. 严格解码v1 domain_status_json，核barrierId/dataEpoch、draining、deadline、mode对应phase、14个唯一owner且caller属于其中、selectedProofHash、revisionWatermark及broker前后完全相同且pendingDeliveries/activeLeases均为0
+3. 调用observeBrokerTx复用本函数已持有的同一SQLite事务读取当前broker观察，并与持久brokerBefore/brokerAfter逐字段比较；返回CoordinateBarrierResult.status与selectedProof；任一行缺失、过期、字段不完整或水位变化失败关闭
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：协调器尚未持久选择基础proof或barrier行不可读（可重试）
+- `INTEGRITY_ERROR` / HTTP 422：持久基础proof字段或broker稳定零水位不一致（不可重试）
+- `FORBIDDEN` / HTTP 403：caller不在14域proof owner集合（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅已登记非jobs service actor；caller必须属于持久selectedProof.owners
+- 并发：单SQLite只读事务
+- 幂等：相同barrierId/dataEpoch返回同一持久selectedProof或同一失败
+- 依赖：`jobs.currentStore`、`jobs.SnapshotDatabase`、`jobs.observeBrokerTx`、`jobs.validateBarrierObserveEvidence`
+- 其他依赖说明：本域SQLite barriers表
+
+## jobs.observeBrokerTx
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier_coordinator.go`
+- 作用：复用调用方同一SQLite事务读取jobs broker观察，禁止重新BeginTx
+
+```go
+func observeBrokerTx(ctx context.Context, tx *sql.Tx, dataEpoch platform.Identifier) (gen.SnapshotBrokerObservation, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在传入事务内调用platform outbox.Store.ObserveTx读取共享revision、全部非终态outbox行及outbox lease
+2. 在同一事务内扫描全部deliveries、jobs与leases，并执行observeBroker全部状态、epoch、expiry、orphan和计数校验
+3. 返回与持久基础broker逐字段可比较的SnapshotBrokerObservation；任一事实变化或未知失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅CoordinateBarrier.observe或observeBrokerTx内部调用
+- 并发：复用调用方单一SQLite事务
+- 幂等：同一事务快照返回同一观察或同一失败
+- 依赖：`platform.Store.ObserveTx`
+- 其他依赖说明：本域SQLite；本域16张业务表；nw_outbox_control
+
+## jobs.coordinateBarrierRequest
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier_coordinator.go`
+- 作用：绑定全域协调请求的可信operation、epoch、模式、deadline和step
+
+```go
+func coordinateBarrierRequest(op OperationContext, request BarrierRequest) (lifecycle.SnapshotBarrierInput, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 复用本域BarrierRequest严格绑定，不创建新operation或跨域事实
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：依赖公共入口可信op
+- 并发：纯函数
+- 幂等：确定性转换
+- 依赖：`jobs.barrierInput`
+
+## jobs.validateBarrierObserveEvidence
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier_coordinator.go`
+- 作用：核对协调器持久基础proof的owner、阶段、代次和稳定零broker观察
+
+```go
+func validateBarrierObserveEvidence(evidence persistedBarrierObserveEvidence, input lifecycle.SnapshotBarrierInput, op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格核对持久证据字段、调用服务owner、phase和broker前后水位；缺失或变化失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅observeBarrier内部调用
+- 并发：纯读取
+- 幂等：确定性校验
+- 依赖：无
 
 ## jobs.EnterBarrier
 
@@ -3234,7 +3441,7 @@ func EnterBarrier(ctx context.Context, op OperationContext, request BarrierReque
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：事件接收暂拒503让producer outbox保留；ack安全落点后冻结
 - 幂等：barrierId幂等
-- 依赖：`jobs.CoordinateBarrier`、`platform.SnapshotManager.EnterBarrier`
+- 依赖：`jobs.runBarrierStep`
 
 ## jobs.ReleaseBarrier
 
@@ -3276,7 +3483,596 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierI
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：旧任务不能改epoch后自动继续
 - 幂等：barrierId幂等
-- 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.ReleaseBarrier`
+- 依赖：`site-config:readRuntimeState`、`jobs.snapshotClients`、`jobs.toBarrierStatus`、`platform.SnapshotManager.ReleaseBarrier`
+
+## jobs.ReadLeaseRuntime
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：组合公开运行权威与同一SnapshotManager的后台写窗口
+
+```go
+func (s *Store) ReadLeaseRuntime(runtime platform.RuntimeView) (LeaseRuntimeView, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 正常running复用runtime；维护或屏障态读取platform.SnapshotManager.ReadBarrierStatus的内存状态和截止时间；状态缺失、截止已过、代次/屏障不符或未知状态失败关闭，不读取platform私有持久格式
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信启动装配
+- 并发：只读
+- 幂等：重复读取同一运行权威
+- 依赖：`platform.ReadRuntime`、`jobs.currentSnapshotManager`、`platform.SnapshotManager.ReadBarrierStatus`
+
+## jobs.ReadReadinessEvidence
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：返回真实journal恢复与就绪门禁；正常running可ready但不冒充snapshot safe-point
+
+```go
+func (s *Store) ReadReadinessEvidence(runtime platform.RuntimeView, initialized bool) (bool, bool, bool, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核本域journal；正常running返回journal=true、safePoint=false、公开门按初始化决定；维护态读取platform.SnapshotManager.ReadBarrierStatus，截止已过或证据缺失失败关闭，draining返回真实safePoint=false，safe返回true
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信启动装配
+- 并发：只读
+- 幂等：重复读取同一状态
+- 依赖：`jobs.OpenDatabase`、`jobs.currentSnapshotManager`、`platform.SnapshotManager.ReadBarrierStatus`
+
+## jobs.ConfigureSnapshotManager
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：安装本域唯一SnapshotManager供控制与快照路由复用
+
+```go
+func (s *Store) ConfigureSnapshotManager(manager *lifecycle.SnapshotManager) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 拒绝空manager或已关闭Store；保存同一实例
+
+**错误**
+
+- 无
+
+- 副作用：更新进程内Store装配引用
+- 授权：permission：service；rule：可信启动装配
+- 并发：Store mutex
+- 幂等：同一实例重复安装幂等
+- 依赖：`platform.NewSnapshotManager`
+
+## jobs.ConfigureDataProtectionClient
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：安装可选data-protection归档客户端
+
+```go
+func (s *Store) ConfigureDataProtectionClient(client *gen.DataProtectionClient)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保存启动装配传入的版本化HTTP客户端，不复制跨域存储
+
+**错误**
+
+- 无
+
+- 副作用：更新进程内客户端引用
+- 授权：permission：service；rule：可信启动装配
+- 并发：Store mutex
+- 幂等：重复安装替换同一装配槽
+- 依赖：无
+
+## jobs.snapshotClients
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：读取已装配的本域SnapshotManager与data-protection客户端
+
+```go
+func (s *Store) snapshotClients() (*lifecycle.SnapshotManager, *gen.DataProtectionClient, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 拒绝关闭或未装配Store；返回已登记客户端引用
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域内部控制入口
+- 并发：Store读锁
+- 幂等：只读重复安全
+- 依赖：`jobs.currentSnapshotManager`
+
+## jobs.barrierInput
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：把已过公共入口的屏障请求绑定可信操作、模式与截止
+
+```go
+func barrierInput(op OperationContext, request BarrierRequest) (lifecycle.SnapshotBarrierInput, string, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 绑定operationId、barrierId、mode和UTC deadline
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：依赖公共入口可信op
+- 并发：纯函数
+- 幂等：确定性转换
+- 依赖：无
+
+## jobs.toBarrierStatus
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：转换platform屏障结果为生成HTTP类型
+
+```go
+func toBarrierStatus(status lifecycle.SnapshotBarrierStatus) gen.BarrierStatus
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保留真实状态、水位和proof hash
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域内部转换
+- 并发：纯函数
+- 幂等：确定性转换
+- 依赖：`jobs.optionalHash`
+
+## jobs.optionalHash
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：把空proof hash投影为可选HTTP字段
+
+```go
+func optionalHash(value string) *gen.Hash
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 空值返回nil，非空保留原值
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域内部转换
+- 并发：纯函数
+- 幂等：确定性转换
+- 依赖：无
+
+## jobs.toObservation
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：转换platform本域观察为生成HTTP类型
+
+```go
+func toObservation(observation lifecycle.SnapshotBarrierObservation) gen.SnapshotBarrierObservation
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保留真实活动计数、水位与工作状态
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域内部转换
+- 并发：纯函数
+- 幂等：确定性转换
+- 依赖：无
+
+## jobs.runBarrierStep
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：把data-protection控制请求转交同一SnapshotManager步骤
+
+```go
+func runBarrierStep(ctx context.Context, op OperationContext, request BarrierRequest) (gen.BarrierStatus, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按step调用prepare、drain、observe、seal或resume-drain；缺proof失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：由SnapshotManager写control屏障
+- 授权：permission：service；rule：仅data-protection服务身份
+- 并发：控制入口串行
+- 幂等：barrierId与proof幂等
+- 依赖：`jobs.snapshotClients`、`jobs.barrierInput`、`jobs.toBarrierStatus`、`jobs.toObservation`、`platform.SnapshotManager.PrepareBarrier`、`platform.SnapshotManager.DrainBarrier`、`platform.SnapshotManager.ObserveBarrier`、`platform.SnapshotManager.SealBarrier`、`platform.SnapshotManager.ResumeDrain`
+
+## jobs.NewBarrierHandlers
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：绑定屏障控制HTTP适配
+
+```go
+func NewBarrierHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只做生成请求绑定和公共Problem输出，不复制入口校验
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：依赖公共NewServiceHandler
+- 并发：返回固定handler表
+- 幂等：重复构造安全
+- 依赖：`jobs.EnterBarrier`、`jobs.ReleaseBarrier`、`jobs.CoordinateBarrier`
+
+## jobs.currentSnapshotManager
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：读取本域已安装SnapshotManager
+
+```go
+func (s *Store) currentSnapshotManager() (*lifecycle.SnapshotManager, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 拒绝nil、关闭或未装配Store
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域内部控制入口
+- 并发：Store读锁
+- 幂等：只读重复安全
+- 依赖：无
+
+## jobs.SnapshotDatabase
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：返回本域active SQLite连接供platform一致捕获
+
+```go
+func (s *Store) SnapshotDatabase() (*sql.DB, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 拒绝nil、关闭或未装配DB
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域快照装配
+- 并发：Store读锁
+- 幂等：只读重复安全
+- 依赖：无
+- 其他依赖说明：本域SQLite
+
+## jobs.SnapshotObserveWork
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：读取jobs-wide真实持久工作观察
+
+```go
+func (s *Store) SnapshotObserveWork(ctx context.Context) (lifecycle.SnapshotWorkState, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在同一SQLite事务中调用jobs.SnapshotDatabase、platform.Store.ObserveTx并读取leases与job_orphans待决事实；workRevision复用outbox control revision，不使用业务表MAX或platform私有control格式
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：SnapshotManager内部调用
+- 并发：单SQLite短读事务
+- 幂等：观察不写业务事实
+- 依赖：`jobs.SnapshotDatabase`、`jobs.observeSnapshotWorkTx`
+- 其他依赖说明：本域SQLite
+
+## jobs.SnapshotWatermark
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：返回本域真实统一修订水位
+
+```go
+func (s *Store) SnapshotWatermark(ctx context.Context) (int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在同一SQLite事务中复用platform.Store.ObserveTx返回的真实control revision，不从多个表MAX推导
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：SnapshotManager内部调用
+- 并发：单SQLite短读事务
+- 幂等：重复读取安全
+- 依赖：`jobs.SnapshotDatabase`、`jobs.observeSnapshotWorkTx`
+- 其他依赖说明：本域SQLite
+
+## jobs.SnapshotSealWork
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：在同库事务CAS全部jobs-wide水位并封门
+
+```go
+func (s *Store) SnapshotSealWork(ctx context.Context, work lifecycle.SnapshotWorkState, proofHash string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同一SQLite事务重读platform.Store.ObserveTx与业务待决事实，精确比较原观察结果，再调用platform.Store.SealTx；任一水位或待决事实变化即失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：在本域同库提交outbox与已登记业务表sealed gate
+- 授权：permission：service；rule：SnapshotManager内部调用
+- 并发：单SQLite事务CAS
+- 幂等：proof绑定原观察水位
+- 依赖：`jobs.SnapshotDatabase`、`jobs.observeSnapshotWorkTx`、`platform.Store.SealTx`
+- 其他依赖说明：本域SQLite
+
+## jobs.SnapshotResumeWork
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：按原封口proof恢复旧执行清理窗口
+
+```go
+func (s *Store) SnapshotResumeWork(ctx context.Context, proofHash string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 同库事务调用platform.Store.ResumeTx精确绑定原proof；不直接改写业务epoch或释放未知活动
+
+**错误**
+
+- 无
+
+- 副作用：在本域同库重开旧outbox与业务写门
+- 授权：permission：service；rule：SnapshotManager内部调用
+- 并发：控制入口串行SQLite事务
+- 幂等：proof精确绑定
+- 依赖：`jobs.SnapshotDatabase`、`platform.Store.ResumeTx`
+- 其他依赖说明：本域SQLite
+
+## jobs.observeSnapshotWorkTx
+
+- 级别：参考
+- 文件：`modules/jobs/internal/barrier.go`
+- 作用：在一个已持有事务内组合platform outbox观察和jobs旧执行资格
+
+```go
+func observeSnapshotWorkTx(ctx context.Context, outboxStore *outbox.Store, tx *sql.Tx) (lifecycle.SnapshotWorkState, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 同库观察事务的取消上下文 | 仅本域SnapshotManager调用；取消透传查询 |
+| `outboxStore` | `*outbox.Store` | 与jobs数据库绑定的平台outbox存储 | 仅用于调用platform.Store.ObserveTx，不独立开启读事务 |
+| `tx` | `*sql.Tx` | 调用方已开启的jobs SQLite事务 | 观察outbox control与jobs待决事实必须复用同一事务 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `work` | `lifecycle.SnapshotWorkState` | 真实统一revision与本域待决执行事实 | OutboxRevision与WorkRevision同为platform control revision；失败返回零值 |
+| `error` | `error` | 平台观察或本域事实不可核验 | 成功nil；不以未知水位返回成功 |
+
+**步骤**
+
+1. 调用platform.Store.ObserveTx；读取leases与job_orphans作为PendingWork；复用同一revision，不使用MAX推导版本
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：SnapshotManager内部调用
+- 并发：复用调用方单一SQLite事务
+- 幂等：纯读取
+- 依赖：`platform.Store.ObserveTx`
+- 其他依赖说明：本域SQLite
 
 ## jobs.PurgeExpiredHistory
 
@@ -3305,17 +4101,22 @@ func PurgeExpiredHistory(ctx context.Context, op OperationContext, in PurgeExpir
 
 **步骤**
 
-1. progress7d/terminal30d
-2. events必须所有consumer已ack且≥30d
-3. paidResultRefs保留由owner历史引用策略决定
+1. 维护或屏障安全点期间不删除任何历史；一次短事务内所有SELECT/DELETE都绑定可信op.DataEpoch，batchSize分别限制每类最多500行，deletedCount为实际删除的progress、event和终局job主记录总数
+2. 只删除created_at真实非null、可由Go time.Parse(RFC3339Nano)严格解析且早于7天的当前epoch终局job进度；活动job进度、时刻未知或损坏进度永久保留
+3. 只删除当前epoch中envelope.occurredAt可由Go time.Parse(RFC3339Nano)严格解析、早于30天且全部consumer delivery均已acknowledged的事件；同时删除其delivery元数据，event_sequence水位不回收
+4. 只删除当前epoch中state为succeeded/cancelled/dead-letter且updated_at严格解析并早于30天、无lease、无orphan、存在job_results与job_outcomes、resultRef为空且paidResultRefs经json_type确认为真实空数组的job；job_results缺失、JSON非数组、未知结构或任何付费/对象引用都保留
+5. 删除符合上述条件的job时只同时删除其progress、空job_results和job_outcomes；lease_operations、event_operations、consumer_offsets、schedule_operations等幂等/审计回执不删除
 
 **错误**
 
+- `FORBIDDEN` / HTTP 403：调用方不是jobs维护worker（不可重试）
+- `VALIDATION` / HTTP 400：清理时间或batchSize越界（不可重试）
+- `INTEGRITY_ERROR` / HTTP 422：事件发生时间或持久JSON无法严格核验（不可重试）
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 
 - 副作用：删除有限历史
 - 授权：permission：service；rule：service维护worker
-- 并发：≤500批事务，active job禁止删除
+- 并发：单短事务；每类≤500行，active/orphan/带引用job禁止删除，网络与等待不持事务
 - 幂等：重复purge幂等
 - 依赖：无
 - 其他依赖说明：私有SQLite
@@ -3361,8 +4162,473 @@ func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotEx
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：barrier水位之后无事件提交
 - 幂等：backupId/barrierId幂等
-- 依赖：`platform.SnapshotManager.Export`
+- 依赖：`platform.SnapshotManager.Export`、`jobs.snapshotRefFromLifecycle`
 - 其他依赖说明：各域安全点确认
+
+## jobs.ValidateJobsSnapshotManifest
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：核验jobs快照清单版本与完整库存
+
+```go
+func ValidateJobsSnapshotManifest(raw []byte) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 严格解码并交Value校验，不把未知库存当空数组
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：platform SnapshotManager调用
+- 并发：纯读取
+- 幂等：相同清单相同结果
+- 依赖：`jobs.ValidateJobsSnapshotManifestValue`
+
+## jobs.ValidateJobsSnapshotManifestValue
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：核验jobs清单归属、schema、文件路径和库存集合
+
+```go
+func ValidateJobsSnapshotManifestValue(manifest lifecycle.DomainSnapshotManifest) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 拒绝错误owner、版本、路径、hash或未知空库存
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域恢复内部校验
+- 并发：纯读取
+- 幂等：确定性校验
+- 依赖：无
+
+## jobs.DrainJobs
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：等待jobs真实租约与outbox行租约到安全点，保留queued/retry事实
+
+```go
+func DrainJobs(ctx context.Context, store *Store) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 轮询真实SQLite leases与公共outbox观察；截止到达失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：SnapshotManager drain回调
+- 并发：短读查询，不持锁等待
+- 幂等：重复等待安全
+- 依赖：`jobs.SnapshotDatabase`、`platform.Store.ObserveTx`
+- 其他依赖说明：本域SQLite
+
+## jobs.MigrateJobsStage
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：在隔离副本撤销旧执行资格并保留原业务事实，不改写epoch、payload、根或费用引用
+
+```go
+func MigrateJobsStage(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 调用platform.MigrateRestoredDatabase；在其同一事务内执行本域已登记追加迁移并删除旧lease；保留jobs/events/schedules/operations原epoch、事件envelope/hash、root和费用引用；验证无目标代次事实
+
+**错误**
+
+- `INTEGRITY_ERROR`：源事实、outbox或旧执行资格不可核验（不可重试）
+
+- 副作用：仅修改已认证隔离副本的可重建schema与执行资格
+- 授权：permission：service；rule：platform SnapshotManager已认证stage scope
+- 并发：隔离SQLite短事务；不改active；hostHash由platform恢复内核重封
+- 幂等：同一stage重复校验安全
+- 依赖：`jobs.ValidateJobsSnapshotManifestValue`、`platform.MigrateRestoredDatabase`、`jobs.runRestoredJobsMigrations`、`jobs.revokeRestoredEligibility`、`jobs.validateJobsPreservedFacts`
+- 其他依赖说明：隔离jobs.db
+
+## jobs.ValidateJobsStaged
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：证明隔离jobs库完整且未引入目标代次业务事实
+
+```go
+func ValidateJobsStaged(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. integrity_check；核outbox无可重放活动、lease已撤销、事件envelope与索引/hash一致；不要求全部原业务行epoch相等
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：platform SnapshotManager已认证stage scope
+- 并发：只读SQLite快照
+- 幂等：重复校验安全
+- 依赖：`jobs.validateJobsPreservedFacts`
+- 其他依赖说明：隔离jobs.db
+
+## jobs.revokeRestoredEligibility
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：撤销隔离副本旧租约，保留job_orphans恢复事实
+
+```go
+func revokeRestoredEligibility(ctx context.Context, tx *sql.Tx) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 恢复事务取消上下文 | 仅platform.MigrateRestoredDatabase回调使用；取消透传SQL |
+| `tx` | `*sql.Tx` | platform恢复内核持有的隔离数据库事务 | 与恢复gate、域迁移同一事务；不自行提交或回滚 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 旧租约撤销失败 | 成功nil；失败由外层事务回滚 |
+
+**步骤**
+
+1. 在调用方恢复事务内删除leases，不删除jobs、job_orphans、结果或费用引用
+
+**错误**
+
+- 无
+
+- 副作用：修改隔离副本leases
+- 授权：permission：service；rule：MigrateJobsStage内部
+- 并发：复用单一恢复事务
+- 幂等：重复删除幂等
+- 依赖：无
+- 其他依赖说明：隔离jobs.db
+
+## jobs.runRestoredJobsMigrations
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：在恢复内核同一事务中应用本域追加schema迁移
+
+```go
+func runRestoredJobsMigrations(ctx context.Context, tx *sql.Tx) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 恢复迁移取消上下文 | 仅platform恢复事务回调使用；取消透传SQL |
+| `tx` | `*sql.Tx` | 已认证隔离jobs数据库事务 | 不得自行提交；只执行本域已登记追加迁移 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 迁移集或SQL执行失败 | 成功nil；失败由platform恢复事务回滚 |
+
+**步骤**
+
+1. 核对schema_migrations已应用版本和名称；按embed迁移顺序补schema与可重建派生索引，不改业务epoch、事件payload、root或费用引用
+
+**错误**
+
+- 无
+
+- 副作用：修改隔离jobs数据库schema与schema_migrations
+- 授权：permission：service；rule：MigrateJobsStage内部
+- 并发：复用单一恢复事务
+- 幂等：已登记版本跳过，重复stage安全
+- 依赖：`jobs.All`
+- 其他依赖说明：隔离jobs.db
+
+## jobs.validateJobsPreservedFacts
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：核验原epoch事实未被改为target并核验旧资格已撤销
+
+```go
+func validateJobsPreservedFacts(ctx context.Context, db *sql.DB, targetEpoch string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 拒绝目标代次业务行、pending/quarantined outbox、残留lease；调用事件事实核验
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：恢复内部校验
+- 并发：只读SQLite快照
+- 幂等：确定性校验
+- 依赖：`jobs.validatePreservedEvents`
+- 其他依赖说明：隔离jobs.db
+
+## jobs.validatePreservedEvents
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：核验持久事件envelope与列索引、非空hash一致，不重写事件
+
+```go
+func validatePreservedEvents(ctx context.Context, db *sql.DB) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 逐行解码并比较eventId、epoch、producer、type、subject、revision；非空hash按原字节核对
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：恢复内部校验
+- 并发：只读SQLite快照
+- 幂等：确定性校验
+- 依赖：无
+- 其他依赖说明：隔离jobs.db
+
+## jobs.JobsStageBudget
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：按真实源清单计算隔离迁移峰值预算
+
+```go
+func JobsStageBudget(manifest lifecycle.DomainSnapshotManifest) (int64, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 累加文件大小并核上限与溢出
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：platform SnapshotManager调用
+- 并发：纯读取
+- 幂等：确定性计算
+- 依赖：`jobs.ValidateJobsSnapshotManifestValue`
+
+## jobs.snapshotRefToLifecycle
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：把生成快照引用转换为platform内部类型
+
+```go
+func snapshotRefToLifecycle(ref gen.SnapshotRef) lifecycle.SnapshotRef
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 逐字段保留对象hash、大小、epoch和水位
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域内部转换
+- 并发：纯函数
+- 幂等：确定性转换
+- 依赖：无
+
+## jobs.snapshotRefFromLifecycle
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：把platform快照引用转换为生成HTTP类型
+
+```go
+func snapshotRefFromLifecycle(ref lifecycle.SnapshotRef) gen.SnapshotRef
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 逐字段保留对象hash、大小、epoch和水位
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域内部转换
+- 并发：纯函数
+- 幂等：确定性转换
+- 依赖：无
+
+## jobs.optionalString
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：把空字符串投影为可选HTTP字段
+
+```go
+func optionalString(value string) *string
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 空值返回nil，非空返回独立字符串指针
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：本域内部转换
+- 并发：纯函数
+- 幂等：确定性转换
+- 依赖：无
+
+## jobs.NewSnapshotHandlers
+
+- 级别：参考
+- 文件：`modules/jobs/internal/snapshot.go`
+- 作用：绑定快照导出HTTP适配
+
+```go
+func NewSnapshotHandlers() map[string]http.Handler
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只做生成请求绑定和公共Problem输出，不复制SnapshotManager机制
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：依赖公共NewServiceHandler
+- 并发：返回固定handler表
+- 幂等：重复构造安全
+- 依赖：`jobs.CreateSnapshot`、`jobs.StageSnapshot`、`jobs.DiscardSnapshot`
 
 ## jobs.StageSnapshot
 
@@ -3409,7 +4675,7 @@ func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStage
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
 - 幂等：restoreId+checksum唯一；重复调用返回已记录回执
-- 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`、`platform.SnapshotManager.Stage`
+- 依赖：`data-protection:serveRestoreArchive`、`site-config:readRuntimeState`、`platform.SnapshotManager.Stage`、`jobs.snapshotRefToLifecycle`、`jobs.optionalString`、`jobs.optionalHash`
 
 ## jobs.DiscardSnapshot
 
@@ -3494,7 +4760,7 @@ function RequestJobCancellation(input: RequestJobCancellationInput, signal: Abor
 - 授权：permission：job.manage；rule：job.manage
 - 并发：组件AbortController取消旧请求；同组件同动作单飞
 - 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
+- 依赖：`jobs:cancelJob`
 - 其他依赖说明：jobs OpenAPI HTTP/JSON/SSE
 
 ## jobs.SaveSchedule
@@ -3523,7 +4789,7 @@ function SaveSchedule(input: SaveScheduleInput, signal: AbortSignal): Promise<Sa
 
 **步骤**
 
-1. 提交cron/timezone CAS，显示接下来5次执行UTC+本地时间并解释漏tick合并
+1. 提交cron/timezone CAS；展示生产方列表中的真实nextAt并解释漏tick合并，不在浏览器另造cron求值器或伪造未来5次时间
 2. 处理401重新登录、403清空敏感界面
 3. 按operationId重试不重复提交
 
@@ -3537,8 +4803,42 @@ function SaveSchedule(input: SaveScheduleInput, signal: AbortSignal): Promise<Sa
 - 授权：permission：job.manage；rule：job.manage
 - 并发：组件AbortController取消旧请求；同组件同动作单飞
 - 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
+- 依赖：`jobs:listSchedules`、`jobs:updateSchedule`
 - 其他依赖说明：jobs OpenAPI HTTP/JSON/SSE
+
+## jobs.ConfigureProgressAPI
+
+- 级别：参考
+- 文件：`modules/jobs/web/src/progress.ts`
+- 作用：把portal同源API端口装配给进度重连函数
+
+```ts
+function ConfigureProgressAPI(client: ModuleAPIClient): void
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `client` | `ModuleAPIClient` | portal注入的同源API客户端 | 只存在于内存，不包含service token，不允许跨域URL或自定义认证头 |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅保存platform.ModuleAPIClient；不发起请求、不持久化凭据
+
+**错误**
+
+- 无
+
+- 副作用：更新当前模块实例的API端口引用
+- 授权：permission：anonymous；rule：只装配调用端口；每个API请求仍由portal和应用服务鉴权
+- 并发：同一模块挂载共享一个同源端口
+- 幂等：重复配置同一能力幂等
+- 依赖：无
 
 ## jobs.ReconnectProgress
 
@@ -3547,7 +4847,7 @@ function SaveSchedule(input: SaveScheduleInput, signal: AbortSignal): Promise<Sa
 - 作用：Vue3模块交互：ReconnectProgress
 
 ```ts
-function ReconnectProgress(input: ReconnectProgressInput, signal: AbortSignal): Promise<ReconnectProgressResult>
+function ReconnectProgress(input: ReconnectProgressInput, signal: AbortSignal, onEvent: ProgressListener): Promise<ReconnectProgressResult>
 ```
 
 **输入**
@@ -3556,6 +4856,7 @@ function ReconnectProgress(input: ReconnectProgressInput, signal: AbortSignal): 
 |---|---|---|---|
 | `input` | `ReconnectProgressInput` | Vue3模块交互：ReconnectProgress；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
 | `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
+| `onEvent` | `ProgressListener` | 按实际SSE序号逐条交付进度 | 只在当前挂载仍有效时更新界面 |
 
 **输出**
 
@@ -3566,13 +4867,13 @@ function ReconnectProgress(input: ReconnectProgressInput, signal: AbortSignal): 
 
 **步骤**
 
-1. SSE保存最大seq，连接断开退避1/2/4/8/16秒
-2. cursor过期重新读状态，epoch失配关闭旧流
-3. 处理401重新登录、403清空敏感界面
-4. 按operationId重试不重复提交
+1. 每个通过jobId/seq/phase/计数校验并交付给界面的进度事件立即更新外层cursor；连接中途失败后必须从最后已接受seq重连，不能回到连接开始时的cursor
+2. cursor过期或NOT_FOUND时先只读当前job状态；终局追平EOF成功结束，非终局才允许从0重建进度。VERSION_MISMATCH立即停止旧流并失败，不进入退避重试
+3. 401/403原样交给QueuePanel统一fail清空敏感界面；普通断线按1/2/4/8/16秒退避，重连耗尽仍未终局时返回DEPENDENCY_UNAVAILABLE，不静默成功
 
 **错误**
 
+- `VERSION_MISMATCH` / HTTP 409：任务所属数据代次已变化，旧进度流不得继续（不可重试）
 - `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
 - `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
@@ -3581,7 +4882,7 @@ function ReconnectProgress(input: ReconnectProgressInput, signal: AbortSignal): 
 - 授权：permission：job.manage；rule：job.manage
 - 并发：组件AbortController取消旧请求；同组件同动作单飞
 - 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
+- 依赖：`jobs.ConfigureProgressAPI`、`jobs:readJob`、`jobs:streamProgress`
 - 其他依赖说明：jobs OpenAPI HTTP/JSON/SSE
 
 ## jobs.SubscribeEvents
@@ -3635,7 +4936,7 @@ func SubscribeEvents(ctx context.Context, op OperationContext, in SubscribeEvent
 - 授权：permission：service；rule：service注册consumer
 - 并发：每consumer最多2流；epoch变化立即关闭旧流
 - 幂等：eventSeq重放至少一次，consumer inbox/eventId去重后ack
-- 依赖：`jobs.beginLeaseOperation`、`jobs.consumerHasEvent`、`jobs.Next`、`jobs.Close`、`jobs.LastID`
+- 依赖：`jobs.beginLeaseOperation`、`jobs.consumerHasEvent`、`jobs.Next`、`jobs.CloseStore`、`jobs.LastID`
 
 ## jobs.Next
 
@@ -3876,16 +5177,17 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 **步骤**
 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
-2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
+2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后调用platform.ReadRestoreSwapState读取完整Known/Switched/RolledBack/Aborted/stageId/manifestHash/hostHash/hostEpoch/targetEpoch，严格核当前控制host epoch、restoreId与phase；切换后OpenedDataEpoch为target，换回后为host，不把空epoch作为绕过。
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
+4. 只读取runtime epoch/maintenance，不以site-config配置已初始化作为broker启动条件；维护期间只开放健康/就绪与控制管理接口、不启动worker。siteId由真实服务读取或待恢复任务按需读取，fresh站点不得阻塞broker健康/控制启动。本次启动完成换目录或换回时以platform.SignActivationReceipt签名真实stage/target树回执并调用site-config:registerActivation；不续签同一已登记回执，不复制portal授权或把service伪装superadmin。有登记生产事件时启动本域outbox转发，目录无jobTypes或订阅时不启动空worker/consumer，并配置停止新副作用/安全点机制
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 6. 启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环
 7. 实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE
 8. 私有库迁移真实打开/失败关闭资源；合并管理与进度真实映射再交完整入口工厂，streamProgress固定portal；其余handler/control/owner后台未齐仍blocked
 9. 合并NewQueueHandlers真实createJob映射，调用服务白名单仅生成任务目录owner；其他HTTP/运行存储/control/后台缺口仍使完整启动失败
 10. 合并NewScheduleHandlers真实createSchedule/updateSchedule/listSchedules映射；createSchedule允许portal和管理员路径以及带系统默认定时的owner服务，list/update仅portal；其余handler、存储安装、control和后台循环未齐仍使完整启动失败
-11. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
+11. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与6个后台入口；BeginDrain复用本域DrainJobs，Observe/Watermark/Seal/Resume统一复用platform.Store事务revision与CAS。Install必须同时收到完整OpenAPI handler、6个后台task、store与真实就绪证据读取器，缺任一业务scope、回调或后台仍失败关闭，不能仅HTTP全表进入ready。
+12. self事件发布地址为可选配置；仅配置Dependencies[jobs]时装配publisher，缺失时RelayOutbox入口保持休眠等待进程取消，不使公共RunService终止其它后台任务。
 
 **错误**
 
@@ -3897,8 +5199,219 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`jobs.RequeueDue`、`jobs.ReapExpiredLeases`、`jobs.TickSchedules`、`jobs.RequeueExpiredDeliveries`、`jobs.PurgeExpiredHistory`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`jobs.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`jobs.InstallStore`、`jobs.RelayOutbox`、`jobs.NewEventHandlers`、`jobs.NewManagementHandlers`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`jobs.NewProgressHandlers`、`jobs.OpenDatabase`、`jobs.Store.Close`、`jobs.NewQueueHandlers`、`jobs.NewScheduleHandlers`、`jobs.NewLeaseHandlers`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`jobs.ReadQueueSiteID`、`jobs.NewOwnerRecoveryChecker`、`site-config:readSiteConfig`、`knowledge:readJobRecovery`
+- 依赖：`jobs.All`、`jobs.DrainJobs`、`jobs.InstallStore`、`jobs.ensureDataLayout`、`jobs.loadTrustAnchors`、`jobs.loadSigningKey`、`jobs.newRuntimeClient`、`jobs.NewEventHandlers`、`jobs.NewLeaseHandlers`、`jobs.NewManagementHandlers`、`jobs.NewOwnerRecoveryChecker`、`jobs.NewProgressHandlers`、`jobs.NewQueueHandlers`、`jobs.NewScheduleHandlers`、`jobs.NewBarrierHandlers`、`jobs.NewSnapshotHandlers`、`jobs.OpenDatabase`、`jobs.PurgeExpiredHistory`、`jobs.ReadQueueSiteID`、`jobs.ValidateJobsSnapshotManifest`、`jobs.ValidateJobsSnapshotManifestValue`、`jobs.MigrateJobsStage`、`jobs.ValidateJobsStaged`、`jobs.JobsStageBudget`、`jobs.ReapExpiredLeases`、`jobs.RelayOutbox`、`jobs.RequeueDue`、`jobs.RequeueExpiredDeliveries`、`jobs.CloseStore`、`jobs.ConfigureBackgroundScope`、`jobs.ConfigureDataProtectionClient`、`jobs.ConfigureSnapshotManager`、`jobs.ReadLeaseRuntime`、`jobs.ReadReadinessEvidence`、`jobs.SnapshotDatabase`、`jobs.SnapshotObserveWork`、`jobs.SnapshotSealWork`、`jobs.SnapshotResumeWork`、`jobs.SnapshotWatermark`、`jobs.TickSchedules`、`jobs.registerActivation`、`jobs.restoreOpenedDataEpoch`、`knowledge:readJobRecovery`、`platform.ApplyRestoreSwap`、`platform.NewIdentityAuthorizer`、`platform.NewRequestValidator`、`platform.NewServiceHandler`、`platform.NewSiteConfigClient`、`platform.NewSnapshotManager`、`platform.ReadRestoreSwapState`、`platform.ReadRuntime`、`platform.SignActivationReceipt`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`site-config:readInitializationStatus`、`site-config:readSiteConfig`、`site-config:registerActivation`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
+
+## jobs.restoreOpenedDataEpoch
+
+- 级别：参考
+- 文件：`modules/jobs/internal/app/wire.go`
+- 作用：绑定恢复换目录终态与进程实际OpenedDataEpoch
+
+```go
+func restoreOpenedDataEpoch(control platform.RuntimeView, swap platform.SwapResult, evidence lifecycle.SnapshotSwapEvidence) (platform.Identifier, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `control` | `platform.RuntimeView` | ApplyRestoreSwap前后读取的site-config控制runtime | 必须是真实当前host epoch、restoreId、target epoch、phase和maintenance |
+| `swap` | `platform.SwapResult` | platform.ApplyRestoreSwap返回的终态动作 | 仅接受switched或rolled-back；restoreId不可为空 |
+| `evidence` | `lifecycle.SnapshotSwapEvidence` | platform.ReadRestoreSwapState返回的完整只读换目录证据 | Known=true；stage/tree/host/target字段完整；不得读取私有日志或猜测成功 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `openedDataEpoch` | `platform.Identifier` | 本进程active目录实际打开的代次 | switched返回targetDataEpoch；rolled-back返回hostEpoch；失败为空 |
+| `error` | `error` | 控制runtime与换目录证据不一致 | 成功nil；失败不绕过epoch或phase |
+
+**步骤**
+
+1. 严格核Known、Switched/RolledBack、restoreId、host/target epoch、控制phase与host epoch；按终态返回target或host
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信启动装配
+- 并发：纯读取
+- 幂等：相同证据确定性结果
+- 依赖：无
+
+## jobs.registerActivation
+
+- 级别：参考
+- 文件：`modules/jobs/internal/app/wire.go`
+- 作用：签名并登记本域真实恢复激活回执
+
+```go
+func registerActivation(ctx context.Context, client *gen.SiteConfigClient, key platform.SigningKey, control platform.RuntimeView, swap platform.SwapResult, evidence lifecycle.SnapshotSwapEvidence) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 启动取消与截止 | 不延长上游截止；取消透传HTTP与签名依赖 |
+| `client` | `SiteConfigClient` | 已版本化site-config客户端；实际Go类型为*gen.SiteConfigClient | 只调用readRuntimeState与registerActivation；不读取control私有目录 |
+| `key` | `platform.SigningKey` | jobs本域服务签名密钥引用 | 仅由serviceauth.SignActivationReceipt使用；不复制portal私钥或委托 |
+| `control` | `platform.RuntimeView` | 当前控制host runtime | epoch/restoreId/phase已由restoreOpenedDataEpoch核对 |
+| `swap` | `platform.SwapResult` | 已完成的切换或换回动作 | 动作与证据一致 |
+| `evidence` | `lifecycle.SnapshotSwapEvidence` | 真实stage/tree/target证据 | 来源为platform.ReadRestoreSwapState；不从私有JSON另读 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 读取控制状态、签名或登记失败 | 成功nil；未知状态、CAS变化或响应不完整失败关闭 |
+
+**步骤**
+
+1. 以当前service actor读取控制状态；相同stage/state/tree已有回执直接复用；否则以UTC规范化RecordedAt调用platform.SignActivationReceipt，按当前control revision调用site-config:registerActivation；核登记响应revision与host/target/phase
+
+**错误**
+
+- 无
+
+- 副作用：写site-config控制库activation receipt
+- 授权：permission：service；rule：仅本域启动service身份；不接受superadmin或portal委托
+- 并发：短HTTP请求；由site-config revision CAS串行
+- 幂等：同restore/module/stage/state/tree复用已登记回执，不续签或覆盖不同回执
+- 依赖：`platform.SignActivationReceipt`、`site-config:readRuntimeState`、`site-config:registerActivation`
+
+## jobs.newRuntimeClient
+
+- 级别：参考
+- 文件：`modules/jobs/internal/app/wire.go`
+- 作用：按登记site-config地址构造运行客户端
+
+```go
+func newRuntimeClient(config platform.ServiceConfig, key platform.SigningKey) (platform.SiteConfigClient, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 拒绝缺失site-config地址；不从self或Host推断
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信进程装配
+- 并发：纯构造
+- 幂等：同配置同客户端语义
+- 依赖：`platform.NewSiteConfigClient`
+
+## jobs.ensureDataLayout
+
+- 级别：参考
+- 文件：`modules/jobs/internal/app/wire.go`
+- 作用：建立本域active/control/restore目录，不替换control
+
+```go
+func ensureDataLayout(dataRoot string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 核绝对数据根并创建固定目录权限
+
+**错误**
+
+- 无
+
+- 副作用：创建本域数据目录
+- 授权：permission：service；rule：可信进程装配
+- 并发：启动单flight
+- 幂等：目录已存在时幂等
+- 依赖：无
+- 其他依赖说明：本域dataRoot
+
+## jobs.loadTrustAnchors
+
+- 级别：参考
+- 文件：`modules/jobs/internal/app/wire.go`
+- 作用：读取本域服务身份信任锚
+
+```go
+func loadTrustAnchors(ref string) (platform.TrustAnchors, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取并严格解码公钥表；缺失或空表失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信进程装配
+- 并发：纯读取
+- 幂等：相同文件同结果
+- 依赖：`platform.LoadServiceIdentity`
+- 其他依赖说明：外部secret引用
+
+## jobs.loadSigningKey
+
+- 级别：参考
+- 文件：`modules/jobs/internal/app/wire.go`
+- 作用：读取并解析本域服务签名密钥引用
+
+```go
+func loadSigningKey(ref string) (platform.SigningKey, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 只保存引用与平台密钥句柄，不把私钥写日志或配置
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：可信进程装配
+- 并发：纯读取
+- 幂等：相同引用同结果
+- 依赖：`platform.LoadSigningKey`
+- 其他依赖说明：外部secret引用
 
 ## jobs.Serve
 
@@ -4049,10 +5562,9 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 
 **步骤**
 
-1. 确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态
-2. 已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威
-3. 维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
-4. 未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现
+1. 只有handler表、必需scope/后台资源、store与ReadinessReader均安装后才允许Ready返回200；缺证据返回DEPENDENCY_UNAVAILABLE。
+2. 从ReadinessReader取得真实runtime revision、initialized、journalRecovered、safePoint和publicRequestsAllowed；不得在transport硬编码这些值。未初始化时activeDataEpoch=null且publicRequestsAllowed=false；正常running只要求真实journal/epoch证据，safePoint可为false；维护态必须有真实safe-point才可返回控制面ready。
+3. 已初始化时activeDataEpoch必须等于Build实际打开的openedEpoch；epoch失配、安全检查未知或journal未恢复继续不可就绪。
 
 **错误**
 
@@ -4088,9 +5600,9 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 
 **步骤**
 
-1. 校验rootElement与bootstrap module/capabilities；按本域已登记Vue页面导入模块路由，createApp挂载，不注册别域业务组件
-2. 只装配同源HTTP/JSON/SSE客户端和已有权限清理/语言逻辑，复用identity/qa会话，缺AI能力保持关闭提示
-3. 同DOM重复mount先复用既有实例；unmount停止AbortController/SSE/listeners，不能清服务端业务记录
+1. 校验rootElement、bootstrap.module/capabilities/apiClient；同DOM同buildRevision复用实例，否则先卸载旧实例并配置当前同源API端口
+2. 只挂载本域QueuePanel与ScheduleEditor；不增加通用任务创建、跨域选择器或任意ObjectRef输入表单
+3. unmount停止AbortController、进度SSE和listeners，不清理服务端记录
 
 **错误**
 
@@ -4100,7 +5612,7 @@ function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): 
 - 授权：permission：anonymous；rule：只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限
 - 并发：同DOM一个Vue实例，AbortController取消旧请求
 - 幂等：同DOM/buildRevision重复挂载复用实例
-- 依赖：无
+- 依赖：`jobs.ConfigureProgressAPI`、`jobs.RequestJobCancellation`、`jobs.SaveSchedule`、`jobs.ReconnectProgress`
 - 其他依赖说明：本域已登记UI页面函数
 
 ## jobs.ListJobs
@@ -4866,7 +6378,7 @@ func writeEventResponse(w http.ResponseWriter, requestID Identifier, result any,
 
 - 级别：参考
 - 文件：`modules/jobs/internal/http_events.go`
-- 作用：提供三项真实管理HTTP映射，公共完整工厂缺项必须拒绝
+- 作用：提供四项真实管理HTTP映射，公共完整工厂缺项必须拒绝
 
 ```go
 func NewManagementHandlers(key SigningKey) map[string]http.Handler
@@ -4882,11 +6394,11 @@ func NewManagementHandlers(key SigningKey) map[string]http.Handler
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `handlers` | `EventHandlers` | 三个真实管理操作映射 | 仅本域可信装配或已通过统一入口的管理链路使用 |
+| `handlers` | `EventHandlers` | 四项真实管理操作映射 | 仅本域可信装配或已通过统一入口的管理链路使用 |
 
 **步骤**
 
-1. 提供三项真实管理HTTP映射，公共完整工厂缺项必须拒绝
+1. 提供listJobs、listDeliveries、retryJob和cancelJob四项真实管理HTTP映射；cancelJob只从可信op与路径绑定RequestCancel，不提供保护控制占位，公共完整工厂缺项必须拒绝
 
 **错误**
 
@@ -4896,7 +6408,7 @@ func NewManagementHandlers(key SigningKey) map[string]http.Handler
 - 授权：permission：service；rule：经已认证管理绑定链路或可信装配调用
 - 并发：短SQL，网络核权不持事务/锁
 - 幂等：遵循入口原回执或签名游标规则
-- 依赖：`jobs.WithManagementKey`、`jobs.ListJobs`、`jobs.ListDeliveries`、`jobs.RetryJob`、`jobs.writeEventResponse`
+- 依赖：`jobs.WithManagementKey`、`jobs.RequestCancel`、`jobs.ListJobs`、`jobs.ListDeliveries`、`jobs.RetryJob`、`jobs.writeEventResponse`
 
 ## jobs.ReadSnapshotArchive
 
@@ -4964,7 +6476,7 @@ func ReadQueueSiteID(ctx context.Context, client *gen.SiteConfigClient, epoch st
 
 **步骤**
 
-1. 调用site-config:readSiteConfig，消费严格生产方响应，只取真实config.siteId；启动未初始化或不可用失败。
+1. 仅在真实服务读取或待恢复任务需要站点作用域时调用site-config:readSiteConfig，消费严格生产方响应并只取真实config.siteId；未初始化、空值或不可用均失败关闭且不得缓存为默认站点。
 
 **错误**
 
@@ -4983,7 +6495,7 @@ func ReadQueueSiteID(ctx context.Context, client *gen.SiteConfigClient, epoch st
 - 作用：将真实原任务恢复请求送本域已登记owner只读接口
 
 ```go
-func NewOwnerRecoveryChecker(config platform.ServiceConfig,key platform.SigningKey,siteID string)(jobs.OwnerRecoveryChecker,error)
+func NewOwnerRecoveryChecker(config platform.ServiceConfig,key platform.SigningKey,siteID jobs.SiteIDProvider)(jobs.OwnerRecoveryChecker,error)
 ```
 
 **输入**
@@ -4997,7 +6509,7 @@ func NewOwnerRecoveryChecker(config platform.ServiceConfig,key platform.SigningK
 **步骤**
 
 1. 当前实际只有knowledge:readJobRecovery；未登记的owner返回依赖不可用并保留orphan，不能凭进程存活或错误判断可重试。
-2. 发起新的5秒纯读取op，actor jobs绑定启动权威siteID、输入原root/epoch；不继承scheduler的system站点、不发Create/Cancel或续费许可。
+2. 只有选中真实待恢复任务时才按需取得可信siteID；fresh/未初始化站点不触发启动依赖，取得失败保留orphan。随后发起新的5秒纯读取op，actor jobs绑定该siteID、输入原root/epoch；不继承scheduler的system站点、不发Create/Cancel或续费许可。
 3. 结果严格按生产方OwnerRecoveryResult解码并保持实际完整paidResultRefs，检查scope/结果引用，不猜unknown为safeToRetry。
 
 **错误**
@@ -5008,4 +6520,4 @@ func NewOwnerRecoveryChecker(config platform.ServiceConfig,key platform.SigningK
 - 授权：信任严格入口已验证上下文；不新增通用身份/schema/截止校验
 - 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
 - 幂等：显式延迟属于去重材料，原成功不重新分配时刻
-- 依赖：`knowledge:readJobRecovery`、`platform.NewPayloadValidator`
+- 依赖：`knowledge:readJobRecovery`、`site-config:readSiteConfig`、`platform.NewPayloadValidator`

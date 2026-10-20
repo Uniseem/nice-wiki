@@ -18,7 +18,7 @@
 
 - `schedules(schedule_id PK, owner, cron, timezone, revision, enabled, next_fire_at, last_tick, job_type, input_ref, data_epoch)`
 
-- `barriers(barrier_id PK, state, domain_status_json, data_epoch, deadline)`
+- `barriers(barrier_id PK, state, domain_status_json, data_epoch, deadline)`；`domain_status_json`在协调器选择基础proof后必须是严格v1记录：`barrierId`、`dataEpoch`、`phase`、`revisionWatermark`、`selectedProofHash`、完整14域`owners`以及前后相同且pending/lease均为0的`brokerBefore/brokerAfter`。
 
 - `inbox(event_id PK, producer, revision, data_epoch)`
 
@@ -30,7 +30,9 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 
 租约实施补充（R1-03）：`fencing_counter` 属于job权威记录，不随释放lease归零；领取时原子递增，后续回收也须递增同一计数。claim回执保存完整原批次，heartbeat回执固定原expiry；回执只存安全引用及控制状态。可选心跳进度在同一租约事务内按checkpointKey/inputHash幂等，seq单调且同phase完成数不得倒退，事件经平台outbox记录。
 
-屏障布局待后续工作包收口：0001迁移曾把barriers登记在active库，与control区约束不符；本次租约代码不读取该表，必须由装配层注入可信runtime与control屏障安全点/deadline，缺少钩子或维护期有效截止时失败关闭。完整屏障工作包再处理持久布局与旧表迁移。
+0001迁移保留active库中的barriers历史表，但运行期写入统一受platform.RegisterWorkTable保护；step=observe只读该持久协调记录，不读取control私有文件，也不把SnapshotManager的`sealProofHash`解释为协调器基础proof。缺少协调器记录、selectedProofHash、完整owner集合、真实runtime阶段或有效截止时失败关闭。
+
+broker基础观察在同一SQLite事务调用公共`outbox.Store.ObserveTx`读取共享revision和全部非终态outbox行，再扫描全部events关联deliveries与jobs关联leases；delivery只接受queued/delivering/acknowledged/dead-letter，acknowledged之外均计入未确认，任务queued没有lease不计delivery。当前epoch活动任务缺lease或job_orphans仍有待决记录时阻止观察；明确撤资格的旧代orphan不计当前broker lease，但由本域Work证明单独阻止safe。旧代活动、未知状态、损坏expiry或当前到期子集之外未能核验的水位均失败关闭。
 
 
 终局与恢复实施补充（R1-03）：`job_outcomes(job_id,fencing_token,operation_kind,worker_id,request_hash,result_json)`保存原终局，`lease_operations`扩展complete/fail/cancel种类；两类回执与结果、lease释放、状态outbox同事务。`job_results.result_ref`保存ObjectRef JSON，无主结果用空串；paid_result_refs_json仅合并保留引用，不因取消、失败或重试清空。终局不伪造retryAt。

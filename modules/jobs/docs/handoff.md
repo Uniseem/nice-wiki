@@ -1,3 +1,27 @@
+# 2026-10-20 R1-F03 独立源码单元（统一公共接口接线，待集成）
+
+## 当前 r1b 顺序集成收口
+
+- 本模块已从已通过 pipeline184 的 CI 基线 `54c4e53b96c9f951093e7fccd17338fa916c7754` 独立接入；本次集成使用 clean jobs 源 `fca88a612a19f4ebdb8be4f78c46d849f677ae84`，仅登记本域真实源码/合同与新增 web 路径，未运行 Go、pnpm 或隔离 CI。
+- 新版结构合同将 receiver helper ID 统一为 `jobs.<函数名>`，`SiteConfigClient`、浏览器 `ModuleAPIClient`/`ProgressListener` 与 `validateBarrierObserveEvidence` 已按实际 caller/类型登记；`progress.json` 合同摘要同步为 `f705cd062559e5ba8e8c06d215393cd9f67413fa52dc468f03b588c620ed17a4`。
+- `CoordinateBarrier.step=observe` 仍是 service-only只读协调证据；变更writer、完整 `BuildApplication`、全域 `VerifyGlobalSeal` 与跨域最终封口继续 `blocked/in_progress`，不因本域结构收口或上游 CI 绿而验收。
+
+- 分支 `codex/resume-20261020-jobs` 已普通 merge `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`，合并提交 `3d784c6969311c057214553da23bab6d604e0ec2`；未 push。既有源码提交为 `879a41d4eec87ae44e29b3a15f96b5ca4ebd58d5`，本项合同+observe源码提交为 `9445c7185cb2ffe8f8fe8935a4481f8382638b6c`。
+- `registerActivation` 在 site-config revision CAS 返回后逐字段核对本次提交回执，响应缺失、内容变化或 revision/host/target/phase 不一致均失败关闭；不会把 CAS 成功仅当作 HTTP 200。
+- `runBarrierStep` 现在完整透传 jobs 最终 proof 的 `nonJobsProofHash` 与 13 个 `nonJobsSeals`。非 jobs 仍不携带这些字段；jobs 最终由公共 SnapshotManager 核 13 域真实回执及最终 broker 同水位，避免把最终 broker 前置给非 jobs。
+- `jobsWorkTables` 固定为16张运行期业务表并拒重复表名，仍不登记 `schema_migrations`/`nw_outbox`；同库 Observe/Seal/Resume 与公共写门保持失败关闭。
+- `coordinateBarrier` 同一路径新增 service-only `step=observe`：`AllowedCallers` 与 `ServiceActorCallers` 覆盖已登记13个非jobs有状态域；函数内要求 service actor、caller属于selected proof的14-owner集合。prepare/drain/seal/resume-drain仍只允许data-protection，未改变变更授权。
+- observe读取 `barriers.domain_status_json` 的严格v1 selected proof，核barrier/epoch/draining/phase/截止、14 owners、selectedProofHash及broker前后同水位且均为零，并返回独立 `selectedProof`；不解释 `BarrierStatus.sealProofHash`。
+- 当前 jobs `CoordinateBarrier` 的变更步骤尚未接入真实写入路径，因此缺行、缺字段或JSON仅有hash字符串时均失败关闭。最小跨域请求：data-protection通过版本化jobs API发起变更步骤，由 jobs `CoordinateBarrier` 在本域私有数据库持久原完整proof，或持久足以独立重算/校验hash的完整材料，绑定真实broker前后观察和14域观察；observe只读该材料，不写入、不接受客户端自报，data-protection不得直接写jobs表。
+- 新增参考级 `observeBrokerTx`（源码提交 `68fbd4aa80c7aea52a5d71035a466c77bdc241b0`）：`CoordinateBarrier.step=observe` 复用原SQLite事务调用公共 `outbox.Store.ObserveTx`，再读取全部 `deliveries` 与 `leases`；queued/delivering/acknowledged/dead-letter 为唯一已知delivery状态，acknowledged之外全部计入未确认，dead-letter不自动隔离；过期但仍存在的delivery/job lease继续阻止零观察，当前active job缺lease或current epoch仍有job_orphans也失败关闭；明确撤资格的旧代orphan不计当前broker lease，但由本域Work证明单独阻止safe。queued付费job没有lease，不计delivery。与持久基础broker前后观察逐字段比较，变化即失败关闭；observe分支不重新BeginTx。
+- `observeBrokerTx` 依赖公共精确接口 `libs/platform/outbox.Store.ObserveTx(ctx, tx)`；当前 main 候选仍缺该实现，未在 jobs 复制公共机制，保持 `in_progress/blocked`。
+- `OpenDatabase` 迁移完成后按本域可信16表清单调用 `platform.RegisterWorkTable`。恢复改用 `platform.MigrateRestoredDatabase`：本域回调在认证隔离事务内执行已登记追加迁移和旧 lease 撤销，保留 jobs/events/schedules/offsets/operations 的原 epoch、输入、根、费用引用、payload、hash 与 `job_orphans`；目标 epoch 业务行仍拒绝，hostHash重封由公共内核完成。
+- `BeginDrain` 使用真实 `DrainJobs`。Observe/Watermark/Seal/Resume 均在同一 SQLite 事务内复用 `platform.Store.ObserveTx/SealTx/ResumeTx`，workRevision直接取真实outbox control revision；业务待决只读取 leases 与 job_orphans，不使用跨表 `MAX(revision)` 或近似封口。
+- jobs 不解析 platform 私有 `snapshot-barrier.json`；维护态 runtime/readiness 改读 `platform.SnapshotManager.ReadBarrierStatus()` 内存副本，状态缺失或截止已过失败关闭，draining 的 safePoint为false，safe才为true，正常 running readiness 仍以真实 journal 就绪且 safePoint=false。self publisher 地址可选，缺失时 Relay 后台等待取消并保留 outbox。
+- `contracts/implementation.json` 与 `progress.json` 已同步本轮实际 helper、调用边、业务表清单、恢复事务、activation回执和统一公共合同ID；本轮新增/修改项保持 `in_progress` 或 `blocked`。合入 main 后确认仍缺：`libs/platform/serviceauth.SignActivationReceipt`、`libs/platform/outbox.RegisterWorkTable`、`libs/platform/outbox.Store.ObserveTx`、`SealTx`、`ResumeTx`、`libs/platform/outbox.MigrateRestoredDatabase`、`libs/platform/lifecycle.SnapshotManager.ReadBarrierStatus`。不得在 jobs 复制公共机制；需由主代理在 libs/platform 补齐或接入后再跑 GitLab。
+
+下一步只有一项：集成会话将本提交接入冻结的 platform/serviceauth 公共实现后，经既有 GitLab CI 生成、三分片 readonly build/vet/gofmt 和完整 `make check`，重点复核activation CAS、host/target epoch边界、16张业务表写门、恢复hostHash与同库封口CAS；此前本轮状态保持 `in_progress`/`blocked`，不验签、不进 main。
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。

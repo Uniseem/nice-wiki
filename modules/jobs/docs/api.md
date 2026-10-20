@@ -23,7 +23,7 @@
 | GET `/v1/schedules` | `listSchedules` | `jobs.ListSchedules` | `job.manage` | `—` → 200 `ListSchedulesResult` | 查看定时任务 | `FORBIDDEN` |
 | POST `/v1/schedules` | `createSchedule` | `jobs.CreateSchedule` | `job.manage` | `CreateScheduleRequestBody` → 200 `CreateScheduleResult` | 创建定时任务 | `FORBIDDEN`、`VALIDATION` |
 | PUT `/v1/schedules/{scheduleId}` | `updateSchedule` | `jobs.UpdateSchedule` | `job.manage` | `UpdateScheduleRequestBody` → 200 `UpdateScheduleResult` | 修改定时CAS | `CONFLICT`、`FORBIDDEN` |
-| POST `/v1/barriers:coordinate` | `coordinateBarrier` | `jobs.CoordinateBarrier` | `service` | `CoordinateBarrierRequestBody` → 200 `CoordinateBarrierResult` | 等待全域安全点 | `DEADLINE_EXCEEDED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/barriers:coordinate` | `coordinateBarrier` | `jobs.CoordinateBarrier` | `service` | `CoordinateBarrierRequestBody` → 200 `CoordinateBarrierResult` | 读取或推进全域安全点 | `DEADLINE_EXCEEDED`、`DEPENDENCY_UNAVAILABLE`、`FORBIDDEN`、`CONFLICT`、`VERSION_MISMATCH`、`INTEGRITY_ERROR` |
 | POST `/v1/jobs/{jobId}:start` | `startJob` | `jobs.StartJob` | `service` | `StartJobRequestBody` → 200 `StartJobResult` | 确认开始执行 | `STALE_RESULT` |
 | GET `/v1/jobs/{jobId}/lease` | `checkLease` | `jobs.CheckLease` | `service` | `—` → 200 `CheckLeaseResult` | 写回前检验执行权 | `STALE_RESULT` |
 | GET `/v1/events:subscribe` | `subscribeEvents` | `jobs.SubscribeEvents` | `service` | `—` → 200 `string` | 已登记消费者订阅事件SSE | `FORBIDDEN`、`VERSION_MISMATCH`、`NOT_FOUND`、`VALIDATION`、`DEPENDENCY_UNAVAILABLE`、`UNSUPPORTED_CAPABILITY`、`INTEGRITY_ERROR`、`RATE_LIMITED` |

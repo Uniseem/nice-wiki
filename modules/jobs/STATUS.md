@@ -1,3 +1,23 @@
+# 2026-10-20 R1-F03 独立源码单元（统一公共接口接线，待集成）
+
+分支 `codex/resume-20261020-jobs` 已在本工作树普通 merge 合入 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`，合并提交为 `3d784c6969311c057214553da23bab6d604e0ec2`；未 push。当前源码仍未经本机或 SSH Go/Make 检查，不能记 `verified` 或 `implemented`。
+
+本轮源码收口三点：activation 登记成功响应必须回显并完全匹配本次提交的 module/state/stage/target/manifest/time/signature；seal proof HTTP 适配保留 `nonJobsProofHash` 与 13 个 `nonJobsSeals`，让 jobs 按 13 域先封口、最终再核 broker 同水位；16 张业务表改用显式 `[16]string` 清单并拒绝重复表名后逐表登记写门。源码提交为 `879a41d4eec87ae44e29b3a15f96b5ca4ebd58d5`，本项 observe 合同+源码提交为 `9445c7185cb2ffe8f8fe8935a4481f8382638b6c`。
+
+本项新增同一路径 `coordinateBarrier` 的 service-only `step=observe`：AllowedCallers 与 ServiceActorCallers 覆盖13个非jobs有状态域，函数内只允许service actor且caller必须在selected proof的14-owner集合；prepare/drain/seal/resume-drain仍只接受data-protection。observe不使用 `BarrierStatus.sealProofHash` 代替协调器基础proof。
+
+当前 jobs `CoordinateBarrier` 的变更步骤尚未接入真实写入路径，`barriers.domain_status_json` 缺少所选proof时observe必失败关闭，不能称全域链闭合。未来由 jobs `CoordinateBarrier` 在 data-protection 通过版本化 jobs API 发起的变更步骤中持久原完整proof，或持久可独立重算/校验其hash的完整材料，并绑定真实broker与14域观察；只写 `selectedProofHash` 字符串不构成证据。
+
+本轮新增参考级 `observeBrokerTx`（源码提交 `68fbd4aa80c7aea52a5d71035a466c77bdc241b0`）：`CoordinateBarrier.step=observe` 复用原SQLite事务核共享outbox revision、全部非终态outbox、全部未确认delivery和活动lease；明确校验delivery状态与expiry，queued付费job不计delivery，未知状态/旧代活动/水位不可核验均失败关闭，并与持久基础broker前后观察逐字段比较。依赖公共 `outbox.Store.ObserveTx`，未复制平台机制。
+
+本轮恢复隔离改用 `platform.MigrateRestoredDatabase`：本域只在认证隔离事务中执行已登记追加迁移并删除旧 leases；jobs/events/schedules/offsets/operations 的原 dataEpoch、输入、根、费用引用、事件 envelope/hash 与 `job_orphans` 保留，目标代次业务行仍拒绝。hostHash重封与恢复gate由公共平台负责。
+
+`OpenDatabase` 迁移完成后登记本域16张运行期业务表的 `platform.RegisterWorkTable`。`DrainJobs`、`SnapshotObserveWork`、`SnapshotWatermark`、`SnapshotSealWork`、`SnapshotResumeWork` 使用同一 SQLite 事务和 `platform.Store.{ObserveTx,SealTx,ResumeTx}`，workRevision直接复用真实outbox control revision，待决执行事实读取 leases 与 job_orphans，不使用跨表 MAX 或伪CAS。runtime/readiness维护态改读同一 `platform.SnapshotManager.ReadBarrierStatus()`；状态缺失或截止已过即失败关闭，正常 running readiness 保持 `safePoint=false`。self publisher 地址可选，缺失时 Relay 后台等待取消。
+
+本域 implementation 合同与 progress 台账已同步实际 helper、调用边、迁移校验、activation回执和后台 scope；当前新增/修改项保持 `in_progress` 或 `blocked`。合入 main 后确认以下公共符号仍缺实现：`libs/platform/serviceauth.SignActivationReceipt`、`libs/platform/outbox.RegisterWorkTable`、`libs/platform/outbox.Store.ObserveTx`、`SealTx`、`ResumeTx`、`libs/platform/outbox.MigrateRestoredDatabase`、`libs/platform/lifecycle.SnapshotManager.ReadBarrierStatus`。这些公共缺口不在本域越权补写。未运行生成、Go build/vet/gofmt、前端检查、测试或真实接口，未新增 endpoint。
+
+以下为历史记录。
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。

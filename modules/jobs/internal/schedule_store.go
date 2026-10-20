@@ -220,7 +220,7 @@ func ListSchedules(ctx context.Context, op OperationContext, input ListSchedules
 		}
 		items = append(items, gen.Schedule{
 			Owner: item.owner, Type: item.jobType, InputRef: item.inputRef, Cron: item.cron, Timezone: item.timezone,
-			DataEpoch: item.dataEpoch, ScheduleId: item.id, NextAt: item.nextAt, Enabled: item.enabled,
+			DataEpoch: item.dataEpoch, ScheduleId: item.id, Revision: gen.Revision(item.revision), NextAt: item.nextAt, Enabled: item.enabled,
 		})
 	}
 	if err := rows.Err(); err != nil {

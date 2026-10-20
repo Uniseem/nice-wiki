@@ -6,13 +6,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/jobs/internal/gen"
 )
@@ -20,7 +20,30 @@ import (
 const (
 	moduleName    = "jobs"
 	moduleVersion = "1"
+
+	requiredBackgroundTaskCount = 6
 )
+
+var requiredBackgroundTasks = map[string]bool{
+	"jobs.RequeueDue":              true,
+	"jobs.ReapExpiredLeases":       true,
+	"jobs.TickSchedules":           true,
+	"jobs.RequeueExpiredDeliveries": true,
+	"jobs.PurgeExpiredHistory":     true,
+	"jobs.RelayOutbox":             true,
+}
+
+// ReadinessEvidence 由完整启动装配从 site-config 与真实本域状态联合读取；
+// 缺任一权威证据时 Ready 必须返回不可用。
+type ReadinessEvidence struct {
+	Runtime               platform.RuntimeView
+	Initialized           bool
+	JournalRecovered      bool
+	SafePoint             bool
+	PublicRequestsAllowed bool
+}
+
+type ReadinessReader func(context.Context) (ReadinessEvidence, error)
 
 // lifecycle 状态：ready 接受请求，draining 拒新入口，closed 资源已释放。
 const (
@@ -40,57 +63,114 @@ type Application struct {
 	handlerBindingsComplete bool
 	state                   atomic.Int32
 	serveStarted            atomic.Bool
+	drainOnce               sync.Once
+	drainErr                error
 	shutdownOnce            sync.Once
 	shutdownErr             error
 	httpServer              *http.Server
+	resources               io.Closer
+	backgroundTasks         []platform.BackgroundTask
+	readiness               ReadinessReader
+	serveActive             atomic.Bool
 }
 
-// NewApplication 组装仅包含控制面路由的 HTTP 容器；业务 handler 全部
-// 接入后由 BuildApplication 传入完整绑定状态。
+// NewApplication 建立进程生命周期容器；完整路由和资源只在装配全部
+// OpenAPI handler 后通过 Install 移交给 Application。
 func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, openedEpoch platform.Identifier) *Application {
-	application := &Application{
+	return &Application{
 		config:      config,
 		anchors:     anchors,
 		runtime:     runtimeAuthority,
 		openedEpoch: openedEpoch,
-		httpServer:  &http.Server{},
 	}
-	mux := http.NewServeMux()
-	application.registerHealthRoutes(mux)
-	application.httpServer = &http.Server{
-		Addr:              config.Listen,
-		Handler:           mux,
+}
+
+// ControlHandlers 提供完整 OpenAPI 工厂所需的 health/ready 映射。
+func (a *Application) ControlHandlers() map[string]http.Handler {
+	return map[string]http.Handler{
+		"health": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			status, err := Health(r.Context(), a)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, status)
+		}),
+		"ready": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			readiness, err := Ready(r.Context(), a)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, readiness)
+		}),
+	}
+}
+
+// Install 只接受完整服务路由；成功后由 Application 独占 HTTP 和存储资源。
+func (a *Application) Install(handler http.Handler, resources io.Closer, backgroundTasks []platform.BackgroundTask, readiness ReadinessReader) error {
+	if a == nil || handler == nil || resources == nil || readiness == nil || len(backgroundTasks) != requiredBackgroundTaskCount {
+		return platform.NewError(platform.CodeValidation, false, "Application完整路由未装配")
+	}
+	taskNames := map[string]bool{}
+	for _, task := range backgroundTasks {
+		if !platform.ValidIdentifier(task.Name) || !requiredBackgroundTasks[task.Name] || task.Run == nil || taskNames[task.Name] {
+			return platform.NewError(platform.CodeValidation, false, "Application后台任务未完整装配")
+		}
+		taskNames[task.Name] = true
+	}
+	if len(taskNames) != requiredBackgroundTaskCount {
+		return platform.NewError(platform.CodeValidation, false, "Application后台任务未完整装配")
+	}
+	if a.httpServer != nil || a.resources != nil || len(a.backgroundTasks) != 0 {
+		return platform.NewError(platform.CodeConflict, false, "Application重复安装运行资源")
+	}
+	a.resources = resources
+	a.backgroundTasks = append([]platform.BackgroundTask(nil), backgroundTasks...)
+	a.readiness = readiness
+	a.handlerBindingsComplete = true
+	a.httpServer = &http.Server{
+		Addr:              a.config.Listen,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		MaxHeaderBytes:    64 << 10,
 	}
-	return application
+	a.state.Store(stateReady)
+	return nil
 }
 
 // Serve 与 Shutdown 实现 platform.Application，供进程模板调用。
 func (a *Application) Serve(ctx context.Context) error    { return Serve(ctx, a) }
 func (a *Application) Shutdown(ctx context.Context) error { return Shutdown(ctx, a) }
 
-// registerHealthRoutes 匿名可访问；不暴露路径、端点或secret。
-func (a *Application) registerHealthRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		status, err := Health(r.Context(), a)
-		if err != nil {
-			writeProblem(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, status)
-	})
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-		readiness, err := Ready(r.Context(), a)
-		if err != nil {
-			writeProblem(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, readiness)
-	})
+// BackgroundTasks 返回装配期固定登记的后台入口。
+func (a *Application) BackgroundTasks() []platform.BackgroundTask {
+	if a == nil {
+		return nil
+	}
+	return append([]platform.BackgroundTask(nil), a.backgroundTasks...)
 }
 
-// Serve 运行独立HTTP服务；worker和业务路由在对应工作包完成后接入。
+// Drain 停止新 HTTP 并等待在途响应；不释放后台和存储，由统一进程模板
+// 等待后台退出后再调用 Shutdown。
+func (a *Application) Drain(ctx context.Context) error {
+	if a == nil || a.httpServer == nil {
+		return platform.NewError(platform.CodeValidation, false, "Application未装配")
+	}
+	a.drainOnce.Do(func() {
+		a.state.CompareAndSwap(stateReady, stateDraining)
+		if err := a.httpServer.Shutdown(ctx); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				a.drainErr = platform.NewError(platform.CodeDeadlineExceeded, true, "关闭期限内未能安全停止在途操作")
+				return
+			}
+			a.drainErr = platform.NewError(platform.CodeInternal, false, "停止HTTP服务失败")
+		}
+	})
+	return a.drainErr
+}
+
+// Serve 运行已通过完整路由和资源安装的HTTP服务。
 func Serve(ctx context.Context, app *Application) error {
 	if app == nil || app.httpServer == nil {
 		return platform.NewError(platform.CodeValidation, false, "Application未装配")
@@ -98,6 +178,8 @@ func Serve(ctx context.Context, app *Application) error {
 	if !app.serveStarted.CompareAndSwap(false, true) {
 		return platform.NewError(platform.CodeConflict, false, "同Application重复启动Serve")
 	}
+	app.serveActive.Store(true)
+	defer app.serveActive.Store(false)
 	err := app.httpServer.ListenAndServe()
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
@@ -115,25 +197,25 @@ func Shutdown(ctx context.Context, app *Application) error {
 		return platform.NewError(platform.CodeValidation, false, "Application未装配")
 	}
 	app.shutdownOnce.Do(func() {
-		app.state.CompareAndSwap(stateReady, stateDraining)
-		err := app.httpServer.Shutdown(ctx)
-		if err == nil {
-			app.state.Store(stateClosed)
+		if err := app.Drain(ctx); err != nil {
+			app.shutdownErr = err
 			return
 		}
-		if errors.Is(err, context.DeadlineExceeded) {
-			app.shutdownErr = platform.NewError(platform.CodeDeadlineExceeded, true, "关闭期限内未能安全停止在途操作")
-			return
+		if app.resources != nil {
+			if err := app.resources.Close(); err != nil {
+				app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭本域存储失败")
+				return
+			}
 		}
-		app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭HTTP服务失败")
+		app.state.Store(stateClosed)
 	})
 	return app.shutdownErr
 }
 
 // Health 仅读本进程lifecycle，不查询远程依赖、模型或数据库。
 func Health(ctx context.Context, app *Application) (gen.HealthStatus, error) {
-	if app == nil || app.state.Load() == stateClosed {
-		return gen.HealthStatus{}, platform.NewError(platform.CodeDependencyUnavailable, true, "进程已关闭")
+	if app == nil || app.httpServer == nil || app.state.Load() == stateClosed || !app.serveActive.Load() {
+		return gen.HealthStatus{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务循环不可用")
 	}
 	return gen.HealthStatus{
 		Module:       moduleName,
@@ -143,36 +225,52 @@ func Health(ctx context.Context, app *Application) (gen.HealthStatus, error) {
 	}, nil
 }
 
-// Ready 确认本域配置、信任锚、运行权威与完整业务绑定；当前任务/事件
-// 处理函数尚未实现，因此按合同返回 DEPENDENCY_UNAVAILABLE。
+// Ready 确认完整业务绑定、运行权威和当前打开的数据代次。
 func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) {
-	if app == nil || app.state.Load() == stateClosed {
-		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "进程已关闭")
+	if app == nil || app.httpServer == nil || app.state.Load() != stateReady || !app.serveActive.Load() {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "服务循环不可用")
 	}
-	if !app.handlerBindingsComplete {
-		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本域业务handler尚未装配")
+	if !app.handlerBindingsComplete || len(app.backgroundTasks) != requiredBackgroundTaskCount || app.resources == nil || app.readiness == nil {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本域完整业务、后台或就绪证据尚未装配")
 	}
 	health, err := Health(ctx, app)
 	if err != nil {
 		return gen.ServiceReadiness{}, err
 	}
-	view, err := lifecycle.ReadRuntime(ctx, app.runtime)
+	evidence, err := app.readiness(ctx)
 	if err != nil {
 		return gen.ServiceReadiness{}, err
 	}
-	if app.openedEpoch != "" && view.DataEpoch != app.openedEpoch {
+	if evidence.Runtime.DataEpoch == "" || evidence.Runtime.Revision < 1 {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "运行权威代次或revision不可用")
+	}
+	if evidence.Runtime.DataEpoch != app.openedEpoch {
 		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "数据代次已变化，等待重启换入")
 	}
-	activeEpoch := string(app.openedEpoch)
+	if !evidence.JournalRecovered {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本域journal尚未完成恢复")
+	}
+	if evidence.Runtime.Maintenance && !evidence.SafePoint {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本域安全点证据尚未完成")
+	}
+	var activeEpoch *string
+	if evidence.Initialized {
+		value := string(app.openedEpoch)
+		activeEpoch = &value
+	}
+	publicRequestsAllowed := evidence.PublicRequestsAllowed
+	if !evidence.Initialized || evidence.Runtime.Maintenance || evidence.Runtime.Phase != platform.PhaseRunning {
+		publicRequestsAllowed = false
+	}
 	return gen.ServiceReadiness{
 		Health:                health,
-		Initialized:           false,
-		JournalRecovered:      true,
-		ActiveDataEpoch:       &activeEpoch,
-		Maintenance:           view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
-		RuntimeRevision:       0,
-		SafePoint:             true,
+		Initialized:           evidence.Initialized,
+		JournalRecovered:      evidence.JournalRecovered,
+		ActiveDataEpoch:       activeEpoch,
+		Maintenance:           evidence.Runtime.Maintenance,
+		PublicRequestsAllowed: publicRequestsAllowed,
+		RuntimeRevision:       gen.Revision(evidence.Runtime.Revision),
+		SafePoint:             evidence.SafePoint,
 	}, nil
 }
 

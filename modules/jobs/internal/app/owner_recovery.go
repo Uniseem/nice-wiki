@@ -4,14 +4,18 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	jobs "nice-wiki/modules/jobs/internal"
 	"nice-wiki/modules/jobs/internal/gen"
-	"time"
 )
 
 func ReadQueueSiteID(ctx context.Context, client *gen.SiteConfigClient, epoch string, validate func(json.RawMessage) error) (string, error) {
+	if client == nil || validate == nil || !platform.ValidIdentifier(epoch) {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "站点身份读取器未完整装配")
+	}
 	work, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	deadline, _ := work.Deadline()
@@ -34,7 +38,10 @@ func ReadQueueSiteID(ctx context.Context, client *gen.SiteConfigClient, epoch st
 	}
 	return result.Config.SiteID, nil
 }
-func NewOwnerRecoveryChecker(config platform.ServiceConfig, key platform.SigningKey, siteID string) (jobs.OwnerRecoveryChecker, error) {
+func NewOwnerRecoveryChecker(config platform.ServiceConfig, key platform.SigningKey, siteID jobs.SiteIDProvider) (jobs.OwnerRecoveryChecker, error) {
+	if siteID == nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "站点身份按需读取器尚未装配")
+	}
 	validate, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "KnowledgeOwnerRecoveryResult")
 	if err != nil {
 		return nil, err
@@ -48,16 +55,26 @@ func NewOwnerRecoveryChecker(config platform.ServiceConfig, key platform.Signing
 		if knowledge == nil || input.Owner != "knowledge" {
 			return result, platform.NewError(platform.CodeDependencyUnavailable, true, "任务所属域恢复读取尚未装配")
 		}
-		if siteID == "" || input.DataEpoch != original.DataEpoch {
-			return result, platform.NewError(platform.CodeVersionMismatch, false, "原任务恢复读取站点或代次不可确认")
+		if input.DataEpoch != original.DataEpoch {
+			return result, platform.NewError(platform.CodeVersionMismatch, false, "原任务恢复读取代次不可确认")
+		}
+		currentSiteID, err := siteID(ctx, input.DataEpoch)
+		if err != nil {
+			return result, err
+		}
+		if currentSiteID == "" {
+			return result, platform.NewError(platform.CodeDependencyUnavailable, true, "原任务恢复读取站点尚未建立")
+		}
+		if !platform.ValidIdentifier(currentSiteID) {
+			return jobs.OwnerRecoveryResult{}, platform.NewError(platform.CodeIntegrityError, false, "原任务恢复读取站点身份不合法")
 		}
 		work, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		deadline, _ := work.Deadline()
 		id := platform.NewIdentifier()
 		expires := deadline.UTC().Format(time.RFC3339Nano)
-		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: input.RootOperationID, CallerService: ModuleSlug, DataEpoch: input.DataEpoch, Deadline: expires, Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: siteID, ExpiresAt: expires}}
-		raw, err := knowledge.ReadJobRecovery(platform.WithOperationContext(platform.WithPortalProof(work, ""), op), input.JobID, input)
+		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: input.RootOperationID, CallerService: ModuleSlug, DataEpoch: input.DataEpoch, Deadline: expires, Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: currentSiteID, ExpiresAt: expires}}
+		raw, err := knowledge.ReadJobRecovery(platform.WithOperationContext(work, op), input.JobID, input)
 		if err != nil {
 			return result, err
 		}

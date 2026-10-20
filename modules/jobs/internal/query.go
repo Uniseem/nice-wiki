@@ -141,15 +141,21 @@ func authorizeJobRead(ctx context.Context, op OperationContext, jobID string) (j
 		return jobRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务存储尚未装配")
 	}
 	store.mu.RLock()
-	defer store.mu.RUnlock()
-	if store.closed || store.siteID == "" {
+	if store.closed || store.siteID == nil {
+		store.mu.RUnlock()
 		return jobRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务真实站点身份尚未装配")
 	}
-	if op.Actor.SubjectID != op.CallerService || op.Actor.SiteID != store.siteID {
+	db, siteProvider := store.db, store.siteID
+	store.mu.RUnlock()
+	siteID, err := siteProvider(ctx, op.DataEpoch)
+	if err != nil {
+		return jobRecord{}, err
+	}
+	if siteID == "" || op.Actor.SubjectID != op.CallerService || op.Actor.SiteID != siteID {
 		return jobRecord{}, platform.NewError(platform.CodeForbidden, false, "任务读取身份不属于当前站点")
 	}
 	job := jobRecord{id: jobID}
-	err := store.db.QueryRowContext(ctx, `SELECT owner,type,data_epoch FROM jobs WHERE job_id=?`, jobID).Scan(&job.owner, &job.jobType, &job.epoch)
+	err = db.QueryRowContext(ctx, `SELECT owner,type,data_epoch FROM jobs WHERE job_id=?`, jobID).Scan(&job.owner, &job.jobType, &job.epoch)
 	if errors.Is(err, sql.ErrNoRows) {
 		return jobRecord{}, platform.NewError(platform.CodeNotFound, false, "任务不存在")
 	}

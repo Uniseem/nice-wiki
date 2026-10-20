@@ -198,14 +198,14 @@ func RelayOutbox(ctx context.Context, op OperationContext, client EventPublisher
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "任务存储尚未装配")
 	}
 	store.mu.RLock()
-	if store.closed || store.leaseRuntime == nil {
+	if store.closed || store.leaseRuntime == nil || store.backgroundAdmit == nil || store.backgroundEventScope == nil {
 		store.mu.RUnlock()
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "任务运行权威尚未装配")
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "任务后台业务scope尚未装配")
 	}
-	db, provider := store.db, store.leaseRuntime
+	db, provider, admit, bindEventScope := store.db, store.leaseRuntime, store.backgroundAdmit, store.backgroundEventScope
 	store.mu.RUnlock()
 	return outbox.RunRelay(platform.WithOperationContext(ctx, op), outbox.NewStore(db), client, platform.RelayConfig{
-		BatchLimit: 100, PollMillis: 1000, Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
+		BatchLimit: 100, PollMillis: 1000, AdmitBatch: admit, BindEventScope: bindEventScope, Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
 			view, err := provider(ctx)
 			return view.Runtime, err
 		},

@@ -456,7 +456,7 @@
         {
           "id": "jobs.InstallStore",
           "name": "InstallStore",
-          "signature": "func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker, siteID string)",
+          "signature": "func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.IdentityClient, recovery OwnerRecoveryChecker, siteID SiteIDProvider)",
           "inputs": [
             {
               "name": "store",
@@ -486,7 +486,7 @@
           "outputs": [],
           "purpose": "安装本域Store及可信runtime/control屏障读取钩子",
           "steps": [
-            "只安装已从site-config严格响应取得的真实siteID及真实runtime/recovery/identity客户端，不从scheduler actor或任务旧行推当前站点。"
+            "安装按需读取真实siteID的provider及已验证runtime/recovery/identity客户端；启动阶段不得调用readSiteConfig，只有真实服务读取或恢复任务需要站点作用域时才读取，未初始化、空值或读取失败均失败关闭并从任务旧行推断站点。"
           ],
           "errors": [],
           "sideEffects": [
@@ -528,9 +528,9 @@
               "constraints": "仅当前授权链路或可信启动装配，取消原样传IO"
             }
           ],
-          "purpose": "打开私有库并执行全部已知追加迁移，随后完整装配前不可用",
+          "purpose": "打开私有库并执行全部已知追加迁移，随后登记全部运行期业务写门，完整装配前不可用",
           "steps": [
-            "打开私有库并执行全部已知追加迁移，随后完整装配前不可用"
+            "打开私有库并执行全部已知追加迁移；迁移完成后按本域可信业务表清单调用platform.RegisterWorkTable；随后完整装配前不可用"
           ],
           "errors": [
             {
@@ -559,7 +559,8 @@
           "concurrency": "短事务；网络核权/等待不持数据库锁",
           "idempotency": "只读原进度；配额幂等归还",
           "dependencies": [
-            "jobs.runMigrations"
+            "jobs.runMigrations",
+            "jobs.registerJobsWorkTables"
           ],
           "resources": [],
           "contract": "reference"
@@ -616,8 +617,56 @@
           "contract": "reference"
         },
         {
-          "id": "jobs.Store.Close",
-          "name": "Store.Close",
+          "id": "jobs.registerJobsWorkTables",
+          "name": "registerJobsWorkTables",
+          "signature": "func registerJobsWorkTables(ctx context.Context, db *sql.DB) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "本域启动或恢复阶段的取消上下文",
+              "constraints": "仅可信装配调用；取消透传平台IO，不携带业务正文"
+            },
+            {
+              "name": "db",
+              "type": "*sql.DB",
+              "description": "已完成本域迁移的jobs私有数据库",
+              "constraints": "仅当前active或已认证隔离stage数据库；表名不由配置提供"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "任一业务表写门登记失败",
+              "constraints": "成功nil；失败不宣称本域已可写"
+            }
+          ],
+          "purpose": "将本域可信登记表纳入platform统一revision和sealed gate",
+          "steps": [
+            "按jobsWorkTables逐表调用platform.RegisterWorkTable；不登记schema_migrations或nw_outbox"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "在本域数据库安装平台业务写门与revision触发器"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "可信启动装配"
+          },
+          "concurrency": "逐表短事务，由platform登记操作保证幂等",
+          "idempotency": "重复登记同一表不重复创建触发器",
+          "dependencies": [
+            "platform.RegisterWorkTable"
+          ],
+          "resources": [
+            "本域SQLite"
+          ],
+          "contract": "reference"
+        },
+        {
+          "id": "jobs.CloseStore",
+          "name": "CloseStore",
           "signature": "func (s *Store) Close() error",
           "inputs": [
             {
@@ -736,6 +785,12 @@
           "contract": "reference"
         },
         {
+          "id": "jobs.ConfigureBackgroundScope",
+          "name": "ConfigureBackgroundScope",
+          "signature": "func (s *Store) ConfigureBackgroundScope(admit platform.WorkAdmission, bindEventScope func(context.Context, platform.OutboxRow) (context.Context, func(), error)) error",
+          "inputs": [], "outputs": [], "purpose": "安装后台恢复与outbox共享的真实业务scope", "steps": ["拒绝任一scope为空；保存同一SnapshotManager派生的准入与事件绑定"], "errors": [], "sideEffects": ["更新进程内后台scope引用"],
+          "authorization": {"permission": "service", "rule": "可信启动装配"}, "concurrency": "Store mutex", "idempotency": "同一装配重复写入幂等", "dependencies": ["platform.SnapshotManager.AdmitBusiness", "platform.SnapshotManager.BindOutboxEventScope"], "resources": [], "contract": "reference"
+        },{
           "id": "jobs.currentStore",
           "name": "currentStore",
           "signature": "func currentStore() *Store",
@@ -4445,8 +4500,8 @@
             {
               "name": "client",
               "type": "EventPublisher",
-              "description": "生成self JobsClient经platform.NewEventPublisher适配",
-              "constraints": "受信config.Dependencies[jobs]地址；不从Host推断，未装配失败关闭"
+              "description": "生成self JobsClient经platform.NewEventPublisher适配；由启动装配按可选self地址提供",
+              "constraints": "如配置Dependencies[jobs]则必须是受信self地址；不从Host推断。缺失时本域后台保持休眠，直接调用本函数仍返回DEPENDENCY_UNAVAILABLE"
             }
           ],
           "outputs": [
@@ -4493,8 +4548,8 @@
             "jobs:publishEvent"
           ],
           "resources": [
-            "platform.outbox.NewStore",
-            "config.Dependencies[jobs]"
+            "platform.Store",
+            "可选config.Dependencies[jobs]"
           ],
           "contract": "binding"
         }
@@ -5474,7 +5529,7 @@
               "name": "op",
               "type": "OperationContext",
               "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
-              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+              "constraints": "公开入口actor由服务断言构建；observe要求actor.kind=service且caller在已登记非jobs owner集合；服务身份不接受客户端自声明；deadline不超过上游"
             },
             {
               "name": "in",
@@ -5497,12 +5552,11 @@
               "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
             }
           ],
-          "purpose": "等待全域安全点",
+          "purpose": "读取或推进全域安全点",
           "steps": [
-            "验证data-protection服务身份（用户授权已由data-protection核验）",
-            "持久stop claims/newjobs/schedules",
-            "向每有状态域acquireBarrier",
-            "SSE等待所有safe和领域fence水位"
+            "step=observe时只允许已登记13个非jobs有状态域的service actor；读取jobs barriers持久行与v1 domain_status_json，核barrierId、dataEpoch、draining状态、截止、phase、14个owner集合、selectedProofHash及前后相同的零broker基础观察，返回selectedProof；缺任何证据失败关闭且不写入",
+            "prepare/drain/seal/resume-drain仍只接受data-protection服务身份，用户授权由data-protection既有流程核验；本域不因observe分支放宽变更授权",
+            "变更步骤的全域stop/acquire/等待仍由协调器依赖提供；本函数不把本域SnapshotManager状态或sealProofHash冒充全域基础proof"
           ],
           "errors": [
             {
@@ -5518,24 +5572,97 @@
               "httpStatus": 503,
               "retryable": true,
               "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "FORBIDDEN",
+              "condition": "observe调用者不是已登记非jobs服务，或变更步骤不是data-protection",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "无写入，无需回滚"
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "domain_status_json缺字段、owner集合、phase、hash或broker零水位不一致",
+              "httpStatus": 422,
+              "retryable": false,
+              "rollback": "无写入，无需回滚"
             }
           ],
           "sideEffects": [
-            "写barrier/领域维护调用"
+            "observe无副作用；变更步骤写barrier/领域维护调用"
           ],
           "authorization": {
             "permission": "service",
-            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+            "rule": "observe仅已登记13个非jobs有状态域service actor且caller属于selectedProof.owners；prepare/drain/seal/resume-drain仅data-protection服务身份，用户授权仍由data-protection在发起时核验"
           },
-          "concurrency": "不能只等jobs lease；每域实际在途写入/文件恢复日志都到安全点",
-          "idempotency": "barrierId重复查询并继续原协调",
+          "concurrency": "observe为单SQLite只读事务；变更步骤不能只等jobs lease，每域实际在途写入/文件恢复日志都到安全点",
+          "idempotency": "observe按barrierId/dataEpoch/selectedProofHash重复读取；变更步骤按barrierId重复查询并继续原协调",
           "dependencies": [
+            "jobs.coordinateBarrierRequest",
+            "jobs.observeBarrier",
             "site-config:readRuntimeState"
           ],
           "resources": [
+            "jobs.barriers.domain_status_json",
             "各域acquireBarrier"
           ],
           "contract": "binding"
+        },{
+          "id": "jobs.observeBarrier",
+          "name": "observeBarrier",
+          "signature": "func observeBarrier(ctx context.Context, op OperationContext, input lifecycle.SnapshotBarrierInput) (CoordinateBarrierResult, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只读返回协调器已持久选择的稳定零broker基础proof",
+          "steps": [
+            "在单一SQLite只读事务读取barriers行，不读取control私有文件，不调用SnapshotManager的本域safe封口hash",
+            "严格解码v1 domain_status_json，核barrierId/dataEpoch、draining、deadline、mode对应phase、14个唯一owner且caller属于其中、selectedProofHash、revisionWatermark及broker前后完全相同且pendingDeliveries/activeLeases均为0",
+            "调用observeBrokerTx复用本函数已持有的同一SQLite事务读取当前broker观察，并与持久brokerBefore/brokerAfter逐字段比较；返回CoordinateBarrierResult.status与selectedProof；任一行缺失、过期、字段不完整或水位变化失败关闭"
+          ],
+          "errors": [
+            {"code": "DEPENDENCY_UNAVAILABLE", "condition": "协调器尚未持久选择基础proof或barrier行不可读", "httpStatus": 503, "retryable": true},
+            {"code": "INTEGRITY_ERROR", "condition": "持久基础proof字段或broker稳定零水位不一致", "httpStatus": 422, "retryable": false},
+            {"code": "FORBIDDEN", "condition": "caller不在14域proof owner集合", "httpStatus": 403, "retryable": false}
+          ],
+          "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "仅已登记非jobs service actor；caller必须属于持久selectedProof.owners"},
+          "concurrency": "单SQLite只读事务",
+          "idempotency": "相同barrierId/dataEpoch返回同一持久selectedProof或同一失败",
+          "dependencies": ["jobs.currentStore", "jobs.SnapshotDatabase", "jobs.observeBrokerTx", "jobs.validateBarrierObserveEvidence"],
+          "resources": ["本域SQLite barriers表"],
+          "contract": "reference"
+        },{
+          "id": "jobs.observeBrokerTx",
+          "name": "observeBrokerTx",
+          "signature": "func observeBrokerTx(ctx context.Context, tx *sql.Tx, dataEpoch platform.Identifier) (gen.SnapshotBrokerObservation, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "复用调用方同一SQLite事务读取jobs broker观察，禁止重新BeginTx",
+          "steps": [
+            "在传入事务内调用platform outbox.Store.ObserveTx读取共享revision、全部非终态outbox行及outbox lease",
+            "在同一事务内扫描全部deliveries、jobs与leases，并执行observeBroker全部状态、epoch、expiry、orphan和计数校验",
+            "返回与持久基础broker逐字段可比较的SnapshotBrokerObservation；任一事实变化或未知失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "仅CoordinateBarrier.observe或observeBrokerTx内部调用"},
+          "concurrency": "复用调用方单一SQLite事务",
+          "idempotency": "同一事务快照返回同一观察或同一失败",
+          "dependencies": ["platform.Store.ObserveTx"],
+          "resources": ["本域SQLite", "本域16张业务表", "nw_outbox_control"],
+          "contract": "reference"
+        },{
+          "id": "jobs.coordinateBarrierRequest",
+          "name": "coordinateBarrierRequest",
+          "signature": "func coordinateBarrierRequest(op OperationContext, request BarrierRequest) (lifecycle.SnapshotBarrierInput, string, error)",
+          "inputs": [], "outputs": [], "purpose": "绑定全域协调请求的可信operation、epoch、模式、deadline和step", "steps": ["复用本域BarrierRequest严格绑定，不创建新operation或跨域事实"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "依赖公共入口可信op"}, "concurrency": "纯函数", "idempotency": "确定性转换", "dependencies": ["jobs.barrierInput"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.validateBarrierObserveEvidence",
+          "name": "validateBarrierObserveEvidence",
+          "signature": "func validateBarrierObserveEvidence(evidence persistedBarrierObserveEvidence, input lifecycle.SnapshotBarrierInput, op OperationContext) error",
+          "inputs": [], "outputs": [], "purpose": "核对协调器持久基础proof的owner、阶段、代次和稳定零broker观察", "steps": ["严格核对持久证据字段、调用服务owner、phase和broker前后水位；缺失或变化失败关闭"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "仅observeBarrier内部调用"}, "concurrency": "纯读取", "idempotency": "确定性校验", "dependencies": [], "resources": [], "contract": "reference"
         }
       ]
     },
@@ -5607,8 +5734,7 @@
           "concurrency": "事件接收暂拒503让producer outbox保留；ack安全落点后冻结",
           "idempotency": "barrierId幂等",
           "dependencies": [
-            "jobs.CoordinateBarrier",
-            "platform.SnapshotManager.EnterBarrier"
+            "jobs.runBarrierStep"
           ],
           "resources": [],
           "contract": "binding"
@@ -5684,10 +5810,175 @@
           "idempotency": "barrierId幂等",
           "dependencies": [
             "site-config:readRuntimeState",
+            "jobs.snapshotClients",
+            "jobs.toBarrierStatus",
             "platform.SnapshotManager.ReleaseBarrier"
           ],
           "resources": [],
           "contract": "binding"
+        },{
+          "id": "jobs.ReadLeaseRuntime",
+          "name": "ReadLeaseRuntime",
+          "signature": "func (s *Store) ReadLeaseRuntime(runtime platform.RuntimeView) (LeaseRuntimeView, error)",
+          "inputs": [], "outputs": [],
+          "purpose": "组合公开运行权威与同一SnapshotManager的后台写窗口",
+          "steps": ["正常running复用runtime；维护或屏障态读取platform.SnapshotManager.ReadBarrierStatus的内存状态和截止时间；状态缺失、截止已过、代次/屏障不符或未知状态失败关闭，不读取platform私有持久格式"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "可信启动装配"}, "concurrency": "只读", "idempotency": "重复读取同一运行权威", "dependencies": ["platform.ReadRuntime", "jobs.currentSnapshotManager", "platform.SnapshotManager.ReadBarrierStatus"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.ReadReadinessEvidence",
+          "name": "ReadReadinessEvidence",
+          "signature": "func (s *Store) ReadReadinessEvidence(runtime platform.RuntimeView, initialized bool) (bool, bool, bool, error)",
+          "inputs": [], "outputs": [],
+          "purpose": "返回真实journal恢复与就绪门禁；正常running可ready但不冒充snapshot safe-point",
+          "steps": ["核本域journal；正常running返回journal=true、safePoint=false、公开门按初始化决定；维护态读取platform.SnapshotManager.ReadBarrierStatus，截止已过或证据缺失失败关闭，draining返回真实safePoint=false，safe返回true"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "可信启动装配"}, "concurrency": "只读", "idempotency": "重复读取同一状态", "dependencies": ["jobs.OpenDatabase", "jobs.currentSnapshotManager", "platform.SnapshotManager.ReadBarrierStatus"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.ConfigureSnapshotManager",
+          "name": "ConfigureSnapshotManager",
+          "signature": "func (s *Store) ConfigureSnapshotManager(manager *lifecycle.SnapshotManager) error",
+          "inputs": [], "outputs": [], "purpose": "安装本域唯一SnapshotManager供控制与快照路由复用", "steps": ["拒绝空manager或已关闭Store；保存同一实例"], "errors": [], "sideEffects": ["更新进程内Store装配引用"],
+          "authorization": {"permission": "service", "rule": "可信启动装配"}, "concurrency": "Store mutex", "idempotency": "同一实例重复安装幂等", "dependencies": ["platform.NewSnapshotManager"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.ConfigureDataProtectionClient",
+          "name": "ConfigureDataProtectionClient",
+          "signature": "func (s *Store) ConfigureDataProtectionClient(client *gen.DataProtectionClient)",
+          "inputs": [], "outputs": [], "purpose": "安装可选data-protection归档客户端", "steps": ["保存启动装配传入的版本化HTTP客户端，不复制跨域存储"], "errors": [], "sideEffects": ["更新进程内客户端引用"],
+          "authorization": {"permission": "service", "rule": "可信启动装配"}, "concurrency": "Store mutex", "idempotency": "重复安装替换同一装配槽", "dependencies": [], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.snapshotClients",
+          "name": "snapshotClients",
+          "signature": "func (s *Store) snapshotClients() (*lifecycle.SnapshotManager, *gen.DataProtectionClient, error)",
+          "inputs": [], "outputs": [], "purpose": "读取已装配的本域SnapshotManager与data-protection客户端", "steps": ["拒绝关闭或未装配Store；返回已登记客户端引用"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "本域内部控制入口"}, "concurrency": "Store读锁", "idempotency": "只读重复安全", "dependencies": ["jobs.currentSnapshotManager"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.barrierInput",
+          "name": "barrierInput",
+          "signature": "func barrierInput(op OperationContext, request BarrierRequest) (lifecycle.SnapshotBarrierInput, string, error)",
+          "inputs": [], "outputs": [], "purpose": "把已过公共入口的屏障请求绑定可信操作、模式与截止", "steps": ["绑定operationId、barrierId、mode和UTC deadline"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "依赖公共入口可信op"}, "concurrency": "纯函数", "idempotency": "确定性转换", "dependencies": [], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.toBarrierStatus",
+          "name": "toBarrierStatus",
+          "signature": "func toBarrierStatus(status lifecycle.SnapshotBarrierStatus) gen.BarrierStatus",
+          "inputs": [], "outputs": [], "purpose": "转换platform屏障结果为生成HTTP类型", "steps": ["保留真实状态、水位和proof hash"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "本域内部转换"}, "concurrency": "纯函数", "idempotency": "确定性转换", "dependencies": ["jobs.optionalHash"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.optionalHash",
+          "name": "optionalHash",
+          "signature": "func optionalHash(value string) *gen.Hash",
+          "inputs": [], "outputs": [], "purpose": "把空proof hash投影为可选HTTP字段", "steps": ["空值返回nil，非空保留原值"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "本域内部转换"}, "concurrency": "纯函数", "idempotency": "确定性转换", "dependencies": [], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.toObservation",
+          "name": "toObservation",
+          "signature": "func toObservation(observation lifecycle.SnapshotBarrierObservation) gen.SnapshotBarrierObservation",
+          "inputs": [], "outputs": [], "purpose": "转换platform本域观察为生成HTTP类型", "steps": ["保留真实活动计数、水位与工作状态"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "本域内部转换"}, "concurrency": "纯函数", "idempotency": "确定性转换", "dependencies": [], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.runBarrierStep",
+          "name": "runBarrierStep",
+          "signature": "func runBarrierStep(ctx context.Context, op OperationContext, request BarrierRequest) (gen.BarrierStatus, error)",
+          "inputs": [], "outputs": [], "purpose": "把data-protection控制请求转交同一SnapshotManager步骤", "steps": ["按step调用prepare、drain、observe、seal或resume-drain；缺proof失败关闭"], "errors": [], "sideEffects": ["由SnapshotManager写control屏障"],
+          "authorization": {"permission": "service", "rule": "仅data-protection服务身份"}, "concurrency": "控制入口串行", "idempotency": "barrierId与proof幂等", "dependencies": ["jobs.snapshotClients", "jobs.barrierInput", "jobs.toBarrierStatus", "jobs.toObservation", "platform.SnapshotManager.PrepareBarrier", "platform.SnapshotManager.DrainBarrier", "platform.SnapshotManager.ObserveBarrier", "platform.SnapshotManager.SealBarrier", "platform.SnapshotManager.ResumeDrain"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.NewBarrierHandlers",
+          "name": "NewBarrierHandlers",
+          "signature": "func NewBarrierHandlers() map[string]http.Handler",
+          "inputs": [], "outputs": [], "purpose": "绑定屏障控制HTTP适配", "steps": ["只做生成请求绑定和公共Problem输出，不复制入口校验"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "依赖公共NewServiceHandler"}, "concurrency": "返回固定handler表", "idempotency": "重复构造安全", "dependencies": ["jobs.EnterBarrier", "jobs.ReleaseBarrier", "jobs.CoordinateBarrier"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.currentSnapshotManager",
+          "name": "currentSnapshotManager",
+          "signature": "func (s *Store) currentSnapshotManager() (*lifecycle.SnapshotManager, error)",
+          "inputs": [], "outputs": [], "purpose": "读取本域已安装SnapshotManager", "steps": ["拒绝nil、关闭或未装配Store"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "本域内部控制入口"}, "concurrency": "Store读锁", "idempotency": "只读重复安全", "dependencies": [], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.SnapshotDatabase",
+          "name": "SnapshotDatabase",
+          "signature": "func (s *Store) SnapshotDatabase() (*sql.DB, error)",
+          "inputs": [], "outputs": [], "purpose": "返回本域active SQLite连接供platform一致捕获", "steps": ["拒绝nil、关闭或未装配DB"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "本域快照装配"}, "concurrency": "Store读锁", "idempotency": "只读重复安全", "dependencies": [], "resources": ["本域SQLite"], "contract": "reference"
+        },{
+          "id": "jobs.SnapshotObserveWork",
+          "name": "SnapshotObserveWork",
+          "signature": "func (s *Store) SnapshotObserveWork(ctx context.Context) (lifecycle.SnapshotWorkState, error)",
+          "inputs": [], "outputs": [], "purpose": "读取jobs-wide真实持久工作观察", "steps": ["在同一SQLite事务中调用jobs.SnapshotDatabase、platform.Store.ObserveTx并读取leases与job_orphans待决事实；workRevision复用outbox control revision，不使用业务表MAX或platform私有control格式"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "SnapshotManager内部调用"}, "concurrency": "单SQLite短读事务", "idempotency": "观察不写业务事实", "dependencies": ["jobs.SnapshotDatabase", "jobs.observeSnapshotWorkTx"], "resources": ["本域SQLite"], "contract": "reference"
+        },{
+          "id": "jobs.SnapshotWatermark",
+          "name": "SnapshotWatermark",
+          "signature": "func (s *Store) SnapshotWatermark(ctx context.Context) (int64, error)",
+          "inputs": [], "outputs": [], "purpose": "返回本域真实统一修订水位", "steps": ["在同一SQLite事务中复用platform.Store.ObserveTx返回的真实control revision，不从多个表MAX推导"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "SnapshotManager内部调用"}, "concurrency": "单SQLite短读事务", "idempotency": "重复读取安全", "dependencies": ["jobs.SnapshotDatabase", "jobs.observeSnapshotWorkTx"], "resources": ["本域SQLite"], "contract": "reference"
+        },{
+          "id": "jobs.SnapshotSealWork",
+          "name": "SnapshotSealWork",
+          "signature": "func (s *Store) SnapshotSealWork(ctx context.Context, work lifecycle.SnapshotWorkState, proofHash string) error",
+          "inputs": [], "outputs": [], "purpose": "在同库事务CAS全部jobs-wide水位并封门", "steps": ["同一SQLite事务重读platform.Store.ObserveTx与业务待决事实，精确比较原观察结果，再调用platform.Store.SealTx；任一水位或待决事实变化即失败关闭"], "errors": [], "sideEffects": ["在本域同库提交outbox与已登记业务表sealed gate"],
+          "authorization": {"permission": "service", "rule": "SnapshotManager内部调用"}, "concurrency": "单SQLite事务CAS", "idempotency": "proof绑定原观察水位", "dependencies": ["jobs.SnapshotDatabase", "jobs.observeSnapshotWorkTx", "platform.Store.SealTx"], "resources": ["本域SQLite"], "contract": "reference"
+        },{
+          "id": "jobs.SnapshotResumeWork",
+          "name": "SnapshotResumeWork",
+          "signature": "func (s *Store) SnapshotResumeWork(ctx context.Context, proofHash string) error",
+          "inputs": [], "outputs": [], "purpose": "按原封口proof恢复旧执行清理窗口", "steps": ["同库事务调用platform.Store.ResumeTx精确绑定原proof；不直接改写业务epoch或释放未知活动"], "errors": [], "sideEffects": ["在本域同库重开旧outbox与业务写门"],
+          "authorization": {"permission": "service", "rule": "SnapshotManager内部调用"}, "concurrency": "控制入口串行SQLite事务", "idempotency": "proof精确绑定", "dependencies": ["jobs.SnapshotDatabase", "platform.Store.ResumeTx"], "resources": ["本域SQLite"], "contract": "reference"
+        },{
+          "id": "jobs.observeSnapshotWorkTx",
+          "name": "observeSnapshotWorkTx",
+          "signature": "func observeSnapshotWorkTx(ctx context.Context, outboxStore *outbox.Store, tx *sql.Tx) (lifecycle.SnapshotWorkState, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "同库观察事务的取消上下文",
+              "constraints": "仅本域SnapshotManager调用；取消透传查询"
+            },
+            {
+              "name": "outboxStore",
+              "type": "*outbox.Store",
+              "description": "与jobs数据库绑定的平台outbox存储",
+              "constraints": "仅用于调用platform.Store.ObserveTx，不独立开启读事务"
+            },
+            {
+              "name": "tx",
+              "type": "*sql.Tx",
+              "description": "调用方已开启的jobs SQLite事务",
+              "constraints": "观察outbox control与jobs待决事实必须复用同一事务"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "work",
+              "type": "lifecycle.SnapshotWorkState",
+              "description": "真实统一revision与本域待决执行事实",
+              "constraints": "OutboxRevision与WorkRevision同为platform control revision；失败返回零值"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "平台观察或本域事实不可核验",
+              "constraints": "成功nil；不以未知水位返回成功"
+            }
+          ],
+          "purpose": "在一个已持有事务内组合platform outbox观察和jobs旧执行资格",
+          "steps": [
+            "调用platform.Store.ObserveTx；读取leases与job_orphans作为PendingWork；复用同一revision，不使用MAX推导版本"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "SnapshotManager内部调用"
+          },
+          "concurrency": "复用调用方单一SQLite事务",
+          "idempotency": "纯读取",
+          "dependencies": [
+            "platform.Store.ObserveTx"
+          ],
+          "resources": [
+            "本域SQLite"
+          ],
+          "contract": "reference"
         }
       ]
     },
@@ -5736,11 +6027,31 @@
           ],
           "purpose": "清理已完成记录",
           "steps": [
-            "progress7d/terminal30d",
-            "events必须所有consumer已ack且≥30d",
-            "paidResultRefs保留由owner历史引用策略决定"
+            "维护或屏障安全点期间不删除任何历史；一次短事务内所有SELECT/DELETE都绑定可信op.DataEpoch，batchSize分别限制每类最多500行，deletedCount为实际删除的progress、event和终局job主记录总数",
+            "只删除created_at真实非null、可由Go time.Parse(RFC3339Nano)严格解析且早于7天的当前epoch终局job进度；活动job进度、时刻未知或损坏进度永久保留",
+            "只删除当前epoch中envelope.occurredAt可由Go time.Parse(RFC3339Nano)严格解析、早于30天且全部consumer delivery均已acknowledged的事件；同时删除其delivery元数据，event_sequence水位不回收",
+            "只删除当前epoch中state为succeeded/cancelled/dead-letter且updated_at严格解析并早于30天、无lease、无orphan、存在job_results与job_outcomes、resultRef为空且paidResultRefs经json_type确认为真实空数组的job；job_results缺失、JSON非数组、未知结构或任何付费/对象引用都保留",
+            "删除符合上述条件的job时只同时删除其progress、空job_results和job_outcomes；lease_operations、event_operations、consumer_offsets、schedule_operations等幂等/审计回执不删除"
           ],
           "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "调用方不是jobs维护worker",
+              "httpStatus": 403,
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "清理时间或batchSize越界",
+              "httpStatus": 400,
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "condition": "事件发生时间或持久JSON无法严格核验",
+              "httpStatus": 422,
+              "retryable": false
+            },
             {
               "code": "DEPENDENCY_UNAVAILABLE",
               "condition": "STORE_UNAVAILABLE：在步骤中的对应校验或依赖失败",
@@ -5756,7 +6067,7 @@
             "permission": "service",
             "rule": "service维护worker"
           },
-          "concurrency": "≤500批事务，active job禁止删除",
+          "concurrency": "单短事务；每类≤500行，active/orphan/带引用job禁止删除，网络与等待不持事务",
           "idempotency": "重复purge幂等",
           "dependencies": [],
           "resources": [
@@ -5842,12 +6153,106 @@
           "concurrency": "barrier水位之后无事件提交",
           "idempotency": "backupId/barrierId幂等",
           "dependencies": [
-            "platform.SnapshotManager.Export"
+            "platform.SnapshotManager.Export",
+            "jobs.snapshotRefFromLifecycle"
           ],
           "resources": [
             "各域安全点确认"
           ],
           "contract": "binding"
+        },{
+          "id": "jobs.ValidateJobsSnapshotManifest",
+          "name": "ValidateJobsSnapshotManifest",
+          "signature": "func ValidateJobsSnapshotManifest(raw []byte) error",
+          "inputs": [], "outputs": [], "purpose": "核验jobs快照清单版本与完整库存", "steps": ["严格解码并交Value校验，不把未知库存当空数组"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "platform SnapshotManager调用"}, "concurrency": "纯读取", "idempotency": "相同清单相同结果", "dependencies": ["jobs.ValidateJobsSnapshotManifestValue"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.ValidateJobsSnapshotManifestValue",
+          "name": "ValidateJobsSnapshotManifestValue",
+          "signature": "func ValidateJobsSnapshotManifestValue(manifest lifecycle.DomainSnapshotManifest) error",
+          "inputs": [], "outputs": [], "purpose": "核验jobs清单归属、schema、文件路径和库存集合", "steps": ["拒绝错误owner、版本、路径、hash或未知空库存"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "本域恢复内部校验"}, "concurrency": "纯读取", "idempotency": "确定性校验", "dependencies": [], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.DrainJobs",
+          "name": "DrainJobs",
+          "signature": "func DrainJobs(ctx context.Context, store *Store) error",
+          "inputs": [], "outputs": [], "purpose": "等待jobs真实租约与outbox行租约到安全点，保留queued/retry事实", "steps": ["轮询真实SQLite leases与公共outbox观察；截止到达失败关闭"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "SnapshotManager drain回调"}, "concurrency": "短读查询，不持锁等待", "idempotency": "重复等待安全", "dependencies": ["jobs.SnapshotDatabase", "platform.Store.ObserveTx"], "resources": ["本域SQLite"], "contract": "reference"
+        },{
+          "id": "jobs.MigrateJobsStage",
+          "name": "MigrateJobsStage",
+          "signature": "func MigrateJobsStage(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error",
+          "inputs": [], "outputs": [], "purpose": "在隔离副本撤销旧执行资格并保留原业务事实，不改写epoch、payload、根或费用引用", "steps": ["调用platform.MigrateRestoredDatabase；在其同一事务内执行本域已登记追加迁移并删除旧lease；保留jobs/events/schedules/operations原epoch、事件envelope/hash、root和费用引用；验证无目标代次事实"], "errors": [{"code": "INTEGRITY_ERROR", "when": "源事实、outbox或旧执行资格不可核验", "retryable": false}], "sideEffects": ["仅修改已认证隔离副本的可重建schema与执行资格"],
+          "authorization": {"permission": "service", "rule": "platform SnapshotManager已认证stage scope"}, "concurrency": "隔离SQLite短事务；不改active；hostHash由platform恢复内核重封", "idempotency": "同一stage重复校验安全", "dependencies": ["jobs.ValidateJobsSnapshotManifestValue", "platform.MigrateRestoredDatabase", "jobs.runRestoredJobsMigrations", "jobs.revokeRestoredEligibility", "jobs.validateJobsPreservedFacts"], "resources": ["隔离jobs.db"], "contract": "reference"
+        },{
+          "id": "jobs.ValidateJobsStaged",
+          "name": "ValidateJobsStaged",
+          "signature": "func ValidateJobsStaged(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error",
+          "inputs": [], "outputs": [], "purpose": "证明隔离jobs库完整且未引入目标代次业务事实", "steps": ["integrity_check；核outbox无可重放活动、lease已撤销、事件envelope与索引/hash一致；不要求全部原业务行epoch相等"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "platform SnapshotManager已认证stage scope"}, "concurrency": "只读SQLite快照", "idempotency": "重复校验安全", "dependencies": ["jobs.validateJobsPreservedFacts"], "resources": ["隔离jobs.db"], "contract": "reference"
+        },{
+          "id": "jobs.revokeRestoredEligibility",
+          "name": "revokeRestoredEligibility",
+          "signature": "func revokeRestoredEligibility(ctx context.Context, tx *sql.Tx) error",
+          "inputs": [
+            {"name": "ctx", "type": "context.Context", "description": "恢复事务取消上下文", "constraints": "仅platform.MigrateRestoredDatabase回调使用；取消透传SQL"},
+            {"name": "tx", "type": "*sql.Tx", "description": "platform恢复内核持有的隔离数据库事务", "constraints": "与恢复gate、域迁移同一事务；不自行提交或回滚"}
+          ],
+          "outputs": [
+            {"name": "error", "type": "error", "description": "旧租约撤销失败", "constraints": "成功nil；失败由外层事务回滚"}
+          ],
+          "purpose": "撤销隔离副本旧租约，保留job_orphans恢复事实",
+          "steps": ["在调用方恢复事务内删除leases，不删除jobs、job_orphans、结果或费用引用"],
+          "errors": [], "sideEffects": ["修改隔离副本leases"], "authorization": {"permission": "service", "rule": "MigrateJobsStage内部"}, "concurrency": "复用单一恢复事务", "idempotency": "重复删除幂等", "dependencies": [], "resources": ["隔离jobs.db"], "contract": "reference"
+        },{
+          "id": "jobs.runRestoredJobsMigrations",
+          "name": "runRestoredJobsMigrations",
+          "signature": "func runRestoredJobsMigrations(ctx context.Context, tx *sql.Tx) error",
+          "inputs": [
+            {"name": "ctx", "type": "context.Context", "description": "恢复迁移取消上下文", "constraints": "仅platform恢复事务回调使用；取消透传SQL"},
+            {"name": "tx", "type": "*sql.Tx", "description": "已认证隔离jobs数据库事务", "constraints": "不得自行提交；只执行本域已登记追加迁移"}
+          ],
+          "outputs": [
+            {"name": "error", "type": "error", "description": "迁移集或SQL执行失败", "constraints": "成功nil；失败由platform恢复事务回滚"}
+          ],
+          "purpose": "在恢复内核同一事务中应用本域追加schema迁移",
+          "steps": ["核对schema_migrations已应用版本和名称；按embed迁移顺序补schema与可重建派生索引，不改业务epoch、事件payload、root或费用引用"],
+          "errors": [], "sideEffects": ["修改隔离jobs数据库schema与schema_migrations"], "authorization": {"permission": "service", "rule": "MigrateJobsStage内部"}, "concurrency": "复用单一恢复事务", "idempotency": "已登记版本跳过，重复stage安全", "dependencies": ["jobs.All"], "resources": ["隔离jobs.db"], "contract": "reference"
+        },{
+          "id": "jobs.validateJobsPreservedFacts",
+          "name": "validateJobsPreservedFacts",
+          "signature": "func validateJobsPreservedFacts(ctx context.Context, db *sql.DB, targetEpoch string) error",
+          "inputs": [], "outputs": [], "purpose": "核验原epoch事实未被改为target并核验旧资格已撤销", "steps": ["拒绝目标代次业务行、pending/quarantined outbox、残留lease；调用事件事实核验"], "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "恢复内部校验"}, "concurrency": "只读SQLite快照", "idempotency": "确定性校验", "dependencies": ["jobs.validatePreservedEvents"], "resources": ["隔离jobs.db"], "contract": "reference"
+        },{
+          "id": "jobs.validatePreservedEvents",
+          "name": "validatePreservedEvents",
+          "signature": "func validatePreservedEvents(ctx context.Context, db *sql.DB) error",
+          "inputs": [], "outputs": [], "purpose": "核验持久事件envelope与列索引、非空hash一致，不重写事件", "steps": ["逐行解码并比较eventId、epoch、producer、type、subject、revision；非空hash按原字节核对"], "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "恢复内部校验"}, "concurrency": "只读SQLite快照", "idempotency": "确定性校验", "dependencies": [], "resources": ["隔离jobs.db"], "contract": "reference"
+        },{
+          "id": "jobs.JobsStageBudget",
+          "name": "JobsStageBudget",
+          "signature": "func JobsStageBudget(manifest lifecycle.DomainSnapshotManifest) (int64, error)",
+          "inputs": [], "outputs": [], "purpose": "按真实源清单计算隔离迁移峰值预算", "steps": ["累加文件大小并核上限与溢出"], "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "platform SnapshotManager调用"}, "concurrency": "纯读取", "idempotency": "确定性计算", "dependencies": ["jobs.ValidateJobsSnapshotManifestValue"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.snapshotRefToLifecycle",
+          "name": "snapshotRefToLifecycle",
+          "signature": "func snapshotRefToLifecycle(ref gen.SnapshotRef) lifecycle.SnapshotRef",
+          "inputs": [], "outputs": [], "purpose": "把生成快照引用转换为platform内部类型", "steps": ["逐字段保留对象hash、大小、epoch和水位"], "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "本域内部转换"}, "concurrency": "纯函数", "idempotency": "确定性转换", "dependencies": [], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.snapshotRefFromLifecycle",
+          "name": "snapshotRefFromLifecycle",
+          "signature": "func snapshotRefFromLifecycle(ref lifecycle.SnapshotRef) gen.SnapshotRef",
+          "inputs": [], "outputs": [], "purpose": "把platform快照引用转换为生成HTTP类型", "steps": ["逐字段保留对象hash、大小、epoch和水位"], "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "本域内部转换"}, "concurrency": "纯函数", "idempotency": "确定性转换", "dependencies": [], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.optionalString",
+          "name": "optionalString",
+          "signature": "func optionalString(value string) *string",
+          "inputs": [], "outputs": [], "purpose": "把空字符串投影为可选HTTP字段", "steps": ["空值返回nil，非空返回独立字符串指针"], "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "本域内部转换"}, "concurrency": "纯函数", "idempotency": "确定性转换", "dependencies": [], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.NewSnapshotHandlers",
+          "name": "NewSnapshotHandlers",
+          "signature": "func NewSnapshotHandlers() map[string]http.Handler",
+          "inputs": [], "outputs": [], "purpose": "绑定快照导出HTTP适配", "steps": ["只做生成请求绑定和公共Problem输出，不复制SnapshotManager机制"], "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "依赖公共NewServiceHandler"}, "concurrency": "返回固定handler表", "idempotency": "重复构造安全", "dependencies": ["jobs.CreateSnapshot", "jobs.StageSnapshot", "jobs.DiscardSnapshot"], "resources": [], "contract": "reference"
         }
       ]
     },
@@ -5959,7 +6364,10 @@
           "dependencies": [
             "data-protection:serveRestoreArchive",
             "site-config:readRuntimeState",
-            "platform.SnapshotManager.Stage"
+            "platform.SnapshotManager.Stage",
+            "jobs.snapshotRefToLifecycle",
+            "jobs.optionalString",
+            "jobs.optionalHash"
           ],
           "resources": [],
           "contract": "binding"
@@ -6129,7 +6537,9 @@
           },
           "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
           "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [],
+          "dependencies": [
+            "jobs:cancelJob"
+          ],
           "resources": [
             "jobs OpenAPI HTTP/JSON/SSE"
           ],
@@ -6178,7 +6588,7 @@
           ],
           "purpose": "Vue3模块交互：SaveSchedule",
           "steps": [
-            "提交cron/timezone CAS，显示接下来5次执行UTC+本地时间并解释漏tick合并",
+            "提交cron/timezone CAS；展示生产方列表中的真实nextAt并解释漏tick合并，不在浏览器另造cron求值器或伪造未来5次时间",
             "处理401重新登录、403清空敏感界面",
             "按operationId重试不重复提交"
           ],
@@ -6214,7 +6624,10 @@
           },
           "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
           "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [],
+          "dependencies": [
+            "jobs:listSchedules",
+            "jobs:updateSchedule"
+          ],
           "resources": [
             "jobs OpenAPI HTTP/JSON/SSE"
           ],
@@ -6228,9 +6641,40 @@
       "purpose": "Vue3模块交互：ReconnectProgress；同文件职责限本域以下登记函数",
       "functions": [
         {
+          "id": "jobs.ConfigureProgressAPI",
+          "name": "ConfigureProgressAPI",
+          "signature": "function ConfigureProgressAPI(client: ModuleAPIClient): void",
+          "inputs": [
+            {
+              "name": "client",
+              "type": "ModuleAPIClient",
+              "description": "portal注入的同源API客户端",
+              "constraints": "只存在于内存，不包含service token，不允许跨域URL或自定义认证头"
+            }
+          ],
+          "outputs": [],
+          "purpose": "把portal同源API端口装配给进度重连函数",
+          "steps": [
+            "仅保存platform.ModuleAPIClient；不发起请求、不持久化凭据"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "更新当前模块实例的API端口引用"
+          ],
+          "authorization": {
+            "permission": "anonymous",
+            "rule": "只装配调用端口；每个API请求仍由portal和应用服务鉴权"
+          },
+          "concurrency": "同一模块挂载共享一个同源端口",
+          "idempotency": "重复配置同一能力幂等",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
           "id": "jobs.ReconnectProgress",
           "name": "ReconnectProgress",
-          "signature": "function ReconnectProgress(input: ReconnectProgressInput, signal: AbortSignal): Promise<ReconnectProgressResult>",
+          "signature": "function ReconnectProgress(input: ReconnectProgressInput, signal: AbortSignal, onEvent: ProgressListener): Promise<ReconnectProgressResult>",
           "inputs": [
             {
               "name": "input",
@@ -6244,6 +6688,14 @@
               "description": "界面导航及取消信号",
               "constraints": [
                 "取消后不更新已卸载组件"
+              ]
+            },
+            {
+              "name": "onEvent",
+              "type": "ProgressListener",
+              "description": "按实际SSE序号逐条交付进度",
+              "constraints": [
+                "只在当前挂载仍有效时更新界面"
               ]
             }
           ],
@@ -6263,12 +6715,17 @@
           ],
           "purpose": "Vue3模块交互：ReconnectProgress",
           "steps": [
-            "SSE保存最大seq，连接断开退避1/2/4/8/16秒",
-            "cursor过期重新读状态，epoch失配关闭旧流",
-            "处理401重新登录、403清空敏感界面",
-            "按operationId重试不重复提交"
+            "每个通过jobId/seq/phase/计数校验并交付给界面的进度事件立即更新外层cursor；连接中途失败后必须从最后已接受seq重连，不能回到连接开始时的cursor",
+            "cursor过期或NOT_FOUND时先只读当前job状态；终局追平EOF成功结束，非终局才允许从0重建进度。VERSION_MISMATCH立即停止旧流并失败，不进入退避重试",
+            "401/403原样交给QueuePanel统一fail清空敏感界面；普通断线按1/2/4/8/16秒退避，重连耗尽仍未终局时返回DEPENDENCY_UNAVAILABLE，不静默成功"
           ],
           "errors": [
+            {
+              "code": "VERSION_MISMATCH",
+              "condition": "任务所属数据代次已变化，旧进度流不得继续",
+              "httpStatus": 409,
+              "retryable": false
+            },
             {
               "code": "FORBIDDEN",
               "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
@@ -6300,7 +6757,11 @@
           },
           "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
           "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [],
+          "dependencies": [
+            "jobs.ConfigureProgressAPI",
+            "jobs:readJob",
+            "jobs:streamProgress"
+          ],
           "resources": [
             "jobs OpenAPI HTTP/JSON/SSE"
           ],
@@ -6443,7 +6904,7 @@
             "jobs.beginLeaseOperation",
             "jobs.consumerHasEvent",
             "jobs.Next",
-            "jobs.Close",
+            "jobs.CloseStore",
             "jobs.LastID"
           ],
           "resources": [],
@@ -6762,16 +7223,17 @@
           "purpose": "装配本域存储、客户端、函数路由与worker",
           "steps": [
             "验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB",
-            "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换",
+            "先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后调用platform.ReadRestoreSwapState读取完整Known/Switched/RolledBack/Aborted/stageId/manifestHash/hostHash/hostEpoch/targetEpoch，严格核当前控制host epoch、restoreId与phase；切换后OpenedDataEpoch为target，换回后为host，不把空epoch作为绕过。",
             "按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败",
-            "读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制",
+            "只读取runtime epoch/maintenance，不以site-config配置已初始化作为broker启动条件；维护期间只开放健康/就绪与控制管理接口、不启动worker。siteId由真实服务读取或待恢复任务按需读取，fresh站点不得阻塞broker健康/控制启动。本次启动完成换目录或换回时以platform.SignActivationReceipt签名真实stage/target树回执并调用site-config:registerActivation；不续签同一已登记回执，不复制portal授权或把service伪装superadmin。有登记生产事件时启动本域outbox转发，目录无jobTypes或订阅时不启动空worker/consumer，并配置停止新副作用/安全点机制",
             "UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源",
             "启动后按implementation.json backgroundTasks登记的周期运行后台函数；维护期间暂停业务循环",
             "实际构造三项管理HTTP映射交公共完整NewServiceHandler核全表；caller固定portal、runtime/openedEpoch当前，其余handler/store/control/owner后台未齐仍DEPENDENCY_UNAVAILABLE",
             "私有库迁移真实打开/失败关闭资源；合并管理与进度真实映射再交完整入口工厂，streamProgress固定portal；其余handler/control/owner后台未齐仍blocked",
             "合并NewQueueHandlers真实createJob映射，调用服务白名单仅生成任务目录owner；其他HTTP/运行存储/control/后台缺口仍使完整启动失败",
             "合并NewScheduleHandlers真实createSchedule/updateSchedule/listSchedules映射；createSchedule允许portal和管理员路径以及带系统默认定时的owner服务，list/update仅portal；其余handler、存储安装、control和后台循环未齐仍使完整启动失败",
-            "完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。"
+            "完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与6个后台入口；BeginDrain复用本域DrainJobs，Observe/Watermark/Seal/Resume统一复用platform.Store事务revision与CAS。Install必须同时收到完整OpenAPI handler、6个后台task、store与真实就绪证据读取器，缺任一业务scope、回调或后台仍失败关闭，不能仅HTTP全表进入ready。",
+            "self事件发布地址为可选配置；仅配置Dependencies[jobs]时装配publisher，缺失时RelayOutbox入口保持休眠等待进程取消，不使公共RunService终止其它后台任务。"
           ],
           "errors": [
             {
@@ -6803,36 +7265,63 @@
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
-            "site-config:registerActivation",
-            "jobs.RequeueDue",
-            "jobs.ReapExpiredLeases",
-            "jobs.TickSchedules",
-            "jobs.RequeueExpiredDeliveries",
-            "jobs.PurgeExpiredHistory",
-            "platform.ApplyRestoreSwap",
-            "platform.ReadRuntime",
             "jobs.All",
-            "platform.NewSiteConfigClient",
-            "platform.NewRequestValidator",
+            "jobs.DrainJobs",
             "jobs.InstallStore",
-            "jobs.RelayOutbox",
+            "jobs.ensureDataLayout",
+            "jobs.loadTrustAnchors",
+            "jobs.loadSigningKey",
+            "jobs.newRuntimeClient",
             "jobs.NewEventHandlers",
+            "jobs.NewLeaseHandlers",
             "jobs.NewManagementHandlers",
-            "platform.NewServiceHandler",
-            "platform.NewIdentityAuthorizer",
+            "jobs.NewOwnerRecoveryChecker",
             "jobs.NewProgressHandlers",
-            "jobs.OpenDatabase",
-            "jobs.Store.Close",
             "jobs.NewQueueHandlers",
             "jobs.NewScheduleHandlers",
-            "jobs.NewLeaseHandlers",
+            "jobs.NewBarrierHandlers",
+            "jobs.NewSnapshotHandlers",
+            "jobs.OpenDatabase",
+            "jobs.PurgeExpiredHistory",
+            "jobs.ReadQueueSiteID",
+            "jobs.ValidateJobsSnapshotManifest",
+            "jobs.ValidateJobsSnapshotManifestValue",
+            "jobs.MigrateJobsStage",
+            "jobs.ValidateJobsStaged",
+            "jobs.JobsStageBudget",
+            "jobs.ReapExpiredLeases",
+            "jobs.RelayOutbox",
+            "jobs.RequeueDue",
+            "jobs.RequeueExpiredDeliveries",
+            "jobs.CloseStore",
+            "jobs.ConfigureBackgroundScope",
+            "jobs.ConfigureDataProtectionClient",
+            "jobs.ConfigureSnapshotManager",
+            "jobs.ReadLeaseRuntime",
+            "jobs.ReadReadinessEvidence",
+            "jobs.SnapshotDatabase",
+            "jobs.SnapshotObserveWork",
+            "jobs.SnapshotSealWork",
+            "jobs.SnapshotResumeWork",
+            "jobs.SnapshotWatermark",
+            "jobs.TickSchedules",
+            "jobs.registerActivation",
+            "jobs.restoreOpenedDataEpoch",
+            "knowledge:readJobRecovery",
+            "platform.ApplyRestoreSwap",
+            "platform.NewIdentityAuthorizer",
+            "platform.NewRequestValidator",
+            "platform.NewServiceHandler",
+            "platform.NewSiteConfigClient",
             "platform.NewSnapshotManager",
+            "platform.ReadRestoreSwapState",
+            "platform.ReadRuntime",
+            "platform.SignActivationReceipt",
             "platform.SnapshotManager.AdmitBusiness",
             "platform.SnapshotManager.WriteWindow",
-            "jobs.ReadQueueSiteID",
-            "jobs.NewOwnerRecoveryChecker",
+            "site-config:readInitializationStatus",
             "site-config:readSiteConfig",
-            "knowledge:readJobRecovery"
+            "site-config:registerActivation"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -6840,6 +7329,61 @@
             "site-config.readRuntimeState（本域site-config读取自身权威）"
           ],
           "contract": "binding"
+        },{
+          "id": "jobs.restoreOpenedDataEpoch",
+          "name": "restoreOpenedDataEpoch",
+          "signature": "func restoreOpenedDataEpoch(control platform.RuntimeView, swap platform.SwapResult, evidence lifecycle.SnapshotSwapEvidence) (platform.Identifier, error)",
+          "inputs": [
+            {"name": "control", "type": "platform.RuntimeView", "description": "ApplyRestoreSwap前后读取的site-config控制runtime", "constraints": "必须是真实当前host epoch、restoreId、target epoch、phase和maintenance"},
+            {"name": "swap", "type": "platform.SwapResult", "description": "platform.ApplyRestoreSwap返回的终态动作", "constraints": "仅接受switched或rolled-back；restoreId不可为空"},
+            {"name": "evidence", "type": "lifecycle.SnapshotSwapEvidence", "description": "platform.ReadRestoreSwapState返回的完整只读换目录证据", "constraints": "Known=true；stage/tree/host/target字段完整；不得读取私有日志或猜测成功"}
+          ],
+          "outputs": [
+            {"name": "openedDataEpoch", "type": "platform.Identifier", "description": "本进程active目录实际打开的代次", "constraints": "switched返回targetDataEpoch；rolled-back返回hostEpoch；失败为空"},
+            {"name": "error", "type": "error", "description": "控制runtime与换目录证据不一致", "constraints": "成功nil；失败不绕过epoch或phase"}
+          ],
+          "purpose": "绑定恢复换目录终态与进程实际OpenedDataEpoch",
+          "steps": ["严格核Known、Switched/RolledBack、restoreId、host/target epoch、控制phase与host epoch；按终态返回target或host"],
+          "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "可信启动装配"}, "concurrency": "纯读取", "idempotency": "相同证据确定性结果", "dependencies": [], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.registerActivation",
+          "name": "registerActivation",
+          "signature": "func registerActivation(ctx context.Context, client *gen.SiteConfigClient, key platform.SigningKey, control platform.RuntimeView, swap platform.SwapResult, evidence lifecycle.SnapshotSwapEvidence) error",
+          "inputs": [
+            {"name": "ctx", "type": "context.Context", "description": "启动取消与截止", "constraints": "不延长上游截止；取消透传HTTP与签名依赖"},
+            {"name": "client", "type": "SiteConfigClient", "description": "已版本化site-config客户端；实际Go类型为*gen.SiteConfigClient", "constraints": "只调用readRuntimeState与registerActivation；不读取control私有目录"},
+            {"name": "key", "type": "platform.SigningKey", "description": "jobs本域服务签名密钥引用", "constraints": "仅由serviceauth.SignActivationReceipt使用；不复制portal私钥或委托"},
+            {"name": "control", "type": "platform.RuntimeView", "description": "当前控制host runtime", "constraints": "epoch/restoreId/phase已由restoreOpenedDataEpoch核对"},
+            {"name": "swap", "type": "platform.SwapResult", "description": "已完成的切换或换回动作", "constraints": "动作与证据一致"},
+            {"name": "evidence", "type": "lifecycle.SnapshotSwapEvidence", "description": "真实stage/tree/target证据", "constraints": "来源为platform.ReadRestoreSwapState；不从私有JSON另读"}
+          ],
+          "outputs": [
+            {"name": "error", "type": "error", "description": "读取控制状态、签名或登记失败", "constraints": "成功nil；未知状态、CAS变化或响应不完整失败关闭"}
+          ],
+          "purpose": "签名并登记本域真实恢复激活回执",
+          "steps": ["以当前service actor读取控制状态；相同stage/state/tree已有回执直接复用；否则以UTC规范化RecordedAt调用platform.SignActivationReceipt，按当前control revision调用site-config:registerActivation；核登记响应revision与host/target/phase"],
+          "errors": [], "sideEffects": ["写site-config控制库activation receipt"], "authorization": {"permission": "service", "rule": "仅本域启动service身份；不接受superadmin或portal委托"}, "concurrency": "短HTTP请求；由site-config revision CAS串行", "idempotency": "同restore/module/stage/state/tree复用已登记回执，不续签或覆盖不同回执", "dependencies": ["platform.SignActivationReceipt", "site-config:readRuntimeState", "site-config:registerActivation"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.newRuntimeClient",
+          "name": "newRuntimeClient",
+          "signature": "func newRuntimeClient(config platform.ServiceConfig, key platform.SigningKey) (platform.SiteConfigClient, error)",
+          "inputs": [], "outputs": [], "purpose": "按登记site-config地址构造运行客户端", "steps": ["拒绝缺失site-config地址；不从self或Host推断"], "errors": [], "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "可信进程装配"}, "concurrency": "纯构造", "idempotency": "同配置同客户端语义", "dependencies": ["platform.NewSiteConfigClient"], "resources": [], "contract": "reference"
+        },{
+          "id": "jobs.ensureDataLayout",
+          "name": "ensureDataLayout",
+          "signature": "func ensureDataLayout(dataRoot string) error",
+          "inputs": [], "outputs": [], "purpose": "建立本域active/control/restore目录，不替换control", "steps": ["核绝对数据根并创建固定目录权限"], "errors": [], "sideEffects": ["创建本域数据目录"], "authorization": {"permission": "service", "rule": "可信进程装配"}, "concurrency": "启动单flight", "idempotency": "目录已存在时幂等", "dependencies": [], "resources": ["本域dataRoot"], "contract": "reference"
+        },{
+          "id": "jobs.loadTrustAnchors",
+          "name": "loadTrustAnchors",
+          "signature": "func loadTrustAnchors(ref string) (platform.TrustAnchors, error)",
+          "inputs": [], "outputs": [], "purpose": "读取本域服务身份信任锚", "steps": ["读取并严格解码公钥表；缺失或空表失败关闭"], "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "可信进程装配"}, "concurrency": "纯读取", "idempotency": "相同文件同结果", "dependencies": ["platform.LoadServiceIdentity"], "resources": ["外部secret引用"], "contract": "reference"
+        },{
+          "id": "jobs.loadSigningKey",
+          "name": "loadSigningKey",
+          "signature": "func loadSigningKey(ref string) (platform.SigningKey, error)",
+          "inputs": [], "outputs": [], "purpose": "读取并解析本域服务签名密钥引用", "steps": ["只保存引用与平台密钥句柄，不把私钥写日志或配置"], "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "可信进程装配"}, "concurrency": "纯读取", "idempotency": "相同引用同结果", "dependencies": ["platform.LoadSigningKey"], "resources": ["外部secret引用"], "contract": "reference"
         }
       ]
     },
@@ -7069,10 +7613,9 @@
           ],
           "purpose": "GET /readyz普通HTTP就绪检查",
           "steps": [
-            "确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态",
-            "已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威",
-            "维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放",
-            "未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现"
+            "只有handler表、必需scope/后台资源、store与ReadinessReader均安装后才允许Ready返回200；缺证据返回DEPENDENCY_UNAVAILABLE。",
+            "从ReadinessReader取得真实runtime revision、initialized、journalRecovered、safePoint和publicRequestsAllowed；不得在transport硬编码这些值。未初始化时activeDataEpoch=null且publicRequestsAllowed=false；正常running只要求真实journal/epoch证据，safePoint可为false；维护态必须有真实safe-point才可返回控制面ready。",
+            "已初始化时activeDataEpoch必须等于Build实际打开的openedEpoch；epoch失配、安全检查未知或journal未恢复继续不可就绪。"
           ],
           "errors": [
             {
@@ -7183,9 +7726,9 @@
           "outputs": [],
           "purpose": "本域Vue3应用/岛的唯一UI构建入口",
           "steps": [
-            "校验rootElement与bootstrap module/capabilities；按本域已登记Vue页面导入模块路由，createApp挂载，不注册别域业务组件",
-            "只装配同源HTTP/JSON/SSE客户端和已有权限清理/语言逻辑，复用identity/qa会话，缺AI能力保持关闭提示",
-            "同DOM重复mount先复用既有实例；unmount停止AbortController/SSE/listeners，不能清服务端业务记录"
+            "校验rootElement、bootstrap.module/capabilities/apiClient；同DOM同buildRevision复用实例，否则先卸载旧实例并配置当前同源API端口",
+            "只挂载本域QueuePanel与ScheduleEditor；不增加通用任务创建、跨域选择器或任意ObjectRef输入表单",
+            "unmount停止AbortController、进度SSE和listeners，不清理服务端记录"
           ],
           "errors": [
             {
@@ -7204,7 +7747,12 @@
           },
           "concurrency": "同DOM一个Vue实例，AbortController取消旧请求",
           "idempotency": "同DOM/buildRevision重复挂载复用实例",
-          "dependencies": [],
+          "dependencies": [
+            "jobs.ConfigureProgressAPI",
+            "jobs.RequestJobCancellation",
+            "jobs.SaveSchedule",
+            "jobs.ReconnectProgress"
+          ],
           "resources": [
             "本域已登记UI页面函数"
           ],
@@ -8838,13 +9386,13 @@
             {
               "name": "handlers",
               "type": "EventHandlers",
-              "description": "三个真实管理操作映射",
+              "description": "四项真实管理操作映射",
               "constraints": "仅本域可信装配或已通过统一入口的管理链路使用"
             }
           ],
-          "purpose": "提供三项真实管理HTTP映射，公共完整工厂缺项必须拒绝",
+          "purpose": "提供四项真实管理HTTP映射，公共完整工厂缺项必须拒绝",
           "steps": [
-            "提供三项真实管理HTTP映射，公共完整工厂缺项必须拒绝"
+            "提供listJobs、listDeliveries、retryJob和cancelJob四项真实管理HTTP映射；cancelJob只从可信op与路径绑定RequestCancel，不提供保护控制占位，公共完整工厂缺项必须拒绝"
           ],
           "errors": [],
           "sideEffects": [],
@@ -8856,6 +9404,7 @@
           "idempotency": "遵循入口原回执或签名游标规则",
           "dependencies": [
             "jobs.WithManagementKey",
+            "jobs.RequestCancel",
             "jobs.ListJobs",
             "jobs.ListDeliveries",
             "jobs.RetryJob",
@@ -9005,7 +9554,7 @@
           "outputs": [],
           "purpose": "只读当前真实站点身份",
           "steps": [
-            "调用site-config:readSiteConfig，消费严格生产方响应，只取真实config.siteId；启动未初始化或不可用失败。"
+            "仅在真实服务读取或待恢复任务需要站点作用域时调用site-config:readSiteConfig，消费严格生产方响应并只取真实config.siteId；未初始化、空值或不可用均失败关闭且不得缓存为默认站点。"
           ],
           "errors": [],
           "sideEffects": [],
@@ -9021,13 +9570,13 @@
         {
           "id": "jobs.NewOwnerRecoveryChecker",
           "name": "NewOwnerRecoveryChecker",
-          "signature": "func NewOwnerRecoveryChecker(config platform.ServiceConfig,key platform.SigningKey,siteID string)(jobs.OwnerRecoveryChecker,error)",
+          "signature": "func NewOwnerRecoveryChecker(config platform.ServiceConfig,key platform.SigningKey,siteID jobs.SiteIDProvider)(jobs.OwnerRecoveryChecker,error)",
           "inputs": [],
           "outputs": [],
           "purpose": "将真实原任务恢复请求送本域已登记owner只读接口",
           "steps": [
             "当前实际只有knowledge:readJobRecovery；未登记的owner返回依赖不可用并保留orphan，不能凭进程存活或错误判断可重试。",
-            "发起新的5秒纯读取op，actor jobs绑定启动权威siteID、输入原root/epoch；不继承scheduler的system站点、不发Create/Cancel或续费许可。",
+            "只有选中真实待恢复任务时才按需取得可信siteID；fresh/未初始化站点不触发启动依赖，取得失败保留orphan。随后发起新的5秒纯读取op，actor jobs绑定该siteID、输入原root/epoch；不继承scheduler的system站点、不发Create/Cancel或续费许可。",
             "结果严格按生产方OwnerRecoveryResult解码并保持实际完整paidResultRefs，检查scope/结果引用，不猜unknown为safeToRetry。"
           ],
           "errors": [],
@@ -9037,6 +9586,7 @@
           "idempotency": "显式延迟属于去重材料，原成功不重新分配时刻",
           "dependencies": [
             "knowledge:readJobRecovery",
+            "site-config:readSiteConfig",
             "platform.NewPayloadValidator"
           ],
           "resources": [],

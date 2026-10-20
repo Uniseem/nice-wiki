@@ -2,12 +2,12 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 59 个：手写 29、UI 4、生成 8、配置 10、迁移 8。函数 120 个：约束 35，参考 85。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 59 个：手写 29、UI 4、生成 8、配置 10、迁移 8。函数 165 个：约束 35，参考 130。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/jobs/internal/validation.go` | 手写 | 验证任务入口；同文件职责限本域以下登记函数 | `jobs.ValidateJobSpec`（参考） |
-| `modules/jobs/internal/queue.go` | 手写 | 持久提交任务；同文件职责限本域以下登记函数 | `jobs.CreateJob`、`jobs.FailJob`、`jobs.InstallStore`（参考）、`jobs.OpenDatabase`（参考）、`jobs.runMigrations`（参考）、`jobs.Store.Close`（参考）、`jobs.createJob`（参考）、`jobs.hashCreateJobInput`（参考）、`jobs.NewQueueHandlers`（参考）、`jobs.currentStore`（参考） |
+| `modules/jobs/internal/queue.go` | 手写 | 持久提交任务；同文件职责限本域以下登记函数 | `jobs.CreateJob`、`jobs.FailJob`、`jobs.InstallStore`（参考）、`jobs.OpenDatabase`（参考）、`jobs.runMigrations`（参考）、`jobs.registerJobsWorkTables`（参考）、`jobs.CloseStore`（参考）、`jobs.createJob`（参考）、`jobs.hashCreateJobInput`（参考）、`jobs.NewQueueHandlers`（参考）、`jobs.ConfigureBackgroundScope`（参考）、`jobs.currentStore`（参考） |
 | `modules/jobs/internal/leases.go` | 手写 | 领取待执行任务；同文件职责限本域以下登记函数 | `jobs.ClaimJob`、`jobs.StartJob`、`jobs.HeartbeatJob`、`jobs.CheckLease`、`jobs.beginLeaseOperation`（参考）、`jobs.close`（参考）、`jobs.readLease`（参考）、`jobs.claimCandidates`（参考）、`jobs.receipt`（参考）、`jobs.saveReceipt`（参考）、`jobs.enqueueState`（参考）、`jobs.leaseLost`（参考）、`jobs.countActiveLeases`（参考）、`jobs.NewLeaseHandlers`（参考） |
 | `modules/jobs/internal/results.go` | 手写 | 提交成功结果；同文件职责限本域以下登记函数 | `jobs.CompleteJob`、`jobs.readJobRecord`（参考）、`jobs.terminalReplay`（参考）、`jobs.saveTerminal`（参考）、`jobs.mergePaidResults`（参考）、`jobs.finishJob`（参考） |
 | `modules/jobs/internal/retry.go` | 手写 | 固定错误重试分类；同文件职责限本域以下登记函数 | `jobs.ClassifyFailure`（参考）、`jobs.ComputeRetryAt`（参考） |
@@ -21,20 +21,20 @@
 | `modules/jobs/internal/event_delivery.go` | 手写 | 至少一次投递；同文件职责限本域以下登记函数 | `jobs.RequeueExpiredDeliveries`（参考）、`jobs.AcknowledgeEvent`、`jobs.ReplayDelivery`、`jobs.readDeliveryRecord`（参考）、`jobs.advanceConsumerOffset`（参考）、`jobs.authorizeDeliveryManagement`（参考） |
 | `modules/jobs/internal/cron.go` | 手写 | 严格解析定时表达式；同文件职责限本域以下登记函数 | `jobs.ValidateCron`（参考）、`jobs.NextFireAt`（参考） |
 | `modules/jobs/internal/schedule_store.go` | 手写 | 创建定时任务；同文件职责限本域以下登记函数 | `jobs.CreateSchedule`、`jobs.UpdateSchedule`、`jobs.ListSchedules`、`jobs.NewScheduleHandlers`（参考） |
-| `modules/jobs/internal/barrier_coordinator.go` | 手写 | 等待全域安全点；同文件职责限本域以下登记函数 | `jobs.CoordinateBarrier` |
-| `modules/jobs/internal/barrier.go` | 手写 | 取得jobs本域屏障；同文件职责限本域以下登记函数 | `jobs.EnterBarrier`、`jobs.ReleaseBarrier` |
+| `modules/jobs/internal/barrier_coordinator.go` | 手写 | 等待全域安全点；同文件职责限本域以下登记函数 | `jobs.CoordinateBarrier`、`jobs.observeBarrier`（参考）、`jobs.observeBrokerTx`（参考）、`jobs.coordinateBarrierRequest`（参考）、`jobs.validateBarrierObserveEvidence`（参考） |
+| `modules/jobs/internal/barrier.go` | 手写 | 取得jobs本域屏障；同文件职责限本域以下登记函数 | `jobs.EnterBarrier`、`jobs.ReleaseBarrier`、`jobs.ReadLeaseRuntime`（参考）、`jobs.ReadReadinessEvidence`（参考）、`jobs.ConfigureSnapshotManager`（参考）、`jobs.ConfigureDataProtectionClient`（参考）、`jobs.snapshotClients`（参考）、`jobs.barrierInput`（参考）、`jobs.toBarrierStatus`（参考）、`jobs.optionalHash`（参考）、`jobs.toObservation`（参考）、`jobs.runBarrierStep`（参考）、`jobs.NewBarrierHandlers`（参考）、`jobs.currentSnapshotManager`（参考）、`jobs.SnapshotDatabase`（参考）、`jobs.SnapshotObserveWork`（参考）、`jobs.SnapshotWatermark`（参考）、`jobs.SnapshotSealWork`（参考）、`jobs.SnapshotResumeWork`（参考）、`jobs.observeSnapshotWorkTx`（参考） |
 | `modules/jobs/internal/retention.go` | 手写 | 清理已完成记录；同文件职责限本域以下登记函数 | `jobs.PurgeExpiredHistory`（参考） |
-| `modules/jobs/internal/snapshot.go` | 手写 | 导出队列与事件一致快照；同文件职责限本域以下登记函数 | `jobs.CreateSnapshot` |
+| `modules/jobs/internal/snapshot.go` | 手写 | 导出队列与事件一致快照；同文件职责限本域以下登记函数 | `jobs.CreateSnapshot`、`jobs.ValidateJobsSnapshotManifest`（参考）、`jobs.ValidateJobsSnapshotManifestValue`（参考）、`jobs.DrainJobs`（参考）、`jobs.MigrateJobsStage`（参考）、`jobs.ValidateJobsStaged`（参考）、`jobs.revokeRestoredEligibility`（参考）、`jobs.runRestoredJobsMigrations`（参考）、`jobs.validateJobsPreservedFacts`（参考）、`jobs.validatePreservedEvents`（参考）、`jobs.JobsStageBudget`（参考）、`jobs.snapshotRefToLifecycle`（参考）、`jobs.snapshotRefFromLifecycle`（参考）、`jobs.optionalString`（参考）、`jobs.NewSnapshotHandlers`（参考） |
 | `modules/jobs/internal/import.go` | 手写 | 验证任务快照；同文件职责限本域以下登记函数 | `jobs.StageSnapshot`、`jobs.DiscardSnapshot` |
 | `modules/jobs/web/src/QueuePanel.vue` | UI | Vue3模块交互：RequestJobCancellation；同文件职责限本域以下登记函数 | `jobs.RequestJobCancellation`（参考） |
 | `modules/jobs/web/src/ScheduleEditor.vue` | UI | Vue3模块交互：SaveSchedule；同文件职责限本域以下登记函数 | `jobs.SaveSchedule`（参考） |
-| `modules/jobs/web/src/progress.ts` | UI | Vue3模块交互：ReconnectProgress；同文件职责限本域以下登记函数 | `jobs.ReconnectProgress`（参考） |
+| `modules/jobs/web/src/progress.ts` | UI | Vue3模块交互：ReconnectProgress；同文件职责限本域以下登记函数 | `jobs.ConfigureProgressAPI`（参考）、`jobs.ReconnectProgress`（参考） |
 | `modules/jobs/internal/http_event_subscription.go` | 手写 | 已登记消费者订阅事件SSE；同文件职责限本域以下登记函数 | `jobs.SubscribeEvents`、`jobs.Next`（参考）、`jobs.LastID`（参考）、`jobs.Close`（参考）、`jobs.nextDelivery`（参考） |
 | `modules/jobs/config/defaults.json` | 配置 | 首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/jobs/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
 | `modules/jobs/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005）作为运行时唯一来源，校验编号从1起连续 | `jobs.All`（参考） |
 | `modules/jobs/cmd/jobs/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `jobs.main` |
-| `modules/jobs/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `jobs.BuildApplication` |
+| `modules/jobs/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `jobs.BuildApplication`、`jobs.restoreOpenedDataEpoch`（参考）、`jobs.registerActivation`（参考）、`jobs.newRuntimeClient`（参考）、`jobs.ensureDataLayout`（参考）、`jobs.loadTrustAnchors`（参考）、`jobs.loadSigningKey`（参考） |
 | `modules/jobs/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `jobs.Serve`、`jobs.Shutdown`、`jobs.Health`、`jobs.Ready` |
 | `modules/jobs/go.mod` | 配置 | 独立module nice-wiki/modules/jobs；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/jobs/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |

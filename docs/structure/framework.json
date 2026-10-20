@@ -2479,6 +2479,16 @@
       "purpose": "本域依赖装配和完整HTTP路由绑定；不共享存储"
     },
     {
+      "path": "modules/jobs/internal/barrier.go",
+      "kind": "handwritten",
+      "purpose": "jobs本域屏障、SnapshotManager装配与真实工作水位"
+    },
+    {
+      "path": "modules/jobs/internal/barrier_coordinator.go",
+      "kind": "handwritten",
+      "purpose": "全域屏障协调与复用同一SQLite事务的broker观察"
+    },
+    {
       "path": "modules/jobs/internal/cancellation.go",
       "kind": "source",
       "purpose": "请求取消任务；同文件职责限本域以下登记函数"
@@ -2539,6 +2549,11 @@
       "purpose": "任务进度SSE；同文件职责限本域以下登记函数"
     },
     {
+      "path": "modules/jobs/internal/import.go",
+      "kind": "handwritten",
+      "purpose": "jobs恢复快照暂存、校验与删除入口"
+    },
+    {
       "path": "modules/jobs/internal/leases.go",
       "kind": "source",
       "purpose": "owner/worker租约、持久fence与领取续租回执"
@@ -2559,6 +2574,11 @@
       "purpose": "读取管理任务状态；同文件职责限本域以下登记函数"
     },
     {
+      "path": "modules/jobs/internal/retention.go",
+      "kind": "handwritten",
+      "purpose": "jobs历史记录保留清理与真实截止水位"
+    },
+    {
       "path": "modules/jobs/internal/queue.go",
       "kind": "handwritten",
       "purpose": "任务提交、去重、屏障检查与队列持久化"
@@ -2577,6 +2597,16 @@
       "path": "modules/jobs/internal/schedule_store.go",
       "kind": "handwritten",
       "purpose": "调度记录的创建、更新、列表和到期水位"
+    },
+    {
+      "path": "modules/jobs/internal/snapshot.go",
+      "kind": "handwritten",
+      "purpose": "jobs队列与事件一致快照、迁移及恢复事实校验"
+    },
+    {
+      "path": "modules/jobs/internal/snapshot_archive.go",
+      "kind": "handwritten",
+      "purpose": "jobs快照归档读取与真实归档库存校验"
     },
     {
       "path": "modules/jobs/internal/scheduler.go",
@@ -2642,6 +2672,46 @@
       "path": "modules/jobs/progress.json",
       "kind": "contract",
       "purpose": "jobs逐文件/函数实现、检查和交接台账；初始未实现"
+    },
+    {
+      "path": "modules/jobs/web/index.html",
+      "kind": "implementation",
+      "purpose": "jobs独立UI入口；生产由portal挂载且不含业务数据或secret"
+    },
+    {
+      "path": "modules/jobs/web/package.json",
+      "kind": "implementation",
+      "purpose": "jobs独立UI构建与类型检查脚本及本域前端依赖"
+    },
+    {
+      "path": "modules/jobs/web/src/QueuePanel.vue",
+      "kind": "implementation",
+      "purpose": "jobs队列管理界面；仅经portal同源API调用"
+    },
+    {
+      "path": "modules/jobs/web/src/ScheduleEditor.vue",
+      "kind": "implementation",
+      "purpose": "jobs调度编辑界面；仅经portal同源API调用"
+    },
+    {
+      "path": "modules/jobs/web/src/main.ts",
+      "kind": "implementation",
+      "purpose": "jobs独立UI入口装配"
+    },
+    {
+      "path": "modules/jobs/web/src/progress.ts",
+      "kind": "implementation",
+      "purpose": "jobs进度SSE前端读取与重连"
+    },
+    {
+      "path": "modules/jobs/web/tsconfig.json",
+      "kind": "implementation",
+      "purpose": "jobs独立UI严格TypeScript配置"
+    },
+    {
+      "path": "modules/jobs/web/vite.config.ts",
+      "kind": "implementation",
+      "purpose": "jobs独立UI Vite入口与构建配置"
     },
     {
       "path": "modules/jobs/web/src/gen/api.gen.ts",

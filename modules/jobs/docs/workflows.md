@@ -8,7 +8,7 @@
 
 恢复管理（ADR0003）：本域control区（屏障、恢复日志）不随业务恢复替换。stage/discard只接受data-protection服务身份与superadmin委托；runtime进入restore_switching或restore_rolling_back后，本服务安全退出并由进程守护重启，启动时换入或换回active目录并向site-config登记回执。
 
-worker拉取映射：public-site.render-publication→public-site PrewarmPublication；analytics.aggregate-hourly/daily/usage/reconcile→AggregateHourly/AggregateDaily/AggregateUsage/ReconcileUsage；data-protection.backup/restore/mirror→CollectSnapshots/PrepareAllDomains+ActivateAllDomains/BuildMirror；各AI任务owner按根contracts/ai-tasks.json和本域implementation函数ID映射。owner主动claim/start/heartbeat/complete/fail，jobs不调影子execute-task接口。
+worker拉取映射：public-site.render-publication→public-site PrewarmPublication；analytics.aggregate-hourly/daily/usage/reconcile→AggregateHourly/AggregateDaily/AggregateUsage/ReconcileUsage；data-protection.backup/restore分别由owner worker执行`data-protection.ExecuteBackup/ExecuteRestore`，内部再调用归档与恢复零件；data-protection.mirror当前未登记为jobType，不伪造jobs worker入口；各AI任务owner按根contracts/ai-tasks.json和本域implementation函数ID映射。owner主动claim/start/heartbeat/complete/fail，jobs不调影子execute-task接口。
 
 状态迁移：
 
@@ -34,9 +34,8 @@ lease fencingToken 单调增加；计数保存在job记录且不随lease释放�
 | `analytics.aggregate-daily` | `analytics` | `analytics.AggregateDaily` |
 | `analytics.aggregate-usage` | `analytics` | `analytics.AggregateUsage` |
 | `analytics.reconcile-usage` | `analytics` | `analytics.ReconcileUsage` |
-| `data-protection.backup` | `data-protection` | `data-protection.CollectSnapshots`, `data-protection.FinalizeBackup` |
-| `data-protection.restore` | `data-protection` | `data-protection.PrepareAllDomains`, `data-protection.WriteRestoreDecision`, `data-protection.ActivateAllDomains` |
-| `data-protection.mirror` | `data-protection` | `data-protection.BuildMirror` |
+| `data-protection.backup` | `data-protection` | `data-protection.ExecuteBackup` |
+| `data-protection.restore` | `data-protection` | `data-protection.ExecuteRestore` |
 
 AI任务归属及上限由根contracts/ai-tasks.json唯一登记；各AI owner的工作流登记其函数ID。jobs只校验目录，不能嵌入领域算法或发影子execute-task请求。
 

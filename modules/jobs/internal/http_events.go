@@ -67,6 +67,18 @@ func writeEventResponse(w http.ResponseWriter, requestID platform.Identifier, re
 // NewManagementHandlers 只交统一完整ServiceHandler；不自行验签或重做schema。
 func NewManagementHandlers(key platform.SigningKey) map[string]http.Handler {
 	return map[string]http.Handler{
+		"cancelJob": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var body struct{}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				writeEventResponse(w, op.RequestID, nil, platform.NewError(platform.CodeValidation, false, "取消请求正文不可读"), 0)
+				return
+			}
+			result, err := RequestCancel(r.Context(), op, RequestCancelInput{
+				JobID: r.PathValue("jobId"), Actor: op.Actor, DataEpoch: op.DataEpoch,
+			})
+			writeEventResponse(w, op.RequestID, result, err, http.StatusOK)
+		}),
 		"listJobs": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
