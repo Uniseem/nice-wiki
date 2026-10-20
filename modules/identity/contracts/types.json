@@ -2269,6 +2269,12 @@
       "x-go-type": "*Store",
       "description": "仅identity进程内使用的active/control存储句柄"
     },
+    "SiteConfigClient": {
+      "type": "null",
+      "x-internal": true,
+      "x-go-type": "*gen.SiteConfigClient",
+      "description": "identity生成目录的site-config RegisterActivation客户端；仅进程内恢复装配使用，不序列化"
+    },
     "RestoreArchiveClient": {
       "type": "null",
       "x-internal": true,
