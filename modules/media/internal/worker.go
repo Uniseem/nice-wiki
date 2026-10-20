@@ -213,22 +213,22 @@ const referenceChangedEvent = "content.resources.changed"
 type resourceReferencesChangedPayloadV2 struct {
 	References        []gen.AssetReference `json:"references"`
 	SourceService     string               `json:"sourceService"`
-	SourceOperationId Identifier            `json:"sourceOperationId"`
-	SiteId            Identifier            `json:"siteId"`
-	SourceObjectId    Identifier            `json:"sourceObjectId"`
-	SourceRevisionId  Identifier            `json:"sourceRevisionId"`
+	SourceOperationId Identifier           `json:"sourceOperationId"`
+	SiteId            Identifier           `json:"siteId"`
+	SourceObjectId    Identifier           `json:"sourceObjectId"`
+	SourceRevisionId  Identifier           `json:"sourceRevisionId"`
 	SourceVersion     gen.Revision         `json:"sourceVersion"`
 	ReferenceDigest   Hash                 `json:"referenceDigest"`
 }
 
 // ConsumeEventsInput 由受信启动链装配，不接受HTTP或用户输入伪造客户端与运行权威。
 type ConsumeEventsInput struct {
-	Client        platform.EventConsumerClient                              `json:"-"`
-	Runtime       func(context.Context) (platform.RuntimeView, error)        `json:"-"`
-	AdmitBatch    platform.WorkAdmission                                    `json:"-"`
-	AdmitDelivery platform.WorkAdmission                                    `json:"-"`
-	ConsumerID    string                                                     `json:"consumerId"`
-	MaxInFlight   int                                                        `json:"maxInFlight"`
+	Client        platform.EventConsumerClient                        `json:"-"`
+	Runtime       func(context.Context) (platform.RuntimeView, error) `json:"-"`
+	AdmitBatch    platform.WorkAdmission                              `json:"-"`
+	AdmitDelivery platform.WorkAdmission                              `json:"-"`
+	ConsumerID    string                                              `json:"consumerId"`
+	MaxInFlight   int                                                 `json:"maxInFlight"`
 }
 
 type ConsumeEventsResult = platform.ConsumerRunResult

@@ -1,3 +1,7 @@
+# 2026-10-21 B1 content→media pipeline194
+
+独立 B1 集成分支以 traffic green 记录基线 `b44e13143094b1832508a43595c95e8ebd84b5d2` 建立，按 content `27344e0f8dc8b35258699ce53fea769c654b404d`、media `151858e1791f4094ae92a0b880c5040a9e959dfc` 顺序合入。源码/合同候选 `cb72d741d9d6192757b3a9eee7a40f78e3c4d9a0` 的 GitLab pipeline194（IID151）生成801、foundation802、content-media/traffic803、其余Go804、前端805全绿。生成801原始补丁137347字节，SHA-256 `691215cff5b59b1c4fb798aa3ee70d4ae63fd533b960a3bd3bce7d2606581183`，已按 Runner 原件应用；当前新候选待零生成漂移复检。未推 GitHub/main，未将业务状态标 verified/accepted。
+
 # 2026-10-20 R1恢复候选
 
 用户已授权恢复 R1 源码实施；本目录记录候选状态，不自动推送到任一远端。
