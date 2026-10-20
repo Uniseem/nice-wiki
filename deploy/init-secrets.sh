@@ -31,5 +31,6 @@ done
 # 容器里的服务用户（uid 与宿主机不同）要能读到挂载进去的密钥文件：文件放开读，靠顶层目录 0700 挡住宿主机上的其他用户。
 find deploy/secrets -type d -exec chmod 755 {} +
 find deploy/secrets -type f -exec chmod 644 {} +
+chmod 600 deploy/secrets/model-gateway/master-key deploy/secrets/data-protection/master-key
 chmod 700 deploy/secrets
 echo "密钥已生成；下一步：cp deploy/.env.example deploy/.env 并修改域名，然后 docker compose -f deploy/docker-compose.yml up -d --build"

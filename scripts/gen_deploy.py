@@ -47,12 +47,12 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/{slug} ./cmd/{slug}
 
 FROM alpine:3.20
 RUN adduser -D -u {uid} {slug} && mkdir -p /data/{slug} && chown {uid}:{uid} /data/{slug}
-COPY --from=build /out/{slug} /{slug}
+COPY --from=build /out/{slug} /usr/local/bin/{slug}
 {copy_web}USER {uid}:{uid}
 EXPOSE {port}
 VOLUME ["/data/{slug}"]
 WORKDIR /config
-ENTRYPOINT ["/{slug}"]
+ENTRYPOINT ["/usr/local/bin/{slug}"]
 CMD ["--config", "/config/{slug}.json"]
 """
 
@@ -82,6 +82,9 @@ def compose():
         lines += [f"  {slug}:", f"    build:", "      context: ..", f"      dockerfile: modules/{slug}/Dockerfile",
                   f"    image: nice-wiki/{slug}:${{NW_VERSION:-dev}}", "    restart: unless-stopped", "    networks: [internal]",
                   "    environment:", "      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}"]
+        if slug in ("model-gateway", "data-protection"):
+            # 主密钥文件要求权限 0600（只有属主可读），容器里的普通服务用户读不到，这两个服务以 root 运行。
+            lines.insert(len(lines) - 3, '    user: "0:0"')
         if slug in ("portal", "identity", "site-config"):
             lines += ["      NW_ALLOW_LOCAL_HTTP: \"false\"", "      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}" if slug != "site-config" else "      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}"]
         lines += ["    volumes:", f"      - ./config/{slug}.json:/config/{slug}.json:ro",
@@ -171,6 +174,7 @@ done
 # 容器里的服务用户（uid 与宿主机不同）要能读到挂载进去的密钥文件：文件放开读，靠顶层目录 0700 挡住宿主机上的其他用户。
 find deploy/secrets -type d -exec chmod 755 {} +
 find deploy/secrets -type f -exec chmod 644 {} +
+chmod 600 deploy/secrets/model-gateway/master-key deploy/secrets/data-protection/master-key
 chmod 700 deploy/secrets
 echo "密钥已生成；下一步：cp deploy/.env.example deploy/.env 并修改域名，然后 docker compose -f deploy/docker-compose.yml up -d --build"
 """)

@@ -8,10 +8,10 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/knowledge ./cmd/knowledge
 
 FROM alpine:3.20
 RUN adduser -D -u 10007 knowledge && mkdir -p /data/knowledge && chown 10007:10007 /data/knowledge
-COPY --from=build /out/knowledge /knowledge
+COPY --from=build /out/knowledge /usr/local/bin/knowledge
 USER 10007:10007
 EXPOSE 8106
 VOLUME ["/data/knowledge"]
 WORKDIR /config
-ENTRYPOINT ["/knowledge"]
+ENTRYPOINT ["/usr/local/bin/knowledge"]
 CMD ["--config", "/config/knowledge.json"]

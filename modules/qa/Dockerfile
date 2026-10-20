@@ -8,10 +8,10 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/qa ./cmd/qa
 
 FROM alpine:3.20
 RUN adduser -D -u 10008 qa && mkdir -p /data/qa && chown 10008:10008 /data/qa
-COPY --from=build /out/qa /qa
+COPY --from=build /out/qa /usr/local/bin/qa
 USER 10008:10008
 EXPOSE 8107
 VOLUME ["/data/qa"]
 WORKDIR /config
-ENTRYPOINT ["/qa"]
+ENTRYPOINT ["/usr/local/bin/qa"]
 CMD ["--config", "/config/qa.json"]

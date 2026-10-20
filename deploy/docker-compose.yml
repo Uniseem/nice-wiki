@@ -121,6 +121,7 @@ services:
       dockerfile: modules/model-gateway/Dockerfile
     image: nice-wiki/model-gateway:${NW_VERSION:-dev}
     restart: unless-stopped
+    user: "0:0"
     networks: [internal]
     environment:
       GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
@@ -252,6 +253,7 @@ services:
       dockerfile: modules/data-protection/Dockerfile
     image: nice-wiki/data-protection:${NW_VERSION:-dev}
     restart: unless-stopped
+    user: "0:0"
     networks: [internal]
     environment:
       GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}

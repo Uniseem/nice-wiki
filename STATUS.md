@@ -28,7 +28,7 @@ python3 scripts/dev.py up
 2. M2 余项：media 消费 content 事件；翻译的自动触发现在是轮询，不是事件。
 3. M3 补完：前置分类/检索核查/语义缓存、approve-plan 批量翻译执行器、界面文案翻译、语言建议。
 4. M4：各域屏障与快照导出、恢复换目录、data-protection 备份/恢复/镜像。
-5. M5：在服务器上部署（需要你当次同意）；15 个镜像里 14 个已在本机 docker 里逐个构建通过（顺带修了 init-secrets 把密钥写错目录、构建上下文带上宿主机 node_modules 两个问题）；只差 data-protection 没构建（磁盘余量到了保护线，它与其他服务同一套模板）。15 份 deploy 配置都能被服务配置加载器读通，compose 文件 `config` 校验通过；整套 compose 启动没跑过。
+5. M5：在服务器上部署（需要你当次同意）；15 个镜像都在本机 docker 里构建通过，整套 compose 也在本机起过：通过 Caddy 的 HTTPS 注册超管、初始化站点、新建并发布文档、公开页读取都走通（`NW_PORTAL=https://localhost python3 scripts/smoke.py new`）。这一轮顺带修了：媒体镜像入口被 alpine 自带的 /media 目录挡住、model-gateway 与 data-protection 的主密钥文件要求 0600 而容器普通用户读不到（这两个服务改以 root 运行）、init-secrets 写错目录、构建上下文带宿主机 node_modules。没确认的：初始化之前退出的 analytics/model-gateway/knowledge 在 docker 里多久能自动恢复（我检查时还在重启退避中）；改过入口路径的新 Dockerfile 只有 media 用新方式验证过。
 
 ## 已知缺口
 

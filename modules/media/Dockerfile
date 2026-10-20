@@ -8,10 +8,10 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/media ./cmd/media
 
 FROM alpine:3.20
 RUN adduser -D -u 10005 media && mkdir -p /data/media && chown 10005:10005 /data/media
-COPY --from=build /out/media /media
+COPY --from=build /out/media /usr/local/bin/media
 USER 10005:10005
 EXPOSE 8104
 VOLUME ["/data/media"]
 WORKDIR /config
-ENTRYPOINT ["/media"]
+ENTRYPOINT ["/usr/local/bin/media"]
 CMD ["--config", "/config/media.json"]

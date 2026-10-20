@@ -8,10 +8,10 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/traffic-guard ./cmd/traffic-guard
 
 FROM alpine:3.20
 RUN adduser -D -u 10011 traffic-guard && mkdir -p /data/traffic-guard && chown 10011:10011 /data/traffic-guard
-COPY --from=build /out/traffic-guard /traffic-guard
+COPY --from=build /out/traffic-guard /usr/local/bin/traffic-guard
 USER 10011:10011
 EXPOSE 8110
 VOLUME ["/data/traffic-guard"]
 WORKDIR /config
-ENTRYPOINT ["/traffic-guard"]
+ENTRYPOINT ["/usr/local/bin/traffic-guard"]
 CMD ["--config", "/config/traffic-guard.json"]

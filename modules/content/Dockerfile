@@ -8,10 +8,10 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/content ./cmd/content
 
 FROM alpine:3.20
 RUN adduser -D -u 10004 content && mkdir -p /data/content && chown 10004:10004 /data/content
-COPY --from=build /out/content /content
+COPY --from=build /out/content /usr/local/bin/content
 USER 10004:10004
 EXPOSE 8103
 VOLUME ["/data/content"]
 WORKDIR /config
-ENTRYPOINT ["/content"]
+ENTRYPOINT ["/usr/local/bin/content"]
 CMD ["--config", "/config/content.json"]

@@ -41,7 +41,7 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/portal ./cmd/portal
 
 FROM alpine:3.20
 RUN adduser -D -u 10000 portal && mkdir -p /data/portal && chown 10000:10000 /data/portal
-COPY --from=build /out/portal /portal
+COPY --from=build /out/portal /usr/local/bin/portal
 COPY --from=web /out/web /web
 COPY modules/portal/config/routes.json /config/routes.json
 ENV NW_WEB_DIR=/web
@@ -49,5 +49,5 @@ USER 10000:10000
 EXPOSE 8080
 VOLUME ["/data/portal"]
 WORKDIR /config
-ENTRYPOINT ["/portal"]
+ENTRYPOINT ["/usr/local/bin/portal"]
 CMD ["--config", "/config/portal.json"]

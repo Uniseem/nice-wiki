@@ -8,10 +8,10 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/identity ./cmd/identity
 
 FROM alpine:3.20
 RUN adduser -D -u 10002 identity && mkdir -p /data/identity && chown 10002:10002 /data/identity
-COPY --from=build /out/identity /identity
+COPY --from=build /out/identity /usr/local/bin/identity
 USER 10002:10002
 EXPOSE 8101
 VOLUME ["/data/identity"]
 WORKDIR /config
-ENTRYPOINT ["/identity"]
+ENTRYPOINT ["/usr/local/bin/identity"]
 CMD ["--config", "/config/identity.json"]
