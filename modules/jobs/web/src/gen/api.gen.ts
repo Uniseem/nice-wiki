@@ -984,7 +984,7 @@ export interface components {
             owner: string;
             sealProofHash: components["schemas"]["Hash"];
         };
-        /** @description 14域按owner排序唯一全覆盖，broker前后同水位且事件pending/lease=0；13非jobs先封口。jobs最终proof保留同一观察与broker水位并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。 */
+        /** @description 14域按owner排序唯一全覆盖；协调器必须先提供可被最终复用的broker稳定零基础观察（broker前后同水位且pending/lease为0）。非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，不在本域封口后等待第二次broker回执；jobs最后重新读取真实broker，确认仍等于该基础观察，并核全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。 */
         SnapshotSealProof: {
             barrierId: components["schemas"]["Identifier"];
             dataEpoch: components["schemas"]["Identifier"];

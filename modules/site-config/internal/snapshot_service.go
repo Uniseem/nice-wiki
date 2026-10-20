@@ -145,22 +145,24 @@ func NewSnapshotManager(dataRoot string, openedEpoch platform.Identifier, runtim
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域快照回调未完整装配")
 	}
 	manager, err := lifecycle.NewSnapshotManager(lifecycle.SnapshotConfig{
-		Owner:           "site-config",
-		DataRoot:        dataRoot,
-		OpenedDataEpoch: string(openedEpoch),
-		Runtime:         runtime,
+		Owner:            "site-config",
+		DataRoot:         dataRoot,
+		OpenedDataEpoch:  string(openedEpoch),
+		Runtime:          runtime,
 		ValidateManifest: validateSiteSnapshotManifest,
-		BeginDrain:      func(context.Context, *lifecycle.SnapshotCleanup) error { return nil },
+		BeginDrain:       func(context.Context, *lifecycle.SnapshotCleanup) error { return nil },
 		Drain: func(ctx context.Context, cleanup *lifecycle.SnapshotCleanup) error {
 			if err := relayDrain(ctx); err != nil {
 				return err
 			}
 			return drainSiteConfigReferences(ctx, cleanup, runtime, store)
 		},
-		Watermark:       func(ctx context.Context) (int64, error) { return siteConfigWatermark(ctx, store) },
-		ObserveWork:     func(ctx context.Context) (lifecycle.SnapshotWorkState, error) { return observeSiteWork(ctx, store) },
-		SealWork:        func(ctx context.Context, work lifecycle.SnapshotWorkState, proofHash string) error { return sealSiteWork(ctx, store, work, proofHash) },
-		ResumeWork:      func(ctx context.Context, proofHash string) error { return resumeSiteWork(ctx, store, proofHash) },
+		Watermark:   func(ctx context.Context) (int64, error) { return siteConfigWatermark(ctx, store) },
+		ObserveWork: func(ctx context.Context) (lifecycle.SnapshotWorkState, error) { return observeSiteWork(ctx, store) },
+		SealWork: func(ctx context.Context, work lifecycle.SnapshotWorkState, proofHash string) error {
+			return sealSiteWork(ctx, store, work, proofHash)
+		},
+		ResumeWork:       func(ctx context.Context, proofHash string) error { return resumeSiteWork(ctx, store, proofHash) },
 		VerifyGlobalSeal: verifyGlobalSeal,
 		AuthorizeCleanupOrigin: func(_ context.Context, op platform.OperationContext) error {
 			if op.CallerService != "site-config" || op.Actor.Kind != "service" || op.Actor.SubjectID != "site-config" {
@@ -168,10 +170,18 @@ func NewSnapshotManager(dataRoot string, openedEpoch platform.Identifier, runtim
 			}
 			return nil
 		},
-		Capture:         func(ctx context.Context, cut lifecycle.SnapshotSafeCut, workspace string, input lifecycle.SnapshotExportInput) (lifecycle.DomainSnapshotManifest, error) { return captureSiteSnapshot(ctx, store, cut, workspace, input) },
-		MigrateStage:    func(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error { return migrateSiteStage(ctx, manifest, targetEpoch, root) },
-		ValidateStaged:  func(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error { return validateSiteStage(ctx, manifest, targetEpoch, root) },
-		StageBudget:     func(ctx context.Context, manifest lifecycle.DomainSnapshotManifest) (int64, error) { return siteStageBudget(ctx, manifest) },
+		Capture: func(ctx context.Context, cut lifecycle.SnapshotSafeCut, workspace string, input lifecycle.SnapshotExportInput) (lifecycle.DomainSnapshotManifest, error) {
+			return captureSiteSnapshot(ctx, store, cut, workspace, input)
+		},
+		MigrateStage: func(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error {
+			return migrateSiteStage(ctx, manifest, targetEpoch, root)
+		},
+		ValidateStaged: func(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error {
+			return validateSiteStage(ctx, manifest, targetEpoch, root)
+		},
+		StageBudget: func(ctx context.Context, manifest lifecycle.DomainSnapshotManifest) (int64, error) {
+			return siteStageBudget(ctx, manifest)
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -230,7 +240,10 @@ func validateSiteSnapshotManifest(raw []byte) error {
 	return nil
 }
 
-type byteReader struct{ data []byte; offset int }
+type byteReader struct {
+	data   []byte
+	offset int
+}
 
 func bytesReader(data []byte) *byteReader { return &byteReader{data: data} }
 func (r *byteReader) Read(p []byte) (int, error) {

@@ -45,12 +45,12 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 		return SnapshotArchiveReadResult{}, err
 	}
 	stream, err := manager.OpenArchive(ctx, string(input.SnapshotID), platform.ObjectRef{
-		Owner:    "identity",
-		ObjectID: string(input.SnapshotID),
-		Version:  1,
-		SHA256:   input.SHA256,
+		Owner:     "identity",
+		ObjectID:  string(input.SnapshotID),
+		Version:   1,
+		SHA256:    input.SHA256,
 		MediaType: "application/x-tar",
-		ByteSize: input.ByteSize,
+		ByteSize:  input.ByteSize,
 	})
 	if err != nil {
 		return SnapshotArchiveReadResult{}, err

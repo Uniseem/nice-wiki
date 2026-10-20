@@ -298,11 +298,6 @@ func (c *SiteConfigClient) ReadRuntimeState(ctx context.Context) (json.RawMessag
 	return c.do(ctx, http.MethodGet, "/v1/runtime-state", nil, "")
 }
 
-// RegisterActivation POST /v1/runtime-state/activations（site-config:registerActivation）。
-func (c *SiteConfigClient) RegisterActivation(ctx context.Context, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPost, "/v1/runtime-state/activations", body, "")
-}
-
 // TrafficGuardClient 调用traffic-guard服务（自动附服务断言）。
 type TrafficGuardClient struct{ *producerClient }
 

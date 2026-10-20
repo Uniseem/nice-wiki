@@ -161,12 +161,12 @@ func ListResourceReferences(ctx context.Context, op platform.OperationContext, i
 		filter = string(*input.AssetID)
 	}
 	binding, err := platform.CanonicalJSON(struct {
-		Caller    string         `json:"caller"`
-		Actor     string         `json:"actor"`
-		SiteID    string         `json:"siteId"`
-		DataEpoch string         `json:"dataEpoch"`
-		AssetID   string         `json:"assetId"`
-		Limit     int            `json:"limit"`
+		Caller    string `json:"caller"`
+		Actor     string `json:"actor"`
+		SiteID    string `json:"siteId"`
+		DataEpoch string `json:"dataEpoch"`
+		AssetID   string `json:"assetId"`
+		Limit     int    `json:"limit"`
 	}{op.CallerService, op.Actor.SubjectID, siteID, op.DataEpoch, filter, limit})
 	if err != nil {
 		return ListResourceReferencesResult{}, err

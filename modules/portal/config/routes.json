@@ -1992,6 +1992,16 @@
       "streaming": false
     },
     {
+      "method": "GET",
+      "path": "/v1/resource-references",
+      "owner": "site-config",
+      "operationId": "listResourceReferences",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
       "method": "POST",
       "path": "/v1/restores",
       "owner": "data-protection",

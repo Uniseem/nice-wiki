@@ -103,9 +103,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 // 并用服务身份签名/登记activation receipt；不从私有stage文件解析字段，
 // 不续用过期proof或伪造superadmin授权。
 type activationReceiptRequest struct {
-	ExpectedRevision platform.Revision      `json:"expectedRevision"`
-	RestoreID        platform.Identifier    `json:"restoreId"`
-	Receipt           activationReceiptBody `json:"receipt"`
+	ExpectedRevision platform.Revision     `json:"expectedRevision"`
+	RestoreID        platform.Identifier   `json:"restoreId"`
+	Receipt          activationReceiptBody `json:"receipt"`
 }
 
 type activationReceiptBody struct {
@@ -113,9 +113,9 @@ type activationReceiptBody struct {
 	Module          string              `json:"module"`
 	RecordedAt      platform.Timestamp  `json:"recordedAt"`
 	Signature       string              `json:"signature"`
-	StageID         platform.Identifier  `json:"stageId"`
+	StageID         platform.Identifier `json:"stageId"`
 	State           string              `json:"state"`
-	TargetDataEpoch platform.Identifier  `json:"targetDataEpoch"`
+	TargetDataEpoch platform.Identifier `json:"targetDataEpoch"`
 }
 
 func restoreIdentityAfterSwap(ctx context.Context, dataRoot string, runtime platform.RuntimeView, swap platform.SwapResult, store *identity.Store, key platform.SigningKey, activationClient *gen.SiteConfigClient) (platform.Identifier, error) {
@@ -215,10 +215,10 @@ func restoreIdentityAfterSwap(ctx context.Context, dataRoot string, runtime plat
 	var activationResult struct {
 		State struct {
 			ActivationReceipts []activationReceiptBody `json:"activationReceipts"`
-			DataEpoch          platform.Identifier    `json:"dataEpoch"`
-			Phase              string                 `json:"phase"`
-			RestoreID          *platform.Identifier   `json:"restoreId"`
-			TargetDataEpoch    *platform.Identifier   `json:"targetDataEpoch"`
+			DataEpoch          platform.Identifier     `json:"dataEpoch"`
+			Phase              string                  `json:"phase"`
+			RestoreID          *platform.Identifier    `json:"restoreId"`
+			TargetDataEpoch    *platform.Identifier    `json:"targetDataEpoch"`
 		} `json:"state"`
 	}
 	if json.Unmarshal(rawResult, &activationResult) != nil {

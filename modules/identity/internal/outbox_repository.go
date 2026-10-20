@@ -220,12 +220,12 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 	}
 
 	result, err := outbox.RunRelayBatch(relayCtx, runtime.store, runtime.publisher, platform.RelayConfig{
-		BatchLimit:      input.BatchLimit,
-		PollMillis:      1000,
-		AdmitBatch:      runtime.snapshot.AdmitEventBatch,
-		BindEventScope:  runtime.snapshot.BindOutboxEventScope,
-		Runtime:         runtime.siteConfig.ReadRuntimeState,
-		WriteWindow:     runtime.snapshot.WriteWindow,
+		BatchLimit:     input.BatchLimit,
+		PollMillis:     1000,
+		AdmitBatch:     runtime.snapshot.AdmitEventBatch,
+		BindEventScope: runtime.snapshot.BindOutboxEventScope,
+		Runtime:        runtime.siteConfig.ReadRuntimeState,
+		WriteWindow:    runtime.snapshot.WriteWindow,
 	})
 	if err != nil {
 		return RelayOutboxResult{}, err

@@ -219,9 +219,9 @@ func NewSnapshotManager(store *Store, dataRoot string, openedEpoch platform.Iden
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "身份快照装配依赖不完整")
 	}
 	return lifecycle.NewSnapshotManager(lifecycle.SnapshotConfig{
-		Owner:            "identity",
-		DataRoot:         dataRoot,
-		OpenedDataEpoch:  string(openedEpoch),
+		Owner:           "identity",
+		DataRoot:        dataRoot,
+		OpenedDataEpoch: string(openedEpoch),
 		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
 			return lifecycle.ReadRuntime(ctx, runtime)
 		},
@@ -253,9 +253,9 @@ func NewSnapshotManager(store *Store, dataRoot string, openedEpoch platform.Iden
 		Capture: func(ctx context.Context, cut lifecycle.SnapshotSafeCut, workspace string, input lifecycle.SnapshotExportInput) (lifecycle.DomainSnapshotManifest, error) {
 			return captureIdentitySnapshot(ctx, store, dataRoot, cut, workspace, input)
 		},
-		MigrateStage:    migrateIdentityStage,
-		ValidateStaged:  validateIdentityStaged,
-		StageBudget:     identityStageBudget,
+		MigrateStage:   migrateIdentityStage,
+		ValidateStaged: validateIdentityStaged,
+		StageBudget:    identityStageBudget,
 	})
 }
 

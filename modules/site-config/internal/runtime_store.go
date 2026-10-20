@@ -51,12 +51,12 @@ var requiredRuntimeModules = []string{
 
 // RuntimeStore 是本域控制库句柄；同一进程仅允许一个活动实例。
 type RuntimeStore struct {
-	db                       *sql.DB
-	activationMu             sync.RWMutex
-	activationAnchors        platform.TrustAnchors
-	activationVerifierReady  bool
-	closeOnce                sync.Once
-	closeErr                 error
+	db                      *sql.DB
+	activationMu            sync.RWMutex
+	activationAnchors       platform.TrustAnchors
+	activationVerifierReady bool
+	closeOnce               sync.Once
+	closeErr                error
 }
 
 var activeStore struct {

@@ -47,3 +47,5 @@ traffic-guard 已按本域静态审查结果接入 clean HEAD `85fc4639b34d0d321
 失败精确记录：foundation job 727 在 `modules/identity` 报 `ReadBarrierStatus undefined`、broker 字段 `int` 到 `int64` 不兼容、`outbox.RegisterWorkTable undefined`；content-media job 728 在 `modules/traffic-guard/internal/snapshot_archive.go:47` 报 `ModuleSlug undefined`。pipeline 状态为 failed。原始SHA不修改、不重推。
 
 本地窄修已写入工作树但尚未推送：补公共 `ReadBarrierStatus`、`outbox.RegisterWorkTable`，修identity四处类型转换，traffic-guard使用固定本域slug；后续CI需用户另行授权新SHA。本机未运行Go/build/vet/test/pnpm/make check。
+
+job726原始`generated.patch`已重新下载并应用到本地follow-up；仅排除两个已窄修源码路径，其他artifact均由CI原patch写入，包含gofmt/gen/docs/路由生成，无lock或私有路径。应用后JSON与`git diff --check`通过，`make privacy`通过；结构摘要检查失败203项，具体为新增合同类型未登记、重复函数/未来文件、函数可达性与handoff摘要过期，未以本次9b候选名义修复或重推。

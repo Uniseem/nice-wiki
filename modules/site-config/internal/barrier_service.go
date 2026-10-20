@@ -13,7 +13,7 @@ import (
 
 // SnapshotRuntime 是BuildApplication注入的本域快照端口；不承载跨域协调算法。
 type SnapshotRuntime struct {
-	API           lifecycle.SnapshotAPI
+	API            lifecycle.SnapshotAPI
 	RestoreArchive func(context.Context, string, string) (io.ReadCloser, error)
 }
 

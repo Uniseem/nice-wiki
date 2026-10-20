@@ -65,7 +65,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: openedEpoch,
-		AdmitBusiness: snapshotRuntime.API.AdmitBusiness,
+		AdmitBusiness:  snapshotRuntime.API.AdmitBusiness,
 		AllowedCallers: serviceCallers(),
 		ServiceActorCallers: map[string][]string{
 			"readSiteConfig":            {"portal", "public-site", "content", "media", "localization", "identity", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs", "data-protection"},
@@ -143,11 +143,11 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 		"transitionRuntimeState":   serveJSON(siteconfig.TransitionRuntimeState),
 		"registerActivation":       serveJSON(siteconfig.RegisterActivation),
 		"acquireBarrier":           serveJSONWithSnapshot(a.snapshot, siteconfig.AcquireBarrier),
-		"releaseBarrier":            http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { serveReleaseBarrier(w, r, a.snapshot) }),
-		"exportSnapshot":            serveJSONWithSnapshot(a.snapshot, siteconfig.ExportSnapshot),
-		"stageSnapshot":             serveJSONWithSnapshot(a.snapshot, siteconfig.StageSnapshot),
-		"discardSnapshot":           serveJSONWithSnapshot(a.snapshot, siteconfig.DiscardSnapshot),
-		"readSnapshotArchive":       http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { serveSnapshotArchive(w, r, a.snapshot) }),
+		"releaseBarrier":           http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { serveReleaseBarrier(w, r, a.snapshot) }),
+		"exportSnapshot":           serveJSONWithSnapshot(a.snapshot, siteconfig.ExportSnapshot),
+		"stageSnapshot":            serveJSONWithSnapshot(a.snapshot, siteconfig.StageSnapshot),
+		"discardSnapshot":          serveJSONWithSnapshot(a.snapshot, siteconfig.DiscardSnapshot),
+		"readSnapshotArchive":      http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { serveSnapshotArchive(w, r, a.snapshot) }),
 		"readInitializationStatus": serveJSON(siteconfig.ReadInitializationStatus),
 		"initializeSite":           serveJSON(siteconfig.InitializeSite),
 		"resumeInitialization":     serveJSON(siteconfig.ResumeInitialization),
