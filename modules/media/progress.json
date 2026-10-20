@@ -7,7 +7,7 @@
   "assignedSession": "2026-10-21用户授权media B1 v2：基线a53fe59cd1ef11ad51be4508788ec13132784417；纳入1127e16与c29a68e，接通content.resources.changed@2消费、严格信封映射与确认来源回放；content v2合同911dbb29已只读核对。未运行CI、本机Go/pnpm/build/check或业务验收。",
   "branch": "codex/media-b1-v2-20261021",
   "baseCommit": "a53fe59cd1ef11ad51be4508788ec13132784417",
-  "deliveryCommit": "41e6d5c9c4de1d6937cf3b050cde9aceb8f93805",
+  "deliveryCommit": "5bf2afd19ed5f6c32d777c36c726225512a7253b",
   "deployment": "not_started",
   "files": [
     {
@@ -133,7 +133,7 @@
     {
       "path": "modules/media/internal/reference_repository.go",
     "state": "implemented",
-    "implementationCommit": "41e6d5c9c4de1d6937cf3b050cde9aceb8f93805",
+    "implementationCommit": "5bf2afd19ed5f6c32d777c36c726225512a7253b",
       "verification": {
       "state": "not_run",
       "evidence": "本轮纳入1127e16回放修复并适配v2事件；完成静态合同、JSON、make docs、差异与隐私核验；未运行GitLab CI、本机Go/gofmt/build/vet/test、真实接口或服务。"
@@ -333,7 +333,7 @@
     {
       "path": "modules/media/internal/app/wire.go",
       "state": "in_progress",
-      "implementationCommit": "41e6d5c9c4de1d6937cf3b050cde9aceb8f93805",
+      "implementationCommit": "5bf2afd19ed5f6c32d777c36c726225512a7253b",
       "verification": {
         "state": "not_run",
         "evidence": "本轮修改BuildApplication后台装配以接入事件消费；仅完成静态合同、JSON、make docs、差异与隐私核验，未运行GitLab CI或本机Go检查。"
@@ -413,7 +413,7 @@
     {
       "path": "modules/media/internal/worker.go",
       "state": "implemented",
-      "implementationCommit": "41e6d5c9c4de1d6937cf3b050cde9aceb8f93805",
+      "implementationCommit": "5bf2afd19ed5f6c32d777c36c726225512a7253b",
       "verification": {
         "state": "not_run",
         "evidence": "本轮扩展后台装配为事件消费、worker、relay三条闭包；仅完成静态合同、JSON、make docs、差异与隐私核验，未运行GitLab CI或本机Go检查。"
@@ -1137,7 +1137,7 @@
       "id": "media.ConsumeEvents",
       "path": "modules/media/internal/worker.go",
       "state": "implemented",
-      "implementationCommit": "41e6d5c9c4de1d6937cf3b050cde9aceb8f93805",
+      "implementationCommit": "5bf2afd19ed5f6c32d777c36c726225512a7253b",
       "verification": {
         "state": "not_run",
         "evidence": "实现content.resources.changed@2公共消费循环、严格v2 schema校验、信封eventId映射与ApplyReferenceEvent转发；仅完成静态合同、JSON、make docs、差异与隐私核验，未运行GitLab CI或本机Go检查。"
