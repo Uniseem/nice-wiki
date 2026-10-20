@@ -23,6 +23,9 @@ function inlines(nodes: JSONNode[] | undefined): any[] {
     else if (node.type === 'text' && node.text) {
       const marks = (node.marks ?? []).flatMap((mark) => {
         if (simpleMarks.has(mark.type)) return [{ type: mark.type }];
+        if (mark.type === 'link' && /^(https?:|mailto:)/i.test(mark.attrs?.href ?? '')) {
+          return [{ type: 'link', attrs: { target: { kind: 'external', href: mark.attrs!.href }, title: null } }];
+        }
         if (mark.type === 'highlight') return [{ type: 'highlight', attrs: { color: mark.attrs?.color ?? null } }];
         return []; // 暂未支持的 mark（如链接）不写入，避免服务端拒绝整篇
       });
@@ -50,6 +53,14 @@ function block(node: JSONNode): any {
       const text = (node.content ?? []).map((c) => c.text ?? '').join('');
       return { type: 'codeBlock', attrs: { blockId, language: node.attrs?.language || null }, content: text ? [{ type: 'text', text }] : [] };
     }
+    case 'callout': return { type: 'callout', attrs: { blockId, kind: node.attrs?.kind ?? 'info' }, content: blocks(node.content) };
+    case 'mathBlock': return { type: 'mathBlock', attrs: { blockId, latex: node.attrs?.latex || ' ' } };
+    case 'attachment': {
+      const a = node.attrs?.asset;
+      if (!a) throw new Error('附件缺少资源引用');
+      return { type: 'attachment', attrs: { blockId, asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize }, displayName: node.attrs?.displayName || '附件' } };
+    }
+    case 'table': return { type: 'table', attrs: { blockId }, content: (node.content ?? []).map(tableRow) };
     case 'image': {
       const alt = typeof node.attrs?.alt === 'string' && node.attrs.alt !== '' ? node.attrs.alt : null;
       const a = node.attrs?.asset;
@@ -58,6 +69,16 @@ function block(node: JSONNode): any {
     }
     default: throw new Error(`编辑器含暂不支持保存的块：${node.type}`);
   }
+}
+
+function tableRow(node: JSONNode): any {
+  return { type: 'tableRow', attrs: { rowId: node.attrs?.rowId ?? newId() }, content: (node.content ?? []).map(tableCell) };
+}
+
+function tableCell(node: JSONNode): any {
+  const colspan = node.attrs?.colspan ?? 1;
+  const widths = Array.isArray(node.attrs?.colwidth) && node.attrs!.colwidth.length === colspan && node.attrs!.colwidth.every((w: number) => w >= 40 && w <= 1200) ? node.attrs!.colwidth : null;
+  return { type: node.type === 'tableHeader' ? 'tableHeader' : 'tableCell', attrs: { cellId: node.attrs?.cellId ?? newId(), colspan, rowspan: node.attrs?.rowspan ?? 1, colwidth: widths, backgroundColor: null }, content: blocks(node.content) };
 }
 
 function listItem(node: JSONNode): any {
@@ -83,7 +104,9 @@ export function fromBody(body: { content: JSONNode[] }): JSONNode {
       copy.content = node.content.map(walk);
     }
     if (node.text !== undefined) copy.text = node.text;
-    if (node.marks) copy.marks = node.marks.map((m) => ({ ...m }));
+    if (node.marks) {
+      copy.marks = node.marks.map((m) => (m.type === 'link' ? { type: 'link', attrs: { href: m.attrs?.target?.href ?? '' } } : { ...m }));
+    }
     return copy;
   };
   return { type: 'doc', content: body.content.map(walk) };

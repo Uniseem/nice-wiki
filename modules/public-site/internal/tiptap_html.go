@@ -6,7 +6,9 @@ import (
 	"html"
 	"strings"
 
-	"github.com/alecthomas/chroma/v2/quick"
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"nice-wiki/libs/platform"
 )
 
@@ -101,7 +103,16 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 			if language == "" {
 				language = "plaintext"
 			}
-			if err := quick.Highlight(&output, nodeText(node), language, "html", "github"); err != nil {
+			lexer := lexers.Get(language)
+			if lexer == nil {
+				lexer = lexers.Fallback
+			}
+			iterator, err := lexer.Tokenise(nil, nodeText(node))
+			if err == nil {
+				// 行内样式，不依赖额外样式表；整页仍是 Go 直接输出的完整 HTML。
+				err = chromahtml.New(chromahtml.WithClasses(false)).Format(&output, styles.Get("github"), iterator)
+			}
+			if err != nil {
 				return "", platform.NewError(platform.CodeInternal, false, "CODE_HIGHLIGHT_FAILED")
 			}
 			return "<div" + idAttribute + " class=\"code-block\">" + output.String() + "</div>", nil

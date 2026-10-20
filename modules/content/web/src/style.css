@@ -27,3 +27,12 @@
 @media (max-width: 800px) { .docs { grid-template-columns: 1fr; } .docs aside { border-right: 0; } }
 .history { list-style: none; padding: .6rem 1rem; margin: .8rem 0; border: 1px solid #8884; border-radius: 8px; font-size: .9em; }
 .ProseMirror img { max-width: 100%; height: auto; display: block; margin: .6rem 0; } .ProseMirror img.ProseMirror-selectednode { outline: 2px solid #2563eb; }
+.ProseMirror .callout { border-left: 4px solid #2563eb; background: #2563eb14; padding: .4rem 1rem; margin: .8rem 0; border-radius: 4px; }
+.ProseMirror .callout.warning { border-color: #d97706; background: #d9770614; }
+.ProseMirror .callout.danger { border-color: #dc2626; background: #dc262614; }
+.ProseMirror table { border-collapse: collapse; margin: .8rem 0; }
+.ProseMirror td, .ProseMirror th { border: 1px solid #8886; padding: .3rem .6rem; min-width: 3rem; vertical-align: top; }
+.ProseMirror th { background: #8881; }
+.ProseMirror .math-block { text-align: center; }
+.ProseMirror .attachment { border: 1px solid #8886; border-radius: 6px; padding: .4rem .8rem; display: inline-block; margin: .4rem 0; }
+.ProseMirror a { color: #2563eb; }

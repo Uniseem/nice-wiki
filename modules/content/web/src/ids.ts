@@ -2,17 +2,20 @@ import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { newId } from './convert';
 
-const blockTypes = ['paragraph', 'heading', 'blockquote', 'horizontalRule', 'bulletList', 'orderedList', 'taskList', 'codeBlock', 'image'];
-const itemTypes = ['listItem', 'taskItem'];
+// 每类节点用哪个属性保存稳定 ID（与 content 块 schema 一致）。
+const idKey: Record<string, string> = {
+  paragraph: 'blockId', heading: 'blockId', blockquote: 'blockId', horizontalRule: 'blockId', bulletList: 'blockId', orderedList: 'blockId',
+  taskList: 'blockId', codeBlock: 'blockId', image: 'blockId', table: 'blockId', callout: 'blockId', mathBlock: 'blockId', attachment: 'blockId',
+  listItem: 'itemId', taskItem: 'itemId', tableRow: 'rowId', tableCell: 'cellId', tableHeader: 'cellId',
+};
 
-// 给每个块/列表项补稳定 ID；粘贴或拆分产生重复 ID 时，保留第一个，其余换新 ID。
+// 给每个节点补稳定 ID；粘贴或拆分产生重复 ID 时，保留第一个，其余换新 ID。
 export const StableIds = Extension.create({
   name: 'stableIds',
   addGlobalAttributes() {
-    return [
-      { types: blockTypes, attributes: { blockId: { default: null, rendered: false } } },
-      { types: itemTypes, attributes: { itemId: { default: null, rendered: false } } },
-    ];
+    const groups = new Map<string, string[]>();
+    for (const [type, key] of Object.entries(idKey)) groups.set(key, [...(groups.get(key) ?? []), type]);
+    return [...groups].map(([key, types]) => ({ types, attributes: { [key]: { default: null, rendered: false } } }));
   },
   addProseMirrorPlugins() {
     return [new Plugin({
@@ -22,7 +25,7 @@ export const StableIds = Extension.create({
         const tr = state.tr;
         let changed = false;
         state.doc.descendants((node, pos) => {
-          const key = blockTypes.includes(node.type.name) ? 'blockId' : itemTypes.includes(node.type.name) ? 'itemId' : null;
+          const key = idKey[node.type.name];
           if (!key) return;
           const current = node.attrs[key] as string | null;
           if (!current || seen.has(current)) {
