@@ -2,12 +2,12 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "bcb7982f68673d12d44032ed79216f39385831f5dbe24c752c7422921f7467b5",
+  "contractSha256": "7024a60fcd911e8ff47a9839372b669b0c15c75dc0f5a00bfab68ebc249f1e65",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-18持续收尾：第三批GitLab检查通过，业务验收未执行",
-  "branch": "codex/site-config-20261017-r4",
-  "baseCommit": "a080a6c918e31d272c7a91368f59d5ad51d5f458",
-  "deliveryCommit": "1e65c5fc7fbf9d551de8ffb08f37e4727445e7a4",
+  "assignedSession": "2026-10-20持久激活回执验签候选；提交1075bcb882待GitLab CI，业务验收未执行",
+  "branch": "codex/activation-receipt-20261020-site-config",
+  "baseCommit": "a32f3f4c4876f94ce798826e9dee0b170bbb612a",
+  "deliveryCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
   "deployment": "not_started",
   "files": [
     {
@@ -72,23 +72,23 @@
     },
     {
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "implemented",
-      "implementationCommit": "37097fce696c8d0093bd58476f385d142ab536d8",
+      "state": "in_progress",
+      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮加入Build可信验签锚装配与只读getter，待本轮GitLab CI；未在本机编译"
     },
     {
       "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "verified",
-      "implementationCommit": "90b2e68b6ba13bfeeee380838f2c6b50a7c930e3",
+      "state": "in_progress",
+      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮接回真实激活回执claims验签，待本轮GitLab CI；公共Verify助手由集成首单元选入"
     },
     {
       "path": "modules/site-config/internal/write_epoch.go",
@@ -303,12 +303,12 @@
     {
       "path": "modules/site-config/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "37097fce696c8d0093bd58476f385d142ab536d8",
+      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
+      "blocker": "本轮仅补Build的可信验签锚装配；完整SnapshotManager、后台、全量handler和恢复接线仍未完成，待本轮GitLab CI"
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
@@ -562,6 +562,39 @@
       "blocker": null
     },
     {
+      "id": "site-config.ConfigureActivationVerifier",
+      "path": "modules/site-config/internal/runtime_store.go",
+      "state": "in_progress",
+      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "仅由BuildApplication调用，待本轮GitLab CI；未在本机编译"
+    },
+    {
+      "id": "site-config.RuntimeStore.ConfigureActivationVerifier",
+      "path": "modules/site-config/internal/runtime_store.go",
+      "state": "in_progress",
+      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "Build可信信任锚装配助手，待本轮GitLab CI"
+    },
+    {
+      "id": "site-config.RuntimeStore.activationVerifierAnchors",
+      "path": "modules/site-config/internal/runtime_store.go",
+      "state": "in_progress",
+      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "RegisterActivation只读getter，待本轮GitLab CI"
+    },
+    {
       "id": "site-config.OpenRuntimeStore",
       "path": "modules/site-config/internal/runtime_store.go",
       "state": "verified",
@@ -619,13 +652,24 @@
     {
       "id": "site-config.RegisterActivation",
       "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "verified",
-      "implementationCommit": "90b2e68b6ba13bfeeee380838f2c6b50a7c930e3",
+      "state": "in_progress",
+      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
-        "state": "passed",
-        "evidence": "隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make build（14个Go模块-mod=readonly build/vet/gofmt）通过；make check完整通过（846文件/920函数/372操作/2172类型），临时Git元数据独立建立且身份采用既有代用配置；make docs无漂移、make gen重复无漂移已在用户追加VPS专用要求前核对。未新增或运行业务测试、服务进程、真实接口、模型或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮补齐持久激活回执claims验签与UTC时间规范化，待本轮GitLab CI；未在本机编译或测试"
+    },
+    {
+      "id": "site-config.verifyActivationReceipt",
+      "path": "modules/site-config/internal/runtime_transition.go",
+      "state": "in_progress",
+      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "调用公共platform.VerifyActivationReceipt的集成助手待本轮GitLab CI；未新增测试"
     },
     {
       "id": "site-config.CheckWriteEpoch",
@@ -961,12 +1005,12 @@
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "37097fce696c8d0093bd58476f385d142ab536d8",
+      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "品牌、页脚、横幅、历史与恢复已绑定真实handler；快照、屏障、资源引用列表与RelayOutbox/恢复回执仍未完成，严格平台工厂拒绝完整启动"
+      "blocker": "本轮仅装配信任锚到control store；品牌、快照、屏障、资源引用列表、RelayOutbox、恢复换目录与完整handler仍未完成，待本轮GitLab CI"
     },
     {
       "id": "site-config.Serve",
@@ -1475,5 +1519,5 @@
       "blocker": null
     }
   ],
-  "rule": "第四轮首页完整源码aa96f429e0eecc45cf6a6c51773a8b1892bde648已通过统一VPS docs/gen、14模块readonly build/vet/gofmt、完整check及静态复核；完整函数/文件verified，BuildApplication和全量HTTP等仍blocked。仅对应已有检查，无行为验收/联调/部署。"
+  "rule": "基线既有源码检查证据继续有效；本轮候选1075bcb882在main=a32f3f4c上仅接回激活回执claims验签、UTC RFC3339Nano规范化及Build信任锚装配，相关函数/文件保持in_progress或blocked，待本轮GitLab CI。无行为验收、联调、真实接口/模型或部署。"
 }

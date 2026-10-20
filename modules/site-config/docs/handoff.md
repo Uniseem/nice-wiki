@@ -1,3 +1,29 @@
+# 2026-10-20 持久激活回执验签候选待CI
+
+## 交付
+
+- 候选分支 `codex/activation-receipt-20261020-site-config`，基线 `a32f3f4c4876f94ce798826e9dee0b170bbb612a`。
+- 实现提交 `1075bcb8824838874e6a3ed775778f4194fa6969`，共同作者 `GPT-6 <noreply@openai.com>`。
+- 独占修改四个源码/合同文件：`internal/app/wire.go`、`internal/runtime_store.go`、`internal/runtime_transition.go`、`contracts/implementation.json`；未修改公共 `libs/platform`、OpenAPI/types、生成目录、根文件或旧WIP。
+
+## 本轮实际完成
+
+- `BuildApplication` 继续通过既有 `NewRuntimeClient(config)` 工厂满足 `ServiceSpec.RuntimeClient` 固定签名；随后调用本域 `ConfigureActivationVerifier(anchors)`，把已加载信任锚装入同一 `RuntimeStore`。runtime monitor 的无锚调用只打开/复用读取器，不覆盖验签锚。
+- `RegisterActivation` 规范化 `RecordedAt` 为UTC `RFC3339Nano`，保持同operationId同摘要直接回放；新操作校验当前epoch、revision、restoreId、phase/state后读取可信锚，绑定 `restoreId` 与receipt的 module/stageId/targetDataEpoch/state/manifestHash/recordedAt，调用 e85 分支精确接口 `serviceauth.VerifyActivationReceipt`，验签通过后才写现有回执/CAS事务。
+- 合同新增并登记 `ConfigureActivationVerifier`、`RuntimeStore.ConfigureActivationVerifier`、`RuntimeStore.activationVerifierAnchors`、`verifyActivationReceipt`，HTTP形状没有变化。公共平台首单元只需提供 Verify 所需助手，并须让 Sign/Verify 在hash前采用相同 UTC `RFC3339Nano` 时间规范。
+
+## 检查与状态
+
+已执行 `jq` JSON解析与 `git diff --check`，均通过。按用户规则未在本机/SSH运行Go或pnpm生成、编译、vet、gofmt、lint、类型检查或测试；未执行真实接口、模型、服务或部署。GitLab CI尚无本轮精确SHA，因此本轮函数/文件状态保持 `in_progress` 或 `blocked（待CI）`。
+
+旧的 `resource_reference_reader.go`、RelayOutbox及其状态只存在于原 `codex/resume-20261020-site-config` WIP工作树/历史链；本候选从main基线独立建立，集成时不应整条cherry-pick旧WIP。
+
+### 下一步（一项）
+
+由集成会话选入提交 `1075bcb8824838874e6a3ed775778f4194fa6969` 与公共首单元中的窄 `VerifyActivationReceipt`/时间规范化助手，在同一候选树运行既有GitLab docs/gen、三Go分片readonly build/vet/gofmt、完整 `make check` 并回传生成物；通过后再按精确CI SHA更新本域状态。
+
+以下为历史记录。
+
 # 2026-10-18第三批源码检查通过
 
 自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。
