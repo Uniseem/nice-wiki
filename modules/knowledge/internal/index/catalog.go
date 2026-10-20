@@ -36,6 +36,7 @@ func ReadModelCatalog(ctx context.Context, op OperationContext, runtime Runtime)
 	}
 	service := op
 	service.CallerService = "knowledge"
+	service.CostClass = platform.CostClassBackground
 	service.Actor = platform.AuthContext{SubjectID: "knowledge", Kind: "service", SiteID: op.Actor.SiteID, ExpiresAt: op.Deadline, Grants: []string{}}
 	work := platform.WithOperationContext(platform.WithPortalProof(ctx, ""), service)
 	modelsRaw, err := runtime.Gateway.ReadModels(work)

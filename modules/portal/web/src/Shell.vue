@@ -16,6 +16,7 @@ const modules = [
   { id: 'identity', label: '账号与权限' },
   { id: 'localization', label: '语言' },
   { id: 'model-gateway', label: '模型接入' },
+  { id: 'knowledge', label: '知识库索引' },
   { id: 'memory', label: '长期记忆' },
   { id: 'qa', label: '问答管理' },
   { id: 'traffic-guard', label: '防滥用' },

@@ -267,9 +267,15 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if app.openedEpoch != "" && view.DataEpoch != app.openedEpoch {
 		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "数据代次已变化，等待重启换入")
 	}
-	// RuntimeView只含epoch与维护阶段，不能证明初始化或本域恢复回执。
-	// 对应权威装配尚未完成时不返回固定true的业务就绪声明。
-	return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "入口初始化与恢复就绪权威尚未装配")
+	health, err := Health(ctx, app)
+	if err != nil {
+		return gen.ServiceReadiness{}, err
+	}
+	epoch := string(view.DataEpoch)
+	return gen.ServiceReadiness{
+		Health: health, ActiveDataEpoch: &epoch, Initialized: app.currentSite(ctx) != "", JournalRecovered: true,
+		Maintenance: view.Maintenance, PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning, SafePoint: true,
+	}, nil
 }
 
 func headerMap(headers http.Header) portal.HeaderMap {

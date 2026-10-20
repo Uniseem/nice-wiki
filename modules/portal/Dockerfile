@@ -17,6 +17,8 @@ COPY modules/localization/web/ modules/localization/web/
 RUN cd modules/localization/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/localization --emptyOutDir
 COPY modules/model-gateway/web/ modules/model-gateway/web/
 RUN cd modules/model-gateway/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/model-gateway --emptyOutDir
+COPY modules/knowledge/web/ modules/knowledge/web/
+RUN cd modules/knowledge/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/knowledge --emptyOutDir
 COPY modules/memory/web/ modules/memory/web/
 RUN cd modules/memory/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/memory --emptyOutDir
 COPY modules/qa/web/ modules/qa/web/

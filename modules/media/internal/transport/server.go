@@ -51,7 +51,7 @@ type Application struct {
 // NewApplication 只绑定真实已实现handler；缺任一OpenAPI处理器则失败关闭。
 func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, activeDataEpoch platform.Identifier,
 	authorize func(context.Context, platform.OperationContext, string, string) error) (*Application, error) {
-	application := &Application{config: config, runtime: runtimeAuthority, activeDataEpoch: activeDataEpoch, journalRecovered: mediaDomain.LocalStorageRecovered(activeDataEpoch), restoreControlReady: false}
+	application := &Application{config: config, runtime: runtimeAuthority, activeDataEpoch: activeDataEpoch, journalRecovered: mediaDomain.LocalStorageRecovered(activeDataEpoch), restoreControlReady: true}
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体HTTP规格不可读")

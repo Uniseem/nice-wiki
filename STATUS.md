@@ -29,11 +29,11 @@ python3 scripts/dev.py up
 
 ## 已知缺口
 
-- portal 本地路由（bootstrap、events、preferences、readiness、屏障）未实现，只有 healthz/readyz。
+- portal 本地路由（bootstrap、events、preferences、屏障）未实现，只有 healthz/readyz；data-protection 的 readyz 仍是 503（备份业务未实现）。
 - `.md` 版本、分片 sitemap 未挂；数学公式只输出源码，未接 KaTeX。
 - 各服务用 `lifecycle.SimpleAdmission` 代替快照屏障准入，M4 再换。
 - media 的 attachImageVariants / readVideoMetadata、localization 的翻译与界面文案、qa 的问答与调试台、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
-- 后台界面：knowledge / localization / model-gateway 的现成界面工程结构与壳不同，还没接入壳；memory、qa、traffic-guard 没有界面。
+- 后台界面：各域都有页面了（知识库索引页只能配置与查看，没有模型档位时无法实际建索引）。
 
 ## 未合并的旧工作
 

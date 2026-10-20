@@ -58,7 +58,7 @@ def setup():
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
 
 
-WEB_MODULES = ["content", "site-config", "identity", "media", "localization", "model-gateway", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection"]
+WEB_MODULES = ["content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection"]
 
 
 def build(slugs):
