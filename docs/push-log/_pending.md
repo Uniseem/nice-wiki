@@ -2,7 +2,7 @@
 
 用户已授权恢复 R1 源码实施；本目录记录候选状态，不自动推送到任一远端。
 
-## 结构修复候选（仅本地，暂停 CI 推送）
+## 当前结构/合同 CI 候选（GitLab 隔离分支；不推 GitHub/main）
 
 ### pipeline 182/183：结构候选 CI 纠偏
 
@@ -10,9 +10,11 @@
 
 本地独立窄修将实际包限定改为 `lifecycle.SnapshotSwapEvidence`，候选 `90dc3577e02bd93c37ef2579391ecfbd28879b0f` 普通快进推送后触发 pipeline 183：生成 job 746、foundation job 747、content-media job 748、AI job 749、前端 job 750 全部 success。job 746 的 `generated.patch` 为 0 字节，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`；pipeline 183 的 Go 分片和完整 `make check`均通过。该结果只证明 CI/结构门槛，不标业务 accepted/verified；pipeline 182 的 foundation 失败仍保留为失败证据。
 
-结构修复分支 `codex/r1-structure-fix-20261020` 基于暂停候选 `6f25dd57386081b5903bc6c02f448ea769466618`，原 CI worktree和远端隔离分支保持不变。公共 checker、platform、identity、site-config 已顺序处理：identity clean `69f1d6cd52355e2b21e2e299fe35615ba4b19604`，site-config合同收口 `b046e22c6e763c49f301e2c30494b3e0ca939e16`并含最新代理交接 `73e7676e`；机器合同中的 platform ID 使用 `platform.RegisterWorkTable`/`platform.MigrateRestoredDatabase`，实际Go包仍为outbox。
+当前远端隔离分支 `codex/ci-20261020-r1-9b359c0e` 为 `90dc3577e02bd93c37ef2579391ecfbd28879b0f`。本地合同修正父提交 `014db6309aad644b556f2b6db1dcad582389abe3` 已将 `site-config.registerActivationAfterSwap` 的签名、输入和生成说明限定为实际 Go 包 `lifecycle.SnapshotSwapEvidence`；`site-config/types.json` 仍准确引用 `libs/platform/contracts/types.json` 的公共 `$defs`。本次状态收尾后形成的新精确 SHA 尚未推送，需在合同变更后用同一隔离分支重跑 CI 并核对零生成漂移。用户已授权自主推进；保留历史失败，未把 pipeline183 扩展为新 SHA 的证据，不标 accepted/完整 Build。
 
-当前 `python3 scripts/check_docs.py --summary` 通过，统计为15 modules、2 shared、1060 files、2484 functions、408 operations、2603 types；`make docs`、JSON、`git diff --check`、`make privacy`通过。未运行Go、pnpm、完整`make check`或真实服务，未把本地结构通过记为implemented/verified，也未推送任何新SHA。
+结构修复分支 `codex/r1-structure-fix-20261020` 基于原暂停候选 `6f25dd57386081b5903bc6c02f448ea769466618`；旧失败树与历史记录保持不变。公共 checker、platform、identity、site-config 已顺序处理：identity clean `69f1d6cd52355e2b21e2e299fe35615ba4b19604`，site-config 最终结构合同 clean HEAD `b046e22c6e763c49f301e2c30494b3e0ca939e16`；不要再把 `73e7676e` 写作最新代理 HEAD。机器合同中的 platform ID 使用 `platform.RegisterWorkTable`/`platform.MigrateRestoredDatabase`，实际Go包仍为outbox。
+
+当前本地结构树 `python3 scripts/check_docs.py --summary` 通过，统计为15 modules、2 shared、1060 files、2484 functions、408 operations、2603 types；`make docs`、JSON、`git diff --check`、`make privacy`通过。该本地结构树未运行Go、pnpm或完整`make check`；远端90dc的pipeline183已完成对应整树CI，但合同修正新SHA尚未推送，不能把90dc证据外推到新SHA，也不把本地结构或WIP记为implemented/verified。
 
 集成候选分支为 `codex/resume-20261020-integration`，由 `codex/closeout-20261020-integration` 的 `e85dde0583938bb4207bc3a1117e62549d21018c` 合入 main `a32f3f4c4876f94ce798826e9dee0b170bbb612a` 纯文档基线形成。该基线保留原四路 WIP，不改旧提交。
 

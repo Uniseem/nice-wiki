@@ -2,7 +2,7 @@
 
 主代理已审核通过并冻结 [docs/plan.md](docs/plan.md)；覆盖 15 个业务域、`libs/platform`、UI、任务与事件、保护与恢复、部署源码、R2 和最终发布交接。用户已恢复 R1 源码实施，并改为主代理只拆解、指挥、协调与复核，多个子代理负责实际修改、集成和 CI；每模块独立 worktree，公共文件由唯一集成子代理维护。本轮仍不授权 R2、真实业务接口/模型调用、服务运行、镜像构建或部署。
 
-## 当前结构修复集成候选（暂停 CI 推送）
+## 当前结构/合同 CI 候选（GitLab 隔离分支；不推 GitHub/main）
 
 ### GitLab pipeline 182/183：结构候选 CI 纠偏
 
@@ -10,9 +10,11 @@
 
 独立 CI 窄修仅把该参数改为实际定义包 `lifecycle.SnapshotSwapEvidence`，形成 `90dc3577e02bd93c37ef2579391ecfbd28879b0f`，随后普通快进推至同一隔离分支。pipeline 183 全部成功：生成 job 746、foundation job 747、content-media job 748、AI job 749、前端 job 750；`generated.patch` 为 0 字节，SHA-256 为 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。该证据覆盖 GitLab 生成、三个 Go 分片的 readonly build/vet/gofmt 与完整 `make check`、前端检查；不等于业务验收或 accepted。原 182 失败记录保留，不以 183 结果抹除。
 
-独立分支 `codex/r1-structure-fix-20261020` 从暂停的候选 `6f25dd57386081b5903bc6c02f448ea769466618` 建立；原 CI worktree和GitLab隔离分支不改、不推。公共 checker 修复提交为 `a8699993a87e75dcb6de5eab9c0bba4e40443bee`、`d91078748d78960a4e50266a1a9ba655144021fb`、`49c42f70963decf660163a5ac27e993201a3f147`；platform公共合同/类型/台账和文档已顺序收口，最新公共阶段提交为 `559de687b4ca849c962e1089354f9fd03c48e65c`。
+当前 GitLab 隔离分支 `codex/ci-20261020-r1-9b359c0e` 的远端 SHA 为 `90dc3577e02bd93c37ef2579391ecfbd28879b0f`。本地合同修正父提交为 `014db6309aad644b556f2b6db1dcad582389abe3`：`site-config.registerActivationAfterSwap` 的签名和输入明确使用实际 Go 包 `lifecycle.SnapshotSwapEvidence`，类型 `$ref` 仍保留平台合同来源；本次状态收尾后形成的新精确候选待推送并按同一隔离分支复检，不能把 90dc 的 pipeline 183 证据外推到新 SHA。用户已授权自主推进隔离 CI；不推 GitHub/main，不标 accepted，不把任何域的 BuildApplication、全域 VerifyGlobalSeal 或未接协调 writer 标为完成。
 
-identity 已顺序合入 clean `69f1d6cd52355e2b21e2e299fe35615ba4b19604`（源码/合同 `2f52be9c`），并登记本域生成 `*gen.SiteConfigClient` 类型；site-config 已合入合同收口 `b046e22c6e763c49f301e2c30494b3e0ca939e16` 及准确封口阻塞交接，代理分支最新 `73e7676e`。两域完整 CI仍未执行，所有相关项保持 blocked/in_progress，不标 implemented/verified。
+独立分支 `codex/r1-structure-fix-20261020` 从原暂停候选 `6f25dd57386081b5903bc6c02f448ea769466618` 建立；历史 checker、platform、identity、site-config 收口记录保持不变。公共 checker 修复提交为 `a8699993a87e75dcb6de5eab9c0bba4e40443bee`、`d91078748d78960a4e50266a1a9ba655144021fb`、`49c42f70963decf660163a5ac27e993201a3f147`；platform公共合同/类型/台账和文档已顺序收口，最新公共阶段提交为 `559de687b4ca849c962e1089354f9fd03c48e65c`。
+
+identity 已顺序合入 clean `69f1d6cd52355e2b21e2e299fe35615ba4b19604`（源码/合同 `2f52be9c`），并登记本域生成 `*gen.SiteConfigClient` 类型；site-config 最终结构合同 clean HEAD 为 `b046e22c6e763c49f301e2c30494b3e0ca939e16`，不再引用过期的 `73e7676e` 作为最新代理 HEAD。两域代理交付源尚无独立模块 CI 证据；pipeline 183 只证明当时的整树候选，BuildApplication、VerifyGlobalSeal及未接协调 writer仍保持 blocked/in_progress，不标 implemented/verified。
 
 本树 `python3 scripts/check_docs.py --summary` 已通过，摘要为 15 modules、2 shared、1060 files、2484 functions、408 operations、2603 types；JSON、`git diff --check`、`make privacy` 通过。未运行 Go、pnpm 或完整 `make check`，不能把结构零错误当作源码/业务验收。
 
@@ -20,7 +22,7 @@ identity 已顺序合入 clean `69f1d6cd52355e2b21e2e299fe35615ba4b19604`（源�
 
 identity 已按顺序接入 clean HEAD `f54792d29768a3c223de2b429da1628376aa84cd`（源码包 `5962be0953753b7fc88c990362da60c20260926d`），恢复迁移调用为实际 `outbox.MigrateRestoredDatabase`；jobs源码交付 `879a41d430b89af5a0b88dd8d86d24f8f25763e3`、clean HEAD `7bc01a2917302324b84e3f594c5f249b7fc22c4e`，仍等待 jobs `step=observe` service-only授权分支。identity/site-config的 `VerifyGlobalSeal` 缺协调只读证据时必须失败关闭。用户未跟踪的 `kangaroo-down-under.html` 未触碰。
 
-site-config 已按顺序接入 clean HEAD `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`（源码修复 `c3c7c10c11320ebff45c994f8458e54604a75343`）；模块改动范围仅 `modules/site-config/`，保留main验签接线。其恢复迁移合同明确调用 `outbox.MigrateRestoredDatabase`，不调用根 `platform` 影子函数；本次仍待GitLab CI，不把静态审查升为verified。
+site-config 已按顺序接入 clean HEAD `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`（源码修复 `c3c7c10c11320ebff45c994f8458e54604a75343`）；模块改动范围仅 `modules/site-config/`，保留main验签接线。其恢复迁移合同明确调用 `outbox.MigrateRestoredDatabase`，不调用根 `platform` 影子函数；尚无本域单独 CI 证据，整树 pipeline183 不把静态审查或本域WIP升为verified。
 
 traffic-guard 已接入 clean HEAD `85fc4639b34d0d321c59e59f3b6169319f7dfcba`（源码单元 `0c0e2e17e00adf2bb159de97c31f7bf8b58892b0`），仅新增快照归档读取单元并登记框架路径；其 `BuildApplication` 尚未装配真实 `SnapshotManager`，相关文件/函数继续 blocked，未标完成。
 
