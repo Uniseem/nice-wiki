@@ -265,6 +265,7 @@ services:
       - data-protection-data:/data/data-protection
       - ./secrets/data-protection/master-key:/run/secrets/master-key:ro
       - backups:/backups
+      - ./secrets:/backup-secrets:ro
       - portal-data:/sources/portal
       - public-site-data:/sources/public-site
       - identity-data:/sources/identity

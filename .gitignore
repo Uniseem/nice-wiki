@@ -13,5 +13,6 @@
 *.tsbuildinfo
 .DS_Store
 /deploy/secrets/
+/deploy/secrets-restored/
 /deploy/.env
 /deploy/config/trust-anchors.json

@@ -49,6 +49,7 @@ def setup():
             cfg["budgetKeyRef"] = path("secrets", "budget", "budget-key.json")
         if slug == "data-protection":
             cfg["backupSources"] = {m: path("data", m) for m in PORTS if m != slug}
+            cfg["backupSecretsDir"] = path("secrets")
         if slug == "analytics":
             cfg["reportingTimeZone"] = "Asia/Shanghai"
         if slug == "site-config":

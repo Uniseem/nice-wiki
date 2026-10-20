@@ -36,5 +36,6 @@
     "traffic-guard": "/sources/traffic-guard",
     "jobs": "/sources/jobs",
     "analytics": "/sources/analytics"
-  }
+  },
+  "backupSecretsDir": "/backup-secrets"
 }

@@ -74,6 +74,7 @@ def service_config(slug, port):
         cfg["masterKeyRef"] = "/run/secrets/master-key"
     if slug == "data-protection":
         cfg["backupSources"] = {s: f"/sources/{s}" for s in SERVICES if s != slug}
+        cfg["backupSecretsDir"] = "/backup-secrets"
     return cfg
 
 
@@ -102,7 +103,7 @@ def compose():
             lines += [f"      - ./secrets/{slug}/master-key:/run/secrets/master-key:ro"]
         if slug == "data-protection":
             # 简易备份只读取各服务数据目录（代码里只读打开，SQLite 用 VACUUM INTO 取快照）；WAL 库需要能访问 -shm，所以不加 :ro。
-            lines += ["      - backups:/backups"] + [f"      - {s}-data:/sources/{s}" for s in SERVICES if s != slug]
+            lines += ["      - backups:/backups", "      - ./secrets:/backup-secrets:ro"] + [f"      - {s}-data:/sources/{s}" for s in SERVICES if s != slug]
         lines.append("")
     lines += ["  caddy:", "    image: caddy:2-alpine", "    restart: unless-stopped", "    networks: [internal]",
               "    ports: [\"80:80\", \"443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
@@ -234,6 +235,8 @@ for slug in {" ".join(s for s in SERVICES if s != "data-protection")}; do
 		rm -rf /data/* /data/.[!.]* 2>/dev/null
 		cp -a /tmp/x/$slug/. /data/ && chmod -R go-rwx /data && chown -R \\$owner /data"
 done
+# 备份若包含密钥（超管勾选过），解到 ./secrets-restored，请自行核对后替换 deploy/secrets。
+unzip -qo "$zip" 'secrets/*' -d ./secrets-restored 2>/dev/null && echo "备份里的密钥已解到 deploy/secrets-restored，确认后用它替换 deploy/secrets" || true
 docker compose start
 """)
     os.chmod(os.path.join(ROOT, "deploy/restore-zip.sh"), 0o755)

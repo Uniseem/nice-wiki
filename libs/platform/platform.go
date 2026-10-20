@@ -625,6 +625,8 @@ type ServiceConfig struct {
 	TrustedProxyCIDRs []string          `json:"trustedProxyCIDRs,omitempty"`
 	// BackupSources 仅 data-protection 使用：服务 slug → 该服务数据目录（只读挂载），简易备份据此打包。
 	BackupSources map[string]string `json:"backupSources,omitempty"`
+	// BackupSecretsDir 仅 data-protection 使用：各服务密钥所在目录；超管勾选“包含密钥”时才会打进备份。
+	BackupSecretsDir string `json:"backupSecretsDir,omitempty"`
 }
 
 // SwapResult 启动时换目录结果。

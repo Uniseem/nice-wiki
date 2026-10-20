@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -61,14 +62,22 @@ func (s *server) simpleCreateBackup(ctx context.Context, op platform.OperationCo
 	if op.Actor.Kind != "admin" {
 		return gen.CreateBackupResult{}, platform.NewError(platform.CodeForbidden, false, "只有后台管理员可以创建备份")
 	}
-	id, err := s.createBackup(ctx)
+	if includeSecrets {
+		if !slices.Contains(op.Actor.Grants, "superadmin") {
+			return gen.CreateBackupResult{}, platform.NewError(platform.CodeForbidden, false, "只有超级管理员可以备份密钥")
+		}
+		if s.app.config.BackupSecretsDir == "" {
+			return gen.CreateBackupResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "未配置密钥目录，无法包含密钥")
+		}
+	}
+	id, err := s.createBackup(ctx, includeSecrets)
 	if err != nil {
 		return gen.CreateBackupResult{}, err
 	}
 	return gen.CreateBackupResult{BackupId: id, Job: gen.AcceptedJob{JobId: platform.NewIdentifier(), OperationId: op.OperationID, State: "succeeded"}}, nil
 }
 
-func (s *server) createBackup(ctx context.Context) (string, error) {
+func (s *server) createBackup(ctx context.Context, includeSecrets bool) (string, error) {
 	if len(s.app.config.BackupSources) == 0 {
 		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "未配置备份来源目录")
 	}
@@ -79,7 +88,12 @@ func (s *server) createBackup(ctx context.Context) (string, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", platform.NewError(platform.CodeInternal, true, "无法创建备份目录")
 	}
-	manifest, err := writeBackupArchive(ctx, filepath.Join(dir, "backup.zip"), s.app.config.BackupSources)
+	sources := s.app.config.BackupSources
+	secretsDir := ""
+	if includeSecrets {
+		secretsDir = s.app.config.BackupSecretsDir
+	}
+	manifest, err := writeBackupArchive(ctx, filepath.Join(dir, "backup.zip"), sources, secretsDir)
 	if err != nil {
 		_ = os.RemoveAll(dir)
 		return "", err
@@ -87,7 +101,7 @@ func (s *server) createBackup(ctx context.Context) (string, error) {
 	manifest.BackupID = id
 	manifest.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	manifest.Format = "nice-wiki-simple-zip/1"
-	manifest.IncludeSecrets = false
+	manifest.IncludeSecrets = includeSecrets
 	raw, _ := json.Marshal(manifest)
 	if err := os.WriteFile(filepath.Join(dir, "manifest.json"), raw, 0o600); err != nil {
 		_ = os.RemoveAll(dir)
@@ -96,7 +110,7 @@ func (s *server) createBackup(ctx context.Context) (string, error) {
 	return id, nil
 }
 
-func writeBackupArchive(ctx context.Context, target string, sources map[string]string) (backupManifest, error) {
+func writeBackupArchive(ctx context.Context, target string, sources map[string]string, secretsDir string) (backupManifest, error) {
 	out, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
 		return backupManifest{}, platform.NewError(platform.CodeInternal, true, "无法创建备份文件")
@@ -148,6 +162,23 @@ func writeBackupArchive(ctx context.Context, target string, sources map[string]s
 		})
 		if err != nil {
 			return backupManifest{}, platform.NewError(platform.CodeInternal, true, "打包服务数据失败")
+		}
+		manifest.Domains = append(manifest.Domains, domain)
+	}
+	if secretsDir != "" {
+		domain := backupDomain{Slug: "secrets"}
+		err := filepath.WalkDir(secretsDir, func(path string, entry fs.DirEntry, walkErr error) error {
+			if walkErr != nil || entry.IsDir() || !entry.Type().IsRegular() {
+				return walkErr
+			}
+			rel, _ := filepath.Rel(secretsDir, path)
+			size, err := addZipFile(zw, "secrets/"+filepath.ToSlash(rel), path)
+			domain.Files++
+			domain.Bytes += size
+			return err
+		})
+		if err != nil {
+			return backupManifest{}, platform.NewError(platform.CodeInternal, true, "打包密钥失败")
 		}
 		manifest.Domains = append(manifest.Domains, domain)
 	}
@@ -365,7 +396,7 @@ func (s *server) scheduledBackupOnce(ctx context.Context) {
 			return
 		}
 	}
-	if _, err := s.createBackup(ctx); err != nil {
+	if _, err := s.createBackup(ctx, false); err != nil {
 		return
 	}
 	if list, err = s.simpleListBackups(); err == nil && len(list.BackupIds) > schedule.KeepCount {

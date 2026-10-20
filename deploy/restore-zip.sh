@@ -17,4 +17,6 @@ for slug in portal public-site identity site-config content media model-gateway 
 		rm -rf /data/* /data/.[!.]* 2>/dev/null
 		cp -a /tmp/x/$slug/. /data/ && chmod -R go-rwx /data && chown -R \$owner /data"
 done
+# 备份若包含密钥（超管勾选过），解到 ./secrets-restored，请自行核对后替换 deploy/secrets。
+unzip -qo "$zip" 'secrets/*' -d ./secrets-restored 2>/dev/null && echo "备份里的密钥已解到 deploy/secrets-restored，确认后用它替换 deploy/secrets" || true
 docker compose start
