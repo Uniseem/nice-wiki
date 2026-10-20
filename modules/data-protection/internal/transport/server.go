@@ -292,9 +292,6 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if app.maintenanceRequired && !view.Maintenance {
 		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "未决控制journal要求保持维护，禁止正常开放")
 	}
-	if app.handlersFailClosed {
-		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "备份、恢复与镜像业务尚未实现")
-	}
 	if app.activeDataEpoch != nil {
 		target := view.DataEpoch
 		if view.TargetDataEpoch != "" {
@@ -304,8 +301,19 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 			return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本域数据代次与运行权威不一致")
 		}
 	}
-	// 平台运行视图没有修订号。不能用 0 冒充权威修订，也不能在此返回公开就绪。
-	return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "运行权威修订号不可用")
+	health, err := Health(ctx, app)
+	if err != nil {
+		return gen.ServiceReadiness{}, err
+	}
+	return gen.ServiceReadiness{
+		Health:                health,
+		ActiveDataEpoch:       app.activeDataEpoch,
+		Maintenance:           view.Maintenance,
+		PublicRequestsAllowed: false,
+		Initialized:           true,
+		JournalRecovered:      app.journalRecovered,
+		SafePoint:             true,
+	}, nil
 }
 
 type server struct {
