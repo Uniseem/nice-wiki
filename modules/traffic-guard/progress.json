@@ -2,7 +2,7 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "b9cdecb9e4102bfddf14ca2c59f2556293c433d8f48b0f2f1ba6ded6f83267bd",
+  "contractSha256": "0aba0b083ff0d434d8c27251ec5ec2056c371ec863b907c7e76afa254d574a9d",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-21续作：装配本域SnapshotManager局部回调",
   "branch": "codex/traffic-guard-20261020-r1",

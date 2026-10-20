@@ -3645,7 +3645,7 @@ func (s *PolicyStore) ObserveWork(ctx context.Context) (lifecycle.SnapshotWorkSt
 
 **步骤**
 
-1. 在同一SQLite读事务内调用platform.outbox.Store.ObserveTx读取outbox活动与revision
+1. 在同一SQLite读事务内调用platform.Store.ObserveTx读取outbox活动与revision
 2. 逐表读取pending login attempt、active permit、issued challenge和等待队列
 3. 将WorkRevision绑定同一nw_outbox_control.revision；缺表、未知状态或读取失败失败关闭
 

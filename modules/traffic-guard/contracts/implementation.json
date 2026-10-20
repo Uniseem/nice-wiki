@@ -6178,7 +6178,7 @@
           "outputs": [],
           "purpose": "逐表读取本域真实待决工作并复用同库outbox revision",
           "steps": [
-            "在同一SQLite读事务内调用platform.outbox.Store.ObserveTx读取outbox活动与revision",
+            "在同一SQLite读事务内调用platform.Store.ObserveTx读取outbox活动与revision",
             "逐表读取pending login attempt、active permit、issued challenge和等待队列",
             "将WorkRevision绑定同一nw_outbox_control.revision；缺表、未知状态或读取失败失败关闭"
           ],
