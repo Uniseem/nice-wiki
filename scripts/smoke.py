@@ -83,6 +83,14 @@ def main():
         "draftRevisionId": new_draft["revisionId"], "expectedDraftVersion": new_draft["draftVersion"], "expectedRevision": revision,
         "manualPathSegment": slug, "manualSEO": "第一篇文档"}))
     step("释放编辑锁", call("DELETE", f"/v1/documents/{doc_id}/lock", {"leaseId": lease["leaseId"], "serverBootId": lease["serverBootId"]}))
+    if len(sys.argv) > 2:
+        tree = call("GET", "/v1/tree")[1]
+        node = next(n for n in tree["documents"] if n["documentId"] == doc_id)
+        step("删除到回收站", call("POST", f"/v1/documents/{doc_id}:trash", {"expectedRevision": node["revision"], "expectedTreeRevision": tree["treeRevision"], "includeSubtree": False, "replacementDocumentId": None}))
+        print("删除后公开页", call("GET", "/zh-Hans/" + slug)[0])
+        trash = call("GET", "/v1/documents?state=trash&limit=100")[1]
+        t = next(n for n in trash["documents"] if n["documentId"] == doc_id)
+        step("恢复", call("POST", f"/v1/documents/{doc_id}:restore", {"expectedRevision": t["revision"], "parentId": None, "pathSegment": slug + "-r"}))
     for path in ["/", "/zh-Hans/", "/zh-Hans/" + slug, "/zh-Hans/navigation", "/robots.txt"]:
         status, page = call("GET", path, base=PORTAL)
         print("公开", path, status, str(page)[:160].replace("\n", " "))

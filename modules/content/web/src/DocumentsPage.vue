@@ -10,6 +10,10 @@ type Meta = {
 };
 
 const docs = ref<Meta[]>([]);
+const treeRevision = ref(0);
+const view = ref<'docs' | 'trash'>('docs');
+const trash = ref<Meta[]>([]);
+const history = ref<any[] | null>(null);
 const selected = ref<string | null>(null);
 const meta = ref<Meta | null>(null);
 const draft = ref<any>(null);
@@ -57,8 +61,64 @@ async function run<T>(action: () => Promise<T>): Promise<T | undefined> {
 }
 
 async function loadTree() {
-  const tree = await api<{ documents: Meta[] }>('/v1/tree');
+  const tree = await api<{ documents: Meta[]; treeRevision: number }>('/v1/tree');
   docs.value = tree.documents;
+  treeRevision.value = tree.treeRevision;
+}
+
+async function loadTrash() {
+  const result = await api<{ documents: Meta[] }>('/v1/documents?state=trash&limit=100');
+  trash.value = result.documents;
+  await loadTree();
+}
+
+async function showTrash() {
+  view.value = 'trash';
+  await run(loadTrash);
+}
+
+async function remove() {
+  if (!meta.value) return;
+  const hasChildren = docs.value.some((d) => d.parentId === meta.value!.documentId && d.state !== 'trash');
+  const text = hasChildren ? '该文档含子文档，将一起移入回收站，确认删除？' : '确认把该文档移入回收站？已发布的文档公开页会立即失效。';
+  if (!window.confirm(text)) return;
+  const id = meta.value.documentId;
+  const revision = meta.value.revision;
+  await save();
+  await releaseLock();
+  await run(async () => {
+    await api(`/v1/documents/${id}:trash`, { method: 'POST', body: { expectedRevision: revision, expectedTreeRevision: treeRevision.value, includeSubtree: hasChildren, replacementDocumentId: null } });
+    selected.value = null;
+    meta.value = null;
+    await loadTree();
+  });
+}
+
+async function restore(doc: Meta) {
+  const path = window.prompt('恢复后使用的页面路径（小写字母、数字和连字符）', doc.pathSegment ?? `restored-${newId().slice(0, 6)}`);
+  if (!path) return;
+  await run(async () => {
+    await api(`/v1/documents/${doc.documentId}:restore`, { method: 'POST', body: { expectedRevision: doc.revision, parentId: null, pathSegment: path } });
+    await loadTrash();
+  });
+}
+
+async function purge(doc: Meta) {
+  if (!window.confirm(`彻底删除“${doc.title}”后无法恢复，确认？（仅超级管理员）`)) return;
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(doc.documentId));
+  const hash = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+  await run(async () => {
+    await api('/v1/trash:purge', { method: 'POST', body: { documentIds: [doc.documentId], expectedTrashRevision: treeRevision.value, confirmationHash: hash } });
+    await loadTrash();
+  });
+}
+
+async function toggleHistory() {
+  if (history.value) { history.value = null; return; }
+  await run(async () => {
+    const result = await api<{ history: any[] }>(`/v1/documents/${selected.value}/history?limit=20`);
+    history.value = result.history;
+  });
 }
 
 async function releaseLock() {
@@ -204,8 +264,21 @@ onBeforeUnmount(() => { void save().then(releaseLock); });
   <div class="docs">
     <aside>
       <h2>文档 <button @click="create(selected)">新建</button></h2>
+      <p style="margin:.2rem 0 .6rem">
+        <a href="#" @click.prevent="view = 'docs'" :style="{ fontWeight: view === 'docs' ? 700 : 400 }">全部文档</a> ·
+        <a href="#" @click.prevent="showTrash" :style="{ fontWeight: view === 'trash' ? 700 : 400 }">回收站</a>
+      </p>
       <p v-if="selected" class="hint">新建的文档会放在当前文档下；<a href="#" @click.prevent="create(null)">改为新建顶层文档</a></p>
-      <div class="tree">
+      <div v-if="view === 'trash'" class="tree">
+        <ul>
+          <li v-for="d in trash" :key="d.documentId">
+            <div style="flex-wrap:wrap"><span style="flex:1">{{ d.title }}</span>
+              <button @click="restore(d)">恢复</button> <button class="danger" @click="purge(d)">彻底删除</button></div>
+          </li>
+        </ul>
+        <p v-if="!trash.length" class="hint">回收站是空的。</p>
+      </div>
+      <div v-else class="tree">
         <ul>
           <li v-for="r in rows" :key="r.doc.documentId" :class="{ sel: r.doc.documentId === selected }" :style="{ paddingLeft: r.depth * 14 + 'px' }">
             <div @click="select(r.doc.documentId)">
@@ -227,6 +300,8 @@ onBeforeUnmount(() => { void save().then(releaseLock); });
           <button :disabled="!dirty || !writable" @click="save">保存草稿</button>
           <button class="primary" :disabled="busy || !writable" @click="publish">{{ meta.state === 'published' ? '发布更新' : '发布' }}</button>
           <button v-if="meta.state === 'published'" class="danger" :disabled="busy" @click="withdraw">撤回</button>
+          <button :disabled="busy" @click="toggleHistory">发布历史</button>
+          <button class="danger" :disabled="busy" @click="remove">删除</button>
         </div>
         <div v-if="!meta.pathSegment" class="publish-box">
           <label style="margin:0">页面路径</label>
@@ -235,6 +310,10 @@ onBeforeUnmount(() => { void save().then(releaseLock); });
           <input v-model="seo" placeholder="可留空">
         </div>
         <p v-else class="hint">公开路径：/{{ meta.pathSegment }}</p>
+        <ul v-if="history" class="history">
+          <li v-for="h in history" :key="h.historyId">{{ new Date(h.createdAt).toLocaleString() }} · {{ h.authorAccountName }} · {{ ({ publish: '发布', withdraw: '撤回', rollback: '回滚' } as any)[h.operation] ?? h.operation }}</li>
+          <li v-if="!history.length" class="hint">还没有发布记录。</li>
+        </ul>
         <Editor :key="editorKey" :doc="initialDoc" :editable="writable" @change="onChange" />
       </template>
     </section>

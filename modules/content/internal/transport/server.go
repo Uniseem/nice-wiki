@@ -388,6 +388,7 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 		"/v1/public-tree":                     true, "/v1/public-path:resolve": true,
 		"/v1/documents/{documentId}/history": true, "/v1/documents/{documentId}/history:diff": true,
 		"/v1/documents/{documentId}/published": true,
+		"/v1/documents/{documentId}:trash":     true, "/v1/documents/{documentId}:restore": true, "/v1/trash:purge": true,
 	}
 	for path := range spec.Paths.Map() {
 		if !keep[path] {
@@ -420,6 +421,51 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 				return
 			}
 			result, err := content.WithdrawDocument(content.WithTreeRuntime(r.Context(), runtime), op, content.WithdrawDocumentInput{DocumentId: r.PathValue("documentId"), ExpectedRevision: body.ExpectedRevision})
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"trashDocument": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			op, _ := platform.OperationContextFrom(r.Context())
+			var body gen.TrashDocumentRequest
+			if json.NewDecoder(r.Body).Decode(&body) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "删除参数无法转换"))
+				return
+			}
+			result, err := content.TrashDocument(content.WithTreeRuntime(r.Context(), runtime), op, content.TrashDocumentInput{DocumentId: r.PathValue("documentId"), IncludeSubtree: body.IncludeSubtree, ReplacementDocumentId: body.ReplacementDocumentId, ExpectedRevision: body.ExpectedRevision, ExpectedTreeRevision: body.ExpectedTreeRevision})
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"restoreDocument": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			op, _ := platform.OperationContextFrom(r.Context())
+			var body gen.RestoreDocumentRequest
+			if json.NewDecoder(r.Body).Decode(&body) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "恢复参数无法转换"))
+				return
+			}
+			result, err := content.RestoreDocument(content.WithTreeRuntime(r.Context(), runtime), op, content.RestoreDocumentInput{DocumentId: r.PathValue("documentId"), ParentId: body.ParentId, PathSegment: body.PathSegment, ExpectedRevision: body.ExpectedRevision})
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"purgeDocuments": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			op, _ := platform.OperationContextFrom(r.Context())
+			var input content.PurgeDocumentsInput
+			if json.NewDecoder(r.Body).Decode(&input) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "彻底删除参数无法转换"))
+				return
+			}
+			result, err := content.PurgeDocuments(content.WithTreeRuntime(r.Context(), runtime), op, input)
 			if err != nil {
 				writeProblem(w, err)
 				return
@@ -501,7 +547,7 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 	}
 	authorize := func(ctx context.Context, op platform.OperationContext, permission, action string) error {
 		switch action {
-		case "content:publishDocument", "content:withdrawDocument", "content:readRevisionHistory", "content:diffRevisions":
+		case "content:publishDocument", "content:withdrawDocument", "content:readRevisionHistory", "content:diffRevisions", "content:trashDocument", "content:restoreDocument", "content:purgeDocuments":
 			return nil
 		}
 		return platform.NewError(platform.CodeForbidden, false, "发布路由没有该操作的用户授权")
@@ -510,7 +556,7 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 		AllowedCallers: map[string][]string{
 			"publishDocument":     {"portal"},
 			"readRevisionHistory": {"portal"}, "diffRevisions": {"portal"},
-			"withdrawDocument":     {"portal"},
+			"withdrawDocument": {"portal"}, "trashDocument": {"portal"}, "restoreDocument": {"portal"}, "purgeDocuments": {"portal"},
 			"validatePublications": {"public-site", "knowledge", "qa", "localization", "site-config", "memory"},
 			"readPublicTree":       {"public-site", "knowledge", "qa", "localization", "site-config", "memory"}, "resolvePublicPath": {"public-site", "knowledge", "qa", "localization", "site-config", "memory"},
 			"readPublishedRevision": {"public-site", "knowledge", "qa", "localization", "memory"},
@@ -521,6 +567,9 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 	}
 	app.router.Handle("POST", "/v1/documents/{documentId}:publish", handler)
 	app.router.Handle("POST", "/v1/documents/{documentId}:withdraw", handler)
+	app.router.Handle("POST", "/v1/documents/{documentId}:trash", handler)
+	app.router.Handle("POST", "/v1/documents/{documentId}:restore", handler)
+	app.router.Handle("POST", "/v1/trash:purge", handler)
 	app.router.Handle("POST", "/v1/publications:validate", handler)
 	app.router.Handle("GET", "/v1/documents/{documentId}/published", handler)
 	app.router.Handle("GET", "/v1/documents/{documentId}/history", handler)

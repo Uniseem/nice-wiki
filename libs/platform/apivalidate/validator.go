@@ -87,6 +87,9 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 			}
 			if handlers[id] == nil {
 				unbound[id] = true
+				if os.Getenv("NW_DEBUG") != "" {
+					fmt.Fprintf(os.Stderr, "未绑定接口 %s\n", id)
+				}
 				continue
 			}
 			if id == "health" || id == "ready" {
