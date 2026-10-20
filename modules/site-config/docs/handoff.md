@@ -9,7 +9,7 @@
 - 从集成候选 `6f25dd57386081b5903bc6c02f448ea769466618` 建立独立分支，仅修改本模块。
 - 删除四个 activation verifier 重复函数登记，合并重复 `snapshot_service.go` future file 时保留 `ConfigureGlobalSealVerifier` 以外的全部原函数约束、步骤和依赖；`ExportSnapshot`、`StageSnapshot`、`DiscardSnapshot` 归入唯一文件条目。
 - 为 `SnapshotManager`、`SnapshotCleanup`、`OutboxStore`、`SiteConfigClient`、`SigningKey`、`SwapResult`、`SnapshotSwapEvidence`、`OutboxObservation` 等真实叶类型引用本域权威平台合同；`WithRelayRuntime`、`WithSnapshotRuntime`、`authorizeResourceReferenceRead` 接入实际源码 caller 的合同依赖。
-- 删除无源码 caller 的 `ConfigureGlobalSealVerifier` 参考函数源码/合同登记；`verifyGlobalSeal` 仍失败关闭，等待 jobs 协调器和集成启动合同冻结。
+- 删除无源码 caller 的 `ConfigureGlobalSealVerifier` 参考函数源码/合同登记；当前已无可注入 setter，`verifyGlobalSeal` 仍失败关闭，等待 jobs 真实协调端口和集成启动合同冻结。
 - 机器依赖统一为 `platform.RegisterWorkTable`、`platform.MigrateRestoredDatabase`；Go 实现包路径保持公共 outbox。生成函数/文件文档留给集成代理统一 `make docs`。
 
 # 2026-10-20 R1-F02首批源码待根审核与CI
