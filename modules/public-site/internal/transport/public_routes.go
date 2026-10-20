@@ -59,7 +59,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			op, _ := platform.OperationContextFrom(r.Context())
 			result, err := publicsite.HandleHome(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandleHomeInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
 			if err != nil {
-				writeProblem(w, err)
+				writePageProblem(w, r, err)
 				return
 			}
 			if result.Location != "" {
@@ -75,7 +75,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			op, _ := platform.OperationContextFrom(r.Context())
 			result, err := publicsite.HandlePage(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandlePageInput{Locale: r.PathValue("locale"), Slug: r.PathValue("slug"), DataEpoch: string(op.DataEpoch)})
 			if err != nil {
-				writeProblem(w, err)
+				writePageProblem(w, r, err)
 				return
 			}
 			w.Header().Set("Content-Type", htmlType)

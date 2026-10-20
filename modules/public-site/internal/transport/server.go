@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -282,4 +283,24 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 func writeProblem(w http.ResponseWriter, err error) {
 	requestID := platform.NewIdentifier()
 	_ = problem.WriteProblem(w, problem.FromError(err, requestID))
+}
+
+// writePageProblem 浏览器请求页面失败时给一页说人话的 HTML（状态码不变）；程序请求仍返回 problem+json。
+func writePageProblem(w http.ResponseWriter, r *http.Request, err error) {
+	if !strings.Contains(r.Header.Get("Accept"), "text/html") {
+		writeProblem(w, err)
+		return
+	}
+	status := problem.FromError(err, platform.NewIdentifier()).Status
+	title, hint := "页面暂时无法访问", "请稍后刷新重试。"
+	switch {
+	case status == http.StatusNotFound || status == http.StatusBadRequest:
+		status, title, hint = http.StatusNotFound, "页面不存在", "地址可能有误，或这篇文档还没有发布。"
+	case status == http.StatusGone:
+		title, hint = "页面已删除", "这篇文档已经被删除。"
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte("<!doctype html><html lang=\"zh-Hans\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"robots\" content=\"noindex\"><title>" + title + "</title><style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:grid;place-items:center;font:16px/1.6 system-ui;text-align:center}h1{font-size:1.4rem}a{color:#2563eb}</style></head><body><main><h1>" + title + "</h1><p>" + hint + "</p><p><a href=\"/\">回到首页</a></p></main></body></html>"))
 }
