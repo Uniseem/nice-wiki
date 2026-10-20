@@ -1,14 +1,15 @@
-# 2026-10-20 文档收尾无待推源码
+# 2026-10-20 R1恢复候选
 
-本轮只正式交付冻结总计划和准确收尾记录。计划基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，pipeline 163 全绿且生成补丁 0；正式远端推送前基线为 `b986443d0dddf5482f7c3430e3dc7c8b99a24232`。
+用户已授权恢复 R1 源码实施；本目录记录候选状态，不自动推送到任一远端。
 
-以下四路 WIP 不进入 main，不 reset、不删除、不强推：
+集成候选分支为 `codex/resume-20261020-integration`，由 `codex/closeout-20261020-integration` 的 `e85dde0583938bb4207bc3a1117e62549d21018c` 合入 main `a32f3f4c4876f94ce798826e9dee0b170bbb612a` 纯文档基线形成。该基线保留原四路 WIP，不改旧提交。
 
-- `codex/closeout-20261020-integration`：`e85dde0583938bb4207bc3a1117e62549d21018c`
-- `codex/closeout-20261020-identity`：`5466c47d22249c224d57009a329786f1d019fa80`
-- `codex/closeout-20261020-site-config`：`6d83888b39ebbd3a624f58d820274e7c6f3072c7`
-- `codex/closeout-20261020-jobs`：`76325f0d024563daec80037f42e021112de39fad`
+候选复算确认 pipeline 166 缺真实消费者的 5 个公共函数是：
 
-全仓函数台账仍为 1645/2414，accepted 0。公共候选的 5 个函数没有真实消费者，完整 check 失败；identity 的后台参考函数登记/caller、site-config relay、jobs 后台/readiness/保护来源均未闭合。以上都不以本推送补写或伪造依赖。
+- `platform.SignActivationReceipt`
+- `platform.VerifyActivationReceipt`
+- `platform.Store.ObserveTx`
+- `platform.Store.SealTx`
+- `platform.Store.ResumeTx`
 
-正式候选仅限本目录的根文档与 push-log 更新；精确 CI、源码完成数和双推回执见 [2026-10-20-0001](2026-10-20-0001.md)。无真实接口、模型、服务或部署。
+建议接线按既有恢复合同与事务边界分别交 identity、site-config、jobs 处理；接线通过精确 SHA CI 前不得改 implemented/verified。jobs 旧 WIP 新增 web 工程也纳入既有前端任务；lockfile 只能由 CI 中的 pnpm 生成。

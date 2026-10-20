@@ -8,6 +8,8 @@ nice-wiki 从零重建为可独立开发部署的微服务文档站。旧实现�
 
 新会话还须读目标模块 STATUS.md、progress.json、docs/handoff.md 并核对Git分支/HEAD/脏文件，按 docs/playbooks/handoff.md 接续。并行会话每模块独立worktree及互斥所有权；公共文件由集成会话统一修改，按 docs/playbooks/parallel-development.md 合并。模块会话只更新自己进度与交接，根状态由集成会话汇总，不能并行改同一Git index。
 
+2026-10-20 分工约定：主代理只负责拆解、指挥、协调与复核；实际源码/文档修改、集成与 CI 操作由多个子代理执行。每模块使用独立 worktree 和互斥所有权，最多 3 个模块并行；公共文件由唯一集成子代理维护。
+
 每模块 contracts/openapi.json 是 HTTP 唯一来源，contracts/types.json 是业务类型来源，contracts/implementation.json 是未来文件、函数及职责的机器契约，contracts/events.json 是其事件来源。人类文档必须与机器契约一致，发现矛盾先修设计，不猜测实现。
 
 ## 按契约实施
