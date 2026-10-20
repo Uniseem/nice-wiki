@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -44,6 +45,11 @@ func RunService(spec platform.ServiceSpec) int {
 	ctx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stopSignals()
 	application, err := spec.BuildApplication(ctx, config)
+	// 站点还没初始化时，依赖站点身份的服务先等着（每 3 秒重试），初始化一完成就能起来，不必靠进程守护反复重启。
+	for err != nil && errorCodeOf(err) == platform.CodeNotFound && strings.Contains(messageOf(err), "尚未完成初始化") && ctx.Err() == nil {
+		time.Sleep(3 * time.Second)
+		application, err = spec.BuildApplication(ctx, config)
+	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "装配失败，errorCode=%s %s\n", errorCodeOf(err), messageOf(err))
 		return ExitFailure
