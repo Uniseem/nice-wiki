@@ -44,6 +44,7 @@ type Application struct {
 	httpServer          *http.Server
 	closers             []func()
 	router              *apivalidate.PathRouter
+	tasks               []platform.BackgroundTask
 }
 
 // NewApplication 组装 HTTP 容器并注册匿名健康/就绪路由。业务路由与
@@ -217,4 +218,20 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func writeProblem(w http.ResponseWriter, err error) {
 	_ = problem.WriteProblem(w, problem.FromError(err, platform.NewIdentifier()))
+}
+
+// SetBackgroundTasks 登记随进程运行的后台循环。
+func (a *Application) SetBackgroundTasks(tasks []platform.BackgroundTask) { a.tasks = tasks }
+
+func (a *Application) BackgroundTasks() []platform.BackgroundTask {
+	return append([]platform.BackgroundTask{}, a.tasks...)
+}
+
+// Drain 只停止接收新请求并等在途请求结束；私有库留给 Shutdown 关闭。
+func (a *Application) Drain(ctx context.Context) error {
+	a.state.CompareAndSwap(stateReady, stateDraining)
+	if err := a.httpServer.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return platform.NormalizeIOError(err, platform.CodeInternal, false, "HTTP安全关闭未完成")
+	}
+	return nil
 }

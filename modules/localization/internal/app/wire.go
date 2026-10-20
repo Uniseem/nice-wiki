@@ -5,9 +5,11 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -177,6 +179,41 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 	}
 	application := transport.NewApplication(config, anchors, runtimeAuthority, view.DataEpoch)
+	siteHTTP := &http.Client{Transport: serviceauth.SigningTransport(ModuleSlug, "site-config", key, nil), Timeout: 5 * time.Second}
+	siteURL := strings.TrimRight(config.Dependencies["site-config"], "/") + "/v1/config"
+	application.SetBackgroundTasks([]platform.BackgroundTask{{Name: "localization.auto-translate", Run: func(work context.Context) error {
+		return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 10000, Runtime: func(c context.Context) (platform.RuntimeView, error) {
+			return lifecycle.ReadRuntime(c, runtimeAuthority)
+		}, WriteWindow: func(context.Context) (time.Time, error) { return time.Time{}, nil }, Recover: func(tick context.Context) error {
+			deadline := time.Now().UTC().Add(30 * time.Second)
+			id := platform.NewIdentifier()
+			op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline.Format(time.RFC3339Nano), DataEpoch: view.DataEpoch, CostClass: platform.CostClassBackground,
+				Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system", ExpiresAt: deadline.Format(time.RFC3339Nano), Grants: []string{}}}
+			request, err := http.NewRequestWithContext(platform.WithOperationContext(platform.WithPortalProof(tick, ""), op), http.MethodGet, siteURL, nil)
+			if err != nil {
+				return nil
+			}
+			response, err := siteHTTP.Do(request)
+			if err != nil {
+				return nil
+			}
+			raw, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+			response.Body.Close()
+			if response.StatusCode != http.StatusOK {
+				return nil // 站点还没初始化，或不允许读取
+			}
+			var config struct {
+				Config struct {
+					SiteID string `json:"siteId"`
+				} `json:"config"`
+			}
+			if json.Unmarshal(raw, &config) != nil || config.Config.SiteID == "" {
+				return nil
+			}
+			op.Actor.SiteID = config.Config.SiteID
+			return translation.AutoTranslate(platform.WithOperationContext(platform.WithPortalProof(tick, ""), op), op)
+		}})
+	}}})
 	retain = true
 	application.Mount(handler, paths, func() {
 		localizationruntime.ClearLanguageGateway()

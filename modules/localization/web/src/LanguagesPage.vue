@@ -50,6 +50,14 @@ const translate = (node: any) => {
   }, '已开始翻译，完成后访客就能看到该语言的页面；稍后刷新查看进度。');
 };
 
+const setAuto = (language: Language, on: boolean) => {
+  if (on && !confirm('开启后，每篇文档发布新版本时都会自动调用模型翻译到该语言，可能产生费用。确认开启？')) return;
+  return run(async () => {
+    const idempotencyKey = key();
+    await api(`/v1/languages/${encodeURIComponent(language.tag)}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: language.version, idempotencyKey, language: { ...language, version: language.version + 1, automaticTranslation: on } } });
+  });
+};
+
 onMounted(() => run(async () => {}));
 </script>
 
@@ -66,7 +74,8 @@ onMounted(() => run(async () => {}));
           <td>{{ l.tag }}<span v-if="l.isDefault" class="hint">（基准语言）</span></td>
           <td>{{ l.direction === 'rtl' ? '从右到左' : '从左到右' }}</td>
           <td>{{ l.enabled ? '已启用' : '未启用' }}</td>
-          <td>{{ l.automaticTranslation ? '发布时自动翻译' : '关闭' }}</td>
+          <td>{{ l.automaticTranslation ? '发布时自动翻译' : '关闭' }}
+            <button v-if="!l.isDefault && l.enabled" :disabled="busy" @click="setAuto(l, !l.automaticTranslation)">{{ l.automaticTranslation ? '关闭' : '开启' }}</button></td>
           <td>
             <button v-if="!l.isDefault && !l.enabled" :disabled="busy" @click="setEnabled(l, true)">启用</button>
             <button v-else-if="!l.isDefault" :disabled="busy" @click="setEnabled(l, false)">停用</button>

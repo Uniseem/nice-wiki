@@ -21,6 +21,10 @@ func CreateTranslation(ctx context.Context, op OperationContext, input CreateTra
 	if err := language.RequireAdministrator(op); err != nil {
 		return CreateTranslationResult{}, err
 	}
+	return createTranslation(ctx, op, input)
+}
+
+func createTranslation(ctx context.Context, op OperationContext, input CreateTranslationInput) (CreateTranslationResult, error) {
 	if input.Document.DataEpoch != op.DataEpoch {
 		return CreateTranslationResult{}, platform.NewError(platform.CodeStaleResult, false, "发布引用不属于当前数据代次")
 	}
