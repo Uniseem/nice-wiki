@@ -953,6 +953,60 @@
           "contract": "reference"
         },
         {
+          "id": "platform.decodeCanonicalReceiptJSON",
+          "name": "decodeCanonicalReceiptJSON",
+          "signature": "func decodeCanonicalReceiptJSON(raw []byte, target any) error",
+          "inputs": [
+            {
+              "name": "raw",
+              "type": "[]byte",
+              "description": "待核验的JWS头或证明JSON字节",
+              "constraints": [
+                "必须是单个JSON值；未知字段和尾随值拒绝"
+              ]
+            },
+            {
+              "name": "target",
+              "type": "any",
+              "description": "固定结构的解码目标",
+              "constraints": [
+                "只由激活回执验签内部调用"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "严格解码或规范JSON核对失败",
+              "constraints": [
+                "不返回部分可信结构"
+              ]
+            }
+          ],
+          "purpose": "严格解码激活回执的固定头与证明，并核对CanonicalJSON字节不漂移",
+          "steps": [
+            "使用DisallowUnknownFields解码单个JSON值并拒绝尾随值",
+            "对解码目标重新执行CanonicalJSON，要求结果与输入字节完全一致"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "未知字段、尾随值或规范编码不一致",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "纯函数，仅由VerifyActivationReceipt内部调用",
+          "concurrency": "纯函数，可并发调用",
+          "idempotency": "同一输入产生相同解码结论",
+          "dependencies": [
+            "platform.CanonicalJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
           "id": "platform.VerifyActivationReceipt",
           "name": "VerifyActivationReceipt",
           "signature": "func VerifyActivationReceipt(anchors TrustAnchors, issuer string, claims ActivationReceiptClaims, signature string) error",
@@ -1029,6 +1083,7 @@
           "idempotency": "无状态；相同证据返回相同结论",
           "dependencies": [
             "platform.normalizeActivationReceiptClaims",
+            "platform.decodeCanonicalReceiptJSON",
             "platform.CanonicalJSON"
           ],
           "resources": [],

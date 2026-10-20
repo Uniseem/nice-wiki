@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "4bdf26c5c05706f6e7b4591c3c8c5829afbf07ce333592497ae4036f7346eb99",
+  "contractSha256": "b78bb7d3638dbd0361d4f715fc760a0ff42c6682f856cc75dc451d8805a45abb",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-20激活回执最小验签候选；待site-config消费者接线与GitLab源码检查。",
   "branch": "codex/activation-verify-20261020",
@@ -452,6 +452,17 @@
       "verification": {
         "state": "not_run",
         "evidence": "候选源码已写入唯一Claims时间规范化；待site-config最小消费者合成后由GitLab执行生成、三个Go分片与完整make check。"
+      },
+      "blocker": "尚无GitLab精确SHA；未在本机执行Go或测试。"
+    },
+    {
+      "id": "platform.decodeCanonicalReceiptJSON",
+      "path": "libs/platform/serviceauth/delegation.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "候选源码中的严格固定JSON解码与CanonicalJSON字节核对已登记；待site-config最小消费者合成后由GitLab执行源码检查。"
       },
       "blocker": "尚无GitLab精确SHA；未在本机执行Go或测试。"
     },

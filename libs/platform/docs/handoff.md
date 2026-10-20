@@ -1,6 +1,6 @@
 # 2026-10-20最小激活回执验签候选
 
-候选分支`codex/activation-verify-20261020`从main `a32f3f4c4876f94ce798826e9dee0b170bbb612a`独立建立，独占公共平台验签合同与实现。当前实际范围是`ActivationReceiptClaims`、内部`normalizeActivationReceiptClaims`和`VerifyActivationReceipt`；旧e85公共WIP不合入本树，`SignActivationReceipt`及outbox三个事务变体留在旧WIP。
+候选分支`codex/activation-verify-20261020`从main `a32f3f4c4876f94ce798826e9dee0b170bbb612a`独立建立，独占公共平台验签合同与实现。当前实际范围是`ActivationReceiptClaims`、内部`normalizeActivationReceiptClaims`、`decodeCanonicalReceiptJSON`和`VerifyActivationReceipt`；旧e85公共WIP不合入本树，`SignActivationReceipt`及outbox三个事务变体留在旧WIP。
 
 `recordedAt`由公共助手在载荷摘要前统一为UTC `RFC3339Nano`，因此site-config的`time.Time`与签名Claims不会因`+00:00`、时区或小数尾部表示差异导致相同真实时间验签失败。Verify仍要求外层已验签caller等于Claims.module、按issuer查登记公钥、固定EdDSA/NW-ACTIVATION-RECEIPT头，并用规范化Claims核payloadHash；site-config仍负责当前phase、restoreId、expectedRevision和域覆盖。
 

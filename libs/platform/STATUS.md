@@ -1,6 +1,6 @@
 # 2026-10-20激活回执最小验签候选（待GitLab源码检查）
 
-从main `a32f3f4c4876f94ce798826e9dee0b170bbb612a`单独建立分支`codex/activation-verify-20261020`，只补首个site-config接线所需的`ActivationReceiptClaims`、`normalizeActivationReceiptClaims`与`VerifyActivationReceipt`。旧`codex/closeout-20261020-integration`的e85 WIP原样保留；`SignActivationReceipt`和`ObserveTx/SealTx/ResumeTx`不纳入本候选。
+从main `a32f3f4c4876f94ce798826e9dee0b170bbb612a`单独建立分支`codex/activation-verify-20261020`，只补首个site-config接线所需的`ActivationReceiptClaims`、`normalizeActivationReceiptClaims`、`decodeCanonicalReceiptJSON`与`VerifyActivationReceipt`。旧`codex/closeout-20261020-integration`的e85 WIP原样保留；`SignActivationReceipt`和`ObserveTx/SealTx/ResumeTx`不纳入本候选。
 
 回执摘要前统一把合法`recordedAt`解析为UTC并以RFC3339Nano重编码，签发端和接收端共用同一Claims规范化约定；不新增schemaVersion或签名框架。当前未运行本机Go、生成、测试或业务接口，新增/修改项保持`in_progress`，等待用户自部署GitLab源码检查；业务验收与部署未执行。
 
