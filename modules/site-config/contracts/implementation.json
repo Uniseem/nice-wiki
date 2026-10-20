@@ -1968,12 +1968,18 @@
             {
               "name": "anchors",
               "type": "TrustAnchors",
-              "description": "Build已装配的服务公钥表"
+              "description": "Build已装配的服务公钥表",
+              "constraints": [
+                "成功时必须来自Build已装配且包含服务公钥的信任锚"
+              ]
             },
             {
               "name": "error",
               "type": "Error",
-              "description": "验签锚未装配时返回DEPENDENCY_UNAVAILABLE"
+              "description": "验签锚未装配时返回DEPENDENCY_UNAVAILABLE",
+              "constraints": [
+                "失败时不得返回可用验签锚，调用方必须失败关闭"
+              ]
             }
           ],
           "purpose": "读取Build已装配的激活回执验签锚",
@@ -2455,24 +2461,36 @@
             {
               "name": "anchors",
               "type": "TrustAnchors",
-              "description": "Build已装配的服务公钥表"
+              "description": "Build已装配的服务公钥表",
+              "constraints": [
+                "必须来自可信Build装配；不接受HTTP或请求输入自带的信任锚"
+              ]
             },
             {
               "name": "issuer",
               "type": "string",
-              "description": "已验证的caller服务身份"
+              "description": "已验证的caller服务身份",
+              "constraints": [
+                "必须是入口已验证且与receipt.module一致的服务身份"
+              ]
             },
             {
               "name": "input",
               "type": "RegisterActivationInput",
-              "description": "已通过schema、caller、epoch、CAS与phase检查的回执输入"
+              "description": "已通过schema、caller、epoch、CAS与phase检查的回执输入",
+              "constraints": [
+                "必须通过RegisterActivation既有schema、幂等、epoch、CAS与phase检查；不含anchors字段"
+              ]
             }
           ],
           "outputs": [
             {
               "name": "error",
               "type": "Error",
-              "description": "验签失败返回INTEGRITY_ERROR"
+              "description": "验签失败返回INTEGRITY_ERROR",
+              "constraints": [
+                "失败时不产生持久副作用"
+              ]
             }
           ],
           "purpose": "把本域输入绑定为公共激活回执claims并调用统一验签器",
