@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"io"
 	"math"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -285,7 +283,7 @@ func snapshotRefToLifecycle(ref gen.SnapshotRef) lifecycle.SnapshotRef {
 }
 
 func snapshotRefFromLifecycle(ref lifecycle.SnapshotRef) gen.SnapshotRef {
-	return gen.SnapshotRef{Owner: ref.Owner, SnapshotId: ref.SnapshotID, DataEpoch: ref.DataEpoch, DataSchemaVersion: ref.DataSchemaVersion, Object: gen.ObjectRef{Owner: ref.Object.Owner, ObjectId: ref.Object.ObjectID, Version: gen.Revision(ref.Object.Version), Sha256: ref.Object.SHA256, MediaType: ref.Object.MediaType, ByteSize: ref.Object.ByteSize}, RevisionWatermark: gen.Revision(ref.RevisionWatermark), ContainsSecrets: ref.ContainsSecrets}
+	return gen.SnapshotRef{Owner: ref.Owner, SnapshotId: ref.SnapshotID, DataEpoch: ref.DataEpoch, DataSchemaVersion: ref.DataSchemaVersion, Object: gen.ObjectRef{Owner: ref.Object.Owner, ObjectId: ref.Object.ObjectID, Version: gen.Revision(ref.Object.Version), Sha256: ref.Object.SHA256, MediaType: ref.Object.MediaType, ByteSize: int(ref.Object.ByteSize)}, RevisionWatermark: gen.Revision(ref.RevisionWatermark), ContainsSecrets: ref.ContainsSecrets}
 }
 
 func CreateSnapshot(ctx context.Context, op OperationContext, request SnapshotExportRequest) (SnapshotExportResult, error) {
