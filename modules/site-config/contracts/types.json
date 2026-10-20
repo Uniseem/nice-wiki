@@ -3453,6 +3453,40 @@
     "RuntimeView": {
       "$ref": "../../../libs/platform/contracts/types.json#/$defs/RuntimeView"
     },
+    "OutboxObservation": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/OutboxObservation"
+    },
+    "OutboxStore": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/OutboxStore"
+    },
+    "SnapshotCleanup": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SnapshotCleanup"
+    },
+    "SnapshotManager": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SnapshotManager"
+    },
+    "SiteConfigClient": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SiteConfigClient"
+    },
+    "SigningKey": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SigningKey"
+    },
+    "SwapResult": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SwapResult"
+    },
+    "SnapshotSwapEvidence": {
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SnapshotSwapEvidence"
+    },
+    "SnapshotRuntime": {
+      "type": "object",
+      "description": "本域Build装配的同一公共SnapshotManager与受控恢复归档读取端口",
+      "x-internal": true
+    },
+    "RestoreArchiveClient": {
+      "type": "object",
+      "description": "本域受控恢复归档读取回调；不接受客户端路径或URL",
+      "x-internal": true
+    },
     "TrustAnchors": {
       "$ref": "../../../libs/platform/contracts/types.json#/$defs/TrustAnchors",
       "description": "可信Build装配的服务公钥表"

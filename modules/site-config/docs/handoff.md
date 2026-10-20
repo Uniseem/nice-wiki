@@ -2,7 +2,15 @@
 
 本工作树继续旧恢复WIP `30ac79fcf878d1f3eb3fafb472204edae19bae4b`，已普通 merge `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`；源码与合并窄修提交为 `c3c7c10c11320ebff45c994f8458e54604a75343`。主线 pipeline173/174 已验证的激活回执验签与 `RegisterActivation` 实作保留在合并源码中；本轮新/改恢复、快照、Relay、Build 接线仍待 GitLab CI，继续保持待验证。
 
-本轮只在 `modules/site-config/` 内修复公告 journal 单条隔离，并按公共屏障协议复核：非 jobs 只封本域真实水位并使用同一无 `nonJobs` 字段 proof，不等待最终 broker 回执；最终 broker 与13域回执由 jobs 阶段核验。未运行本机/SSH Go、pnpm、生成、格式化、编译、vet、test、make check、真实接口、模型、服务或部署；不 push。
+本轮只在 `modules/site-config/` 内修复公告 journal 单条隔离，并按公共屏障协议复核：非 jobs 只封本域真实水位并使用同一无 `nonJobs` 字段 proof，不等待最终 broker 回执；最终 broker 与13域回执由 jobs 阶段核验。恢复迁移机器合同依赖统一记为 `platform.MigrateRestoredDatabase`，实际Go包调用仍由公共outbox实现；公共 `RegisterWorkTable` 同样按 `platform.RegisterWorkTable` 机器ID登记。当前无真实GlobalSeal协调器caller，已删除未使用的配置hook源码/合同；`verifyGlobalSeal` 保持失败关闭，等待jobs协调器和集成启动合同冻结。未运行本机/SSH Go、pnpm、生成、格式化、编译、vet、test、make check、真实接口、模型、服务或部署；不 push。
+
+## 本轮结构合同收口
+
+- 从集成候选 `6f25dd57386081b5903bc6c02f448ea769466618` 建立独立分支，仅修改本模块。
+- 删除四个 activation verifier 重复函数登记，合并重复 `snapshot_service.go` future file 时保留 `ConfigureGlobalSealVerifier` 以外的全部原函数约束、步骤和依赖；`ExportSnapshot`、`StageSnapshot`、`DiscardSnapshot` 归入唯一文件条目。
+- 为 `SnapshotManager`、`SnapshotCleanup`、`OutboxStore`、`SiteConfigClient`、`SigningKey`、`SwapResult`、`SnapshotSwapEvidence`、`OutboxObservation` 等真实叶类型引用本域权威平台合同；`WithRelayRuntime`、`WithSnapshotRuntime`、`authorizeResourceReferenceRead` 接入实际源码 caller 的合同依赖。
+- 删除无源码 caller 的 `ConfigureGlobalSealVerifier` 参考函数源码/合同登记；`verifyGlobalSeal` 仍失败关闭，等待 jobs 协调器和集成启动合同冻结。
+- 机器依赖统一为 `platform.RegisterWorkTable`、`platform.MigrateRestoredDatabase`；Go 实现包路径保持公共 outbox。生成函数/文件文档留给集成代理统一 `make docs`。
 
 # 2026-10-20 R1-F02首批源码待根审核与CI
 

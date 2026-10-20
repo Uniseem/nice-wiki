@@ -1,3 +1,9 @@
+# 2026-10-20 R1-F02结构合同收口
+
+本工作树从集成候选 `6f25dd57386081b5903bc6c02f448ea769466618` 建立，分支为 `codex/structure-site-config-20261020`，只修改 `modules/site-config/`。本轮清理 activation verifier 的重复函数登记、合并重复的 `snapshot_service.go` future file、按平台权威来源登记真实快照/恢复/outbox叶类型、补实际 caller 依赖边，并删除无源码 caller 的 GlobalSeal 配置hook；`verifyGlobalSeal` 保持失败关闭。
+
+机器合同使用冻结的 `platform.RegisterWorkTable` 与 `platform.MigrateRestoredDatabase` ID，实际 Go 包调用仍由公共 outbox 实现。当前 checker 剩余 package/标准库限定符误报、父树尚未合入的公共 platform ID，以及生成文档待集成 `make docs`；本轮不升 `implemented`/`verified`，未运行 Go、测试、pnpm、make check 或真实服务。
+
 # 2026-10-20 R1-F02恢复WIP接入main后的窄修
 
 本工作树从旧恢复WIP `30ac79fcf878d1f3eb3fafb472204edae19bae4b` 继续，并已普通 merge 接入 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`；源码与合并窄修提交为 `c3c7c10c11320ebff45c994f8458e54604a75343`，未 reset、未 rebase、未 push。主线已由 pipeline173/174 验证的激活回执验签与 `RegisterActivation` 实作保留在合并源码中。本轮只在 `modules/site-config/` 内复核并修复一个公告 journal 单条隔离缺口，新增/修改的恢复、快照、Relay、Build 接线仍待 GitLab CI，不能标 `implemented` 或 `verified`。
