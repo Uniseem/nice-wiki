@@ -21,12 +21,12 @@ const activationReceiptPurpose = "activation-receipt-v1"
 
 // ActivationReceiptClaims 是有状态域完成恢复切换或换回后签名的规范载荷。
 type ActivationReceiptClaims struct {
-	Version         int                `json:"version"`
+	Version         int                 `json:"version"`
 	RestoreID       platform.Identifier `json:"restoreId"`
-	Module          string             `json:"module"`
+	Module          string              `json:"module"`
 	StageID         platform.Identifier `json:"stageId"`
 	TargetDataEpoch platform.Identifier `json:"targetDataEpoch"`
-	State           string             `json:"state"`
+	State           string              `json:"state"`
 	ManifestHash    platform.Hash       `json:"manifestHash"`
 	RecordedAt      platform.Timestamp  `json:"recordedAt"`
 }
@@ -77,7 +77,7 @@ func SignActivationReceipt(key platform.SigningKey, claims ActivationReceiptClai
 // VerifyActivationReceipt 验证持久回执来源；HTTP服务断言另行证明调用方。
 func VerifyActivationReceipt(anchors platform.TrustAnchors, issuer string, claims ActivationReceiptClaims, signature string) error {
 	invalid := func(message string) error {
-		return platform.NewError(platform.CodeUnauthenticated, false, message)
+		return platform.NewError(platform.CodeUnauthenticated, false, "%s", message)
 	}
 	if !validActivationReceiptClaims(claims) || issuer == "" || issuer != claims.Module {
 		return invalid("激活回执声明或发行方不合法")
@@ -128,6 +128,7 @@ func validActivationReceiptClaims(claims ActivationReceiptClaims) bool {
 	}
 	return claims.Version == 1 &&
 		platform.ValidIdentifier(claims.RestoreID) &&
+		len(claims.Module) <= 64 &&
 		platform.ValidIdentifier(claims.Module) &&
 		platform.ValidIdentifier(claims.StageID) &&
 		platform.ValidIdentifier(claims.TargetDataEpoch) &&

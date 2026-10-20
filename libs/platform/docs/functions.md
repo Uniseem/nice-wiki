@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 235 个函数：约束 21 个，参考 214 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 240 个函数：约束 21 个，参考 219 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -460,6 +460,92 @@ func ResolveVisitorAddress(remoteAddr string, forwardedFor string, trustedProxyC
 - 并发：无可写业务状态，可并发
 - 幂等：同密钥、规范网络地址和UTC日返回相同HMAC；前一日重叠覆盖短窗口
 - 依赖：`platform.privateNetworkPeer`
+
+## platform.SignActivationReceipt
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：为有状态域完成恢复切换或换回签发与当前restore完整绑定的回执
+
+```go
+func SignActivationReceipt(key SigningKey, claims ActivationReceiptClaims) (string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `key` | `SigningKey` | 完成恢复切换或换回的有状态域部署密钥 | 只从受控secret文件读取，不进日志或返回值 |
+| `claims` | `ActivationReceiptClaims` | 与实际stage、目标代次和持久回执完全一致的规范声明 | restoreId、module、stageId、targetDataEpoch、state、manifestHash、recordedAt齐全 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `signature` | `string` | Ed25519紧凑JWS，绑定完整规范声明 | 只作为ActivationReceipt.signature持久，长度不超过4096 |
+| `error` | `error` | 声明或签名密钥失败 | 不含密钥或恢复数据 |
+
+**步骤**
+
+1. 校验version=1及restoreId/module/stageId/targetDataEpoch为合法Identifier，state仅为switched或rolled-back，manifestHash为SHA-256，recordedAt为有效UTC时间
+2. 从部署secret加载模块Ed25519私钥；不为缺失或错误密钥生成弱签名
+3. 以既有CanonicalJSON编码完整claims，头固定NW-ACTIVATION-RECEIPT与EdDSA，证明中含issuer、purpose及payloadHash
+4. 返回可持久验收据签名；认证服务断言另行发行，不复用回执签名作为HTTP调用凭据
+
+**错误**
+
+- `VALIDATION`：回执声明缺失、代次/阶段/摘要/时间不合法（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：模块签名密钥不可读取或不可用（可重试）
+
+- 副作用：读取受控签名私钥；不写业务数据、不记录密钥
+- 授权：permission：service；rule：只由完成本次snapshot Stage/ApplyRestoreSwap并持有本模块部署密钥的有状态域调用
+- 并发：纯签名函数，可并发
+- 幂等：同一密钥与完整claims产生同一签名；重复调用不改变持久状态
+- 依赖：`platform.LoadSigningKey`、`platform.CanonicalJSON`
+
+## platform.VerifyActivationReceipt
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：验证有状态域持久激活回执的独立来源及其与restore完整绑定
+
+```go
+func VerifyActivationReceipt(anchors TrustAnchors, issuer string, claims ActivationReceiptClaims, signature string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | 可信服务Ed25519公钥表 | issuer与keyId必须精确登记 |
+| `issuer` | `string` | 外层已认证服务断言的caller slug | 必须等于claims.module |
+| `claims` | `ActivationReceiptClaims` | 待登记的完整持久回执字段 | 包含独立restoreId，不能只信body或当前运行状态 |
+| `signature` | `string` | ActivationReceipt.signature原文 | 非空且不超过4096字节 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 来源验签或载荷绑定失败 | 无error时才可将回执作为持久来源证明 |
+
+**步骤**
+
+1. 要求外层caller=issuer=claims.module，再重做ActivationReceiptClaims结构约束；外层HTTP服务断言继续由公共入口单独验证
+2. 解码并严格核规范JWS头NW-ACTIVATION-RECEIPT/EdDSA/kid与登记的公钥，不允许alg替换或未登记key
+3. 只从issuer名下TrustAnchors取公钥验证Ed25519签名；issuer不能由body自报替代
+4. 严格解码规范证明并核purpose及payloadHash；claims任一字段改变、restoreId替换或其他恢复回执重放均失败
+5. 返回空error仅表示持久来源与完整字段绑定成立；site-config仍须核当前phase、expectedRevision、restoreId和域覆盖
+
+**错误**
+
+- `UNAUTHENTICATED`：caller/issuer/key/header或签名无效（不可重试）
+- `INTEGRITY_ERROR`：规范编码或签名载荷摘要不一致（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：由site-config在同请求结构、服务断言、caller/module及控制阶段校验后调用
+- 并发：纯函数，可并发
+- 幂等：无状态；相同证据返回相同结论
+- 依赖：`platform.CanonicalJSON`
 
 ## platform.VerifyDelegation
 
@@ -8986,6 +9072,47 @@ func (s *Store) Observe(ctx context.Context) (Observation, error)
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
 - 依赖：无
 
+## platform.Store.ObserveTx
+
+- 级别：参考
+- 文件：`libs/platform/outbox/observation.go`
+- 作用：在调用方业务事务内读取一致outbox水位，供域工作水位与outbox同事务核对
+
+```go
+func (s *Store) ObserveTx(ctx context.Context, tx Tx) (Observation, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 事务读取截止 | 由调用方持有的事务上下文派生 |
+| `tx` | `Tx` | 调用方持有的本域同一SQLite事务 | 必须与业务水位CAS使用同一* sql.Tx |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `observation` | `Observation` | 事务快照中的outbox revision、sealHash与完整活动计数 | 未知状态不当作0 |
+| `error` | `error` | 事务不可读或活动状态未知 | 失败时observation无效 |
+
+**步骤**
+
+1. 使用与Store.Observe相同的控制行及全部活动行SQL，不复制域字段或另建回调包装
+2. 在调用方tx中读取并拒绝非法revision或未知outbox状态
+3. 不提交或回滚tx；调用方在同一事务内完成本域工作CAS、SealTx或ResumeTx
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：调用方事务不可读取outbox（可重试）
+- `INTEGRITY_ERROR`：revision或活动行状态未知（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：库函数；只有持有本域同一数据库事务的可信域装配可调用
+- 并发：随调用方SQLite事务隔离与锁序；不另建事务
+- 幂等：只读，可重复
+- 依赖：无
+
 ## platform.Store.Seal
 
 - 级别：参考
@@ -9021,6 +9148,49 @@ func (s *Store) Seal(ctx context.Context, revision int64, proofHash string) erro
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
 - 依赖：无
 
+## platform.Store.SealTx
+
+- 级别：参考
+- 文件：`libs/platform/outbox/observation.go`
+- 作用：在调用方业务事务内以真实revision和活动0原子封口outbox
+
+```go
+func (s *Store) SealTx(ctx context.Context, tx Tx, revision int64, proofHash string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 事务封口截止 | 由调用方持有的事务上下文派生 |
+| `tx` | `Tx` | 调用方持有的本域同一SQLite事务 | 必须与业务工作水位CAS使用同一* sql.Tx |
+| `revision` | `int64` | ObserveTx读到的实际outbox revision | 必须大于0且精确匹配 |
+| `proofHash` | `string` | 当前域封口证明SHA-256 | 必须为合法Hash |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | CAS、活动行或SQL失败 | 无error不代表tx已提交 |
+
+**步骤**
+
+1. 校验revision与proofHash，并执行与Store.Seal相同的控制行CAS及活动行检查
+2. 仅在调用方tx内写sealed_hash与last_seal_hash；不自行提交
+3. 返回无error后由调用方在同一事务提交业务工作水位CAS与本次封口；任一步失败整体回滚
+
+**错误**
+
+- `VALIDATION`：revision或proofHash不合法（不可重试）
+- `CONFLICT`：outbox revision改变或仍有活动行（可重试）
+- `INTERNAL`：事务内SQL封口失败（可重试）
+
+- 副作用：在调用方事务内更新outbox控制行；事务提交前对外不可见
+- 授权：permission：service；rule：库函数；只有持有本域同一数据库事务的可信域装配可调用
+- 并发：复用调用方SQLite事务锁序；同一事务内完成域工作CAS
+- 幂等：同revision与proofHash可幂等重试；水位或证明冲突失败关闭
+- 依赖：无
+
 ## platform.Store.Resume
 
 - 级别：参考
@@ -9054,6 +9224,48 @@ func (s *Store) Resume(ctx context.Context, proofHash string) error
 - 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
 - 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
+- 依赖：无
+
+## platform.Store.ResumeTx
+
+- 级别：参考
+- 文件：`libs/platform/outbox/observation.go`
+- 作用：在调用方恢复事务内只按原proofHash重开outbox
+
+```go
+func (s *Store) ResumeTx(ctx context.Context, tx Tx, proofHash string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 事务重开截止 | 由调用方持有的事务上下文派生 |
+| `tx` | `Tx` | 调用方持有的本域同一SQLite事务 | 必须与恢复工作水位CAS使用同一* sql.Tx |
+| `proofHash` | `string` | 原封口SHA-256 | 必须精确匹配当前或最近一次封口 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 原证明不符或SQL失败 | 无error不代表tx已提交 |
+
+**步骤**
+
+1. 校验proofHash并执行与Store.Resume相同的精确原证明CAS
+2. 仅在调用方tx内清sealed_hash并保留last_seal_hash；不自行提交
+3. 返回无error后由调用方将恢复工作水位与本次重开一并提交；不符则整体回滚
+
+**错误**
+
+- `VALIDATION`：proofHash不合法或缺失（不可重试）
+- `CONFLICT`：原封口证明不匹配（不可重试）
+- `INTERNAL`：事务内SQL重开失败（可重试）
+
+- 副作用：在调用方事务内清除outbox封口；事务提交前对外不可见
+- 授权：permission：service；rule：库函数；只有持有本域同一数据库事务及原封口证明的可信恢复路径可调用
+- 并发：复用调用方SQLite事务锁序；同一事务内完成恢复工作CAS
+- 幂等：只接受精确原proofHash，重复调用不重开其他封口
 - 依赖：无
 
 ## platform.SnapshotStageBinding
