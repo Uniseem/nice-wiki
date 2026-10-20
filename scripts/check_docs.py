@@ -526,6 +526,7 @@ def main():
         if (ROOT / top).is_dir():
             files.extend((ROOT / top).rglob('*'))
     files.extend([ROOT / n for n in ('AGENTS.md', 'README.md', 'STATUS.md', 'THIRD_PARTY_NOTICES.md', 'Makefile', '.gitignore', '.gitlab-ci.yml')])
+    files = [p for p in files if 'node_modules' not in p.parts and 'dist' not in p.parts]
     files = [p for p in files if p.is_file() and p.suffix in ('.md', '.json', '.py', '.yaml', '.yml') or p.is_file() and p.name in ('Makefile', '.gitignore')]
     for path in files:
         scan_privacy(relative(path), path.read_text(encoding='utf-8'))
