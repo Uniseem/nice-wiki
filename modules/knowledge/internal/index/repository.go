@@ -186,6 +186,9 @@ func SaveOperationReceipt(ctx context.Context, tx *sql.Tx, op OperationContext, 
 
 // EnsureBuildDiskBudget 实施本域已确认10%低水位，只阻止新构建，不影响原结果复用。
 func EnsureBuildDiskBudget(dataRoot string) error {
+	if os.Getenv("NW_DEV_NO_DISK_WATERMARK") != "" { // 只给磁盘本来就紧的开发机用
+		return nil
+	}
 	if !filepath.IsAbs(dataRoot) {
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "索引私有目录尚未可信装配")
 	}

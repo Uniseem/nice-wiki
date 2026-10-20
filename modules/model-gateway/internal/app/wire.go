@@ -36,6 +36,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := validateConfig(config); err != nil {
 		return nil, err
 	}
+	catalog.AllowLoopbackHTTP = config.AllowLocalHTTP
 	if err := ensureDataLayout(config.DataRoot); err != nil {
 		return nil, err
 	}
@@ -77,6 +78,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}()
 	taskGroup, err := lifecycle.NewTaskGroup(ctx, 256)
 	if err != nil {
+		return nil, err
+	}
+	if err := taskGroup.SetAdmission(lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, runtimeView.DataEpoch)); err != nil {
 		return nil, err
 	}
 	validators := make(map[string]func(json.RawMessage) error)

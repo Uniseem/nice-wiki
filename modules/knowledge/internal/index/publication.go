@@ -9,7 +9,11 @@ import (
 )
 
 func ValidatePublication(ctx context.Context, op OperationContext, client *gen.ContentClient, validate func(json.RawMessage) error, ref gen.PublishedRevisionRef) (time.Time, int, error) {
-	raw, err := client.ValidatePublications(platform.WithOperationContext(ctx, op), struct {
+	// 发布可见性只允许纯服务读取：以 knowledge 自身身份发出，不带后台用户的委托。
+	service := op
+	service.CallerService = "knowledge"
+	service.Actor = platform.AuthContext{SubjectID: "knowledge", Kind: "service", SiteID: op.Actor.SiteID, ExpiresAt: op.Deadline, Grants: []string{}}
+	raw, err := client.ValidatePublications(platform.WithOperationContext(platform.WithPortalProof(ctx, ""), service), struct {
 		Refs []gen.PublishedRevisionRef `json:"refs"`
 	}{[]gen.PublishedRevisionRef{ref}})
 	if err != nil {

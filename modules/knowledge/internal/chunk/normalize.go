@@ -170,7 +170,7 @@ func canonicalizeLineEndings(source string) ([]byte, []int64, error) {
 
 		encoded := source[position : position+width]
 		canonical = append(canonical, encoded...)
-		for range encoded {
+		for range width {
 			sourceMap = append(sourceMap, int64(position))
 		}
 		position += width

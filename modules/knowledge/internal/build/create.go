@@ -156,8 +156,10 @@ func QueueBuild(ctx context.Context, tx *sql.Tx, op OperationContext, config gen
 	durable.LoginNetworkScopes = nil
 	durable.NetworkBudgetScopes = nil
 	durable.Deadline = time.Now().UTC().Add(30 * time.Minute).Format(time.RFC3339Nano)
-	operationRaw, _ := json.Marshal(durable)
 	dedupe := "knowledge.build." + result.BuildId
+	// jobs 以幂等键作为任务的操作号，持久批准里的操作号必须与之相同，领取时才对得上。
+	durable.OperationID = dedupe
+	operationRaw, _ := json.Marshal(durable)
 	_, err = tx.ExecContext(ctx, `INSERT INTO build_dispatches(build_id,input_json,input_ref_json,operation_json,dedupe_key,created_at,updated_at) VALUES(?,?,?,?,?,?,?)`, result.BuildId, payload, refRaw, operationRaw, dedupe, platform.Now(), platform.Now())
 	if err != nil {
 		return gen.IndexBuild{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "构建派发意图保存失败")
@@ -237,8 +239,7 @@ func DispatchBuild(ctx context.Context, op OperationContext, buildID string) err
 		Type      string             `json:"type"`
 		InputRef  platform.ObjectRef `json:"inputRef"`
 		DedupeKey string             `json:"dedupeKey"`
-		DataEpoch string             `json:"dataEpoch"`
-	}{"knowledge", "knowledge.build", ref, key, original.DataEpoch}, key)
+	}{"knowledge", "knowledge.build", ref, key}, key)
 	if err != nil {
 		return err
 	}

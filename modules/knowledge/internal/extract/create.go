@@ -177,6 +177,13 @@ func CreateExtraction(ctx context.Context, op OperationContext, input CreateExtr
 			if err = tx.QueryRowContext(work, `SELECT operation_json FROM build_dispatches WHERE build_id=?`, input.BuildID).Scan(&buildOperation); err != nil {
 				return CreateExtractionResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "原构建批准身份不可读")
 			}
+			// 提取任务以自己的幂等键作为 jobs 操作号，沿用构建批准身份时要换成这个号。
+			var extractionOperation OperationContext
+			if json.Unmarshal(buildOperation, &extractionOperation) != nil {
+				return CreateExtractionResult{}, platform.NewError(platform.CodeIntegrityError, false, "原构建批准身份损坏")
+			}
+			extractionOperation.OperationID = "knowledge.extract." + id
+			buildOperation, _ = json.Marshal(extractionOperation)
 			_, err = tx.ExecContext(work, `INSERT INTO extractions(extraction_id,site_id,data_epoch,cache_key,resource_key,owner_build_id,source_json,plan_json,state,created_at) VALUES(?,?,?,?,?,?,?,?,'queued',?)`, id, op.Actor.SiteID, op.DataEpoch, cacheKey, resourceKey, input.BuildID, originRaw, planRaw, platform.Now())
 			if err != nil {
 				return CreateExtractionResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "原提取任务保存失败")

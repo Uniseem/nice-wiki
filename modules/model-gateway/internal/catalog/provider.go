@@ -378,12 +378,16 @@ func validHeaderName(value string) bool {
 	return validBoundedString(value, maxHeaderNameRunes) && http.CanonicalHeaderKey(value) != ""
 }
 
+// AllowLoopbackHTTP 只在本地开发（配置 allowLocalHTTP）时置位：允许供应方地址是回环地址的 http，便于接本机的假供应方联调。
+var AllowLoopbackHTTP bool
+
 func normalizeProviderURL(raw string) (string, error) {
 	if !validBoundedString(raw, 2048) {
 		return "", platform.NewError(platform.CodeValidation, false, "供应方URL不合法")
 	}
 	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" || u.RawQuery != "" || u.Opaque != "" {
+	loopback := err == nil && AllowLoopbackHTTP && u.Scheme == "http" && (u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost" || u.Hostname() == "::1")
+	if err != nil || (u.Scheme != "https" && !loopback) || u.Host == "" || u.User != nil || u.Fragment != "" || u.RawQuery != "" || u.Opaque != "" {
 		return "", platform.NewError(platform.CodeValidation, false, "供应方URL必须为无凭证HTTPS根地址")
 	}
 	u.Path = strings.TrimRight(u.Path, "/")

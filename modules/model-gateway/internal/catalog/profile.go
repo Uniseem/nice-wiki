@@ -6,7 +6,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 	"time"
@@ -400,6 +402,9 @@ func SelectCandidatesInTransaction(ctx context.Context, op OperationContext, tx 
 		}
 	}
 	if len(result.Candidates) == 0 {
+		if os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "无可用模型候选 要求能力=%v 候选=%v 任务=%s\n", resolved.RequiredCapabilities, resolved.OrderedModelIds, input.TaskId)
+		}
 		return ResolveRouteResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "当前配置没有可用模型候选")
 	}
 	result.RouteVersion, err = hashJSON(struct {

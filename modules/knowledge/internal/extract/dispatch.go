@@ -67,8 +67,7 @@ func DispatchExtraction(ctx context.Context, op OperationContext, id string) err
 		Type      string             `json:"type"`
 		InputRef  platform.ObjectRef `json:"inputRef"`
 		DedupeKey string             `json:"dedupeKey"`
-		DataEpoch string             `json:"dataEpoch"`
-	}{"knowledge", "knowledge.extract", original.InputRef, key, original.Operation.DataEpoch}, key)
+	}{"knowledge", "knowledge.extract", original.InputRef, key}, key)
 	if err != nil {
 		return err
 	}

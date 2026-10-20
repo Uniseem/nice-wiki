@@ -21,7 +21,7 @@ type ReadAssetResult = gen.ReadAssetResult
 
 // ReadAsset 只读当前真实ready元数据；指定版本不存在时不构造历史。
 func ReadAsset(ctx context.Context, op OperationContext, input ReadAssetInput) (ReadAssetResult, error) {
-	service := op.Actor.Kind == "service" && slices.Contains([]string{"content", "site-config", "public-site", "localization", "knowledge"}, op.CallerService)
+	service := op.Actor.Kind == "service" && slices.Contains([]string{"content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, op.CallerService)
 	if !service && (op.Actor.Kind != "admin" || op.Actor.SessionID == "" || (!hasGrant(op.Actor.Grants, "media.read") && !hasGrant(op.Actor.Grants, "media.upload") && !hasGrant(op.Actor.Grants, "media.manage") && !hasGrant(op.Actor.Grants, "superadmin"))) {
 		return ReadAssetResult{}, platform.NewError(platform.CodeForbidden, false, "没有读取资源元数据的权限")
 	}

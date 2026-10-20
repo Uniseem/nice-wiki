@@ -105,7 +105,7 @@ def up(slugs):
     for s in slugs:
         stop(s)
         log = open(path("logs", s + ".log"), "w")
-        p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True, cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_WEB_DIR": path("web")})
+        p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True, cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_WEB_DIR": path("web")})
         open(pidfile(s), "w").write(str(p.pid))
         for _ in range(100):
             time.sleep(0.1)
@@ -134,7 +134,7 @@ def stop(slug):
 def start_one(s):
     log = open(path("logs", s + ".log"), "a")
     p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True,
-                         cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_WEB_DIR": path("web")})
+                         cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_WEB_DIR": path("web")})
     open(pidfile(s), "w").write(str(p.pid))
     return p
 

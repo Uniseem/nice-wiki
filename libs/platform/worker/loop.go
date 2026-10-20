@@ -7,6 +7,8 @@ package worker
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -155,14 +157,17 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 	job.WorkerID = workerID
 	op, err := l.config.OperationContext(ctx, job)
 	if err != nil || op.OperationID != job.OperationID || op.RootOperationID != job.RootOperationID || op.DataEpoch != job.DataEpoch || op.CallerService != l.config.Owner {
+		debugSkip(job, "解析任务操作身份", err)
 		return
 	}
 	deadline, err := platform.ParseTimestamp(op.Deadline)
 	if err != nil {
+		debugSkip(job, "解析任务期限", err)
 		return
 	}
 	ctx, err = l.config.BindExecutionScope(ctx, op, job)
 	if err != nil {
+		debugSkip(job, "绑定执行范围", err)
 		return
 	}
 	ctx, cancelTask := context.WithDeadline(ctx, deadline)
@@ -172,6 +177,7 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 	defer cancelJob(nil)
 	lease, err := newExecutionLease(jobCtx, op, l.client, workerID, job, cancelJob)
 	if err != nil {
+		debugSkip(job, "建立租约", err)
 		return
 	}
 	defer lease.timer.Stop()
@@ -181,10 +187,12 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 	err = l.client.StartJob(workerControlContext(startCtx, op), job.JobID, workerID, job.FencingToken)
 	cancelStart()
 	if err != nil {
+		debugSkip(job, "开始任务", err)
 		return
 	}
 	// 首次执行也取真实续租回执，不能拿本地时钟伪造域内镜像。
-	if renewExecutionLease(jobCtx, lease, false) != nil {
+	if err := renewExecutionLease(jobCtx, lease, false); err != nil {
+		debugSkip(job, "首次续租", err)
 		return
 	}
 	heartbeatDone := make(chan struct{})
@@ -212,6 +220,7 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 			},
 		})
 		if executeErr != nil {
+			debugSkip(job, "执行函数返回错误", executeErr)
 			result.State = platform.JobFailed
 			result.ErrorCode = platform.CodeInternal
 			var failure *platform.Error
@@ -445,4 +454,11 @@ func itoa(v int) string {
 func workerControlContext(ctx context.Context, op platform.OperationContext) context.Context {
 	op.OperationID = platform.NewIdentifier()
 	return platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op)
+}
+
+// debugSkip 在调试模式下说明任务为什么没有继续执行（默认静默，由租约到期后重新领取）。
+func debugSkip(job platform.ClaimedJob, stage string, err error) {
+	if os.Getenv("NW_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "任务停止 type=%s job=%s 阶段=%s err=%v\n", job.JobType, job.JobID, stage, err)
+	}
 }

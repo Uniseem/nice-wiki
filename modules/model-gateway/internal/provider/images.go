@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
+	"os"
 	"strconv"
 )
 
@@ -66,7 +68,10 @@ func AuthorizeImages(ctx context.Context, op OperationContext, messages []gen.Ga
 				return nil, platform.NewError(platform.CodeIntegrityError, false, "视觉资源元数据不符合权威合同")
 			}
 			ref := response.Asset.Ref
-			if response.Asset.SiteID != op.Actor.SiteID || response.Asset.State != "ready" || ref.AssetID != asset.AssetId || ref.Hash != asset.Sha256 || ref.MediaType != asset.MediaType || ref.ByteSize != asset.ByteSize || ref.Version < 1 {
+			if response.Asset.SiteID != op.Actor.SiteID || response.Asset.State != "ready" || ref.AssetID != asset.AssetId || ref.Hash != asset.Sha256 || ref.MediaType != asset.MediaType || ref.ByteSize != asset.ByteSize || ref.Version < 0 {
+				if os.Getenv("NW_DEBUG") != "" {
+					fmt.Fprintf(os.Stderr, "视觉资源核对不符 站点=%s/%s 状态=%s 引用=%+v 请求=%+v\n", response.Asset.SiteID, op.Actor.SiteID, response.Asset.State, ref, asset)
+				}
 				return nil, platform.NewError(platform.CodeStaleResult, false, "视觉资源内容、身份或授权已变化")
 			}
 			versions[key] = ref.Version

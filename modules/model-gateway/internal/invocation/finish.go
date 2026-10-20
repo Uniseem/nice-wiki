@@ -2,10 +2,12 @@ package invocation
 
 import (
 	"context"
+	"fmt"
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
+	"os"
 	"time"
 )
 
@@ -102,6 +104,9 @@ func FinishCancelledInvocation(ctx context.Context, op OperationContext, record 
 	return "cancelled", nil
 }
 func FinishInvocation(ctx context.Context, op OperationContext, id, state, code string) error {
+	if os.Getenv("NW_DEBUG") != "" && state != "succeeded" {
+		fmt.Fprintf(os.Stderr, "调用结束 invocation=%s 状态=%s 错误码=%s\n", id, state, code)
+	}
 	tx, err := gatewayruntime.BeginFinalization(ctx, op)
 	if err != nil {
 		return err

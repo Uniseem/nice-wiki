@@ -128,6 +128,10 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 			currentSessionID = authResult.Auth.SessionID
 			// 服务断言的站点必须与用户委托里的站点一致。
 			op.Actor.SiteID = authResult.Auth.SiteID
+			// 会产生模型费用的后台操作：费用类别只由入口按路由写入，浏览器不能指定。
+			if class := adminCostClasses[route.Definition.Owner+":"+route.Definition.UpstreamOperationID]; class != "" {
+				op.CostClass = class
+			}
 			ctx = platform.WithOperationContext(ctx, op)
 			proofResult, proofErr := BuildInternalProof(WithPortalSigner(ctx, runtime.DelegationKey), op, BuildInternalProofInput{
 				Auth: inputAuth(authResult.Auth), Route: route, RequestDigest: validated.Envelope.BodyDigest,
@@ -259,6 +263,13 @@ func ForwardRequest(ctx context.Context, op OperationContext, input ForwardReque
 }
 
 // StreamResponse 以io.Copy提供背压；浏览器断开时请求context取消并关闭上游。
+// adminCostClasses 是后台触发、会调用模型的路由及其可信费用类别。
+var adminCostClasses = map[string]string{
+	"knowledge:createBuild": platform.CostClassBackground, "knowledge:approveRebuildPlan": platform.CostClassBackground,
+	"localization:createTranslation": platform.CostClassBackground, "localization:requestInterfaceTranslation": platform.CostClassBackground,
+	"model-gateway:createConnectionProbe": platform.CostClassAdminProbe,
+}
+
 func StreamResponse(ctx context.Context, op OperationContext, input StreamResponseInput) (StreamResponseResult, error) {
 	runtime, ok := proxyRuntimeFromContext(ctx)
 	if !ok || runtime.Writer == nil || input.Upstream.Response == nil || input.WriterHandle == "" {

@@ -34,8 +34,14 @@ func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*
 		return nil, gen.AssetVersionRef{}, "", mapMediaDBError(err, "读取资源失败")
 	}
 	admin := op.Actor.Kind == "admin" && op.Actor.SessionID != "" && (hasGrant(op.Actor.Grants, "media.read") || hasGrant(op.Actor.Grants, "superadmin"))
+	// 知识库与模型网关以服务身份读取已发布资源：按版本核对，不需要公开地址里的 sha。
+	service := op.Actor.Kind == "service" && (op.CallerService == "knowledge" || op.CallerService == "model-gateway")
 	if !admin {
-		if r.URL.Query().Get("sha") != sha {
+		if service {
+			if wanted := r.URL.Query().Get("version"); wanted != "" && wanted != strconv.Itoa(version) {
+				return nil, gen.AssetVersionRef{}, "", platform.NewError(platform.CodeNotFound, false, "资源不存在")
+			}
+		} else if r.URL.Query().Get("sha") != sha {
 			return nil, gen.AssetVersionRef{}, "", platform.NewError(platform.CodeNotFound, false, "资源不存在")
 		}
 		var referenced int

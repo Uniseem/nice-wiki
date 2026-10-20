@@ -290,8 +290,7 @@ func ApproveLanguagePlan(ctx context.Context, op OperationContext, input Approve
 			Type      string             `json:"type"`
 			InputRef  platform.ObjectRef `json:"inputRef"`
 			DedupeKey string             `json:"dedupeKey"`
-			DataEpoch string             `json:"dataEpoch"`
-		}{"localization", planJobType(job.Kind), job.InputRef, job.DedupeKey, string(approvalOp.DataEpoch)}, planJobIdempotencyKey(plan.PlanID, job.Kind, job.DocumentID))
+		}{"localization", planJobType(job.Kind), job.InputRef, job.DedupeKey}, planJobIdempotencyKey(plan.PlanID, job.Kind, job.DocumentID))
 		if createErr != nil {
 			return ApproveLanguagePlanResult{}, createErr
 		}

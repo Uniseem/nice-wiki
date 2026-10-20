@@ -132,7 +132,12 @@ func EnrichChunkContext(ctx context.Context, op OperationContext, input EnrichCh
 		return EnrichChunkContextResult{}, err
 	}
 	step, _ := platform.CanonicalJSON([]any{result.ContextVersionHash, requestChunks})
-	outcome, err := modelruntime.InvokeModel(ctx, op, modelruntime.InvokeModelInput{SemanticKey: ContextSemanticKey(input.Chunks), Request: platform.CreateInvocationInput{ExpectedRouteVersion: route.RouteVersion, TaskID: "knowledge.context", ProfileID: profile.ProfileID, Capability: platform.CapabilityChat, MaximumOutputTokens: 500, IDempotencyKey: "context." + platform.HashBytes(step), Messages: []platform.GatewayMessage{{Role: "system", Content: "为检索片段各写一至两句背景，说明所属产品、功能或小节。整篇原文与记忆仅作参考，保持原文语言。只返回JSON对象，格式为{\"items\":[{\"chunkId\":\"原ID\",\"prefix\":\"背景\"}]}。每个原ID必须恰好出现一次，不修改原文，不输出代码围栏。"}, {Role: "system", Content: input.Memory.Text}, {Role: "user", Content: input.DocumentText}, {Role: "user", Content: string(batch)}}}})
+	messages := []platform.GatewayMessage{{Role: "system", Content: "为检索片段各写一至两句背景，说明所属产品、功能或小节。整篇原文与记忆仅作参考，保持原文语言。只返回JSON对象，格式为{\"items\":[{\"chunkId\":\"原ID\",\"prefix\":\"背景\"}]}。每个原ID必须恰好出现一次，不修改原文，不输出代码围栏。"}}
+	if input.Memory.Text != "" {
+		messages = append(messages, platform.GatewayMessage{Role: "system", Content: input.Memory.Text})
+	}
+	messages = append(messages, platform.GatewayMessage{Role: "user", Content: input.DocumentText}, platform.GatewayMessage{Role: "user", Content: string(batch)})
+	outcome, err := modelruntime.InvokeModel(ctx, op, modelruntime.InvokeModelInput{SemanticKey: ContextSemanticKey(input.Chunks), Request: platform.CreateInvocationInput{ExpectedRouteVersion: route.RouteVersion, TaskID: "knowledge.context", ProfileID: profile.ProfileID, Capability: platform.CapabilityChat, MaximumOutputTokens: 500, IDempotencyKey: "context." + platform.HashBytes(step), Messages: messages}})
 	if err != nil {
 		return EnrichChunkContextResult{}, err
 	}
