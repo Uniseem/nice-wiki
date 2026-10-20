@@ -10,6 +10,9 @@ import (
 	"nice-wiki/libs/platform"
 )
 
+// announcementCSS 横幅样式：窄条、居中，右侧关闭按钮。
+const announcementCSS = "aside[data-announcement]{position:relative;padding:.5rem 2.5rem;text-align:center;font-size:.9rem;background:#2563eb;color:#fff}aside[data-announcement] a{color:inherit;text-decoration:underline}aside[data-announcement] button{position:absolute;right:.75rem;top:50%;transform:translateY(-50%);border:0;background:none;color:inherit;font-size:1.2rem;cursor:pointer}aside[data-announcement][hidden]{display:none}"
+
 // loadAnnouncement 读取站点配置里的公告横幅；没有、未启用、不在时间窗内或读取失败都返回空串，不影响页面。
 func loadAnnouncement(ctx context.Context, op platform.OperationContext) string {
 	directory, err := directoryFrom(ctx)
