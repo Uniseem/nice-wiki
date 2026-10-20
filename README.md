@@ -1,6 +1,6 @@
 # nice-wiki · 微服务文档站（重建中）
 
-本 main 从零建立分级设计契约并按R1实现微服务，旧实现和旧文档保存在old归档提交272bddc。当前公共底座与部分业务切片已实现，最小完整业务链路、行为验收和部署尚未完成；最新事实见 [STATUS.md](STATUS.md)。
+本 main 从零建立分级设计契约并按R1实现微服务，旧实现和旧文档保存在old归档提交272bddc。站点主链路（初始化 → 写文档 → 发布 → 公开页）、后台各页面和 AI 问答/翻译的第一版已能在本地跑通，本地启动方式与最新进度见 [STATUS.md](STATUS.md)；备份恢复的完整协议和真实部署尚未完成。
 
 从 [文档总索引](docs/README.md) 开始；先读 [全局需求](docs/requirements.md)、[总架构](docs/architecture.md)、[服务地图](docs/service-map.md)、[公共协议](docs/protocols.md)，再进入模块总文档。每个模块索引其架构、数据、API、流程、文件、函数、运维和验收规格。
 
