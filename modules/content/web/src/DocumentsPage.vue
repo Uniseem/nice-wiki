@@ -113,6 +113,21 @@ async function purge(doc: Meta) {
   });
 }
 
+async function rollback(entry: any) {
+  if (!meta.value || !window.confirm('把正文回滚到这个版本并作为新的发布？当前草稿会被覆盖。')) return;
+  const id = meta.value.documentId;
+  await releaseLock();
+  await run(async () => {
+    await api(`/v1/documents/${id}/history:rollback`, { method: 'POST', body: { historyId: entry.historyId, expectedRevision: meta.value!.revision, acknowledgeMissingAssets: false } });
+    const keep = selected.value;
+    selected.value = null;
+    await loadTree();
+    if (keep) await select(keep);
+    history.value = null;
+    status.value = '已回滚并重新发布';
+  });
+}
+
 async function toggleHistory() {
   if (history.value) { history.value = null; return; }
   await run(async () => {
@@ -320,7 +335,8 @@ onBeforeUnmount(() => { void save().then(releaseLock); });
         </div>
         <p v-else class="hint">公开路径：/{{ meta.pathSegment }}</p>
         <ul v-if="history" class="history">
-          <li v-for="h in history" :key="h.historyId">{{ new Date(h.createdAt).toLocaleString() }} · {{ h.authorAccountName }} · {{ ({ publish: '发布', withdraw: '撤回', rollback: '回滚' } as any)[h.operation] ?? h.operation }}</li>
+          <li v-for="h in history" :key="h.historyId">{{ new Date(h.createdAt).toLocaleString() }} · {{ h.authorAccountName }} · {{ ({ publish: '发布', withdraw: '撤回', rollback: '回滚' } as any)[h.operation] ?? h.operation }}
+            <button v-if="h.operation !== 'withdraw'" :disabled="busy || !writable" @click="rollback(h)">回滚到此版本</button></li>
           <li v-if="!history.length" class="hint">还没有发布记录。</li>
         </ul>
         <Editor :key="editorKey" :doc="initialDoc" :editable="writable" @change="onChange" />

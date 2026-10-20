@@ -116,7 +116,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if identity != nil {
 		drafts := content.DraftRuntime{Store: store, Manager: editLocks, Identity: identity, SiteConfig: gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key), Media: treeRuntime.Media, WriteWindow: window}
 		locks := content.EditLockRuntime{Manager: editLocks, Identity: identity, WriteWindow: window}
-		if err = transport.RegisterDraftRoutes(application, drafts, locks, anchors); err != nil {
+		if err = transport.RegisterDraftRoutes(application, drafts, locks, treeRuntime, anchors); err != nil {
 			return nil, err
 		}
 	}

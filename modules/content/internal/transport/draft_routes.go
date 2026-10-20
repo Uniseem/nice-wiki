@@ -13,7 +13,7 @@ import (
 )
 
 // RegisterDraftRoutes 注册建文档、编辑锁与共享草稿读写；授权由各核心函数按 content.edit/content.read 即时核对。
-func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks content.EditLockRuntime, anchors platform.TrustAnchors) error {
+func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks content.EditLockRuntime, tree content.TreeRuntime, anchors platform.TrustAnchors) error {
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "草稿HTTP规格不可读")
@@ -24,6 +24,7 @@ func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks co
 		"/v1/documents/{documentId}/lock:force-release": true,
 		"/v1/documents/{documentId}/draft":              true,
 		"/v1/previews":                                  true,
+		"/v1/documents/{documentId}/history:rollback":   true,
 		"/v1/previews:validate":                         true,
 	}
 	for path := range spec.Paths.Map() {
@@ -49,7 +50,7 @@ func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks co
 		writeJSON(w, http.StatusOK, result)
 	}
 	draftCtx := func(r *http.Request) context.Context {
-		return content.WithEditLockRuntime(content.WithDraftRuntime(r.Context(), drafts), locks)
+		return content.WithTreeRuntime(content.WithEditLockRuntime(content.WithDraftRuntime(r.Context(), drafts), locks), tree)
 	}
 	handlers := map[string]http.Handler{
 		"createDocument": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +98,15 @@ func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks co
 			result, err := content.ForceReleaseEditLock(draftCtx(r), op, content.ForceReleaseEditLockInput{DocumentId: r.PathValue("documentId"), ExpectedLeaseId: body.ExpectedLeaseId})
 			reply(w, result, err)
 		}),
+		"rollbackPublishedRevision": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var body gen.RollbackPublishedRevisionRequest
+			if !decode(w, r, &body) {
+				return
+			}
+			result, err := content.RollbackPublishedRevision(draftCtx(r), op, content.RollbackPublishedRevisionInput{DocumentId: r.PathValue("documentId"), HistoryId: body.HistoryId, ExpectedRevision: body.ExpectedRevision, AcknowledgeMissingAssets: body.AcknowledgeMissingAssets})
+			reply(w, result, err)
+		}),
 		"createPreviewGrant": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			var input content.CreatePreviewGrantInput
@@ -134,7 +144,7 @@ func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks co
 	authorize := func(ctx context.Context, op platform.OperationContext, permission, action string) error { return nil }
 	portal := []string{"portal"}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch), Authorize: authorize,
-		AllowedCallers:        map[string][]string{"createDocument": portal, "acquireEditLock": portal, "renewEditLock": portal, "releaseEditLock": portal, "forceReleaseEditLock": portal, "readDraft": portal, "saveDraft": portal, "createPreviewGrant": {"public-site"}, "validatePreviewGrant": {"public-site"}},
+		AllowedCallers:        map[string][]string{"createDocument": portal, "acquireEditLock": portal, "renewEditLock": portal, "releaseEditLock": portal, "forceReleaseEditLock": portal, "readDraft": portal, "saveDraft": portal, "createPreviewGrant": {"public-site"}, "rollbackPublishedRevision": portal, "validatePreviewGrant": {"public-site"}},
 		MaintenanceOperations: map[string]bool{"readDraft": true}}, handlers)
 	if err != nil {
 		return err
@@ -144,6 +154,7 @@ func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks co
 	app.router.Handle("PUT", "/v1/documents/{documentId}/lock", handler)
 	app.router.Handle("DELETE", "/v1/documents/{documentId}/lock", handler)
 	app.router.Handle("POST", "/v1/documents/{documentId}/lock:force-release", handler)
+	app.router.Handle("POST", "/v1/documents/{documentId}/history:rollback", handler)
 	app.router.Handle("POST", "/v1/previews", handler)
 	app.router.Handle("POST", "/v1/previews:validate", handler)
 	app.router.Handle("GET", "/v1/documents/{documentId}/draft", handler)
