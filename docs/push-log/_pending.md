@@ -16,7 +16,7 @@
 
 ## 当前最小公共验签候选
 
-公共候选从 `main=a32f3f4c4876f94ce798826e9dee0b170bbb612a` 独立建立于 `codex/activation-verify-20261020`，当前提交 `379f0977277cc2a03f1bde49b5d0f5a6cede4c08`（前置源码提交 `7137f9423274f73044fad6f17cb43ecffd4931ee`）。范围仅含 `ActivationReceiptClaims`、`normalizeActivationReceiptClaims`、`decodeCanonicalReceiptJSON` 和 `VerifyActivationReceipt`；`recordedAt` 在载荷摘要前统一为 UTC `RFC3339Nano`，严格头/签名/issuer/payloadHash 校验沿既有回执协议。新增与改动台账均为 `in_progress`，尚无 CI 精确 SHA。
+公共候选从 `main=a32f3f4c4876f94ce798826e9dee0b170bbb612a` 独立建立于 `codex/activation-verify-20261020`，已选入公共源 `379f0977277cc2a03f1bde49b5d0f5a6cede4c08`、site-config 源码 `1075bcb8824838874e6a3ed775778f4194fa6969` 和元数据 `e72dd7c15dec4932885c964e83833dcc09fca9bf`。范围含 `ActivationReceiptClaims`、`normalizeActivationReceiptClaims`、`decodeCanonicalReceiptJSON`、`VerifyActivationReceipt` 及 RegisterActivation 可信接线；`recordedAt` 在载荷摘要前统一为 UTC `RFC3339Nano`。首次合成候选 SHA `b5b6a63f1e74d86aeafe8f72523c861a7a2245b5` 的 pipeline 170 在 `make docs` 因 site-config 合同约束字段缺失失败，待 site-config 代理新 SHA。
 
 `decodeCanonicalReceiptJSON` 已登记为实际参考助手，并在合同中登记 `VerifyActivationReceipt → normalizeActivationReceiptClaims/decodeCanonicalReceiptJSON/CanonicalJSON`、助手自身的规范解码→`CanonicalJSON` 依赖边。`SignActivationReceipt` 与 `ObserveTx/SealTx/ResumeTx` 仍只留在 e85 WIP，不纳入本首候选。待 site-config 从 main 独立接通最小 `RegisterActivation` 消费者后，才合成并上传既有 GitLab CI；不推送远端。
 
