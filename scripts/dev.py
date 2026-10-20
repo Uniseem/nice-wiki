@@ -35,6 +35,13 @@ def setup():
                "signingKeyRef": os.path.join(sec, "signing-key.json"),
                "dependencies": {s: f"http://127.0.0.1:{p}" for s, p in PORTS.items() if s != slug},
                "allowLocalHTTP": True}
+        if slug in ("model-gateway", "data-protection"):
+            master = os.path.join(sec, "master-key")
+            if not os.path.exists(master):
+                with open(master, "wb") as f:
+                    f.write(os.urandom(32))
+                os.chmod(master, 0o600)
+            cfg["masterKeyRef"] = master
         if slug == "analytics":
             cfg["reportingTimeZone"] = "Asia/Shanghai"
         if slug == "site-config":
@@ -51,7 +58,7 @@ def setup():
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
 
 
-WEB_MODULES = ["content", "site-config", "identity", "media", "localization", "traffic-guard", "jobs", "analytics", "data-protection"]
+WEB_MODULES = ["content", "site-config", "identity", "media", "localization", "model-gateway", "traffic-guard", "jobs", "analytics", "data-protection"]
 
 
 def build(slugs):

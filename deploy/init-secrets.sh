@@ -17,6 +17,8 @@ for dir in deploy/secrets/*/; do
 		printf '{"keyId":"%s","privateKeyRef":"/run/secrets/delegation.pem"}\n' "$did" > "$dir/delegation-key.json"
 	fi
 done
-[ -f deploy/secrets/data-protection/master-key ] || head -c 32 /dev/urandom > deploy/secrets/data-protection/master-key
+for s in model-gateway data-protection; do
+	[ -f deploy/secrets/$s/master-key ] || head -c 32 /dev/urandom > deploy/secrets/$s/master-key
+done
 chmod -R go-rwx deploy/secrets
 echo "密钥已生成；下一步：cp deploy/.env.example deploy/.env 并修改域名，然后 docker compose -f deploy/docker-compose.yml up -d --build"

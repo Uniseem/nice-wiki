@@ -13,6 +13,7 @@ const modules = [
   { id: 'media', label: '资源库' },
   { id: 'identity', label: '账号与权限' },
   { id: 'localization', label: '语言' },
+  { id: 'model-gateway', label: '模型接入' },
   { id: 'traffic-guard', label: '防滥用' },
   { id: 'jobs', label: '任务队列' },
   { id: 'analytics', label: '统计与审计' },

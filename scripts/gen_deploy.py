@@ -9,7 +9,7 @@ SERVICES = {  # slug: 端口
     "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108, "memory": 8109,
     "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113,
 }
-WEB_MODULES = ["content", "site-config", "identity", "media", "localization", "traffic-guard", "jobs", "analytics", "data-protection"]
+WEB_MODULES = ["content", "site-config", "identity", "media", "localization", "model-gateway", "traffic-guard", "jobs", "analytics", "data-protection"]
 SUBNET = "198.51.100.0/24"  # 文档保留地址段，仅作内部桥接网络的子网
 
 
@@ -68,7 +68,7 @@ def service_config(slug, port):
         cfg["trustedProxyCIDRs"] = [SUBNET]
     if slug == "analytics":
         cfg["reportingTimeZone"] = "Asia/Shanghai"
-    if slug == "data-protection":
+    if slug in ("model-gateway", "data-protection"):
         cfg["masterKeyRef"] = "/run/secrets/master-key"
     return cfg
 
@@ -89,8 +89,10 @@ def compose():
                   f"      - {slug}-data:/data/{slug}"]
         if slug == "portal":
             lines += ["      - ./secrets/portal/delegation-key.json:/run/secrets/delegation-key.json:ro", "      - ./secrets/portal/delegation.pem:/run/secrets/delegation.pem:ro"]
+        if slug in ("model-gateway", "data-protection"):
+            lines += [f"      - ./secrets/{slug}/master-key:/run/secrets/master-key:ro"]
         if slug == "data-protection":
-            lines += ["      - ./secrets/data-protection/master-key:/run/secrets/master-key:ro", "      - backups:/backups"]
+            lines += ["      - backups:/backups"]
         lines.append("")
     lines += ["  caddy:", "    image: caddy:2-alpine", "    restart: unless-stopped", "    networks: [internal]",
               "    ports: [\"80:80\", \"443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
@@ -142,7 +144,9 @@ for dir in deploy/secrets/*/; do
 		printf '{"keyId":"%s","privateKeyRef":"/run/secrets/delegation.pem"}\\n' "$did" > "$dir/delegation-key.json"
 	fi
 done
-[ -f deploy/secrets/data-protection/master-key ] || head -c 32 /dev/urandom > deploy/secrets/data-protection/master-key
+for s in model-gateway data-protection; do
+	[ -f deploy/secrets/$s/master-key ] || head -c 32 /dev/urandom > deploy/secrets/$s/master-key
+done
 chmod -R go-rwx deploy/secrets
 echo "密钥已生成；下一步：cp deploy/.env.example deploy/.env 并修改域名，然后 docker compose -f deploy/docker-compose.yml up -d --build"
 """)

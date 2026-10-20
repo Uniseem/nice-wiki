@@ -128,6 +128,7 @@ services:
       - ./secrets/model-gateway/signing.pem:/run/secrets/signing.pem:ro
       - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
       - model-gateway-data:/data/model-gateway
+      - ./secrets/model-gateway/master-key:/run/secrets/master-key:ro
 
   knowledge:
     build:
