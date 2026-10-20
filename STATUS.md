@@ -36,7 +36,7 @@ python3 scripts/dev.py up
 - 分片 sitemap 未挂。
 - 各服务用 `lifecycle.SimpleAdmission` 代替快照屏障准入，M4 再换。
 - media 的 readVideoMetadata（平台视频链接）、localization 的界面文案翻译/语言建议/缓存回答翻译/approve-plan 执行器、qa 的调试台/缓存/前置分类、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
-- 站点初始化之前，依赖站点身份的服务（model-gateway、knowledge、analytics 等）会启动失败退出；初始化完成后 `dev.py up` 再跑一次（docker 里靠自动重启）。
+- 站点初始化之前，依赖站点身份的服务（model-gateway、knowledge、analytics 等）会启动失败退出，靠进程守护（dev.py 的 watch、docker 的 restart）隔几秒重拉；初始化后才会就绪。
 
 ## 未合并的旧工作
 
