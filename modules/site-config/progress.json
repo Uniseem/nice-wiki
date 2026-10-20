@@ -2,7 +2,7 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "cbb7d2b1237c87de09de698d6abeb1bb9577aa0b6b7253a00a48f9949dc2057e",
+  "contractSha256": "a3579edef34793957ac2952428e524b55fed4eafa84ec36cd2123284c85f000e",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-20 site-config结构合同收口；从集成候选6f25dd57建立，未CI、未push",
   "branch": "codex/structure-site-config-20261020",

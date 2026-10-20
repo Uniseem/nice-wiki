@@ -3829,7 +3829,7 @@ func main()
 - 作用：把真实换目录终态登记为本域签名激活回执
 
 ```go
-func registerActivationAfterSwap(ctx context.Context, runtime SiteConfigClient, key SigningKey, view RuntimeView, swap SwapResult, evidence SnapshotSwapEvidence) error
+func registerActivationAfterSwap(ctx context.Context, runtime SiteConfigClient, key SigningKey, view RuntimeView, swap SwapResult, evidence lifecycle.SnapshotSwapEvidence) error
 ```
 
 **输入**
@@ -3841,7 +3841,7 @@ func registerActivationAfterSwap(ctx context.Context, runtime SiteConfigClient, 
 | `key` | `SigningKey` | 本域受控签名密钥引用 | 私钥只由公共serviceauth签名函数读取，不写入日志或回执载荷 |
 | `view` | `RuntimeView` | ApplyRestoreSwap前读取的控制runtime host/target快照 | HostEpoch必须与证据HostEpoch一致；不得把host epoch清空以绕过校验 |
 | `swap` | `SwapResult` | 公共ApplyRestoreSwap真实动作结果 | 只接受switched或rolled-back |
-| `evidence` | `SnapshotSwapEvidence` | 公共ReadRestoreSwapState返回的完整本地stage/目录证据 | 必须包含Known、动作标志、StageID、目标/host epoch和host/target manifest hash；不得另读公共私有日志或从目录存在推定成功 |
+| `evidence` | `lifecycle.SnapshotSwapEvidence` | 公共ReadRestoreSwapState返回的完整本地stage/目录证据；合同类型引用libs/platform，实际Go类型为lifecycle.SnapshotSwapEvidence | 必须包含Known、动作标志、StageID、目标/host epoch和host/target manifest hash；不得另读公共私有日志或从目录存在推定成功 |
 
 **输出**
 

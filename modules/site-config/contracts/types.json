@@ -3475,7 +3475,8 @@
       "$ref": "../../../libs/platform/contracts/types.json#/$defs/SwapResult"
     },
     "SnapshotSwapEvidence": {
-      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SnapshotSwapEvidence"
+      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SnapshotSwapEvidence",
+      "description": "公共平台合同类型；实际Go类型为lifecycle.SnapshotSwapEvidence，由lifecycle.ReadRestoreSwapState返回"
     },
     "SnapshotRuntime": {
       "type": "object",

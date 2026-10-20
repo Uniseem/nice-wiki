@@ -6216,7 +6216,7 @@
         {
           "id": "site-config.registerActivationAfterSwap",
           "name": "registerActivationAfterSwap",
-          "signature": "func registerActivationAfterSwap(ctx context.Context, runtime SiteConfigClient, key SigningKey, view RuntimeView, swap SwapResult, evidence SnapshotSwapEvidence) error",
+          "signature": "func registerActivationAfterSwap(ctx context.Context, runtime SiteConfigClient, key SigningKey, view RuntimeView, swap SwapResult, evidence lifecycle.SnapshotSwapEvidence) error",
           "inputs": [
             {
               "name": "ctx",
@@ -6262,8 +6262,8 @@
             },
             {
               "name": "evidence",
-              "type": "SnapshotSwapEvidence",
-              "description": "公共ReadRestoreSwapState返回的完整本地stage/目录证据",
+              "type": "lifecycle.SnapshotSwapEvidence",
+              "description": "公共ReadRestoreSwapState返回的完整本地stage/目录证据；合同类型引用libs/platform，实际Go类型为lifecycle.SnapshotSwapEvidence",
               "constraints": [
                 "必须包含Known、动作标志、StageID、目标/host epoch和host/target manifest hash",
                 "不得另读公共私有日志或从目录存在推定成功"
