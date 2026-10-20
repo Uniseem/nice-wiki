@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/audit"
 )
 
 // 退出码语义：0正常、1失败、2配置错误、75恢复重启。
@@ -36,6 +37,9 @@ func RunService(spec platform.ServiceSpec) int {
 	if err != nil {
 		fmt.Fprint(os.Stderr, configErrFormat)
 		return ExitBadConfig
+	}
+	if _, key, err := LoadServiceIdentity(config); err == nil {
+		audit.Install(config, key)
 	}
 	ctx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stopSignals()

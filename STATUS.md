@@ -16,16 +16,16 @@ python3 scripts/dev.py up
 - 文档：新建、嵌套、移动、编辑锁与自动保存草稿、发布/撤回、回收站（删除/恢复/彻底删除，已发布的留 410 或跳转）、发布历史与回滚、草稿预览。
 - 编辑器（Tiptap）：标题、列表、任务、引用、代码（含语言）、链接、表格、提示框、公式、图片与附件上传。
 - 公开页：Go 直接输出完整 HTML（首页主视觉按钮与背景色、公告横幅、三栏、目录、代码高亮、图片、嵌套路径、旧路径 301、删除 410）、首页、导航、robots、sitemap、llms；页面访问信标到 analytics。
+- 审计：各服务 HTTP 边界在后台写操作成功后自动向 analytics 追加审计（libs/platform/audit，只覆盖合同枚举内的动作，metadata 为空）。
 - 后台页面：文档、站点设置、账号与权限、任务队列、统计与审计、备份与恢复（界面壳在 portal/web，各域 module.js 由壳挂载）。
 - 部署文件（未部署过）：各域 Dockerfile、`deploy/docker-compose.yml`、Caddyfile、`deploy/init-secrets.sh`，由 `scripts/gen_deploy.py` 生成。
 
 ## 下一步（按顺序）
 
-1. 审计：各服务把后台写操作记成审计事实（analytics 的 appendAudit 已就绪，生产者还没接）。
-2. M2 余项：图片多宽变体、视频元数据与封面、资源库页面、traffic-guard 的访客侧接入、旧代 outbox 之外的事件订阅（knowledge/media/localization 消费 content 事件）。
-3. M3：model-gateway / knowledge / memory / qa / localization 的后台页面与接口补全（真实模型调用需要你当次同意并提供供应方密钥）。
-4. M4：各域屏障与快照导出、恢复换目录、data-protection 备份/恢复/镜像。
-5. M5：在服务器上部署（需要你当次同意）。
+1. M2 余项：图片多宽变体、视频元数据与封面、资源库页面、traffic-guard 的访客侧接入、旧代 outbox 之外的事件订阅（knowledge/media/localization 消费 content 事件）。
+2. M3：model-gateway / knowledge / memory / qa / localization 的后台页面与接口补全（真实模型调用需要你当次同意并提供供应方密钥）。
+3. M4：各域屏障与快照导出、恢复换目录、data-protection 备份/恢复/镜像。
+4. M5：在服务器上部署（需要你当次同意）。
 
 ## 已知缺口
 

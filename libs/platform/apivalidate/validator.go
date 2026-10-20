@@ -22,6 +22,7 @@ import (
 	legacyrouter "github.com/getkin/kin-openapi/routers/legacy"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/audit"
 	"nice-wiki/libs/platform/opctx"
 	"nice-wiki/libs/platform/problem"
 )
@@ -187,6 +188,9 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 		}
 		if err == nil && !slices.Contains(config.AllowedCallers[id], op.CallerService) {
 			err = platform.NewError(platform.CodeForbidden, false, "该服务不允许调用此接口")
+			if os.Getenv("NW_DEBUG") != "" {
+				fmt.Fprintf(os.Stderr, "调用方不在允许列表 operation=%s caller=%s\n", id, op.CallerService)
+			}
 		}
 		if err == nil && (view.Maintenance || view.Phase != platform.PhaseRunning) && !config.MaintenanceOperations[id] && op.CleanupScope == nil {
 			err = platform.NewError(platform.CodeLocked, true, "当前维护阶段不开放该接口")
@@ -270,9 +274,24 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 			defer release()
 			handler.ServeHTTP(w, request.WithContext(scoped))
 		})
-		validate(validatedScope).ServeHTTP(w, r.WithContext(ctx))
+		recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		validate(validatedScope).ServeHTTP(recorder, r.WithContext(ctx))
+		audit.Record(op, r.Method, id, params, recorder.status)
 	}), nil
 }
+
+// statusRecorder 记下响应状态码供审计使用；Unwrap 保留流式写出所需的 Flusher 等能力。
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (s *statusRecorder) WriteHeader(code int) {
+	s.status = code
+	s.ResponseWriter.WriteHeader(code)
+}
+
+func (s *statusRecorder) Unwrap() http.ResponseWriter { return s.ResponseWriter }
 
 // ServeEventStream 将单条增量事件写入SSE；读取、写入与心跳共享请求取消。
 // 返回时流已经关闭；响应开始后调用方只记录错误码，不再写JSON错误。
