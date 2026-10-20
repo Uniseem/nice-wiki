@@ -18,6 +18,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"nice-wiki/modules/qa/internal/transport"
@@ -215,6 +216,10 @@ func openDatabase(dataRoot string) (*sql.DB, error) {
 			_ = db.Close()
 			return nil, platform.NewError(platform.CodeInternal, false, "提交问答迁移失败")
 		}
+	}
+	if err := outbox.EnsureSchema(context.Background(), db); err != nil {
+		_ = db.Close()
+		return nil, err
 	}
 	return db, nil
 }

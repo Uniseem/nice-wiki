@@ -39,6 +39,7 @@ type LinkDirectory struct {
 	Media        *gen.MediaClient
 	Identity     *gen.IdentityClient
 	Analytics    *gen.AnalyticsClient
+	QA           *QAProbe
 }
 
 type linkDirectoryKey struct{}

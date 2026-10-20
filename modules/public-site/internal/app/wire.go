@@ -94,6 +94,8 @@ type domainClients struct {
 	jobs           *gen.JobsClient
 	dataProtection *gen.DataProtectionClient
 	analytics      *gen.AnalyticsClient
+	qaBase         string
+	qaKey          platform.SigningKey
 }
 
 func assembleClients(config platform.ServiceConfig, key platform.SigningKey) domainClients {
@@ -105,6 +107,8 @@ func assembleClients(config platform.ServiceConfig, key platform.SigningKey) dom
 		media:          gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key),
 		jobs:           gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key),
 		dataProtection: gen.NewDataProtectionClient(config.Dependencies["data-protection"], ModuleSlug, key),
+		qaBase:         config.Dependencies["qa"],
+		qaKey:          key,
 	}
 	if config.Dependencies["analytics"] != "" {
 		clients.analytics = gen.NewAnalyticsClient(config.Dependencies["analytics"], ModuleSlug, key)
@@ -128,6 +132,7 @@ func (c domainClients) directory() publicsite.LinkDirectory {
 		Localization: c.localization,
 		Media:        c.media,
 		Identity:     c.identity,
+		QA:           publicsite.NewQAProbe(c.qaBase, ModuleSlug, c.qaKey),
 	}
 }
 

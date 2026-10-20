@@ -40,7 +40,14 @@ func ReadPublicCapability(ctx context.Context, op OperationContext, input ReadPu
 		return ReadPublicCapabilityResult{}, err
 	}
 	runtime := tx.Runtime
+	policy, policyErr := qaruntime.ReadPolicy(tx)
 	tx.Close()
+	if policyErr != nil {
+		return ReadPublicCapabilityResult{}, policyErr
+	}
+	if !policy.Enabled {
+		return ReadPublicCapabilityResult{Available: false, Reason: gen.ReadPublicCapabilityResultReason("not_configured")}, nil
+	}
 	if runtime.Models == nil {
 		return ReadPublicCapabilityResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "模型配置权威未装配")
 	}

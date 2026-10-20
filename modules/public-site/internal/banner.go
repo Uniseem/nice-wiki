@@ -74,3 +74,9 @@ func loadAnnouncement(ctx context.Context, op platform.OperationContext) string 
 	}
 	return rendered.HTML
 }
+
+// qaAvailable 公开问答是否对访客开放（qa 已启用且模型任务可用）。
+func qaAvailable(ctx context.Context, op platform.OperationContext) bool {
+	directory, err := directoryFrom(ctx)
+	return err == nil && directory.QA.Available(ctx, op)
+}
