@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "b3a1647f9ad5fa168bfba5ffeb8701d779d9f683146436c1996ef8407adc91eb",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-20持久激活回执验签候选；CI170在make docs因constraints缺失失败，元数据修正aaa35cbd待CI重跑，业务验收未执行",
+  "assignedSession": "2026-10-20持久激活回执验签源码单元；pipeline173全绿，业务验收未执行",
   "branch": "codex/activation-receipt-20261020-site-config",
   "baseCommit": "a32f3f4c4876f94ce798826e9dee0b170bbb612a",
   "deliveryCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
@@ -72,23 +72,23 @@
     },
     {
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。BuildApplication与完整服务装配仍blocked；不代表业务验收或部署。"
       },
-      "blocker": "本轮加入Build可信验签锚装配与只读getter，待本轮GitLab CI；未在本机编译"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。仅源码检查，不代表业务验收或部署。"
       },
-      "blocker": "本轮接回真实激活回执claims验签，待本轮GitLab CI；公共Verify助手由集成首单元选入"
+      "blocker": null
     },
     {
       "path": "modules/site-config/internal/write_epoch.go",
@@ -564,35 +564,35 @@
     {
       "id": "site-config.ConfigureActivationVerifier",
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。仅源码检查，不代表业务验收或部署。"
       },
-      "blocker": "仅由BuildApplication调用，待本轮GitLab CI；未在本机编译"
+      "blocker": null
     },
     {
       "id": "site-config.RuntimeStore.ConfigureActivationVerifier",
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。仅源码检查，不代表业务验收或部署。"
       },
-      "blocker": "Build可信信任锚装配助手，待本轮GitLab CI"
+      "blocker": null
     },
     {
       "id": "site-config.RuntimeStore.activationVerifierAnchors",
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。仅源码检查，不代表业务验收或部署。"
       },
-      "blocker": "RegisterActivation只读getter，待本轮GitLab CI"
+      "blocker": null
     },
     {
       "id": "site-config.OpenRuntimeStore",
@@ -652,24 +652,24 @@
     {
       "id": "site-config.RegisterActivation",
       "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。原已verified函数因本轮逻辑改动重核；仅源码检查，不代表业务验收或部署。"
       },
-      "blocker": "本轮补齐持久激活回执claims验签与UTC时间规范化；CI170在make docs因合同constraints缺失未进入编译，aaa35cbd已补元数据，待重跑"
+      "blocker": null
     },
     {
       "id": "site-config.verifyActivationReceipt",
       "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "in_progress",
+      "state": "verified",
       "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
       "verification": {
-        "state": "not_run",
-        "evidence": null
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。仅源码检查，不代表业务验收或部署。"
       },
-      "blocker": "调用公共platform.VerifyActivationReceipt的集成助手待CI；CI170在make docs因合同constraints缺失未进入编译，aaa35cbd已补元数据"
+      "blocker": null
     },
     {
       "id": "site-config.CheckWriteEpoch",
@@ -1519,5 +1519,5 @@
       "blocker": null
     }
   ],
-  "rule": "基线既有源码检查证据继续有效；本轮候选1075bcb882在main=a32f3f4c上仅接回激活回执claims验签、UTC RFC3339Nano规范化及Build信任锚装配。CI170在make docs因新增合同输入/输出缺constraints未进入编译，修正提交aaa35cbd已补齐约束；相关函数/文件继续保持in_progress或blocked，待CI重跑。无行为验收、联调、真实接口/模型或部署。"
+  "rule": "基线既有源码检查证据继续有效；本轮激活回执验签源码单元通过候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173，相关8个函数与runtime_store/runtime_transition文件按范围verified。BuildApplication、wire及完整服务装配仍blocked；无行为验收、联调、真实接口/模型或部署。"
 }

@@ -16,7 +16,7 @@
 - 同域 Dockerfile/Makefile/manifest 共 45 项，状态为 verified 3、implemented 29、blocked 3、planned 10；`deploy/` 的 5 个总编排文件全部为 planned。
 - 固定接口基线为 408 个 HTTP operation、377 个 path template、18 个 jobTypes、68 个 backgroundTasks、73 条事件记录（50 publish、23 consume，映射到 15 个唯一消费 handler）。这些只是覆盖清单；完成目标仍按业务职责、页面和端到端链判断。
 - `main` 此前仅交付冻结计划与收尾记录；未完成的源码 WIP 不进入 `main`。当前仅推进已授权的源码候选，不启动真实接口、模型、镜像、运行服务或部署。
-- 当前最小候选已从 `main` 独立建立并选入 site-config 修正：公共验签源 `379f0977277cc2a03f1bde49b5d0f5a6cede4c08`，site-config 源码 `1075bcb8824838874e6a3ed775778f4194fa6969`，元数据及约束修正 `c56268fbd646cc71e6e829cecdf2d5d6059ef3f5`、`aaa35cbd95cd77e83620f1823dff1f67cf2deed3`、`a935a9284e32657f92fc20b5715166e832777bda`。最终 site-config 合同摘要为 `b3a1647f9ad5fa168bfba5ffeb8701d779d9f683146436c1996ef8407adc91eb`；范围仅为激活回执 Claims、UTC `RFC3339Nano` 时间规范化、严格规范 JSON 解码、Verify 及 RegisterActivation 可信接线；旧 e85 公共 WIP 的 `SignActivationReceipt` 与 outbox 事务变体继续保留，未计入完成数，等待重跑 CI。
+- 当前最小候选已从 `main` 独立建立并选入 site-config 修正：公共验签源 `379f0977277cc2a03f1bde49b5d0f5a6cede4c08`，site-config 源码 `1075bcb8824838874e6a3ed775778f4194fa6969`，元数据及约束修正 `c56268fbd646cc71e6e829cecdf2d5d6059ef3f5`、`aaa35cbd95cd77e83620f1823dff1f67cf2deed3`、`a935a9284e32657f92fc20b5715166e832777bda`。最终 site-config 合同摘要为 `b3a1647f9ad5fa168bfba5ffeb8701d779d9f683146436c1996ef8407adc91eb`；合成候选 `eb96455b2366ac8511c471e7955de41b5ffdab97` 已通过 pipeline173，generated.patch为0。范围仅为激活回执 Claims、UTC `RFC3339Nano` 时间规范化、严格规范 JSON 解码、Verify 及 RegisterActivation 可信接线；旧 e85 公共 WIP 的 `SignActivationReceipt` 与 outbox 事务变体继续保留，未计入完成数。
 
 计划依据按优先级为：根 `AGENTS.md`、`STATUS.md`、[全局需求](requirements.md)、[产品保留矩阵](product-preservation.md)、[界面装配](frontend.md)、已确认 ADR、各域机器合同、各域 STATUS/progress/handoff。历史只通过 [push-log](push-log/) 追溯，不在本计划继续复制流水账。
 

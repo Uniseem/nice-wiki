@@ -28,4 +28,6 @@ pipeline 171 的生成、content-media、ai、实际前端均成功；foundation
 
 pipeline 172 对精确 SHA `1e19a7184500d8956695496aee03ddb243c0b91e` 已全绿：生成/格式、content-media、ai、前端、foundation（含完整 `make check`）均成功；Runner 回传 `generated.patch` 31001 字节，已应用到本地候选，等待以零生成漂移 SHA复跑。
 
+最终候选 `eb96455b2366ac8511c471e7955de41b5ffdab97` 已通过 pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success，`generated.patch`为0字节，远端隔离分支与本地SHA一致。按本轮源码单元范围可复核的8个函数为：`platform.normalizeActivationReceiptClaims`、`platform.decodeCanonicalReceiptJSON`、`platform.VerifyActivationReceipt`、`site-config.ConfigureActivationVerifier`、`site-config.RuntimeStore.ConfigureActivationVerifier`、`site-config.RuntimeStore.activationVerifierAnchors`、`site-config.RegisterActivation`、`site-config.verifyActivationReceipt`；`site-config.BuildApplication`、wire及完整启动继续blocked。当前progress复算为2421函数：verified1611、implemented41、未完成769，verified+implemented=1652（68.2%）。
+
 VerifyGlobalSeal 的 `coordinateBarrier` observe 方案仍待主代理复核：step=observe 只读取 prepare/drain/seal 已持久的 barrier、epoch 和协调事实，不在纯读分支写观察或回执；没有既存证明时明确不可用。14 域服务仅可在既有服务认证下读取当前 barrier/epoch，其他变更步骤仍由 data-protection 加超管授权；当前不改 API、不作为首单元 CI 前置。

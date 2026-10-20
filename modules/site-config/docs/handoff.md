@@ -1,4 +1,4 @@
-# 2026-10-20 持久激活回执验签候选待CI
+# 2026-10-20 持久激活回执验签源码单元已通过
 
 ## 交付
 
@@ -14,7 +14,7 @@
 
 ## 检查与状态
 
-已执行 `jq` JSON解析与 `git diff --check`，均通过。按用户规则未在本机/SSH运行Go或pnpm生成、编译、vet、gofmt、lint、类型检查或测试；未执行真实接口、模型、服务或部署。GitLab CI尚无本轮精确SHA，因此本轮函数/文件状态保持 `in_progress` 或 `blocked（待CI）`。
+已执行 `jq` JSON解析与 `git diff --check`，均通过。按用户规则未在本机/SSH运行Go或pnpm生成、编译、vet、gofmt、lint、类型检查或测试；未执行真实接口、模型、服务或部署。pipeline173（候选`eb96455b2366ac8511c471e7955de41b5ffdab97`）的生成/格式696、foundation697、content-media698、ai699、前端700全部成功，generated.patch为0字节；本轮8个函数及runtime_store/runtime_transition文件按范围verified，BuildApplication/wire/完整服务仍blocked。
 
 CI170在`make docs`阶段因本轮新增合同的非空输入/输出缺少`constraints`触发KeyError，尚未编译。修正提交 `aaa35cbd` 仅补齐 `RuntimeStore.activationVerifierAnchors` 两个outputs、`verifyActivationReceipt` 三个inputs和一个output的constraints；progress合同哈希已同步为 `b3a1647f9ad5fa168bfba5ffeb8701d779d9f683146436c1996ef8407adc91eb`，源码与状态等级不变。
 
@@ -22,7 +22,7 @@ CI170在`make docs`阶段因本轮新增合同的非空输入/输出缺少`const
 
 ### 下一步（一项）
 
-由集成会话在包含 `aaa35cbd` 的候选树重跑既有GitLab docs/gen、三Go分片readonly build/vet/gofmt、完整 `make check` 并回传生成物；通过后再按精确CI SHA更新本域状态。
+由主代理复核本源码单元交付范围；后续若重开完整模块，只能按冻结计划和新的明确授权继续。
 
 以下为历史记录。
 

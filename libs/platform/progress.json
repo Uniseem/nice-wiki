@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "b78bb7d3638dbd0361d4f715fc760a0ff42c6682f856cc75dc451d8805a45abb",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-20激活回执最小验签候选；待site-config消费者接线与GitLab源码检查。",
+  "assignedSession": "2026-10-20激活回执源码单元；pipeline173全绿，业务验收未执行。",
   "branch": "codex/activation-verify-20261020",
   "baseCommit": "a32f3f4c4876f94ce798826e9dee0b170bbb612a",
-  "deliveryCommit": null,
+  "deliveryCommit": "7137f9423274f73044fad6f17cb43ecffd4931ee",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "libs/platform/serviceauth/delegation.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "7137f9423274f73044fad6f17cb43ecffd4931ee",
       "verification": {
-        "state": "not_run",
-        "evidence": "从main=a32f3f4c独立补入ActivationReceiptClaims、Claims时间规范化助手与VerifyActivationReceipt；待site-config最小消费者合成后由GitLab执行源码检查。"
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。仅源码检查，不代表业务验收、真实接口、模型或部署。"
       },
-      "blocker": "候选修改尚无GitLab精确SHA；文件内既有函数的历史检查不覆盖本次修改。"
+      "blocker": null
     },
     {
       "path": "libs/platform/opctx/context.go",
@@ -447,35 +447,35 @@
     {
       "id": "platform.normalizeActivationReceiptClaims",
       "path": "libs/platform/serviceauth/delegation.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "7137f9423274f73044fad6f17cb43ecffd4931ee",
       "verification": {
-        "state": "not_run",
-        "evidence": "候选源码已写入唯一Claims时间规范化；待site-config最小消费者合成后由GitLab执行生成、三个Go分片与完整make check。"
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。仅源码检查，不代表业务验收或部署。"
       },
-      "blocker": "尚无GitLab精确SHA；未在本机执行Go或测试。"
+      "blocker": null
     },
     {
       "id": "platform.decodeCanonicalReceiptJSON",
       "path": "libs/platform/serviceauth/delegation.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "7137f9423274f73044fad6f17cb43ecffd4931ee",
       "verification": {
-        "state": "not_run",
-        "evidence": "候选源码中的严格固定JSON解码与CanonicalJSON字节核对已登记；待site-config最小消费者合成后由GitLab执行源码检查。"
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。仅源码检查，不代表源码行为验收或部署。"
       },
-      "blocker": "尚无GitLab精确SHA；未在本机执行Go或测试。"
+      "blocker": null
     },
     {
       "id": "platform.VerifyActivationReceipt",
       "path": "libs/platform/serviceauth/delegation.go",
-      "state": "in_progress",
-      "implementationCommit": null,
+      "state": "verified",
+      "implementationCommit": "7137f9423274f73044fad6f17cb43ecffd4931ee",
       "verification": {
-        "state": "not_run",
-        "evidence": "候选源码已写入issuer、登记公钥、固定头、签名与规范化Claims payloadHash核对；待site-config最小消费者合成后由GitLab执行源码检查。"
+        "state": "passed",
+        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。仅源码检查，不代表业务验收或部署。"
       },
-      "blocker": "尚无GitLab精确SHA；site-config RegisterActivation消费者尚未合成到本候选。"
+      "blocker": null
     },
     {
       "id": "platform.VerifyDelegation",
