@@ -1,3 +1,7 @@
+# public-site metadataRevision 独立 CI 证据（2026-10-21）
+
+候选 `a6d5da6ba43356887c2083415c5dfb1ac5337ec1` 从 B1 green 记录 `ddaab834` 只接入 public-site 缓存键源码单元；pipeline196（IID153）五项全绿，job811 生成补丁0字节、SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。证据不覆盖 metadata 事件消费、media proof 或真实 OG 调用，content shareImage/media manifest 继续隔离。
+
 # B1 当前集成候选（2026-10-21）
 
 traffic green 记录基线为 `b44e13143094b1832508a43595c95e8ebd84b5d2`；content `27344e0f8dc8b35258699ce53fea769c654b404d` 与 media `151858e1791f4094ae92a0b880c5040a9e959dfc` 已按顺序合入独立 B1 分支。源码候选 `cb72d741d9d6192757b3a9eee7a40f78e3c4d9a0` 的 pipeline194（IID151）五项全绿；job801 `generated.patch` 为137347字节、SHA-256 `691215cff5b59b1c4fb798aa3ee70d4ae63fd533b960a3bd3bce7d2606581183`，已原样应用。最终候选 `41d5c43ff1498bc82cfe479ebcecb390cda9cf67` 的 pipeline195（IID152）五项全绿，job806 `generated.patch` 为0字节、SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。该证据只覆盖 CI/结构门槛，不提升 BuildApplication、VerifyGlobalSeal、协调 writer 或 accepted。

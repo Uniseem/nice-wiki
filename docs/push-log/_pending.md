@@ -1,3 +1,7 @@
+# 2026-10-21 public-site metadataRevision pipeline196
+
+从 B1 green `ddaab834` 独立接入 public-site clean `82db36cf`（源码 `0c25307d`），候选 `a6d5da6ba43356887c2083415c5dfb1ac5337ec1` 的 pipeline196（IID153）生成811、foundation812、content-media813、其余Go814、前端815全绿；generated.patch为0字节，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。仅记录缓存键源码门槛，未推 main/GitHub，不标完整OG/accepted。
+
 # 2026-10-21 B1 content→media pipeline194
 
 独立 B1 集成分支以 traffic green 记录基线 `b44e13143094b1832508a43595c95e8ebd84b5d2` 建立，按 content `27344e0f8dc8b35258699ce53fea769c654b404d`、media `151858e1791f4094ae92a0b880c5040a9e959dfc` 顺序合入。源码/合同候选 `cb72d741d9d6192757b3a9eee7a40f78e3c4d9a0` 的 GitLab pipeline194（IID151）五项全绿；生成801原始补丁137347字节，SHA-256 `691215cff5b59b1c4fb798aa3ee70d4ae63fd533b960a3bd3bce7d2606581183`，已按 Runner 原件应用。最终候选 `41d5c43ff1498bc82cfe479ebcecb390cda9cf67` 的 pipeline195（IID152）五项全绿；job806 `generated.patch` 为0字节、SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。未推 GitHub/main，未将业务状态标 verified/accepted。

@@ -1,3 +1,7 @@
+# public-site 独立 metadataRevision 缓存键 CI（2026-10-21）
+
+从 B1 green 记录 `ddaab834` 独立接入 public-site clean `82db36cf`（源码 `0c25307d`），集成候选 `a6d5da6ba43356887c2083415c5dfb1ac5337ec1` 的 GitLab pipeline196（IID153）生成 job811、foundation812、content-media813、其余Go814、前端815全部成功；job811 `generated.patch` 为0字节，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。本单元只覆盖 metadataRevision/v2缓存键纯函数，真实调用点、事件消费、media多来源proof、整条OG仍 blocked；content/media合同未合入。
+
 # B1 content→media 顺序集成（2026-10-21）
 
 以 traffic green 记录基线 `b44e13143094b1832508a43595c95e8ebd84b5d2` 建立独立 B1 分支，按 content `27344e0f8dc8b35258699ce53fea769c654b404d`、media `151858e1791f4094ae92a0b880c5040a9e959dfc` 顺序合入。合入后的源码/合同候选 `cb72d741d9d6192757b3a9eee7a40f78e3c4d9a0` 触发 GitLab pipeline194（IID151）：生成 job801、foundation job802、content-media/traffic job803、其余Go job804、前端 job805 全部成功。
