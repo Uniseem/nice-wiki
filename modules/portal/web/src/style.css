@@ -1,0 +1,23 @@
+:root { color-scheme: light dark; font: 15px/1.6 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; --bd: #8884; --accent: #2563eb; --muted: #8888; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: var(--accent); }
+button, input, select, textarea { font: inherit; }
+button { padding: .4rem .9rem; border: 1px solid var(--bd); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.danger { color: #dc2626; border-color: #dc262666; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+input, select, textarea { padding: .4rem .6rem; border: 1px solid var(--bd); border-radius: 6px; background: transparent; color: inherit; width: 100%; }
+label { display: block; margin: .8rem 0 .2rem; font-weight: 600; }
+.card { max-width: 26rem; margin: 10vh auto; padding: 2rem; border: 1px solid var(--bd); border-radius: 12px; }
+.card h1 { margin-top: 0; font-size: 1.4rem; }
+.error { color: #dc2626; margin: .8rem 0; white-space: pre-wrap; }
+.hint { color: var(--muted); font-size: .9em; }
+.shell { display: grid; grid-template-columns: 13rem minmax(0, 1fr); min-height: 100vh; }
+.shell > nav { border-right: 1px solid var(--bd); padding: 1rem; display: flex; flex-direction: column; gap: .25rem; }
+.shell > nav .brand { font-weight: 700; margin-bottom: 1rem; }
+.shell > nav a { padding: .4rem .6rem; border-radius: 6px; text-decoration: none; color: inherit; }
+.shell > nav a.active { background: #2563eb22; color: var(--accent); font-weight: 600; }
+.shell > nav .spacer { flex: 1; }
+.shell > main { padding: 1.5rem 2rem; min-width: 0; }
+@media (max-width: 800px) { .shell { grid-template-columns: 1fr; } .shell > nav { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--bd); } .shell > nav .spacer { display: none; } }

@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -35,6 +37,7 @@ type Application struct {
 	siteMu             sync.Mutex
 	siteID             platform.Identifier
 	loadSite           func(context.Context) (platform.Identifier, error)
+	webDir             string
 	validateBeaconBody func(json.RawMessage) error
 	config             platform.ServiceConfig
 	anchors            platform.TrustAnchors
@@ -112,6 +115,28 @@ func (a *Application) registerLocalRoutes(mux *http.ServeMux) error {
 	}
 	a.localHandlersReady = true
 	return nil
+}
+
+// MountWeb 提供后台静态页面：/admin/* 回退到壳的 index.html，/_admin/* 提供壳与各域 module.js。
+// 目录缺失时不挂载（后台页面不可用，接口代理照常工作）。
+func (a *Application) MountWeb(dir string) {
+	if info, err := os.Stat(filepath.Join(dir, "index.html")); err != nil || info.IsDir() {
+		return
+	}
+	a.webDir = dir
+	files := http.StripPrefix("/_admin/", http.FileServer(http.Dir(dir)))
+	mux := a.httpServer.Handler.(*http.ServeMux)
+	mux.HandleFunc("GET /_admin/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		files.ServeHTTP(w, r)
+	})
+	shell := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-ancestors 'none'")
+		http.ServeFile(w, r, filepath.Join(dir, "index.html"))
+	}
+	mux.HandleFunc("GET /admin", shell)
+	mux.HandleFunc("GET /admin/{rest...}", shell)
 }
 
 // SetSiteLoader 登记站点身份读取函数；站点尚未初始化时先用空身份启动，

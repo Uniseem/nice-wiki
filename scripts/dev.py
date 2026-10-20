@@ -49,15 +49,32 @@ def setup():
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
 
 
+WEB_MODULES = ["content", "jobs"]
+
+
 def build(slugs):
     for s in slugs:
-        subprocess.check_call(["go", "build", "-o", path("bin", s), f"./cmd/{s}"], cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1"})
+        subprocess.check_call(["go", "build", "-o", path("bin", s), f"./cmd/{s}"], cwd=os.path.join(ROOT, "modules", s))
 
 
 def port_open(port):
     with socket.socket() as sock:
         sock.settimeout(0.2)
         return sock.connect_ex(("127.0.0.1", port)) == 0
+
+
+def build_web():
+    """后台前端：壳放在 web/ 根，各域界面放在 web/modules/<域>/。"""
+    web = path("web")
+    subprocess.run(["rm", "-rf", web])
+    os.makedirs(os.path.join(web, "modules"))
+    shell = os.path.join(ROOT, "modules", "portal", "web")
+    subprocess.check_call(["pnpm", "install", "--frozen-lockfile"], cwd=shell)
+    subprocess.check_call(["pnpm", "exec", "vite", "build", "--outDir", web, "--emptyOutDir"], cwd=shell)
+    for m in WEB_MODULES:
+        d = os.path.join(ROOT, "modules", m, "web")
+        subprocess.check_call(["pnpm", "install", "--frozen-lockfile"], cwd=d)
+        subprocess.check_call(["pnpm", "exec", "vite", "build", "--outDir", os.path.join(web, "modules", m), "--emptyOutDir"], cwd=d)
 
 
 def pidfile(s):
@@ -67,10 +84,12 @@ def pidfile(s):
 def up(slugs):
     setup()
     build(slugs)
+    if "portal" in slugs:
+        build_web()
     os.makedirs(path("run"), exist_ok=True)
     for s in slugs:
         log = open(path("logs", s + ".log"), "w")
-        p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True, cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1"})
+        p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True, cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_WEB_DIR": path("web")})
         open(pidfile(s), "w").write(str(p.pid))
         for _ in range(100):
             time.sleep(0.1)

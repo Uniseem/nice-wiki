@@ -11,6 +11,8 @@
 
 - localization 界面工程（ADR0005前端选型，MIT/Apache-2.0）：vue 3.5.22、vue-router 4.5.1、pinia 3.0.3、vite 7.1.7、@vitejs/plugin-vue 6.0.1、typescript 6.0.0-beta；版本以 `modules/localization/ui/pnpm-lock.yaml` 为准（integrity 已与 npm registry 核对），不复制源码。
 
+- 后台界面工程（ADR0005前端选型，MIT）：modules/portal/web 与 modules/content/web、modules/jobs/web 使用 vue 3.5.22、vite 7.1.7、@vitejs/plugin-vue 6.0.1、typescript 6.0.0-beta；文档编辑器使用 Tiptap 3.32.0（@tiptap/core、vue-3、starter-kit、extension-task-list、extension-task-item、extension-highlight、pm）；版本以各目录 pnpm-lock.yaml 为准，仅依赖不复制源码。
+
 OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设计提及Go/Vue等技术不代表已安装依赖；实施前逐项确认版本、许可、版权与复制范围，新增借用项目取得用户确认，再记录到本文件。GPL代码只参考，不复制；Docmost社区版编辑器扩展是唯一例外（AGENTS与ADR0005）。
 
 - golang.org/x/net v0.58.0 / idna（BSD-3-Clause，Copyright 2009 The Go Authors）：平台公开地址IDNA Lookup规范化，仅模块引用、不复制代码。实施时读取官方Go模块原LICENSE核对；该版本为当前Go1.25可兼容的最高发布版，较新版本要求更高工具链。传递依赖由VPS go命令锁定，不手写go.sum。

@@ -83,7 +83,26 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	application.SetSiteLoader(func(work context.Context) (platform.Identifier, error) {
 		return readSiteIdentity(work, config, key, view.DataEpoch)
 	})
+	application.MountWeb(webDirectory())
 	return application, nil
+}
+
+// webDirectory 取后台静态目录：NW_WEB_DIR，否则当前目录下的 web/dist。
+func webDirectory() string {
+	if dir := os.Getenv("NW_WEB_DIR"); dir != "" {
+		return dir
+	}
+	if executable, err := os.Executable(); err == nil {
+		if candidate := filepath.Join(filepath.Dir(executable), "web"); fileExists(filepath.Join(candidate, "index.html")) {
+			return candidate
+		}
+	}
+	return "web/dist"
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端，不在此函数中缓存

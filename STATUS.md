@@ -2,25 +2,36 @@
 
 ## 现在能用什么
 
-15 个服务约有 11 万行手写 Go，本地 `make build` 和 `make check` 都能通过。但还没有任何服务真正启动过，主链路（登录 → 写文档 → 发布 → 公开页可见）还不通。
+M1 主链路已在本地跑通：浏览器里注册超管 → 初始化站点 → 新建文档 → 编辑自动保存 → 发布 → 公开页可见（撤回也可用）。
 
-各服务 `BuildApplication`（`modules/<域>/internal/app/wire.go`）能否返回可运行的 Application：
+本地一键启动（不进 git，数据在 `.local/dev`）：
 
-| 情况 | 服务 |
-|---|---|
-| 能返回（业务处理器多数不全，未实际启动过） | identity、site-config、jobs、portal、knowledge、analytics、data-protection、media、memory |
-| 末尾直接返回"尚未装配"，起不来 | **content**、**public-site**、localization、model-gateway、traffic-guard |
-| 还没有 cmd 入口和 internal/app | qa |
+```bash
+python3 scripts/dev.py up
+```
+
+然后打开 <http://127.0.0.1:8080/admin/login>（首次是注册页）。其他命令：`dev.py down | reset（清数据）| status | logs <服务>`；`python3 scripts/smoke.py` 用接口串一遍整条链路。
+
+已能启动的服务：site-config、identity、jobs、traffic-guard、media、localization、content、public-site、portal。已实现的接口挂载，未实现的返回 DEPENDENCY_UNAVAILABLE。
+后台界面：portal/web 是壳（登录、初始化、导航），content/web 是文档树 + Tiptap 编辑器，jobs/web 是任务页。
 
 ## 下一步（按顺序）
 
-1. 让 content、public-site 的 `BuildApplication` 返回可运行的 Application：已实现的接口挂上，未实现的返回 DEPENDENCY_UNAVAILABLE，不阻止启动。
-2. 在本地启动 identity、site-config、jobs、content、portal、public-site，打通：初始化站点 → 登录 → 新建并保存文档 → 发布 → 公开页能看到。
-3. 主链路通了以后，再按 [docs/plan.md](docs/plan.md) 逐个补其余服务，最后补恢复、封口、快照这类横切机制。
+1. M1 收尾：回收站、历史/回滚、预览、站点设置页、账号页；编辑器补表格、图片、提示块、链接。
+2. M2：media 上传与图片/视频、analytics、traffic-guard 的访客侧接入。
+3. M3：model-gateway、knowledge、memory、qa（无 cmd 入口）、localization 补全。
+4. M4：屏障/快照/恢复换目录、data-protection。M5：部署。
+
+## 已知缺口
+
+- 嵌套文档的公开路径只支持一段 slug；`.md`、分片 sitemap、预览路由未挂。
+- portal 本地路由（bootstrap、events、preferences、readiness、屏障）未实现，只有 healthz/readyz。
+- 目前各服务用 `lifecycle.SimpleAdmission` 代替快照屏障准入，M4 再换。
+- model-gateway、knowledge、memory、analytics、data-protection 还没有在本地启动过；qa 没有 cmd 入口。
 
 ## 未合并的旧工作
 
-本地有约 68 个 `codex/*` 分支，带着 main 里没有的提交，另有约 90 个 worktree（大多在 /private/tmp 下）。例如 `codex/finish-20261018-knowledge` 有 60 个提交，`codex/resume-20261020-jobs` 有 27 个。这些都没合并也没删除；做到相关模块时按需挑选，不要整体回放。
+本地有约 68 个 `codex/*` 分支，带着 main 里没有的提交，另有约 90 个 worktree（大多在 /private/tmp 下）。做到相关模块时按需挑选，不要整体回放。
 
 ## 常用命令
 

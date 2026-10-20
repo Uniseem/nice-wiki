@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [vue()],
+  define: { 'process.env.NODE_ENV': '"production"' }, // 库模式不会自动替换
   build: {
     outDir: 'dist',
     manifest: true,
