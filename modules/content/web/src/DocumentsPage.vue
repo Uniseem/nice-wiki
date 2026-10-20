@@ -265,6 +265,8 @@ async function refreshMeta() {
   await loadTree();
 }
 
+const warningText: Record<string, string> = { 'publication.seo_missing': '没有填写搜索摘要，可以在上方补充' };
+
 // 新建文档：在左栏里就地填标题（不用浏览器弹窗）。
 const creating = ref<{ parentId: string | null } | null>(null);
 const newTitle = ref('');
@@ -302,7 +304,7 @@ async function publish() {
       manualPathSegment: meta.value!.pathSegment ? null : path, manualSEO: seo.value || null,
     } });
     await refreshMeta();
-    status.value = result.warnings?.length ? `已发布（提示：${result.warnings.join('；')}）` : '已发布';
+    status.value = result.warnings?.length ? `已发布（提示：${result.warnings.map((w: string) => warningText[w] ?? w).join('；')}）` : '已发布';
   });
 }
 
