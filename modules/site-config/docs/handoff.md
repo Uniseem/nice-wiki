@@ -16,11 +16,13 @@
 
 已执行 `jq` JSON解析与 `git diff --check`，均通过。按用户规则未在本机/SSH运行Go或pnpm生成、编译、vet、gofmt、lint、类型检查或测试；未执行真实接口、模型、服务或部署。GitLab CI尚无本轮精确SHA，因此本轮函数/文件状态保持 `in_progress` 或 `blocked（待CI）`。
 
+CI170在`make docs`阶段因本轮新增合同的非空输入/输出缺少`constraints`触发KeyError，尚未编译。修正提交 `aaa35cbd` 仅补齐 `RuntimeStore.activationVerifierAnchors` 两个outputs、`verifyActivationReceipt` 三个inputs和一个output的constraints；progress合同哈希已同步为 `b3a1647f9ad5fa168bfba5ffeb8701d779d9f683146436c1996ef8407adc91eb`，源码与状态等级不变。
+
 旧的 `resource_reference_reader.go`、RelayOutbox及其状态只存在于原 `codex/resume-20261020-site-config` WIP工作树/历史链；本候选从main基线独立建立，集成时不应整条cherry-pick旧WIP。
 
 ### 下一步（一项）
 
-由集成会话选入提交 `1075bcb8824838874e6a3ed775778f4194fa6969` 与公共首单元中的窄 `VerifyActivationReceipt`/时间规范化助手，在同一候选树运行既有GitLab docs/gen、三Go分片readonly build/vet/gofmt、完整 `make check` 并回传生成物；通过后再按精确CI SHA更新本域状态。
+由集成会话在包含 `aaa35cbd` 的候选树重跑既有GitLab docs/gen、三Go分片readonly build/vet/gofmt、完整 `make check` 并回传生成物；通过后再按精确CI SHA更新本域状态。
 
 以下为历史记录。
 

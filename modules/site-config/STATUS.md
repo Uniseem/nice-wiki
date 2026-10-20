@@ -6,6 +6,7 @@
 - `RegisterActivation` 保留原HTTP输入/输出形状和同operationId幂等回放顺序；新操作在当前dataEpoch、revision、restoreId、phase/state检查后，以 `input.restoreId` 和receipt全部签名字段构造 `ActivationReceiptClaims`，调用精确 `serviceauth.VerifyActivationReceipt`，再沿原control.db CAS事务upsert。
 - `RecordedAt`在claims及规范化input中统一为UTC `RFC3339Nano`；公共Sign/Verify两端的同一时间规范化是集成公共首单元的窄依赖，不在本提交修改公共文件或引入新签名框架/schemaVersion。
 - `modules/site-config/contracts/implementation.json` 已登记Build→Configure→RuntimeStore.Configure、Register→getter/verify→platform.Verify的真实边；progress.json 已同步合同哈希和本轮函数/文件状态。
+- CI170在`make docs`阶段因新增验签合同的输入/输出缺少`constraints`而KeyError，尚未进入编译；提交`aaa35cbd`仅补齐六个缺失约束，源码不变，待集成CI重跑。
 
 本轮未运行本机Go/pnpm编译、格式化、lint、测试或生成；未新增测试、样例、fixture、mock，未运行真实接口/模型/服务/部署。源码与合同待本轮GitLab CI，相关状态保持 `in_progress`/`blocked`，不记 `implemented`/`verified`。
 

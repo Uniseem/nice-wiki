@@ -2,9 +2,9 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "7024a60fcd911e8ff47a9839372b669b0c15c75dc0f5a00bfab68ebc249f1e65",
+  "contractSha256": "b3a1647f9ad5fa168bfba5ffeb8701d779d9f683146436c1996ef8407adc91eb",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-20持久激活回执验签候选；提交1075bcb882待GitLab CI，业务验收未执行",
+  "assignedSession": "2026-10-20持久激活回执验签候选；CI170在make docs因constraints缺失失败，元数据修正aaa35cbd待CI重跑，业务验收未执行",
   "branch": "codex/activation-receipt-20261020-site-config",
   "baseCommit": "a32f3f4c4876f94ce798826e9dee0b170bbb612a",
   "deliveryCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
@@ -658,7 +658,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮补齐持久激活回执claims验签与UTC时间规范化，待本轮GitLab CI；未在本机编译或测试"
+      "blocker": "本轮补齐持久激活回执claims验签与UTC时间规范化；CI170在make docs因合同constraints缺失未进入编译，aaa35cbd已补元数据，待重跑"
     },
     {
       "id": "site-config.verifyActivationReceipt",
@@ -669,7 +669,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "调用公共platform.VerifyActivationReceipt的集成助手待本轮GitLab CI；未新增测试"
+      "blocker": "调用公共platform.VerifyActivationReceipt的集成助手待CI；CI170在make docs因合同constraints缺失未进入编译，aaa35cbd已补元数据"
     },
     {
       "id": "site-config.CheckWriteEpoch",
@@ -1519,5 +1519,5 @@
       "blocker": null
     }
   ],
-  "rule": "基线既有源码检查证据继续有效；本轮候选1075bcb882在main=a32f3f4c上仅接回激活回执claims验签、UTC RFC3339Nano规范化及Build信任锚装配，相关函数/文件保持in_progress或blocked，待本轮GitLab CI。无行为验收、联调、真实接口/模型或部署。"
+  "rule": "基线既有源码检查证据继续有效；本轮候选1075bcb882在main=a32f3f4c上仅接回激活回执claims验签、UTC RFC3339Nano规范化及Build信任锚装配。CI170在make docs因新增合同输入/输出缺constraints未进入编译，修正提交aaa35cbd已补齐约束；相关函数/文件继续保持in_progress或blocked，待CI重跑。无行为验收、联调、真实接口/模型或部署。"
 }
