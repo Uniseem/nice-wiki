@@ -2,7 +2,7 @@
 
 以 traffic green 记录基线 `b44e13143094b1832508a43595c95e8ebd84b5d2` 建立独立 B1 分支，按 content `27344e0f8dc8b35258699ce53fea769c654b404d`、media `151858e1791f4094ae92a0b880c5040a9e959dfc` 顺序合入。合入后的源码/合同候选 `cb72d741d9d6192757b3a9eee7a40f78e3c4d9a0` 触发 GitLab pipeline194（IID151）：生成 job801、foundation job802、content-media/traffic job803、其余Go job804、前端 job805 全部成功。
 
-job801 原始 `generated.patch` 为 137347 字节，SHA-256 `691215cff5b59b1c4fb798aa3ee70d4ae63fd533b960a3bd3bce7d2606581183`；已原样应用，内容为 jobs v2 订阅生成登记、media 生成客户端/OpenAPI及 worker 格式化。应用后当前候选待零生成漂移复检。结构摘要为 15 modules/2 shared、1059 files、2534 functions、408 operations、2609 types；`shareImage` 非空仍失败关闭，BuildApplication、全域 VerifyGlobalSeal、协调 writer、accepted 继续 blocked。
+job801 原始 `generated.patch` 为 137347 字节，SHA-256 `691215cff5b59b1c4fb798aa3ee70d4ae63fd533b960a3bd3bce7d2606581183`；已原样应用，内容为 jobs v2 订阅生成登记、media 生成客户端/OpenAPI及 worker 格式化。应用后的最终候选 `41d5c43ff1498bc82cfe479ebcecb390cda9cf67` 触发 pipeline195（IID152），生成 job806、foundation807、content-media/traffic808、其余Go809、前端810全部成功；job806 `generated.patch` 为0字节，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。结构摘要为 15 modules/2 shared、1059 files、2534 functions、408 operations、2609 types；`shareImage` 非空仍失败关闭，BuildApplication、全域 VerifyGlobalSeal、协调 writer、accepted 继续 blocked。
 
 # 当前状态（2026-10-20，用户恢复R1实施）
 
