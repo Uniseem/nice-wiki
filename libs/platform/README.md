@@ -8,13 +8,11 @@
 
 - 不含任何业务规则，不访问任何服务的私有数据，不导入服务代码；服务只经本库公开函数使用这些机制。
 - 各服务的 RelayOutbox、ConsumeEvents、RunWorker、InvokeModel、main、BuildApplication、Serve 等约束函数只装配本域参数并调用本库。
-- 改动本库视为公共契约变更，由集成会话统一修改并同步所有服务。
+- 改动本库视为公共契约变更，改完跑 `make build` 确认所有服务仍能编译。
 
-资料：[函数合同](docs/functions.md)、[文件目录](docs/files.md)、[机器合同](contracts/implementation.json)、[类型](contracts/types.json)、[进度台账](progress.json)。
+资料：[函数合同](docs/functions.md)、[文件目录](docs/files.md)、[机器合同](contracts/implementation.json)、[类型](contracts/types.json)。
 
 ServiceConfig的可选`masterKeyRef`（环境覆盖`NW_MASTER_KEY_REF`）只传递部署主密钥绝对路径；配置加载不打开密钥，使用域按具体加密操作读取。
-
-第三轮公共候选补签名站点传递和任务六方法窄适配，已通过根GitLab pipeline32候选检查，实际集成树仍按顺序复检；状态与未完成边界见STATUS及handoff。
 
 ## 公共快照与恢复
 

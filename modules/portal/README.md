@@ -2,10 +2,6 @@
 
 入口、后台外壳与模块装配；偏好由 identity 拥有，portal 无业务数据仓库。
 
-当前为R1实施阶段：已有入口路由、权威access/CSRF和代理链；本轮浏览器认证cookie与可信网络scope适配已通过统一VPS生成/格式/编译/vet/结构检查，业务验收未执行。完整本域HTTP处理器与初始化/恢复就绪权威未齐时Application明确失败，不能声明整站登录已可用。业务验收与部署未执行。
-
-`portal.RedactRequest` 已由 pipeline 48 记 verified。它按静态路由保留 requestId、routeId、method 与体字节数，并剥除 cookie 与 authorization。`portal.EmitAccessAudit` 因 appendAudit 请求体映射缺失保持 blocked，verification.state 为 not_run。accepted 仍为 0。
-
 ## 设计索引
 
 - [docs/requirements.md](docs/requirements.md)
@@ -41,4 +37,4 @@
 
 ## 进度与新会话交接
 
-先读 [本域状态](STATUS.md)、[逐项台账](progress.json)、[会话交接](docs/handoff.md)。有规格不代表已有实现；并行仅改本域，公共文件交集成会话。
+进度见根 [STATUS.md](../../STATUS.md)；有规格不代表已有实现，以代码为准。

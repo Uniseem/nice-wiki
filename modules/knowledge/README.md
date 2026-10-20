@@ -2,8 +2,6 @@
 
 将content权威发布修订与media授权资源转换为版本化分块、词项和向量索引；只返回经权威可见性校验的材料。
 
-阶段：R1实施。已有检索与索引基础链通过GitLab，继续配置、构建/提取、worker、恢复和界面；本模块仅交付源码，由集成会话统一检查及双推，不运行真实模型或部署。
-
 - [requirements](docs/requirements.md)
 - [architecture](docs/architecture.md)
 - [data](docs/data.md)
@@ -24,4 +22,4 @@
 
 ## 进度与新会话交接
 
-先读 [本域状态](STATUS.md)、[逐项台账](progress.json)、[会话交接](docs/handoff.md)。有规格不代表已有实现；并行仅改本域，公共文件交集成会话。
+进度见根 [STATUS.md](../../STATUS.md)；有规格不代表已有实现，以代码为准。

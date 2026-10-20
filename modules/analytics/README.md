@@ -2,8 +2,6 @@
 
 聚合匿名公开访问、管理操作审计和 model-gateway 费用引用，提供后台统计及导出；实时预算、账本余额仍由 model-gateway 决定。
 
-阶段：R1实施。本轮费用V2消费与投影源码已通过GitLab完整检查；完整费用查询、后台scope、快照与服务装配仍未齐。业务验收与部署未开始，详见STATUS与逐项台账。
-
 - [需求与边界](docs/requirements.md)
 - [架构与依赖](docs/architecture.md)
 - [存储与迁移](docs/data.md)
@@ -23,4 +21,4 @@
 
 ## 进度与新会话交接
 
-先读 [本域状态](STATUS.md)、[逐项台账](progress.json)、[会话交接](docs/handoff.md)。有规格不代表已有实现；并行仅改本域，公共文件交集成会话。
+进度见根 [STATUS.md](../../STATUS.md)；有规格不代表已有实现，以代码为准。

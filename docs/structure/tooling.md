@@ -18,9 +18,7 @@ Makefile 的 `check` 调用 Python 全量校验，`privacy` 只查隐私和 Git 
 | `check_events(modules)` | 模块清单；返回 None | 收集唯一生产方→核对字段/交付语义→消费者必须引用同名同版唯一生产方载荷schema→consume条目handler必须是本域binding函数→有消费事件的域须有同时调用jobs订阅与确认的循环→生产事件的域（jobs除外）须有调用jobs:publishEvent的转发函数→调用publishEvent的域须登记生产事件 | 只读合同，错误追加 ISSUES |
 | `check_wiring(modules, shared=())` | 服务模块与共享组件数组；返回 None | 读取各域jobTypes/backgroundTasks→每个任务的managementPermission必须属于已登记具体业务权限，全部使用集合与jobManagementGrants严格一致→执行函数须为binding且是RunWorker依赖→后台函数须是BuildApplication依赖→有系统定时须依赖jobs:createSchedule→从接口处理、事件处理与main出发计算可达性，非界面函数必须可达→service接口（屏障/快照/健康除外）必须有调用方→x-admission只在匿名接口 | 只读合同；错误追加 ISSUES |
 | `check_rendered()` | 无参数；返回 None | 导入 render_docs.expected_docs()→逐个比对各域 functions.md/files.md/api.md/workflows.md 与共享组件生成文档 | 只读文件；不一致时提示运行 make docs，不自动改写 |
-| `check_framework()` | 无参数；返回 None | 枚举实际文档/合同/工具/根文件→与framework.json逐路径比对→报告未登记或缺失 | 不创建或删除文件；不含私有vps.txt、.git |
 | `check_staged()` | 无参数；返回 None | git diff列暂存增加/修改→逐blob隐私扫描→拒绝私有运行目录和未审阅二进制 | 仅调用只读Git子进程，不暂存、不提交 |
-| `check_progress(modules)` | 模块清单；返回 None | 核对每文件/函数唯一台账、交接资料、状态枚举、已实现提交SHA与已验证证据；设计阶段必须全部planned | 只查记录一致性，不证明记录的业务结论真实；错误追加 ISSUES |
 | `main()` | 读取命令行 `--privacy-only`、`--summary`、可选 `--message-file`；返回 int 0/1 | 枚举允许文档→扫描隐私/链接/JSON→核对作者→检查引用、模块、事件与生成文档→解析两个脚本的 Python AST→打印结果 | 仅读文件和 Git 配置、输出规则；命令行错误由 argparse 返回 2 |
 
 ## scripts/render_docs.py
@@ -41,7 +39,7 @@ Makefile 的 `check` 调用 Python 全量校验，`privacy` 只查隐私和 Git 
 | `expected_docs()` | 无参数；返回 {Path: 内容} | 读取 modules.json、errors.json 与各域合同，生成每域 functions.md、files.md、api.md 接口清单与 workflows.md 流程块，以及共享组件的 functions.md/files.md | 只读文件；JSON 错误直接抛出 |
 | `main()` | 命令行可选 `--check`；返回 int 0/1 | 比对期望内容→默认写入过期文件并列出→`--check` 只列出并在有过期时返回 1 | 默认模式只改写各域与共享组件的生成文档或生成块 |
 
-模块 JSON 读取顺序先全部装入 CACHE，再核对 `$id` 引用。每次独立 Python 进程启动时 ISSUES/CACHE 为空；不并发改仓库。任何非零退出均不能标记 R0-04 通过。全局框架的实际文件清单登记在 [framework.json](framework.json)，模块未来源码清单登记在各域 implementation.json。
+模块 JSON 读取顺序先全部装入 CACHE，再核对 `$id` 引用。每次独立 Python 进程启动时 ISSUES/CACHE 为空；不并发改仓库。模块源码与约束级函数登记在各域 implementation.json。
 
 当前检查不证明 Go/TypeScript 可编译，不覆盖业务行为、schema 全规范合法性、供应方协议、部署可用性或竞态；这些必须在对应实施与验收阶段落实。
 

@@ -8,4 +8,4 @@
 - `config/trust-anchors.json`：由 `nw-keys` 生成的公钥表，不含私钥。
 - `.env.example`：域名、站点时区、镜像版本模板，不含密钥。
 
-当前为设计阶段，以上文件只在 [机器合同](contracts/implementation.json) 中登记，尚未创建。文件目录见 [docs/files.md](docs/files.md)，进度见 [progress.json](progress.json)。
+当前为设计阶段，以上文件只在 [机器合同](contracts/implementation.json) 中登记，尚未创建。文件目录见 [docs/files.md](docs/files.md)。

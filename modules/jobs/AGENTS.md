@@ -12,4 +12,4 @@
 
 恢复控制journal与barrier在control区，不随业务快照替换。备份恢复控制操作只接受data-protection服务身份与superadmin委托；active目录只在进程重启时换入或换回（ADR0003）。
 
-可以读old产品设计/ADR确认产品，后续ADR优先；不复用旧业务代码结构。R1实施中：按 docs/plan.md 工作包与本域合同创建源码；Go 代码记 implemented 前须 make build 通过（全部经用户自部署GitLab CI执行，尽量三个并行任务；连接与凭据仅从用户指定私有机器管理仓库读取且不入本仓库，优先专用编译Runner；GitLab不可用时记录blocked，未经用户当次明确授权不得回退本机或SSH编译）；测试/样例按 ADR0006 默认不写；不执行真实接口/模型；push 须用户当次授权。业务验收保持未勾选。
+可以读old产品设计/ADR确认产品，后续ADR优先；不复用旧业务代码结构。流程以根 AGENTS.md 为准：本地 `make build`/`make check` 通过即可提交，可在本地启动服务验证；测试、真实模型调用和推送按根规则处理。

@@ -2,8 +2,6 @@
 
 管理站点语言启停、发布内容增量翻译、人工保护、术语库、界面字符串和语言建议；翻译是绑定权威源修订的派生资产。
 
-阶段：R1实施。本轮免费语言计划、明确批准和必需支持已通过GitLab源码检查；Portal可信background costClass、完整HTTP链与真实翻译worker仍未齐。业务验收与部署未开始。
-
 - [requirements](docs/requirements.md)
 - [architecture](docs/architecture.md)
 - [data](docs/data.md)
@@ -24,4 +22,4 @@
 
 ## 进度与新会话交接
 
-先读 [本域状态](STATUS.md)、[逐项台账](progress.json)、[会话交接](docs/handoff.md)。有规格不代表已有实现；并行仅改本域，公共文件交集成会话。
+进度见根 [STATUS.md](../../STATUS.md)；有规格不代表已有实现，以代码为准。

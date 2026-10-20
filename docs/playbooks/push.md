@@ -1,8 +1,6 @@
 # 推送
 
-1. 确认用户本次明确要求push，核对main与old归档、远端和工作区，不强推。
-2. 全部生成、编译与阶段 make check 经自部署 GitLab CI 通过，编译尽量三个并行分片；候选代码可先推到 GitLab 隔离 CI 分支，未通过前不合 main。
-3. 扫描暂存、消息、作者/提交者及全部待推送提交；邮箱只用GitHub代用，秘密不入库，已提交问题不自行改历史。
-4. 整理pending为按日期编号的push记录、更新索引，记录实际AI合著者。
-5. 保持已有用户身份提交，再普通push指定分支；已镜像的本仓正式交付同步 GitHub origin 与自部署 GitLab gitlab 两个远程，逐个核对远端SHA一致，失败不得写成功。CI候选分支仅用于GitLab检查，不推GitHub。
-6. 归档分支是否推送随用户本次指定；本轮用户已授权规格收口后push，对old归档和main框架一起执行普通推送，核对各自SHA；不推送无关分支。
+1. 只在用户明确要求时推送，不强推。
+2. 推送前在本地跑 `make build`、`make check` 和 `make privacy`；提交里不得出现真实邮箱、密钥、本机路径或访客数据，作者必须是 GitHub 代用邮箱。
+3. 双推：`git push origin HEAD && git push gitlab HEAD`，然后确认两个远端的 SHA 一致。
+4. 不写推送记录文件，git log 就是记录。

@@ -2,7 +2,6 @@
 
 import argparse
 import ast
-import hashlib
 import ipaddress
 import json
 import re
@@ -198,7 +197,7 @@ def check_modules(modules, permissions, codes, shared=()):
         if service:
             required = ['README.md', 'AGENTS.md', *['docs/' + n + '.md' for n in ('requirements', 'architecture', 'data', 'api', 'workflows', 'files', 'functions', 'operations', 'acceptance')], *['contracts/' + n + '.json' for n in ('types', 'implementation', 'openapi', 'events')]]
         else:
-            required = ['README.md', 'progress.json', 'docs/files.md', 'docs/functions.md', 'contracts/implementation.json']
+            required = ['README.md', 'docs/files.md', 'docs/functions.md', 'contracts/implementation.json']
         for name in required:
             if not (folder / name).is_file():
                 fail(slug, '缺少模块文件 ' + name)
@@ -477,18 +476,6 @@ def check_rendered():
             fail(relative(path), '与implementation.json生成结果不一致，运行make docs')
 
 
-def check_framework():
-    path = ROOT / 'docs/structure/framework.json'
-    data = load_json(path)
-    declared = {item.get('path', '') for item in data.get('files', [])}
-    actual = {relative(p) for top in ('docs', 'contracts', 'modules', 'scripts', 'libs', 'deploy') if (ROOT / top).is_dir() for p in (ROOT / top).rglob('*') if p.is_file() and p.suffix != '.pyc'}
-    actual.update(n for n in ('AGENTS.md', 'CLAUDE.md', 'README.md', 'STATUS.md', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'Makefile', '.gitignore', '.gitattributes', '.editorconfig', '.gitlab-ci.yml') if (ROOT / n).is_file())
-    for extra in sorted(actual - declared):
-        fail('实际结构', '未登记文件 ' + extra)
-    for missing in sorted(declared - actual):
-        fail('实际结构', '登记文件不存在 ' + missing)
-
-
 GO_SUM_LINE = re.compile(r'^\S+ v\S+ h1:[A-Za-z0-9+/]{43}=$')
 
 
@@ -524,43 +511,6 @@ def check_staged():
                 fail('暂存:' + name, '设计阶段不允许未审阅二进制')
     except subprocess.CalledProcessError:
         fail('暂存区', 'Git暂存扫描失败')
-
-
-def check_progress(modules):
-    states = {'planned', 'in_progress', 'implemented', 'verified', 'accepted', 'blocked'}
-    for module in modules:
-        folder = ROOT / module['root']
-        impl = load_json(folder / 'contracts/implementation.json')
-        ledger = load_json(folder / 'progress.json')
-        if ledger.get('module') != module['slug']:
-            fail(module['slug'], '交接台账模块不匹配')
-        digest = hashlib.sha256(json.dumps(impl, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')).hexdigest()
-        if ledger.get('contractSha256') != digest:
-            fail(module['slug'], '交接台账契约摘要过期')
-        for name in (() if module.get('kind') else ('STATUS.md', 'docs/handoff.md')):
-            if not (folder / name).is_file():
-                fail(module['slug'], '缺少交接记录 ' + name)
-        expected_files = {f['path'] for f in impl.get('files', [])}
-        expected_functions = {fn['id'] for f in impl.get('files', []) for fn in f.get('functions', [])}
-        for group, key, expected in (('files', 'path', expected_files), ('functions', 'id', expected_functions)):
-            rows = ledger.get(group, [])
-            actual = {row.get(key) for row in rows}
-            if actual != expected or len(rows) != len(actual):
-                fail(module['slug'], '台账未覆盖唯一逐项' + group)
-            for row in rows:
-                label = str(row.get(key))
-                state = row.get('state')
-                if state not in states:
-                    fail(label, '未知进度状态')
-                if state in ('implemented', 'verified', 'accepted') and not re.fullmatch(r'[0-9a-f]{40}', row.get('implementationCommit') or ''):
-                    fail(label, '已实现状态缺对应完整提交SHA')
-                verification = row.get('verification', {})
-                if state in ('verified', 'accepted') and (verification.get('state') != 'passed' or not verification.get('evidence')):
-                    fail(label, '已验证状态缺通过证据')
-                if state == 'blocked' and not row.get('blocker'):
-                    fail(label, '阻塞状态缺具体原因')
-                if ledger.get('phase') == 'design' and state != 'planned':
-                    fail(label, '设计阶段不能冒充业务实现')
 
 
 def main():
@@ -599,9 +549,7 @@ def main():
         check_events(modules)
         check_wiring(modules, shared)
         check_rendered()
-        check_framework()
         check_go_modules()
-        check_progress(list(modules) + list(shared))
         if len(modules) != 15:
             fail('模块清单', '服务数必须为已登记15域')
         for name in ('check_docs.py', 'render_docs.py'):

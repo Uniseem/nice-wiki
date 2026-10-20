@@ -2,8 +2,6 @@
 
 维护人工可审计记忆条目、任务映射、语言范围、版本化注入预算和只产生提议的记忆助手；批准后才应用记忆或术语变更。
 
-阶段：R1 实施中。人工条目、映射、预算、上下文与助手部分链路已有源码；本轮尚待统一 GitLab CI，完整启动、行为验收和部署未完成。
-
 - [requirements](docs/requirements.md)
 - [architecture](docs/architecture.md)
 - [data](docs/data.md)
@@ -24,4 +22,4 @@
 
 ## 进度与新会话交接
 
-先读 [本域状态](STATUS.md)、[逐项台账](progress.json)、[会话交接](docs/handoff.md)。有规格不代表已有实现；并行仅改本域，公共文件交集成会话。
+进度见根 [STATUS.md](../../STATUS.md)；有规格不代表已有实现，以代码为准。

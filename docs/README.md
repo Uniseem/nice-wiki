@@ -30,12 +30,12 @@
 | M14 | [统计与审计](../modules/analytics/README.md) | 匿名访问、操作审计与用量汇总 |
 | M15 | [数据保护](../modules/data-protection/README.md) | 一致备份、恢复、版本镜像与 data git 同步 |
 
-每个模块 README.md 继续索引 requirements / architecture / data / api / workflows / files / functions / operations / acceptance 九份子文档和四份机器契约。不能跳过全局约束，只读单个函数就编写代码。
+每个模块 README.md 索引 requirements / architecture / data / api / workflows / files / functions / operations / acceptance 九份子文档和四份机器契约。
 
 
 产品行为以 [需求保留矩阵](product-preservation.md) 和 [旧设计基线](product-baseline/README.md) 为准；AI上下文与缓存见 [详细规格](ai-context-and-cache.md)。
 
-多会话开发按 [并行开发规则](playbooks/parallel-development.md)，新会话与跨天继续按 [交接流程](playbooks/handoff.md)。每个模块的 STATUS/progress/handoff 记录当前事实；设计台账初始全部未实现。
+工作方式见根 [AGENTS.md](../AGENTS.md)，进度只看根 [STATUS.md](../STATUS.md)。这些设计文档按需查阅，不必通读。
 
 各模块独立构建、进程入口、健康与退出的共同工程要求见 [服务启动蓝图](service-bootstrap.md)，具体文件和函数已合入每模块合同。
 

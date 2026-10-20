@@ -2,8 +2,6 @@
 
 保持 D17/D34/D55 的全屏首页、公告横幅、站点品牌页脚与无AI初始化；dataEpoch/maintenance唯一控制权威。
 
-当前为R1持续实施：初始化、一般settings权威读写和一屏hero首页权威组已交付；首页公开按钮解析与媒体pin持久恢复通过统一VPS docs/gen、14模块readonly build/vet/gofmt及完整结构检查。完整HTTP/后台/恢复装配仍因其余真实handler缺失保持blocked，业务验收、联调与部署未执行。
-
 ## 设计索引
 
 - [docs/requirements.md](docs/requirements.md)
@@ -41,4 +39,4 @@
 
 ## 进度与新会话交接
 
-先读 [本域状态](STATUS.md)、[逐项台账](progress.json)、[会话交接](docs/handoff.md)。有规格不代表已有实现；并行仅改本域，公共文件交集成会话。
+进度见根 [STATUS.md](../../STATUS.md)；有规格不代表已有实现，以代码为准。

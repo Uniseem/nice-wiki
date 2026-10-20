@@ -16,4 +16,4 @@ functions.md 与 files.md 由 `make docs` 从 implementation.json 生成；api.m
 
 所有有状态域必须设计 /v1/barriers、/v1/snapshots:export、/v1/snapshots:stage、/v1/snapshots:discard 管理协议，并在启动时按 runtime 换入或换回 active 目录（ADR0003）；写入受服务身份、超管委托、屏障与 dataEpoch 校验。公共字段见 common.schema.json。portal 无业务存储时只参与入口维护，不虚构数据快照。
 
-共享组件（contracts/modules.json 的 shared，如 libs/platform、deploy）有 README、implementation.json、progress.json 与生成的 functions.md/files.md，平台库另有 types.json；它们不对外提供 HTTP，也不登记事件。
+共享组件（contracts/modules.json 的 shared，如 libs/platform、deploy）有 README、implementation.json 与生成的 functions.md/files.md，平台库另有 types.json；它们不对外提供 HTTP，也不登记事件。

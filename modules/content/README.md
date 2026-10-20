@@ -2,8 +2,6 @@
 
 保持 D4/D9/D15/D16/D20/D35/D54/D55：Tiptap3块、共享自动保存草稿、内存编辑锁、发布撤回回收站和署名历史；私有正文文件权威。
 
-当前为R1实施：本轮元数据标题/人工SEO/未发布路径编辑、完整原结果与真实CAS/HTTP映射及精确根级路径保留名已编写并通过根GitLab pipeline32生成/三分片14模块readonly build/vet/gofmt及完整结构检查。曾发布路径manifest、分享图精确pin/引用源与完整服务未齐，相关变更明确503，Update和Move整体仍partial，不触发模型或发布正文；业务验收未执行。
-
 ## 设计索引
 
 - [docs/requirements.md](docs/requirements.md)
@@ -41,4 +39,4 @@
 
 ## 进度与新会话交接
 
-先读 [本域状态](STATUS.md)、[逐项台账](progress.json)、[会话交接](docs/handoff.md)。有规格不代表已有实现；并行仅改本域，公共文件交集成会话。
+进度见根 [STATUS.md](../../STATUS.md)；有规格不代表已有实现，以代码为准。
