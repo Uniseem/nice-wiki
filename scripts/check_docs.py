@@ -205,7 +205,7 @@ def check_modules(modules, permissions, codes, shared=()):
                 operation_input = any('OperationContext' in param.get('type', '') for param in fn.get('inputs', []))
                 if 'RequestContext' in signature:
                     fail(fid, '签名不得使用RequestContext')
-                if service and signature.startswith('func ') and operation_input and '(ctx context.Context, op OperationContext' not in signature:
+                if service and fn.get('contract') == 'binding' and signature.startswith('func ') and operation_input and '(ctx context.Context, op OperationContext' not in signature:
                     fail(fid, 'Go操作函数签名必须以(ctx context.Context, op OperationContext开头')
                 if service and not signature.startswith('func ') and 'OperationContext' in signature:
                     fail(fid, '浏览器函数不得接收服务端OperationContext')
