@@ -2024,7 +2024,7 @@
     },
     "ResourceReferencesChangedPayload": {
       "type": "object",
-      "description": "仅历史v1只读兼容解析；缺少完整来源身份，不得作为新事件生产，也不得映射为v2",
+      "description": "事件仅ref，无正文",
       "additionalProperties": false,
       "properties": {
         "siteId": {

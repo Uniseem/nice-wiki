@@ -1,6 +1,6 @@
 {
   "module": "content",
-  "version": 2,
+  "version": 1,
   "events": [
     {
       "name": "content.publication.changed",
