@@ -3051,9 +3051,10 @@ func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyRe
 
 1. 验证生产方为已登记content、活动epoch，并用平台校验器核与pin相同的完整来源身份和引用schema；空集合也必须带sourceOperationId/siteId/sourceObjectId/sourceRevisionId/sourceVersion/referenceDigest，另保留eventId
 2. 同一事务调用platform.ClaimInbox按eventId与subject修订去重；sourceVersion低于当前水位只确认不覆写
-3. 事务把完整快照写入既有reference_heads/reference_entries并做history分类，提升generation，只取消已经存在的相交人工清理计划
-4. 已经明确终止sealed的同源修订不得由迟到事件复活；与持久终止来源矛盾时INTEGRITY_ERROR，保留原引用保护
-5. 事件认领为事务首项写入，统一ClaimInboxBeforeWrite只提交冲突隔离，不把业务错误回滚成未隔离。
+3. 原sourceOperationId已持久为confirmed且规范来源材料（含完整引用集合与referenceDigest）逐字相同的事件回放，按对象head水位补齐该pin的reference_entries与必要的reference_heads；不重复提升generation，低版本只保留history并返回原applied/generation结果；同版本异材料或异digest返回INTEGRITY_ERROR
+4. 事务把完整快照写入既有reference_heads/reference_entries并做history分类，提升generation，只取消已经存在的相交人工清理计划
+5. 已经明确终止sealed的同源修订不得由迟到事件复活；与持久终止来源矛盾时INTEGRITY_ERROR，保留原引用保护
+6. 事件认领为事务首项写入，统一ClaimInboxBeforeWrite只提交冲突隔离，不把业务错误回滚成未隔离。
 
 **错误**
 
@@ -3064,7 +3065,7 @@ func ApplyReferenceEvent(ctx context.Context, op OperationContext, input ApplyRe
 - 副作用：本域inbox与reference_heads/reference_entries同事务；不写删除许可
 - 授权：service:jobs可信事件投递
 - 并发：sourceOperation→sourceObject→asset升序→store→SQL
-- 幂等：eventId唯一+sourceversion单调
+- 幂等：eventId唯一+sourceversion单调+已确认完整来源材料回放
 - 依赖：`platform.ClaimInboxBeforeWrite`、`media.mediaWriteContext`、`media.lockReferenceKey`、`media.lockReferenceAssets`、`media.canonicalReferenceInput`、`media.referenceBindingHash`、`media.referenceObjectAssets`、`media.referenceCleanupAssets`、`media.cancelReferenceCleanupPlans`、`media.readReferenceRecord`、`media.readReferenceAsset`、`media.advanceReferenceGeneration`、`media.writeReferenceResolution`
 
 ## media.lockReferenceKey
