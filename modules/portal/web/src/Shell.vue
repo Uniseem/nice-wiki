@@ -12,6 +12,7 @@ const modules = [
   { id: 'site-config', label: '站点设置' },
   { id: 'media', label: '资源库' },
   { id: 'identity', label: '账号与权限' },
+  { id: 'traffic-guard', label: '防滥用' },
   { id: 'jobs', label: '任务队列' },
   { id: 'analytics', label: '统计与审计' },
   { id: 'data-protection', label: '备份与恢复' },

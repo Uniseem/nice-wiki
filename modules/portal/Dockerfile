@@ -13,6 +13,8 @@ COPY modules/identity/web/ modules/identity/web/
 RUN cd modules/identity/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/identity --emptyOutDir
 COPY modules/media/web/ modules/media/web/
 RUN cd modules/media/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/media --emptyOutDir
+COPY modules/traffic-guard/web/ modules/traffic-guard/web/
+RUN cd modules/traffic-guard/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/traffic-guard --emptyOutDir
 COPY modules/jobs/web/ modules/jobs/web/
 RUN cd modules/jobs/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/jobs --emptyOutDir
 COPY modules/analytics/web/ modules/analytics/web/
