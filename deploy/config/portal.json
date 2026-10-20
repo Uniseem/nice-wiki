@@ -20,6 +20,7 @@
     "analytics": "http://analytics:8112",
     "data-protection": "http://data-protection:8113"
   },
+  "budgetKeyRef": "/run/secrets/budget-key.json",
   "delegationKeyRef": "/run/secrets/delegation-key.json",
   "trustedProxyCIDRs": [
     "198.51.100.0/24"

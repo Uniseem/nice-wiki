@@ -63,6 +63,8 @@ def service_config(slug, port):
         "trustAnchorRef": "/run/secrets/trust-anchors.json", "signingKeyRef": "/run/secrets/signing-key.json",
         "dependencies": {s: f"http://{s}:{p}" for s, p in SERVICES.items() if s != slug},
     }
+    if slug in ("portal", "traffic-guard"):
+        cfg["budgetKeyRef"] = "/run/secrets/budget-key.json"
     if slug == "portal":
         cfg["delegationKeyRef"] = "/run/secrets/delegation-key.json"
         cfg["trustedProxyCIDRs"] = [SUBNET]
@@ -89,6 +91,8 @@ def compose():
                   f"      - {slug}-data:/data/{slug}"]
         if slug == "portal":
             lines += ["      - ./secrets/portal/delegation-key.json:/run/secrets/delegation-key.json:ro", "      - ./secrets/portal/delegation.pem:/run/secrets/delegation.pem:ro"]
+        if slug in ("portal", "traffic-guard"):
+            lines += ["      - ./secrets/budget/budget-key.json:/run/secrets/budget-key.json:ro", "      - ./secrets/budget/budget.pem:/run/secrets/budget.pem:ro"]
         if slug in ("model-gateway", "data-protection"):
             lines += [f"      - ./secrets/{slug}/master-key:/run/secrets/master-key:ro"]
         if slug == "data-protection":
@@ -130,9 +134,13 @@ GOMEMLIMIT=256MiB
 # 需要 Go；私钥只写入 deploy/secrets（已在 .gitignore 里），不要提交。
 set -eu
 cd "$(dirname "$0")/.."
-(cd libs/platform && go run ./cmd/nw-keys --services ../../deploy/config/services.json --out ../../deploy/config/trust-anchors.json)
+(cd libs/platform && go run ./cmd/nw-keys --services ../../deploy/config/services.json --out ../../deploy/config/trust-anchors.json --budget-dir ../../deploy/secrets/budget)
+budget=$(ls deploy/secrets/budget/budget-*.pem | head -n1)
+cp "$budget" deploy/secrets/budget/budget.pem
+printf '{"keyId":"%s","privateKeyRef":"/run/secrets/budget.pem"}\\n' "$(basename "$budget" .pem | sed 's/^budget-//')" > deploy/secrets/budget/budget-key.json
 for dir in deploy/secrets/*/; do
 	slug=$(basename "$dir")
+	[ "$slug" = budget ] && continue
 	pem=$(ls "$dir"signing-*.pem | head -n1)
 	keyid=$(basename "$pem" .pem | sed 's/^signing-//')
 	cp "$pem" "$dir/signing.pem"

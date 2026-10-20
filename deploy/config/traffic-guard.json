@@ -19,5 +19,6 @@
     "jobs": "http://jobs:8111",
     "analytics": "http://analytics:8112",
     "data-protection": "http://data-protection:8113"
-  }
+  },
+  "budgetKeyRef": "/run/secrets/budget-key.json"
 }

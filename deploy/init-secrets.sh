@@ -3,9 +3,13 @@
 # 需要 Go；私钥只写入 deploy/secrets（已在 .gitignore 里），不要提交。
 set -eu
 cd "$(dirname "$0")/.."
-(cd libs/platform && go run ./cmd/nw-keys --services ../../deploy/config/services.json --out ../../deploy/config/trust-anchors.json)
+(cd libs/platform && go run ./cmd/nw-keys --services ../../deploy/config/services.json --out ../../deploy/config/trust-anchors.json --budget-dir ../../deploy/secrets/budget)
+budget=$(ls deploy/secrets/budget/budget-*.pem | head -n1)
+cp "$budget" deploy/secrets/budget/budget.pem
+printf '{"keyId":"%s","privateKeyRef":"/run/secrets/budget.pem"}\n' "$(basename "$budget" .pem | sed 's/^budget-//')" > deploy/secrets/budget/budget-key.json
 for dir in deploy/secrets/*/; do
 	slug=$(basename "$dir")
+	[ "$slug" = budget ] && continue
 	pem=$(ls "$dir"signing-*.pem | head -n1)
 	keyid=$(basename "$pem" .pem | sed 's/^signing-//')
 	cp "$pem" "$dir/signing.pem"

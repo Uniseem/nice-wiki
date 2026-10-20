@@ -28,6 +28,8 @@ services:
       - portal-data:/data/portal
       - ./secrets/portal/delegation-key.json:/run/secrets/delegation-key.json:ro
       - ./secrets/portal/delegation.pem:/run/secrets/delegation.pem:ro
+      - ./secrets/budget/budget-key.json:/run/secrets/budget-key.json:ro
+      - ./secrets/budget/budget.pem:/run/secrets/budget.pem:ro
 
   public-site:
     build:
@@ -209,6 +211,8 @@ services:
       - ./secrets/traffic-guard/signing.pem:/run/secrets/signing.pem:ro
       - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
       - traffic-guard-data:/data/traffic-guard
+      - ./secrets/budget/budget-key.json:/run/secrets/budget-key.json:ro
+      - ./secrets/budget/budget.pem:/run/secrets/budget.pem:ro
 
   jobs:
     build:
