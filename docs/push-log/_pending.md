@@ -1,11 +1,14 @@
-# 2026-10-20 R1-00 已启动
+# 2026-10-20 文档收尾无待推源码
 
-基线：`b986443d0dddf5482f7c3430e3dc7c8b99a24232`（main、origin/main、gitlab/main 同 SHA；pipeline 162 全绿且生成补丁 0）。
+本轮只正式交付冻结总计划和准确收尾记录。计划基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，pipeline 163 全绿且生成补丁 0；正式远端推送前基线为 `b986443d0dddf5482f7c3430e3dc7c8b99a24232`。
 
-分支：`codex/closeout-20261020-integration`。
+以下四路 WIP 不进入 main，不 reset、不删除、不强推：
 
-主代理已审核通过并冻结总计划，本期进入 R1-00 公共接口核对。15 域 progress.json、平台 progress.json 和 deploy progress.json 均未修改，完成数不增加，41 个 implemented 保留待最终冻结核验。
+- `codex/closeout-20261020-integration`：`e85dde0583938bb4207bc3a1117e62549d21018c`
+- `codex/closeout-20261020-identity`：`5466c47d22249c224d57009a329786f1d019fa80`
+- `codex/closeout-20261020-site-config`：`6d83888b39ebbd3a624f58d820274e7c6f3072c7`
+- `codex/closeout-20261020-jobs`：`76325f0d024563daec80037f42e021112de39fad`
 
-规划/审计代理已运行；未启动实施代理。当前没有业务代码实现、生成器、GitLab CI、真实接口、模型、镜像、服务或部署；没有新增测试、fixture、mock、样例或临时验证程序。本记录不宣称 `make check`、编译、前端检查或业务验收通过。
+全仓函数台账仍为 1645/2414，accepted 0。公共候选的 5 个函数没有真实消费者，完整 check 失败；identity 的后台参考函数登记/caller、site-config relay、jobs 后台/readiness/保护来源均未闭合。以上都不以本推送补写或伪造依赖。
 
-下一步：把本纯文档候选送专用 GitLab CI，并核对首批 SnapshotManager/Admission/worker/relay/consumer、runtime/WriteWindow、capture/restore activation 接口。接口结论交主代理后，再放行 identity/site-config/jobs 实施代理。
+正式候选仅限本目录的根文档与 push-log 更新；精确 CI、源码完成数和双推回执见 [2026-10-20-0001](2026-10-20-0001.md)。无真实接口、模型、服务或部署。
