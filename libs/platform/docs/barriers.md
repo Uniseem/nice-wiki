@@ -2,6 +2,8 @@
 
 此协议只提供公共机制。14域真实业务回调、jobs水位SQL和data-protection协调器未接齐时，不构成整站safe/Ready证明。旧epoch活动资格必须撤销并隔离保留审计、原费用/输入/输出/来源事实，不能删除后声称未发生，也不能通用改epoch重投递。
 
+激活回执独立签名载荷固定为`version,restoreId,module,stageId,targetDataEpoch,state,manifestHash,recordedAt`。`recordedAt`在载荷摘要前由公共Claims助手解析为UTC并以RFC3339Nano统一编码，签发端与验签端使用同一规范；HTTP服务断言仍只证明caller，site-config还须核当前恢复阶段、restoreId、expectedRevision和域覆盖。
+
 ## HTTP与任务scope
 
 ServiceBoundaryConfig.AdmitBusiness覆盖完整已鉴权、已严格schema验证的非控制HTTP与SSE。ControllerOperations只免业务计数，不免身份、权限、epoch。CleanupOperations也不能跳过AllowedCallers/ServiceActorCallers。TaskGroup.SetAdmission必须装真实独立Manager准入；Start不继承HTTP将release的同一租约。CancelActive/WaitIdle用于备份后可恢复的旧任务停止，Drain是进程永久关闭。

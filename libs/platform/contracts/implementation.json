@@ -898,8 +898,142 @@
     {
       "path": "libs/platform/serviceauth/delegation.go",
       "kind": "handwritten",
-      "purpose": "用户委托验证与作用域绑定的分页游标签名",
+      "purpose": "用户委托验证、恢复激活回执来源验证与作用域绑定的分页游标签名",
       "functions": [
+        {
+          "id": "platform.normalizeActivationReceiptClaims",
+          "name": "normalizeActivationReceiptClaims",
+          "signature": "func normalizeActivationReceiptClaims(claims ActivationReceiptClaims) (ActivationReceiptClaims, error)",
+          "inputs": [
+            {
+              "name": "claims",
+              "type": "ActivationReceiptClaims",
+              "description": "待验证的激活回执规范声明",
+              "constraints": [
+                "字段必须满足ActivationReceiptClaims schema；recordedAt可为合法RFC3339输入表示"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "claims",
+              "type": "ActivationReceiptClaims",
+              "description": "可稳定摘要的规范声明",
+              "constraints": [
+                "recordedAt统一为UTC RFC3339Nano；失败时结果无效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "声明结构或时间格式不合法",
+              "constraints": [
+                "不含密钥、正文或原始回执"
+              ]
+            }
+          ],
+          "purpose": "为激活回执签名和验签提供唯一的Claims结构校验与时间规范化",
+          "steps": [
+            "校验version=1、restoreId/module/stageId/targetDataEpoch为合法Identifier，state仅为switched或rolled-back，manifestHash为SHA-256，recordedAt为可解析RFC3339时间",
+            "将recordedAt解析为UTC并以RFC3339Nano重新编码后写回Claims；其他字段不改写"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "声明字段缺失、枚举不符、摘要不合法或recordedAt不可解析",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "纯函数，调用方负责外层服务授权",
+          "concurrency": "纯函数，可并发调用",
+          "idempotency": "同一输入产生同一规范声明",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.VerifyActivationReceipt",
+          "name": "VerifyActivationReceipt",
+          "signature": "func VerifyActivationReceipt(anchors TrustAnchors, issuer string, claims ActivationReceiptClaims, signature string) error",
+          "inputs": [
+            {
+              "name": "anchors",
+              "type": "TrustAnchors",
+              "description": "可信服务Ed25519公钥表",
+              "constraints": [
+                "issuer与keyId必须精确登记"
+              ]
+            },
+            {
+              "name": "issuer",
+              "type": "string",
+              "description": "外层已认证服务断言的caller slug",
+              "constraints": [
+                "必须等于claims.module"
+              ]
+            },
+            {
+              "name": "claims",
+              "type": "ActivationReceiptClaims",
+              "description": "待登记的完整持久回执字段",
+              "constraints": [
+                "包含独立restoreId，不能只信body或当前运行状态"
+              ]
+            },
+            {
+              "name": "signature",
+              "type": "string",
+              "description": "ActivationReceipt.signature原文",
+              "constraints": [
+                "非空且不超过4096字节"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "来源验签或载荷绑定失败",
+              "constraints": [
+                "无error时才可将回执作为持久来源证明"
+              ]
+            }
+          ],
+          "purpose": "验证有状态域持久激活回执的独立来源及其与restore完整绑定",
+          "steps": [
+            "要求外层caller=issuer=claims.module，再经normalizeActivationReceiptClaims重做ActivationReceiptClaims结构约束并规范化recordedAt；外层HTTP服务断言继续由公共入口单独验证",
+            "解码并严格核规范JWS头NW-ACTIVATION-RECEIPT/EdDSA/kid与登记的公钥，不允许alg替换或未登记key",
+            "只从issuer名下TrustAnchors取公钥验证Ed25519签名；issuer不能由body自报替代",
+            "严格解码规范证明并核purpose及payloadHash；claims任一字段改变、restoreId替换或其他恢复回执重放均失败",
+            "以规范化后的Claims执行CanonicalJSON和payloadHash核对；返回空error仅表示持久来源与完整字段绑定成立，site-config仍须核当前phase、expectedRevision、restoreId和域覆盖"
+          ],
+          "errors": [
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "caller/issuer/key/header或签名无效，或声明结构不合法",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "规范编码或签名载荷摘要不一致",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "由site-config在同请求结构、服务断言、caller/module及控制阶段校验后调用"
+          },
+          "concurrency": "纯函数，可并发",
+          "idempotency": "无状态；相同证据返回相同结论",
+          "dependencies": [
+            "platform.normalizeActivationReceiptClaims",
+            "platform.CanonicalJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
         {
           "id": "platform.VerifyDelegation",
           "name": "VerifyDelegation",

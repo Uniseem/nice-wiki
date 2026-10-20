@@ -1,6 +1,7 @@
 package serviceauth
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"crypto/hmac"
 	"crypto/rand"
@@ -9,11 +10,124 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"strings"
 	"time"
 
 	"nice-wiki/libs/platform"
 )
+
+const activationReceiptPurpose = "activation-receipt-v1"
+
+// ActivationReceiptClaims 是有状态域完成恢复切换或换回后签名的规范载荷。
+type ActivationReceiptClaims struct {
+	Version         int                 `json:"version"`
+	RestoreID       platform.Identifier `json:"restoreId"`
+	Module          string              `json:"module"`
+	StageID         platform.Identifier `json:"stageId"`
+	TargetDataEpoch platform.Identifier `json:"targetDataEpoch"`
+	State           string              `json:"state"`
+	ManifestHash    platform.Hash       `json:"manifestHash"`
+	RecordedAt      platform.Timestamp  `json:"recordedAt"`
+}
+
+type activationReceiptHeader struct {
+	Algorithm string `json:"alg"`
+	KeyID     string `json:"kid"`
+	Type      string `json:"typ"`
+}
+
+type activationReceiptProof struct {
+	Version     int           `json:"version"`
+	Issuer      string        `json:"issuer"`
+	Purpose     string        `json:"purpose"`
+	PayloadHash platform.Hash `json:"payloadHash"`
+}
+
+// VerifyActivationReceipt 验证持久回执来源；HTTP服务断言另行证明调用方。
+func VerifyActivationReceipt(anchors platform.TrustAnchors, issuer string, claims ActivationReceiptClaims, signature string) error {
+	invalid := func(message string) error {
+		return platform.NewError(platform.CodeUnauthenticated, false, "%s", message)
+	}
+	normalized, err := normalizeActivationReceiptClaims(claims)
+	if err != nil || issuer == "" || issuer != normalized.Module {
+		return invalid("激活回执声明或发行方不合法")
+	}
+	if len(signature) == 0 || len(signature) > 4096 {
+		return invalid("激活回执签名长度不合法")
+	}
+	parts := strings.Split(signature, ".")
+	if len(parts) != 3 {
+		return invalid("激活回执签名格式不合法")
+	}
+	headerRaw, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return invalid("激活回执头不可解码")
+	}
+	var header activationReceiptHeader
+	if err := decodeCanonicalReceiptJSON(headerRaw, &header); err != nil || header.Algorithm != algEdDSA || header.KeyID == "" || header.Type != "NW-ACTIVATION-RECEIPT" {
+		return invalid("激活回执头不合法")
+	}
+	publicKeyRaw := anchors.ServiceKeyID(issuer, header.KeyID)
+	publicKey, err := base64.RawURLEncoding.DecodeString(publicKeyRaw)
+	if err != nil || len(publicKey) != ed25519.PublicKeySize {
+		return invalid("激活回执公钥未登记")
+	}
+	signatureRaw, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil || !ed25519.Verify(ed25519.PublicKey(publicKey), []byte(parts[0]+"."+parts[1]), signatureRaw) {
+		return invalid("激活回执签名无效")
+	}
+	proofRaw, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return invalid("激活回执证明不可解码")
+	}
+	var proof activationReceiptProof
+	if err := decodeCanonicalReceiptJSON(proofRaw, &proof); err != nil || proof.Version != 1 || proof.Issuer != issuer || proof.Purpose != activationReceiptPurpose || !platform.ValidHash(proof.PayloadHash) {
+		return invalid("激活回执证明声明不合法")
+	}
+	payload, err := platform.CanonicalJSON(normalized)
+	if err != nil || platform.HashBytes(payload) != proof.PayloadHash {
+		return platform.NewError(platform.CodeIntegrityError, false, "激活回执载荷与签名绑定不符")
+	}
+	return nil
+}
+
+// normalizeActivationReceiptClaims 统一回执时间表示后返回可摘要的Claims。
+func normalizeActivationReceiptClaims(claims ActivationReceiptClaims) (ActivationReceiptClaims, error) {
+	recordedAt, err := platform.ParseTimestamp(claims.RecordedAt)
+	if err != nil || recordedAt.IsZero() {
+		return ActivationReceiptClaims{}, platform.NewError(platform.CodeValidation, false, "激活回执时间不合法")
+	}
+	if claims.Version != 1 ||
+		!platform.ValidIdentifier(claims.RestoreID) ||
+		len(claims.Module) > 64 ||
+		!platform.ValidIdentifier(claims.Module) ||
+		!platform.ValidIdentifier(claims.StageID) ||
+		!platform.ValidIdentifier(claims.TargetDataEpoch) ||
+		(claims.State != "switched" && claims.State != "rolled-back") ||
+		!platform.ValidHash(claims.ManifestHash) {
+		return ActivationReceiptClaims{}, platform.NewError(platform.CodeValidation, false, "激活回执声明不合法")
+	}
+	claims.RecordedAt = platform.Timestamp(recordedAt.UTC().Format(time.RFC3339Nano))
+	return claims, nil
+}
+
+func decodeCanonicalReceiptJSON(raw []byte, target any) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return platform.NewError(platform.CodeIntegrityError, false, "激活回执JSON包含多余值")
+	}
+	canonical, err := platform.CanonicalJSON(target)
+	if err != nil || !bytes.Equal(canonical, raw) {
+		return platform.NewError(platform.CodeIntegrityError, false, "激活回执JSON不是规范编码")
+	}
+	return nil
+}
 
 // PrivateOperationDigest 为含秘密的幂等输入生成不可公开猜测的私有摘要。
 // 调用方保存keyId并在轮换过渡期保留旧key；不保存payload或原始秘密。

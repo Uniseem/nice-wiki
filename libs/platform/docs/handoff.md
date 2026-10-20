@@ -1,3 +1,15 @@
+# 2026-10-20最小激活回执验签候选
+
+候选分支`codex/activation-verify-20261020`从main `a32f3f4c4876f94ce798826e9dee0b170bbb612a`独立建立，独占公共平台验签合同与实现。当前实际范围是`ActivationReceiptClaims`、内部`normalizeActivationReceiptClaims`和`VerifyActivationReceipt`；旧e85公共WIP不合入本树，`SignActivationReceipt`及outbox三个事务变体留在旧WIP。
+
+`recordedAt`由公共助手在载荷摘要前统一为UTC `RFC3339Nano`，因此site-config的`time.Time`与签名Claims不会因`+00:00`、时区或小数尾部表示差异导致相同真实时间验签失败。Verify仍要求外层已验签caller等于Claims.module、按issuer查登记公钥、固定EdDSA/NW-ACTIVATION-RECEIPT头，并用规范化Claims核payloadHash；site-config仍负责当前phase、restoreId、expectedRevision和域覆盖。
+
+尚无GitLab精确SHA；未在本机执行Go、生成、格式、测试或真实接口。合同/台账已按候选范围更新，新增与改动状态保持`in_progress`。
+
+### 下一项（一项）
+
+等待site-config从main独立准备RegisterActivation最小消费者后，由集成会话把两棵候选树合成单一源码候选并上传既有GitLab CI；CI生成补丁、三个Go分片、实际前端、既有普通测试和完整`make check`均由Runner执行。
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
