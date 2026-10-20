@@ -67,7 +67,7 @@ func TransitionRuntimeState(ctx context.Context, op platform.OperationContext, i
 	} else if found {
 		return gen.TransitionRuntimeStateResult{State: stored}, nil
 	}
-	if op.DataEpoch != "" && string(current.DataEpoch) != string(op.DataEpoch) {
+	if string(current.DataEpoch) != string(op.DataEpoch) {
 		return gen.TransitionRuntimeStateResult{}, platform.NewError(platform.CodeVersionMismatch, false, "运行状态dataEpoch已变化")
 	}
 	if _, err := ValidateRuntimeTransition(ValidateRuntimeTransitionInput{Current: current, Command: input}); err != nil {

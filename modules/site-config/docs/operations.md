@@ -12,3 +12,9 @@
 初始化公开地址由受信进程配置 `publicBaseURL` 或 `NW_PUBLIC_BASE_URL` 注入，不能从请求 Host 推导。公开地址要求 https；只有显式 `allowLocalHTTP`/`NW_ALLOW_LOCAL_HTTP` 且主机为 loopback 才允许 http 本地开发。未配置时已有读取与健康端点仍可装配，新的初始化返回依赖配置缺失。
 
 配置恢复在入口开放前执行 RecoverConfigJournal，然后对非维护状态下尚未完成的初始化 commit 执行 ResumeInitialization。COMMITTED 决定成功而 SQL 失败，使用同一 operation 补完；不能删除 journal、重新生成 preparedAt 或另造请求以绕过冲突。旧准备决定缺原始 actor 回执、文件哈希损坏、未知 schema 或 journal 水位断裂均失败关闭，不猜测主体、不从准备 JSON 重造已提交权威文件。
+
+恢复 Stage 通过登记的 data-protection 服务依赖读取本域归档；配置与部署清单只保存私有服务地址引用，不保存凭据或真实主机信息。协调与全域封口接口在共享合同冻结前保持失败关闭。
+
+Build 在 active 迁移后登记 `site_config_state`、`config_revision_index`、`announcement_heads`、初始化决定、配置操作和首页引用决定表。维护态启动只提供健康、就绪与控制接口，不启动首页恢复和 outbox worker；Ready 使用同一 SnapshotManager 的内存屏障状态投影 `safePoint` 与 `publicRequestsAllowed`，没有状态记录时按无本域屏障处理，未知状态失败关闭。
+
+公告恢复逐条核对 COMMITTED 的 head、正文、大小、hash 和 schema。缺失或不匹配的单条公告写入本域 quarantine 并计入隔离结果，其他有效公告继续恢复；结构损坏、迁移损坏和控制水位矛盾仍阻止启动。阶段迁移只接收公共认证的隔离数据库，回调内完成本域 schema 与派生公告索引校验，不能直接操作 active 目录。

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 96 个函数：约束 33 个，参考 63 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 113 个函数：约束 33 个，参考 80 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1525,6 +1525,394 @@ func ReadRuntimeState(ctx context.Context, op OperationContext, input ReadRuntim
 - 幂等：只读
 - 依赖：无
 
+## site-config.ConfigureGlobalSealVerifier
+
+- 级别：参考
+- 文件：`modules/site-config/internal/snapshot_service.go`
+- 作用：注入唯一全域GlobalSeal核验端口
+
+```go
+func ConfigureGlobalSealVerifier(verify func(context.Context, SnapshotSealProof, string) error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `verify` | `func(context.Context, SnapshotSealProof, string) error` | 集成会话装配的真实全域封口核验回调 | 必须由可信集成装配；不得由HTTP输入或本域请求构造 |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保存回调供同一SnapshotManager的SealBarrier调用；缺失时验签失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅可信集成启动装配
+- 并发：装配后只读；seal调用可并发但由Manager串行
+- 幂等：重复装配替换可信回调，不写业务数据
+- 依赖：无
+
+## site-config.observeSiteWork
+
+- 级别：参考
+- 文件：`modules/site-config/internal/snapshot_service.go`
+- 作用：在单一只读事务内观察本域全部持久工作
+
+```go
+func observeSiteWork(ctx context.Context, store *ActiveStore) (SnapshotWorkState, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 同一SQLite观察事务的取消与截止传播 | 取消时不得把未完成观察当作零水位 |
+| `store` | `*ActiveStore` | 本域active业务库与同库outbox | 必须是Build打开的当前active句柄 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `work` | `SnapshotWorkState` | 本域真实outbox与待决业务工作水位 | OutboxRevision与WorkRevision来自同一真实公共control revision；PendingWork不得以零值冒充未知 |
+| `error` | `error` | 观察事务或真实工作事实不可读 | 失败关闭屏障观察 |
+
+**步骤**
+
+1. 打开同库只读事务并读取公共Store.ObserveTx
+2. 在同一事务读取本域config、首页资源和初始化待决事实
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅SnapshotManager回调
+- 并发：事务快照；不写业务数据
+- 幂等：只读
+- 依赖：`site-config.observeSiteWorkFacts`
+
+## site-config.sealSiteWork
+
+- 级别：参考
+- 文件：`modules/site-config/internal/snapshot_service.go`
+- 作用：在同一事务内以真实水位CAS封住本域工作
+
+```go
+func sealSiteWork(ctx context.Context, store *ActiveStore, work SnapshotWorkState, proofHash string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 同一封口事务的取消与截止传播 | 事务未提交不得报告封口成功 |
+| `store` | `*ActiveStore` | 本域active业务库与同库outbox | 必须是SnapshotManager绑定的当前句柄 |
+| `work` | `SnapshotWorkState` | 此前观察得到的本域工作水位 | 必须与封口事务内重新观察的水位完全一致 |
+| `proofHash` | `string` | 公共全域封口证明摘要 | 必须是合法hash |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 水位变化、待决工作或公共CAS封口失败 | 失败回滚同一事务并保持未封口 |
+
+**步骤**
+
+1. 同一事务重新ObserveTx并核对业务pending与此前水位
+2. 调用公共Store.SealTx并提交同一事务
+
+**错误**
+
+- 无
+
+- 副作用：同库outbox control封口
+- 授权：仅SnapshotManager回调
+- 并发：依赖SQLite事务CAS与公共outbox gate
+- 幂等：同revision同proofHash复用公共幂等封口
+- 依赖：`site-config.observeSiteWorkFacts`、`platform.Store.SealTx`
+
+## site-config.resumeSiteWork
+
+- 级别：参考
+- 文件：`modules/site-config/internal/snapshot_service.go`
+- 作用：只重开旧清理所需的本域公共outbox gate
+
+```go
+func resumeSiteWork(ctx context.Context, store *ActiveStore, proofHash string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 同一重开事务的取消与截止传播 | 事务未提交不得报告重开成功 |
+| `store` | `*ActiveStore` | 本域active业务库与同库outbox | 必须是SnapshotManager绑定的当前句柄 |
+| `proofHash` | `string` | 原封口证明摘要 | 必须与公共control中的原封口绑定 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 公共重开CAS或事务提交失败 | 失败回滚并保持原封口状态 |
+
+**步骤**
+
+1. 打开同库事务并调用公共Store.ResumeTx
+2. 提交后才允许公共Manager恢复drain
+
+**错误**
+
+- 无
+
+- 副作用：同库outbox control恢复旧清理门
+- 授权：仅SnapshotManager回调
+- 并发：依赖SQLite事务CAS
+- 幂等：同proofHash复用公共幂等重开
+- 依赖：`platform.Store.ResumeTx`
+
+## site-config.observeSiteWorkFacts
+
+- 级别：参考
+- 文件：`modules/site-config/internal/snapshot_service.go`
+- 作用：组合公共outbox观察与本域待决事实
+
+```go
+func observeSiteWorkFacts(ctx context.Context, store *ActiveStore, tx *sql.Tx) (Observation, int64, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 已打开同库事务的取消与截止传播 | 不得在函数内提交或替换事务 |
+| `store` | `*ActiveStore` | 同库outbox Store来源 | 必须与tx属于同一active数据库 |
+| `tx` | `*sql.Tx` | 调用方持有的SQLite事务 | ObserveTx与本域pending读取必须共用此事务 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `observation` | `Observation` | 公共outbox真实观察 | revision来自公共control，不由MAX或COUNT计算 |
+| `pendingWork` | `int64` | 本域待决业务工作计数 | 只表示真实待决事实，不作为版本号 |
+| `error` | `error` | 公共观察或本域事实读取失败 | 未知状态失败关闭 |
+
+**步骤**
+
+1. 调用公共Store.ObserveTx
+2. 使用本域Reader读取初始化状态并查询已登记业务待决表
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域快照回调
+- 并发：只读事务快照
+- 幂等：只读
+- 依赖：`platform.Store.ObserveTx`、`site-config.ReadInitializationRecord`
+
+## site-config.drainSiteConfigReferences
+
+- 级别：参考
+- 文件：`modules/site-config/internal/snapshot_service.go`
+- 作用：在屏障drain期间收尾既有首页引用决定
+
+```go
+func drainSiteConfigReferences(ctx context.Context, cleanup *SnapshotCleanup, runtime func(context.Context) (RuntimeView, error), store *ActiveStore) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 公共屏障drain上下文 | 只允许既有恢复清理窗口，不开启普通业务写入 |
+| `cleanup` | `*SnapshotCleanup` | 同一SnapshotManager发出的私有cleanup句柄 | 不得由HTTP请求或随机root构造 |
+| `runtime` | `func(context.Context) (RuntimeView, error)` | 本域控制runtime读取器 | 必须读取当前真实phase、epoch和barrier |
+| `store` | `*ActiveStore` | 与SnapshotManager绑定的active业务库 | 必须仍是当前active句柄 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | cleanup lease、首页引用收敛或权威读取失败 | 待决引用未清零时失败关闭并保持屏障draining |
+
+**步骤**
+
+1. 用公共SnapshotCleanup.Context取得本域受限清理窗口
+2. 调用RecoverHomeReferences收敛确认/释放，不重新Acquire、不提升为superadmin
+3. PendingCount非零返回可重试错误
+
+**错误**
+
+- 无
+
+- 副作用：既有首页引用决定与媒体确认/释放阶段推进
+- 授权：仅同一SnapshotManager的本域drain回调
+- 并发：由公共cleanup lease与本域settings锁串行
+- 幂等：复用持久sourceOperationId与既有终局
+- 依赖：`platform.SnapshotCleanup.Context`、`site-config.RecoverHomeReferences`
+
+## site-config.NewSnapshotManager
+
+- 级别：参考
+- 文件：`modules/site-config/internal/snapshot_service.go`
+- 作用：装配本域屏障、捕获、暂存、验证、归档及outbox水位回调
+
+```go
+func NewSnapshotManager(dataRoot string, openedEpoch Identifier, runtime func(context.Context) (RuntimeView, error), store *ActiveStore, relayDrain func(context.Context) error) (*SnapshotManager, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `dataRoot` | `string` | 本域受控数据根 | 必须为已校验的本域数据目录 |
+| `openedEpoch` | `Identifier` | Build已打开的活动数据代次 | 必须是Runtime权威当前或换入后的真实epoch |
+| `runtime` | `func(context.Context) (RuntimeView, error)` | 本域运行权威读取器 | 必须读取真实control.db，不返回占位状态 |
+| `store` | `ActiveStore` | 本域已打开的active存储 | 必须与openedEpoch及本域outbox同库 |
+| `relayDrain` | `func(context.Context) error` | 本域旧outbox排空回调 | 只能收尾已登记旧事件，不开启新业务或付费操作 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `manager` | `*SnapshotManager` | 同一本域真实SnapshotManager | 所有回调完整装配；未知GlobalSeal或库存失败关闭 |
+| `error` | `Error` | 装配失败 | 失败不返回可用manager |
+
+**步骤**
+
+1. 把本域RuntimeStore/ActiveStore/outbox和公共SnapshotManager绑定到同一openedEpoch
+2. 完整捕获真实文件、SQLite副本、对象/资源引用库存；未初始化或未知库存保留真实空数组，不伪造未知为空
+3. drain先排空已登记outbox，再用公共cleanup lease收敛既有首页引用决定；不打开新业务或付费操作
+4. 暂存只经公共SnapshotStageBinding读取隔离root，迁移后校验schema/epoch并准备恢复outbox；不触碰active目录
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅本域可信Build装配
+- 并发：一个Application一个Manager；公共Manager串行屏障/文件IO
+- 幂等：复用公共Manager持久journal和本域outbox水位
+- 依赖：`platform.NewSnapshotManager`、`platform.CaptureSnapshotFiles`、`outbox.MigrateRestoredDatabase`、`site-config.observeSiteWork`、`site-config.sealSiteWork`、`site-config.resumeSiteWork`、`site-config.drainSiteConfigReferences`
+
+## site-config.ConfigureActivationVerifier
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：把Build加载的信任锚绑定到本域控制库
+
+```go
+func ConfigureActivationVerifier(anchors TrustAnchors) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | Build从受控secret加载的激活回执信任锚 | 不得来自HTTP请求或回执载荷；必须包含本域可验证的服务签名公钥 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `Error` | 运行控制库未打开时的装配失败 | 失败时不得宣称激活回执验签已启用 |
+
+**步骤**
+
+1. 取得当前RuntimeStore并保存不可由HTTP覆盖的信任锚
+2. 后续RegisterActivation只从该控制库读取信任锚
+
+**错误**
+
+- 无
+
+- 副作用：更新本进程RuntimeStore内存中的验签锚
+- 授权：仅可信Build装配
+- 并发：装配锁内替换，验签读取使用读锁
+- 幂等：同一锚重复装配安全
+- 依赖：`site-config.RuntimeStore.ConfigureActivationVerifier`
+
+## site-config.RuntimeStore.ConfigureActivationVerifier
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：在锁内保存激活回执验签锚
+
+```go
+func (s *RuntimeStore) ConfigureActivationVerifier(anchors TrustAnchors)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `s` | `*RuntimeStore` | 本域已打开的运行控制库 | 必须是当前Build使用的control.db句柄 |
+| `anchors` | `TrustAnchors` | Build加载的激活回执信任锚 | 不得由请求方提供 |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 写入锚并标记验签器已装配
+
+**错误**
+
+- 无
+
+- 副作用：更新RuntimeStore内存状态
+- 授权：本域可信Build
+- 并发：activationMu写锁
+- 幂等：重复写入同一可信锚安全
+- 依赖：无
+
+## site-config.RuntimeStore.activationVerifierAnchors
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：读取可信激活回执验签锚
+
+```go
+func (s *RuntimeStore) activationVerifierAnchors() (TrustAnchors, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `s` | `*RuntimeStore` | 本域当前运行控制库 | 必须已完成Build信任锚装配 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | 锁内复制的验签信任锚 | 不得返回未装配或空锚 |
+| `error` | `Error` | 验签锚未装配 | 失败关闭激活回执登记 |
+
+**步骤**
+
+1. 在读锁内复制已装配锚
+2. 未装配或服务公钥集合为空返回依赖不可用
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：RegisterActivation内部调用
+- 并发：activationMu读锁
+- 幂等：只读
+- 依赖：无
+
 ## site-config.OpenRuntimeStore
 
 - 级别：参考
@@ -1712,7 +2100,81 @@ func OpenActiveStore(ctx context.Context, dataRoot string, dataEpoch Identifier)
 - 授权：service启动控制面
 - 并发：一个进程单active句柄；SQLite事务串行写入
 - 幂等：重复启动读取已有active状态，不生成伪站点配置
+- 依赖：`site-config.registerSiteConfigWorkTables`
+
+## site-config.ActiveStore.OutboxStore
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：取得同库公共outbox端口
+
+```go
+func (s *ActiveStore) OutboxStore() *outbox.Store
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `s` | `*ActiveStore` | 本域active数据库句柄 | 必须与业务表和公共outbox同库；nil或数据库未打开时不得返回可写伪端口 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `store` | `*outbox.Store` | 同库公共outbox端口；nil表示句柄不可用 | 不复制领取、封口、恢复隔离机制 |
+
+**步骤**
+
+1. 把本域active数据库交给公共NewStore，不创建第二个数据库连接
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域内部装配
+- 并发：只读句柄适配
+- 幂等：同数据库句柄返回等价公共端口
 - 依赖：无
+
+## site-config.registerSiteConfigWorkTables
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：登记本域已完成迁移的可信业务工作表
+
+```go
+func registerSiteConfigWorkTables(ctx context.Context, db *sql.DB) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 业务表登记的取消与截止传播 | 仅用于本域已完成迁移并已由本域持有的数据库；取消或截止不得把登记结果当作成功 |
+| `db` | `*sql.DB` | 本域active或已认证隔离stage数据库 | 不得传入control.db或其他域数据库；表名只能来自本域固定可信登记清单 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 任一业务表登记失败 | 失败时调用方不得继续宣称数据库可用于快照工作；不把缺少登记的表当作已覆盖 |
+
+**步骤**
+
+1. 按固定清单逐表调用公共RegisterWorkTable
+2. 任何登记失败立即返回并保留公共错误
+
+**错误**
+
+- 无
+
+- 副作用：更新同库公共work table登记
+- 授权：仅本域启动或已认证隔离stage迁移装配
+- 并发：由公共登记接口保证同库幂等
+- 幂等：重复登记同一表不改变业务事实
+- 依赖：`platform.RegisterWorkTable`
 
 ## site-config.ValidateActiveReady
 
@@ -1788,6 +2250,45 @@ func (s *RuntimeStore) ReadRuntimeView(ctx context.Context) (RuntimeView, error)
 - 并发：只读快照，可并发检查
 - 幂等：只读
 - 依赖：无
+
+## site-config.verifyActivationReceipt
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_transition.go`
+- 作用：按统一ActivationReceiptClaims规范化规则核验完整回执
+
+```go
+func verifyActivationReceipt(anchors TrustAnchors, issuer string, input RegisterActivationInput) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | RuntimeStore提供的可信信任锚 | 不得从input或HTTP载荷取得 |
+| `issuer` | `string` | 已鉴权调用方服务身份 | 必须等于receipt.module |
+| `input` | `RegisterActivationInput` | 已绑定restoreId与完整回执字段 | RecordedAt已规范化为UTC RFC3339Nano；不得包含自带信任锚 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 激活回执签名无效或字段不一致 | 验签失败必须阻止持久化；不得返回伪造成功结果 |
+
+**步骤**
+
+1. 按input全部回执字段构造Claims并将RecordedAt统一为UTC RFC3339Nano
+2. 调用公共VerifyActivationReceipt核验issuer、claims与signature
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：由RegisterActivation在caller、phase、epoch、CAS检查后调用
+- 并发：纯验签，可并发
+- 幂等：同Claims与签名产生同一结果
+- 依赖：`platform.VerifyActivationReceipt`
 
 ## site-config.TransitionRuntimeState
 
@@ -1904,11 +2405,13 @@ func RegisterActivation(ctx context.Context, op OperationContext, input Register
 **步骤**
 
 1. caller服务身份必须与receipt.module一致
-2. 将receipt.RecordedAt按公共Timestamp唯一规范统一为UTC RFC3339Nano；以规范化input计算operation摘要，control.db事务先读取已存操作，同operationId同摘要直接返回已记录结果，同operationId异摘要返回CONFLICT
-3. 新操作读取当前control.db状态，严格校验op.dataEpoch与活动epoch及input.expectedRevision与当前revision，并校验restoreId、targetDataEpoch与当前phase：restore_switching只收switched，restore_rolling_back只收rolled-back；低状态不得覆盖高状态
-4. 读取BuildApplication已装配的TrustAnchors，把input.restoreId与receipt.module、stageId、targetDataEpoch、state、manifestHash、recordedAt绑定为serviceauth.ActivationReceiptClaims；signature作为VerifyActivationReceipt的signature参数；Sign/Verify在hash前必须使用同一时间规范，不新增schemaVersion或签名框架
-5. 调用platform.VerifyActivationReceipt验证持久回执载荷；验签失败按INTEGRITY_ERROR失败关闭
-6. control.db事务upsert回执和revision；data-protection不能替任何域伪造回执
+2. 校验restoreId、targetDataEpoch与当前phase：restore_switching只收switched，restore_rolling_back只收rolled-back；低状态不得覆盖高状态
+3. 同operation幂等回放先返回；新操作完成epoch与revision CAS后，从RuntimeStore读取可信锚并按UTC RFC3339Nano统一完整claims，调用公共VerifyActivationReceipt验签
+4. 将receipt.RecordedAt按公共Timestamp唯一规范统一为UTC RFC3339Nano；以规范化input计算operation摘要，control.db事务先读取已存操作，同operationId同摘要直接返回已记录结果，同operationId异摘要返回CONFLICT
+5. 新操作读取当前control.db状态，严格校验op.dataEpoch与活动epoch及input.expectedRevision与当前revision，并校验restoreId、targetDataEpoch与当前phase：restore_switching只收switched，restore_rolling_back只收rolled-back；低状态不得覆盖高状态
+6. 读取BuildApplication已装配的TrustAnchors，把input.restoreId与receipt.module、stageId、targetDataEpoch、state、manifestHash、recordedAt绑定为serviceauth.ActivationReceiptClaims；signature作为VerifyActivationReceipt的signature参数；Sign/Verify在hash前必须使用同一时间规范，不新增schemaVersion或签名框架
+7. 调用platform.VerifyActivationReceipt验证持久回执载荷；验签失败按INTEGRITY_ERROR失败关闭
+8. control.db事务upsert回执和revision；data-protection不能替任何域伪造回执
 
 **错误**
 
@@ -1990,7 +2493,7 @@ func CheckWriteEpoch(ctx context.Context, op OperationContext, input CheckWriteE
 **步骤**
 
 1. 读control.db当前phase/dataEpoch
-2. 非running或本域barrier非released返回LOCKED
+2. 普通业务在非running或本域barrier非released时返回LOCKED；只有公共SnapshotManager发出的既有cleanup lease可在维护draining阶段继续收尾
 3. epoch不等返回VERSION_MISMATCH；检查在业务txn登记与控制gate同互斥区
 
 **错误**
@@ -2003,7 +2506,7 @@ func CheckWriteEpoch(ctx context.Context, op OperationContext, input CheckWriteE
 - 授权：私有业务写入入口
 - 并发：与屏障登记及事务计数共享gate
 - 幂等：只读判定
-- 依赖：无
+- 依赖：`platform.SnapshotManager.ReadBarrierStatus`、`platform.CleanupIssuerFrom`
 
 ## site-config.All
 
@@ -2640,7 +3143,7 @@ func PublishConfigEvent(ctx context.Context, op OperationContext, tx WriteTransa
 
 - 级别：约束
 - 文件：`modules/site-config/internal/outbox_repository.go`
-- 作用：把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环
+- 作用：执行一次单批outbox转发；启动补发与轮询循环只由完整Application后台入口装配
 
 ```go
 func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInput) (RelayOutboxResult, error)
@@ -2663,10 +3166,10 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 
 **步骤**
 
-1. 进程启动完成journal恢复后立即运行一次，之后每次本域提交通知或1秒轮询运行；按outbox序号以30秒行租约领取≤batchLimit条未转发行，只读已提交事务
-2. 逐条调用jobs:publishEvent，携带固定eventId、payloadHash、dataEpoch与subject revision；jobs持久确认后在本地事务把该行标relayed并记录jobs eventSeq
-3. 网络失败或超时保留该行，按1/2/4秒指数退避（上限60秒）在下一轮重试；同eventId异hash或信封校验失败标quarantined并报警，不再重试也不删除
-4. 屏障draining期间继续转发已提交行直至为空或屏障超时；快照包含未转发行；恢复换入新数据后丢弃旧dataEpoch未转发行，以恢复后的权威状态为准
+1. 只接受本域service actor和启动装配注入的真实Store、jobs publisher、Runtime/WriteWindow、AdmitBatch及BindEventScope
+2. 把既有active outbox Store、jobs:publishEvent publisher及同一SnapshotManager scope传给platform.RunRelayBatch；不另造领取、发送、重试、隔离或epoch丢弃循环
+3. 返回该批真实relayed/pending/quarantined计数；网络失败或超时由平台保留行并退回重试，同eventId异hash或信封不合法由平台隔离
+4. 屏障draining与新epoch旧行处理由同一SnapshotManager及平台relay执行；本函数不把单批完成误报为全域已转发
 
 **错误**
 
@@ -2678,7 +3181,45 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个转发循环；行级租约防多实例重复领取；同subject按outbox序号串行发送
 - 幂等：eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认
-- 依赖：`jobs:publishEvent`、`platform.RunRelay`
+- 依赖：`jobs:publishEvent`、`platform.RunRelayBatch`、`platform.NewEventPublisher`、`platform.SnapshotManager.AdmitEventBatch`、`platform.SnapshotManager.BindOutboxEventScope`
+
+## site-config.WithRelayRuntime
+
+- 级别：参考
+- 文件：`modules/site-config/internal/outbox_repository.go`
+- 作用：把完整Application同一SnapshotManager装配的真实relay依赖放入本域受信后台上下文
+
+```go
+func WithRelayRuntime(ctx context.Context, runtime RelayRuntime) context.Context
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 本域后台转发父上下文 | 保留父上下文取消与截止；不得从外部HTTP请求构造后台依赖 |
+| `runtime` | `RelayRuntime` | Build装配的真实同库Store、jobs publisher与SnapshotManager scope | 所有端口必须来自同一Application；不得创建第二套relay循环或写入门 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `context` | `context.Context` | 携带本域受信relay端口的子上下文 | 仅由RelayOutbox内部消费；不序列化数据库句柄或秘密 |
+
+**步骤**
+
+1. 只由本域启动装配调用；保留父ctx取消并在同一上下文中放置Store、publisher、Runtime/WriteWindow与scope回调
+2. 不创建外域租约、不从HTTP请求构造依赖，也不创建第二套outbox循环
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域启动装配私有
+- 并发：纯context构造，可由本域后台单次调用
+- 幂等：同参数替换同上下文的装配值
+- 依赖：无
 
 ## site-config.ReadConfigObject
 
@@ -2725,6 +3266,43 @@ func ReadConfigObject(ctx context.Context, op OperationContext, input ReadConfig
 - 幂等：只读
 - 依赖：无
 
+## site-config.WithSnapshotRuntime
+
+- 级别：参考
+- 文件：`modules/site-config/internal/barrier_service.go`
+- 作用：把可信SnapshotManager端口绑定到当前调用上下文
+
+```go
+func WithSnapshotRuntime(ctx context.Context, runtime SnapshotRuntime) context.Context
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 已完成服务边界鉴权的父上下文 | 保留父上下文取消与截止；不从HTTP请求正文构造依赖 |
+| `runtime` | `SnapshotRuntime` | Build装配的同一SnapshotManager与受控归档读取端口 | API必须是本域真实SnapshotManager；RestoreArchive不得接受客户端路径或URL |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `context` | `context.Context` | 携带本域受信快照端口的子上下文 | 仅在本域快照入口内部消费；不序列化runtime或数据库句柄 |
+
+**步骤**
+
+1. 保留父上下文并写入Build装配的SnapshotRuntime
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：本域HTTP适配器或可信内部调用
+- 并发：纯context构造
+- 幂等：同上下文键值替换安全
+- 依赖：无
+
 ## site-config.AcquireBarrier
 
 - 级别：约束
@@ -2769,7 +3347,7 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
 - 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
-- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.EnterBarrier`
+- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.PrepareBarrier`、`platform.SnapshotManager.DrainBarrier`、`platform.SnapshotManager.ObserveBarrier`、`platform.SnapshotManager.SealBarrier`、`platform.SnapshotManager.ResumeDrain`
 
 ## site-config.ReleaseBarrier
 
@@ -2812,7 +3390,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input ReleaseBarri
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.ReleaseBarrier`
+- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.ReadBarrierStatus`、`platform.SnapshotManager.ReleaseBarrier`
 
 ## site-config.ExportSnapshot
 
@@ -3334,19 +3912,56 @@ func ListResourceReferences(ctx context.Context, op OperationContext, input List
 
 **步骤**
 
-1. 从COMMITTED config head与保留history files扫描所有完整asset refs，包含hero背景/poster及branding，不能只扫当前home
-2. 同水位分类current/history，sourceService=site-config、sourceRevisionId=config不可变文件
-3. 签名cursor绑定site/watermark，分页未完全media不可解释为零引用；不扫描任何其他域目录
+1. 站点取自受信actor.siteId，不接受query或body自报；assetId/limit结构由严格HTTP边界校验，函数不重复普通schema校验；仅service:media/data-protection或同站点site.manage/superadmin可读
+2. 从当前epoch的COMMITTED config revisions扫描完整asset refs，包含home.background、home.poster及branding.logo、branding.favicon、branding.share，不能只扫当前head
+3. sourceService固定site-config；home refs的sourceObjectId为HashBytes("site-config.home.v1|"+siteId)，branding refs为HashBytes("site-config.branding.v1|"+siteId)；sourceRevisionId为COMMITTED记录revisionId，sourceVersion为该config revision
+4. 同一当前watermark下，当前head产生的引用标为current且confirmed=true，旧COMMITTED修订产生的引用标为history且confirmed=true；expiresAt固定null，不读取其他域目录
+5. 签名cursor的scope固定绑定caller/actor/site/epoch/filter/limit，payload携带watermark与稳定引用位置；先验签再比较payload watermark与当前水位，变化返回VERSION_MISMATCH，分页未完全时media不得把当前页外引用解释为零引用
 
 **错误**
 
+- `VALIDATION`：assetId、limit或签名游标载荷不合法（不可重试）
 - `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+- `VERSION_MISMATCH`：验签payload中的配置水位已变化，或原位置不再属于该watermark快照（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
 - `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
 
 - 副作用：无
 - 授权：service:media/data-protection或site.manage
 - 并发：不可变COMMITTED文件一致水位读取
+- 幂等：只读
+- 依赖：无
+
+## site-config.authorizeResourceReferenceRead
+
+- 级别：参考
+- 文件：`modules/site-config/internal/resource_reference_reader.go`
+- 作用：限制资源引用列表只由media、data-protection纯服务或同站点site.manage/superadmin读取
+
+```go
+func authorizeResourceReferenceRead(op OperationContext) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 纯服务必须有非system且合法站点身份，caller只允许media或data-protection
+2. 后台用户必须有session、同站点actor及site.manage或superadmin；不接受query自报站点
+
+**错误**
+
+- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+
+- 副作用：无
+- 授权：纯内部授权判定
+- 并发：纯函数，读取不可变OperationContext
 - 幂等：只读
 - 依赖：无
 
@@ -3384,6 +3999,49 @@ func main()
 - 并发：一个进程一个Application；OS信号处理只触发一次drain
 - 幂等：进程重启先journal恢复；不重放已付费任务
 - 依赖：`site-config.BuildApplication`、`site-config.Serve`、`site-config.Shutdown`、`platform.RunService`
+
+## site-config.registerActivationAfterSwap
+
+- 级别：参考
+- 文件：`modules/site-config/internal/app/wire.go`
+- 作用：把真实换目录终态登记为本域签名激活回执
+
+```go
+func registerActivationAfterSwap(ctx context.Context, runtime SiteConfigClient, key SigningKey, view RuntimeView, swap SwapResult, evidence SnapshotSwapEvidence) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 启动恢复回执登记的取消与截止传播 | 不得续用已过期恢复控制proof；失败不得把未持久回执当成功 |
+| `runtime` | `SiteConfigClient` | 本域control.db运行权威客户端 | 必须读取真实本域控制状态，不通过HTTP自调用 |
+| `key` | `SigningKey` | 本域受控签名密钥引用 | 私钥只由公共serviceauth签名函数读取，不写入日志或回执载荷 |
+| `view` | `RuntimeView` | ApplyRestoreSwap前读取的控制runtime host/target快照 | HostEpoch必须与证据HostEpoch一致；不得把host epoch清空以绕过校验 |
+| `swap` | `SwapResult` | 公共ApplyRestoreSwap真实动作结果 | 只接受switched或rolled-back |
+| `evidence` | `SnapshotSwapEvidence` | 公共ReadRestoreSwapState返回的完整本地stage/目录证据 | 必须包含Known、动作标志、StageID、目标/host epoch和host/target manifest hash；不得另读公共私有日志或从目录存在推定成功 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 证据绑定、签名或RegisterActivation持久CAS失败 | 失败关闭启动，不返回伪造激活成功 |
+
+**步骤**
+
+1. 只读取公共ReadRestoreSwapState并核对Known、动作、host/target epoch、stage和hash
+2. 用公共SignActivationReceipt按统一UTC RecordedAt签名完整claims
+3. 调用RegisterActivation，由其核对当前控制phase、restore、caller、revision CAS并验签持久化
+
+**错误**
+
+- 无
+
+- 副作用：本域control.db激活回执与revision操作记录
+- 授权：仅可信Build启动装配；不接受HTTP或superadmin伪造
+- 并发：同restore/module由RegisterActivation串行CAS
+- 幂等：同一stage/target/state/manifest重复启动返回原持久回执
+- 依赖：`platform.ReadRestoreSwapState`、`platform.SignActivationReceipt`、`site-config.ReadRuntimeState`、`site-config.RegisterActivation`
 
 ## site-config.BuildApplication
 
@@ -3431,7 +4089,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config.OpenRuntimeStore`、`site-config.ConfigureActivationVerifier`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`identity:checkAuthorization`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`site-config.ConfigureHome`、`site-config.RecoverHomeReferenceState`、`site-config.BackgroundTasks`、`site-config.RecoverHomeReferences`、`site-config.RuntimeStore.ReadRuntimeView`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
+- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.ConfigureActivationVerifier`、`site-config.ActiveStore.OutboxStore`、`site-config.NewSnapshotManager`、`site-config.registerActivationAfterSwap`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`identity:checkAuthorization`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`site-config.ConfigureHome`、`site-config.RecoverHomeReferenceState`、`site-config.BackgroundTasks`、`site-config.RecoverHomeReferences`、`site-config.RuntimeStore.ReadRuntimeView`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；已实现的config/init/runtime HTTP适配与固定caller策略在transport装配；Home/快照/屏障等未完成时维持blocked
 
 ## site-config.Serve
@@ -3596,7 +4254,7 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 授权：permission：anonymous；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：有界只读快照；依赖请求总deadline1500ms，禁止模型探测
 - 幂等：GET只读重复安全
-- 依赖：`site-config.ValidateActiveReady`
+- 依赖：`site-config.ValidateActiveReady`、`platform.SnapshotManager.ReadBarrierStatus`
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
 
 ## site-config.BackgroundTasks
@@ -3629,7 +4287,7 @@ func (a *Application) BackgroundTasks() []platform.BackgroundTask
 - 授权：只装配本域受信参数或在已授权调用链内工作；不重复入口schema/服务验签
 - 并发：受信启动单次或本域settings/config互斥与SQL CAS；纯函数不查ctx
 - 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
-- 依赖：`platform.RunRecoveryLoop`、`site-config.RecoverHomeReferences`、`site-config.homeRecoveryOperation`
+- 依赖：`platform.RunRecoveryLoop`、`platform.SnapshotManager.WriteWindow`、`site-config.RecoverHomeReferences`、`site-config.homeRecoveryOperation`
 
 ## site-config.Drain
 

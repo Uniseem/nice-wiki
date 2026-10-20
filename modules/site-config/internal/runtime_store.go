@@ -22,6 +22,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/site-config/internal/gen"
 	"nice-wiki/modules/site-config/internal/migrations"
@@ -50,12 +51,12 @@ var requiredRuntimeModules = []string{
 
 // RuntimeStore 是本域控制库句柄；同一进程仅允许一个活动实例。
 type RuntimeStore struct {
-	db                      *sql.DB
-	activationMu            sync.RWMutex
-	activationAnchors       platform.TrustAnchors
-	activationVerifierReady bool
-	closeOnce               sync.Once
-	closeErr                error
+	db                       *sql.DB
+	activationMu             sync.RWMutex
+	activationAnchors        platform.TrustAnchors
+	activationVerifierReady  bool
+	closeOnce                sync.Once
+	closeErr                 error
 }
 
 var activeStore struct {
@@ -75,6 +76,8 @@ var activeBusinessStore struct {
 type ActiveStore struct {
 	db               *sql.DB
 	activeRoot       string
+	barrierMu        sync.RWMutex
+	barrierReader    snapshotBarrierStatusReader
 	configMu         sync.Mutex
 	settingsMu       sync.Mutex
 	initializationMu sync.Mutex
@@ -213,6 +216,9 @@ func OpenActiveStore(ctx context.Context, dataRoot string, dataEpoch platform.Id
 	if err := outbox.EnsureSchema(ctx, db); err != nil {
 		return closeOnError(err)
 	}
+	if err := registerSiteConfigWorkTables(ctx, db); err != nil {
+		return closeOnError(err)
+	}
 	if err := store.ensureActiveState(ctx, dataEpoch); err != nil {
 		return closeOnError(err)
 	}
@@ -249,6 +255,51 @@ func currentActiveStore() *ActiveStore {
 	activeBusinessStore.RLock()
 	defer activeBusinessStore.RUnlock()
 	return activeBusinessStore.store
+}
+
+// OutboxStore 返回与active业务库同库的标准outbox端口；不复制平台领取/封口机制。
+func (s *ActiveStore) OutboxStore() *outbox.Store {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	return outbox.NewStore(s.db)
+}
+
+var siteConfigWorkTables = [...]string{
+	"site_config_state",
+	"config_revision_index",
+	"announcement_heads",
+	"initialization_decisions",
+	"initialization_state",
+	"config_operations",
+	"config_operation_materials",
+	"home_reference_decisions",
+}
+
+func registerSiteConfigWorkTables(ctx context.Context, db *sql.DB) error {
+	for _, table := range siteConfigWorkTables {
+		if err := outbox.RegisterWorkTable(ctx, db, table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *ActiveStore) configureSnapshotBarrier(reader snapshotBarrierStatusReader) {
+	s.barrierMu.Lock()
+	s.barrierReader = reader
+	s.barrierMu.Unlock()
+}
+
+func (s *ActiveStore) readSnapshotBarrierStatus() (*lifecycle.SnapshotBarrierStatus, time.Time, bool) {
+	s.barrierMu.RLock()
+	reader := s.barrierReader
+	s.barrierMu.RUnlock()
+	if reader == nil {
+		return nil, time.Time{}, false
+	}
+	status, changedAt := reader.ReadBarrierStatus()
+	return status, changedAt, true
 }
 
 func (s *ActiveStore) runActiveMigrations(ctx context.Context) error {
@@ -337,6 +388,53 @@ func loadActiveMigrations() ([]activeMigration, error) {
 	return all, nil
 }
 
+func (s *ActiveStore) runActiveMigrationsTx(ctx context.Context, tx *sql.Tx) error {
+	all, err := loadActiveMigrations()
+	if err != nil {
+		return platform.NewError(platform.CodeIntegrityError, false, "active迁移集不合法")
+	}
+	applied := map[int64]string{}
+	rows, err := tx.QueryContext(ctx, `SELECT version, name FROM schema_migrations`)
+	if err != nil && !isMissingTable(err) {
+		return platform.NewError(platform.CodeIntegrityError, false, "读取active迁移记录失败")
+	}
+	if err == nil {
+		for rows.Next() {
+			var version int64
+			var name string
+			if err := rows.Scan(&version, &name); err != nil {
+				rows.Close()
+				return platform.NewError(platform.CodeIntegrityError, false, "active迁移记录损坏")
+			}
+			applied[version] = name
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "读取active迁移记录失败")
+		}
+		rows.Close()
+	}
+	for version, name := range applied {
+		if version < 1 || version > int64(len(all)) || all[version-1].Name != name {
+			return platform.NewError(platform.CodeIntegrityError, false, "active迁移版本或名称不匹配")
+		}
+	}
+	for _, item := range all {
+		if _, ok := applied[item.Version]; ok {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, item.SQL); err != nil {
+			return platform.NewError(platform.CodeIntegrityError, false, "active迁移执行失败")
+		}
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)`,
+			item.Version, item.Name, string(platform.Now())); err != nil {
+			return platform.NewError(platform.CodeIntegrityError, false, "登记active迁移失败")
+		}
+	}
+	return nil
+}
+
 func (s *ActiveStore) ensureActiveState(ctx context.Context, dataEpoch platform.Identifier) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -414,11 +512,19 @@ func (s *ActiveStore) markJournalRecovered(hash platform.Hash) {
 }
 
 func (s *ActiveStore) validateActiveSchema(ctx context.Context) error {
+	return s.validateActiveSchemaOn(ctx, s.db)
+}
+
+func (s *ActiveStore) validateActiveSchemaTx(ctx context.Context, tx *sql.Tx) error {
+	return s.validateActiveSchemaOn(ctx, tx)
+}
+
+func (s *ActiveStore) validateActiveSchemaOn(ctx context.Context, q queryer) error {
 	all, err := loadActiveMigrations()
 	if err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "active迁移集不合法")
 	}
-	rows, err := s.db.QueryContext(ctx, `SELECT version, name FROM schema_migrations ORDER BY version`)
+	rows, err := q.QueryContext(ctx, `SELECT version, name FROM schema_migrations ORDER BY version`)
 	if err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "active schema_migrations不可读")
 	}
@@ -444,13 +550,21 @@ func (s *ActiveStore) validateActiveState(ctx context.Context, dataEpoch platfor
 }
 
 func (s *ActiveStore) validateActiveStateWithResult(ctx context.Context, dataEpoch platform.Identifier) (bool, error) {
+	return s.validateActiveStateWithResultOn(ctx, s.db, dataEpoch)
+}
+
+func (s *ActiveStore) validateActiveStateWithResultTx(ctx context.Context, tx *sql.Tx, dataEpoch platform.Identifier) (bool, error) {
+	return s.validateActiveStateWithResultOn(ctx, tx, dataEpoch)
+}
+
+func (s *ActiveStore) validateActiveStateWithResultOn(ctx context.Context, q queryer, dataEpoch platform.Identifier) (bool, error) {
 	if !platform.ValidIdentifier(dataEpoch) {
 		return false, platform.NewError(platform.CodeValidation, false, "active dataEpoch不合法")
 	}
 	var storedEpoch, updatedAt string
 	var initialized, revision int64
 	var nullableSiteID, nullableRevisionID sql.NullString
-	err := s.db.QueryRowContext(ctx, `
+	err := q.QueryRowContext(ctx, `
         SELECT data_epoch, initialized, site_id, config_revision,
                config_revision_id, updated_at
           FROM site_config_state WHERE singleton = 1`).Scan(
@@ -479,12 +593,7 @@ func (s *ActiveStore) validateActiveStateWithResult(ctx context.Context, dataEpo
 		return false, platform.NewError(platform.CodeIntegrityError, false, "已初始化active状态缺少配置引用")
 	}
 	if initialized == 0 {
-		tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
-		if err != nil {
-			return false, platform.NewError(platform.CodeDependencyUnavailable, true, "打开配置中间状态读取事务失败")
-		}
-		state, _, readErr := s.ReadInitializationRecord(ctx, tx)
-		_ = tx.Rollback()
+		state, _, readErr := s.ReadInitializationRecord(ctx, q)
 		if readErr != nil {
 			return false, readErr
 		}
@@ -494,7 +603,7 @@ func (s *ActiveStore) validateActiveStateWithResult(ctx context.Context, dataEpo
 	}
 	// 避免数据库仅有状态水位而没有对应权威文件索引。
 	var indexed int
-	if err := s.db.QueryRowContext(ctx, `
+	if err := q.QueryRowContext(ctx, `
         SELECT COUNT(*) FROM config_revision_index
          WHERE site_id = ? AND revision_id = ? AND revision = ?`,
 		nullableSiteID.String, nullableRevisionID.String, revision).Scan(&indexed); err != nil {

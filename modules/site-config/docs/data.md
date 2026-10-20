@@ -122,6 +122,10 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 
 恢复重建必须验证 manifest 哈希和私有事务水位。derived cache 可重建；权威记录缺失或 schema 未知应隔离并停止对外发布。
 
+快照工作表清单固定为：`site_config_state`、`config_revision_index`、`announcement_heads`、`initialization_decisions`、`initialization_state`、`config_operations`、`config_operation_materials`、`home_reference_decisions`。这些表在本域 schema 迁移完成后登记到公共 work control；`nw_outbox` 及其 revision/seal control 仍由公共 outbox 机制管理，不由本域复制。
+
+`ObserveTx` 返回的 revision 是公共 control 的真实单调 revision；本域 pending work 只作为活动计数，不能当版本号。封口、恢复重开和业务事实使用同一事务，失败回滚。恢复隔离保留旧事件的原始 epoch、payload、费用和来源事实，只撤销其当前活动资格。
+
 ## 初始化准备与决定
 
 `active/site-config.db` 的 `initialization_decisions` 保存每个初始化 operation 的不可反悔决定、原始结果回执、完整准备配置规范 JSON 与 SHA256；`initialization_state` 保存当前协调状态和 CAS revision。二者由 `0002_initialization.sql` 只追加迁移建立，同事务以 SQLite `synchronous=FULL` 提交。决定记录不是可重建索引，也不等同 `settings` 权威文件已提交。commit 决定持久化后仍为 preparing；ResumeInitialization 核对材料和原始请求回执后，先提交 settings 权威文件与 COMMITTED 决定，再把配置水位推进 config_committed；最后独立事务推进 completed 与 initialized=true。准备阶段不对公开站点发布。
@@ -174,3 +178,15 @@ HTTP 入站由平台工厂统一验证服务断言/原始委托、固定 caller�
 构造期 RecoverHomeReferenceState 只核本地决定、pin 与 COMMITTED，不向其他服务发 RPC。完整应用构造后，BackgroundTasks 交公共 RunRecoveryLoop 按安全写窗口有界收敛；每次 RPC 前后通过公共 NewWriteContext 并核对当前 active epoch，维护暂停。取消后 Drain 只停止 HTTP 并等请求，后台退出后 Shutdown 才关闭数据库。
 
 公开首页使用独立水位读取后显式投影，不改变后台配置读取的站点授权。公开 hero 保留所有按钮，可见文档仅使用 public-site 当前权威根相对 href、请求语言和发布引用；不可见字段为 null，未知依赖禁用该按钮。响应 href 无 query/控制空白且锚点必须是请求锚点。QA 只读免费能力，无配置/未知禁用，不触发模型；branding 仅四个公开字段，banner 仅启用且当前窗口，其余 null，FooterConfig 沿既定原形。
+
+## 资源引用来源快照
+
+`ListResourceReferences` 只读取当前 active epoch 内真实 COMMITTED 的 settings 修订，不扫描其他域目录。来源身份直接复用现有首页 pin 规则：
+
+| 引用 | `referenceId` | `sourceObjectId` |
+|---|---|---|
+| 首页图片、动图或视频背景 | `home.background` | `HashBytes("site-config.home.v1|"+siteId)` |
+| 首页视频封面 | `home.poster` | `HashBytes("site-config.home.v1|"+siteId)` |
+| Logo、favicon、默认分享图 | `branding.logo`、`branding.favicon`、`branding.share` | `HashBytes("site-config.branding.v1|"+siteId)` |
+
+每个引用的 `sourceRevisionId` 是该 settings revision 的不可变 revisionId，`sourceVersion` 是该配置修订号。当前 head 产生的引用标为 `current`，旧 COMMITTED 修订产生的引用标为 `history`；二者均为 `confirmed=true` 且 `expiresAt=null`。签名游标的 scope 固定绑定 caller、actor、site、epoch、资产筛选和页大小，watermark 与稳定引用位置放在验签 payload；配置水位变化后旧游标返回 `VERSION_MISMATCH`，不能被当作新快照继续使用。

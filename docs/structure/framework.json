@@ -6029,6 +6029,26 @@
       "purpose": "所有业务写入执行epoch与屏障检查"
     },
     {
+      "path": "modules/site-config/internal/barrier_service.go",
+      "kind": "handwritten",
+      "purpose": "本域公共屏障、真实工作水位与封口回调装配"
+    },
+    {
+      "path": "modules/site-config/internal/resource_reference_reader.go",
+      "kind": "handwritten",
+      "purpose": "按当前配置水位读取并验证本域资源引用"
+    },
+    {
+      "path": "modules/site-config/internal/snapshot_archive.go",
+      "kind": "handwritten",
+      "purpose": "本域快照归档读取与真实资源库存校验"
+    },
+    {
+      "path": "modules/site-config/internal/snapshot_service.go",
+      "kind": "handwritten",
+      "purpose": "本域快照公共端口装配、封口回调与恢复迁移"
+    },
+    {
       "path": "modules/site-config/progress.json",
       "kind": "contract",
       "purpose": "site-config逐文件/函数实现、检查和交接台账；初始未实现"

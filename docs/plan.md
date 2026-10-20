@@ -6,6 +6,8 @@
 
 当前集成基线已安全合入最新本地 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`。main 已含 pipeline173/174 通过的验签与 site-config 最小接线；本工作树保留 e85 公共WIP并只在 R1-00 合同范围内补充 `ReadBarrierStatus`、恢复迁移事务入口、keyId严格校验及分阶段全域封口规则。identity `e6c131dfbbb1bf117e60c6eaca1faa5b3a809743`/clean `0c56660baa6dd2d5a93bb42da550328a45cfccf5` 与 jobs `879a41d430b89af5a0b88dd8d86d24f8f25763e3`/clean `7bc01a2917302324b84e3f594c5f249b7fc22c4e` 暂待平台合同和 jobs service-only observe 授权分支，不顺序合入。
 
+site-config 已顺序接入 clean `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`（源码 `c3c7c10c11320ebff45c994f8458e54604a75343`）；其真实恢复迁移调用唯一公共 `outbox.MigrateRestoredDatabase`。identity 已暂停等待新 clean SHA，jobs 仍等待 `step=observe` service-only 合同。
+
 此前文档收尾基线不包含 identity、site-config、jobs 或公共平台 WIP，也不把部分源码检查当成 R1 完成。四路旧 WIP 仍保留在各自分支，当前计数仍为 1645/2414 函数达到源码检查门槛，accepted 为 0；没有真实业务验收、模型调用或部署。
 
 截至 `main=a32f3f4c` 的收尾事实如下；源码恢复候选另按当前交接记录：

@@ -1,5 +1,5 @@
-// Package transport 实现 site-config 域的 HTTP 生命周期：匿名健康/就绪、
-// 优雅关闭与重复启动保护；业务路由随各用例工作包接入。
+// Package transport 实现 site-config 域的 HTTP 生命周期、业务路由、后台
+// 恢复与Relay装配；匿名健康/就绪和优雅关闭复用统一服务边界。
 package transport
 
 import (
@@ -41,6 +41,8 @@ type Application struct {
 	anchors         platform.TrustAnchors
 	runtime         platform.SiteConfigClient
 	active          *siteconfig.ActiveStore
+	snapshot        siteconfig.SnapshotRuntime
+	relay           siteconfig.RelayRuntime
 	openedEpoch     platform.Identifier
 	state           atomic.Int32
 	serveStarted    atomic.Bool
@@ -54,15 +56,16 @@ type Application struct {
 
 // NewApplication 只向统一入口提供真实已实现的handler；缺登记操作时
 // 平台工厂返回错误，不能把部分业务接线伪装成完整服务就绪。
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, activeStore *siteconfig.ActiveStore, openedEpoch platform.Identifier,
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, activeStore *siteconfig.ActiveStore, snapshotRuntime siteconfig.SnapshotRuntime, relayRuntime siteconfig.RelayRuntime, openedEpoch platform.Identifier, startBackgroundTasks bool,
 	authorize func(context.Context, platform.OperationContext, string, string) error) (*Application, error) {
-	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, active: activeStore, openedEpoch: openedEpoch}
+	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, active: activeStore, snapshot: snapshotRuntime, relay: relayRuntime, openedEpoch: openedEpoch}
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域HTTP规格不可读")
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: openedEpoch,
+		AdmitBusiness: snapshotRuntime.API.AdmitBusiness,
 		AllowedCallers: serviceCallers(),
 		ServiceActorCallers: map[string][]string{
 			"readSiteConfig":            {"portal", "public-site", "content", "media", "localization", "identity", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs", "data-protection"},
@@ -70,28 +73,23 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 			"resumeInitialization":      {"site-config"},
 			"readHomeReferenceDecision": {"media"},
 			"readPublicHome":            {"portal", "public-site"},
+			"listResourceReferences":    {"media", "data-protection"},
+			"readSnapshotArchive":       {"data-protection"},
 		},
 		MaintenanceOperations: map[string]bool{"readRuntimeState": true, "transitionRuntimeState": true, "registerActivation": true, "readInitializationStatus": true,
-			"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "updateSiteConfig": true, "updateHome": true, "updateBranding": true, "updateFooter": true, "updateBanner": true, "restoreConfigRevision": true, "readHomeReferenceDecision": true},
+			"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "readSnapshotArchive": true, "updateSiteConfig": true, "updateHome": true, "updateBranding": true, "updateFooter": true, "updateBanner": true, "restoreConfigRevision": true, "readHomeReferenceDecision": true},
 		Authorize: authorize,
 	}, application.serviceHandlers())
 	if err != nil {
 		return nil, err
 	}
 	application.httpServer = &http.Server{Addr: config.Listen, Handler: handler, ReadHeaderTimeout: 5 * time.Second, MaxHeaderBytes: 64 << 10}
+	if !startBackgroundTasks {
+		return application, nil
+	}
 	application.backgroundTasks = []platform.BackgroundTask{{Name: "site-config.home-reference-recovery", Run: func(ctx context.Context) error {
-		return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: runtimeAuthority.ReadRuntimeState,
-			WriteWindow: func(work context.Context) (time.Time, error) {
-				op, deadline := application.homeRecoveryOperation(work)
-				if _, err := siteconfig.CheckWriteEpoch(work, op, siteconfig.CheckWriteEpochInput{DataEpoch: op.DataEpoch}); err != nil {
-					var failure *platform.Error
-					if errors.As(err, &failure) && failure.Code == platform.CodeLocked {
-						return time.Time{}, platform.NewError(platform.CodeLocked, true, "首页恢复写窗口已暂停")
-					}
-					return time.Time{}, err
-				}
-				return deadline, nil
-			}, Recover: func(work context.Context) error {
+		return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: runtimeAuthority.ReadRuntimeState, AdmitBatch: snapshotRuntime.API.AdmitBusiness,
+			WriteWindow: snapshotRuntime.API.WriteWindow, Recover: func(work context.Context) error {
 				op, _ := application.homeRecoveryOperation(work)
 				result, err := siteconfig.RecoverHomeReferences(work, op, siteconfig.RecoverHomeReferencesInput{})
 				if err == nil && result.PendingCount > 0 {
@@ -104,6 +102,9 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 				return err
 			}})
 	}}}
+	application.backgroundTasks = append(application.backgroundTasks, platform.BackgroundTask{Name: "site-config.outbox-relay", Run: func(ctx context.Context) error {
+		return runRelayLoop(ctx, application)
+	}})
 	return application, nil
 }
 
@@ -137,9 +138,16 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 		"updateBanner":             serveJSON(siteconfig.UpdateBanner),
 		"readConfigHistory":        http.HandlerFunc(serveConfigHistory),
 		"restoreConfigRevision":    http.HandlerFunc(serveRestoreConfigRevision),
+		"listResourceReferences":   http.HandlerFunc(serveListResourceReferences),
 		"readRuntimeState":         serveJSON(siteconfig.ReadRuntimeState),
 		"transitionRuntimeState":   serveJSON(siteconfig.TransitionRuntimeState),
 		"registerActivation":       serveJSON(siteconfig.RegisterActivation),
+		"acquireBarrier":           serveJSONWithSnapshot(a.snapshot, siteconfig.AcquireBarrier),
+		"releaseBarrier":            http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { serveReleaseBarrier(w, r, a.snapshot) }),
+		"exportSnapshot":            serveJSONWithSnapshot(a.snapshot, siteconfig.ExportSnapshot),
+		"stageSnapshot":             serveJSONWithSnapshot(a.snapshot, siteconfig.StageSnapshot),
+		"discardSnapshot":           serveJSONWithSnapshot(a.snapshot, siteconfig.DiscardSnapshot),
+		"readSnapshotArchive":       http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { serveSnapshotArchive(w, r, a.snapshot) }),
 		"readInitializationStatus": serveJSON(siteconfig.ReadInitializationStatus),
 		"initializeSite":           serveJSON(siteconfig.InitializeSite),
 		"resumeInitialization":     serveJSON(siteconfig.ResumeInitialization),
@@ -192,6 +200,51 @@ func serveJSON[Input, Result any](handler func(context.Context, platform.Operati
 	})
 }
 
+func serveJSONWithSnapshot[Input, Result any](runtime siteconfig.SnapshotRuntime, handler func(context.Context, platform.OperationContext, Input) (Result, error)) http.Handler {
+	return serveJSON(func(ctx context.Context, op platform.OperationContext, input Input) (Result, error) {
+		return handler(siteconfig.WithSnapshotRuntime(ctx, runtime), op, input)
+	})
+}
+
+func serveSnapshotArchive(w http.ResponseWriter, r *http.Request, runtime siteconfig.SnapshotRuntime) {
+	op, _ := platform.OperationContextFrom(r.Context())
+	byteSize, err := strconv.Atoi(r.URL.Query().Get("byteSize"))
+	if err != nil {
+		writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "归档字节数无法转换"))
+		return
+	}
+	result, err := siteconfig.ReadSnapshotArchive(siteconfig.WithSnapshotRuntime(r.Context(), runtime), op, siteconfig.SnapshotArchiveReadInput{
+		SnapshotID: gen.Identifier(r.PathValue("snapshotId")), SHA256: gen.Hash(r.URL.Query().Get("sha256")), ByteSize: byteSize,
+	})
+	if err != nil {
+		writeRequestProblem(w, r, err)
+		return
+	}
+	defer result.Reader.Close()
+	w.Header().Set("Content-Type", result.Object.MediaType)
+	w.Header().Set("Content-Length", strconv.FormatInt(result.Object.ByteSize, 10))
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	_, _ = io.CopyN(w, result.Reader, result.Object.ByteSize)
+}
+
+func serveReleaseBarrier(w http.ResponseWriter, r *http.Request, runtime siteconfig.SnapshotRuntime) {
+	op, _ := platform.OperationContextFrom(r.Context())
+	var body gen.ReleaseBarrierRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "释放屏障请求无法转换"))
+		return
+	}
+	result, err := siteconfig.ReleaseBarrier(siteconfig.WithSnapshotRuntime(r.Context(), runtime), op, siteconfig.ReleaseBarrierInput{
+		BarrierId: gen.Identifier(r.PathValue("barrierId")), ExpectedEpoch: body.ExpectedEpoch,
+	})
+	if err != nil {
+		writeRequestProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 func serveConfigHistory(w http.ResponseWriter, r *http.Request) {
 	op, _ := platform.OperationContextFrom(r.Context())
 	var limit *int
@@ -226,6 +279,31 @@ func serveRestoreConfigRevision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := siteconfig.RestoreConfigRevision(r.Context(), op, siteconfig.RestoreConfigRevisionInput{RevisionID: r.PathValue("revisionId"), ExpectedRevision: body.ExpectedRevision})
+	if err != nil {
+		writeRequestProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func serveListResourceReferences(w http.ResponseWriter, r *http.Request) {
+	op, _ := platform.OperationContextFrom(r.Context())
+	page := siteconfig.ResourceReferencePageRequest{Limit: 20}
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		limit, err := strconv.Atoi(raw)
+		if err != nil {
+			writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "资源引用分页参数不合法"))
+			return
+		}
+		page.Limit = limit
+	}
+	page.Cursor = r.URL.Query().Get("cursor")
+	var assetID *gen.Identifier
+	if values, ok := r.URL.Query()["assetId"]; ok {
+		value := gen.Identifier(values[0])
+		assetID = &value
+	}
+	result, err := siteconfig.ListResourceReferences(r.Context(), op, siteconfig.ListResourceReferencesInput{AssetID: assetID, Page: page})
 	if err != nil {
 		writeRequestProblem(w, r, err)
 		return
@@ -276,7 +354,8 @@ func serviceCallers() map[string][]string {
 		"readSiteConfig":           {"portal", "public-site", "content", "media", "localization", "identity", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs", "data-protection"},
 		"readConfigObject":         {"portal", "public-site", "data-protection"},
 		"readInitializationStatus": {"portal", "identity", "site-config", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs", "data-protection", "content", "media", "localization", "public-site"}, "resumeInitialization": {"portal", "site-config"},
-		"readPublicHome": {"portal", "public-site"}, "listResourceReferences": {"media"}, "readHomeReferenceDecision": {"media"},
+		"readPublicHome": {"portal", "public-site"}, "listResourceReferences": {"portal", "media", "data-protection"}, "readHomeReferenceDecision": {"media"},
+		"readSnapshotArchive": {"data-protection"},
 	}
 	for _, id := range []string{"initializeSite", "abortInitialization", "updateSiteConfig", "updateHome", "updateBranding", "updateFooter", "updateBanner", "readConfigHistory", "restoreConfigRevision"} {
 		callers[id] = []string{"portal"}
@@ -285,6 +364,35 @@ func serviceCallers() map[string][]string {
 		callers[id] = []string{"data-protection"}
 	}
 	return callers
+}
+
+func runRelayLoop(ctx context.Context, app *Application) error {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil
+		}
+		view, err := app.runtime.ReadRuntimeState(ctx)
+		if err == nil {
+			id := platform.NewIdentifier()
+			op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: moduleName,
+				DataEpoch: view.DataEpoch, Deadline: platform.Timestamp(time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)),
+				Actor: platform.AuthContext{Kind: "service", SubjectID: moduleName, SiteID: "system"}}
+			_, relayErr := siteconfig.RelayOutbox(siteconfig.WithRelayRuntime(platform.WithOperationContext(ctx, op), app.relay), op, siteconfig.RelayOutboxInput{BatchLimit: 100})
+			if relayErr != nil {
+				var failure *platform.Error
+				if !errors.As(relayErr, &failure) || (failure.Code != platform.CodeLocked && failure.Code != platform.CodeDependencyUnavailable && failure.Code != platform.CodeVersionMismatch) {
+					return relayErr
+				}
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+		}
+	}
 }
 
 // Serve 运行独立HTTP服务；ctx 取消触发的停止由进程模板调用 Shutdown
@@ -376,14 +484,30 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if err != nil {
 		return gen.ServiceReadiness{}, err
 	}
+	barrierReader, ok := app.snapshot.API.(interface {
+		ReadBarrierStatus() (*lifecycle.SnapshotBarrierStatus, time.Time)
+	})
+	if !ok {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本域屏障状态读取器未装配")
+	}
+	barrier, _ := barrierReader.ReadBarrierStatus()
+	safePoint := barrier == nil || barrier.State == "released"
+	if barrier != nil {
+		if barrier.DataEpoch != "" && barrier.DataEpoch != activeEpoch {
+			return gen.ServiceReadiness{}, platform.NewError(platform.CodeVersionMismatch, false, "本域屏障dataEpoch已变化")
+		}
+		if barrier.State != "released" && barrier.State != "draining" && barrier.State != "safe" && barrier.State != "failed" {
+			return gen.ServiceReadiness{}, platform.NewError(platform.CodeIntegrityError, false, "本域屏障状态未知")
+		}
+	}
 	readiness := gen.ServiceReadiness{
 		Health:                health,
 		Initialized:           initialized,
 		JournalRecovered:      true,
 		Maintenance:           view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
+		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning && safePoint,
 		RuntimeRevision:       0,
-		SafePoint:             true,
+		SafePoint:             safePoint,
 	}
 	if initialized {
 		readiness.ActiveDataEpoch = &activeEpoch

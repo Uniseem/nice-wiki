@@ -26,7 +26,7 @@ func ReadRuntimeState(ctx context.Context, op platform.OperationContext, input R
 	if err != nil {
 		return gen.ReadRuntimeStateResult{}, err
 	}
-	if op.DataEpoch != "" && string(state.DataEpoch) != string(op.DataEpoch) {
+	if string(state.DataEpoch) != string(op.DataEpoch) {
 		return gen.ReadRuntimeStateResult{}, platform.NewError(platform.CodeVersionMismatch, false, "运行状态dataEpoch已变化")
 	}
 	return gen.ReadRuntimeStateResult{State: state}, nil

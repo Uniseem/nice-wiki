@@ -3030,7 +3030,7 @@
       "blocker": "尚无本次候选精确GitLab SHA；只读状态不导出私有snapshot-barrier.json。"
     },
     {
-      "id": "platform.MigrateRestoredDatabase",
+      "id": "outbox.MigrateRestoredDatabase",
       "path": "libs/platform/outbox/restore.go",
       "state": "in_progress",
       "implementationCommit": null,

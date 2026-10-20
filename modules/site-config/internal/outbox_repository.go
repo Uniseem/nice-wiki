@@ -31,6 +31,49 @@ type PublishConfigEventResult struct {
 	Queued bool `json:"queued"`
 }
 
+type RelayOutboxInput struct {
+	BatchLimit int `json:"batchLimit"`
+}
+
+type RelayOutboxResult = platform.RelayBatchResult
+
+// RelayRuntime 由完整Application从同一SnapshotManager和生成jobs客户端装配。
+// 单批函数本身不接受请求或自行建立第二套租约。
+type RelayRuntime struct {
+	Store          *outbox.Store
+	Publisher      platform.EventPublisher
+	Runtime        func(context.Context) (platform.RuntimeView, error)
+	WriteWindow    func(context.Context) (time.Time, error)
+	AdmitBatch     platform.WorkAdmission
+	BindEventScope func(context.Context, platform.OutboxRow) (context.Context, func(), error)
+}
+
+type relayRuntimeKey struct{}
+
+func WithRelayRuntime(ctx context.Context, runtime RelayRuntime) context.Context {
+	return context.WithValue(ctx, relayRuntimeKey{}, runtime)
+}
+
+// RelayOutbox 只把已装配的真实Store、publisher和scope交给平台单批转发。
+func RelayOutbox(ctx context.Context, op platform.OperationContext, input RelayOutboxInput) (RelayOutboxResult, error) {
+	if op.CallerService != "site-config" || op.Actor.Kind != "service" || op.Actor.SubjectID != "site-config" {
+		return RelayOutboxResult{}, platform.NewError(platform.CodeForbidden, false, "配置事件转发仅允许本域可信后台")
+	}
+	runtime, ok := ctx.Value(relayRuntimeKey{}).(RelayRuntime)
+	if !ok || runtime.Store == nil || runtime.Publisher == nil || runtime.Runtime == nil || runtime.WriteWindow == nil || runtime.AdmitBatch == nil || runtime.BindEventScope == nil {
+		return RelayOutboxResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "配置事件转发依赖未装配")
+	}
+	work := platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op)
+	return outbox.RunRelayBatch(work, runtime.Store, runtime.Publisher, platform.RelayConfig{
+		AdmitBatch:     runtime.AdmitBatch,
+		BindEventScope: runtime.BindEventScope,
+		BatchLimit:     input.BatchLimit,
+		PollMillis:     1000,
+		Runtime:        runtime.Runtime,
+		WriteWindow:    runtime.WriteWindow,
+	})
+}
+
 // PublishConfigEvent 仅在配置提交方持有的业务事务内登记平台outbox。
 func PublishConfigEvent(ctx context.Context, op platform.OperationContext, tx WriteTransaction, input PublishConfigEventInput) (PublishConfigEventResult, error) {
 	raw, err := json.Marshal(input.Event)

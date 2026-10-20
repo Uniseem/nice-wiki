@@ -2,12 +2,12 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "b3a1647f9ad5fa168bfba5ffeb8701d779d9f683146436c1996ef8407adc91eb",
+  "contractSha256": "244ba52c66447f6eddf97beab2b21b03121da0c084abd179a967ace572946957",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-20持久激活回执验签源码单元；pipeline173全绿，业务验收未执行",
-  "branch": "codex/activation-receipt-20261020-site-config",
-  "baseCommit": "a32f3f4c4876f94ce798826e9dee0b170bbb612a",
-  "deliveryCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
+  "assignedSession": "2026-10-20 R1-F02恢复WIP接入main后修复公告journal单条隔离；新源码待GitLab CI，未push",
+  "branch": "codex/resume-20261020-site-config",
+  "baseCommit": "6204dfc94510f28752fe8da81df9f3a4d3ce781d",
+  "deliveryCommit": "c3c7c10c11320ebff45c994f8458e54604a75343",
   "deployment": "not_started",
   "files": [
     {
@@ -62,43 +62,43 @@
     },
     {
       "path": "modules/site-config/internal/runtime_state_service.go",
-      "state": "implemented",
-      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
-      "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/site-config/internal/runtime_store.go",
-      "state": "verified",
-      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "passed",
         "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。BuildApplication与完整服务装配仍blocked；不代表业务验收或部署。"
       },
-      "blocker": null
+      "blocker": "本轮恢复WIP已修改，用户结束前未运行集成CI；不得标implemented或verified"
+    },
+    {
+      "path": "modules/site-config/internal/runtime_store.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复WIP已修改，待集成CI与公共接口合成"
     },
     {
       "path": "modules/site-config/internal/runtime_transition.go",
-      "state": "verified",
-      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
-        "state": "passed",
-        "evidence": "候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173：生成/格式696、foundation697、content-media698、ai699、前端700全部success；generated.patch为0字节。仅源码检查，不代表业务验收或部署。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "验签与恢复接线本轮已改；待集成CI，未标implemented/verified"
     },
     {
       "path": "modules/site-config/internal/write_epoch.go",
-      "state": "implemented",
-      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "已接入SnapshotManager屏障/cleanup gate，待集成CI"
     },
     {
       "path": "modules/site-config/internal/migrations/migrations.go",
@@ -172,13 +172,13 @@
     },
     {
       "path": "modules/site-config/internal/announcement_files.go",
-      "state": "implemented",
-      "implementationCommit": "37097fce696c8d0093bd58476f385d142ab536d8",
+      "state": "in_progress",
+      "implementationCommit": "c3c7c10c11320ebff45c994f8458e54604a75343",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "公告COMMITTED结构/顺序与head证据按公告隔离修正已落盘，待集成CI"
     },
     {
       "path": "modules/site-config/internal/operation_repository.go",
@@ -192,13 +192,13 @@
     },
     {
       "path": "modules/site-config/internal/outbox_repository.go",
-      "state": "in_progress",
-      "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
+      "state": "blocked",
+      "implementationCommit": "42b30e419e9d6df965bbd2e4dea2a5af07d3aee6",
       "verification": {
         "state": "not_run",
-        "evidence": "2026-10-15 首页完整源码已冻结待根合成VPS；公共源依赖9ff93ae71e8f262ea0fc057aa3f6eea71ce52f22，终止释放采用随后冻结的完整来源与nullable pinId/sealed协议。已有protocol-only VPS docs/gen、14模块readonly build/vet/gofmt及check（858/1105/379/2253）未纳入Home Go/0005，不作为本轮源码编译证据。"
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已写入，待集成GitLab CI；生成OpenAPI/文档与完整启动由根统一处理"
     },
     {
       "path": "modules/site-config/internal/object_reader.go",
@@ -212,23 +212,23 @@
     },
     {
       "path": "modules/site-config/internal/barrier_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮源码WIP已写；公共SnapshotManager ReadBarrierStatus等接口待集成CI"
     },
     {
       "path": "modules/site-config/internal/snapshot_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮源码WIP已写；公共outbox事务与MigrateRestoredDatabase待集成CI"
     },
     {
       "path": "modules/site-config/internal/branding_service.go",
@@ -282,13 +282,13 @@
     },
     {
       "path": "modules/site-config/internal/resource_reference_reader.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "b5895d88e30099235378b6095fc43410845c76fa",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已写入，待集成GitLab CI；生成OpenAPI/文档与完整启动由根统一处理"
     },
     {
       "path": "modules/site-config/cmd/site-config/main.go",
@@ -302,23 +302,23 @@
     },
     {
       "path": "modules/site-config/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮仅补Build的可信验签锚装配；完整SnapshotManager、后台、全量handler和恢复接线仍未完成，待本轮GitLab CI"
+      "blocker": "完整Build源码WIP已落盘；GlobalSeal、公共接口合成和CI尚未完成"
     },
     {
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "blocked",
-      "implementationCommit": "37097fce696c8d0093bd58476f385d142ab536d8",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
+      "blocker": "完整生命周期/Ready/后台接线源码WIP已落盘，待集成CI"
     },
     {
       "path": "modules/site-config/go.mod",
@@ -362,23 +362,23 @@
     },
     {
       "path": "modules/site-config/config/service.defaults.json",
-      "state": "verified",
-      "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
-      "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
-      },
-      "blocker": null
-    },
-    {
-      "path": "modules/site-config/deploy/manifest.json",
-      "state": "implemented",
-      "implementationCommit": "5ea6affabea00bba21a614cd58a3dc4b99fa8cd2",
+      "state": "blocked",
+      "implementationCommit": "42b30e419e9d6df965bbd2e4dea2a5af07d3aee6",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已写入，待集成GitLab CI；生成OpenAPI/文档与完整启动由根统一处理"
+    },
+    {
+      "path": "modules/site-config/deploy/manifest.json",
+      "state": "blocked",
+      "implementationCommit": "42b30e419e9d6df965bbd2e4dea2a5af07d3aee6",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "源码已写入，待集成GitLab CI；生成OpenAPI/文档与完整启动由根统一处理"
     },
     {
       "path": "modules/site-config/internal/gen/openapi.gen.go",
@@ -452,13 +452,13 @@
     },
     {
       "path": "modules/site-config/internal/snapshot_archive.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "归档读取源码WIP已写，待集成CI"
     }
   ],
   "functions": [
@@ -553,11 +553,11 @@
     {
       "id": "site-config.ReadRuntimeState",
       "path": "modules/site-config/internal/runtime_state_service.go",
-      "state": "implemented",
-      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     },
@@ -608,11 +608,11 @@
     {
       "id": "site-config.OpenActiveStore",
       "path": "modules/site-config/internal/runtime_store.go",
-      "state": "verified",
-      "implementationCommit": "a0d6adfd61a6256e28d3c71b09eb5865ec60d425",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 统一集成树隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8：make docs/gen、14模块make build（-mod=readonly build/vet/gofmt）及完整make check通过（850文件/943函数/372操作/2186类型）；生成回传无变化。已人工复核授权、状态机、CAS、fence、取消、幂等、付费引用与恢复边界；未新增或运行业务测试、真实接口、模型、服务、镜像、部署。verified仅表示现阶段检查，不是行为验收。"
+        "state": "not_run",
+        "evidence": null
       },
       "blocker": null
     },
@@ -674,13 +674,13 @@
     {
       "id": "site-config.CheckWriteEpoch",
       "path": "modules/site-config/internal/write_epoch.go",
-      "state": "implemented",
-      "implementationCommit": "0b04576c82dfc6ca46a87ed880e0dba968c5c2ce",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "已接入同一SnapshotManager barrier/cleanup gate，待集成CI"
     },
     {
       "id": "site-config.All",
@@ -795,13 +795,13 @@
     {
       "id": "site-config.RecoverAnnouncementJournal",
       "path": "modules/site-config/internal/announcement_files.go",
-      "state": "implemented",
-      "implementationCommit": "ecdab0db53460b78d451f00bbb2016047b6fa547",
+      "state": "in_progress",
+      "implementationCommit": "c3c7c10c11320ebff45c994f8458e54604a75343",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 本机 Go 1.27.1：全仓 make build（14模块 readonly build/vet/gofmt）通过；make docs、本域生成绑定、隐私与git diff --check通过；make check仅缺根framework的4个实际文件登记，待集成复核；未执行业务验收"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "已改为可归属公告的COMMITTED结构/顺序/head证据单条隔离；待集成CI"
     },
     {
       "id": "site-config.ResolveConfigOperation",
@@ -828,13 +828,13 @@
     {
       "id": "site-config.RelayOutbox",
       "path": "modules/site-config/internal/outbox_repository.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "已接入同一SnapshotManager后台入口；本轮未CI，待集成代理验证"
     },
     {
       "id": "site-config.ReadConfigObject",
@@ -850,57 +850,57 @@
     {
       "id": "site-config.AcquireBarrier",
       "path": "modules/site-config/internal/barrier_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "屏障源码WIP已写，待集成公共接口与CI"
     },
     {
       "id": "site-config.ReleaseBarrier",
       "path": "modules/site-config/internal/barrier_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "屏障源码WIP已写，待集成公共接口与CI"
     },
     {
       "id": "site-config.ExportSnapshot",
       "path": "modules/site-config/internal/snapshot_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "快照源码WIP已写，待集成公共接口与CI"
     },
     {
       "id": "site-config.StageSnapshot",
       "path": "modules/site-config/internal/snapshot_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "隔离Stage源码WIP已写，待集成公共接口与CI"
     },
     {
       "id": "site-config.DiscardSnapshot",
       "path": "modules/site-config/internal/snapshot_service.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "快照源码WIP已写，待集成公共接口与CI"
     },
     {
       "id": "site-config.UpdateBranding",
@@ -982,13 +982,13 @@
     {
       "id": "site-config.ListResourceReferences",
       "path": "modules/site-config/internal/resource_reference_reader.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "b5895d88e30099235378b6095fc43410845c76fa",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "源码已写入，待集成GitLab CI；生成OpenAPI/文档与完整启动由根统一处理"
     },
     {
       "id": "site-config.main",
@@ -1004,13 +1004,13 @@
     {
       "id": "site-config.BuildApplication",
       "path": "modules/site-config/internal/app/wire.go",
-      "state": "blocked",
-      "implementationCommit": "1075bcb8824838874e6a3ed775778f4194fa6969",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮仅装配信任锚到control store；快照、屏障、资源引用列表、RelayOutbox、恢复换目录回执及完整启动仍未完成，待本轮GitLab CI"
+      "blocker": "本轮完整Build源码WIP已落盘；公共GlobalSeal/接口合成与CI待集成"
     },
     {
       "id": "site-config.Serve",
@@ -1048,13 +1048,13 @@
     {
       "id": "site-config.Ready",
       "path": "modules/site-config/internal/transport/server.go",
-      "state": "verified",
-      "implementationCommit": "8f3f409078c3616aee5ec19dd57f58ca274fb716",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 最终完整Home合成快照：隔离VPS linux/amd64 Go1.25.5、GOMAXPROCS=8，make docs/gen、14模块readonly build/vet/gofmt及完整make check通过（858文件/1109函数/379操作/2256类型），无回传冲突。包含全部Home Go、0005迁移、最终publication正revision与Build后台装配登记，以及根公共写窗口/恢复循环/SSE；逐函数静态复核已收口。无新增或运行业务测试、SQL/HTTP行为验收、真实接口/模型、服务/镜像/部署；verified仅对应已有门槛。"
+        "state": "not_run",
+        "evidence": null
       },
-      "blocker": null
+      "blocker": "Ready新增SnapshotManager屏障状态投影，待集成CI"
     },
     {
       "id": "site-config.ReadInitializationRecord",
@@ -1508,16 +1508,159 @@
       "blocker": null
     },
     {
-      "id": "site-config.ReadSnapshotArchive",
-      "path": "modules/site-config/internal/snapshot_archive.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "id": "site-config.ConfigureGlobalSealVerifier",
+      "path": "modules/site-config/internal/snapshot_service.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
       "verification": {
         "state": "not_run",
         "evidence": null
       },
-      "blocker": null
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.observeSiteWork",
+      "path": "modules/site-config/internal/snapshot_service.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.sealSiteWork",
+      "path": "modules/site-config/internal/snapshot_service.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.resumeSiteWork",
+      "path": "modules/site-config/internal/snapshot_service.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.observeSiteWorkFacts",
+      "path": "modules/site-config/internal/snapshot_service.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.drainSiteConfigReferences",
+      "path": "modules/site-config/internal/snapshot_service.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.NewSnapshotManager",
+      "path": "modules/site-config/internal/snapshot_service.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.ActiveStore.OutboxStore",
+      "path": "modules/site-config/internal/runtime_store.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.registerSiteConfigWorkTables",
+      "path": "modules/site-config/internal/runtime_store.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.WithSnapshotRuntime",
+      "path": "modules/site-config/internal/barrier_service.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.registerActivationAfterSwap",
+      "path": "modules/site-config/internal/app/wire.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.ReadSnapshotArchive",
+      "path": "modules/site-config/internal/snapshot_archive.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "归档读取源码WIP已写，待集成公共接口与CI"
+    },
+    {
+      "id": "site-config.authorizeResourceReferenceRead",
+      "path": "modules/site-config/internal/resource_reference_reader.go",
+      "state": "blocked",
+      "implementationCommit": "b5895d88e30099235378b6095fc43410845c76fa",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "限制资源引用列表只由media、data-protection纯服务或同站点site.manage/superadmin读取；待CI"
+    },
+    {
+      "id": "site-config.WithRelayRuntime",
+      "path": "modules/site-config/internal/outbox_repository.go",
+      "state": "in_progress",
+      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "verification": {
+        "state": "not_run",
+        "evidence": null
+      },
+      "blocker": "已由后台Relay调用；本轮未CI，待集成代理验证"
     }
   ],
-  "rule": "基线既有源码检查证据继续有效；本轮激活回执验签源码单元通过候选eb96455b2366ac8511c471e7955de41b5ffdab97的GitLab pipeline173，相关8个函数与runtime_store/runtime_transition文件按范围verified。BuildApplication、wire及完整服务装配仍blocked；无行为验收、联调、真实接口/模型或部署。"
+  "rule": "主线pipeline173/174已验证的激活回执验签与RegisterActivation台账保留；恢复WIP新增/修改的公告、快照、屏障、Relay、Build与runtime接线均待GitLab CI，保持in_progress或blocked。非jobs封口不等待最终broker回执；无行为验收、联调、真实接口/模型或部署。"
 }

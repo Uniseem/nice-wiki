@@ -29,7 +29,7 @@
 | PUT `/v1/banner` | `updateBanner` | `site-config.UpdateBanner` | `site.manage` | `UpdateBannerInput` → 200 `UpdateBannerResult` | 保存单条可关闭公告横幅 | `VALIDATION`、`FORBIDDEN`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/config/history` | `readConfigHistory` | `site-config.ReadConfigHistory` | `site.manage` | `—` → 200 `ReadConfigHistoryResult` | 站点设置历史 | `FORBIDDEN`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/config/history/{revisionId}:restore` | `restoreConfigRevision` | `site-config.RestoreConfigRevision` | `site.manage` | `restoreConfigRevisionRequest` → 200 `RestoreConfigRevisionResult` | 回滚站点设置 | `VALIDATION`、`FORBIDDEN`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
-| GET `/v1/resource-references` | `listResourceReferences` | `site-config.ListResourceReferences` | `service` | `—` → 200 `ListResourceReferencesResult` | 站点设置完整资源引用 | `FORBIDDEN`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/resource-references` | `listResourceReferences` | `site-config.ListResourceReferences` | `site.manage` | `—` → 200 `ListResourceReferencesResult` | 站点设置完整资源引用 | `VALIDATION`、`FORBIDDEN`、`VERSION_MISMATCH`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/healthz` | `health` | `site-config.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `site-config.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `site-config.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |

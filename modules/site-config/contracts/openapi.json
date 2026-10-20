@@ -1672,10 +1672,11 @@
         "summary": "站点设置完整资源引用",
         "description": "调用函数 site-config.ListResourceReferences；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
         "x-handler": "site-config.ListResourceReferences",
-        "x-permission": "service",
+        "x-permission": "site.manage",
         "security": [
           {
-            "serviceAssertion": []
+            "serviceAssertion": [],
+            "userDelegation": []
           }
         ],
         "parameters": [
@@ -1684,22 +1685,21 @@
             "name": "assetId",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "assetId",
-              "minLength": 0,
-              "maxLength": 2048
-            }
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "按完整assetId筛选；省略表示全部"
           },
           {
             "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "limit",
-              "minLength": 0,
-              "maxLength": 2048
-            }
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "本页最多引用数"
           },
           {
             "in": "query",
@@ -1708,8 +1708,7 @@
             "schema": {
               "type": "string",
               "description": "签名不透明游标",
-              "minLength": 0,
-              "maxLength": 2048
+              "maxLength": 4096
             }
           }
         ],
@@ -1724,8 +1723,28 @@
               }
             }
           },
+          "400": {
+            "description": "VALIDATION：assetId、limit或签名游标载荷不合法",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
           "403": {
             "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：验签payload中的配置水位已变化，或原位置不再属于该watermark快照",
             "content": {
               "application/problem+json": {
                 "schema": {

@@ -48,6 +48,11 @@
       "module": "qa",
       "endpoint": "http://qa:8107",
       "env": "NW_DEP_QA"
+    },
+    {
+      "module": "data-protection",
+      "endpoint": "http://data-protection:8113",
+      "env": "NW_DEP_DATA_PROTECTION"
     }
   ],
   "probes": {

@@ -75,8 +75,38 @@ func RecoverAnnouncementJournal(ctx context.Context, op platform.OperationContex
 	// PREPARED 只要内容与某次 COMMITTED 一致，就不是孤儿。
 	committedHistory := make(map[string][]announcementJournalEntry)
 	prepared := make([]announcementJournalEntry, 0)
+	quarantinedCommitted := make([]announcementJournalEntry, 0)
+	invalidAnnouncements := make(map[string]bool)
+	appendQuarantinedCommitted := func(entry announcementJournalEntry) {
+		for _, existing := range quarantinedCommitted {
+			if sameAnnouncementEntry(existing, entry) {
+				return
+			}
+		}
+		quarantinedCommitted = append(quarantinedCommitted, entry)
+	}
+	invalidateAnnouncement := func(key string) {
+		if invalidAnnouncements[key] {
+			return
+		}
+		invalidAnnouncements[key] = true
+		if previous, exists := committed[key]; exists {
+			appendQuarantinedCommitted(previous)
+			delete(committed, key)
+		}
+		for _, historical := range committedHistory[key] {
+			appendQuarantinedCommitted(historical)
+		}
+		delete(committedHistory, key)
+	}
 	for _, entry := range entries {
 		if err := validateAnnouncementJournalEntry(entry); err != nil {
+			if entry.State == announcementStateCommitted && platform.ValidIdentifier(string(entry.AnnouncementID)) {
+				key := string(entry.AnnouncementID)
+				invalidateAnnouncement(key)
+				appendQuarantinedCommitted(entry)
+				continue
+			}
 			return RecoverAnnouncementJournalResult{}, err
 		}
 		key := string(entry.AnnouncementID)
@@ -84,13 +114,21 @@ func RecoverAnnouncementJournal(ctx context.Context, op platform.OperationContex
 		case announcementStatePrepared:
 			prepared = append(prepared, entry)
 		case announcementStateCommitted:
+			if invalidAnnouncements[key] {
+				appendQuarantinedCommitted(entry)
+				continue
+			}
 			previous, exists := committed[key]
 			if exists {
 				if entry.Revision < previous.Revision {
-					return RecoverAnnouncementJournalResult{}, platform.NewError(platform.CodeIntegrityError, false, "公告journal修订顺序不合法")
+					invalidateAnnouncement(key)
+					appendQuarantinedCommitted(entry)
+					continue
 				}
 				if entry.Revision == previous.Revision && !sameAnnouncementEntry(previous, entry) {
-					return RecoverAnnouncementJournalResult{}, platform.NewError(platform.CodeIntegrityError, false, "公告journal同修订内容不一致")
+					invalidateAnnouncement(key)
+					appendQuarantinedCommitted(entry)
+					continue
 				}
 			}
 			committed[key] = entry
@@ -98,9 +136,26 @@ func RecoverAnnouncementJournal(ctx context.Context, op platform.OperationContex
 		}
 	}
 
+	for key := range invalidAnnouncements {
+		if _, err := store.db.ExecContext(ctx, `DELETE FROM announcement_heads WHERE announcement_id=?`, key); err != nil {
+			return RecoverAnnouncementJournalResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "隔离公告head失败")
+		}
+	}
 	for _, entry := range committed {
 		if err := validateCommittedAnnouncement(store.activeRoot, entry); err != nil {
-			return RecoverAnnouncementJournalResult{}, err
+			appendQuarantinedCommitted(entry)
+			delete(committed, string(entry.AnnouncementID))
+			if _, deleteErr := store.db.ExecContext(ctx, `DELETE FROM announcement_heads WHERE announcement_id=?`, string(entry.AnnouncementID)); deleteErr != nil {
+				return RecoverAnnouncementJournalResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "隔离公告head失败")
+			}
+			history := committedHistory[string(entry.AnnouncementID)][:0]
+			for _, historical := range committedHistory[string(entry.AnnouncementID)] {
+				if !sameAnnouncementEntry(historical, entry) {
+					history = append(history, historical)
+				}
+			}
+			committedHistory[string(entry.AnnouncementID)] = history
+			continue
 		}
 		if err := store.upsertAnnouncementHead(ctx, entry); err != nil {
 			return RecoverAnnouncementJournalResult{}, err
@@ -122,15 +177,20 @@ func RecoverAnnouncementJournal(ctx context.Context, op platform.OperationContex
 		}
 		quarantined = append(quarantined, entry)
 	}
+	if len(quarantinedCommitted) > 0 {
+		if err := quarantineAnnouncementEntries(store.activeRoot, "committed", quarantinedCommitted); err != nil {
+			return RecoverAnnouncementJournalResult{}, err
+		}
+	}
 	if len(quarantined) > 0 {
-		if err := quarantinePreparedAnnouncements(store.activeRoot, quarantined); err != nil {
+		if err := quarantineAnnouncementEntries(store.activeRoot, "prepared", quarantined); err != nil {
 			return RecoverAnnouncementJournalResult{}, err
 		}
 	}
 	store.markJournalRecovered(journalHash)
 	return RecoverAnnouncementJournalResult{
 		CommittedCount:   len(committed),
-		QuarantinedCount: len(quarantined),
+		QuarantinedCount: len(quarantinedCommitted) + len(quarantined),
 	}, nil
 }
 
@@ -339,7 +399,7 @@ func mustMarshalJournalEntry(entry announcementJournalEntry) []byte {
 	return raw
 }
 
-func quarantinePreparedAnnouncements(activeRoot string, entries []announcementJournalEntry) error {
+func quarantineAnnouncementEntries(activeRoot, prefix string, entries []announcementJournalEntry) error {
 	if len(entries) == 0 {
 		return nil
 	}
@@ -353,7 +413,7 @@ func quarantinePreparedAnnouncements(activeRoot string, entries []announcementJo
 		raw.WriteByte('\n')
 	}
 	hash := platform.HashBytes(raw.Bytes())
-	path := filepath.Join(activeRoot, "quarantine", "announcement", "prepared-"+string(hash)+".jsonl")
+	path := filepath.Join(activeRoot, "quarantine", "announcement", prefix+"-"+string(hash)+".jsonl")
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if errors.Is(err, os.ErrExist) {
 		return nil

@@ -2562,7 +2562,7 @@
     },
     "ListResourceReferencesInput": {
       "type": "object",
-      "description": "向媒体返回站点设置权威资源引用快照的输入",
+      "description": "向媒体返回站点设置权威资源引用快照的输入；站点和epoch取自受信操作上下文",
       "additionalProperties": false,
       "properties": {
         "assetId": {
@@ -2575,11 +2575,11 @@
               "type": "null"
             }
           ],
-          "description": "筛某资源，null全部"
+          "description": "按完整assetId筛选，null表示全部"
         },
         "page": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/PageRequest",
-          "description": "PageRequest"
+          "$ref": "#/$defs/ResourceReferencePageRequest",
+          "description": "默认20、上限100；cursor为固定scope绑定的签名不透明值，payload携带watermark与稳定引用位置"
         }
       },
       "required": [
@@ -2594,7 +2594,7 @@
       "properties": {
         "references": {
           "type": "array",
-          "description": "首页背景/封面/logo/favicon/分享图等current/history精确引用",
+          "description": "home.background、home.poster、branding.logo、branding.favicon、branding.share的current/history精确引用；当前head为current，旧COMMITTED为history",
           "items": {
             "$ref": "../../media/contracts/types.json#/$defs/AssetReference"
           },
@@ -2614,6 +2614,122 @@
         "references",
         "watermark",
         "pageInfo"
+      ]
+    },
+    "ResourceReferencePageRequest": {
+      "type": "object",
+      "description": "资源引用页的内部规范化输入；0表示使用默认20",
+      "additionalProperties": false,
+      "x-internal": true,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "cursor": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      },
+      "required": []
+    },
+    "ResourceReferenceCursor": {
+      "type": "object",
+      "description": "签名资源引用游标；watermark在payload中，scope不承载水位",
+      "additionalProperties": false,
+      "x-internal": true,
+      "properties": {
+        "watermark": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "after": {
+          "$ref": "#/$defs/ResourceReferencePosition"
+        }
+      },
+      "required": [
+        "watermark",
+        "after"
+      ]
+    },
+    "ResourceReferencePosition": {
+      "type": "object",
+      "description": "资源引用排序中的稳定来源位置，不使用数据库或切片offset",
+      "additionalProperties": false,
+      "x-internal": true,
+      "properties": {
+        "sourceVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "sourceRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "referenceId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "assetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "assetVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "assetSha256": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        }
+      },
+      "required": [
+        "sourceVersion",
+        "sourceRevisionId",
+        "referenceId",
+        "assetId",
+        "assetVersion",
+        "assetSha256"
+      ]
+    },
+    "RelayRuntime": {
+      "type": "object",
+      "description": "仅内部持有同一SnapshotManager、outbox Store、jobs publisher与scope回调；不作为HTTP DTO",
+      "x-internal": true
+    },
+    "RelayOutboxInput": {
+      "type": "object",
+      "description": "outbox单批转发的内部参数",
+      "additionalProperties": false,
+      "x-internal": true,
+      "properties": {
+        "batchLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "batchLimit"
+      ]
+    },
+    "RelayOutboxResult": {
+      "type": "object",
+      "description": "outbox单批真实计数，不代表全域已送达",
+      "additionalProperties": false,
+      "x-internal": true,
+      "properties": {
+        "relayed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quarantined": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "relayed",
+        "pending",
+        "quarantined"
       ]
     },
     "releaseBarrierRequest": {

@@ -28,13 +28,15 @@ UpdateHome保存全屏hero；video必须poster，public-site输出autoplay muted
 | 函数 | 运行时机 | 作用 |
 |---|---|---|
 | `site-config.RecoverAnnouncementJournal` | 启动时（入口开放前） | 恢复正文文件与提交日志 |
-| `site-config.RelayOutbox` | 启动后持续，空闲每1秒 | 把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环 |
+| `site-config.RelayOutbox` | 启动后持续，空闲每1秒 | 执行一次单批outbox转发；启动补发与轮询循环只由完整Application后台入口装配 |
 | `site-config.RecoverConfigJournal` | 启动时（入口开放前） | 启动前恢复settings权威文件提交决定 |
 | `site-config.RecoverHomeReferences` | 完整Application构造后由公共RunRecoveryLoop持续运行；每1秒单批最多100项，维护和未知安全窗口暂停 | 按明确决定有界收敛首页媒体pin |
 <!-- flows:end -->
 
 
 一般设置：同站点管理会话 → 规范 URL/稳定请求摘要 → 解析原始 operation 回执 → 首次持久候选配置与固定时钟 → 复用不可变文件/PREPARED → COMMITTED/CAS/head/SQL/outbox → 返回正式配置。成功重试返回原修订；未完成重试不重造时钟；新的维护期写入拒绝，旧成功回执仍可读取。普通候选不是持久发布决定，启动时不能自动发布。
+
+资源引用读取：受信媒体服务或同站点配置管理员 → 固定当前 config watermark → 校验当前 head/index/COMMITTED/权威文件 → 逐条验证该 epoch 的 COMMITTED revisions → 按既有 home/branding 来源标识生成 current/history refs → 验签游标并比较 payload watermark 与当前水位后分页。scope 固定绑定查询身份与筛选条件，水位变化返回 VERSION_MISMATCH；分页未完成前，任何媒体清理不得把当前页外资源视为未引用。
 
 首页保存：原始输入业务摘要 → 原成功只读回放 → 新/未完成写窗口与配置/home双CAS → 免费公开链接和ready资源验证 → 固定候选及完整引用intent同事务 → acquire并持久原pin → 既有不可变文件/COMMITTED/CAS/head/SQL/outbox → 返回已保存。confirm_pending由公共后台续办，后续网络失败不改变原成功。已有COMMITTED的重放仅补原正式决定，不重查新可见性/ready/期限。
 
@@ -43,3 +45,9 @@ UpdateHome保存全屏hero；video必须poster，public-site输出autoplay muted
 公开首页：独立公开水位读取 → 保留全部hero按钮 → document读取当前发布链接/语言/锚点，qa读取免费能力，external沿既有安全规则 → 不可用按钮明确disabled且敏感目标和href/publication不返回。hero、公开brand/footer与当前窗口banner一起返回；不会因单个链接或AI能力失联隐藏hero。
 
 构造只做本地引用恢复；全部真实handler齐备后才通过BackgroundTasks交公共RunRecoveryLoop周期收敛。每个RPC前后复用NewWriteContext核安全窗口与active epoch；维护暂停，未知保留。退出时公共生命周期先取消、Drain停止HTTP并等待请求，再等后台退出，最后Shutdown关闭DB。
+
+Outbox 单批转发：完整 Application 从同一 SnapshotManager 装配真实 Store、jobs publisher、Runtime/WriteWindow、AdmitBatch 与 BindEventScope → RelayOutbox 只调用平台 RunRelayBatch → 平台完成领取、发布、确认、退避、隔离和旧 epoch 处理。单批返回只描述本批，不代表全域事件已送达；启动补发与轮询循环仍属于完整 Application 装配。
+
+屏障工作流：`prepare` 由公共 Manager 建立 draining，`drain` 排空本域已登记旧事件，`observe` 在同一 active 事务读取公共 outbox revision、本域 pending work 和业务 watermark，`seal` 重新观察后以同一事务 CAS 封口，`resume-drain` 只按原 proofHash 重开旧清理门。Ready 与业务写门只读取 Manager 的内存 barrier snapshot，不解析其私有 barrier 文件。
+
+恢复暂存工作流：data-protection 提供受控归档流后，公共 Manager 认证 owner、snapshot、hash、stage 和目标 epoch，再调用本域迁移回调。回调通过 `outbox.MigrateRestoredDatabase` 在隔离库内执行本域已登记迁移、更新目标 active epoch、核验配置状态并重建公告派生索引；公共内核负责旧 outbox 资格隔离和 hostHash 重封，site-config 不把旧事件重标当前 epoch，也不改写原 payload、root 或费用事实。

@@ -12,3 +12,7 @@
 | jobs | event | 公告计划与配置事件 | 保留outbox；时间窗和撤回仍由权威同步判断 |
 
 每个内部调用同时验证 callerService、audience、actor 委托、siteId、期限和 dataEpoch；服务身份不自动绕过业务权限。所有事件采用 at-least-once、来源版本单调和 eventId 去重，禁止用事件延迟窗口替代撤回/权限的同步权威校验。
+
+恢复与快照由本域装配唯一的 `SnapshotManager`。active 迁移完成后，固定业务表清单登记到同库公共 work control；屏障观察、封口和重开都把本域待决事实与 outbox control 放在同一个 SQLite 事务中，revision 只取公共单调水位。公共全域封口核验由集成装配注入，缺失时保持失败关闭。
+
+激活回执的信任锚只由 Build 从受控 secret 装配进 control store。`RegisterActivation` 先绑定 caller、restore/epoch、phase、revision CAS 和幂等回放，再用统一 UTC `RFC3339Nano` 的完整 claims 验签；请求载荷不能携带 anchors。恢复暂存只在公共认证的隔离 stage 中运行本域迁移、登记派生索引，并由公共恢复内核隔离旧 epoch outbox，原事件 payload、费用事实和原 epoch 不被改写。

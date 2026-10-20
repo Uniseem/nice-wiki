@@ -5,7 +5,7 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -14,6 +14,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/serviceauth"
 	siteconfig "nice-wiki/modules/site-config/internal"
 	"nice-wiki/modules/site-config/internal/gen"
@@ -31,8 +32,8 @@ const ModuleSlug = "site-config"
 // 不经 HTTP 自调用。控制库不可用时 localRuntime 如实返回
 // DEPENDENCY_UNAVAILABLE，装配失败交进程守护重试，不用占位数据冒充权威。
 //
-// 本工作包打开 active 业务库并恢复公告 journal；HTTP x-handler、换目录
-// 回执登记与后台任务循环仍由后续工作包接入。
+// 本工作包打开 active 业务库、恢复本域 journal、装配快照/屏障/Relay 与
+// 换目录回执；跨域GlobalSeal核验仍由集成启动装配提供，缺失时保持失败关闭。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if config.Module != ModuleSlug {
 		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
@@ -66,32 +67,28 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = closeRuntime(runtimeAuthority)
 		return nil, err
 	}
+	openedEpoch := view.DataEpoch
 	if swap.Action != platform.SwapNone {
-		// 回执需要 stageId/manifestHash/域签名，只能由暂存与屏障函数
-		// （后续工作包）提供；在此之前换入数据拒绝开放入口。
-		_ = closeRuntime(runtimeAuthority)
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖暂存/屏障函数，尚未实现")
+		evidence, evidenceErr := lifecycle.ReadRestoreSwapState(config.DataRoot, swap.RestoreID)
+		if evidenceErr != nil {
+			_ = closeRuntime(runtimeAuthority)
+			return nil, evidenceErr
+		}
+		if err := registerActivationAfterSwap(ctx, runtimeAuthority, key, view, swap, evidence); err != nil {
+			_ = closeRuntime(runtimeAuthority)
+			return nil, err
+		}
+		if swap.Action == platform.SwapSwitched {
+			openedEpoch = platform.Identifier(evidence.TargetEpoch)
+		}
 	}
-	activeStore, err := siteconfig.OpenActiveStore(ctx, config.DataRoot, view.DataEpoch)
+	activeStore, err := siteconfig.OpenActiveStore(ctx, config.DataRoot, openedEpoch)
 	if err != nil {
 		_ = closeRuntime(runtimeAuthority)
 		return nil, err
 	}
 	activeStore.ConfigureInitialization(config.PublicBaseURL, config.AllowLocalHTTP)
-	homeRuntime := siteconfig.HomeRuntime{Runtime: runtimeAuthority.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
-		op, ok := platform.OperationContextFrom(work)
-		if !ok {
-			return time.Time{}, platform.NewError(platform.CodeDependencyUnavailable, true, "首页写窗口缺少受信操作")
-		}
-		if _, err := siteconfig.CheckWriteEpoch(work, op, siteconfig.CheckWriteEpochInput{DataEpoch: op.DataEpoch}); err != nil {
-			var failure *platform.Error
-			if errors.As(err, &failure) && failure.Code == platform.CodeLocked {
-				return time.Time{}, platform.NewError(platform.CodeLocked, true, "首页写窗口已暂停")
-			}
-			return time.Time{}, err
-		}
-		return time.Now().UTC().Add(30 * time.Second), nil
-	}}
+	homeRuntime := siteconfig.HomeRuntime{Runtime: runtimeAuthority.ReadRuntimeState}
 	if base := config.Dependencies["media"]; base != "" {
 		homeRuntime.Media = gen.NewMediaClient(base, ModuleSlug, key)
 	}
@@ -101,15 +98,52 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if base := config.Dependencies["qa"]; base != "" {
 		homeRuntime.QA = gen.NewQaClient(base, ModuleSlug, key)
 	}
-	activeStore.ConfigureHome(homeRuntime)
 	activeStore.ConfigureCursorKey(key)
+	jobsBase := config.Dependencies["jobs"]
+	dataProtectionBase := config.Dependencies["data-protection"]
+	if jobsBase == "" || dataProtectionBase == "" {
+		_ = activeStore.Close()
+		_ = closeRuntime(runtimeAuthority)
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "快照与事件依赖地址未配置")
+	}
+	jobsClient := gen.NewJobsClient(jobsBase, ModuleSlug, key)
+	dataProtectionClient := gen.NewDataProtectionClient(dataProtectionBase, ModuleSlug, key)
+	var relayRuntime siteconfig.RelayRuntime
+	snapshotManager, err := siteconfig.NewSnapshotManager(config.DataRoot, openedEpoch, runtimeAuthority.ReadRuntimeState, activeStore, func(work context.Context) error {
+		return drainRelay(work, relayRuntime, runtimeAuthority)
+	})
+	if err != nil {
+		_ = activeStore.Close()
+		_ = closeRuntime(runtimeAuthority)
+		return nil, err
+	}
+	homeRuntime.WriteWindow = snapshotManager.WriteWindow
+	activeStore.ConfigureHome(homeRuntime)
+	relayRuntime = siteconfig.RelayRuntime{
+		Store:          activeStore.OutboxStore(),
+		Publisher:      outbox.NewEventPublisher(jobsClient),
+		Runtime:        runtimeAuthority.ReadRuntimeState,
+		WriteWindow:    snapshotManager.WriteWindow,
+		AdmitBatch:     snapshotManager.AdmitBusiness,
+		BindEventScope: snapshotManager.BindOutboxEventScope,
+	}
+	snapshotRuntime := siteconfig.SnapshotRuntime{
+		API: snapshotManager,
+		RestoreArchive: func(restoreCtx context.Context, restoreID, owner string) (io.ReadCloser, error) {
+			response, responseErr := dataProtectionClient.ServeRestoreArchive(restoreCtx, restoreID, owner)
+			if responseErr != nil {
+				return nil, responseErr
+			}
+			return response.Body, nil
+		},
+	}
 	startupOperation := platform.OperationContext{
 		RequestID:       "site-config-startup",
 		OperationID:     "site-config-startup-journal",
 		RootOperationID: "site-config-startup-journal",
 		CallerService:   ModuleSlug,
 		Deadline:        platform.Timestamp(time.Now().Add(30 * time.Second).UTC().Format(time.RFC3339Nano)),
-		DataEpoch:       view.DataEpoch,
+		DataEpoch:       openedEpoch,
 		Actor:           platform.AuthContext{Kind: "service", SubjectID: ModuleSlug},
 	}
 	if _, err := siteconfig.RecoverAnnouncementJournal(ctx, startupOperation, siteconfig.RecoverAnnouncementJournalInput{}); err != nil {
@@ -147,7 +181,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "身份权威地址未配置")
 	}
 	identity := gen.NewIdentityClient(identityBase, ModuleSlug, key)
-	application, err := transport.NewApplication(config, anchors, runtimeAuthority, activeStore, view.DataEpoch, apivalidate.NewIdentityAuthorizer(identity))
+	application, err := transport.NewApplication(config, anchors, runtimeAuthority, activeStore, snapshotRuntime, relayRuntime, openedEpoch, !view.Maintenance, apivalidate.NewIdentityAuthorizer(identity))
 	if err != nil {
 		_ = activeStore.Close()
 		_ = closeRuntime(runtimeAuthority)
@@ -218,6 +252,86 @@ func closeRuntime(client platform.SiteConfigClient) error {
 		return closer.Close()
 	}
 	return nil
+}
+
+func registerActivationAfterSwap(ctx context.Context, runtime platform.SiteConfigClient, key platform.SigningKey, view platform.RuntimeView, swap platform.SwapResult, evidence platform.SnapshotSwapEvidence) error {
+	if !evidence.Known || !platform.ValidIdentifier(platform.Identifier(swap.RestoreID)) || !platform.ValidIdentifier(platform.Identifier(evidence.StageID)) || !platform.ValidHash(platform.Hash(evidence.ManifestHash)) || !platform.ValidHash(platform.Hash(evidence.HostManifestHash)) || !platform.ValidIdentifier(platform.Identifier(evidence.HostEpoch)) || !platform.ValidIdentifier(platform.Identifier(evidence.TargetEpoch)) || evidence.HostEpoch != string(view.DataEpoch) || evidence.TargetEpoch != string(view.TargetDataEpoch) || evidence.TargetEpoch == string(view.DataEpoch) {
+		return platform.NewError(platform.CodeIntegrityError, false, "恢复换目录证据不完整")
+	}
+	state := gen.ActivationReceiptState("switched")
+	if swap.Action == platform.SwapRolledBack {
+		if !evidence.RolledBack || evidence.Switched || evidence.Aborted {
+			return platform.NewError(platform.CodeIntegrityError, false, "恢复换回证据动作不一致")
+		}
+		state = gen.ActivationReceiptState("rolled-back")
+	} else if swap.Action == platform.SwapSwitched {
+		if !evidence.Switched || evidence.RolledBack || evidence.Aborted {
+			return platform.NewError(platform.CodeIntegrityError, false, "恢复切换证据动作不一致")
+		}
+	} else {
+		return platform.NewError(platform.CodeIntegrityError, false, "未知恢复换目录动作")
+	}
+	opID := platform.Identifier(platform.HashBytes([]byte("site-config.activation." + string(swap.RestoreID) + "." + string(state))))
+	op := platform.OperationContext{RequestID: opID, OperationID: opID, RootOperationID: opID, CallerService: ModuleSlug,
+		DataEpoch: view.DataEpoch, Deadline: platform.Timestamp(time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)),
+		Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system"}}
+	current, err := siteconfig.ReadRuntimeState(ctx, op, siteconfig.ReadRuntimeStateInput{})
+	if err != nil {
+		return err
+	}
+	for _, existing := range current.State.ActivationReceipts {
+		if existing.Module == gen.ActivationReceiptModuleSiteConfig && existing.StageId == gen.Identifier(evidence.StageID) && existing.TargetDataEpoch == gen.Identifier(evidence.TargetEpoch) && existing.State == state && existing.ManifestHash == gen.Hash(evidence.ManifestHash) {
+			return nil
+		}
+	}
+	recordedAt := time.Now().UTC()
+	claims := serviceauth.ActivationReceiptClaims{
+		Version:         1,
+		RestoreID:       platform.Identifier(swap.RestoreID),
+		Module:          ModuleSlug,
+		StageID:         platform.Identifier(evidence.StageID),
+		TargetDataEpoch: platform.Identifier(evidence.TargetEpoch),
+		State:           string(state),
+		ManifestHash:    platform.Hash(evidence.ManifestHash),
+		RecordedAt:      platform.Timestamp(recordedAt.Format(time.RFC3339Nano)),
+	}
+	signature, err := serviceauth.SignActivationReceipt(key, claims)
+	if err != nil {
+		return err
+	}
+	_, err = siteconfig.RegisterActivation(ctx, op, gen.RegisterActivationInput{RestoreId: gen.Identifier(swap.RestoreID), ExpectedRevision: gen.Revision(view.Revision), Receipt: gen.ActivationReceipt{
+		Module: gen.ActivationReceiptModuleSiteConfig, StageId: gen.Identifier(evidence.StageID), TargetDataEpoch: gen.Identifier(evidence.TargetEpoch), State: state,
+		ManifestHash: gen.Hash(evidence.ManifestHash), RecordedAt: recordedAt, Signature: signature,
+	}})
+	return err
+}
+
+func drainRelay(ctx context.Context, runtime siteconfig.RelayRuntime, client platform.SiteConfigClient) error {
+	if runtime.Store == nil || runtime.Publisher == nil || runtime.Runtime == nil || runtime.WriteWindow == nil || runtime.AdmitBatch == nil || runtime.BindEventScope == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "事件转发排空依赖未装配")
+	}
+	for {
+		view, err := client.ReadRuntimeState(ctx)
+		if err != nil {
+			return err
+		}
+		id := platform.NewIdentifier()
+		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug,
+			DataEpoch: view.DataEpoch, Deadline: platform.Timestamp(time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)),
+			Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system"}}
+		result, err := siteconfig.RelayOutbox(siteconfig.WithRelayRuntime(platform.WithOperationContext(ctx, op), runtime), op, siteconfig.RelayOutboxInput{BatchLimit: 100})
+		if err != nil {
+			return err
+		}
+		if result.Pending == 0 {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
 }
 
 // ensureDataLayout 建立 active/control/restore 三区；control 区承载独立

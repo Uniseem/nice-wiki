@@ -1,3 +1,39 @@
+# 2026-10-20 R1-F02恢复WIP接入main后的窄修交接
+
+本工作树继续旧恢复WIP `30ac79fcf878d1f3eb3fafb472204edae19bae4b`，已普通 merge `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`；源码与合并窄修提交为 `c3c7c10c11320ebff45c994f8458e54604a75343`。主线 pipeline173/174 已验证的激活回执验签与 `RegisterActivation` 实作保留在合并源码中；本轮新/改恢复、快照、Relay、Build 接线仍待 GitLab CI，继续保持待验证。
+
+本轮只在 `modules/site-config/` 内修复公告 journal 单条隔离，并按公共屏障协议复核：非 jobs 只封本域真实水位并使用同一无 `nonJobs` 字段 proof，不等待最终 broker 回执；最终 broker 与13域回执由 jobs 阶段核验。未运行本机/SSH Go、pnpm、生成、格式化、编译、vet、test、make check、真实接口、模型、服务或部署；不 push。
+
+# 2026-10-20 R1-F02首批源码待根审核与CI
+
+## 交付
+
+- 分支 `codex/closeout-20261020-site-config`，基线 `8606ae365af973050ced01ed435c4b951642fe95`，首批源码 `42b30e419e9d6df965bbd2e4dea2a5af07d3aee6`，审核修正 `b5895d88e30099235378b6095fc43410845c76fa`。
+- 实际实作共同作者：GPT-6 `<noreply@openai.com>`。
+- 独占修改 `modules/site-config/`；根 framework、生成目录、根状态、公共 contracts、`libs/platform`、`deploy/` 与其他模块均未修改。
+- 新增 [resource_reference_reader.go](../internal/resource_reference_reader.go)，并在 [outbox_repository.go](../internal/outbox_repository.go)、[server.go](../internal/transport/server.go) 完成对应函数和路由接线。
+
+## 已写职责
+
+- `ListResourceReferences` 从当前 active epoch 的真实 COMMITTED settings 修订生成完整资源引用页。来源规则直接复用现有 pin 代码：home 为 `home.background`、`home.poster`，品牌为 `branding.logo`、`branding.favicon`、`branding.share`；来源对象哈希、revisionId、sourceVersion 与 `referenceDigest` 材料保持同源。
+- 当前 revisionId 产生 `current`，旧 COMMITTED revision 产生 `history`；全部为 `confirmed=true`、`expiresAt=null`。分页使用稳定引用位置签名，scope 固定绑定 caller、actor、site、epoch、assetId 筛选与limit，watermark 与位置放入验签payload；水位变化后返回 VERSION_MISMATCH。
+- HTTP 授权与合同统一为 media/data-protection 纯服务或同站点 `site.manage/superadmin`；portal 委托不能绕过 identity 即时权限。
+- `RelayOutbox` 仅接收完整 Application 注入的真实 active outbox Store、jobs publisher、Runtime/WriteWindow、AdmitBatch 与 BindEventScope，并调用平台 `RunRelayBatch`；没有复制领取、重试、隔离或旧epoch循环。
+- `config/service.defaults.json` 与 deploy manifest 增加 `data-protection` 私有依赖地址，和现有服务端口/环境变量命名一致。
+
+## 复核与未闭项
+
+- `ValidateLanguageTag`、`ReadRuntimeState`、`All` 复核为与内部参考合同一致，未改写。
+- `RecoverAnnouncementJournal` 原合同要求缺 head/正文等证据的单个 COMMITTED 公告隔离并告警；现有代码整体启动失败关闭，是有明确依据的不一致，保留原合同并把实现修正列为本包待修，不扩大本轮业务语义。
+- `CheckWriteEpoch` 现有代码只检查 running/epoch，未满足合同要求的同一 SnapshotManager barrier/released gate，保持 blocked，待共享接口冻结。
+- `RelayOutbox` 单批函数源码已写，但尚无同一 SnapshotManager，因此不能装 BackgroundTasks，按ADR0004当前不可达；完整启动仍 blocked。根不得通过新增伪造依赖边把它标为可达，真正后台接线后才提交完整 Relay 交付。
+- 新文件需根 framework 登记；OpenAPI、files/functions/api/workflows 生成物需根 `make docs`。`gen` 未手改。
+- 完整 `check_docs` 当前只剩根登记/生成漂移与 Relay runtime 不可达；privacy-only、JSON解析和 `git diff --check` 通过。
+
+## 下一步（一项）
+
+主代理审核首批提交与修正提交范围；批准后由根登记新文件、执行生成并统一运行GitLab CI。Relay 真正后台接线、公告恢复差异修正及 SnapshotManager/activation/barrier/快照仍留在本包后续，不提前伪造完整启动。
+---
 # 2026-10-20 持久激活回执验签源码单元已通过
 
 ## 交付
@@ -23,7 +59,6 @@ CI170在`make docs`阶段因本轮新增合同的非空输入/输出缺少`const
 ### 收尾
 
 主代理已复核本源码单元范围。用户当前要求结束并push，停止后续实施；完整BuildApplication、wire、Relay、快照/屏障和恢复回执继续blocked，后续WIP只留本地，不进入本次交付。
-
 以下为历史记录。
 
 # 2026-10-18第三批源码检查通过
@@ -221,3 +256,14 @@ CI170在`make docs`阶段因本轮新增合同的非空输入/输出缺少`const
 ## 下一步（一项）
 
 在具备 Go 工具链后，先对本提交执行 `gofmt`、`go build ./cmd/site-config` 与 `go vet ./...`，再由集成会话登记公共结构文件并复跑根 `make check`；随后才实现本域初始化/配置业务函数。
+# 2026-10-20 恢复全包WIP停止交接（用户结束）
+
+本域原 `resume` 工作树已按用户“先结束然后push”指令停止新增功能；本代理不 push、不回退、不 reset、不删除旧 WIP，也不启动新检查。源码/合同交付提交为 `30ac79fcf878d1f3eb3fafb472204edae19bae4b`，父提交为 `6d83888b39ebbd3a624f58d820274e7c6f3072c7`，分支为 `codex/resume-20261020-site-config`。
+
+本轮 WIP 包含真实激活回执证据读取与验签、active 业务表登记、同事务 outbox 观察/封口/重开、SnapshotManager 屏障与 Ready 门禁、Capture/Stage/Archive、公告单条隔离、首页 cleanup、Relay 后台及完整 Build 源码/合同/业务文档。公共 `platform.*` 实现、GlobalSeal、生成物和集成 CI 仍由集成代理负责；未 CI 的新/改函数和文件均保持 `in_progress`/待验证，不写 `implemented` 或 `verified`。
+
+本地收尾前的脏文件仅为本域 `STATUS.md`、`progress.json`、`docs/handoff.md`；提交后工作树应干净。验签独立小候选的三份元数据由集成代理接管，本分支不与其互改。
+
+唯一下一步：集成代理接收 `30ac79fcf878d1f3eb3fafb472204edae19bae4b`，统一登记/生成并运行授权 CI，再按精确 SHA 更新台账。用户已结束，本域停止工作。
+
+以下为历史交接记录。
