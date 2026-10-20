@@ -125,7 +125,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		epoch := clients.Catalog.Epoch
 		application.activeDataEpoch = &epoch
 	}
-	mux := http.NewServeMux()
+	mux := apivalidate.NewPatternMux()
 	routed := gen.HandlerWithOptions(&server{app: application}, gen.StdHTTPServerOptions{
 		BaseRouter: mux,
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, _ error) {

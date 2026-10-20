@@ -58,7 +58,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "统计接口规格不可读")
 	}
-	mux := http.NewServeMux()
+	mux := apivalidate.NewPatternMux()
 	routed := gen.HandlerFromMux(&server{app: application}, mux)
 	handlers := map[string]http.Handler{}
 	callers := map[string][]string{}

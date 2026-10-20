@@ -3,6 +3,7 @@ package apivalidate
 import (
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -15,6 +16,7 @@ type PathRouter struct {
 }
 
 type pathRoute struct {
+	literal int // 模板里字面量字符数，越多越具体，优先匹配
 	method  string
 	pattern *regexp.Regexp
 	handler http.Handler
@@ -43,7 +45,20 @@ func (r *PathRouter) Handle(method, template string, handler http.Handler) {
 	}
 	pattern.WriteString(regexp.QuoteMeta(template[last:]))
 	pattern.WriteString("$")
-	r.routes = append(r.routes, pathRoute{strings.ToUpper(method), regexp.MustCompile(pattern.String()), handler})
+	literal := len(templateParam.ReplaceAllString(template, ""))
+	r.routes = append(r.routes, pathRoute{literal, strings.ToUpper(method), regexp.MustCompile(pattern.String()), handler})
+	sort.SliceStable(r.routes, func(i, j int) bool { return r.routes[i].literal > r.routes[j].literal })
+}
+
+// PatternMux 让 oapi-codegen 生成的 "METHOD /path/{id}:action" 注册走 PathRouter，
+// 避开标准库 ServeMux 对段内后缀的限制。
+type PatternMux struct{ *PathRouter }
+
+func NewPatternMux() *PatternMux { return &PatternMux{NewPathRouter(nil)} }
+
+func (m *PatternMux) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	method, path, _ := strings.Cut(pattern, " ")
+	m.Handle(method, path, http.HandlerFunc(handler))
 }
 
 func (r *PathRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {

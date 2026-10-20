@@ -29,7 +29,15 @@ func RunConsumer(ctx context.Context, client platform.EventConsumerClient, confi
 
 // RunConsumerWithResult退出时等待分片结束，再返回实际累计计数。
 func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerClient, config platform.ConsumerConfig, handlers platform.EventHandlerRegistry) (result platform.ConsumerRunResult, err error) {
-	if client == nil || config.ConsumerID == "" || config.Runtime == nil || config.ValidatePayload == nil || config.AdmitBatch == nil || config.AdmitDelivery == nil || len(config.Events) < 1 || len(config.Events) > maxEvents || config.MaxInFlight < 1 || config.MaxInFlight > maxInFlightCap {
+	// 未接入快照屏障的服务可以不提供准入，此时直接放行。
+	passthrough := func(ctx context.Context) (context.Context, func(), error) { return ctx, func() {}, nil }
+	if config.AdmitBatch == nil {
+		config.AdmitBatch = passthrough
+	}
+	if config.AdmitDelivery == nil {
+		config.AdmitDelivery = passthrough
+	}
+	if client == nil || config.ConsumerID == "" || config.Runtime == nil || config.ValidatePayload == nil || len(config.Events) < 1 || len(config.Events) > maxEvents || config.MaxInFlight < 1 || config.MaxInFlight > maxInFlightCap {
 		return result, platform.NewError(platform.CodeValidation, false, "订阅配置或真实运行依赖不完整")
 	}
 	subscribed := map[string]bool{}

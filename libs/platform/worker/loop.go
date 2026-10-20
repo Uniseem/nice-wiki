@@ -35,7 +35,15 @@ func RunWorkerLoop(ctx context.Context, client platform.WorkerJobsClient, config
 
 // RunWorkerLoopWithResult 仅累计实际jobs回执；不把未确认的在途/取消算成终局。
 func RunWorkerLoopWithResult(ctx context.Context, client platform.WorkerJobsClient, config platform.WorkerConfig, executors platform.JobExecutorRegistry) (platform.WorkerRunResult, error) {
-	if client == nil || len(config.JobTypes) == 0 || config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes || config.OperationContext == nil || config.Runtime == nil || config.AdmitBusiness == nil || config.BindExecutionScope == nil {
+	if config.AdmitBusiness == nil {
+		config.AdmitBusiness = func(ctx context.Context) (context.Context, func(), error) { return ctx, func() {}, nil }
+	}
+	if config.BindExecutionScope == nil {
+		config.BindExecutionScope = func(ctx context.Context, _ platform.OperationContext, _ platform.ClaimedJob) (context.Context, error) {
+			return ctx, nil
+		}
+	}
+	if client == nil || len(config.JobTypes) == 0 || config.Owner == "" || config.MaxConcurrency < 1 || config.MaxConcurrency > maxConcurrencyCap || len(config.JobTypes) > maxJobTypes || config.OperationContext == nil || config.Runtime == nil {
 		return platform.WorkerRunResult{}, platform.NewError(platform.CodeValidation, false, "worker配置不合法")
 	}
 	typed, ok := client.(platform.TypedWorkerJobsClient)

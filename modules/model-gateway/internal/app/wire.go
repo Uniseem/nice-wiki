@@ -69,7 +69,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = store.Close()
 		return nil, err
 	}
-	defer store.Close()
+	retain := false
+	defer func() {
+		if !retain {
+			_ = store.Close()
+		}
+	}()
 	taskGroup, err := lifecycle.NewTaskGroup(ctx, 256)
 	if err != nil {
 		return nil, err
@@ -159,7 +164,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	for operationID, handler := range security.NewCredentialHandlers() {
 		handlers[operationID] = handler
 	}
-	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
 		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
@@ -204,7 +209,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域完整handler、恢复回执及后台循环尚未实现")
+	application := transport.NewApplication(config, anchors, runtimeAuthority, runtimeView.DataEpoch, true, true, true)
+	retain = true
+	initialized := func(work context.Context) (bool, error) {
+		return ReadInitializationState(work, siteClient, validators["SiteInitializationStatusResult"])
+	}
+	application.ConfigureBusiness(handler, nil, func(context.Context) error { return store.Close() }, func(context.Context) (bool, error) { return true, nil }, initialized)
+	return application, nil
 }
 
 // NewRuntimeClient 为进程模板构造 site-config 运行权威客户端；只通过

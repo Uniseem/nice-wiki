@@ -66,6 +66,11 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 			}
 		}
 	}
+	stripUnsupportedKeywords(spec)
+	if config.AdmitBusiness == nil {
+		// 未接入快照屏障的服务：只确认代次一致且处于运行阶段。
+		config.AdmitBusiness = simpleAdmission(config.Runtime, config.OpenedDataEpoch)
+	}
 	rewrite := rewriteColonRoutes(spec)
 	validate, err := newRequestValidator(spec, rewrite)
 	if err != nil {
@@ -395,6 +400,7 @@ func NewPayloadValidator(document []byte, schemaName string) (func(json.RawMessa
 	if err != nil || spec.Components == nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "消息载荷规格不可读")
 	}
+	stripUnsupportedKeywords(spec)
 	ref := spec.Components.Schemas[schemaName]
 	if ref == nil || ref.Value == nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "消息载荷schema未登记")
@@ -409,6 +415,41 @@ func NewPayloadValidator(document []byte, schemaName string) (func(json.RawMessa
 		}
 		return nil
 	}, nil
+}
+
+// stripUnsupportedKeywords 去掉 kin-openapi（OpenAPI 3.0）不认识的 if/then/else：它们只用于文档层面的
+// 条件约束，边界校验以其余 schema 为准，保留会让整份规格无法加载。
+func stripUnsupportedKeywords(spec *openapi3.T) {
+	seen := map[*openapi3.Schema]bool{}
+	var visit func(ref *openapi3.SchemaRef)
+	visit = func(ref *openapi3.SchemaRef) {
+		if ref == nil || ref.Value == nil || seen[ref.Value] {
+			return
+		}
+		schema := ref.Value
+		seen[schema] = true
+		for _, key := range []string{"if", "then", "else"} {
+			delete(schema.Extensions, key)
+		}
+		for _, property := range schema.Properties {
+			visit(property)
+		}
+		visit(schema.Items)
+		if schema.AdditionalProperties.Schema != nil {
+			visit(schema.AdditionalProperties.Schema)
+		}
+		for _, group := range []openapi3.SchemaRefs{schema.OneOf, schema.AnyOf, schema.AllOf} {
+			for _, member := range group {
+				visit(member)
+			}
+		}
+		visit(schema.Not)
+	}
+	if spec.Components != nil {
+		for _, schema := range spec.Components.Schemas {
+			visit(schema)
+		}
+	}
 }
 
 var colonAction = regexp.MustCompile(`\}:([A-Za-z0-9-]+)$`)
@@ -528,4 +569,20 @@ func fieldIssues(err error) []platform.FieldIssue {
 		}
 	}
 	return issues
+}
+
+func simpleAdmission(runtime func(context.Context) (platform.RuntimeView, error), openedEpoch platform.Identifier) platform.WorkAdmission {
+	return func(ctx context.Context) (context.Context, func(), error) {
+		view, err := runtime(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		if openedEpoch != "" && view.DataEpoch != openedEpoch {
+			return nil, nil, platform.NewError(platform.CodeVersionMismatch, false, "进程数据代次已变化，等待重启")
+		}
+		if view.Phase != platform.PhaseRunning || view.Maintenance {
+			return nil, nil, platform.NewError(platform.CodeLocked, true, "维护中不接受新业务")
+		}
+		return ctx, func() {}, nil
+	}
 }

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -122,7 +123,8 @@ func validateEnvelope(envelope platform.EventEnvelope) error {
 
 // Store 是OutboxStore的SQLite默认实现；与业务库同库。
 type Store struct {
-	db *sql.DB
+	ensure sync.Once
+	db     *sql.DB
 }
 
 // NewStore 构造默认outbox存储。
@@ -210,6 +212,8 @@ WHERE state IN ('pending','quarantined') AND data_epoch <> ?`
 
 // DiscardOtherEpochs 撤销旧代pending/quarantine活动资格并保留完整行审计；恢复换入后调用。
 func (s *Store) DiscardOtherEpochs(ctx context.Context, epoch platform.Identifier) (int64, error) {
+	// 转发循环总是先走这里；表还不存在（本域尚无事件产出）时顺手建好。
+	s.ensure.Do(func() { _ = EnsureSchema(ctx, s.db) })
 	result, err := s.db.ExecContext(ctx, discardSQL, epoch)
 	if err != nil {
 		return 0, platform.NewError(platform.CodeInternal, true, "隔离旧代outbox失败")
