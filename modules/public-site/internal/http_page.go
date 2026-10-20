@@ -182,7 +182,7 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 	if home.Background.Kind == "color" && len(home.Background.Color) == 7 && home.Background.Color[0] == '#' {
 		hero.HTML = strings.Replace(hero.HTML, "<main class=\"hero ", "<main style=\"background:"+html.EscapeString(home.Background.Color)+"\" class=\"hero ", 1)
 	}
-	page := "<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + html.EscapeString(config.Config.Name) + "</title><style>body{margin:0;font:16px/1.6 system-ui}"+announcementCSS+".hero a{display:inline-block;margin:.5rem;padding:.6rem 1.4rem;border:1px solid currentColor;border-radius:999px;color:inherit;text-decoration:none}</style></head><body>" + loadAnnouncement(ctx, op) + hero.HTML + "</body></html>"
+	page := "<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + html.EscapeString(config.Config.Name) + "</title><style>body{margin:0;font:16px/1.6 system-ui}" + announcementCSS + ".hero a{display:inline-block;margin:.5rem;padding:.6rem 1.4rem;border:1px solid currentColor;border-radius:999px;color:inherit;text-decoration:none}</style></head><body>" + loadAnnouncement(ctx, op) + hero.HTML + "</body></html>"
 	return HandleHomeResult{Status: 200, HTML: page}, nil
 }
 
