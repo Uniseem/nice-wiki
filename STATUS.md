@@ -19,15 +19,16 @@ python3 scripts/dev.py up
 - 审计：各服务 HTTP 边界在后台写操作成功后自动向 analytics 追加审计（libs/platform/audit，只覆盖合同枚举内的动作，metadata 为空）。
 - 问答（M3 第一版）：访客在文档页右下角提问 → 准入（traffic-guard）→ 检索知识库 → 模型流式回答 → 引用来源。需要先在后台配好模型接入（供应方/模型/档位/任务）、知识库索引、防滥用策略和问答策略；用本机假供应方联调通过，没有用真实模型。简化项：没有前置分类/检索核查/语义缓存/压缩，轮次在 qa 进程内执行（不走 jobs）；人机验证用浏览器里的 PoW（Turnstile 没做）。
 - 文档翻译（M3）：后台“语言”页给每篇已发布文档一个“翻译”按钮 → 按块调模型翻译（保留行内格式）→ 访客在 /<语言>/… 看到译文。用假供应方联调通过。简化项：没有术语表/翻译记忆/反思润色，翻译在 localization 进程内执行；“启用语言时按估价批量翻译”（approve-plan）仍只建 jobs 任务、没有执行器；界面文案翻译、语言建议、缓存回答翻译未接。
-- 后台页面：文档、站点设置、账号与权限、任务队列、统计与审计、备份与恢复（界面壳在 portal/web，各域 module.js 由壳挂载）。
+- 后台页面：文档、站点设置（含首页主视觉、公告横幅）、资源库、账号与权限、语言、模型接入（供应方/模型/档位/任务）、知识库索引、长期记忆、问答管理、防滥用、任务队列、统计与审计、备份与恢复（界面壳在 portal/web，各域 module.js 由壳挂载）。
 - 部署文件（未部署过）：各域 Dockerfile、`deploy/docker-compose.yml`、Caddyfile、`deploy/init-secrets.sh`，由 `scripts/gen_deploy.py` 生成。
 
 ## 下一步（按顺序）
 
-1. M2 余项：图片多宽变体、视频元数据与封面、资源库页面、traffic-guard 的访客侧接入、旧代 outbox 之外的事件订阅（knowledge/media/localization 消费 content 事件）。
-2. M3：model-gateway / knowledge / memory / qa / localization 的后台页面与接口补全（真实模型调用需要你当次同意并提供供应方密钥）。
-3. M4：各域屏障与快照导出、恢复换目录、data-protection 备份/恢复/镜像。
-4. M5：在服务器上部署（需要你当次同意）。
+1. 用真实模型试一遍 AI 功能（需要你当次同意并提供供应方密钥）：后台“模型接入”配供应方/模型/档位/任务 → “知识库索引”配置并给文档建索引 → “防滥用”保存策略 → “问答管理”开启公开问答 → “语言”启用语言并翻译。本地联调用的是 scratchpad 里的假供应方，不在仓库里。
+2. M2 余项：旧代 outbox 之外的事件订阅（knowledge/media/localization 消费 content 事件，目前索引与翻译都要后台手动触发）。
+3. M3 补完：前置分类/检索核查/语义缓存、approve-plan 批量翻译执行器、界面文案翻译、语言建议。
+4. M4：各域屏障与快照导出、恢复换目录、data-protection 备份/恢复/镜像。
+5. M5：在服务器上部署（需要你当次同意）；secrets 文件权限与容器用户的关系还没在真实 docker 里验证。
 
 ## 已知缺口
 
@@ -35,7 +36,7 @@ python3 scripts/dev.py up
 - 分片 sitemap 未挂。
 - 各服务用 `lifecycle.SimpleAdmission` 代替快照屏障准入，M4 再换。
 - media 的 readVideoMetadata（平台视频链接）、localization 的界面文案翻译/语言建议/缓存回答翻译/approve-plan 执行器、qa 的调试台/缓存/前置分类、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
-- 后台界面：各域都有页面了（知识库索引页只能配置与查看，没有模型档位时无法实际建索引）。
+- 站点初始化之前，依赖站点身份的服务（model-gateway、knowledge、analytics 等）会启动失败退出；初始化完成后 `dev.py up` 再跑一次（docker 里靠自动重启）。
 
 ## 未合并的旧工作
 
