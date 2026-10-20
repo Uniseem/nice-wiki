@@ -26,6 +26,9 @@ var tildeAction = regexp.MustCompile(`\}/~([A-Za-z0-9-]+)$`)
 
 var templateParam = regexp.MustCompile(`\{[^/}]+\}`)
 
+// {name*} 匹配含斜杠的整个剩余路径。
+var templateWildcard = regexp.MustCompile(`\{[^/}]+\*\}`)
+
 // NewPathRouter 创建路由器；没有匹配项时交给 fallback（可为 nil，此时返回 404）。
 func NewPathRouter(fallback http.Handler) *PathRouter {
 	return &PathRouter{fallback: fallback}
@@ -40,7 +43,11 @@ func (r *PathRouter) Handle(method, template string, handler http.Handler) {
 	last := 0
 	for _, loc := range templateParam.FindAllStringIndex(template, -1) {
 		pattern.WriteString(regexp.QuoteMeta(template[last:loc[0]]))
-		pattern.WriteString("[^/]+")
+		if templateWildcard.MatchString(template[loc[0]:loc[1]]) {
+			pattern.WriteString(".+")
+		} else {
+			pattern.WriteString("[^/]+")
+		}
 		last = loc[1]
 	}
 	pattern.WriteString(regexp.QuoteMeta(template[last:]))

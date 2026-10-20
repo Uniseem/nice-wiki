@@ -79,6 +79,15 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			}
 			w.Header().Set("Content-Type", htmlType)
 			w.Header().Set("Cache-Control", "no-cache")
+			if result.Status == http.StatusMovedPermanently {
+				http.Redirect(w, r, result.Location, result.Status)
+				return
+			}
+			if result.Status == http.StatusGone {
+				w.WriteHeader(result.Status)
+				_, _ = w.Write([]byte(result.HTML))
+				return
+			}
 			w.Header().Set("ETag", result.ETag)
 			if r.Header.Get("If-None-Match") == result.ETag {
 				w.WriteHeader(http.StatusNotModified)
@@ -126,6 +135,11 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "公开站点接口规格不可读")
+	}
+	// 嵌套文档的公开路径含多段，{slug*} 让路由匹配剩余整段路径。
+	if item := spec.Paths.Value("/{locale}/{slug}"); item != nil {
+		spec.Paths.Delete("/{locale}/{slug}")
+		spec.Paths.Set("/{locale}/{slug*}", item)
 	}
 	type route struct{ method, path string }
 	var mounted []route

@@ -232,11 +232,21 @@ func httpCanonicalHeader(name string) string {
 func matchTemplate(template, decodedPath string) ([]RouteParameter, bool) {
 	templateSegments := splitPath(template)
 	pathSegments := splitPath(decodedPath)
+	// 公开页面的末段 {slug} 可以是多段（嵌套文档的路径），合并成一个参数。
+	mergedTail := false
+	if n := len(templateSegments); n > 0 && templateSegments[n-1] == "{slug}" && len(pathSegments) > n {
+		pathSegments = append(pathSegments[:n-1:n-1], strings.Join(pathSegments[n-1:], "/"))
+		mergedTail = true
+	}
 	if len(templateSegments) != len(pathSegments) {
 		return nil, false
 	}
 	parameters := make([]RouteParameter, 0, 4)
 	for i, templateSegment := range templateSegments {
+		if mergedTail && i == len(templateSegments)-1 {
+			parameters = append(parameters, RouteParameter{Name: "slug", Value: pathSegments[i]})
+			continue
+		}
 		pattern := "^"
 		remaining := templateSegment
 		names := make([]string, 0, 2)

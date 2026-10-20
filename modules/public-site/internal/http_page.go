@@ -2,6 +2,8 @@ package publicsite
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"html"
 	"net/url"
 	"strings"
@@ -15,15 +17,20 @@ type HandlePageInput struct {
 	DataEpoch string
 }
 type HandlePageResult struct {
-	Status int
-	HTML   string
-	ETag   string
+	Status   int
+	HTML     string
+	ETag     string
+	Location string
 }
 
 // HandlePage 每次请求都读权威：导航树确认已发布，再取精确发布正文渲染成完整 HTML。
 func HandlePage(ctx context.Context, op platform.OperationContext, in HandlePageInput) (HandlePageResult, error) {
 	page, err := renderPage(ctx, op, in.Locale, in.DataEpoch, func(nodes []NavigationNode) (NavigationNode, bool) {
-		suffix := "/" + in.Locale + "/" + url.PathEscape(in.Slug)
+		segments := strings.Split(in.Slug, "/")
+		for i := range segments {
+			segments[i] = url.PathEscape(segments[i])
+		}
+		suffix := "/" + in.Locale + "/" + strings.Join(segments, "/")
 		for _, node := range nodes {
 			if strings.HasSuffix(node.CanonicalPath, suffix) {
 				return node, true
@@ -32,9 +39,51 @@ func HandlePage(ctx context.Context, op platform.OperationContext, in HandlePage
 		return NavigationNode{}, false
 	})
 	if err != nil {
+		var failure *platform.Error
+		if errors.As(err, &failure) && failure.Code == platform.CodeNotFound {
+			if moved, resolveErr := resolveMoved(ctx, in); resolveErr == nil && moved.Status != 0 {
+				return moved, nil
+			}
+		}
 		return HandlePageResult{}, err
 	}
-	return HandlePageResult{200, page, "\"" + string(platform.HashBytes([]byte(page))) + "\""}, nil
+	return HandlePageResult{200, page, "\"" + string(platform.HashBytes([]byte(page))) + "\"", ""}, nil
+}
+
+// resolveMoved 页面不在公开树里时，向 content 查旧路径：改名/移动得到 301，删除得到 410。
+func resolveMoved(ctx context.Context, in HandlePageInput) (HandlePageResult, error) {
+	directory, err := directoryFrom(ctx)
+	if err != nil {
+		return HandlePageResult{}, err
+	}
+	raw, err := directory.Content.ResolvePublicPath(ctx, url.Values{"path": []string{"/" + in.Slug}})
+	if err != nil {
+		return HandlePageResult{}, err
+	}
+	var result struct {
+		State         string  `json:"state"`
+		CanonicalPath *string `json:"canonicalPath"`
+	}
+	if json.Unmarshal(raw, &result) != nil {
+		return HandlePageResult{}, dependency("旧路径决定不可读")
+	}
+	switch result.State {
+	case "redirect", "found":
+		if result.CanonicalPath != nil {
+			site, siteErr := readSiteSnapshot(ctx, directory.SiteConfig)
+			if siteErr != nil {
+				return HandlePageResult{}, siteErr
+			}
+			href, hrefErr := relativeLink(ctx, platform.OperationContext{}, site.publicBaseURL, in.Locale, *result.CanonicalPath, "")
+			if hrefErr != nil {
+				return HandlePageResult{}, hrefErr
+			}
+			return HandlePageResult{Status: 301, Location: href}, nil
+		}
+	case "gone":
+		return HandlePageResult{Status: 410, HTML: "<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><meta charset=\"utf-8\"><title>页面已删除</title><body><h1>该页面已被删除</h1></body></html>"}, nil
+	}
+	return HandlePageResult{}, nil
 }
 
 type HandleHomeInput struct {
