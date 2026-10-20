@@ -4,6 +4,12 @@
 
 ## 结构修复候选（仅本地，暂停 CI 推送）
 
+### pipeline 182/183：结构候选 CI 纠偏
+
+`5e40528eaeee22ac7fcd58597c395b62653b2a52` 已推至 GitLab 隔离分支 `codex/ci-20261020-r1-9b359c0e`，pipeline 182：生成 job 741、content-media job 743、AI job 744、前端 job 745 成功；foundation job 742 失败，精确根因为 `modules/site-config/internal/app/wire.go:257` 引用了不存在的 `platform.SnapshotSwapEvidence`。该树未计源码通过，且没有网络、权限或 Runner 阻塞。
+
+本地独立窄修将实际包限定改为 `lifecycle.SnapshotSwapEvidence`，候选 `90dc3577e02bd93c37ef2579391ecfbd28879b0f` 普通快进推送后触发 pipeline 183：生成 job 746、foundation job 747、content-media job 748、AI job 749、前端 job 750 全部 success。job 746 的 `generated.patch` 为 0 字节，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`；pipeline 183 的 Go 分片和完整 `make check`均通过。该结果只证明 CI/结构门槛，不标业务 accepted/verified；pipeline 182 的 foundation 失败仍保留为失败证据。
+
 结构修复分支 `codex/r1-structure-fix-20261020` 基于暂停候选 `6f25dd57386081b5903bc6c02f448ea769466618`，原 CI worktree和远端隔离分支保持不变。公共 checker、platform、identity、site-config 已顺序处理：identity clean `69f1d6cd52355e2b21e2e299fe35615ba4b19604`，site-config合同收口 `b046e22c6e763c49f301e2c30494b3e0ca939e16`并含最新代理交接 `73e7676e`；机器合同中的 platform ID 使用 `platform.RegisterWorkTable`/`platform.MigrateRestoredDatabase`，实际Go包仍为outbox。
 
 当前 `python3 scripts/check_docs.py --summary` 通过，统计为15 modules、2 shared、1060 files、2484 functions、408 operations、2603 types；`make docs`、JSON、`git diff --check`、`make privacy`通过。未运行Go、pnpm、完整`make check`或真实服务，未把本地结构通过记为implemented/verified，也未推送任何新SHA。

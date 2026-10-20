@@ -4,6 +4,12 @@
 
 ## 当前结构修复集成候选（暂停 CI 推送）
 
+### GitLab pipeline 182/183：结构候选 CI 纠偏
+
+精确结构候选 `5e40528eaeee22ac7fcd58597c395b62653b2a52` 已普通快进推至隔离分支 `codex/ci-20261020-r1-9b359c0e`，pipeline 182 未通过：生成 job 741、content-media job 743、AI job 744、前端 job 745 成功；foundation job 742 失败于 `modules/site-config/internal/app/wire.go:257` 的 `platform.SnapshotSwapEvidence` 未定义，未把该失败树记为源码通过。该失败不涉及网络、权限或 Runner 阻塞。
+
+独立 CI 窄修仅把该参数改为实际定义包 `lifecycle.SnapshotSwapEvidence`，形成 `90dc3577e02bd93c37ef2579391ecfbd28879b0f`，随后普通快进推至同一隔离分支。pipeline 183 全部成功：生成 job 746、foundation job 747、content-media job 748、AI job 749、前端 job 750；`generated.patch` 为 0 字节，SHA-256 为 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。该证据覆盖 GitLab 生成、三个 Go 分片的 readonly build/vet/gofmt 与完整 `make check`、前端检查；不等于业务验收或 accepted。原 182 失败记录保留，不以 183 结果抹除。
+
 独立分支 `codex/r1-structure-fix-20261020` 从暂停的候选 `6f25dd57386081b5903bc6c02f448ea769466618` 建立；原 CI worktree和GitLab隔离分支不改、不推。公共 checker 修复提交为 `a8699993a87e75dcb6de5eab9c0bba4e40443bee`、`d91078748d78960a4e50266a1a9ba655144021fb`、`49c42f70963decf660163a5ac27e993201a3f147`；platform公共合同/类型/台账和文档已顺序收口，最新公共阶段提交为 `559de687b4ca849c962e1089354f9fd03c48e65c`。
 
 identity 已顺序合入 clean `69f1d6cd52355e2b21e2e299fe35615ba4b19604`（源码/合同 `2f52be9c`），并登记本域生成 `*gen.SiteConfigClient` 类型；site-config 已合入合同收口 `b046e22c6e763c49f301e2c30494b3e0ca939e16` 及准确封口阻塞交接，代理分支最新 `73e7676e`。两域完整 CI仍未执行，所有相关项保持 blocked/in_progress，不标 implemented/verified。
