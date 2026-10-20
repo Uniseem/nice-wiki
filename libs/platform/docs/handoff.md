@@ -1,3 +1,15 @@
+# 2026-10-20 R1-00公共机制续接
+
+当前独占集成worktree分支`codex/closeout-20261020-integration`，基线`1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`。
+
+激活回执公共API已写入`serviceauth`：`ActivationReceiptClaims`含version/restoreId/module/stageId/targetDataEpoch/state/manifestHash/recordedAt；signature独立绑定全部字段，`VerifyActivationReceipt`另收外层已验签caller issuer。site-config登记时仍须核caller=module、input.restoreId、current phase、expectedRevision与域覆盖。标准JWS/CanonicalJSON复用既有底层。
+
+outbox新增`Store.ObserveTx/SealTx/ResumeTx`：只接收调用方同一SQLite `platform.Tx`，原Observe/Seal/Resume与事务变体复用同一SQL；不新增回调框架。域须把真实工作水位/CAS和outbox状态同事务提交，多文件或多DB只在真实SnapshotManager文件scope及本域journal证据内收敛，不使用统一“多文件必失败”替代正文权威捕获。
+
+本轮尚无GitLab生成/format/build/vet/check证据，台账函数保持blocked/not_run，完成数不增加。jobs全域封口权威与restore control epoch规则仅形成待审提案，未在根或任何域写替代实现。未吸收identity/site-config/jobs未审准提交，无真实接口/模型/部署。
+
+以下为历史交接。
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。

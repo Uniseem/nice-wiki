@@ -24,7 +24,9 @@ SnapshotSealProof为{barrierId,dataEpoch,observations,brokerBefore,brokerAfter,n
 
 任何变化都保留维护；显式ResumeDrain绑定原sealHash，只重开旧清理，不开新业务/paid，并需重新Drain/全域取证。重启safe先转failed，不能复用旧进程0计数；必须显式resume后重证。ReleaseBarrier只能在真实全局running且opened epoch匹配、计数0时重开旧持久gate并解除本域屏障。
 
-标准outbox.Store.Observe从SQL统一revision与全部活动行读事实；Seal原子CAS revision、活动0并持久hash，触发器禁止此后INSERT/UPDATE/DELETE。Resume只认同一原hash，重复释放幂等。本域额外业务表/周期任务也须真实SealWork/ObserveWork封口，单靠outbox不证明整个域安全。
+标准outbox.Store.Observe从SQL统一revision与全部活动行读事实；Seal原子CAS revision、活动0并持久hash，触发器禁止此后INSERT/UPDATE/DELETE。Resume只认同一原hash，重复释放幂等。域业务水位与outbox同库时须用ObserveTx/SealTx/ResumeTx共享调用方同一`platform.Tx`，由调用方把域CAS和outbox封口或重开一并提交或回滚；不得另起事务后自称原子。本域额外业务表、文件权威或周期任务仍须真实SealWork/ObserveWork证据，单靠outbox不证明整个域安全。
+
+激活回执的独立签名载荷ActivationReceiptClaims绑定`version,restoreId,module,stageId,targetDataEpoch,state,manifestHash,recordedAt`。SignActivationReceipt使用模块部署Ed25519密钥与既有CanonicalJSON/JWS底层签发；VerifyActivationReceipt从已登记模块公钥验签并核规范载荷。外层HTTP服务断言仍只证明caller，site-config还必须要求caller=module且请求restoreId、current phase、expectedRevision和域覆盖一致；不能用结构合法或空签名代替持久来源证明。
 
 ## cleanupScope
 

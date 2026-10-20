@@ -898,8 +898,164 @@
     {
       "path": "libs/platform/serviceauth/delegation.go",
       "kind": "handwritten",
-      "purpose": "用户委托验证与作用域绑定的分页游标签名",
+      "purpose": "服务签名、用户委托验证、恢复激活回执与作用域绑定的分页游标签名",
       "functions": [
+        {
+          "id": "platform.SignActivationReceipt",
+          "name": "SignActivationReceipt",
+          "signature": "func SignActivationReceipt(key SigningKey, claims ActivationReceiptClaims) (string, error)",
+          "inputs": [
+            {
+              "name": "key",
+              "type": "SigningKey",
+              "description": "完成恢复切换或换回的有状态域部署密钥",
+              "constraints": [
+                "只从受控secret文件读取，不进日志或返回值"
+              ]
+            },
+            {
+              "name": "claims",
+              "type": "ActivationReceiptClaims",
+              "description": "与实际stage、目标代次和持久回执完全一致的规范声明",
+              "constraints": [
+                "restoreId、module、stageId、targetDataEpoch、state、manifestHash、recordedAt齐全"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "signature",
+              "type": "string",
+              "description": "Ed25519紧凑JWS，绑定完整规范声明",
+              "constraints": [
+                "只作为ActivationReceipt.signature持久，长度不超过4096"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "声明或签名密钥失败",
+              "constraints": [
+                "不含密钥或恢复数据"
+              ]
+            }
+          ],
+          "purpose": "为有状态域完成恢复切换或换回签发与当前restore完整绑定的回执",
+          "steps": [
+            "校验version=1及restoreId/module/stageId/targetDataEpoch为合法Identifier，state仅为switched或rolled-back，manifestHash为SHA-256，recordedAt为有效UTC时间",
+            "从部署secret加载模块Ed25519私钥；不为缺失或错误密钥生成弱签名",
+            "以既有CanonicalJSON编码完整claims，头固定NW-ACTIVATION-RECEIPT与EdDSA，证明中含issuer、purpose及payloadHash",
+            "返回可持久验收据签名；认证服务断言另行发行，不复用回执签名作为HTTP调用凭据"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "回执声明缺失、代次/阶段/摘要/时间不合法",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "模块签名密钥不可读取或不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "读取受控签名私钥；不写业务数据、不记录密钥"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "只由完成本次snapshot Stage/ApplyRestoreSwap并持有本模块部署密钥的有状态域调用"
+          },
+          "concurrency": "纯签名函数，可并发",
+          "idempotency": "同一密钥与完整claims产生同一签名；重复调用不改变持久状态",
+          "dependencies": [
+            "platform.LoadSigningKey",
+            "platform.CanonicalJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.VerifyActivationReceipt",
+          "name": "VerifyActivationReceipt",
+          "signature": "func VerifyActivationReceipt(anchors TrustAnchors, issuer string, claims ActivationReceiptClaims, signature string) error",
+          "inputs": [
+            {
+              "name": "anchors",
+              "type": "TrustAnchors",
+              "description": "可信服务Ed25519公钥表",
+              "constraints": [
+                "issuer与keyId必须精确登记"
+              ]
+            },
+            {
+              "name": "issuer",
+              "type": "string",
+              "description": "外层已认证服务断言的caller slug",
+              "constraints": [
+                "必须等于claims.module"
+              ]
+            },
+            {
+              "name": "claims",
+              "type": "ActivationReceiptClaims",
+              "description": "待登记的完整持久回执字段",
+              "constraints": [
+                "包含独立restoreId，不能只信body或当前运行状态"
+              ]
+            },
+            {
+              "name": "signature",
+              "type": "string",
+              "description": "ActivationReceipt.signature原文",
+              "constraints": [
+                "非空且不超过4096字节"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "来源验签或载荷绑定失败",
+              "constraints": [
+                "无error时才可将回执作为持久来源证明"
+              ]
+            }
+          ],
+          "purpose": "验证有状态域持久激活回执的独立来源及其与restore完整绑定",
+          "steps": [
+            "要求外层caller=issuer=claims.module，再重做ActivationReceiptClaims结构约束；外层HTTP服务断言继续由公共入口单独验证",
+            "解码并严格核规范JWS头NW-ACTIVATION-RECEIPT/EdDSA/kid与登记的公钥，不允许alg替换或未登记key",
+            "只从issuer名下TrustAnchors取公钥验证Ed25519签名；issuer不能由body自报替代",
+            "严格解码规范证明并核purpose及payloadHash；claims任一字段改变、restoreId替换或其他恢复回执重放均失败",
+            "返回空error仅表示持久来源与完整字段绑定成立；site-config仍须核当前phase、expectedRevision、restoreId和域覆盖"
+          ],
+          "errors": [
+            {
+              "code": "UNAUTHENTICATED",
+              "when": "caller/issuer/key/header或签名无效",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "规范编码或签名载荷摘要不一致",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "由site-config在同请求结构、服务断言、caller/module及控制阶段校验后调用"
+          },
+          "concurrency": "纯函数，可并发",
+          "idempotency": "无状态；相同证据返回相同结论",
+          "dependencies": [
+            "platform.CanonicalJSON"
+          ],
+          "resources": [],
+          "contract": "reference"
+        },
         {
           "id": "platform.VerifyDelegation",
           "name": "VerifyDelegation",
@@ -15524,6 +15680,75 @@
           "contract": "reference"
         },
         {
+          "id": "platform.Store.ObserveTx",
+          "name": "Store.ObserveTx",
+          "signature": "func (s *Store) ObserveTx(ctx context.Context, tx Tx) (Observation, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "事务读取截止",
+              "constraints": [
+                "由调用方持有的事务上下文派生"
+              ]
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "调用方持有的本域同一SQLite事务",
+              "constraints": [
+                "必须与业务水位CAS使用同一* sql.Tx"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "observation",
+              "type": "Observation",
+              "description": "事务快照中的outbox revision、sealHash与完整活动计数",
+              "constraints": [
+                "未知状态不当作0"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "事务不可读或活动状态未知",
+              "constraints": [
+                "失败时observation无效"
+              ]
+            }
+          ],
+          "purpose": "在调用方业务事务内读取一致outbox水位，供域工作水位与outbox同事务核对",
+          "steps": [
+            "使用与Store.Observe相同的控制行及全部活动行SQL，不复制域字段或另建回调包装",
+            "在调用方tx中读取并拒绝非法revision或未知outbox状态",
+            "不提交或回滚tx；调用方在同一事务内完成本域工作CAS、SealTx或ResumeTx"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "调用方事务不可读取outbox",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "revision或活动行状态未知",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数；只有持有本域同一数据库事务的可信域装配可调用"
+          },
+          "concurrency": "随调用方SQLite事务隔离与锁序；不另建事务",
+          "idempotency": "只读，可重复",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
           "id": "platform.Store.Seal",
           "name": "Store.Seal",
           "signature": "func (s *Store) Seal(ctx context.Context, revision int64, proofHash string) error",
@@ -15569,6 +15794,90 @@
           "contract": "reference"
         },
         {
+          "id": "platform.Store.SealTx",
+          "name": "Store.SealTx",
+          "signature": "func (s *Store) SealTx(ctx context.Context, tx Tx, revision int64, proofHash string) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "事务封口截止",
+              "constraints": [
+                "由调用方持有的事务上下文派生"
+              ]
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "调用方持有的本域同一SQLite事务",
+              "constraints": [
+                "必须与业务工作水位CAS使用同一* sql.Tx"
+              ]
+            },
+            {
+              "name": "revision",
+              "type": "int64",
+              "description": "ObserveTx读到的实际outbox revision",
+              "constraints": [
+                "必须大于0且精确匹配"
+              ]
+            },
+            {
+              "name": "proofHash",
+              "type": "string",
+              "description": "当前域封口证明SHA-256",
+              "constraints": [
+                "必须为合法Hash"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "CAS、活动行或SQL失败",
+              "constraints": [
+                "无error不代表tx已提交"
+              ]
+            }
+          ],
+          "purpose": "在调用方业务事务内以真实revision和活动0原子封口outbox",
+          "steps": [
+            "校验revision与proofHash，并执行与Store.Seal相同的控制行CAS及活动行检查",
+            "仅在调用方tx内写sealed_hash与last_seal_hash；不自行提交",
+            "返回无error后由调用方在同一事务提交业务工作水位CAS与本次封口；任一步失败整体回滚"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "revision或proofHash不合法",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "outbox revision改变或仍有活动行",
+              "retryable": true
+            },
+            {
+              "code": "INTERNAL",
+              "when": "事务内SQL封口失败",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "在调用方事务内更新outbox控制行；事务提交前对外不可见"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数；只有持有本域同一数据库事务的可信域装配可调用"
+          },
+          "concurrency": "复用调用方SQLite事务锁序；同一事务内完成域工作CAS",
+          "idempotency": "同revision与proofHash可幂等重试；水位或证明冲突失败关闭",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
           "id": "platform.Store.Resume",
           "name": "Store.Resume",
           "signature": "func (s *Store) Resume(ctx context.Context, proofHash string) error",
@@ -15609,6 +15918,82 @@
           },
           "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
           "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "platform.Store.ResumeTx",
+          "name": "Store.ResumeTx",
+          "signature": "func (s *Store) ResumeTx(ctx context.Context, tx Tx, proofHash string) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "事务重开截止",
+              "constraints": [
+                "由调用方持有的事务上下文派生"
+              ]
+            },
+            {
+              "name": "tx",
+              "type": "Tx",
+              "description": "调用方持有的本域同一SQLite事务",
+              "constraints": [
+                "必须与恢复工作水位CAS使用同一* sql.Tx"
+              ]
+            },
+            {
+              "name": "proofHash",
+              "type": "string",
+              "description": "原封口SHA-256",
+              "constraints": [
+                "必须精确匹配当前或最近一次封口"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "原证明不符或SQL失败",
+              "constraints": [
+                "无error不代表tx已提交"
+              ]
+            }
+          ],
+          "purpose": "在调用方恢复事务内只按原proofHash重开outbox",
+          "steps": [
+            "校验proofHash并执行与Store.Resume相同的精确原证明CAS",
+            "仅在调用方tx内清sealed_hash并保留last_seal_hash；不自行提交",
+            "返回无error后由调用方将恢复工作水位与本次重开一并提交；不符则整体回滚"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "proofHash不合法或缺失",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "原封口证明不匹配",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "when": "事务内SQL重开失败",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "在调用方事务内清除outbox封口；事务提交前对外不可见"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "库函数；只有持有本域同一数据库事务及原封口证明的可信恢复路径可调用"
+          },
+          "concurrency": "复用调用方SQLite事务锁序；同一事务内完成恢复工作CAS",
+          "idempotency": "只接受精确原proofHash，重复调用不重开其他封口",
           "dependencies": [],
           "resources": [],
           "contract": "reference"

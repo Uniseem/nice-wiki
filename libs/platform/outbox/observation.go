@@ -25,9 +25,19 @@ type Observation struct {
 }
 
 func (s *Store) Observe(ctx context.Context) (Observation, error) {
+	return observe(ctx, s.db)
+}
+
+// ObserveTx 在调用方持有的SQLite事务中读取同一outbox控制与活动行，
+// 使本域工作事实能与outbox状态在一致快照中核对。
+func (s *Store) ObserveTx(ctx context.Context, tx platform.Tx) (Observation, error) {
+	return observe(ctx, tx)
+}
+
+func observe(ctx context.Context, tx platform.Tx) (Observation, error) {
 	var result Observation
 	var unknown int64
-	err := s.db.QueryRowContext(ctx, `SELECT c.revision,c.sealed_hash,COALESCE(SUM(CASE WHEN o.state NOT IN ('relayed','discarded') THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN o.lease_until<>'' AND o.state NOT IN ('relayed','discarded') THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN o.state='quarantined' THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN o.state='discarded' THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN o.state NOT IN ('pending','relayed','quarantined','discarded') THEN 1 ELSE 0 END),0) FROM nw_outbox_control c LEFT JOIN nw_outbox o ON 1=1 WHERE c.id=1 GROUP BY c.revision,c.sealed_hash`).Scan(&result.Revision, &result.SealHash, &result.Pending, &result.Leased, &result.Quarantined, &result.Isolated, &unknown)
+	err := tx.QueryRowContext(ctx, `SELECT c.revision,c.sealed_hash,COALESCE(SUM(CASE WHEN o.state NOT IN ('relayed','discarded') THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN o.lease_until<>'' AND o.state NOT IN ('relayed','discarded') THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN o.state='quarantined' THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN o.state='discarded' THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN o.state NOT IN ('pending','relayed','quarantined','discarded') THEN 1 ELSE 0 END),0) FROM nw_outbox_control c LEFT JOIN nw_outbox o ON 1=1 WHERE c.id=1 GROUP BY c.revision,c.sealed_hash`).Scan(&result.Revision, &result.SealHash, &result.Pending, &result.Leased, &result.Quarantined, &result.Isolated, &unknown)
 	if err != nil {
 		return result, platform.NewError(platform.CodeDependencyUnavailable, true, "真实outbox水位不可读取")
 	}
@@ -39,10 +49,20 @@ func (s *Store) Observe(ctx context.Context) (Observation, error) {
 
 // Seal在与业务相同SQLite中原子CAS；触发器随后禁止任何插入/更新/删除，不靠一次抽样0。
 func (s *Store) Seal(ctx context.Context, revision int64, proofHash string) error {
+	return seal(ctx, s.db, revision, proofHash)
+}
+
+// SealTx 在调用方持有的同一SQLite事务中封口outbox。
+// 调用方必须将本域工作CAS与本调用一并提交或回滚。
+func (s *Store) SealTx(ctx context.Context, tx platform.Tx, revision int64, proofHash string) error {
+	return seal(ctx, tx, revision, proofHash)
+}
+
+func seal(ctx context.Context, tx platform.Tx, revision int64, proofHash string) error {
 	if revision < 1 || !platform.ValidHash(proofHash) {
 		return platform.NewError(platform.CodeValidation, false, "outbox封口证明不完整")
 	}
-	result, err := s.db.ExecContext(ctx, `UPDATE nw_outbox_control SET sealed_hash=?,last_seal_hash=? WHERE id=1 AND revision=? AND (sealed_hash='' OR sealed_hash=?) AND NOT EXISTS(SELECT 1 FROM nw_outbox WHERE state NOT IN ('relayed','discarded'))`, proofHash, proofHash, revision, proofHash)
+	result, err := tx.ExecContext(ctx, `UPDATE nw_outbox_control SET sealed_hash=?,last_seal_hash=? WHERE id=1 AND revision=? AND (sealed_hash='' OR sealed_hash=?) AND NOT EXISTS(SELECT 1 FROM nw_outbox WHERE state NOT IN ('relayed','discarded'))`, proofHash, proofHash, revision, proofHash)
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, true, "outbox事务封口失败")
 	}
@@ -53,10 +73,19 @@ func (s *Store) Seal(ctx context.Context, revision int64, proofHash string) erro
 	return nil
 }
 func (s *Store) Resume(ctx context.Context, proofHash string) error {
+	return resume(ctx, s.db, proofHash)
+}
+
+// ResumeTx 在调用方持有的同一SQLite事务中重开原outbox封口。
+func (s *Store) ResumeTx(ctx context.Context, tx platform.Tx, proofHash string) error {
+	return resume(ctx, tx, proofHash)
+}
+
+func resume(ctx context.Context, tx platform.Tx, proofHash string) error {
 	if !platform.ValidHash(proofHash) {
 		return platform.NewError(platform.CodeValidation, false, "缺原outbox封口摘要")
 	}
-	result, err := s.db.ExecContext(ctx, `UPDATE nw_outbox_control SET sealed_hash='' WHERE id=1 AND (sealed_hash=? OR (sealed_hash='' AND last_seal_hash=?))`, proofHash, proofHash)
+	result, err := tx.ExecContext(ctx, `UPDATE nw_outbox_control SET sealed_hash='' WHERE id=1 AND (sealed_hash=? OR (sealed_hash='' AND last_seal_hash=?))`, proofHash, proofHash)
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, true, "outbox重开旧清理失败")
 	}

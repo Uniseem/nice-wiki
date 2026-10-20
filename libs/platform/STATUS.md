@@ -1,3 +1,13 @@
+# 2026-10-20 R1-00公共机制源码候选
+
+新增恢复激活回执签验：`ActivationReceiptClaims`、`SignActivationReceipt`、`VerifyActivationReceipt`。签名绑定restoreId及完整receiver字段，外层caller=module仍由site-config控制入口校验；该接口待首批消费者接线。
+
+新增outbox同事务变体：`ObserveTx`、`SealTx`、`ResumeTx`。域业务水位CAS与outbox封口须共用调用方持有的同一`platform.Tx`，不新增SnapshotWorkCallbacks框架。
+
+当前仅源码与机器合同，GitLab生成、三个Go分片、前端及完整make check尚未执行，完成数未增加。未接真实业务、模型、部署，未新增tests/fixture/mock/样例。
+
+以下为历史记录。
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
