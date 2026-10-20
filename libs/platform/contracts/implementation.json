@@ -2063,6 +2063,63 @@
           "contract": "binding"
         },
         {
+          "id": "outbox.RegisterWorkTable",
+          "name": "RegisterWorkTable",
+          "signature": "func RegisterWorkTable(ctx context.Context, db *sql.DB, table string) error",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "业务表写门登记的取消与截止传播",
+              "constraints": [
+                "只由本域可信启动或认证staged迁移调用"
+              ]
+            },
+            {
+              "name": "db",
+              "type": "*sql.DB",
+              "description": "本域同库SQLite连接",
+              "constraints": [
+                "不得传入control.db或其他域数据库"
+              ]
+            },
+            {
+              "name": "table",
+              "type": "string",
+              "description": "本域固定业务表名",
+              "constraints": [
+                "只允许合法SQLite简单表名；拒绝sqlite_、nw_outbox和nw_outbox_control"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "error",
+              "type": "error",
+              "description": "写门或revision触发器安装失败",
+              "constraints": [
+                "失败时调用方不得宣称业务表已纳入封口"
+              ]
+            }
+          ],
+          "purpose": "把真实业务表纳入公共outbox sealed gate和revision水位",
+          "steps": [
+            "确保公共outbox控制表存在",
+            "在同一事务内为insert/update/delete安装写门与revision触发器并提交",
+            "登记幂等；封口后业务表变更由触发器失败关闭"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "在本域业务表上创建公共写门与revision触发器"
+          ],
+          "authorization": "可信本域启动或认证staged迁移装配",
+          "concurrency": "同库DDL事务串行；重复登记幂等",
+          "idempotency": "同表名重复调用不重复创建触发器",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
           "id": "platform.EnsureSchema",
           "name": "EnsureSchema",
           "signature": "func EnsureSchema(ctx context.Context, db *sql.DB) error",

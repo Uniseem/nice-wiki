@@ -10,6 +10,8 @@ site-config 已按顺序接入 clean HEAD `d51bd3df0efe0c2156b1e0e443a82c6986a43
 
 traffic-guard 已接入 clean HEAD `85fc4639b34d0d321c59e59f3b6169319f7dfcba`（源码单元 `0c0e2e17e00adf2bb159de97c31f7bf8b58892b0`），仅新增快照归档读取单元并登记框架路径；其 `BuildApplication` 尚未装配真实 `SnapshotManager`，相关文件/函数继续 blocked，未标完成。
 
+GitLab 隔离 CI 候选 `9b359c0e70ffb8857189d77dfa0adaccb00200cd` 已推送到 `codex/ci-20261020-r1-9b359c0e`，pipeline 179 生成/前端/AI 成功，foundation 与 content-media 因公共/模块编译缺口失败；`generated.patch` 非零（803264字节）。原SHA保持不变；本地已记录窄修但未推送新SHA，等待下一次授权。
+
 历史远端推送基线为 `b986443d0dddf5482f7c3430e3dc7c8b99a24232`，对应 pipeline 162 全绿且生成补丁 0；当前本地 `origin/main` 与 `gitlab/main` 跟踪 ref 均为 `6204dfc94510f28752fe8da81df9f3a4d3ce781d`。本地计划收尾基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，对应 pipeline 163 全绿且生成补丁 0；当前集成提交和模块候选尚未推送。
 
 四路 WIP 原样保留，不 reset、不强推：

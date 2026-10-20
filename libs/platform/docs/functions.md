@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 244 个函数：约束 21 个，参考 223 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 245 个函数：约束 21 个，参考 224 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1154,6 +1154,46 @@ func EnqueueEvent(tx Tx, envelope EventEnvelope) error
 - 授权：permission：service；rule：库函数，在调用服务的进程内执行，权限由调用方决定
 - 并发：与业务事务同锁
 - 幂等：eventId唯一
+- 依赖：无
+
+## outbox.RegisterWorkTable
+
+- 级别：参考
+- 文件：`libs/platform/outbox/outbox.go`
+- 作用：把真实业务表纳入公共outbox sealed gate和revision水位
+
+```go
+func RegisterWorkTable(ctx context.Context, db *sql.DB, table string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 业务表写门登记的取消与截止传播 | 只由本域可信启动或认证staged迁移调用 |
+| `db` | `*sql.DB` | 本域同库SQLite连接 | 不得传入control.db或其他域数据库 |
+| `table` | `string` | 本域固定业务表名 | 只允许合法SQLite简单表名；拒绝sqlite_、nw_outbox和nw_outbox_control |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 写门或revision触发器安装失败 | 失败时调用方不得宣称业务表已纳入封口 |
+
+**步骤**
+
+1. 确保公共outbox控制表存在
+2. 在同一事务内为insert/update/delete安装写门与revision触发器并提交
+3. 登记幂等；封口后业务表变更由触发器失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：在本域业务表上创建公共写门与revision触发器
+- 授权：可信本域启动或认证staged迁移装配
+- 并发：同库DDL事务串行；重复登记幂等
+- 幂等：同表名重复调用不重复创建触发器
 - 依赖：无
 
 ## platform.EnsureSchema

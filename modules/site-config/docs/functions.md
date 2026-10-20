@@ -2174,7 +2174,7 @@ func registerSiteConfigWorkTables(ctx context.Context, db *sql.DB) error
 - 授权：仅本域启动或已认证隔离stage迁移装配
 - 并发：由公共登记接口保证同库幂等
 - 幂等：重复登记同一表不改变业务事实
-- 依赖：`platform.RegisterWorkTable`
+- 依赖：`outbox.RegisterWorkTable`
 
 ## site-config.ValidateActiveReady
 

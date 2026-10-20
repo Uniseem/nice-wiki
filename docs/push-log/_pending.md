@@ -28,7 +28,7 @@ traffic-guard 已按本域静态审查结果接入 clean HEAD `85fc4639b34d0d321
 
 ## 全域封口 `step=observe` 合同决策
 
-已确认非jobs不能等待封口后的最终broker：协调器必须先选择可最终复用的稳定零broker基础proof，13个非jobs使用同一份不含`nonJobsSeals/nonJobsProofHash`的proof执行本域封口；其`VerifyGlobalSeal`只读协调阶段、持久prepare/drain事实和`dataEpoch`，不再等第二次broker回执。jobs最后重新读取broker确认仍等于基础proof，再核13个真实激活回执和原`nonJobsProofHash`。所有缺证据、epoch/barrier不符、阶段倒退或未知状态都失败关闭；prepare/drain/seal/resume-drain仍由data-protection服务身份加超管委托驱动。
+已确认非jobs不能等待封口后的最终broker：协调器必须先选择可最终复用的稳定零broker基础proof，13个非jobs使用同一份不含`nonJobsSeals/nonJobsProofHash`的proof执行本域封口；其`VerifyGlobalSeal`只读协调阶段、持久prepare/drain事实和`dataEpoch`，不再等第二次broker回执。jobs最后重新读取broker确认仍等于基础proof，再核13个持久`SnapshotSealReceipt{owner,sealProofHash}`和原`nonJobsProofHash`。`ActivationReceipt`只用于恢复换目录后的独立签名来源验签，不作为barrier封口回执。所有缺证据、epoch/barrier不符、阶段倒退或未知状态都失败关闭；prepare/drain/seal/resume-drain仍由data-protection服务身份加超管委托驱动。
 
 三模块代理的精确可调用合同如下：
 
@@ -36,6 +36,14 @@ traffic-guard 已按本域静态审查结果接入 clean HEAD `85fc4639b34d0d321
 
 - `site-config`：复用同一`SnapshotConfig.VerifyGlobalSeal(ctx, proof, proofHash)`只读回调和上述service assertion；RegisterActivation仍只消费已验签的`ActivationReceipt`，不得把`ReadBarrierStatus`或当前runtime自报当13域封口证据。非jobs阶段不等待`nonJobsSeals`或最终broker；缺jobs持久observe证据即返回依赖不可用/完整性错误并保持维护。
 
-- `jobs`：当前`coordinateBarrier`合同把整个operation绑定为data-protection+超管委托，故跨域observe暂阻塞。必须先在jobs OpenAPI/类型/实现合同中把同一路径的`step:"observe"`明确为service-only、caller为已登记有状态域且无userDelegation；prepare/drain/seal/resume-drain继续只接受data-protection+超管委托。`jobs.CoordinateBarrier(ctx, op, in)`的observe分支只读持久barrier/epoch/协调记录，不写stop claims、不发回执、不推进状态；最终jobs `VerifyGlobalSeal`再用同一base proof核13个真实回执和broker最终水位。未完成该合同拆分前，identity/site-config不得接线或伪造替代端口。
+- `jobs`：当前`coordinateBarrier`合同把整个operation绑定为data-protection+超管委托，故跨域observe暂阻塞。必须先在jobs OpenAPI/类型/实现合同中把同一路径的`step:"observe"`明确为service-only、caller为已登记有状态域且无userDelegation；prepare/drain/seal/resume-drain继续只接受data-protection+超管委托。`jobs.CoordinateBarrier(ctx, op, in)`的observe分支只读持久barrier/epoch/协调记录，不写stop claims、不发barrier回执、不推进状态；最终jobs `VerifyGlobalSeal`再用同一base proof核13个持久`SnapshotSealReceipt`和broker最终水位。未完成该合同拆分前，identity/site-config不得接线或伪造替代端口。
 
 因此当前阻塞是jobs OpenAPI/实现授权分支缺失，而不是让各域自行实现协调。平台已登记`ReadBarrierStatus`、分阶段`SealBarrier`校验和恢复迁移窄接口，待该合同变更后再顺序吸收identity。
+
+## GitLab pipeline 179（精确候选 `9b359c0e70ffb8857189d77dfa0adaccb00200cd`）
+
+隔离分支：`codex/ci-20261020-r1-9b359c0e`；仅推送GitLab，未推origin/GitHub/main。pipeline 179：生成/格式 job 726 成功，但 `generated.patch` 为 803264 字节（SHA-256 `e56c0714c2f483045d9864e0e8e206145c1557d96bbf8686d8f49df951a93a9e`），前端 job 730、AI 分片 job 729 成功。
+
+失败精确记录：foundation job 727 在 `modules/identity` 报 `ReadBarrierStatus undefined`、broker 字段 `int` 到 `int64` 不兼容、`outbox.RegisterWorkTable undefined`；content-media job 728 在 `modules/traffic-guard/internal/snapshot_archive.go:47` 报 `ModuleSlug undefined`。pipeline 状态为 failed。原始SHA不修改、不重推。
+
+本地窄修已写入工作树但尚未推送：补公共 `ReadBarrierStatus`、`outbox.RegisterWorkTable`，修identity四处类型转换，traffic-guard使用固定本域slug；后续CI需用户另行授权新SHA。本机未运行Go/build/vet/test/pnpm/make check。

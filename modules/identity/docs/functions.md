@@ -4566,7 +4566,7 @@ func migrateIdentityStage(ctx context.Context, manifest lifecycle.DomainSnapshot
 **步骤**
 
 1. 核platform.SnapshotStageBinding
-2. 调用identity.migrateIdentitySnapshotDB经platform.MigrateRestoredDatabase执行已登记迁移和旧资格隔离
+2. 调用identity.migrateIdentitySnapshotDB经outbox.MigrateRestoredDatabase执行已登记迁移和旧资格隔离
 3. 验证数据库
 
 **错误**
@@ -4686,8 +4686,8 @@ func migrateIdentitySnapshotDB(ctx context.Context, db *sql.DB) error
 
 **步骤**
 
-1. 调用platform.MigrateRestoredDatabase；回调只执行identity.All登记迁移
-2. 迁移完成后按identityWorkTables调用platform.RegisterWorkTable；不重标原队列epoch
+1. 调用outbox.MigrateRestoredDatabase；回调只执行identity.All登记迁移
+2. 迁移完成后按identityWorkTables调用outbox.RegisterWorkTable；不重标原队列epoch
 
 **错误**
 
@@ -4697,7 +4697,7 @@ func migrateIdentitySnapshotDB(ctx context.Context, db *sql.DB) error
 - 授权：本域SnapshotManager回调或启动可信装配
 - 并发：公共恢复数据库事务串行
 - 幂等：按schema_migrations与公共恢复回执
-- 依赖：`platform.MigrateRestoredDatabase`、`platform.RegisterWorkTable`、`identity.All`
+- 依赖：`outbox.MigrateRestoredDatabase`、`outbox.RegisterWorkTable`、`identity.All`
 
 ## identity.validateIdentitySnapshotDatabase
 
@@ -4968,7 +4968,7 @@ func (s *Store) EnsureOutbox(ctx context.Context) error
 
 **步骤**
 
-1. 调用platform.EnsureSchema；按identityWorkTables逐表调用platform.RegisterWorkTable
+1. 调用platform.EnsureSchema；按identityWorkTables逐表调用outbox.RegisterWorkTable
 2. 不复制公共SQL，不使用MAX/COUNT构造版本
 
 **错误**
@@ -4979,7 +4979,7 @@ func (s *Store) EnsureOutbox(ctx context.Context) error
 - 授权：启动装配
 - 并发：单连接串行
 - 幂等：注册接口幂等
-- 依赖：`platform.EnsureSchema`、`platform.RegisterWorkTable`
+- 依赖：`platform.EnsureSchema`、`outbox.RegisterWorkTable`
 
 ## identity.All
 

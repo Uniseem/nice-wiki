@@ -232,6 +232,53 @@ func (s *Store) Discard(ctx context.Context, eventID, epoch platform.Identifier)
 	return nil
 }
 
+// RegisterWorkTable将真实业务表纳入统一outbox control revision与sealed gate。
+// 只接受启动装配时登记的简单SQLite表名；staging迁移完成前不得调用封口。
+func RegisterWorkTable(ctx context.Context, db *sql.DB, table string) error {
+	table = strings.ToLower(table)
+	if db == nil || !validWorkTableName(table) {
+		return platform.NewError(platform.CodeValidation, false, "业务表名不合法")
+	}
+	if err := EnsureSchema(ctx, db); err != nil {
+		return err
+	}
+	triggerPrefix := "nw_work_" + platform.HashBytes([]byte(table))
+	quotedTable := `"` + table + `"`
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "建立业务写门事务失败")
+	}
+	defer tx.Rollback()
+	for _, action := range []string{"insert", "update", "delete"} {
+		gateSQL := `CREATE TRIGGER IF NOT EXISTS "` + triggerPrefix + `_gate_` + action + `" BEFORE ` + strings.ToUpper(action) + ` ON ` + quotedTable + ` WHEN (SELECT sealed_hash FROM nw_outbox_control WHERE id=1)<>'' BEGIN SELECT RAISE(ABORT,'outbox sealed'); END;`
+		revisionSQL := `CREATE TRIGGER IF NOT EXISTS "` + triggerPrefix + `_revision_` + action + `" AFTER ` + strings.ToUpper(action) + ` ON ` + quotedTable + ` BEGIN UPDATE nw_outbox_control SET revision=revision+1 WHERE id=1; END;`
+		if _, err = tx.ExecContext(ctx, gateSQL); err != nil {
+			return platform.NewError(platform.CodeIntegrityError, false, "安装业务写门失败")
+		}
+		if _, err = tx.ExecContext(ctx, revisionSQL); err != nil {
+			return platform.NewError(platform.CodeIntegrityError, false, "安装业务水位触发器失败")
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "提交业务写门失败")
+	}
+	return nil
+}
+
+func validWorkTableName(table string) bool {
+	table = strings.ToLower(table)
+	if table == "" || len(table) > 128 || strings.HasPrefix(table, "sqlite_") || table == "nw_outbox" || table == "nw_outbox_control" {
+		return false
+	}
+	for index, char := range table {
+		if (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || char == '_' || (index > 0 && char >= '0' && char <= '9') {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
 func placeholders(n int) string {
 	out := "("
 	for i := 0; i < n; i++ {

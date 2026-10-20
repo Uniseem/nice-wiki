@@ -2656,6 +2656,17 @@
       "blocker": null
     },
     {
+      "id": "outbox.RegisterWorkTable",
+      "path": "libs/platform/outbox/outbox.go",
+      "state": "in_progress",
+      "implementationCommit": null,
+      "verification": {
+        "state": "not_run",
+        "evidence": "本地修复GitLab pipeline179 foundation缺口；未本机编译，待后续精确CI授权。"
+      },
+      "blocker": "pipeline179报告identity/site-config调用端缺少公共业务表work gate；本地已补实现，未推送新SHA。"
+    },
+    {
       "id": "platform.EnsureSchema",
       "path": "libs/platform/outbox/outbox.go",
       "state": "verified",

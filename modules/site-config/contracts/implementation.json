@@ -2745,7 +2745,7 @@
           "concurrency": "由公共登记接口保证同库幂等",
           "idempotency": "重复登记同一表不改变业务事实",
           "dependencies": [
-            "platform.RegisterWorkTable"
+            "outbox.RegisterWorkTable"
           ],
           "resources": [],
           "contract": "reference"

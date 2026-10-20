@@ -136,13 +136,13 @@ func snapshotSealProof(input gen.SnapshotSealProof) (lifecycle.SnapshotSealProof
 		BarrierID:   string(input.BarrierId),
 		DataEpoch:   string(input.DataEpoch),
 		BrokerBefore: lifecycle.SnapshotBrokerObservation{
-			ActiveLeases:      input.BrokerBefore.ActiveLeases,
-			PendingDeliveries: input.BrokerBefore.PendingDeliveries,
+			ActiveLeases:      int64(input.BrokerBefore.ActiveLeases),
+			PendingDeliveries: int64(input.BrokerBefore.PendingDeliveries),
 			Revision:          int64(input.BrokerBefore.Revision),
 		},
 		BrokerAfter: lifecycle.SnapshotBrokerObservation{
-			ActiveLeases:      input.BrokerAfter.ActiveLeases,
-			PendingDeliveries: input.BrokerAfter.PendingDeliveries,
+			ActiveLeases:      int64(input.BrokerAfter.ActiveLeases),
+			PendingDeliveries: int64(input.BrokerAfter.PendingDeliveries),
 			Revision:          int64(input.BrokerAfter.Revision),
 		},
 		Observations: make([]lifecycle.SnapshotBarrierObservation, 0, len(input.Observations)),

@@ -345,6 +345,17 @@ func (m *SnapshotManager) ObserveBarrier(ctx context.Context, barrierID string) 
 	return SnapshotBarrierObservation{Owner: m.config.Owner, ActivityRevision: revision, Work: work, RevisionWatermark: watermark, Business: int64(m.business), Cleanup: int64(m.cleanup), FileOps: int64(m.fileOps), DrainCallbacks: int64(m.drainCallbacks)}, nil
 }
 
+// ReadBarrierStatus只在Manager锁内复制当前持久状态和原输入截止，不解析私有snapshot-barrier.json。
+func (m *SnapshotManager) ReadBarrierStatus() (*SnapshotBarrierStatus, time.Time) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.record == nil {
+		return nil, time.Time{}
+	}
+	status := m.record.Status
+	return &status, m.record.Input.Deadline
+}
+
 // SealBarrier将实际活动CAS封口；真实全域/最终broker证明由已装配协调器回调独立核实。
 func (m *SnapshotManager) SealBarrier(ctx context.Context, proof SnapshotSealProof) (SnapshotBarrierStatus, error) {
 	unlock, err := lockSnapshotControl(ctx, m.enter)

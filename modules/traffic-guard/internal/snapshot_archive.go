@@ -7,6 +7,8 @@ import (
 	"nice-wiki/libs/platform"
 )
 
+const trafficGuardModule = "traffic-guard"
+
 // SnapshotArchiveReadInput 是 data-protection 读取本域完成归档时的精确引用。
 // owner、版本和媒体类型由本域固定，不从请求或磁盘路径取得。
 type SnapshotArchiveReadInput struct {
@@ -44,7 +46,7 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 		return SnapshotArchiveReadResult{}, platform.NewError(platform.CodeLocked, false, "当前不在可读取快照归档的维护屏障")
 	}
 	expected := platform.ObjectRef{
-		Owner:     ModuleSlug,
+		Owner:     trafficGuardModule,
 		ObjectID:  platform.Identifier(input.SnapshotID),
 		Version:   1,
 		SHA256:    input.SHA256,

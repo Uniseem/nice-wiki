@@ -22,7 +22,7 @@ SnapshotWorkState为{outboxRevision,workRevision,pendingOutbox,pendingWork}。�
 
 SnapshotSealProof为{barrierId,dataEpoch,observations,brokerBefore,brokerAfter,nonJobsSeals?,nonJobsProofHash?}。observations必须按owner排序，恰好14个唯一owner全部覆盖。协调器先提供可最终复用的broker基础观察：{revision,pendingDeliveries,activeLeases}来自真实发布/ack/lease水位，前后完全相同且pending/lease为0；它不包含冻结queued job。所有owner进程计数、活动outbox/work均为0。非jobs不在本域封口后等待第二次broker回执，jobs最后重新读取broker并确认仍等于该基础观察。proofHash=SHA256(CanonicalJSON完整proof)。
 
-所有非jobs先用同一不含nonJobs字段且包含稳定零broker基础观察的proof封口。其VerifyGlobalSeal只读取并核当前持久prepare/drain/epoch和协调阶段，不在本域封口后等待第二次broker回执；Manager mutex拒新cleanup，SealWork真实SQL事务CAS两个持久水位并禁止后续本域业务写，状态safe和sealProofHash持久后才返回。jobs最后用原完全相同观察/broker基础水位以及13个{owner,sealProofHash}真实回执，nonJobsProofHash为去掉nonJobs字段后原proof hash；jobs的VerifyGlobalSeal重新读取broker并确认仍同基础水位。该闭包阻止错时采样0后新增发布源，不是各域各自drain就safe。
+所有非jobs先用同一不含nonJobs字段且包含稳定零broker基础观察的proof封口。其VerifyGlobalSeal只读取并核当前持久prepare/drain/epoch和协调阶段，不在本域封口后等待第二次broker回执；Manager mutex拒新cleanup，SealWork真实SQL事务CAS两个持久水位并禁止后续本域业务写，状态safe和sealProofHash持久后才返回。jobs最后用原完全相同观察/broker基础水位以及13个持久`SnapshotSealReceipt{owner,sealProofHash}`，nonJobsProofHash为去掉nonJobs字段后原proof hash；jobs的VerifyGlobalSeal重新读取broker并确认仍同基础水位。`ActivationReceipt`是恢复换目录后的独立签名来源，不属于barrier封口回执。该闭包阻止错时采样0后新增发布源，不是各域各自drain就safe。
 
 ### `step=observe` 的服务调用边界
 
@@ -30,7 +30,7 @@ SnapshotSealProof为{barrierId,dataEpoch,observations,brokerBefore,brokerAfter,n
 
 非jobs的 `VerifyGlobalSeal(ctx, proof, proofHash)` 只能接受与本域相同的 `barrierId/dataEpoch`、当前持久阶段和原proof摘要；它可以调用 jobs 的只读 `step=observe` 端口，但只等待 prepare/drain/epoch及已选定基础proof证据，不在本域封口后等待第二次broker回执。缺证据、阶段倒退、epoch不符或协调端不可达时失败关闭；不等待 `nonJobsSeals` 或封口后的最终 broker 水位。
 
-jobs的最终 `VerifyGlobalSeal` 只能在13个非jobs已持久 `safe` 且原回执可由 `VerifyActivationReceipt` 核验后调用；它复用同一不含 `nonJobs` 字段的proof和broker观察，要求13份 `{owner,sealProofHash}`、`nonJobsProofHash`、broker前后相同且pending/lease为0全部成立。prepare/drain/seal/resume-drain等变更步骤仍只由 data-protection 服务身份加超管委托驱动。当前 jobs 的 `coordinateBarrier` OpenAPI 仍把整个操作绑定为 data-protection+超管委托，因此在该合同拆分出 service-only observe 之前，identity、site-config 的跨域回调保持阻塞，不得自行伪造证据。
+jobs的最终 `VerifyGlobalSeal` 只能在13个非jobs已持久 `safe` 后调用；它复用同一不含 `nonJobs` 字段的proof和broker观察，要求13份持久 `SnapshotSealReceipt{owner,sealProofHash}`、`nonJobsProofHash`、broker前后相同且pending/lease为0全部成立。`ActivationReceipt`在恢复换目录流程中独立由`VerifyActivationReceipt`核验，不替代这些barrier回执。prepare/drain/seal/resume-drain等变更步骤仍只由 data-protection 服务身份加超管委托驱动。当前 jobs 的 `coordinateBarrier` OpenAPI 仍把整个操作绑定为 data-protection+超管委托，因此在该合同拆分出 service-only observe 之前，identity、site-config 的跨域回调保持阻塞，不得自行伪造证据。
 
 任何变化都保留维护；显式ResumeDrain绑定原sealHash，只重开旧清理，不开新业务/paid，并需重新Drain/全域取证。重启safe先转failed，不能复用旧进程0计数；必须显式resume后重证。ReleaseBarrier只能在真实全局running且opened epoch匹配、计数0时重开旧持久gate并解除本域屏障。
 

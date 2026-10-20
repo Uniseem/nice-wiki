@@ -4,7 +4,7 @@
 
 当前公共源码候选包含`SignActivationReceipt`、`ObserveTx/SealTx/ResumeTx`、`SnapshotManager.ReadBarrierStatus`和`MigrateRestoredDatabase`。签发/验签共用UTC `RFC3339Nano`、canonical header/proof与合法`keyId`；本候选对验签补充kid校验后需重新GitLab，不能沿用旧验证SHA。恢复迁移只在认证staged scope内同事务执行已登记schema/索引迁移、撤销旧代活动资格并固定host sealHash，原payload/epoch/费用事实保留。
 
-全域封口合同已修正为分阶段：13个非jobs先用同一不含`nonJobs`字段的proof封口，非jobs `VerifyGlobalSeal`只读持久prepare/drain/epoch和协调阶段；jobs最后才核13份原回执、原proof hash及最终broker稳定水位。jobs当前OpenAPI尚未把`step=observe`拆成service-only授权，identity/site-config跨域回调保持失败关闭；prepare/drain/seal/resume-drain仍仅由data-protection加超管委托。
+全域封口合同已修正为分阶段：13个非jobs先用同一不含`nonJobs`字段的proof封口，非jobs `VerifyGlobalSeal`只读持久prepare/drain/epoch和协调阶段；jobs最后才核13份持久`SnapshotSealReceipt{owner,sealProofHash}`、原proof hash及最终broker稳定水位。`ActivationReceipt`只属于恢复换目录后的独立签名来源验签，不是barrier回执。jobs当前OpenAPI尚未把`step=observe`拆成service-only授权，identity/site-config跨域回调保持失败关闭；prepare/drain/seal/resume-drain仍仅由data-protection加超管委托。
 
 新增平台源码与合同均未取得本次候选GitLab精确SHA，台账保持blocked/in_progress；未运行本机Go、make check、pnpm、测试、真实接口/模型或部署。
 

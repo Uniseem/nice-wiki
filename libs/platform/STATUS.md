@@ -6,7 +6,7 @@
 
 `ObserveTx`、`SealTx`、`ResumeTx`要求域业务水位CAS与outbox封口/重开共用调用方同一`platform.Tx`。`ReadBarrierStatus`只复制Manager内已加载的持久状态；`MigrateRestoredDatabase`只在认证staged scope内把schema/索引迁移、旧代活动资格撤销和host封口放入同一事务，保留原payload/epoch/费用事实。
 
-全域封口已按阶段收紧：13个非jobs用同一不含`nonJobs`字段的proof先封口，`VerifyGlobalSeal`只读prepare/drain/epoch和协调事实，不等待最终broker；jobs最后才核13份真实回执与broker稳定水位。jobs OpenAPI当前仍未拆出service-only `step=observe`授权，跨域接线保持阻塞。所有新增/修改源码待GitLab，未接真实业务、模型、部署，未新增tests/fixture/mock/样例。
+全域封口已按阶段收紧：13个非jobs用同一不含`nonJobs`字段的稳定零broker基础proof先封口，`VerifyGlobalSeal`只读prepare/drain/epoch和协调事实，不等待封口后的第二次broker回执；jobs最后才核13份持久`SnapshotSealReceipt`与broker仍等基础水位。`ActivationReceipt`只用于恢复换目录后的独立签名来源验签。jobs OpenAPI当前仍未拆出service-only `step=observe`授权，跨域接线保持阻塞。所有新增/修改源码待GitLab，未接真实业务、模型、部署，未新增tests/fixture/mock/样例。
 
 以下为历史记录。
 
