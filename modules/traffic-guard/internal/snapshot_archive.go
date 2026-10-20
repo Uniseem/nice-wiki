@@ -44,7 +44,7 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 		return SnapshotArchiveReadResult{}, platform.NewError(platform.CodeLocked, false, "当前不在可读取快照归档的维护屏障")
 	}
 	expected := platform.ObjectRef{
-		Owner:     ModuleSlug,
+		Owner:     "traffic-guard",
 		ObjectID:  platform.Identifier(input.SnapshotID),
 		Version:   1,
 		SHA256:    input.SHA256,
