@@ -61,10 +61,6 @@
       },
       "integrationBlockers": [
         {
-          "owner": "content",
-          "requiredChange": "draft_commit_store.Commit当前仍写v1且Create共用；需只在action=save且COMMITTED同事务写v2，PublishContentEvent与发布/撤回路径停止写v1；生成类型与源码尚未迁移"
-        },
-        {
           "owner": "media",
           "requiredChange": "media/contracts/events.json当前只消费v1；订阅分派须注册v2，按完整载荷调用media.ApplyReferenceEvent，并从jobs信封另传eventId；v1仅历史只读，不能补造v2来源"
         }
