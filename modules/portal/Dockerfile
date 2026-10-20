@@ -11,6 +11,8 @@ COPY modules/site-config/web/ modules/site-config/web/
 RUN cd modules/site-config/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/site-config --emptyOutDir
 COPY modules/identity/web/ modules/identity/web/
 RUN cd modules/identity/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/identity --emptyOutDir
+COPY modules/media/web/ modules/media/web/
+RUN cd modules/media/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/media --emptyOutDir
 COPY modules/jobs/web/ modules/jobs/web/
 RUN cd modules/jobs/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/jobs --emptyOutDir
 COPY modules/analytics/web/ modules/analytics/web/

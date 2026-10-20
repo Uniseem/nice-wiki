@@ -9,7 +9,7 @@ SERVICES = {  # slug: 端口
     "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108, "memory": 8109,
     "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113,
 }
-WEB_MODULES = ["content", "site-config", "identity", "jobs", "analytics", "data-protection"]
+WEB_MODULES = ["content", "site-config", "identity", "media", "jobs", "analytics", "data-protection"]
 SUBNET = "198.51.100.0/24"  # 文档保留地址段，仅作内部桥接网络的子网
 
 

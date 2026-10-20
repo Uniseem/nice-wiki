@@ -10,6 +10,7 @@ defineEmits<{ (e: 'sign-out'): void }>();
 const modules = [
   { id: 'content', label: '文档' },
   { id: 'site-config', label: '站点设置' },
+  { id: 'media', label: '资源库' },
   { id: 'identity', label: '账号与权限' },
   { id: 'jobs', label: '任务队列' },
   { id: 'analytics', label: '统计与审计' },
