@@ -47,6 +47,9 @@ func ReadConfigObject(ctx context.Context, op platform.OperationContext, input R
 	}
 	_, record, raw, err := store.readIndexedConfig(ctx, tx, input.ObjectId)
 	if err != nil {
+		if result, ok := store.readAnnouncementObject(input); ok {
+			return result, nil
+		}
 		return ReadConfigObjectResult{}, err
 	}
 	if record.SiteID != siteID || record.Object.Version > current || record.DataEpoch != op.DataEpoch {
@@ -100,4 +103,21 @@ func (s *ActiveStore) readIndexedConfig(ctx context.Context, tx *sql.Tx, objectI
 
 func configHeadPath(root, siteID string) string {
 	return filepath.Join(root, "settings", siteID, "head.json")
+}
+
+// readAnnouncementObject 公告正文不在settings索引里：按修订号在公告目录下找已提交的正文，hash必须吻合。
+func (s *ActiveStore) readAnnouncementObject(input ReadConfigObjectInput) (ReadConfigObjectResult, bool) {
+	if !configPathID(string(input.ObjectId)) {
+		return ReadConfigObjectResult{}, false
+	}
+	matches, err := filepath.Glob(filepath.Join(s.activeRoot, "announcements", "*", string(input.ObjectId)+".json"))
+	if err != nil || len(matches) != 1 {
+		return ReadConfigObjectResult{}, false
+	}
+	raw, err := readConfigFile(matches[0])
+	if err != nil || platform.HashBytes(raw) != input.ExpectedHash {
+		return ReadConfigObjectResult{}, false
+	}
+	object := gen.ObjectRef{Owner: "site-config", ObjectId: input.ObjectId, Version: input.Version, Sha256: input.ExpectedHash, ByteSize: len(raw), MediaType: "application/json"}
+	return ReadConfigObjectResult{Object: object, Reader: io.NopCloser(bytes.NewReader(raw))}, true
 }

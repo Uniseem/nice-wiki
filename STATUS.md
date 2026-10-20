@@ -15,7 +15,7 @@ python3 scripts/dev.py up
 已完成：
 - 文档：新建、嵌套、移动、编辑锁与自动保存草稿、发布/撤回、回收站（删除/恢复/彻底删除，已发布的留 410 或跳转）、发布历史与回滚、草稿预览。
 - 编辑器（Tiptap）：标题、列表、任务、引用、代码（含语言）、链接、表格、提示框、公式、图片与附件上传。
-- 公开页：Go 直接输出完整 HTML（三栏、目录、代码高亮、图片、嵌套路径、旧路径 301、删除 410）、首页、导航、robots、sitemap、llms；页面访问信标到 analytics。
+- 公开页：Go 直接输出完整 HTML（首页主视觉按钮与背景色、公告横幅、三栏、目录、代码高亮、图片、嵌套路径、旧路径 301、删除 410）、首页、导航、robots、sitemap、llms；页面访问信标到 analytics。
 - 后台页面：文档、站点设置、账号与权限、任务队列、统计与审计、备份与恢复（界面壳在 portal/web，各域 module.js 由壳挂载）。
 - 部署文件（未部署过）：各域 Dockerfile、`deploy/docker-compose.yml`、Caddyfile、`deploy/init-secrets.sh`，由 `scripts/gen_deploy.py` 生成。
 

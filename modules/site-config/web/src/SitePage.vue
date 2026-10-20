@@ -10,7 +10,12 @@ const busy = ref(false);
 // 各分组表单的本地副本；保存后重新读取，使用最新 revision 做乐观并发检查。
 const basic = ref({ name: '', themeColor: '', description: '', titleTemplate: '', indexingEnabled: true });
 const footer = ref({ copyright: '', icpNumber: '', icpLink: '', sourceCodeURL: '' });
-const home = ref({ mainTitle: '', subtitle: '', backgroundText: '' });
+type Btn = { buttonId: string; text: string; style: 'primary' | 'secondary'; kind: 'external' | 'qa' | 'document'; value: string };
+const home = ref({ mainTitle: '', subtitle: '', backgroundText: '', color: '', overlayPercent: 0, textColor: 'light', buttons: [] as Btn[] });
+const banner = ref({ text: '', url: '', enabled: true });
+const newId = () => crypto.randomUUID().replace(/-/g, '');
+const targetOf = (b: { kind: string; value: string }) => b.kind === 'qa' ? { kind: 'qa' } : b.kind === 'document' ? { kind: 'document', documentId: b.value, blockId: null } : { kind: 'external', url: b.value };
+const addButton = () => { if (home.value.buttons.length < 3) home.value.buttons.push({ buttonId: newId(), text: '', style: 'primary', kind: 'external', value: '' }); };
 
 async function load() {
   const result = await api<{ config: any }>('/v1/config');
@@ -18,7 +23,12 @@ async function load() {
   const c = result.config;
   basic.value = { name: c.name, themeColor: c.themeColor, description: c.description, titleTemplate: c.titleTemplate, indexingEnabled: c.indexingEnabled };
   footer.value = { copyright: c.footer.copyright, icpNumber: c.footer.icpNumber ?? '', icpLink: c.footer.icpLink ?? '', sourceCodeURL: c.footer.sourceCodeURL };
-  home.value = { mainTitle: c.home.mainTitle, subtitle: c.home.subtitle, backgroundText: c.home.backgroundText };
+  home.value = {
+    mainTitle: c.home.mainTitle, subtitle: c.home.subtitle, backgroundText: c.home.backgroundText,
+    color: c.home.background?.kind === 'color' ? c.home.background.color : '', overlayPercent: c.home.overlayPercent, textColor: c.home.textColor,
+    buttons: c.home.buttons.map((b: any) => ({ buttonId: b.buttonId, text: b.text, style: b.style, kind: b.target.kind, value: b.target.url ?? b.target.documentId ?? '' })),
+  };
+  banner.value.enabled = c.banner ? c.banner.enabled : true;
 }
 
 async function save(label: string, action: () => Promise<void>) {
@@ -40,7 +50,18 @@ const saveFooter = () => save('页脚', async () => {
 
 const saveHome = () => save('首页', async () => {
   const c = config.value;
-  await api('/v1/home', { method: 'PUT', body: { home: { ...c.home, mainTitle: home.value.mainTitle, subtitle: home.value.subtitle, backgroundText: home.value.backgroundText }, expectedRevision: c.revision, expectedHomeRevision: c.home.revision } });
+  await api('/v1/home', { method: 'PUT', body: { home: {
+    ...c.home, mainTitle: home.value.mainTitle, subtitle: home.value.subtitle, backgroundText: home.value.backgroundText,
+    overlayPercent: Number(home.value.overlayPercent), textColor: home.value.textColor,
+    background: home.value.color ? { kind: 'color', color: home.value.color } : c.home.background,
+    buttons: home.value.buttons.map((b) => ({ buttonId: b.buttonId, text: b.text, style: b.style, target: targetOf(b) })),
+  }, expectedRevision: c.revision, expectedHomeRevision: c.home.revision } });
+});
+
+const saveBanner = () => save('公告横幅', async () => {
+  const c = config.value;
+  await api('/v1/banner', { method: 'PUT', body: { announcementId: c.banner?.announcementId ?? null, body: { schemaVersion: 1, text: banner.value.text, target: banner.value.url ? { kind: 'external', url: banner.value.url } : null }, enabled: banner.value.enabled, startsAt: null, endsAt: null, expectedRevision: c.revision } });
+  banner.value.text = ''; banner.value.url = '';
 });
 
 onMounted(async () => { try { await load(); } catch (e) { error.value = messageOf(e); } });
@@ -71,6 +92,30 @@ onMounted(async () => { try { await load(); } catch (e) { error.value = messageO
         <label>主标题</label><input type="text" v-model="home.mainTitle" required>
         <label>副标题</label><input type="text" v-model="home.subtitle">
         <label>背景文字</label><input type="text" v-model="home.backgroundText">
+        <label>背景颜色</label><input type="text" v-model="home.color" placeholder="#0F172A" pattern="#[0-9A-Fa-f]{6}">
+        <label>遮罩浓度（0–100）</label><input type="number" min="0" max="100" v-model="home.overlayPercent">
+        <label>文字颜色</label>
+        <select v-model="home.textColor"><option value="light">浅色</option><option value="dark">深色</option></select>
+        <label>按钮（最多 3 个）</label>
+        <div v-for="(b, i) in home.buttons" :key="b.buttonId" class="row">
+          <input type="text" v-model="b.text" placeholder="按钮文字" required>
+          <select v-model="b.style"><option value="primary">主要</option><option value="secondary">次要</option></select>
+          <select v-model="b.kind"><option value="external">外链</option><option value="document">文档</option><option value="qa">AI 问答</option></select>
+          <input v-if="b.kind !== 'qa'" type="text" v-model="b.value" :placeholder="b.kind === 'document' ? '文档 ID' : 'https://…'" required>
+          <button type="button" @click="home.buttons.splice(i, 1)">删除</button>
+        </div>
+        <button type="button" v-if="home.buttons.length < 3" @click="addButton">添加按钮</button>
+        <div style="margin-top:.8rem"><button class="primary" :disabled="busy">保存</button></div>
+      </form>
+    </fieldset>
+
+    <fieldset>
+      <legend>公告横幅</legend>
+      <p class="hint">{{ config.banner ? '当前已有一条横幅（' + (config.banner.enabled ? '展示中' : '已关闭') + '），保存会替换其内容。' : '当前没有横幅。' }}</p>
+      <form @submit.prevent="saveBanner">
+        <label>横幅文字</label><input type="text" v-model="banner.text" required maxlength="2000">
+        <label>链接（可空）</label><input type="text" v-model="banner.url" placeholder="https://…">
+        <label class="perm"><input type="checkbox" v-model="banner.enabled">展示</label>
         <div style="margin-top:.8rem"><button class="primary" :disabled="busy">保存</button></div>
       </form>
     </fieldset>

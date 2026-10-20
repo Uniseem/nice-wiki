@@ -133,23 +133,56 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 				BackgroundText string `json:"backgroundText"`
 				OverlayPercent int64  `json:"overlayPercent"`
 				TextColor      string `json:"textColor"`
+				Background     struct {
+					Kind  string `json:"kind"`
+					Color string `json:"color"`
+				} `json:"background"`
+				Buttons []struct {
+					Text   string `json:"text"`
+					Target struct {
+						Kind       string `json:"kind"`
+						URL        string `json:"url"`
+						DocumentID string `json:"documentId"`
+					} `json:"target"`
+				} `json:"buttons"`
 			} `json:"home"`
 		} `json:"config"`
 	}
 	if json.Unmarshal(raw, &config) != nil {
 		return HandleHomeResult{}, dependency("站点首页配置不可读")
 	}
+	home := config.Config.Home
 	var labels, urls []string
-	if len(nodes) > 0 {
+	for _, button := range home.Buttons {
+		target := ""
+		switch button.Target.Kind {
+		case "external":
+			target = button.Target.URL
+		case "document":
+			for _, node := range nodes {
+				if node.DocumentID == button.Target.DocumentID {
+					target = node.CanonicalPath
+				}
+			}
+		case "qa":
+			target = "/" + in.Locale + "/ask"
+		}
+		if target != "" && len(labels) < 3 {
+			labels, urls = append(labels, button.Text), append(urls, target)
+		}
+	}
+	if len(labels) == 0 && len(nodes) > 0 {
 		labels, urls = []string{"开始阅读"}, []string{nodes[0].CanonicalPath}
 	}
-	home := config.Config.Home
 	hero, err := RenderHero(ctx, op, RenderHeroInput{Title: home.MainTitle, Subtitle: home.Subtitle, BackgroundKind: "solid", OverlayPercent: home.OverlayPercent,
 		ButtonLabels: labels, ButtonURLs: urls, BackgroundText: home.BackgroundText, TextColor: home.TextColor})
 	if err != nil {
 		return HandleHomeResult{}, err
 	}
-	page := "<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + html.EscapeString(config.Config.Name) + "</title><style>body{margin:0;font:16px/1.6 system-ui}.hero a{display:inline-block;margin:.5rem;padding:.6rem 1.4rem;border:1px solid currentColor;border-radius:999px;color:inherit;text-decoration:none}</style></head><body>" + hero.HTML + "</body></html>"
+	if home.Background.Kind == "color" && len(home.Background.Color) == 7 && home.Background.Color[0] == '#' {
+		hero.HTML = strings.Replace(hero.HTML, "<main class=\"hero ", "<main style=\"background:"+html.EscapeString(home.Background.Color)+"\" class=\"hero ", 1)
+	}
+	page := "<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + html.EscapeString(config.Config.Name) + "</title><style>body{margin:0;font:16px/1.6 system-ui}.hero a{display:inline-block;margin:.5rem;padding:.6rem 1.4rem;border:1px solid currentColor;border-radius:999px;color:inherit;text-decoration:none}</style></head><body>" + loadAnnouncement(ctx, op) + hero.HTML + "</body></html>"
 	return HandleHomeResult{Status: 200, HTML: page}, nil
 }
 
@@ -205,14 +238,15 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		metadata += "<meta name=\"description\" content=\"" + html.EscapeString(bundle.Description) + "\">"
 	}
 	composed, err := ComposeHTML(ctx, op, ComposeHTMLInput{
-		SafeHTML:    body.SafeHTML,
-		Title:       bundle.Title,
-		TOC:         toc.Items,
-		Navigation:  navigation.Tree,
-		Metadata:    metadata,
-		Locale:      locale,
-		DocumentID:  node.DocumentID,
-		MarkdownURL: node.CanonicalPath + ".md",
+		SafeHTML:     body.SafeHTML,
+		Title:        bundle.Title,
+		TOC:          toc.Items,
+		Navigation:   navigation.Tree,
+		Metadata:     metadata,
+		Locale:       locale,
+		DocumentID:   node.DocumentID,
+		MarkdownURL:  node.CanonicalPath + ".md",
+		Announcement: loadAnnouncement(ctx, op),
 	})
 	if err != nil {
 		return "", err
