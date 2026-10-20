@@ -2,6 +2,14 @@
 
 主代理已审核通过并冻结 [docs/plan.md](docs/plan.md)；覆盖 15 个业务域、`libs/platform`、UI、任务与事件、保护与恢复、部署源码、R2 和最终发布交接。用户已恢复 R1 源码实施，并改为主代理只拆解、指挥、协调与复核，多个子代理负责实际修改、集成和 CI；每模块独立 worktree，公共文件由唯一集成子代理维护。本轮仍不授权 R2、真实业务接口/模型调用、服务运行、镜像构建或部署。
 
+## 当前结构修复集成候选（暂停 CI 推送）
+
+独立分支 `codex/r1-structure-fix-20261020` 从暂停的候选 `6f25dd57386081b5903bc6c02f448ea769466618` 建立；原 CI worktree和GitLab隔离分支不改、不推。公共 checker 修复提交为 `a8699993a87e75dcb6de5eab9c0bba4e40443bee`、`d91078748d78960a4e50266a1a9ba655144021fb`、`49c42f70963decf660163a5ac27e993201a3f147`；platform公共合同/类型/台账和文档已顺序收口，最新公共阶段提交为 `559de687b4ca849c962e1089354f9fd03c48e65c`。
+
+identity 已顺序合入 clean `69f1d6cd52355e2b21e2e299fe35615ba4b19604`（源码/合同 `2f52be9c`），并登记本域生成 `*gen.SiteConfigClient` 类型；site-config 已合入合同收口 `b046e22c6e763c49f301e2c30494b3e0ca939e16` 及准确封口阻塞交接，代理分支最新 `73e7676e`。两域完整 CI仍未执行，所有相关项保持 blocked/in_progress，不标 implemented/verified。
+
+本树 `python3 scripts/check_docs.py --summary` 已通过，摘要为 15 modules、2 shared、1060 files、2484 functions、408 operations、2603 types；JSON、`git diff --check`、`make privacy` 通过。未运行 Go、pnpm 或完整 `make check`，不能把结构零错误当作源码/业务验收。
+
 本次集成已将本地 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d` 安全合入当前集成树，保留 `e85dde0583938bb4207bc3a1117e62549d21018c` WIP记录；main 已包含 pipeline173/174 验证的 `VerifyActivationReceipt` 与 site-config `RegisterActivation`。当前公共候选继续保留 e85 的 `SignActivationReceipt`、`ObserveTx/SealTx/ResumeTx`，并新增只读 `ReadBarrierStatus`、`MigrateRestoredDatabase`及非jobs不等待最终broker的分阶段封口合同；这些新增/修改源码尚无本次候选GitLab SHA，仍按blocked/in_progress记录。
 
 identity 已按顺序接入 clean HEAD `f54792d29768a3c223de2b429da1628376aa84cd`（源码包 `5962be0953753b7fc88c990362da60c20260926d`），恢复迁移调用为实际 `outbox.MigrateRestoredDatabase`；jobs源码交付 `879a41d430b89af5a0b88dd8d86d24f8f25763e3`、clean HEAD `7bc01a2917302324b84e3f594c5f249b7fc22c4e`，仍等待 jobs `step=observe` service-only授权分支。identity/site-config的 `VerifyGlobalSeal` 缺协调只读证据时必须失败关闭。用户未跟踪的 `kangaroo-down-under.html` 未触碰。

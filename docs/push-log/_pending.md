@@ -2,6 +2,12 @@
 
 用户已授权恢复 R1 源码实施；本目录记录候选状态，不自动推送到任一远端。
 
+## 结构修复候选（仅本地，暂停 CI 推送）
+
+结构修复分支 `codex/r1-structure-fix-20261020` 基于暂停候选 `6f25dd57386081b5903bc6c02f448ea769466618`，原 CI worktree和远端隔离分支保持不变。公共 checker、platform、identity、site-config 已顺序处理：identity clean `69f1d6cd52355e2b21e2e299fe35615ba4b19604`，site-config合同收口 `b046e22c6e763c49f301e2c30494b3e0ca939e16`并含最新代理交接 `73e7676e`；机器合同中的 platform ID 使用 `platform.RegisterWorkTable`/`platform.MigrateRestoredDatabase`，实际Go包仍为outbox。
+
+当前 `python3 scripts/check_docs.py --summary` 通过，统计为15 modules、2 shared、1060 files、2484 functions、408 operations、2603 types；`make docs`、JSON、`git diff --check`、`make privacy`通过。未运行Go、pnpm、完整`make check`或真实服务，未把本地结构通过记为implemented/verified，也未推送任何新SHA。
+
 集成候选分支为 `codex/resume-20261020-integration`，由 `codex/closeout-20261020-integration` 的 `e85dde0583938bb4207bc3a1117e62549d21018c` 合入 main `a32f3f4c4876f94ce798826e9dee0b170bbb612a` 纯文档基线形成。该基线保留原四路 WIP，不改旧提交。
 
 候选复算确认 pipeline 166 缺真实消费者的 5 个公共函数是：

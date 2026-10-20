@@ -4,6 +4,8 @@
 
 本计划已于 2026-10-20 经主代理审核通过并冻结，是当前唯一总计划，覆盖 R1 全部 15 个业务域、`libs/platform`、部署编排、UI、任务与事件、保护/恢复、R2 和最终发布交接。`main=a32f3f4c`代表此前文档收尾基线；用户于 2026-10-20 随后恢复 R1 源码实施，当前候选仍须严格留在本计划冻结工作包和既有恢复合同内，R1-00 不新增产品或第二套公共协议。
 
+当前结构修复候选在独立分支 `codex/r1-structure-fix-20261020` 从暂停候选 `6f25dd57386081b5903bc6c02f448ea769466618` 顺序维护；原 CI 树与远端不变。checker、platform、identity、site-config 的机器合同已完成本地结构收口，`check_docs.py --summary` 已达到 15 modules、2 shared、1060 files、2484 functions、408 operations、2603 types 的零错误结果；这只代表设计结构检查，未运行 Go、pnpm 或完整 `make check`，不升源码 verified。
+
 当前集成基线已安全合入最新本地 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`。main 已含 pipeline173/174 通过的验签与 site-config 最小接线；本工作树保留 e85 公共WIP并只在 R1-00 合同范围内补充 `ReadBarrierStatus`、恢复迁移事务入口、keyId严格校验及分阶段全域封口规则。site-config 已接入 `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`，identity 已接入 `f54792d29768a3c223de2b429da1628376aa84cd`/源码 `5962be0953753b7fc88c990362da60c20260926d`；jobs `879a41d430b89af5a0b88dd8d86d24f8f25763e3`/clean `7bc01a2917302324b84e3f594c5f249b7fc22c4e` 仍待 service-only observe 授权分支。
 
 site-config 已顺序接入 clean `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`（源码 `c3c7c10c11320ebff45c994f8458e54604a75343`）；其真实恢复迁移调用唯一公共 `outbox.MigrateRestoredDatabase`。identity 已暂停等待新 clean SHA，jobs 仍等待 `step=observe` service-only 合同。
