@@ -1,11 +1,19 @@
-# 部署编排（L02）
+# 部署编排
 
 单机部署的唯一配置来源。决策见 [ADR0005](../docs/adr/0005-engineering-and-deployment.md)，运维要求见 [部署与运维](../docs/operations.md)。
 
-- `docker-compose.yml`：15 个服务与 Caddy；`restart: unless-stopped`，恢复切换依赖服务以退出码 75 退出后自动拉起。
-- `caddy/Caddyfile`：只在这里终止 HTTPS；`/api/*`、`/admin*`、`/ui/*` 到 portal，其余到 public-site。
-- `config/services.json`：服务地址、端口、数据卷与依赖的唯一来源。
-- `config/trust-anchors.json`：由 `nw-keys` 生成的公钥表，不含私钥。
-- `.env.example`：域名、站点时区、镜像版本模板，不含密钥。
+- `docker-compose.yml`、各域 `modules/*/Dockerfile`：由 `scripts/gen_deploy.py` 生成，不要手改。
+- `caddy/Caddyfile`：只在这里终止 HTTPS，全部流量交给 portal（访客页面、后台和接口都经它代理）。
+- `config/*.json`：各服务的运行配置；`config/trust-anchors.json` 由 `nw-keys` 生成，只含公钥。
+- `init-secrets.sh`：首次部署生成各服务的签名密钥（写入 `deploy/secrets`，已被 git 忽略）。
+- `backup.sh` / `restore.sh`：过渡的整站停机备份与恢复；data-protection 的在线一致备份完成后取代。
 
-当前为设计阶段，以上文件只在 [机器合同](contracts/implementation.json) 中登记，尚未创建。文件目录见 [docs/files.md](docs/files.md)。
+首次部署（需要用户当次同意才能在服务器上执行）：
+
+```bash
+sh deploy/init-secrets.sh
+cp deploy/.env.example deploy/.env   # 改域名与时区，不进 git
+docker compose -f deploy/docker-compose.yml up -d --build
+```
+
+备份必须连同 `deploy/secrets` 一起保管，没有密钥无法恢复。
