@@ -2684,6 +2684,11 @@
       "purpose": "jobs独立UI构建与类型检查脚本及本域前端依赖"
     },
     {
+      "path": "modules/jobs/web/pnpm-lock.yaml",
+      "kind": "generated",
+      "purpose": "jobs独立UI由CI生成的精确依赖锁，不手工编辑"
+    },
+    {
       "path": "modules/jobs/web/src/QueuePanel.vue",
       "kind": "implementation",
       "purpose": "jobs队列管理界面；仅经portal同源API调用"

@@ -18,8 +18,8 @@ import (
 	"nice-wiki/libs/platform/serviceauth"
 	jobs "nice-wiki/modules/jobs/internal"
 	"nice-wiki/modules/jobs/internal/gen"
-	jobsmigrations "nice-wiki/modules/jobs/migrations"
 	"nice-wiki/modules/jobs/internal/transport"
+	jobsmigrations "nice-wiki/modules/jobs/migrations"
 )
 
 // ModuleSlug 是本域服务身份；配置指向其他域时拒绝装配。
@@ -36,18 +36,18 @@ type activationReceipt struct {
 }
 
 type registerActivationRequest struct {
-	Receipt         activationReceipt `json:"receipt"`
+	Receipt          activationReceipt `json:"receipt"`
 	ExpectedRevision int64             `json:"expectedRevision"`
-	RestoreID       string            `json:"restoreId"`
+	RestoreID        string            `json:"restoreId"`
 }
 
 type activationRuntimeState struct {
-	DataEpoch        string              `json:"dataEpoch"`
-	TargetDataEpoch  *string             `json:"targetDataEpoch"`
-	Phase            string              `json:"phase"`
-	Maintenance      bool                `json:"maintenance"`
-	RestoreID        *string             `json:"restoreId"`
-	Revision         int64               `json:"revision"`
+	DataEpoch          string              `json:"dataEpoch"`
+	TargetDataEpoch    *string             `json:"targetDataEpoch"`
+	Phase              string              `json:"phase"`
+	Maintenance        bool                `json:"maintenance"`
+	RestoreID          *string             `json:"restoreId"`
+	Revision           int64               `json:"revision"`
 	ActivationReceipts []activationReceipt `json:"activationReceipts"`
 }
 
@@ -195,9 +195,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			}
 			return lifecycle.DomainSnapshotManifest{Format: "nice-wiki.domain-snapshot", SchemaVersion: 1, Owner: ModuleSlug, BackupID: input.BackupID, BarrierID: cut.BarrierID, SnapshotID: input.SnapshotID, SourceEpoch: cut.Epoch, DataSchemaVersion: schemaVersion, RevisionWatermark: cut.Watermark, ContainsSecrets: false, Files: files, Objects: []lifecycle.DomainSnapshotObject{}, Publications: []lifecycle.SnapshotPublishedRevisionRef{}, References: []lifecycle.DomainSnapshotReference{}, Assets: []platform.AssetVersionRef{}, Invocations: []lifecycle.SnapshotInvocationRef{}}, nil
 		},
-		MigrateStage:     jobs.MigrateJobsStage,
-		ValidateStaged:   jobs.ValidateJobsStaged,
-		StageBudget:      jobs.JobsStageBudget,
+		MigrateStage:   jobs.MigrateJobsStage,
+		ValidateStaged: jobs.ValidateJobsStaged,
+		StageBudget:    jobs.JobsStageBudget,
 	})
 	if err != nil {
 		return nil, err
@@ -394,21 +394,21 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"coordinateBarrier": true, "acquireBarrier": true, "releaseBarrier": true,
 			"exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "readSnapshotArchive": true,
 		},
-			OpenedDataEpoch: openedDataEpoch,
+		OpenedDataEpoch: openedDataEpoch,
 		AllowedCallers: map[string][]string{
 			"createJob": queueCallers,
 			"claimJob":  queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
 			"publishEvent": producerCallers, "acknowledgeEvent": consumerCallers, "subscribeEvents": consumerCallers,
-			"listJobs":       {"portal"},
-			"cancelJob":      {"portal"},
-			"readJob":        readJobCallers,
-			"listDeliveries": {"portal"},
-			"replayDelivery": {"portal"},
-			"retryJob":       {"portal"},
-			"streamProgress": {"portal"},
-			"createSchedule": createScheduleCallers,
-			"listSchedules":  {"portal"},
-			"updateSchedule": {"portal"},
+			"listJobs":          {"portal"},
+			"cancelJob":         {"portal"},
+			"readJob":           readJobCallers,
+			"listDeliveries":    {"portal"},
+			"replayDelivery":    {"portal"},
+			"retryJob":          {"portal"},
+			"streamProgress":    {"portal"},
+			"createSchedule":    createScheduleCallers,
+			"listSchedules":     {"portal"},
+			"updateSchedule":    {"portal"},
 			"coordinateBarrier": barrierCallers, "acquireBarrier": {"data-protection"}, "releaseBarrier": {"data-protection"},
 			"exportSnapshot": {"data-protection"}, "stageSnapshot": {"data-protection"}, "discardSnapshot": {"data-protection"},
 			"readSnapshotArchive": {"data-protection"},
@@ -417,7 +417,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"createJob": queueCallers,
 			"readJob":   queueCallers,
 			"claimJob":  queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
-			"createSchedule": scheduleOwners,
+			"createSchedule":    scheduleOwners,
 			"coordinateBarrier": barrierCallers,
 		},
 		MaintenanceOperations: map[string]bool{"heartbeatJob": true, "checkLease": true, "completeJob": true, "failJob": true, "coordinateBarrier": true, "acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "readSnapshotArchive": true},
@@ -441,7 +441,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		id := platform.NewIdentifier()
 		op := platform.OperationContext{
 			RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug,
-				DataEpoch: runtimeView.DataEpoch, Deadline: deadline.UTC().Format(time.RFC3339Nano),
+			DataEpoch: runtimeView.DataEpoch, Deadline: deadline.UTC().Format(time.RFC3339Nano),
 			Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system", ExpiresAt: deadline.UTC().Format(time.RFC3339Nano)},
 		}
 		raw, err := siteClient.ReadSiteConfig(platform.WithOperationContext(work, op))

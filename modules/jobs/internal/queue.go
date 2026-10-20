@@ -18,8 +18,8 @@ import (
 	_ "modernc.org/sqlite" // 注册无CGO的 sqlite 驱动。
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/jobs/internal/gen"
 	jobsmigrations "nice-wiki/modules/jobs/migrations"
 )
@@ -75,17 +75,17 @@ type SiteIDProvider func(context.Context, platform.Identifier) (string, error)
 // Store 是 jobs active 区数据库句柄。单连接保证短写事务串行执行；
 // outbox 与任务状态使用同一个 SQLite 事务。
 type Store struct {
-	db              *sql.DB
-	mu              sync.RWMutex
-	siteID          SiteIDProvider
-	closed          bool
-	leaseRuntime    LeaseRuntimeProvider
-	identity        *gen.IdentityClient
-	recovery        OwnerRecoveryChecker
-	progressMu      sync.Mutex
-	progressStreams map[string]int
-	eventMu         sync.Mutex
-	eventStreams    map[string]int
+	db                   *sql.DB
+	mu                   sync.RWMutex
+	siteID               SiteIDProvider
+	closed               bool
+	leaseRuntime         LeaseRuntimeProvider
+	identity             *gen.IdentityClient
+	recovery             OwnerRecoveryChecker
+	progressMu           sync.Mutex
+	progressStreams      map[string]int
+	eventMu              sync.Mutex
+	eventStreams         map[string]int
 	backgroundAdmit      platform.WorkAdmission
 	backgroundEventScope func(context.Context, platform.OutboxRow) (context.Context, func(), error)
 	snapshotManager      *lifecycle.SnapshotManager

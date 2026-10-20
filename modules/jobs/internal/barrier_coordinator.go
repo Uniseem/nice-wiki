@@ -22,12 +22,12 @@ var barrierProofOwners = [...]string{
 }
 
 type BarrierObserveEvidence struct {
-	BarrierID         platform.Identifier          `json:"barrierId"`
-	DataEpoch         platform.Identifier          `json:"dataEpoch"`
-	Phase             string                       `json:"phase"`
-	RevisionWatermark gen.Revision                 `json:"revisionWatermark"`
-	SelectedProofHash gen.Hash                     `json:"selectedProofHash"`
-	Owners            []string                     `json:"owners"`
+	BarrierID         platform.Identifier           `json:"barrierId"`
+	DataEpoch         platform.Identifier           `json:"dataEpoch"`
+	Phase             string                        `json:"phase"`
+	RevisionWatermark gen.Revision                  `json:"revisionWatermark"`
+	SelectedProofHash gen.Hash                      `json:"selectedProofHash"`
+	Owners            []string                      `json:"owners"`
 	BrokerBefore      gen.SnapshotBrokerObservation `json:"brokerBefore"`
 	BrokerAfter       gen.SnapshotBrokerObservation `json:"brokerAfter"`
 }
@@ -44,13 +44,13 @@ type persistedBrokerObservation struct {
 }
 
 type persistedBarrierObserveEvidence struct {
-	Version           int                         `json:"version"`
-	BarrierID         string                      `json:"barrierId"`
-	DataEpoch         string                      `json:"dataEpoch"`
-	Phase             string                      `json:"phase"`
-	RevisionWatermark int64                       `json:"revisionWatermark"`
-	SelectedProofHash string                      `json:"selectedProofHash"`
-	Owners            []string                    `json:"owners"`
+	Version           int                        `json:"version"`
+	BarrierID         string                     `json:"barrierId"`
+	DataEpoch         string                     `json:"dataEpoch"`
+	Phase             string                     `json:"phase"`
+	RevisionWatermark int64                      `json:"revisionWatermark"`
+	SelectedProofHash string                     `json:"selectedProofHash"`
+	Owners            []string                   `json:"owners"`
 	BrokerBefore      persistedBrokerObservation `json:"brokerBefore"`
 	BrokerAfter       persistedBrokerObservation `json:"brokerAfter"`
 }
@@ -147,9 +147,9 @@ func observeBarrier(ctx context.Context, op OperationContext, input lifecycle.Sn
 		SelectedProof: &BarrierObserveEvidence{
 			BarrierID: gen.Identifier(evidence.BarrierID), DataEpoch: gen.Identifier(evidence.DataEpoch), Phase: evidence.Phase,
 			RevisionWatermark: gen.Revision(evidence.RevisionWatermark), SelectedProofHash: gen.Hash(evidence.SelectedProofHash),
-			Owners: append([]string(nil), evidence.Owners...),
+			Owners:       append([]string(nil), evidence.Owners...),
 			BrokerBefore: gen.SnapshotBrokerObservation{Revision: gen.Revision(evidence.BrokerBefore.Revision), PendingDeliveries: gen.Revision(evidence.BrokerBefore.PendingDeliveries), ActiveLeases: gen.Revision(evidence.BrokerBefore.ActiveLeases)},
-			BrokerAfter: gen.SnapshotBrokerObservation{Revision: gen.Revision(evidence.BrokerAfter.Revision), PendingDeliveries: gen.Revision(evidence.BrokerAfter.PendingDeliveries), ActiveLeases: gen.Revision(evidence.BrokerAfter.ActiveLeases)},
+			BrokerAfter:  gen.SnapshotBrokerObservation{Revision: gen.Revision(evidence.BrokerAfter.Revision), PendingDeliveries: gen.Revision(evidence.BrokerAfter.PendingDeliveries), ActiveLeases: gen.Revision(evidence.BrokerAfter.ActiveLeases)},
 		},
 	}, nil
 }

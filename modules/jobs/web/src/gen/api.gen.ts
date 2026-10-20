@@ -262,8 +262,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 等待全域安全点
-         * @description 只允许data-protection+超管委托，协调全部有状态域安全点
+         * 读取或推进全域安全点
+         * @description step=observe仅允许已登记13个非jobs有状态域服务身份只读核对已持久的稳定零broker基础proof，并要求caller属于selectedProof.owners；prepare/drain/seal/resume-drain仍只允许data-protection既有变更授权，不接受用户委托或客户端自报proof
          */
         post: operations["coordinateBarrier"];
         delete?: never;
@@ -549,6 +549,7 @@ export interface components {
     schemas: {
         QueueSiteConfigResult: components["schemas"]["ReadSiteConfigResult"];
         KnowledgeOwnerRecoveryResult: components["schemas"]["OwnerRecoveryResult"];
+        ReadInitializationStatusResult: components["schemas"]["types_ReadInitializationStatusResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /** @description 已持久登记的异步任务引用，不代表任务执行成功 */
@@ -903,6 +904,8 @@ export interface components {
             dataEpoch: components["schemas"]["Identifier"];
             /** @description schedule ID */
             scheduleId: components["schemas"]["Identifier"];
+            /** @description 当前定时记录CAS revision；列表读取后用于updateSchedule */
+            revision: components["schemas"]["Revision"];
             /** @description 下次触发 */
             nextAt: components["schemas"]["Timestamp"];
             /** @description 是否启用 */
@@ -969,16 +972,40 @@ export interface components {
             /** @description observe操作的真实在途计数/持久水位；未知不填0。 */
             observation?: components["schemas"]["SnapshotBarrierObservation"];
         };
-        /** @description 等待全域安全点成功结果；失败不返回半成功结果 */
-        CoordinateBarrierResult: {
-            /** @description 公共 BarrierStatus 合同，遵守其字段和空值规则 */
-            status: components["schemas"]["BarrierStatus"];
-        };
         /** @description 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。 */
         SnapshotBrokerObservation: {
             revision: number;
             pendingDeliveries: number;
             activeLeases: number;
+        };
+        /** @description 协调器持久选择的稳定零broker基础proof；只由step=observe返回，不能使用BarrierStatus.sealProofHash替代；owners必须覆盖已登记14个有状态域 */
+        BarrierObserveEvidence: {
+            /** @description 基础proof绑定的屏障ID */
+            barrierId: components["schemas"]["Identifier"];
+            /** @description 基础proof绑定的业务代次 */
+            dataEpoch: components["schemas"]["Identifier"];
+            /**
+             * @description 协调器已持久确认的运行阶段
+             * @enum {string}
+             */
+            phase: "backup_barrier" | "restore_staging";
+            /** @description 基础proof选择时的本域持久水位 */
+            revisionWatermark: components["schemas"]["Revision"];
+            /** @description 协调器选择的完整基础proof canonical hash */
+            selectedProofHash: components["schemas"]["Hash"];
+            /** @description 完整基础proof覆盖的14个有状态域；调用服务必须在此集合内 */
+            owners: components["schemas"]["Identifier"][];
+            /** @description 持久选择的broker基础观察 */
+            brokerBefore: components["schemas"]["SnapshotBrokerObservation"];
+            /** @description 持久选择的broker基础观察复核值 */
+            brokerAfter: components["schemas"]["SnapshotBrokerObservation"];
+        };
+        /** @description 全域屏障结果；observe成功必须携带明确的selectedProof，变更步骤只返回本域状态 */
+        CoordinateBarrierResult: {
+            /** @description 公共 BarrierStatus 合同，遵守其字段和空值规则 */
+            status: components["schemas"]["BarrierStatus"];
+            /** @description 仅step=observe返回的协调器基础proof；不填充为本域safe封口hash */
+            selectedProof?: components["schemas"]["BarrierObserveEvidence"];
         };
         SnapshotSealReceipt: {
             owner: string;
@@ -1026,7 +1053,7 @@ export interface components {
             /** @enum {unknown} */
             step: "resume-drain";
         });
-        /** @description 只允许data-protection+超管委托，协调全部有状态域安全点；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
+        /** @description prepare/drain/seal/resume-drain只允许data-protection既有变更授权；step=observe允许已登记13个非jobs有状态域服务身份只读已持久基础proof，调用服务必须属于proof owners；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         CoordinateBarrierRequestBody: {
             /** @description 公共 BarrierRequest 合同，遵守其字段和空值规则 */
             request: components["schemas"]["BarrierRequest"];
@@ -1453,6 +1480,50 @@ export interface components {
             status: "completed" | "safeToRetry" | "pending" | "unknown";
             resultRef?: components["schemas"]["ObjectRef"];
             paidResultRefs: components["schemas"]["Identifier"][];
+        };
+        /** @description 公开安全初始化阶段，不包含协调标识和私有决定 */
+        PublicInitializationState: {
+            /**
+             * @description 阶段
+             * @enum {string}
+             */
+            phase: "uninitialized" | "preparing" | "config_committed" | "completed" | "aborting" | "aborted" | "blocked";
+            /** @description 无null */
+            safeError: components["schemas"]["Problem"] | null;
+        };
+        /** @description 首超管注册后的站点/语言两步向导；没有AI和owner reservation */
+        InitializationState: {
+            /** @description 初始化操作；尚无协调记录时为null，不生成占位ID */
+            operationId: components["schemas"]["Identifier"] | null;
+            /** @description 已由identity首注册取得站点；尚无协调记录时为null，不生成占位ID */
+            siteId: components["schemas"]["Identifier"] | null;
+            /**
+             * @description 阶段
+             * @enum {string}
+             */
+            phase: "uninitialized" | "preparing" | "config_committed" | "completed" | "aborting" | "aborted" | "blocked";
+            /** @description 配置水位 */
+            configRevision: components["schemas"]["Revision"];
+            /**
+             * @description 决定
+             * @enum {string}
+             */
+            decision: "none" | "commit" | "abort";
+            /** @description CAS */
+            revision: components["schemas"]["Revision"];
+            /** @description 无null */
+            safeError: components["schemas"]["Problem"] | null;
+            /** @description 时间 */
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 读取安全初始化阶段的结果 */
+        types_ReadInitializationStatusResult: {
+            /** @description active已提交配置是否完成初始化；不能用于重开注册 */
+            initialized: boolean;
+            /** @description 仅安全phase和safeError */
+            state: components["schemas"]["PublicInitializationState"];
+            /** @description 仅同站点超管或identity/site-config可信服务返回，匿名省略 */
+            coordination?: components["schemas"]["InitializationState"];
         };
     };
     responses: never;
@@ -2338,13 +2409,40 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 只允许data-protection+超管委托，协调全部有状态域安全点 */
+            /** @description observe成功必须返回selectedProof；变更步骤不返回跨域半结果 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["CoordinateBarrierResult"];
+                };
+            };
+            /** @description FORBIDDEN：服务身份或step授权不符 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description VERSION_MISMATCH / CONFLICT：屏障或epoch已变化 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INTEGRITY_ERROR：基础proof缺失或不一致 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description 公共错误；DEPENDENCY_UNAVAILABLE */

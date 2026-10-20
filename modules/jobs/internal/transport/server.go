@@ -25,12 +25,12 @@ const (
 )
 
 var requiredBackgroundTasks = map[string]bool{
-	"jobs.RequeueDue":              true,
-	"jobs.ReapExpiredLeases":       true,
-	"jobs.TickSchedules":           true,
+	"jobs.RequeueDue":               true,
+	"jobs.ReapExpiredLeases":        true,
+	"jobs.TickSchedules":            true,
 	"jobs.RequeueExpiredDeliveries": true,
-	"jobs.PurgeExpiredHistory":     true,
-	"jobs.RelayOutbox":             true,
+	"jobs.PurgeExpiredHistory":      true,
+	"jobs.RelayOutbox":              true,
 }
 
 // ReadinessEvidence 由完整启动装配从 site-config 与真实本域状态联合读取；
