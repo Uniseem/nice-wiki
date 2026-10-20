@@ -56,7 +56,7 @@ foundation缺边的合同根因已定位并本地窄修：identity `restoreIdent
 
 基于本地依赖修正提交 `7fbd7918535a3c941084a7f2b48d85d8f6d306af` 的候选已应用job731原始生成补丁；`make docs` 未产生额外差异，全仓JSON解析、`git diff --check` 与 `make privacy` 均通过。当前只保留identity barrier的预期格式改动及本次状态记录，未运行Go、测试、pnpm或`make check`，候选仍待主代理复核，不标记为verified/accepted。
 
-精确候选 `2de5fa21d40c07ae80ae69cc7c8fb96a5f8f0a3d` 已普通快进推至 GitLab 隔离分支 `codex/ci-20261020-r1-9b359c0e`，pipeline 181：生成 job736、content-media job738、AI job739、前端 job740成功；foundation job737失败于 `modules/site-config/internal/resource_reference_reader.go:88,91,95` 的 `historyRevision.RevisionID` 字段名错误，生成类型实际为 `RevisionId`，因此 `make check` 未执行。job736 `generated.patch` 为829字节，SHA-256 `68a7a99c30d58deebf61e5003301cee95b2d9d54925ca16ee0232158d78bf024`，仅含生成的 `modules/identity/internal/gen/clients.gen.go` RegisterActivation client；本地 `git apply --check`通过但未应用。未推送第二个SHA，原树未作源码/合同修复。
+精确候选 `2de5fa21d40c07ae80ae69cc7c8fb96a5f8f0a3d` 已普通快进推至 GitLab 隔离分支 `codex/ci-20261020-r1-9b359c0e`，pipeline 181：生成 job736、content-media job738、AI job739、前端 job740成功；foundation job737失败于 `modules/site-config/internal/resource_reference_reader.go:88,91,95` 的 `historyRevision.RevisionID` 字段名错误，生成类型实际为 `RevisionId`，因此 `make check` 未执行。随后本地窄修提交 `9e234cba216beb4fcb027c8a71a301d61bfa7100` 仅修正这三处字段名；job736 `generated.patch` 为829字节，SHA-256 `68a7a99c30d58deebf61e5003301cee95b2d9d54925ca16ee0232158d78bf024`，仅含生成的 `modules/identity/internal/gen/clients.gen.go` RegisterActivation client，已在本地候选提交 `89df86a0c0396d5a496b2afbc7b353fdf4aea040` 中原样应用。当前候选未推送，等待主代理审批。
 
 旧 `9b359c0e` follow-up 的“结构摘要检查失败203项”来自该树直接运行的 `check_docs.py --summary`，不代表当前 `2de5fa21` 的 `make check`；本轮 foundation 在编译阶段失败，不能外推该摘要。
 
