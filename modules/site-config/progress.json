@@ -1010,7 +1010,7 @@
         "state": "not_run",
         "evidence": null
       },
-      "blocker": "本轮仅装配信任锚到control store；品牌、快照、屏障、资源引用列表、RelayOutbox、恢复换目录与完整handler仍未完成，待本轮GitLab CI"
+      "blocker": "本轮仅装配信任锚到control store；快照、屏障、资源引用列表、RelayOutbox、恢复换目录回执及完整启动仍未完成，待本轮GitLab CI"
     },
     {
       "id": "site-config.Serve",
