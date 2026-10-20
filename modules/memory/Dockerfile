@@ -1,5 +1,4 @@
-# memory 域独立镜像；构建上下文为仓库根：
-# docker build -f modules/memory/Dockerfile .
+# memory 域独立镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
 FROM golang:1.25-alpine AS build
 WORKDIR /src
 COPY libs/platform/ libs/platform/
@@ -8,11 +7,11 @@ WORKDIR /src/modules/memory
 RUN CGO_ENABLED=0 go build -trimpath -o /out/memory ./cmd/memory
 
 FROM alpine:3.20
-RUN adduser -D -u 10009 memory
+RUN adduser -D -u 10010 memory
 COPY --from=build /out/memory /memory
-COPY modules/memory/deploy/service.config.json /config/service.config.json
-USER 10009:10009
+USER 10010:10010
 EXPOSE 8109
 VOLUME ["/data/memory"]
+WORKDIR /config
 ENTRYPOINT ["/memory"]
-CMD ["--config", "/config/service.config.json"]
+CMD ["--config", "/config/memory.json"]

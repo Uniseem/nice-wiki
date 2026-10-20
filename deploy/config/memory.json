@@ -1,0 +1,23 @@
+{
+  "module": "memory",
+  "listen": "0.0.0.0:8109",
+  "dataRoot": "/data/memory",
+  "trustAnchorRef": "/run/secrets/trust-anchors.json",
+  "signingKeyRef": "/run/secrets/signing-key.json",
+  "dependencies": {
+    "portal": "http://portal:8080",
+    "public-site": "http://public-site:8081",
+    "identity": "http://identity:8101",
+    "site-config": "http://site-config:8102",
+    "content": "http://content:8103",
+    "media": "http://media:8104",
+    "model-gateway": "http://model-gateway:8105",
+    "knowledge": "http://knowledge:8106",
+    "qa": "http://qa:8107",
+    "localization": "http://localization:8108",
+    "traffic-guard": "http://traffic-guard:8110",
+    "jobs": "http://jobs:8111",
+    "analytics": "http://analytics:8112",
+    "data-protection": "http://data-protection:8113"
+  }
+}

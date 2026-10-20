@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "services": [
+    {
+      "slug": "portal",
+      "url": "http://portal:8080",
+      "port": 8080,
+      "dataVolume": "/data/portal",
+      "secretsDir": "deploy/secrets/portal"
+    },
+    {
+      "slug": "public-site",
+      "url": "http://public-site:8081",
+      "port": 8081,
+      "dataVolume": "/data/public-site",
+      "secretsDir": "deploy/secrets/public-site"
+    },
+    {
+      "slug": "identity",
+      "url": "http://identity:8101",
+      "port": 8101,
+      "dataVolume": "/data/identity",
+      "secretsDir": "deploy/secrets/identity"
+    },
+    {
+      "slug": "site-config",
+      "url": "http://site-config:8102",
+      "port": 8102,
+      "dataVolume": "/data/site-config",
+      "secretsDir": "deploy/secrets/site-config"
+    },
+    {
+      "slug": "content",
+      "url": "http://content:8103",
+      "port": 8103,
+      "dataVolume": "/data/content",
+      "secretsDir": "deploy/secrets/content"
+    },
+    {
+      "slug": "media",
+      "url": "http://media:8104",
+      "port": 8104,
+      "dataVolume": "/data/media",
+      "secretsDir": "deploy/secrets/media"
+    },
+    {
+      "slug": "model-gateway",
+      "url": "http://model-gateway:8105",
+      "port": 8105,
+      "dataVolume": "/data/model-gateway",
+      "secretsDir": "deploy/secrets/model-gateway"
+    },
+    {
+      "slug": "knowledge",
+      "url": "http://knowledge:8106",
+      "port": 8106,
+      "dataVolume": "/data/knowledge",
+      "secretsDir": "deploy/secrets/knowledge"
+    },
+    {
+      "slug": "qa",
+      "url": "http://qa:8107",
+      "port": 8107,
+      "dataVolume": "/data/qa",
+      "secretsDir": "deploy/secrets/qa"
+    },
+    {
+      "slug": "localization",
+      "url": "http://localization:8108",
+      "port": 8108,
+      "dataVolume": "/data/localization",
+      "secretsDir": "deploy/secrets/localization"
+    },
+    {
+      "slug": "memory",
+      "url": "http://memory:8109",
+      "port": 8109,
+      "dataVolume": "/data/memory",
+      "secretsDir": "deploy/secrets/memory"
+    },
+    {
+      "slug": "traffic-guard",
+      "url": "http://traffic-guard:8110",
+      "port": 8110,
+      "dataVolume": "/data/traffic-guard",
+      "secretsDir": "deploy/secrets/traffic-guard"
+    },
+    {
+      "slug": "jobs",
+      "url": "http://jobs:8111",
+      "port": 8111,
+      "dataVolume": "/data/jobs",
+      "secretsDir": "deploy/secrets/jobs"
+    },
+    {
+      "slug": "analytics",
+      "url": "http://analytics:8112",
+      "port": 8112,
+      "dataVolume": "/data/analytics",
+      "secretsDir": "deploy/secrets/analytics"
+    },
+    {
+      "slug": "data-protection",
+      "url": "http://data-protection:8113",
+      "port": 8113,
+      "dataVolume": "/data/data-protection",
+      "secretsDir": "deploy/secrets/data-protection"
+    }
+  ]
+}

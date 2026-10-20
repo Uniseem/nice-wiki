@@ -1,0 +1,39 @@
+# portal 域独立镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
+FROM node:24-alpine AS web
+RUN npm install -g pnpm@9.15.9
+WORKDIR /src
+COPY libs/platform/web/ libs/platform/web/
+COPY modules/portal/web/ modules/portal/web/
+RUN cd modules/portal/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web --emptyOutDir
+COPY modules/content/web/ modules/content/web/
+RUN cd modules/content/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/content --emptyOutDir
+COPY modules/site-config/web/ modules/site-config/web/
+RUN cd modules/site-config/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/site-config --emptyOutDir
+COPY modules/identity/web/ modules/identity/web/
+RUN cd modules/identity/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/identity --emptyOutDir
+COPY modules/jobs/web/ modules/jobs/web/
+RUN cd modules/jobs/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/jobs --emptyOutDir
+COPY modules/analytics/web/ modules/analytics/web/
+RUN cd modules/analytics/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/analytics --emptyOutDir
+COPY modules/data-protection/web/ modules/data-protection/web/
+RUN cd modules/data-protection/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/data-protection --emptyOutDir
+
+FROM golang:1.25-alpine AS build
+WORKDIR /src
+COPY libs/platform/ libs/platform/
+COPY modules/portal/ modules/portal/
+WORKDIR /src/modules/portal
+RUN CGO_ENABLED=0 go build -trimpath -o /out/portal ./cmd/portal
+
+FROM alpine:3.20
+RUN adduser -D -u 10000 portal
+COPY --from=build /out/portal /portal
+COPY --from=web /out/web /web
+COPY modules/portal/config/routes.json /config/routes.json
+ENV NW_WEB_DIR=/web
+USER 10000:10000
+EXPOSE 8080
+VOLUME ["/data/portal"]
+WORKDIR /config
+ENTRYPOINT ["/portal"]
+CMD ["--config", "/config/portal.json"]

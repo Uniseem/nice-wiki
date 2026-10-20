@@ -1,5 +1,4 @@
-# site-config 域独立镜像；构建上下文为仓库根：
-# docker build -f modules/site-config/Dockerfile .
+# site-config 域独立镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
 FROM golang:1.25-alpine AS build
 WORKDIR /src
 COPY libs/platform/ libs/platform/
@@ -8,11 +7,11 @@ WORKDIR /src/modules/site-config
 RUN CGO_ENABLED=0 go build -trimpath -o /out/site-config ./cmd/site-config
 
 FROM alpine:3.20
-RUN adduser -D -u 10002 site-config
+RUN adduser -D -u 10003 site-config
 COPY --from=build /out/site-config /site-config
-COPY modules/site-config/config/service.defaults.json /config/service.defaults.json
-USER 10002:10002
+USER 10003:10003
 EXPOSE 8102
 VOLUME ["/data/site-config"]
+WORKDIR /config
 ENTRYPOINT ["/site-config"]
-CMD ["--config", "/config/service.defaults.json"]
+CMD ["--config", "/config/site-config.json"]

@@ -1,0 +1,10 @@
+# 只有 portal 对外：访客页面、后台和接口都经它代理到各服务。
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	reverse_proxy portal:8080
+}

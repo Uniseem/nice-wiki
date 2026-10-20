@@ -1,5 +1,4 @@
-# traffic-guard 域独立镜像；构建上下文为仓库根：
-# docker build -f modules/traffic-guard/Dockerfile .
+# traffic-guard 域独立镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
 FROM golang:1.25-alpine AS build
 WORKDIR /src
 COPY libs/platform/ libs/platform/
@@ -8,11 +7,11 @@ WORKDIR /src/modules/traffic-guard
 RUN CGO_ENABLED=0 go build -trimpath -o /out/traffic-guard ./cmd/traffic-guard
 
 FROM alpine:3.20
-RUN adduser -D -u 10012 traffic-guard
+RUN adduser -D -u 10011 traffic-guard
 COPY --from=build /out/traffic-guard /traffic-guard
-COPY modules/traffic-guard/config/defaults.json /config/defaults.json
-USER 10012:10012
+USER 10011:10011
 EXPOSE 8110
 VOLUME ["/data/traffic-guard"]
+WORKDIR /config
 ENTRYPOINT ["/traffic-guard"]
-CMD ["--config", "/config/defaults.json"]
+CMD ["--config", "/config/traffic-guard.json"]

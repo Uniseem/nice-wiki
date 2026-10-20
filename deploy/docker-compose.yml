@@ -1,0 +1,293 @@
+# 单机部署编排：由 scripts/gen_deploy.py 生成，勿手改。
+name: nice-wiki
+
+networks:
+  internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 198.51.100.0/24
+
+services:
+  portal:
+    build:
+      context: ..
+      dockerfile: modules/portal/Dockerfile
+    image: nice-wiki/portal:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+      NW_ALLOW_LOCAL_HTTP: "false"
+      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
+    volumes:
+      - ./config/portal.json:/config/portal.json:ro
+      - ./secrets/portal/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/portal/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - portal-data:/data/portal
+      - ./secrets/portal/delegation-key.json:/run/secrets/delegation-key.json:ro
+      - ./secrets/portal/delegation.pem:/run/secrets/delegation.pem:ro
+
+  public-site:
+    build:
+      context: ..
+      dockerfile: modules/public-site/Dockerfile
+    image: nice-wiki/public-site:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/public-site.json:/config/public-site.json:ro
+      - ./secrets/public-site/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/public-site/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - public-site-data:/data/public-site
+
+  identity:
+    build:
+      context: ..
+      dockerfile: modules/identity/Dockerfile
+    image: nice-wiki/identity:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+      NW_ALLOW_LOCAL_HTTP: "false"
+      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
+    volumes:
+      - ./config/identity.json:/config/identity.json:ro
+      - ./secrets/identity/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/identity/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - identity-data:/data/identity
+
+  site-config:
+    build:
+      context: ..
+      dockerfile: modules/site-config/Dockerfile
+    image: nice-wiki/site-config:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+      NW_ALLOW_LOCAL_HTTP: "false"
+      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
+    volumes:
+      - ./config/site-config.json:/config/site-config.json:ro
+      - ./secrets/site-config/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/site-config/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - site-config-data:/data/site-config
+
+  content:
+    build:
+      context: ..
+      dockerfile: modules/content/Dockerfile
+    image: nice-wiki/content:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/content.json:/config/content.json:ro
+      - ./secrets/content/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/content/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - content-data:/data/content
+
+  media:
+    build:
+      context: ..
+      dockerfile: modules/media/Dockerfile
+    image: nice-wiki/media:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/media.json:/config/media.json:ro
+      - ./secrets/media/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/media/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - media-data:/data/media
+
+  model-gateway:
+    build:
+      context: ..
+      dockerfile: modules/model-gateway/Dockerfile
+    image: nice-wiki/model-gateway:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/model-gateway.json:/config/model-gateway.json:ro
+      - ./secrets/model-gateway/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/model-gateway/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - model-gateway-data:/data/model-gateway
+
+  knowledge:
+    build:
+      context: ..
+      dockerfile: modules/knowledge/Dockerfile
+    image: nice-wiki/knowledge:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/knowledge.json:/config/knowledge.json:ro
+      - ./secrets/knowledge/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/knowledge/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - knowledge-data:/data/knowledge
+
+  qa:
+    build:
+      context: ..
+      dockerfile: modules/qa/Dockerfile
+    image: nice-wiki/qa:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/qa.json:/config/qa.json:ro
+      - ./secrets/qa/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/qa/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - qa-data:/data/qa
+
+  localization:
+    build:
+      context: ..
+      dockerfile: modules/localization/Dockerfile
+    image: nice-wiki/localization:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/localization.json:/config/localization.json:ro
+      - ./secrets/localization/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/localization/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - localization-data:/data/localization
+
+  memory:
+    build:
+      context: ..
+      dockerfile: modules/memory/Dockerfile
+    image: nice-wiki/memory:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/memory.json:/config/memory.json:ro
+      - ./secrets/memory/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/memory/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - memory-data:/data/memory
+
+  traffic-guard:
+    build:
+      context: ..
+      dockerfile: modules/traffic-guard/Dockerfile
+    image: nice-wiki/traffic-guard:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/traffic-guard.json:/config/traffic-guard.json:ro
+      - ./secrets/traffic-guard/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/traffic-guard/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - traffic-guard-data:/data/traffic-guard
+
+  jobs:
+    build:
+      context: ..
+      dockerfile: modules/jobs/Dockerfile
+    image: nice-wiki/jobs:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/jobs.json:/config/jobs.json:ro
+      - ./secrets/jobs/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/jobs/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - jobs-data:/data/jobs
+
+  analytics:
+    build:
+      context: ..
+      dockerfile: modules/analytics/Dockerfile
+    image: nice-wiki/analytics:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/analytics.json:/config/analytics.json:ro
+      - ./secrets/analytics/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/analytics/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - analytics-data:/data/analytics
+
+  data-protection:
+    build:
+      context: ..
+      dockerfile: modules/data-protection/Dockerfile
+    image: nice-wiki/data-protection:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/data-protection.json:/config/data-protection.json:ro
+      - ./secrets/data-protection/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/data-protection/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - data-protection-data:/data/data-protection
+      - ./secrets/data-protection/master-key:/run/secrets/master-key:ro
+      - backups:/backups
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    networks: [internal]
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [portal]
+
+volumes:
+  portal-data:
+  public-site-data:
+  identity-data:
+  site-config-data:
+  content-data:
+  media-data:
+  model-gateway-data:
+  knowledge-data:
+  qa-data:
+  localization-data:
+  memory-data:
+  traffic-guard-data:
+  jobs-data:
+  analytics-data:
+  data-protection-data:
+  backups:
+  caddy-data:
+  caddy-config:

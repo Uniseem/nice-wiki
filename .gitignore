@@ -12,3 +12,5 @@
 *.pyc
 *.tsbuildinfo
 .DS_Store
+/deploy/secrets/
+/deploy/.env

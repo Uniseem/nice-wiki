@@ -1,5 +1,4 @@
-# analytics 域独立镜像；构建上下文为仓库根：
-# docker build -f modules/analytics/Dockerfile .
+# analytics 域独立镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
 FROM golang:1.25-alpine AS build
 WORKDIR /src
 COPY libs/platform/ libs/platform/
@@ -8,11 +7,11 @@ WORKDIR /src/modules/analytics
 RUN CGO_ENABLED=0 go build -trimpath -o /out/analytics ./cmd/analytics
 
 FROM alpine:3.20
-RUN adduser -D -u 10001 analytics
+RUN adduser -D -u 10013 analytics
 COPY --from=build /out/analytics /analytics
-COPY modules/analytics/config/defaults.json /config/defaults.json
-USER 10001:10001
+USER 10013:10013
 EXPOSE 8112
 VOLUME ["/data/analytics"]
+WORKDIR /config
 ENTRYPOINT ["/analytics"]
-CMD ["--config", "/config/defaults.json"]
+CMD ["--config", "/config/analytics.json"]
