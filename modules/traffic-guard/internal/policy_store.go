@@ -165,6 +165,9 @@ func (s *PolicyStore) RunMigrations() error {
 	if s.AppliedMigrations == 0 {
 		s.AppliedMigrations = int64(len(all))
 	}
+	if err := registerGuardWorkTables(context.Background(), s.db); err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "登记风控业务work表失败")
+	}
 	return nil
 }
 

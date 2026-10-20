@@ -2,12 +2,12 @@
   "version": 1,
   "module": "traffic-guard",
   "phase": "implementation",
-  "contractSha256": "9da9d18f576757e7076150ee0b9d3a7ff227f5b02c75793ece03806eaaa02bf1",
+  "contractSha256": "b9cdecb9e4102bfddf14ca2c59f2556293c433d8f48b0f2f1ba6ded6f83267bd",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-20续作：受控快照归档读取源码单元",
+  "assignedSession": "2026-10-21续作：装配本域SnapshotManager局部回调",
   "branch": "codex/traffic-guard-20261020-r1",
   "baseCommit": "6204dfc94510f28752fe8da81df9f3a4d3ce781d",
-  "deliveryCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
+  "deliveryCommit": "64bc9cd831d56d8084d22954f782396e8afef61a",
   "deployment": "not_started",
   "files": [
     {
@@ -22,13 +22,13 @@
     },
     {
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": "e611720a33f56a22e012dc4b45849437a649f8fa",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": "RunMigrations新增平台RegisterWorkTable登记；本次源码未进入CI，旧证据不覆盖本次提交。"
       },
-      "blocker": null
+      "blocker": "依赖集成平台outbox.RegisterWorkTable；本次源码尚未经过用户指定GitLab检查。"
     },
     {
       "path": "modules/traffic-guard/internal/subject.go",
@@ -353,12 +353,12 @@
     {
       "path": "modules/traffic-guard/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
+      "implementationCommit": "64bc9cd831d56d8084d22954f782396e8afef61a",
       "verification": {
         "state": "not_run",
-        "evidence": "本次接入受控快照归档路由与运行权威回调；按用户要求未在本机或SSH运行Go、gofmt、build、vet、test、pnpm、make check，待GitLab复核。"
+        "evidence": "本次构造真实SnapshotManager并注入AdmitBusiness/WriteWindow/Snapshot；其余handler、预算key、后台和恢复回执仍失败关闭，待GitLab复核。"
       },
-      "blocker": "SnapshotManager真实回调、写窗口、其余handler、后台与恢复回执仍未完整装配；源码单元待GitLab。"
+      "blocker": "其余快照HTTP handler、预算key、后台、事件订阅与恢复回执仍缺；本次源码尚未经过用户指定GitLab检查。"
     },
     {
       "path": "modules/traffic-guard/internal/transport/server.go",
@@ -543,12 +543,12 @@
     {
       "path": "modules/traffic-guard/internal/guard_runtime.go",
       "state": "blocked",
-      "implementationCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
+      "implementationCommit": "64bc9cd831d56d8084d22954f782396e8afef61a",
       "verification": {
         "state": "not_run",
-        "evidence": "新增SnapshotAPI与运行权威装配字段，旧源码检查证据不覆盖本次提交；待GitLab复核。"
+        "evidence": "在已登记运行时文件中接入平台RegisterWorkTable、SnapshotConfig全域回调及失败关闭VerifyGlobalSeal；本次源码未进入CI，旧证据不覆盖本次提交。"
       },
-      "blocker": "本次结构接线尚未经过用户指定GitLab检查。"
+      "blocker": "依赖集成平台outbox/lifecycle API；全域jobs协调证明和本次源码GitLab检查仍缺。"
     },
     {
       "path": "modules/traffic-guard/internal/http_management.go",
@@ -1070,12 +1070,12 @@
       "id": "traffic-guard.BuildApplication",
       "path": "modules/traffic-guard/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
+      "implementationCommit": "64bc9cd831d56d8084d22954f782396e8afef61a",
       "verification": {
         "state": "not_run",
-        "evidence": "本次接入真实运行权威回调、归档HTTP端口与控制操作分类；缺SnapshotManager、其余handler、预算key、后台和恢复回执仍失败关闭。"
+        "evidence": "本次构造真实SnapshotManager并注入AdmitBusiness/WriteWindow/Snapshot；BeginDrain/Drain对active permit、issued challenge、waiter只观察轮询，不自动清理，仍保持失败关闭。"
       },
-      "blocker": "运行写窗口、独立预算key、SnapshotManager真实回调、其余完整处理函数、后台及恢复回执仍缺；本次源码待GitLab。"
+      "blocker": "其余快照HTTP handler、预算key、后台、事件订阅与恢复回执仍缺；持久permit/challenge/waiter无barrier cleanup资格，safe/export不能闭合；本次源码尚未经过用户指定GitLab检查。"
     },
     {
       "id": "traffic-guard.Serve",
@@ -1190,13 +1190,24 @@
     {
       "id": "traffic-guard.RunMigrations",
       "path": "modules/traffic-guard/internal/policy_store.go",
-      "state": "verified",
-      "implementationCommit": "7fde172e12624a8af4d85f1316b8aeae906a75a1",
+      "state": "blocked",
+      "implementationCommit": "64bc9cd831d56d8084d22954f782396e8afef61a",
       "verification": {
-        "state": "passed",
-        "evidence": "2026-10-15 第三轮按portal、identity、traffic-guard逐个合入后的实际集成树，分别在隔离VPS linux/amd64 go1.25.5、GOMAXPROCS=8通过make docs/gen、14个现有Go模块-mod=readonly build/vet/gofmt与完整make check；最终856文件/1047函数/374操作/2222类型，生成回传零变化。源码与合同、权限/终局幂等/私有回执/恢复代次/敏感cookie和代理信任链已人工复核。未新增测试，未运行业务测试、SQL行为验收、真实接口/模型、服务/镜像/部署；verified仅代表已有检查。"
+        "state": "not_run",
+        "evidence": "新增统一平台RegisterWorkTable登记全部本域业务表；本次源码未进入CI，旧证据不覆盖本次提交。"
       },
-      "blocker": null
+      "blocker": "依赖集成平台outbox.RegisterWorkTable；本次源码尚未经过用户指定GitLab检查。"
+    },
+    {
+      "id": "traffic-guard.registerGuardWorkTables",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "64bc9cd831d56d8084d22954f782396e8afef61a",
+      "verification": {
+        "state": "not_run",
+        "evidence": "RunMigrations真实调用固定19表写门登记；本次traffic-guard源码尚未进入CI。"
+      },
+      "blocker": "依赖集成平台outbox.RegisterWorkTable；本次源码尚未经过用户指定GitLab检查。"
     },
     {
       "id": "traffic-guard.RecoverJournal",
@@ -1584,6 +1595,50 @@
       "blocker": null
     },
     {
+      "id": "traffic-guard.ObserveWork",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "64bc9cd831d56d8084d22954f782396e8afef61a",
+      "verification": {
+        "state": "not_run",
+        "evidence": "逐表读取pending login attempt、active permit、issued challenge和等待队列，并复用集成平台同库ObserveTx；未进入CI。"
+      },
+      "blocker": "依赖集成平台outbox.Store.ObserveTx；本次源码未经过用户指定GitLab检查。"
+    },
+    {
+      "id": "traffic-guard.SealWork",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "64bc9cd831d56d8084d22954f782396e8afef61a",
+      "verification": {
+        "state": "not_run",
+        "evidence": "同一SQLite事务核业务待决并调用集成平台SealTx，CAS共享outbox revision；未进入CI。"
+      },
+      "blocker": "依赖集成平台outbox.Store.ObserveTx/SealTx；本次源码未经过用户指定GitLab检查。"
+    },
+    {
+      "id": "traffic-guard.ResumeWork",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "64bc9cd831d56d8084d22954f782396e8afef61a",
+      "verification": {
+        "state": "not_run",
+        "evidence": "同一SQLite事务调用集成平台ResumeTx按原摘要重开共享写门；未进入CI。"
+      },
+      "blocker": "依赖集成平台outbox.Store.ResumeTx；本次源码未经过用户指定GitLab检查。"
+    },
+    {
+      "id": "traffic-guard.NewTrafficSnapshotManager",
+      "path": "modules/traffic-guard/internal/guard_runtime.go",
+      "state": "blocked",
+      "implementationCommit": "64bc9cd831d56d8084d22954f782396e8afef61a",
+      "verification": {
+        "state": "not_run",
+        "evidence": "BuildApplication已构造并注入真实SnapshotManager；回调覆盖work/DB capture/stage校验/预算，Drain不自动终结active permit、issued challenge或waiter，AuthorizeCleanupOrigin明确Forbidden，VerifyGlobalSeal失败关闭；未进入CI。"
+      },
+      "blocker": "本域没有barrier cleanup原资格路径，持久待决无法被安全批量清理；其余snapshot/barrier handler、后台/事件循环和jobs全域协调证明仍缺；本次源码尚未经过用户指定GitLab检查。"
+    },
+    {
       "id": "traffic-guard.ReadSnapshotArchive",
       "path": "modules/traffic-guard/internal/snapshot_archive.go",
       "state": "blocked",
@@ -1595,5 +1650,5 @@
       "blocker": "未运行用户指定GitLab检查，且BuildApplication尚未装配真实SnapshotManager。"
     }
   ],
-  "rule": "本次在main=6204dfc9基础上交付ReadSnapshotArchive源码单元：GuardRuntime保存真实运行权威与SnapshotAPI，HTTP绑定data-protection维护读取端口，缺SnapshotManager时失败关闭。该单元及被改文件均blocked待用户指定GitLab；未本机/SSH运行Go、gofmt、build、vet、test、pnpm、make check，未做真实接口/模型/服务/部署，accepted为0。其余完整启动、后台、事件订阅与恢复装配仍按逐项台账阻塞。"
+  "rule": "本轮撤销未授权的0004_work_gate.sql与snapshot_work.go结构外路径，在已登记guard_runtime.go、policy_store.go和app/wire.go内接入集成平台RegisterWorkTable、ObserveTx、SealTx、ResumeTx与SnapshotManager局部回调。WorkRevision复用nw_outbox_control.revision，pendingWork逐表读取真实登录、准入、挑战和排队事实；Capture使用平台CaptureSnapshotFiles，恢复使用MigrateRestoredDatabase并保留源epoch，VerifyGlobalSeal明确失败关闭。未本机/SSH运行Go、gofmt、build、vet、test、pnpm、make check，未做真实接口/模型/服务/部署，新增与受影响函数保持blocked，accepted为0。其余快照HTTP、后台/事件循环和jobs全域协调证明仍阻塞。"
 }

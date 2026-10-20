@@ -581,7 +581,8 @@
           "concurrency": "本域短事务；不执行口令核验",
           "idempotency": "以原绑定函数幂等约束为准",
           "dependencies": [
-            "traffic-guard.All"
+            "traffic-guard.All",
+            "traffic-guard.registerGuardWorkTables"
           ],
           "resources": [],
           "contract": "reference"
@@ -5237,6 +5238,7 @@
             "traffic-guard.NewGuardHandlers",
             "platform.NewPayloadValidator",
             "platform.NewSnapshotManager",
+            "traffic-guard.NewTrafficSnapshotManager",
             "platform.SnapshotManager.AdmitBusiness",
             "platform.SnapshotManager.WriteWindow"
           ],
@@ -6152,6 +6154,114 @@
           "idempotency": "以原绑定函数幂等约束为准",
           "dependencies": [],
           "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.registerGuardWorkTables",
+          "name": "registerGuardWorkTables",
+          "signature": "func registerGuardWorkTables(ctx context.Context, db *sql.DB) error",
+          "inputs": [], "outputs": [],
+          "purpose": "在本域迁移完成后登记全部真实风控业务表的公共写门",
+          "steps": ["按固定guardWorkTables逐表调用platform.RegisterWorkTable；不登记schema_migrations或nw_outbox"],
+          "errors": [], "sideEffects": ["在本域业务表安装平台统一revision/sealed gate"],
+          "authorization": {"permission": "service", "rule": "仅RunMigrations可信启动调用"},
+          "concurrency": "逐表短事务，由平台登记操作保证幂等",
+          "idempotency": "重复登记同一表不重复创建触发器",
+          "dependencies": ["platform.RegisterWorkTable"],
+          "resources": ["traffic-guard.db"],
+          "contract": "reference"
+        },{
+          "id": "traffic-guard.ObserveWork",
+          "name": "ObserveWork",
+          "signature": "func (s *PolicyStore) ObserveWork(ctx context.Context) (lifecycle.SnapshotWorkState, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "逐表读取本域真实待决工作并复用同库outbox revision",
+          "steps": [
+            "在同一SQLite读事务内调用platform.outbox.Store.ObserveTx读取outbox活动与revision",
+            "逐表读取pending login attempt、active permit、issued challenge和等待队列",
+            "将WorkRevision绑定同一nw_outbox_control.revision；缺表、未知状态或读取失败失败关闭"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "本域存储、恢复状态或平台事务观察未装配",
+              "retryable": true
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "待决表或水位事实未知",
+              "retryable": false
+            }
+          ],
+          "sideEffects": ["读取本域业务表与nw_outbox_control"],
+          "authorization": {"permission": "service", "rule": "仅本域可信SnapshotManager装配调用"},
+          "concurrency": "PolicyStore读锁与同SQLite读事务",
+          "idempotency": "只读观察",
+          "dependencies": ["platform.Store.ObserveTx"],
+          "resources": ["nw_outbox_control", "login_attempts", "guard_permits", "guard_challenges", "guard_waiters"],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.SealWork",
+          "name": "SealWork",
+          "signature": "func (s *PolicyStore) SealWork(ctx context.Context, expected lifecycle.SnapshotWorkState, proofHash string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同SQLite事务CAS本域真实待决水位与outbox封口",
+          "steps": [
+            "在同一事务重新ObserveTx并核expected revision与逐表待决均未改变且为零",
+            "调用SealTx封口共享outbox gate并提交同一事务；任一CAS失败整体回滚"
+          ],
+          "errors": [
+            {"code": "VALIDATION", "when": "proof或expected水位不完整", "retryable": false},
+            {"code": "CONFLICT", "when": "本域或outbox revision改变/仍有待决", "retryable": true},
+            {"code": "DEPENDENCY_UNAVAILABLE", "when": "平台事务outbox接口不可用", "retryable": true}
+          ],
+          "sideEffects": ["同SQLite事务持久共享sealed gate"],
+          "authorization": {"permission": "service", "rule": "仅SnapshotManager可信封口回调调用"},
+          "concurrency": "共享outbox revision CAS；不另起事务",
+          "idempotency": "由SealTx按proofHash保证",
+          "dependencies": ["platform.Store.ObserveTx", "platform.Store.SealTx"],
+          "resources": ["nw_outbox_control"],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.ResumeWork",
+          "name": "ResumeWork",
+          "signature": "func (s *PolicyStore) ResumeWork(ctx context.Context, proofHash string) error",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "同SQLite事务按原摘要重开共享业务写门",
+          "steps": ["校验原proofHash", "在同一事务调用ResumeTx并提交；失败不清理共享sealed gate"],
+          "errors": [
+            {"code": "VALIDATION", "when": "原封口摘要不合法", "retryable": false},
+            {"code": "CONFLICT", "when": "原封口摘要不一致", "retryable": false},
+            {"code": "DEPENDENCY_UNAVAILABLE", "when": "平台事务outbox接口不可用", "retryable": true}
+          ],
+          "sideEffects": ["同SQLite事务重开共享sealed gate"],
+          "authorization": {"permission": "service", "rule": "仅SnapshotManager可信恢复回调调用"},
+          "concurrency": "按原proofHash共享CAS；不启动新业务或付费操作",
+          "idempotency": "由ResumeTx按原摘要保证",
+          "dependencies": ["platform.Store.ResumeTx"],
+          "resources": ["nw_outbox_control"],
+          "contract": "reference"
+        },
+        {
+          "id": "traffic-guard.NewTrafficSnapshotManager",
+          "name": "NewTrafficSnapshotManager",
+          "signature": "func NewTrafficSnapshotManager(store *PolicyStore, dataRoot string, openedEpoch platform.Identifier, runtime platform.SiteConfigClient) (*lifecycle.SnapshotManager, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "把本域真实SQLite、文件捕获、恢复迁移和work回调装入公共SnapshotManager",
+          "steps": ["装配全部本域保护回调；BeginDrain/Drain只观察轮询active permit、issued challenge、waiter和outbox，不自动伪造终局；AuthorizeCleanupOrigin无旧执行原资格时FORBIDDEN；全域VerifyGlobalSeal缺jobs协调证明时失败关闭"],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": {"permission": "service", "rule": "仅本域可信启动装配调用"},
+          "concurrency": "启动单flight；不共享外域存储",
+          "idempotency": "按control屏障记录恢复",
+          "dependencies": ["platform.NewSnapshotManager", "traffic-guard.ObserveWork", "traffic-guard.SealWork", "traffic-guard.ResumeWork"],
+          "resources": ["traffic-guard.db", "nw_outbox_control"],
           "contract": "reference"
         }
       ]

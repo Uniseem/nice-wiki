@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 92 个函数：约束 33 个，参考 59 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 97 个函数：约束 33 个，参考 64 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -287,7 +287,7 @@ func (s *PolicyStore) RunMigrations() error
 - 授权：permission：service；rule：仅可信本域装配或已认证绑定链路内部调用
 - 并发：本域短事务；不执行口令核验
 - 幂等：以原绑定函数幂等约束为准
-- 依赖：`traffic-guard.All`
+- 依赖：`traffic-guard.All`、`traffic-guard.registerGuardWorkTables`
 
 ## traffic-guard.RecoverJournal
 
@@ -3030,7 +3030,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`traffic-guard.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`traffic-guard.OpenPolicyStore`、`traffic-guard.RunMigrations`、`traffic-guard.RecoverJournal`、`traffic-guard.Close`、`traffic-guard.NewLoginHandlers`、`platform.NewServiceHandler`、`traffic-guard.NewGuardHandlers`、`platform.NewPayloadValidator`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
+- 依赖：`site-config:registerActivation`、`traffic-guard.ExpireLeases`、`traffic-guard.ExpireBans`、`traffic-guard.PurgeAnonymousSignals`、`traffic-guard.PublishGuardEvents`、`traffic-guard.ConsumeEvents`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`traffic-guard.All`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`traffic-guard.OpenPolicyStore`、`traffic-guard.RunMigrations`、`traffic-guard.RecoverJournal`、`traffic-guard.Close`、`traffic-guard.NewLoginHandlers`、`platform.NewServiceHandler`、`traffic-guard.NewGuardHandlers`、`platform.NewPayloadValidator`、`platform.NewSnapshotManager`、`traffic-guard.NewTrafficSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## traffic-guard.Serve
@@ -3591,6 +3591,180 @@ func readGuardPolicy(t *guardTransaction) (GuardPolicy, int64, error)
 - 并发：本域短事务；不执行口令核验
 - 幂等：以原绑定函数幂等约束为准
 - 依赖：无
+
+## traffic-guard.registerGuardWorkTables
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：在本域迁移完成后登记全部真实风控业务表的公共写门
+
+```go
+func registerGuardWorkTables(ctx context.Context, db *sql.DB) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按固定guardWorkTables逐表调用platform.RegisterWorkTable；不登记schema_migrations或nw_outbox
+
+**错误**
+
+- 无
+
+- 副作用：在本域业务表安装平台统一revision/sealed gate
+- 授权：permission：service；rule：仅RunMigrations可信启动调用
+- 并发：逐表短事务，由平台登记操作保证幂等
+- 幂等：重复登记同一表不重复创建触发器
+- 依赖：`platform.RegisterWorkTable`
+- 其他依赖说明：traffic-guard.db
+
+## traffic-guard.ObserveWork
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：逐表读取本域真实待决工作并复用同库outbox revision
+
+```go
+func (s *PolicyStore) ObserveWork(ctx context.Context) (lifecycle.SnapshotWorkState, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在同一SQLite读事务内调用platform.outbox.Store.ObserveTx读取outbox活动与revision
+2. 逐表读取pending login attempt、active permit、issued challenge和等待队列
+3. 将WorkRevision绑定同一nw_outbox_control.revision；缺表、未知状态或读取失败失败关闭
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：本域存储、恢复状态或平台事务观察未装配（可重试）
+- `INTEGRITY_ERROR`：待决表或水位事实未知（不可重试）
+
+- 副作用：读取本域业务表与nw_outbox_control
+- 授权：permission：service；rule：仅本域可信SnapshotManager装配调用
+- 并发：PolicyStore读锁与同SQLite读事务
+- 幂等：只读观察
+- 依赖：`platform.Store.ObserveTx`
+- 其他依赖说明：nw_outbox_control；login_attempts；guard_permits；guard_challenges；guard_waiters
+
+## traffic-guard.SealWork
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：同SQLite事务CAS本域真实待决水位与outbox封口
+
+```go
+func (s *PolicyStore) SealWork(ctx context.Context, expected lifecycle.SnapshotWorkState, proofHash string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 在同一事务重新ObserveTx并核expected revision与逐表待决均未改变且为零
+2. 调用SealTx封口共享outbox gate并提交同一事务；任一CAS失败整体回滚
+
+**错误**
+
+- `VALIDATION`：proof或expected水位不完整（不可重试）
+- `CONFLICT`：本域或outbox revision改变/仍有待决（可重试）
+- `DEPENDENCY_UNAVAILABLE`：平台事务outbox接口不可用（可重试）
+
+- 副作用：同SQLite事务持久共享sealed gate
+- 授权：permission：service；rule：仅SnapshotManager可信封口回调调用
+- 并发：共享outbox revision CAS；不另起事务
+- 幂等：由SealTx按proofHash保证
+- 依赖：`platform.Store.ObserveTx`、`platform.Store.SealTx`
+- 其他依赖说明：nw_outbox_control
+
+## traffic-guard.ResumeWork
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：同SQLite事务按原摘要重开共享业务写门
+
+```go
+func (s *PolicyStore) ResumeWork(ctx context.Context, proofHash string) error
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 校验原proofHash
+2. 在同一事务调用ResumeTx并提交；失败不清理共享sealed gate
+
+**错误**
+
+- `VALIDATION`：原封口摘要不合法（不可重试）
+- `CONFLICT`：原封口摘要不一致（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：平台事务outbox接口不可用（可重试）
+
+- 副作用：同SQLite事务重开共享sealed gate
+- 授权：permission：service；rule：仅SnapshotManager可信恢复回调调用
+- 并发：按原proofHash共享CAS；不启动新业务或付费操作
+- 幂等：由ResumeTx按原摘要保证
+- 依赖：`platform.Store.ResumeTx`
+- 其他依赖说明：nw_outbox_control
+
+## traffic-guard.NewTrafficSnapshotManager
+
+- 级别：参考
+- 文件：`modules/traffic-guard/internal/guard_runtime.go`
+- 作用：把本域真实SQLite、文件捕获、恢复迁移和work回调装入公共SnapshotManager
+
+```go
+func NewTrafficSnapshotManager(store *PolicyStore, dataRoot string, openedEpoch platform.Identifier, runtime platform.SiteConfigClient) (*lifecycle.SnapshotManager, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 装配全部本域保护回调；BeginDrain/Drain只观察轮询active permit、issued challenge、waiter和outbox，不自动伪造终局；AuthorizeCleanupOrigin无旧执行原资格时FORBIDDEN；全域VerifyGlobalSeal缺jobs协调证明时失败关闭
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：permission：service；rule：仅本域可信启动装配调用
+- 并发：启动单flight；不共享外域存储
+- 幂等：按control屏障记录恢复
+- 依赖：`platform.NewSnapshotManager`、`traffic-guard.ObserveWork`、`traffic-guard.SealWork`、`traffic-guard.ResumeWork`
+- 其他依赖说明：traffic-guard.db；nw_outbox_control
 
 ## traffic-guard.NewGuardHandlers
 

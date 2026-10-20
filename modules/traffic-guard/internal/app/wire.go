@@ -80,12 +80,17 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
+	runtimeReader := func(work context.Context) (platform.RuntimeView, error) { return lifecycle.ReadRuntime(work, runtimeAuthority) }
+	snapshotManager, err := trafficguard.NewTrafficSnapshotManager(store, config.DataRoot, view.DataEpoch, runtimeAuthority)
+	if err != nil {
+		return nil, err
+	}
 	guardRuntime := trafficguard.GuardRuntime{
-		Store:    store,
-		Identity: identityClient,
-		Runtime: func(work context.Context) (platform.RuntimeView, error) {
-			return lifecycle.ReadRuntime(work, runtimeAuthority)
-		},
+		Store:                 store,
+		Identity:              identityClient,
+		Runtime:               runtimeReader,
+		WriteWindow:           platform.WriteWindowConfig{Runtime: runtimeReader, WriteWindow: snapshotManager.WriteWindow},
+		Snapshot:              snapshotManager,
 		SigningKey:            key,
 		Anchors:               anchors,
 		Jobs:                  gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key),
@@ -94,10 +99,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
-		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
-			return lifecycle.ReadRuntime(ctx, runtimeAuthority)
-		},
+		Runtime:          runtimeReader,
 		OpenedDataEpoch: view.DataEpoch,
+		AdmitBusiness:   snapshotManager.AdmitBusiness,
 		AllowedCallers: map[string][]string{
 			"beginLoginAttempt":     {"identity"},
 			"finishLoginAttempt":    {"identity"},
@@ -118,10 +122,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"verifyChallenge":       {"portal"},
 			"readSnapshotArchive":   {"data-protection"},
 		},
-		ServiceActorCallers:   map[string][]string{"getPolicy": {"traffic-guard"}},
-		ControllerOperations:  map[string]bool{"readSnapshotArchive": true},
+		ServiceActorCallers: map[string][]string{"getPolicy": {"traffic-guard"}},
+		ControllerOperations: map[string]bool{"readSnapshotArchive": true},
 		MaintenanceOperations: map[string]bool{"readSnapshotArchive": true},
-		Authorize:             apivalidate.NewIdentityAuthorizer(identityClient),
+		Authorize:           apivalidate.NewIdentityAuthorizer(identityClient),
 	}, trafficguard.NewGuardHandlers(guardRuntime))
 	if err != nil {
 		return nil, err

@@ -1,3 +1,27 @@
+# 2026-10-21 SnapshotManager drain 复核
+
+`BeginDrain`/`Drain` 的真实边界已核对：它们读取并轮询 `guard_permits` 的 active 行、`guard_challenges` 的 issued 行、`guard_waiters` 和 outbox 活动水位，不自动清理这些事实。当前已有的 `ExpireLeases` 只处理普通后台到期许可；挑战没有独立到期终结入口，等待队列只有原 QA 会话按 requestId 取消/消费路径。
+
+`AuthorizeCleanupOrigin` 保持 `FORBIDDEN`。traffic-guard 没有可验证的旧付费执行 origin，也没有 barrier 专用 cleanup 资格，不能把 data-protection/jobs 的随机 root 当成清理授权。active permit、issued challenge 或 waiter 未归零时，Drain 会继续等待，截止到达后失败关闭；它不会把本域标为 safe。
+
+本域已在 [guard_runtime.go](../internal/guard_runtime.go) 构造真实 SnapshotManager 并从 BuildApplication 注入，但 safe/export 仍 partial，完整 BuildApplication 继续 blocked。全域 `VerifyGlobalSeal` 继续返回依赖不可用，等待 jobs 协调 writer。未运行本机/SSH Go、gofmt、build、vet、test、pnpm、make check 或CI。
+
+# 2026-10-20 续作修正：复用集成平台统一 outbox work gate
+
+上一版源码提交 `921537adc04010bc7abaa6909a197c3467ea2770` 新增了未在原合同登记的 `0004_work_gate.sql` 与 `snapshot_work.go`；该方案已由 `09328bf3797fa2923a1f9a24bd57f32a6a527de3` 精确撤销。当前新增源码提交为 `e611720a33f56a22e012dc4b45849437a649f8fa`，只改已登记的 `internal/guard_runtime.go`、`internal/policy_store.go`、本域合同和官方生成文档。
+
+## 当前实现
+
+- `RunMigrations` 完成后调用集成平台 `outbox.RegisterWorkTable` 登记本域全部业务表：策略、回执、登录表、主体/别名/桶、许可、挑战、封禁、问答信号、风险事件、等待队列、身份修订及许可网络关联。
+- `ObserveWork` 以同一 SQLite 读事务调用 `outbox.Store.ObserveTx`，把 `WorkRevision` 绑定 `nw_outbox_control.revision`，逐表读取 pending login attempt、active permit、issued challenge、等待队列；未知表或读取失败关闭。
+- `SealWork` 在同一事务重读 revision 和待决事实，再调用 `SealTx`；`ResumeWork` 在同一事务调用 `ResumeTx`。平台共享 gate 负责阻止登记业务表和 outbox 写入，因此没有第二份本域水位或触发器。
+
+## 状态与阻塞
+
+本轮源码未进入已交集成的 `9b359c0e` 精确 CI；本机/SSH Go、gofmt、build、vet、test、pnpm、make check 均未运行，相关文件和三个函数保持 `blocked`。当前分支没有保留 `0004_work_gate.sql` 或 `snapshot_work.go`。
+
+若平台集成 SHA 未进入本域实际构建树，`RegisterWorkTable`/`ObserveTx`/`SealTx`/`ResumeTx` 会使本域构建保持待CI；该公共依赖由主代理集成，不在本域复制。
+
 # 2026-10-20 续作：受控快照归档读取源码单元
 
 基线为 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`，工作树分支为 `codex/traffic-guard-20261020-r1`，独占范围仍为 `modules/traffic-guard/`。旧分支 `codex/traffic-guard-20261018-bulk` 仅保留作历史引用；主线已含三批风控源码的等价提交，因此本次没有强行解决跨域合并冲突。
