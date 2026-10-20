@@ -4,7 +4,7 @@
   "phase": "implementation",
   "contractSha256": "f776d986b0207a99a3156f13fa131d07f30a3ea1ab07b2ce3d397b1b97a5ef9a",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-21用户授权media B1 v2：基线a53fe59cd1ef11ad51be4508788ec13132784417；纳入1127e16与c29a68e，接通content.resources.changed@2消费、严格信封映射与确认来源回放；content v2合同911dbb29已只读核对。未运行CI、本机Go/pnpm/build/check或业务验收。",
+  "assignedSession": "2026-10-21用户授权media B1 v2：基线a53fe59cd1ef11ad51be4508788ec13132784417；纳入1127e16与c29a68e，接通content.resources.changed@2消费、严格信封映射与确认来源回放；content合同f34d346c/9f0e70cb与源码d0c0dd5f已提交，待同树集成与CI。未运行CI、本机Go/pnpm/build/check或业务验收。",
   "branch": "codex/media-b1-v2-20261021",
   "baseCommit": "a53fe59cd1ef11ad51be4508788ec13132784417",
   "deliveryCommit": "5bf2afd19ed5f6c32d777c36c726225512a7253b",
