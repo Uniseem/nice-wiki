@@ -1,4 +1,4 @@
-# 2026-10-20 持久激活回执验签源码单元已通过
+# 2026-10-20 持久激活回执验签源码单元已通过，用户要求结束并push
 
 独立候选分支 `codex/activation-receipt-20261020-site-config` 从 main=`a32f3f4c4876f94ce798826e9dee0b170bbb612a` 建立；实现提交 `1075bcb8824838874e6a3ed775778f4194fa6969`。本轮只拥有 `modules/site-config/`，没有带入资源引用列表或Relay旧WIP。
 
@@ -8,7 +8,7 @@
 - `modules/site-config/contracts/implementation.json` 已登记Build→Configure→RuntimeStore.Configure、Register→getter/verify→platform.Verify的真实边；progress.json 已同步合同哈希和本轮函数/文件状态。
 - pipeline173（候选`eb96455b2366ac8511c471e7955de41b5ffdab97`）的生成/格式696、foundation697、content-media698、ai699、前端700全部成功，generated.patch为0字节。pipeline171的TrustAnchors类型登记缺口已由候选元数据修正；本轮只证明源码检查，不代表业务验收、完整Build或部署。
 
-本轮未运行本机Go/pnpm编译、格式化、lint、测试或生成；未新增测试、样例、fixture、mock，未运行真实接口/模型/服务/部署。8个源码函数及runtime_store/runtime_transition文件按pipeline173证据verified；BuildApplication、wire、完整启动和业务验收仍blocked。
+本轮未运行本机Go/pnpm编译、格式化、lint、测试或生成；未新增测试、样例、fixture、mock，未运行真实接口/模型/服务/部署。8个源码函数及runtime_store/runtime_transition文件按pipeline173证据verified；BuildApplication、wire、完整启动和业务验收仍blocked。用户当前要求结束并push，停止后续实施；identity/jobs/site-config整包WIP不进入交付。
 
 以下为历史记录。
 

@@ -2,7 +2,7 @@
 
 ## 计划状态
 
-本计划已于 2026-10-20 经主代理审核通过并冻结，是当前唯一总计划，覆盖 R1 全部 15 个业务域、`libs/platform`、部署编排、UI、任务与事件、保护/恢复、R2 和最终发布交接。`main=a32f3f4c`代表此前文档收尾基线；用户于 2026-10-20 随后恢复 R1 源码实施，当前候选仍须严格留在本计划冻结工作包和既有恢复合同内，R1-00 不新增产品或第二套公共协议。
+本计划已于 2026-10-20 经主代理审核通过并冻结，是当前唯一总计划，覆盖 R1 全部 15 个业务域、`libs/platform`、部署编排、UI、任务与事件、保护/恢复、R2 和最终发布交接。`main=a32f3f4c`代表此前文档收尾基线；用户现要求结束本轮并push，停止后续源码实施，正式交付只保留已审验签源码候选与准确收尾记录。
 
 此前文档收尾基线不包含 identity、site-config、jobs 或公共平台 WIP，也不把部分源码检查当成 R1 完成。四路旧 WIP 仍保留在各自分支，当前计数仍为 1645/2414 函数达到源码检查门槛，accepted 为 0；没有真实业务验收、模型调用或部署。
 
@@ -12,11 +12,10 @@
 - 本地计划收尾基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，pipeline 163 的生成、三个 Go 分片、前端和完整 `make check` 全绿且生成补丁为 0。
 - 全仓函数台账共 2414 项：verified 1604、implemented 41，尚未完成状态的 planned 267、in_progress 8、blocked 494，另有 accepted 0。15 域占 2179 项，其中 verified 1463、implemented 41、非 verified 716；未完成状态为 675。
 - platform 占 235 项，verified 141、blocked 94。769 是 15 域未完成状态 675 加 platform blocked 94，不再另加 94；41 个 implemented 另行在最终冻结逐项核证据。15 个完整 BuildApplication 均未闭合。
-- 15 域文件台账有 638 项未到 verified；platform 另为 26 项，deploy 为 5 项。
+- 当前progress实际文件台账共1060项：verified392、implemented107、in_progress13、planned274、blocked274，未到verified668；deploy的5个总编排文件仍全部planned。
 - 同域 Dockerfile/Makefile/manifest 共 45 项，状态为 verified 3、implemented 29、blocked 3、planned 10；`deploy/` 的 5 个总编排文件全部为 planned。
 - 固定接口基线为 408 个 HTTP operation、377 个 path template、18 个 jobTypes、68 个 backgroundTasks、73 条事件记录（50 publish、23 consume，映射到 15 个唯一消费 handler）。这些只是覆盖清单；完成目标仍按业务职责、页面和端到端链判断。
-- `main` 此前仅交付冻结计划与收尾记录；未完成的源码 WIP 不进入 `main`。当前仅推进已授权的源码候选，不启动真实接口、模型、镜像、运行服务或部署。
-- 当前最小候选已从 `main` 独立建立并选入 site-config 修正：公共验签源 `379f0977277cc2a03f1bde49b5d0f5a6cede4c08`，site-config 源码 `1075bcb8824838874e6a3ed775778f4194fa6969`，元数据及约束修正 `c56268fbd646cc71e6e829cecdf2d5d6059ef3f5`、`aaa35cbd95cd77e83620f1823dff1f67cf2deed3`、`a935a9284e32657f92fc20b5715166e832777bda`。最终 site-config 合同摘要为 `b3a1647f9ad5fa168bfba5ffeb8701d779d9f683146436c1996ef8407adc91eb`；合成候选 `eb96455b2366ac8511c471e7955de41b5ffdab97` 已通过 pipeline173，generated.patch为0。范围仅为激活回执 Claims、UTC `RFC3339Nano` 时间规范化、严格规范 JSON 解码、Verify 及 RegisterActivation 可信接线；旧 e85 公共 WIP 的 `SignActivationReceipt` 与 outbox 事务变体继续保留，未计入完成数。
+- `main` 此前仅交付冻结计划与收尾记录；未完成的源码 WIP 不进入 `main`。本轮不再启动真实接口、模型、镜像、运行服务或部署。正式源代码候选 `eb96455b2366ac8511c471e7955de41b5ffdab97` 已通过 pipeline173；收尾文档候选 `c8190b3947aeb2e29f66c9133d2633f4e04ccdee` 已通过 pipeline174。范围仅为激活回执 Claims、UTC `RFC3339Nano` 时间规范化、严格规范 JSON 解码、Verify及RegisterActivation可信接线；identity/jobs/site-config整包和公共R1-00新WIP均留在本地。
 
 计划依据按优先级为：根 `AGENTS.md`、`STATUS.md`、[全局需求](requirements.md)、[产品保留矩阵](product-preservation.md)、[界面装配](frontend.md)、已确认 ADR、各域机器合同、各域 STATUS/progress/handoff。历史只通过 [push-log](push-log/) 追溯，不在本计划继续复制流水账。
 
@@ -30,7 +29,7 @@
 
 1. **业务清单优先**：G01-G24、B01-B19 和 `docs/frontend.md` 全部页面是完成尺度；函数百分比仅是附录。不得删除回收站、历史回滚、预览、编辑器、多语言、SEO、llms、媒体视频、问答岛、备份镜像等功能来换取快速完成。
 2. **包覆盖全部**：每个工作包在基线读取本域全部非 verified 文件/函数；不得只挑主函数。blocked 必须逐项分类为“占位/缺真实分支”“已有逻辑待接线”或“真实外部依赖未就绪”；文件存在不能证明函数完成。存在明确外部依赖时只能形成“部分交付/待依赖”，不能称为包完成；包完成要求范围内全部项 verified。
-3. **实现项复核**：41 个 implemented 函数和 108 个 implemented 文件中的相关项进入所属包复核；baseline verified 只在本包改动、依赖变化或实际证据冲突时重开，不做无差别重审。
+3. **实现项复核**：41 个 implemented 函数和 107 个 implemented 文件中的相关项进入所属包复核；baseline verified 只在本包改动、依赖变化或实际证据冲突时重开，不做无差别重审。
 4. **约束先于代码**：HTTP处理、事件、任务、启动入口按 implementation.json 精确合同实现。缺约束步骤或外部字段时先由集成会话修唯一合同；参考助手可按 ADR0002 随实现调整并在交付台账同步。
 5. **不新增产品/架构**：新增需求、新服务、新协议、新存储或范围缩减均须用户明确同意。包内只允许为修复已登记需求而做细化，记录“原工作包内、解除哪个已登记阻塞”。
 6. **单一决策口**：出现真实横切歧义时，集成会话登记一个具体决策并暂停受影响包；不得各域自造兼容层。共享协议只改一次，再分发给模块代理。每个模块包同时覆盖 implementation.json 的所有 jobTypes/backgroundTasks 与 events.json 的全部生产、订阅和 handler；全部生产事务走 outbox→jobs→inbox 本地提交后 ack，不另立遗漏清单。
@@ -249,7 +248,7 @@
 
 - 以冻结业务清单核对：G01-G24、B01-B19、16 类后台页面、公开问答岛、语言建议岛、15 个服务完整装配、全部 jobTypes/backgroundTasks/event handlers、保护回调和部署产物。
 - 按最终同步后的实际合同，所有业务职责、启动入口、handler、后台、事件、UI、保护与部署产物已实现并 verified；不得残留尚未实现、未接线或未检查事项。即使阻塞已有说明也不满足 R1 完成。
-- 当前 716 个域内非 verified、platform 94 个 blocked、41 个 implemented 函数及 108 个 implemented 文件只是基线清单，不是必须保留原 ID 的目标；合理合并或改名必须同步合同和职责覆盖。
+- 当前 716 个域内非 verified、platform 94 个 blocked、41 个 implemented 函数及 107 个 implemented 文件只是基线清单，不是必须保留原 ID 的目标；合理合并或改名必须同步合同和职责覆盖。
 - 15 域逐域核对 main、BuildApplication、Serve、Shutdown、Health、Ready 六个入口；HTTP 全量 408 operations 由生成路由和真实 handler 一一覆盖。Build 不再因源码缺 handler/后台/scope 固定返回 `DEPENDENCY_UNAVAILABLE`，运行时缺必要配置仍显式 503/ready=false。
 - 12 个 UI 工程、16 类后台页面、3 类 Portal 组合页面、公开问答岛和语言建议岛全部完成源码与挂载；45 个服务部署产物和 5 个总编排文件均有归属。
 - 18 个 jobTypes、68 个 backgroundTasks、50 个事件生产记录、23 个消费记录及 15 个唯一消费 handler 全部可执行；后台启停、恢复、永续循环退出和注销均接入生命周期。

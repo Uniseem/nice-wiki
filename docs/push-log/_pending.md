@@ -1,20 +1,25 @@
-# 2026-10-20 R1恢复候选
+# 2026-10-20 最终验签单元与文档收尾（待双推）
 
-用户已授权恢复 R1 源码实施；本目录记录候选状态，不自动推送到任一远端。
+用户已要求结束本轮并push，停止后续源码实施。正式交付仅限已审验签源码候选及准确根约定/状态记录；identity、site-config、jobs整包WIP与公共R1-00新机制均留在本地，不进入待推范围。
 
-集成候选分支为 `codex/resume-20261020-integration`，由 `codex/closeout-20261020-integration` 的 `e85dde0583938bb4207bc3a1117e62549d21018c` 合入 main `a32f3f4c4876f94ce798826e9dee0b170bbb612a` 纯文档基线形成。该基线保留原四路 WIP，不改旧提交。
+正式源代码候选为 `eb96455b2366ac8511c471e7955de41b5ffdab97`，包含激活回执 Claims、UTC `RFC3339Nano` 时间规范化、严格规范 JSON 解码、Verify 及 RegisterActivation 可信接线。pipeline173 已通过：生成/格式696、foundation697、content-media698、ai699、前端700全部success，`generated.patch=0`。
 
-候选复算确认 pipeline 166 缺真实消费者的 5 个公共函数是：
+当前收尾候选为 `c8190b3947aeb2e29f66c9133d2633f4e04ccdee`，仅为状态/合同台账/根文档收尾，源码与contracts相对eb964不变。pipeline174 已通过：生成701、foundation702、content-media703、ai704、前端705全部success，`generated.patch=0`；候选SHA与pipeline SHA一致。
 
-- `platform.SignActivationReceipt`
-- `platform.VerifyActivationReceipt`
-- `platform.Store.ObserveTx`
-- `platform.Store.SealTx`
-- `platform.Store.ResumeTx`
+当前progress实际复算：函数2421项，verified1611、implemented41、blocked494、in_progress8、planned267、accepted0；文件1060项，verified392、implemented107、blocked274、in_progress13、planned274，未verified668。函数交付口径为1652/2421（68.2%）；文件统计已修正旧108/391残留。
 
-建议接线按既有恢复合同与事务边界分别交 identity、site-config、jobs 处理；接线通过精确 SHA CI 前不得改 implemented/verified。jobs 旧 WIP 新增 web 工程也纳入既有前端任务；lockfile 只能由 CI 中的 pnpm 生成。
+本地WIP只作交接，不混入待推送：
 
-## 当前最小公共验签候选
+- `codex/resume-20261020-identity`：clean `42ab4af3f667c1cc9b331053378e52048927c5db`
+- `codex/resume-20261020-site-config`：源码`30ac79fcf878d1f3eb3fafb472204edae19bae4b`，最终clean `3c2a13496a8a27f34e5e44aaf707bf2ecc3ac909`
+- `codex/resume-20261020-jobs`：clean `5c062e2aaba766ddf2042a04219281064f6cf280`
+- `codex/platform-r1-00-20261020`：clean `bd51b89d5f4c47d1bd72ec0e4d936061929f8d37`
+
+待推精确范围是本候选后续新增的根收尾文档提交及其GitLab最终全量CI；不含上述WIP、不含old。main当前仍为`a32f3f4c4876f94ce798826e9dee0b170bbb612a`，用户未跟踪`kangaroo-down-under.html`保留。主代理复核最终SHA和CI证据后，才普通双推origin与gitlab，不强推。
+
+本轮实际模型署名：主代理GPT-6.1 Sol/max，执行子代理GPT-5.6 Luna/max；同属OpenAI贡献使用`noreply@openai.com`，早期GLM因额度耗尽停止。用户Git身份保持不变。
+
+## 历史流水线事实
 
 公共候选从 `main=a32f3f4c4876f94ce798826e9dee0b170bbb612a` 独立建立于 `codex/activation-verify-20261020`，已选入公共源 `379f0977277cc2a03f1bde49b5d0f5a6cede4c08`、site-config 源码 `1075bcb8824838874e6a3ed775778f4194fa6969` 和元数据 `e72dd7c15dec4932885c964e83833dcc09fca9bf`。范围含 `ActivationReceiptClaims`、`normalizeActivationReceiptClaims`、`decodeCanonicalReceiptJSON`、`VerifyActivationReceipt` 及 RegisterActivation 可信接线；`recordedAt` 在载荷摘要前统一为 UTC `RFC3339Nano`。
 

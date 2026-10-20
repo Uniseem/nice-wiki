@@ -20,9 +20,9 @@ CI170在`make docs`阶段因本轮新增合同的非空输入/输出缺少`const
 
 旧的 `resource_reference_reader.go`、RelayOutbox及其状态只存在于原 `codex/resume-20261020-site-config` WIP工作树/历史链；本候选从main基线独立建立，集成时不应整条cherry-pick旧WIP。
 
-### 下一步（一项）
+### 收尾
 
-由主代理复核本源码单元交付范围；后续若重开完整模块，只能按冻结计划和新的明确授权继续。
+主代理已复核本源码单元范围。用户当前要求结束并push，停止后续实施；完整BuildApplication、wire、Relay、快照/屏障和恢复回执继续blocked，后续WIP只留本地，不进入本次交付。
 
 以下为历史记录。
 
