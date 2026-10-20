@@ -1579,6 +1579,314 @@
           ],
           "resources": [],
           "contract": "reference"
+        },
+        {
+          "id": "site-config.ExportSnapshot",
+          "name": "ExportSnapshot",
+          "signature": "func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExportRequest) (SnapshotExportResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
+              "constraints": [
+                "deadline 未过期",
+                "dataEpoch 与 site-config 活动 epoch 一致",
+                "权限按资源再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "SnapshotExportRequest",
+              "description": "导出屏障水位的一致快照的已声明参数",
+              "constraints": [
+                "必须通过 types.json 对应 schema",
+                "拒绝未知字段；字节/范围/空值按 schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotExportResult",
+              "description": "导出屏障水位的一致快照的完整成功值",
+              "constraints": [
+                "无 error 时才有效",
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
+              "constraints": [
+                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
+                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
+                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
+                "DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准"
+              ]
+            }
+          ],
+          "purpose": "导出屏障水位的一致快照",
+          "steps": [
+            "验证本域 barrier=safe 和当前 dataEpoch；按 includeSecrets 策略封装敏感字段",
+            "流式复制私有数据库一致视图及所有权威文件到本服务只读对象；manifest 列 hash/size/schema",
+            "fsync 完成后返回 SnapshotRef；失败只清理未完成临时对象，不修改活动数据"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
+              "retryable": true
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "when": "依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "本服务屏障/快照/恢复日志与私有对象写入"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
+          "concurrency": "屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录",
+          "idempotency": "operationId/backupId/restoreId+摘要去重；重复返回已记录阶段",
+          "dependencies": [
+            "site-config.ReadRuntimeState",
+            "platform.SnapshotManager.Export",
+            "site-config.WithSnapshotRuntime"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "site-config.StageSnapshot",
+          "name": "StageSnapshot",
+          "signature": "func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStageRequest) (SnapshotStageResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "data-protection服务身份携带发起恢复的superadmin委托",
+              "constraints": [
+                "callerService=data-protection",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "SnapshotStageRequest",
+              "description": "暂存请求",
+              "constraints": [
+                "必须通过公共schema",
+                "snapshot.owner等于本域"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotStageResult",
+              "description": "暂存回执",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含路径、密钥或正文"
+              ]
+            }
+          ],
+          "purpose": "把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据",
+          "steps": [
+            "校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
+            "经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp",
+            "校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA",
+            "fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用方不是data-protection或缺superadmin委托",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "runtime阶段或restoreId不符，或本域屏障未safe",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "归档hash、owner或manifest不一致；临时目录已删除",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "when": "快照schema高于本版本可迁移范围",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "同restoreId已暂存不同checksum",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "拉取归档失败或磁盘空间不足；临时目录已删除",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "写<dataRoot>/restore/<restoreId>/staged与control区回执",
+            "HTTP读取data-protection恢复归档"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
+          "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
+          "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
+          "dependencies": [
+            "data-protection:serveRestoreArchive",
+            "site-config.ReadRuntimeState",
+            "platform.SnapshotManager.Stage",
+            "site-config.WithSnapshotRuntime"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "site-config.DiscardSnapshot",
+          "name": "DiscardSnapshot",
+          "signature": "func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDiscardRequest) (SnapshotDiscardResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "data-protection服务身份携带发起恢复的superadmin委托",
+              "constraints": [
+                "callerService=data-protection",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "SnapshotDiscardRequest",
+              "description": "丢弃请求",
+              "constraints": [
+                "必须通过公共schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SnapshotDiscardResult",
+              "description": "丢弃结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含路径、密钥或正文"
+              ]
+            }
+          ],
+          "purpose": "删除某次恢复的暂存目录或恢复完成后换出的旧数据目录",
+          "steps": [
+            "校验data-protection服务身份（用户授权已由data-protection核验）",
+            "scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged",
+            "scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before",
+            "删除后在control区记录discarded；目录不存在返回removed=false"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用方不是data-protection或缺superadmin委托",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "when": "当前恢复阶段不允许删除该目录",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "删除<dataRoot>/restore/<restoreId>下的目录",
+            "写control区回执"
+          ],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
+          },
+          "concurrency": "control区按restoreId串行",
+          "idempotency": "重复删除返回removed=false",
+          "dependencies": [
+            "site-config.ReadRuntimeState",
+            "platform.SnapshotManager.Discard",
+            "site-config.WithSnapshotRuntime"
+          ],
+          "resources": [],
+          "contract": "binding"
         }
       ]
     },
@@ -1823,34 +2131,6 @@
       "purpose": "本域快照公共端口装配与真实库存回调",
       "functions": [
         {
-          "id": "site-config.ConfigureGlobalSealVerifier",
-          "name": "ConfigureGlobalSealVerifier",
-          "signature": "func ConfigureGlobalSealVerifier(verify func(context.Context, SnapshotSealProof, string) error)",
-          "inputs": [
-            {
-              "name": "verify",
-              "type": "func(context.Context, SnapshotSealProof, string) error",
-              "description": "集成会话装配的真实全域封口核验回调",
-              "constraints": [
-                "必须由可信集成装配；不得由HTTP输入或本域请求构造"
-              ]
-            }
-          ],
-          "outputs": [],
-          "purpose": "注入唯一全域GlobalSeal核验端口",
-          "steps": [
-            "保存回调供同一SnapshotManager的SealBarrier调用；缺失时验签失败关闭"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": "仅可信集成启动装配",
-          "concurrency": "装配后只读；seal调用可并发但由Manager串行",
-          "idempotency": "重复装配替换可信回调，不写业务数据",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
           "id": "site-config.observeSiteWork",
           "name": "observeSiteWork",
           "signature": "func observeSiteWork(ctx context.Context, store *ActiveStore) (SnapshotWorkState, error)",
@@ -2065,7 +2345,7 @@
           "outputs": [
             {
               "name": "observation",
-              "type": "Observation",
+              "type": "OutboxObservation",
               "description": "公共outbox真实观察",
               "constraints": [
                 "revision来自公共control，不由MAX或COUNT计算"
@@ -2252,7 +2532,7 @@
           "dependencies": [
             "platform.NewSnapshotManager",
             "platform.CaptureSnapshotFiles",
-            "outbox.MigrateRestoredDatabase",
+            "platform.MigrateRestoredDatabase",
             "site-config.observeSiteWork",
             "site-config.sealSiteWork",
             "site-config.resumeSiteWork",
@@ -2466,121 +2746,6 @@
           "contract": "reference"
         },
         {
-          "id": "site-config.ConfigureActivationVerifier",
-          "name": "ConfigureActivationVerifier",
-          "signature": "func ConfigureActivationVerifier(anchors TrustAnchors) error",
-          "inputs": [
-            {
-              "name": "anchors",
-              "type": "TrustAnchors",
-              "description": "BuildApplication从受信配置加载的服务公钥表",
-              "constraints": [
-                "只接受可信Build装配；不接受HTTP或runtime监视器输入"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "控制库未打开时失败",
-              "constraints": [
-                "失败不把验签依赖标记为可用"
-              ]
-            }
-          ],
-          "purpose": "将BuildApplication加载的信任锚装配到本域控制库验签器",
-          "steps": [
-            "读取本域当前RuntimeStore并调用RuntimeStore.ConfigureActivationVerifier；runtime监视器只调用无锚NewRuntimeClient，不覆盖已装配状态"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "控制库未打开",
-              "retryable": true
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "仅可信BuildApplication装配",
-          "concurrency": "装配阶段单flight；验签读取可并发",
-          "idempotency": "重复装配替换同一进程的可信锚，不写control.db",
-          "dependencies": [
-            "site-config.RuntimeStore.ConfigureActivationVerifier"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "site-config.RuntimeStore.ConfigureActivationVerifier",
-          "name": "RuntimeStore.ConfigureActivationVerifier",
-          "signature": "func (s *RuntimeStore) ConfigureActivationVerifier(anchors TrustAnchors)",
-          "inputs": [
-            {
-              "name": "anchors",
-              "type": "TrustAnchors",
-              "description": "BuildApplication从受信配置加载的服务公钥表",
-              "constraints": [
-                "只由可信Build装配；不接受HTTP请求字段"
-              ]
-            }
-          ],
-          "outputs": [],
-          "purpose": "为持久激活回执验签装配服务信任锚",
-          "steps": [
-            "保存已加载的TrustAnchors供RegisterActivation只读使用"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": "仅可信BuildApplication装配",
-          "concurrency": "装配后只读；可与回执读取并发",
-          "idempotency": "重复装配替换同一进程的可信锚，不写control.db",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "site-config.RuntimeStore.activationVerifierAnchors",
-          "name": "RuntimeStore.activationVerifierAnchors",
-          "signature": "func (s *RuntimeStore) activationVerifierAnchors() (TrustAnchors, error)",
-          "inputs": [],
-          "outputs": [
-            {
-              "name": "anchors",
-              "type": "TrustAnchors",
-              "description": "Build已装配的服务公钥表",
-              "constraints": [
-                "成功时必须来自Build已装配且包含服务公钥的信任锚"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "验签锚未装配时返回DEPENDENCY_UNAVAILABLE",
-              "constraints": [
-                "失败时不得返回可用验签锚，调用方必须失败关闭"
-              ]
-            }
-          ],
-          "purpose": "读取Build已装配的激活回执验签锚",
-          "steps": [
-            "仅返回已装配且含服务公钥的信任锚；缺失时返回DEPENDENCY_UNAVAILABLE"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "Build尚未装配验签锚",
-              "retryable": true
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "仅本域RegisterActivation内部调用",
-          "concurrency": "只读，可并发",
-          "idempotency": "只读",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
           "id": "site-config.OpenActiveStore",
           "name": "OpenActiveStore",
           "signature": "func OpenActiveStore(ctx context.Context, dataRoot string, dataEpoch Identifier) (*ActiveStore, error)",
@@ -2677,7 +2842,7 @@
           "outputs": [
             {
               "name": "store",
-              "type": "*outbox.Store",
+              "type": "OutboxStore",
               "description": "同库公共outbox端口；nil表示句柄不可用",
               "constraints": [
                 "不复制领取、封口、恢复隔离机制"
@@ -2745,7 +2910,7 @@
           "concurrency": "由公共登记接口保证同库幂等",
           "idempotency": "重复登记同一表不改变业务事实",
           "dependencies": [
-            "outbox.RegisterWorkTable"
+            "platform.RegisterWorkTable"
           ],
           "resources": [],
           "contract": "reference"
@@ -3184,68 +3349,6 @@
           ],
           "resources": [],
           "contract": "binding"
-        },
-        {
-          "id": "site-config.verifyActivationReceipt",
-          "name": "verifyActivationReceipt",
-          "signature": "func verifyActivationReceipt(anchors TrustAnchors, issuer string, input RegisterActivationInput) error",
-          "inputs": [
-            {
-              "name": "anchors",
-              "type": "TrustAnchors",
-              "description": "Build已装配的服务公钥表",
-              "constraints": [
-                "必须来自可信Build装配；不接受HTTP或请求输入自带的信任锚"
-              ]
-            },
-            {
-              "name": "issuer",
-              "type": "string",
-              "description": "已验证的caller服务身份",
-              "constraints": [
-                "必须是入口已验证且与receipt.module一致的服务身份"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "RegisterActivationInput",
-              "description": "已通过schema、caller、epoch、CAS与phase检查的回执输入",
-              "constraints": [
-                "必须通过RegisterActivation既有schema、幂等、epoch、CAS与phase检查；不含anchors字段"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "验签失败返回INTEGRITY_ERROR",
-              "constraints": [
-                "失败时不产生持久副作用"
-              ]
-            }
-          ],
-          "purpose": "把本域输入绑定为公共激活回执claims并调用统一验签器",
-          "steps": [
-            "以input.restoreId及receipt全部签名字段构造Version=1 claims，RecordedAt统一为UTC RFC3339Nano",
-            "调用platform.VerifyActivationReceipt；UNAUTHENTICATED验签失败转换为本域INTEGRITY_ERROR"
-          ],
-          "errors": [
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "持久激活回执签名或载荷绑定不一致",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "由RegisterActivation在已完成服务身份与阶段检查后调用",
-          "concurrency": "纯函数；输入不可变",
-          "idempotency": "无持久副作用",
-          "dependencies": [
-            "platform.VerifyActivationReceipt"
-          ],
-          "resources": [],
-          "contract": "reference"
         }
       ]
     },
@@ -4683,7 +4786,8 @@
             "platform.RunRelayBatch",
             "platform.NewEventPublisher",
             "platform.SnapshotManager.AdmitEventBatch",
-            "platform.SnapshotManager.BindOutboxEventScope"
+            "platform.SnapshotManager.BindOutboxEventScope",
+            "site-config.WithRelayRuntime"
           ],
           "resources": [],
           "contract": "binding"
@@ -5006,7 +5110,8 @@
             "platform.SnapshotManager.DrainBarrier",
             "platform.SnapshotManager.ObserveBarrier",
             "platform.SnapshotManager.SealBarrier",
-            "platform.SnapshotManager.ResumeDrain"
+            "platform.SnapshotManager.ResumeDrain",
+            "site-config.WithSnapshotRuntime"
           ],
           "resources": [],
           "contract": "binding"
@@ -5100,319 +5205,8 @@
           "dependencies": [
             "site-config.ReadRuntimeState",
             "platform.SnapshotManager.ReadBarrierStatus",
-            "platform.SnapshotManager.ReleaseBarrier"
-          ],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
-    },
-    {
-      "path": "modules/site-config/internal/snapshot_service.go",
-      "kind": "handwritten",
-      "purpose": "导出屏障水位的一致快照",
-      "functions": [
-        {
-          "id": "site-config.ExportSnapshot",
-          "name": "ExportSnapshot",
-          "signature": "func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExportRequest) (SnapshotExportResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造",
-              "constraints": [
-                "deadline 未过期",
-                "dataEpoch 与 site-config 活动 epoch 一致",
-                "权限按资源再次检查"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "SnapshotExportRequest",
-              "description": "导出屏障水位的一致快照的已声明参数",
-              "constraints": [
-                "必须通过 types.json 对应 schema",
-                "拒绝未知字段；字节/范围/空值按 schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "SnapshotExportResult",
-              "description": "导出屏障水位的一致快照的完整成功值",
-              "constraints": [
-                "无 error 时才有效",
-                "满足 types.json schema"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试",
-              "constraints": [
-                "FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配",
-                "VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变",
-                "LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
-                "INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
-                "DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许",
-                "DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准"
-              ]
-            }
-          ],
-          "purpose": "导出屏障水位的一致快照",
-          "steps": [
-            "验证本域 barrier=safe 和当前 dataEpoch；按 includeSecrets 策略封装敏感字段",
-            "流式复制私有数据库一致视图及所有权威文件到本服务只读对象；manifest 列 hash/size/schema",
-            "fsync 完成后返回 SnapshotRef；失败只清理未完成临时对象，不修改活动数据"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "when": "主体没有所需操作权限，或站点/资源作用域不匹配",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "when": "expectedRevision、对象版本或 dataEpoch 已改变",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "when": "锁、屏障、删除 fence 或正在处理的互斥操作阻止执行",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "权威依赖、存储或密钥不可用；不可把未知状态当允许",
-              "retryable": true
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "when": "依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准",
-              "retryable": true
-            }
-          ],
-          "sideEffects": [
-            "本服务屏障/快照/恢复日志与私有对象写入"
-          ],
-          "authorization": {
-            "permission": "service",
-            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
-          },
-          "concurrency": "屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录",
-          "idempotency": "operationId/backupId/restoreId+摘要去重；重复返回已记录阶段",
-          "dependencies": [
-            "site-config.ReadRuntimeState",
-            "platform.SnapshotManager.Export"
-          ],
-          "resources": [],
-          "contract": "binding"
-        },
-        {
-          "id": "site-config.StageSnapshot",
-          "name": "StageSnapshot",
-          "signature": "func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStageRequest) (SnapshotStageResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "data-protection服务身份携带发起恢复的superadmin委托",
-              "constraints": [
-                "callerService=data-protection",
-                "dataEpoch等于site-config当前active epoch"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "SnapshotStageRequest",
-              "description": "暂存请求",
-              "constraints": [
-                "必须通过公共schema",
-                "snapshot.owner等于本域"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "SnapshotStageResult",
-              "description": "暂存回执",
-              "constraints": [
-                "无error时有效"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时result无效，返回标准Problem",
-              "constraints": [
-                "只使用登记错误码",
-                "detail不含路径、密钥或正文"
-              ]
-            }
-          ],
-          "purpose": "把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据",
-          "steps": [
-            "校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe",
-            "经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp",
-            "校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA",
-            "fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "when": "调用方不是data-protection或缺superadmin委托",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "when": "runtime阶段或restoreId不符，或本域屏障未safe",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "when": "归档hash、owner或manifest不一致；临时目录已删除",
-              "retryable": false
-            },
-            {
-              "code": "UNSUPPORTED_SCHEMA",
-              "when": "快照schema高于本版本可迁移范围",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "when": "同restoreId已暂存不同checksum",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "拉取归档失败或磁盘空间不足；临时目录已删除",
-              "retryable": true
-            }
-          ],
-          "sideEffects": [
-            "写<dataRoot>/restore/<restoreId>/staged与control区回执",
-            "HTTP读取data-protection恢复归档"
-          ],
-          "authorization": {
-            "permission": "service",
-            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
-          },
-          "concurrency": "control区按restoreId串行；不锁active读写；同一时间只允许一个恢复",
-          "idempotency": "restoreId+checksum唯一；重复调用返回已记录回执",
-          "dependencies": [
-            "data-protection:serveRestoreArchive",
-            "site-config.ReadRuntimeState",
-            "platform.SnapshotManager.Stage"
-          ],
-          "resources": [],
-          "contract": "binding"
-        },
-        {
-          "id": "site-config.DiscardSnapshot",
-          "name": "DiscardSnapshot",
-          "signature": "func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDiscardRequest) (SnapshotDiscardResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "data-protection服务身份携带发起恢复的superadmin委托",
-              "constraints": [
-                "callerService=data-protection",
-                "dataEpoch等于site-config当前active epoch"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "SnapshotDiscardRequest",
-              "description": "丢弃请求",
-              "constraints": [
-                "必须通过公共schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "SnapshotDiscardResult",
-              "description": "丢弃结果",
-              "constraints": [
-                "无error时有效"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时result无效，返回标准Problem",
-              "constraints": [
-                "只使用登记错误码",
-                "detail不含路径、密钥或正文"
-              ]
-            }
-          ],
-          "purpose": "删除某次恢复的暂存目录或恢复完成后换出的旧数据目录",
-          "steps": [
-            "校验data-protection服务身份（用户授权已由data-protection核验）",
-            "scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged",
-            "scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before",
-            "删除后在control区记录discarded；目录不存在返回removed=false"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "when": "调用方不是data-protection或缺superadmin委托",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "when": "当前恢复阶段不允许删除该目录",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "删除<dataRoot>/restore/<restoreId>下的目录",
-            "写control区回执"
-          ],
-          "authorization": {
-            "permission": "service",
-            "rule": "仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）"
-          },
-          "concurrency": "control区按restoreId串行",
-          "idempotency": "重复删除返回removed=false",
-          "dependencies": [
-            "site-config.ReadRuntimeState",
-            "platform.SnapshotManager.Discard"
+            "platform.SnapshotManager.ReleaseBarrier",
+            "site-config.WithSnapshotRuntime"
           ],
           "resources": [],
           "contract": "binding"
@@ -6329,7 +6123,9 @@
           "authorization": "service:media/data-protection或site.manage",
           "concurrency": "不可变COMMITTED文件一致水位读取",
           "idempotency": "只读",
-          "dependencies": [],
+          "dependencies": [
+            "site-config.authorizeResourceReferenceRead"
+          ],
           "resources": [],
           "contract": "binding"
         },
@@ -7116,7 +6912,8 @@
           "concurrency": "只读流，接收方仍核完整ObjectRef/hash/EOF",
           "idempotency": "同完整引用只读复用，不生成或重算归档",
           "dependencies": [
-            "platform.SnapshotManager.OpenArchive"
+            "platform.SnapshotManager.OpenArchive",
+            "site-config.WithSnapshotRuntime"
           ],
           "resources": [],
           "contract": "binding"

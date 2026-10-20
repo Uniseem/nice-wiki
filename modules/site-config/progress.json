@@ -2,12 +2,12 @@
   "version": 1,
   "module": "site-config",
   "phase": "implementation",
-  "contractSha256": "244ba52c66447f6eddf97beab2b21b03121da0c084abd179a967ace572946957",
+  "contractSha256": "c0daff5d9c7b47548313980d168597db7a046459ed0ef6fea943ef259294e392",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "2026-10-20 R1-F02恢复WIP接入main后修复公告journal单条隔离；新源码待GitLab CI，未push",
-  "branch": "codex/resume-20261020-site-config",
-  "baseCommit": "6204dfc94510f28752fe8da81df9f3a4d3ce781d",
-  "deliveryCommit": "c3c7c10c11320ebff45c994f8458e54604a75343",
+  "assignedSession": "2026-10-20 site-config结构合同收口；从集成候选6f25dd57建立，未CI、未push",
+  "branch": "codex/structure-site-config-20261020",
+  "baseCommit": "6f25dd57386081b5903bc6c02f448ea769466618",
+  "deliveryCommit": "536dabb89c20cb1ade669345ba328b624c26031a",
   "deployment": "not_started",
   "files": [
     {
@@ -223,7 +223,7 @@
     {
       "path": "modules/site-config/internal/snapshot_service.go",
       "state": "in_progress",
-      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
+      "implementationCommit": "536dabb89c20cb1ade669345ba328b624c26031a",
       "verification": {
         "state": "not_run",
         "evidence": null
@@ -1506,17 +1506,6 @@
         "evidence": "自部署GitLab pipeline95（源码1e65c5f；生成436、三个Go分片437/438/439、前端440）全部成功；16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及三个实际前端类型检查/构建通过。精确生成补丁零字节。普通测试均无测试文件；不代表业务验收或部署。"
       },
       "blocker": null
-    },
-    {
-      "id": "site-config.ConfigureGlobalSealVerifier",
-      "path": "modules/site-config/internal/snapshot_service.go",
-      "state": "in_progress",
-      "implementationCommit": "30ac79fcf878d1f3eb3fafb472204edae19bae4b",
-      "verification": {
-        "state": "not_run",
-        "evidence": null
-      },
-      "blocker": "本轮恢复全包WIP已落盘，用户结束；待集成公共接口与CI"
     },
     {
       "id": "site-config.observeSiteWork",

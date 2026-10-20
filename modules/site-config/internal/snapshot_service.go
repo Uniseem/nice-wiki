@@ -7,7 +7,6 @@ import (
 	"io"
 	"path/filepath"
 	"sort"
-	"sync"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -117,29 +116,11 @@ func DiscardSnapshot(ctx context.Context, op platform.OperationContext, input ge
 	return output, nil
 }
 
-var globalSealVerifier struct {
-	sync.RWMutex
-	verify func(context.Context, lifecycle.SnapshotSealProof, string) error
-}
-
-// ConfigureGlobalSealVerifier 只供集成装配真实全域封口核验；未装配时失败关闭。
-func ConfigureGlobalSealVerifier(verify func(context.Context, lifecycle.SnapshotSealProof, string) error) {
-	globalSealVerifier.Lock()
-	globalSealVerifier.verify = verify
-	globalSealVerifier.Unlock()
-}
-
 func verifyGlobalSeal(ctx context.Context, proof lifecycle.SnapshotSealProof, hash string) error {
-	globalSealVerifier.RLock()
-	verify := globalSealVerifier.verify
-	globalSealVerifier.RUnlock()
-	if verify == nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "全域封口核验依赖未装配")
-	}
-	return verify(ctx, proof, hash)
+	return platform.NewError(platform.CodeDependencyUnavailable, true, "全域封口核验依赖未装配")
 }
 
-// NewSnapshotManager 装配本域真实control/outbox/active文件回调，跨域封口由集成注入。
+// NewSnapshotManager 装配本域真实control/outbox/active文件回调；跨域封口尚未装配，待jobs真实协调端口。
 func NewSnapshotManager(dataRoot string, openedEpoch platform.Identifier, runtime func(context.Context) (platform.RuntimeView, error), store *ActiveStore, relayDrain func(context.Context) error) (*lifecycle.SnapshotManager, error) {
 	if store == nil || runtime == nil || relayDrain == nil || dataRoot == "" || !platform.ValidIdentifier(openedEpoch) {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域快照回调未完整装配")
