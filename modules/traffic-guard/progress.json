@@ -1645,9 +1645,9 @@
       "implementationCommit": "88e6d0afb96d70d4e32023283cbc2ac6867cb4c5",
       "verification": {
         "state": "not_run",
-        "evidence": "pipeline192 job793在snapshot_archive.go:47报undefined: ModuleSlug；本地88e6d0af改用合同固定owner traffic-guard，job791原始generated.patch已按43714字节、SHA-256 45a131346785b6c2b112f5573eacdece50672a6893524b41d7467457e6720bf0原样应用，下一候选待CI。"
+        "evidence": "pipeline192 job793在snapshot_archive.go:47报undefined: ModuleSlug；本地88e6d0af改用合同固定owner traffic-guard，job791原始generated.patch已按43714字节、SHA-256 45a131346785b6c2b112f5573eacdece50672a6893524b41d7467457e6720bf0原样应用。署名候选72e15e0b的pipeline193中job798成功，job796 generated.patch为0字节、SHA-256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855；函数未因全绿批量解除完整Build阻塞。"
       },
-      "blocker": "pipeline192的content-media job793失败；下一候选尚未通过GitLab，且BuildApplication尚未装配完整真实SnapshotManager。"
+      "blocker": "完整BuildApplication尚未装配全部真实SnapshotManager回调；全域VerifyGlobalSeal与jobs协调writer仍缺，业务状态继续blocked。"
     }
   ],
   "rule": "本轮撤销未授权的0004_work_gate.sql与snapshot_work.go结构外路径，在已登记guard_runtime.go、policy_store.go和app/wire.go内接入集成平台RegisterWorkTable、ObserveTx、SealTx、ResumeTx与SnapshotManager局部回调。WorkRevision复用nw_outbox_control.revision，pendingWork逐表读取真实登录、准入、挑战和排队事实；Capture使用平台CaptureSnapshotFiles，恢复使用MigrateRestoredDatabase并保留源epoch，VerifyGlobalSeal明确失败关闭。未本机/SSH运行Go、gofmt、build、vet、test、pnpm、make check，未做真实接口/模型/服务/部署，新增与受影响函数保持blocked，accepted为0。其余快照HTTP、后台/事件循环和jobs全域协调证明仍阻塞。"
