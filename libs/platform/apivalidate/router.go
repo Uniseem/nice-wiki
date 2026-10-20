@@ -20,6 +20,8 @@ type pathRoute struct {
 	handler http.Handler
 }
 
+var tildeAction = regexp.MustCompile(`\}/~([A-Za-z0-9-]+)$`)
+
 var templateParam = regexp.MustCompile(`\{[^/}]+\}`)
 
 // NewPathRouter 创建路由器；没有匹配项时交给 fallback（可为 nil，此时返回 404）。
@@ -29,6 +31,8 @@ func NewPathRouter(fallback http.Handler) *PathRouter {
 
 // Handle 登记方法与 OpenAPI 路径模板。
 func (r *PathRouter) Handle(method, template string, handler http.Handler) {
+	// NewServiceHandler 会把 "{id}:action" 改写成 "{id}/~action"，这里还原成真实请求路径形态。
+	template = tildeAction.ReplaceAllString(template, "}:$1")
 	var pattern strings.Builder
 	pattern.WriteString("^")
 	last := 0

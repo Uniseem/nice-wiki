@@ -120,6 +120,9 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 			return ProxyRequestResult{}, err
 		}
 		currentSessionID = authResult.Auth.SessionID
+		// 服务断言的站点必须与用户委托里的站点一致。
+		op.Actor.SiteID = authResult.Auth.SiteID
+		ctx = platform.WithOperationContext(ctx, op)
 		proofResult, proofErr := BuildInternalProof(WithPortalSigner(ctx, runtime.DelegationKey), op, BuildInternalProofInput{
 			Auth: inputAuth(authResult.Auth), Route: route, RequestDigest: validated.Envelope.BodyDigest,
 			ExpiresAt: proofExpiry(op, authResult.Auth),
@@ -226,7 +229,7 @@ func ForwardRequest(ctx context.Context, op OperationContext, input ForwardReque
 	client := &http.Client{Transport: serviceauth.SigningTransport("portal", input.Route.Definition.Owner, runtime.SigningKey, nil),
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}
-	request = request.WithContext(platform.WithOperationContext(request.Context(), op))
+	request = request.WithContext(platform.WithPortalProof(platform.WithOperationContext(request.Context(), op), input.Proof.Token))
 	response, err := client.Do(request)
 	if err != nil {
 		contextErr := requestCtx.Err()

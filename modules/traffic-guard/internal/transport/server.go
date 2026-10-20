@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/traffic-guard/internal/gen"
@@ -46,6 +47,8 @@ type Application struct {
 	shutdownErr  error
 	httpServer   *http.Server
 	workerCancel context.CancelFunc
+	router       *apivalidate.PathRouter
+	closers      []func()
 }
 
 // NewApplication 只创建生命周期容器与匿名探针。调用方必须在所有业务
@@ -63,13 +66,29 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	}
 	mux := http.NewServeMux()
 	application.registerHealthRoutes(mux)
+	application.router = apivalidate.NewPathRouter(mux)
 	application.httpServer = &http.Server{
 		Addr:              config.Listen,
-		Handler:           mux,
+		Handler:           application.router,
 		ReadHeaderTimeout: 5 * time.Second,
 		MaxHeaderBytes:    64 << 10,
 	}
 	return application
+}
+
+// Mount 把业务处理器挂到规格里除健康/就绪外的每个路由，并标记 journal 已恢复；
+// closer 在关闭时释放存储等资源。
+func (a *Application) Mount(handler http.Handler, paths map[string][]string, closer func()) {
+	for path, methods := range paths {
+		if path == "/healthz" || path == "/readyz" {
+			continue
+		}
+		for _, method := range methods {
+			a.router.Handle(method, path, handler)
+		}
+	}
+	a.journalRecovered = true
+	a.closers = append(a.closers, closer)
 }
 
 // Serve 实现 platform.Application，运行单一 HTTP listener。
@@ -137,6 +156,9 @@ func Shutdown(ctx context.Context, app *Application) error {
 		}
 		err := app.httpServer.Shutdown(ctx)
 		if err == nil {
+			for _, closer := range app.closers {
+				closer()
+			}
 			app.state.Store(stateClosed)
 			return
 		}

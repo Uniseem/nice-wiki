@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """本地开发环境：生成密钥与配置到 .local/dev（不进 git），编译并启动/停止全部服务。
 
-用法：python3 scripts/dev.py up [服务...] | down | status | logs <服务>
+用法：python3 scripts/dev.py up [服务...] | down | reset（清空数据）| status | logs <服务>
 """
 import json, os, signal, socket, subprocess, sys, time, glob
 
@@ -10,7 +10,7 @@ DEV = os.path.join(ROOT, ".local", "dev")
 PORTS = {"portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103,
          "media": 8104, "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108,
          "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113}
-DEFAULT_UP = ["site-config", "identity", "jobs", "localization", "content", "public-site", "portal"]
+DEFAULT_UP = ["site-config", "identity", "jobs", "traffic-guard", "localization", "content", "public-site", "portal"]
 
 
 def path(*parts):
@@ -35,9 +35,9 @@ def setup():
                "signingKeyRef": os.path.join(sec, "signing-key.json"),
                "dependencies": {s: f"http://127.0.0.1:{p}" for s, p in PORTS.items() if s != slug},
                "allowLocalHTTP": True}
-        if slug in ("site-config", "portal"):
+        if slug == "site-config":
             cfg["publicBaseURL"] = f"http://127.0.0.1:{PORTS['public-site']}"
-        if slug == "identity":
+        if slug in ("identity", "portal"):
             cfg["publicBaseURL"] = f"http://127.0.0.1:{PORTS['portal']}"
         if slug == "portal":
             dele = sorted(glob.glob(os.path.join(sec, "delegation-*.pem")))[-1]
@@ -51,7 +51,7 @@ def setup():
 
 def build(slugs):
     for s in slugs:
-        subprocess.check_call(["go", "build", "-o", path("bin", s), f"./cmd/{s}"], cwd=os.path.join(ROOT, "modules", s))
+        subprocess.check_call(["go", "build", "-o", path("bin", s), f"./cmd/{s}"], cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1"})
 
 
 def port_open(port):
@@ -70,7 +70,7 @@ def up(slugs):
     os.makedirs(path("run"), exist_ok=True)
     for s in slugs:
         log = open(path("logs", s + ".log"), "w")
-        p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True, cwd=os.path.join(ROOT, "modules", s))
+        p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True, cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1"})
         open(pidfile(s), "w").write(str(p.pid))
         for _ in range(100):
             time.sleep(0.1)
@@ -108,6 +108,9 @@ if __name__ == "__main__":
         up(sys.argv[2:] or DEFAULT_UP)
     elif cmd == "down":
         down()
+    elif cmd == "reset":
+        down()
+        subprocess.run(["rm", "-rf", path("data")])
     elif cmd == "logs":
         print(open(path("logs", sys.argv[2] + ".log")).read())
     else:

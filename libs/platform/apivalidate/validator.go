@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -64,7 +66,8 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 			}
 		}
 	}
-	validate, err := NewRequestValidator(spec)
+	rewrite := rewriteColonRoutes(spec)
+	validate, err := newRequestValidator(spec, rewrite)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +115,11 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 		}
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		route, params, err := router.FindRoute(r)
+		route, params, err := router.FindRoute(rewrite(r))
 		if err != nil {
+			if os.Getenv("NW_DEBUG") != "" {
+				fmt.Fprintf(os.Stderr, "路由未命中 %s %s host=%s: %v\n", r.Method, r.URL.Path, r.Host, err)
+			}
 			_ = problem.WriteProblem(w, problem.FromError(platform.NewError(platform.CodeNotFound, false, "接口路径不存在"), platform.NewIdentifier()))
 			return
 		}
@@ -402,12 +408,50 @@ func NewPayloadValidator(document []byte, schemaName string) (func(json.RawMessa
 	}, nil
 }
 
+var colonAction = regexp.MustCompile(`\}:([A-Za-z0-9-]+)$`)
+
+// rewriteColonRoutes 处理 "/documents/{documentId}:publish" 这类路径：kin-openapi 的 legacy 路由
+// 不支持参数后面再跟字面量，所以把规格里的模板改成 "/documents/{documentId}/~publish"，
+// 并返回一个函数在匹配前把请求路径做同样的改写。纯字面量路径（如 "/snapshots:export"）不受影响。
+func rewriteColonRoutes(spec *openapi3.T) func(*http.Request) *http.Request {
+	suffixes := map[string]bool{}
+	literals := map[string]bool{}
+	for path, item := range spec.Paths.Map() {
+		if !strings.Contains(path, "{") {
+			literals[path] = true
+		}
+		if match := colonAction.FindStringSubmatchIndex(path); match != nil {
+			suffixes[path[match[2]:match[3]]] = true
+			spec.Paths.Delete(path)
+			spec.Paths.Set(path[:match[0]+1]+"/~"+path[match[2]:], item)
+		}
+	}
+	// 返回的是只用于路由匹配的副本：服务断言签名的是原始请求路径，原请求不能改。
+	return func(r *http.Request) *http.Request {
+		if len(suffixes) == 0 || literals[r.URL.Path] {
+			return r
+		}
+		index := strings.LastIndex(r.URL.Path, ":")
+		if index < 1 || r.URL.Path[index-1] == '/' || !suffixes[r.URL.Path[index+1:]] || strings.Contains(r.URL.Path[index:], "/") {
+			return r
+		}
+		routed := r.Clone(r.Context())
+		routed.URL.Path = r.URL.Path[:index] + "/~" + r.URL.Path[index+1:]
+		routed.URL.RawPath = ""
+		return routed
+	}
+}
+
 // NewRequestValidator 用本域生成代码 gen.GetSwagger() 返回的规格构建请求校验中间件。
 // 路径、查询、请求头参数与请求体按规格校验（additionalProperties:false 拒绝未知字段，
 // 长度、范围、枚举与必填按 schema），失败返回 VALIDATION Problem，字段问题只给位置与
 // schema 关键字，不回显取值。服务身份、委托与运行代次由 opctx.BuildOperationContext
 // 校验，这里不重复；规格未登记的路径交给后续路由返回 404/405。
 func NewRequestValidator(spec *openapi3.T) (func(http.Handler) http.Handler, error) {
+	return newRequestValidator(spec, func(r *http.Request) *http.Request { return r })
+}
+
+func newRequestValidator(spec *openapi3.T, rewrite func(*http.Request) *http.Request) (func(http.Handler) http.Handler, error) {
 	if spec == nil {
 		return nil, platform.NewError(platform.CodeValidation, false, "接口规格缺失")
 	}
@@ -423,13 +467,16 @@ func NewRequestValidator(spec *openapi3.T) (func(http.Handler) http.Handler, err
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			route, params, err := router.FindRoute(r)
+			routed := rewrite(r)
+			route, params, err := router.FindRoute(routed)
 			if err != nil {
 				next.ServeHTTP(w, r)
 				return
 			}
-			input := &openapi3filter.RequestValidationInput{Request: r, PathParams: params, Route: route, Options: options}
-			if err := openapi3filter.ValidateRequest(r.Context(), input); err != nil {
+			input := &openapi3filter.RequestValidationInput{Request: routed, PathParams: params, Route: route, Options: options}
+			err = openapi3filter.ValidateRequest(r.Context(), input)
+			r.Body = routed.Body // 校验会读取并还原请求体，副本上的结果要带回原请求
+			if err != nil {
 				requestID := platform.Identifier(r.Header.Get(platform.HeaderRequestID))
 				if !platform.ValidIdentifier(requestID) {
 					requestID = platform.NewIdentifier()

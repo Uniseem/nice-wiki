@@ -5,7 +5,9 @@ package problem
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -22,6 +24,10 @@ func WriteProblem(w http.ResponseWriter, problem platform.Problem) error {
 	}
 	problem.Status = status
 	problem.Detail = sanitizeDetail(problem.Detail)
+	if problem.Status >= 500 || (problem.Status >= 400 && os.Getenv("NW_DEBUG") != "") {
+		// 服务端错误（或调试时的全部错误）留一行日志：固定说明文字，不含请求内容。
+		fmt.Fprintf(os.Stderr, "问题响应 status=%d code=%s detail=%s requestId=%s\n", problem.Status, problem.Code, problem.Detail, problem.RequestID)
+	}
 	body, err := json.Marshal(problem)
 	if err != nil {
 		body = []byte(`{"type":"about:blank","title":"内部错误","status":500,"code":"INTERNAL","detail":"响应编码失败","requestId":"","retryable":false}`)
@@ -45,6 +51,9 @@ func FromError(err error, requestID platform.Identifier) platform.Problem {
 		Detail:    "服务内部错误，请稍后重试。",
 		RequestID: requestID,
 		Retryable: false,
+	}
+	if os.Getenv("NW_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "原始错误 %T: %v\n", err, err)
 	}
 	if libErr, ok := platform.NormalizeIOError(err, platform.CodeInternal, false, p.Detail).(*platform.Error); ok {
 		p.Code = libErr.Code

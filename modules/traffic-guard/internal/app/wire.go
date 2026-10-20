@@ -68,7 +68,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = store.Close()
 		return nil, err
 	}
-	defer store.Close()
+	retain := false
+	defer func() {
+		if !retain {
+			_ = store.Close()
+		}
+	}()
 	// 已实现登录操作交公共完整入口工厂核验；其余handler缺失时由工厂
 	// 真实拒绝启动，不能把这两项映射裸挂成半成品服务。
 	spec, err := gen.GetSwagger()
@@ -98,7 +103,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		Jobs:                  gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key),
 		ValidateIdentityEvent: validateIdentityEvent,
 	}
-	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
+	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:            ModuleSlug,
 		Anchors:         anchors,
 		Runtime:         runtimeReader,
@@ -132,7 +137,16 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "本域完整handler、预算key、运行写窗口与后台循环尚未装配")
+	paths := map[string][]string{}
+	for path, item := range spec.Paths.Map() {
+		for method := range item.Operations() {
+			paths[path] = append(paths[path], method)
+		}
+	}
+	application := transport.NewApplication(config, anchors, runtimeAuthority, view.DataEpoch)
+	retain = true
+	application.Mount(handler, paths, func() { _ = store.Close() })
+	return application, nil
 }
 
 // NewRuntimeClient 为 RunService 构造 site-config 运行权威客户端；它只

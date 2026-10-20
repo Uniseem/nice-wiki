@@ -15,7 +15,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
+	"runtime/debug"
 	"time"
 )
 
@@ -109,6 +111,9 @@ func (e *Error) Error() string { return e.Code + ": " + e.Message }
 
 // NewError 构造带登记错误码的库错误；code必须已登记。
 func NewError(code string, retryable bool, format string, args ...any) *Error {
+	if code == CodeInternal && os.Getenv("NW_DEBUG_STACK") != "" {
+		fmt.Fprintf(os.Stderr, "INTERNAL栈 %s\n%s\n", format, debug.Stack())
+	}
 	return &Error{Code: code, Retryable: retryable, Message: fmt.Sprintf(format, args...)}
 }
 
