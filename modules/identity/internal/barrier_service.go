@@ -133,8 +133,8 @@ func barrierMode(value interface{}) (string, error) {
 
 func snapshotSealProof(input gen.SnapshotSealProof) (lifecycle.SnapshotSealProof, error) {
 	proof := lifecycle.SnapshotSealProof{
-		BarrierID:   string(input.BarrierId),
-		DataEpoch:   string(input.DataEpoch),
+		BarrierID: string(input.BarrierId),
+		DataEpoch: string(input.DataEpoch),
 		BrokerBefore: lifecycle.SnapshotBrokerObservation{
 			ActiveLeases:      int64(input.BrokerBefore.ActiveLeases),
 			PendingDeliveries: int64(input.BrokerBefore.PendingDeliveries),
