@@ -26,4 +26,6 @@ site-config 已提交并选入三项元数据修正：`c56268fbd646cc71e6e829cec
 
 pipeline 171 的生成、content-media、ai、实际前端均成功；foundation 的 build/vet/gofmt 与既有普通测试成功，`make check` 发现 site-config 四个新增函数未登记 `TrustAnchors` 类型。已按已授权元数据范围补 platform `TrustAnchors` 跨模块引用，提交 `737fe2d7`；未改变源码逻辑，待以新精确SHA重跑。
 
+pipeline 172 对精确 SHA `1e19a7184500d8956695496aee03ddb243c0b91e` 已全绿：生成/格式、content-media、ai、前端、foundation（含完整 `make check`）均成功；Runner 回传 `generated.patch` 31001 字节，已应用到本地候选，等待以零生成漂移 SHA复跑。
+
 VerifyGlobalSeal 的 `coordinateBarrier` observe 方案仍待主代理复核：step=observe 只读取 prepare/drain/seal 已持久的 barrier、epoch 和协调事实，不在纯读分支写观察或回执；没有既存证明时明确不可用。14 域服务仅可在既有服务认证下读取当前 barrier/epoch，其他变更步骤仍由 data-protection 加超管授权；当前不改 API、不作为首单元 CI 前置。

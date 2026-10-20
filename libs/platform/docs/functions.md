@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 235 个函数：约束 21 个，参考 214 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 238 个函数：约束 21 个，参考 217 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -460,6 +460,126 @@ func ResolveVisitorAddress(remoteAddr string, forwardedFor string, trustedProxyC
 - 并发：无可写业务状态，可并发
 - 幂等：同密钥、规范网络地址和UTC日返回相同HMAC；前一日重叠覆盖短窗口
 - 依赖：`platform.privateNetworkPeer`
+
+## platform.normalizeActivationReceiptClaims
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：为激活回执签名和验签提供唯一的Claims结构校验与时间规范化
+
+```go
+func normalizeActivationReceiptClaims(claims ActivationReceiptClaims) (ActivationReceiptClaims, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `claims` | `ActivationReceiptClaims` | 待验证的激活回执规范声明 | 字段必须满足ActivationReceiptClaims schema；recordedAt可为合法RFC3339输入表示 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `claims` | `ActivationReceiptClaims` | 可稳定摘要的规范声明 | recordedAt统一为UTC RFC3339Nano；失败时结果无效 |
+| `error` | `error` | 声明结构或时间格式不合法 | 不含密钥、正文或原始回执 |
+
+**步骤**
+
+1. 校验version=1、restoreId/module/stageId/targetDataEpoch为合法Identifier，state仅为switched或rolled-back，manifestHash为SHA-256，recordedAt为可解析RFC3339时间
+2. 将recordedAt解析为UTC并以RFC3339Nano重新编码后写回Claims；其他字段不改写
+
+**错误**
+
+- `VALIDATION`：声明字段缺失、枚举不符、摘要不合法或recordedAt不可解析（不可重试）
+
+- 副作用：无
+- 授权：纯函数，调用方负责外层服务授权
+- 并发：纯函数，可并发调用
+- 幂等：同一输入产生同一规范声明
+- 依赖：无
+
+## platform.decodeCanonicalReceiptJSON
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：严格解码激活回执的固定头与证明，并核对CanonicalJSON字节不漂移
+
+```go
+func decodeCanonicalReceiptJSON(raw []byte, target any) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `raw` | `[]byte` | 待核验的JWS头或证明JSON字节 | 必须是单个JSON值；未知字段和尾随值拒绝 |
+| `target` | `any` | 固定结构的解码目标 | 只由激活回执验签内部调用 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 严格解码或规范JSON核对失败 | 不返回部分可信结构 |
+
+**步骤**
+
+1. 使用DisallowUnknownFields解码单个JSON值并拒绝尾随值
+2. 对解码目标重新执行CanonicalJSON，要求结果与输入字节完全一致
+
+**错误**
+
+- `INTEGRITY_ERROR`：未知字段、尾随值或规范编码不一致（不可重试）
+
+- 副作用：无
+- 授权：纯函数，仅由VerifyActivationReceipt内部调用
+- 并发：纯函数，可并发调用
+- 幂等：同一输入产生相同解码结论
+- 依赖：`platform.CanonicalJSON`
+
+## platform.VerifyActivationReceipt
+
+- 级别：参考
+- 文件：`libs/platform/serviceauth/delegation.go`
+- 作用：验证有状态域持久激活回执的独立来源及其与restore完整绑定
+
+```go
+func VerifyActivationReceipt(anchors TrustAnchors, issuer string, claims ActivationReceiptClaims, signature string) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | 可信服务Ed25519公钥表 | issuer与keyId必须精确登记 |
+| `issuer` | `string` | 外层已认证服务断言的caller slug | 必须等于claims.module |
+| `claims` | `ActivationReceiptClaims` | 待登记的完整持久回执字段 | 包含独立restoreId，不能只信body或当前运行状态 |
+| `signature` | `string` | ActivationReceipt.signature原文 | 非空且不超过4096字节 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `error` | 来源验签或载荷绑定失败 | 无error时才可将回执作为持久来源证明 |
+
+**步骤**
+
+1. 要求外层caller=issuer=claims.module，再经normalizeActivationReceiptClaims重做ActivationReceiptClaims结构约束并规范化recordedAt；外层HTTP服务断言继续由公共入口单独验证
+2. 解码并严格核规范JWS头NW-ACTIVATION-RECEIPT/EdDSA/kid与登记的公钥，不允许alg替换或未登记key
+3. 只从issuer名下TrustAnchors取公钥验证Ed25519签名；issuer不能由body自报替代
+4. 严格解码规范证明并核purpose及payloadHash；claims任一字段改变、restoreId替换或其他恢复回执重放均失败
+5. 以规范化后的Claims执行CanonicalJSON和payloadHash核对；返回空error仅表示持久来源与完整字段绑定成立，site-config仍须核当前phase、expectedRevision、restoreId和域覆盖
+
+**错误**
+
+- `UNAUTHENTICATED`：caller/issuer/key/header或签名无效，或声明结构不合法（不可重试）
+- `INTEGRITY_ERROR`：规范编码或签名载荷摘要不一致（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：由site-config在同请求结构、服务断言、caller/module及控制阶段校验后调用
+- 并发：纯函数，可并发
+- 幂等：无状态；相同证据返回相同结论
+- 依赖：`platform.normalizeActivationReceiptClaims`、`platform.decodeCanonicalReceiptJSON`、`platform.CanonicalJSON`
 
 ## platform.VerifyDelegation
 

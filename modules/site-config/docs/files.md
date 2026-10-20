@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 45 个：手写 30、生成 3、配置 6、迁移 6。函数 92 个：约束 33，参考 59。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 45 个：手写 30、生成 3、配置 6、迁移 6。函数 96 个：约束 33，参考 63。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -12,8 +12,8 @@
 | `modules/site-config/internal/home_service.go` | 手写 | 保存一屏hero权威配置、公开安全投影和媒体引用持久恢复 | `site-config.UpdateHome`、`site-config.ReadPublicHome`、`site-config.ReadHomeReferenceDecision`、`site-config.RecoverHomeReferences`、`site-config.ConfigureHome`（参考）、`site-config.homeDependencies`（参考）、`site-config.homeSourceObjectID`（参考）、`site-config.homeReferenceMaterial`（参考）、`site-config.saveHomeReferenceIntent`（参考）、`site-config.readHomeReferenceIntent`（参考）、`site-config.validateHomePin`（参考）、`site-config.committedHomeReference`（参考）、`site-config.verifyHomeCommittedReference`（参考）、`site-config.checkHomeConfigCommit`（参考）、`site-config.markHomeConfigCommitted`（参考）、`site-config.homeReferenceContext`（参考）、`site-config.persistHomePin`（参考）、`site-config.acquireHomePin`（参考）、`site-config.decideHomeTermination`（参考）、`site-config.settleHomeReference`（参考）、`site-config.compareHomeInput`（参考）、`site-config.homeTerminatedError`（参考）、`site-config.finishHomeFailure`（参考）、`site-config.homeServiceContext`（参考）、`site-config.resolveHomeDocument`（参考）、`site-config.safeHomeRelativeHref`（参考）、`site-config.disablePublicHomeButton`（参考）、`site-config.readHomeQACapability`（参考）、`site-config.RecoverHomeReferenceState`（参考）、`site-config.homeWriteContext`（参考） |
 | `modules/site-config/internal/home_validator.go` | 手写 | 验证首页目标与引用 | `site-config.ValidateHomeLinks`（参考）、`site-config.validateHomeStructure`（参考）、`site-config.decodeHomeTarget`（参考） |
 | `modules/site-config/internal/runtime_state_service.go` | 手写 | 读取独立控制库权威运行状态 | `site-config.ReadRuntimeState` |
-| `modules/site-config/internal/runtime_store.go` | 手写 | 打开独立control.db与active/site-config.db并持久化运行状态、激活回执、业务索引与操作幂等记录 | `site-config.OpenRuntimeStore`（参考）、`site-config.OpenActiveStore`（参考）、`site-config.ValidateActiveReady`（参考）、`site-config.RuntimeStore.ReadRuntimeView`（参考） |
-| `modules/site-config/internal/runtime_transition.go` | 手写 | 按CAS切换epoch与维护阶段 | `site-config.TransitionRuntimeState`、`site-config.ValidateRuntimeTransition`（参考）、`site-config.RegisterActivation` |
+| `modules/site-config/internal/runtime_store.go` | 手写 | 打开独立control.db与active/site-config.db并持久化运行状态、激活回执、业务索引与操作幂等记录 | `site-config.OpenRuntimeStore`（参考）、`site-config.ConfigureActivationVerifier`（参考）、`site-config.RuntimeStore.ConfigureActivationVerifier`（参考）、`site-config.RuntimeStore.activationVerifierAnchors`（参考）、`site-config.OpenActiveStore`（参考）、`site-config.ValidateActiveReady`（参考）、`site-config.RuntimeStore.ReadRuntimeView`（参考） |
+| `modules/site-config/internal/runtime_transition.go` | 手写 | 按CAS切换epoch与维护阶段 | `site-config.TransitionRuntimeState`、`site-config.ValidateRuntimeTransition`（参考）、`site-config.RegisterActivation`、`site-config.verifyActivationReceipt`（参考） |
 | `modules/site-config/internal/write_epoch.go` | 手写 | 所有业务写入执行epoch与屏障检查 | `site-config.CheckWriteEpoch`（参考） |
 | `modules/site-config/internal/migrations/migrations.go` | 手写 | 内嵌本域control.db只追加SQL迁移并校验编号连续 | `site-config.All`（参考） |
 | `modules/site-config/internal/migrations/0001_control.sql` | 迁移 | 初始control.db表：runtime_state、activation_receipts、runtime_operation_receipts与schema_migrations | 无 |

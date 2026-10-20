@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 92 个函数：约束 33 个，参考 59 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 96 个函数：约束 33 个，参考 63 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1566,6 +1566,111 @@ func OpenRuntimeStore(ctx context.Context, dataRoot string) (*RuntimeStore, erro
 - 幂等：重复启动读取已有RuntimeState，不重新生成epoch
 - 依赖：`site-config.All`
 
+## site-config.ConfigureActivationVerifier
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：将BuildApplication加载的信任锚装配到本域控制库验签器
+
+```go
+func ConfigureActivationVerifier(anchors TrustAnchors) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | BuildApplication从受信配置加载的服务公钥表 | 只接受可信Build装配；不接受HTTP或runtime监视器输入 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `Error` | 控制库未打开时失败 | 失败不把验签依赖标记为可用 |
+
+**步骤**
+
+1. 读取本域当前RuntimeStore并调用RuntimeStore.ConfigureActivationVerifier；runtime监视器只调用无锚NewRuntimeClient，不覆盖已装配状态
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：控制库未打开（可重试）
+
+- 副作用：无
+- 授权：仅可信BuildApplication装配
+- 并发：装配阶段单flight；验签读取可并发
+- 幂等：重复装配替换同一进程的可信锚，不写control.db
+- 依赖：`site-config.RuntimeStore.ConfigureActivationVerifier`
+
+## site-config.RuntimeStore.ConfigureActivationVerifier
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：为持久激活回执验签装配服务信任锚
+
+```go
+func (s *RuntimeStore) ConfigureActivationVerifier(anchors TrustAnchors)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | BuildApplication从受信配置加载的服务公钥表 | 只由可信Build装配；不接受HTTP请求字段 |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 保存已加载的TrustAnchors供RegisterActivation只读使用
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：仅可信BuildApplication装配
+- 并发：装配后只读；可与回执读取并发
+- 幂等：重复装配替换同一进程的可信锚，不写control.db
+- 依赖：无
+
+## site-config.RuntimeStore.activationVerifierAnchors
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_store.go`
+- 作用：读取Build已装配的激活回执验签锚
+
+```go
+func (s *RuntimeStore) activationVerifierAnchors() (TrustAnchors, error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | Build已装配的服务公钥表 | 成功时必须来自Build已装配且包含服务公钥的信任锚 |
+| `error` | `Error` | 验签锚未装配时返回DEPENDENCY_UNAVAILABLE | 失败时不得返回可用验签锚，调用方必须失败关闭 |
+
+**步骤**
+
+1. 仅返回已装配且含服务公钥的信任锚；缺失时返回DEPENDENCY_UNAVAILABLE
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：Build尚未装配验签锚（可重试）
+
+- 副作用：无
+- 授权：仅本域RegisterActivation内部调用
+- 并发：只读，可并发
+- 幂等：只读
+- 依赖：无
+
 ## site-config.OpenActiveStore
 
 - 级别：参考
@@ -1799,8 +1904,11 @@ func RegisterActivation(ctx context.Context, op OperationContext, input Register
 **步骤**
 
 1. caller服务身份必须与receipt.module一致
-2. 校验restoreId、targetDataEpoch与当前phase：restore_switching只收switched，restore_rolling_back只收rolled-back；低状态不得覆盖高状态
-3. control.db事务upsert回执和revision；data-protection不能替任何域伪造回执
+2. 将receipt.RecordedAt按公共Timestamp唯一规范统一为UTC RFC3339Nano；以规范化input计算operation摘要，control.db事务先读取已存操作，同operationId同摘要直接返回已记录结果，同operationId异摘要返回CONFLICT
+3. 新操作读取当前control.db状态，严格校验op.dataEpoch与活动epoch及input.expectedRevision与当前revision，并校验restoreId、targetDataEpoch与当前phase：restore_switching只收switched，restore_rolling_back只收rolled-back；低状态不得覆盖高状态
+4. 读取BuildApplication已装配的TrustAnchors，把input.restoreId与receipt.module、stageId、targetDataEpoch、state、manifestHash、recordedAt绑定为serviceauth.ActivationReceiptClaims；signature作为VerifyActivationReceipt的signature参数；Sign/Verify在hash前必须使用同一时间规范，不新增schemaVersion或签名框架
+5. 调用platform.VerifyActivationReceipt验证持久回执载荷；验签失败按INTEGRITY_ERROR失败关闭
+6. control.db事务upsert回执和revision；data-protection不能替任何域伪造回执
 
 **错误**
 
@@ -1813,7 +1921,46 @@ func RegisterActivation(ctx context.Context, op OperationContext, input Register
 - 授权：service：对应域服务身份
 - 并发：(restoreId,module)唯一键；多个域可并发但revision CAS串行
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：无
+- 依赖：`site-config.RuntimeStore.activationVerifierAnchors`、`site-config.verifyActivationReceipt`
+
+## site-config.verifyActivationReceipt
+
+- 级别：参考
+- 文件：`modules/site-config/internal/runtime_transition.go`
+- 作用：把本域输入绑定为公共激活回执claims并调用统一验签器
+
+```go
+func verifyActivationReceipt(anchors TrustAnchors, issuer string, input RegisterActivationInput) error
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `anchors` | `TrustAnchors` | Build已装配的服务公钥表 | 必须来自可信Build装配；不接受HTTP或请求输入自带的信任锚 |
+| `issuer` | `string` | 已验证的caller服务身份 | 必须是入口已验证且与receipt.module一致的服务身份 |
+| `input` | `RegisterActivationInput` | 已通过schema、caller、epoch、CAS与phase检查的回执输入 | 必须通过RegisterActivation既有schema、幂等、epoch、CAS与phase检查；不含anchors字段 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `error` | `Error` | 验签失败返回INTEGRITY_ERROR | 失败时不产生持久副作用 |
+
+**步骤**
+
+1. 以input.restoreId及receipt全部签名字段构造Version=1 claims，RecordedAt统一为UTC RFC3339Nano
+2. 调用platform.VerifyActivationReceipt；UNAUTHENTICATED验签失败转换为本域INTEGRITY_ERROR
+
+**错误**
+
+- `INTEGRITY_ERROR`：持久激活回执签名或载荷绑定不一致（不可重试）
+
+- 副作用：无
+- 授权：由RegisterActivation在已完成服务身份与阶段检查后调用
+- 并发：纯函数；输入不可变
+- 幂等：无持久副作用
+- 依赖：`platform.VerifyActivationReceipt`
 
 ## site-config.CheckWriteEpoch
 
@@ -3265,13 +3412,14 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 **步骤**
 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
-2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
-3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
-5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
-6. 构造期仅收敛本地journal/COMMITTED与首页intent，不发外部confirm/release；RecoverHomeReferences只装配为BackgroundTasks闭包，BuildApplication返回成功后由统一RunService启动公共恢复循环；退出先取消和Drain、等后台退出再Shutdown关闭DB
-7. HTTP装配复用platform.NewServiceHandler与NewIdentityAuthorizer，固定caller及纯service actor子白名单，当前identity权威只校验用户分支；维护仅显式控制操作开放。全部OpenAPI操作必须有真实handler，剩余用例未实现时装配失败并逆序关闭，不填占位成功
-8. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
+2. 由可信Build加载TrustAnchors并调用site-config.ConfigureActivationVerifier；进程runtime监视器只读取RuntimeStore，不接收或覆盖验签锚
+3. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
+4. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
+5. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
+6. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
+7. 构造期仅收敛本地journal/COMMITTED与首页intent，不发外部confirm/release；RecoverHomeReferences只装配为BackgroundTasks闭包，BuildApplication返回成功后由统一RunService启动公共恢复循环；退出先取消和Drain、等后台退出再Shutdown关闭DB
+8. HTTP装配复用platform.NewServiceHandler与NewIdentityAuthorizer，固定caller及纯service actor子白名单，当前identity权威只校验用户分支；维护仅显式控制操作开放。全部OpenAPI操作必须有真实handler，剩余用例未实现时装配失败并逆序关闭，不填占位成功
+9. 完整装配须把同一SnapshotManager的AdmitBusiness/WriteWindow接真实HTTP、事件、worker与后台整在途scope；回调或清理/跨域封口未齐仍拒绝完整启动，不能仅计HTTP冒安全。
 
 **错误**
 
@@ -3283,7 +3431,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config.OpenRuntimeStore`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`identity:checkAuthorization`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`site-config.ConfigureHome`、`site-config.RecoverHomeReferenceState`、`site-config.BackgroundTasks`、`site-config.RecoverHomeReferences`、`site-config.RuntimeStore.ReadRuntimeView`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
+- 依赖：`site-config.OpenRuntimeStore`、`site-config.ConfigureActivationVerifier`、`site-config.OpenActiveStore`、`site-config.RegisterActivation`、`site-config.RecoverAnnouncementJournal`、`site-config.RelayOutbox`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewRequestValidator`、`site-config.ConfigureInitialization`、`site-config.RecoverConfigJournal`、`site-config.ResumeInitialization`、`site-config.ReadInitializationStatus`、`identity:checkAuthorization`、`platform.NewServiceHandler`、`platform.NewIdentityAuthorizer`、`site-config.ConfigureHome`、`site-config.RecoverHomeReferenceState`、`site-config.BackgroundTasks`、`site-config.RecoverHomeReferences`、`site-config.RuntimeStore.ReadRuntimeView`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）；已实现的config/init/runtime HTTP适配与固定caller策略在transport装配；Home/快照/屏障等未完成时维持blocked
 
 ## site-config.Serve
