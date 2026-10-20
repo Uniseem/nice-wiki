@@ -53,3 +53,21 @@ async function uploadAssetFull(file: File, kind: 'image' | 'attachment' | 'video
   const done = await api<{ asset: AssetInfo }>(`/v1/uploads/${upload.uploadId}:complete`, { method: 'POST', body: { expectedRevision: upload.revision } });
   return done.asset;
 }
+
+// 视频封面：浏览器截取开头附近一帧，作为普通图片资源上传；截不到就不要封面。
+export async function captureVideoPoster(file: File): Promise<AssetRef | null> {
+  const url = URL.createObjectURL(file);
+  try {
+    const video = document.createElement('video');
+    video.muted = true; video.preload = 'auto'; video.src = url;
+    await new Promise<void>((resolve, reject) => { video.onloadeddata = () => resolve(); video.onerror = () => reject(new Error('无法读取视频')); });
+    video.currentTime = Math.min(1, (video.duration || 1) / 10);
+    await new Promise<void>((resolve) => { video.onseeked = () => resolve(); });
+    const scale = Math.min(1, 1280 / video.videoWidth);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(video.videoWidth * scale); canvas.height = Math.round(video.videoHeight * scale);
+    canvas.getContext('2d')!.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82));
+    return blob ? await uploadAsset(new File([blob], 'poster.jpg', { type: 'image/jpeg' }), 'image') : null;
+  } catch { return null; } finally { URL.revokeObjectURL(url); }
+}

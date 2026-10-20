@@ -11,7 +11,7 @@ import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table
 import { Attachment, Callout, MathBlock } from './blocks';
 import { ImageBlock } from './image';
 import { VideoBlock } from './video';
-import { uploadAsset, uploadImage } from './upload';
+import { captureVideoPoster, uploadAsset, uploadImage } from './upload';
 import { messageOf } from './client';
 import type { JSONNode } from './convert';
 
@@ -123,8 +123,9 @@ async function insertFile(file: File, kind: 'image' | 'attachment' | 'video') {
   try {
     if (kind === 'video' && file.size > videoLimit) throw new Error('视频超过 500MB，请压缩后再上传');
     const asset = kind === 'image' ? await uploadImage(file) : await uploadAsset(file, kind);
+    const poster = kind === 'video' ? await captureVideoPoster(file) : null;
     const content = kind === 'image' ? { type: 'image', attrs: { asset, alt: null } }
-      : kind === 'video' ? { type: 'video', attrs: { source: { kind: 'uploaded', asset }, title: file.name.replace(/\.[^.]+$/, '').slice(0, 500), description: '', poster: null, widthPercent: null } }
+      : kind === 'video' ? { type: 'video', attrs: { source: { kind: 'uploaded', asset }, title: file.name.replace(/\.[^.]+$/, '').slice(0, 500), description: '', poster, widthPercent: null } }
       : { type: 'attachment', attrs: { asset, displayName: file.name.slice(0, 255) } };
     editor.value.chain().focus().insertContent(content).run();
   } catch (e) { uploadError.value = `${kindLabel[kind]}上传失败：${messageOf(e)}`; } finally { uploading.value = false; }

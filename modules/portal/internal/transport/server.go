@@ -132,7 +132,7 @@ func (a *Application) MountWeb(dir string) {
 	})
 	shell := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-ancestors 'none'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; frame-ancestors 'none'")
 		http.ServeFile(w, r, filepath.Join(dir, "index.html"))
 	}
 	mux.HandleFunc("GET /admin", shell)
