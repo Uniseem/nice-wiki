@@ -1,6 +1,6 @@
 {
   "module": "content",
-  "version": 1,
+  "version": 2,
   "events": [
     {
       "name": "content.publication.changed",
@@ -33,10 +33,42 @@
       "payloadSchema": {
         "$ref": "types.json#/$defs/ResourceReferencesChangedPayload"
       },
-      "purpose": "资源库当前/历史引用快照与迟到清理保护",
+      "purpose": "只读解析历史v1事件以保留迁移证据；不接受新的草稿、发布、撤回或pending来源生产，也不得把缺失的来源身份推导或映射为v2",
       "delivery": "at-least-once",
-      "ordering": "documentId sourceRevision单调",
-      "idempotency": "eventId+sourceVersion去重"
+      "ordering": "历史documentId sourceRevision只供兼容读取，不参与v2来源水位推进",
+      "idempotency": "历史eventId仅用于v1兼容去重",
+      "migration": {
+        "read": "仅历史只读兼容解析；不能获得新引用源的COMMITTED资格",
+        "produce": "拒绝所有新的v1生产者",
+        "upgrade": "拒绝从v1载荷补造sourceOperationId、sourceRevisionId、referenceDigest或AssetReference；不得映射为v2"
+      }
+    },
+    {
+      "name": "content.resources.changed",
+      "version": 2,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/ResourceReferencesChangedPayloadV2"
+      },
+      "purpose": "仅已COMMITTED的SaveDraft以原持久来源操作和规范AssetReference全集排队；空集合仍保留全部来源身份；发布、撤回、pending及创建均不得成为新源",
+      "delivery": "at-least-once",
+      "ordering": "同一siteId/sourceObjectId的sourceVersion单调；原sourceOperationId重放保持版本和摘要",
+      "idempotency": "jobs信封eventId与持久sourceOperationId/sourceVersion去重；eventId不属于payload",
+      "migration": {
+        "read": "仅按v2完整schema解析，不能从v1推导缺失来源",
+        "produce": "仅SaveDraft的COMMITTED业务事务内写outbox；pending、发布、撤回和创建一律拒绝",
+        "upgrade": "v1保留历史只读，不原地改写、不合成v2事件"
+      },
+      "integrationBlockers": [
+        {
+          "owner": "content",
+          "requiredChange": "draft_commit_store.Commit当前仍写v1且Create共用；需只在action=save且COMMITTED同事务写v2，PublishContentEvent与发布/撤回路径停止写v1；生成类型与源码尚未迁移"
+        },
+        {
+          "owner": "media",
+          "requiredChange": "media/contracts/events.json当前只消费v1；订阅分派须注册v2，按完整载荷调用media.ApplyReferenceEvent，并从jobs信封另传eventId；v1仅历史只读，不能补造v2来源"
+        }
+      ]
     },
     {
       "name": "content.edit-lock.changed",

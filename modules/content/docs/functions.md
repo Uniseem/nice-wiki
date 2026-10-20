@@ -35,7 +35,7 @@ func CreateDocument(ctx context.Context, op OperationContext, input CreateDocume
 
 1. 即时检查content.edit，经site-config读取基准语言与当前正文限额
 2. 读取完整本站treeRevision与元数据快照，核parent非trash及完整32层树，生成固定docId/空Tiptap doc/fractional order并先持久专用创建意图
-3. WriteRevisionFile文件IO后，创建专用短SQL以站点树CAS和doc不存在谓词原子建立metadata/head/ledger/COMMITTED/refs/完整原回执/outbox；不取得通用恒成功保存fence
+3. WriteRevisionFile文件IO后，创建专用短SQL以站点树CAS和doc不存在谓词原子建立metadata/head/ledger/COMMITTED/refs/完整原回执/outbox；不取得通用恒成功保存fence；创建不是content.resources.changed/v2的新来源
 
 **错误**
 
@@ -1987,7 +1987,7 @@ func SaveDraft(ctx context.Context, op OperationContext, input SaveDraftInput) (
 3. 首次新操作先读取当前站点maxDocumentBytes，规范UTF8长度超额立即VALIDATION，不写intent不申请pin；原COMMITTED回执先回放，已prepared材料仍由文件层先回放，不因降低配额拒绝原成功
 4. found pending继续Acquire或文件IO前，短真实SaveFenceGuard核原lease/head/version/独立引用CAS并释放；确定拒绝走统一无COMMITTED证明和nullable原pin封存，未知及完整性错误保留保护
 5. 固定来源operation/site/object/revision/version/完整排序引用digest意图先持久，再media Acquire真实pin；网络未知保留pending且不释放
-6. WriteRevisionFile不可变fsync后才建立当前窗口与真实SaveFenceGuard；短SQL重核deleteFence/隔离/head CAS并同事务写ledger、COMMITTED、refs、完整原回执和outbox
+6. WriteRevisionFile不可变fsync后才建立当前窗口与真实SaveFenceGuard；短SQL重核deleteFence/隔离/head CAS并同事务写ledger、COMMITTED、refs、完整原回执和content.resources.changed/v2 outbox；事件只能使用首次持久且已COMMITTED的SaveDraft来源材料，不能使用pending意图或旧v1载荷
 7. COMMITTED后confirm原pin；失败重试同op先读原结果再补confirm，不重新推进head；COMMITTED/未知Commit/坏正文均不转abort
 8. 只有明确CAS/租约/不存在拒绝且同SQL确认无COMMITTED资格才持久aborted、防迟到提交，随后隔离未提交文件并携完整source材料及nullable原pin释放；未知依赖保留保护
 
@@ -2126,7 +2126,7 @@ func draftMediaReferences(refs []gen.ResourceReference) ([]draftMediaReference,H
 
 **步骤**
 
-1. 投影并排序媒体预提交引用，计算完整规范集合摘要
+1. 按现有稳定哈希(documentId,sourceRevisionId,blockId,assetId,assetVersion)生成referenceId；每项保持sourceService=content、sourceObjectId=documentId、原sourceRevisionId/sourceVersion与asset原样，kind=pending_pin、confirmed=false、expiresAt=null；排序后计算完整规范集合摘要，空集合也保留原摘要
 
 **错误**
 
@@ -3739,7 +3739,7 @@ func CommitDraftJournal(ctx context.Context, op OperationContext, input CommitDr
 
 1. 先读同scope摘要COMMITTED原回执，命中后释放真实事务对象并回原结果
 2. 文件hash/fsync和私有路径校验在SQL/doc guard之前完成
-3. 延迟对象在当前写窗口及真实保存guard内，短SQL原子CAS head/version、ledger、COMMITTED资格、refs、完整用例回执和outbox
+3. 延迟对象在当前写窗口及真实保存guard内，短SQL原子CAS head/version、ledger、COMMITTED资格、refs、完整用例回执和outbox；仅action=save提交content.resources.changed/v2，载荷取首次持久sourceOperationId/siteId/documentId/revisionId/sourceVersion/referenceDigest和draftMediaReferences的完整AssetReference[]，空集合也写齐来源身份；action=create不得生产此事件
 4. 文件准备或未知提交不代表可见；COMMITTED不转abort，坏正文或未知状态保留资源保护
 
 **错误**
@@ -4469,7 +4469,7 @@ func WithdrawDocument(ctx context.Context, op OperationContext, input WithdrawDo
 
 1. publish授权与当前写窗口在锁外完成；同操作同摘要回放原回执
 2. 事务清除publishedReference、state改回draft、提高visibilityRevision，保留共享draft、lastPublishedAt和历史，并把当前发布引用改为history
-3. 同一事务登记withdrawn、资源引用和tree.changed。未知Commit只回放原回执，不重复推进水位
+3. 同一事务登记withdrawn和tree.changed；撤回不生产content.resources.changed/v1或v2新来源。未知Commit只回放原回执，不重复推进水位
 
 **错误**
 
@@ -4613,7 +4613,7 @@ func CommitPublication(ctx context.Context, op OperationContext, input CommitPub
 1. rollback直接失败关闭，不写历史回滚。独立提交在本地锁之外先完成与Publish相同的资源pin，来源身份同样是已提交草稿保存操作；已绑定事务只接受锁外已经确认的同一引用摘要
 2. 非空引用必须匹配已确认pin后才写入发布快照。空引用不造pin。pin失败或摘要变化则整次失败，不先公开
 3. 同一事务CAS元数据、树和文档，写入不可变快照、署名历史，并把上一份当前发布引用改为history
-4. 同一事务登记publication.changed、resources.changed和tree.changed。未知提交只回放原回执。非空分享图失败关闭
+4. 同一事务只登记publication.changed和tree.changed；发布不得另造content.resources.changed/v2来源或续写v1。未知提交只回放原回执。非空分享图失败关闭
 
 **错误**
 
@@ -4892,7 +4892,7 @@ func archivePublishedReferences(ctx context.Context, tx *sql.Tx, op OperationCon
 
 - 级别：参考
 - 文件：`modules/content/internal/publication_repository.go`
-- 作用：在当前业务事务登记发布变化、撤回和资源引用事件
+- 作用：在当前业务事务登记发布或撤回事件，不生产资源来源事件
 
 ```go
 func enqueuePublication(ctx context.Context, op OperationContext, visibility int, changed *publicationChangedPayload, withdrawn *publicationWithdrawnPayload, documentID Identifier, sourceVersion int, refs []gen.ResourceReference) error
@@ -4908,7 +4908,7 @@ func enqueuePublication(ctx context.Context, op OperationContext, visibility int
 
 **步骤**
 
-1. 每种载荷单独一个eventId。信封revision使用本次visibilityRevision
+1. 仅排队publication.changed或publication.withdrawn；对应tree.changed由enqueueTreeChanged独立登记。eventId只在jobs信封，revision使用本次visibilityRevision；禁止把发布或撤回引用包装成content.resources.changed/v1或v2的新来源
 
 **错误**
 
@@ -6014,7 +6014,7 @@ func PublishContentEvent(ctx context.Context, op OperationContext, input Publish
 
 **步骤**
 
-1. 必须且仅有一种载荷，禁止正文或密钥。没有已绑定的发布事务则失败关闭
+1. 只接受changed或withdrawn一种发布载荷；references必须为null，拒绝将发布/撤回或旧v1资源载荷作为新来源。禁止正文或密钥；没有已绑定的发布事务则失败关闭
 2. 信封revision使用本次visibilityRevision。变化和撤回的发生时间取载荷时间
 3. 只在业务事务内写outbox；提交后由content.RelayOutbox经jobs至少一次投递，本函数不直接调用jobs
 
@@ -9307,9 +9307,10 @@ func (t *draftCommitTransaction) Commit(ctx context.Context,request DraftCommitR
 **步骤**
 
 1. 创建只插入本次固定docId，保存只CAS现有head/version；同事务维护全部历史稳定IDledger
-2. 同事务落COMMITTED资格和原草稿回执、完整Create/Save原结果、当前/历史引用与平台outbox
-3. SQL Commit返回未知时终结并释放短guard，但保留pending意图和pin；仅真实原回执可认定成功
-4. 引用水位独立于draftVersion：首次意图冻结ExpectedReferenceVersion及SourceVersion，短SQL与head/ledger/refs同事务CAS推进documents.reference_version；公共Revision耗尽失败，旧/未知行不猜补资格
+2. 同事务落COMMITTED资格和原草稿回执、完整Create/Save原结果、当前/历史引用与平台outbox；仅action=save从首次持久意图取sourceOperationId/siteId/sourceObjectId=documentId/sourceRevisionId/sourceVersion/referenceDigest和规范AssetReference[]，原子登记content.resources.changed/v2；eventId仅写jobs信封，信封revision为sourceVersion；空集合仍有完整来源身份
+3. action=create及pending、发布、撤回均不生产content.resources.changed/v2；禁止新的v1载荷，历史v1只读兼容且不得推导或映射为v2
+4. SQL Commit返回未知时终结并释放短guard，但保留pending意图和pin；仅真实原回执可认定成功
+5. 引用水位独立于draftVersion：首次意图冻结ExpectedReferenceVersion及SourceVersion，短SQL与head/ledger/refs同事务CAS推进documents.reference_version；公共Revision耗尽失败，旧/未知行不猜补资格
 
 **错误**
 

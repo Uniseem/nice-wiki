@@ -2024,7 +2024,7 @@
     },
     "ResourceReferencesChangedPayload": {
       "type": "object",
-      "description": "事件仅ref，无正文",
+      "description": "仅历史v1只读兼容解析；缺少完整来源身份，不得作为新事件生产，也不得映射为v2",
       "additionalProperties": false,
       "properties": {
         "siteId": {
@@ -2071,6 +2071,96 @@
         "references",
         "removedReferenceIds",
         "dataEpoch"
+      ]
+    },
+    "ContentResourceEventReferenceV2": {
+      "description": "与media.AssetReference完全同形；沿draftMediaReferences规范材料投影，来源身份必须与外层一致。referenceId为现有稳定哈希(documentId,sourceRevisionId,blockId,assetId,assetVersion)；asset原样保留；按draftMediaReferences稳定排序后计算referenceDigest",
+      "allOf": [
+        {
+          "$ref": "../../media/contracts/types.json#/$defs/AssetReference"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "sourceService": {
+              "const": "content"
+            },
+            "kind": {
+              "const": "pending_pin"
+            },
+            "confirmed": {
+              "const": false
+            },
+            "expiresAt": {
+              "type": "null"
+            }
+          },
+          "required": [
+            "sourceService",
+            "sourceObjectId",
+            "sourceRevisionId",
+            "sourceVersion",
+            "referenceId",
+            "asset",
+            "kind",
+            "confirmed",
+            "expiresAt"
+          ]
+        }
+      ]
+    },
+    "ResourceReferencesChangedPayloadV2": {
+      "type": "object",
+      "description": "仅COMMITTED SaveDraft在同一业务事务内排队的完整资源来源快照；来源字段从首次持久草稿意图读取，空references仍须带齐身份和摘要。eventId仅属于jobs信封；发布、撤回、pending和创建不能生产本载荷，v1不得推导为v2",
+      "additionalProperties": false,
+      "properties": {
+        "sourceService": {
+          "const": "content",
+          "description": "固定来源域"
+        },
+        "sourceOperationId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "首次持久且已COMMITTED的SaveDraft操作ID"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "来源站点"
+        },
+        "sourceObjectId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "documentId；与每项AssetReference.sourceObjectId一致"
+        },
+        "sourceRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已提交草稿正文revisionId；与每项AssetReference.sourceRevisionId一致"
+        },
+        "sourceVersion": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "首次持久来源水位；与每项AssetReference.sourceVersion一致"
+        },
+        "referenceDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "draftMediaReferences完整规范排序集合的原摘要，空集合也须提供"
+        },
+        "references": {
+          "type": "array",
+          "description": "与media Acquire/Apply相同形状的完整AssetReference[]；各项沿draftMediaReferences投影，sourceService=content，sourceObjectId=documentId，referenceId为现有稳定哈希，asset原样，kind=pending_pin，confirmed=false，expiresAt=null；空数组合法",
+          "items": {
+            "$ref": "#/$defs/ContentResourceEventReferenceV2"
+          },
+          "minItems": 0,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "sourceService",
+        "sourceOperationId",
+        "siteId",
+        "sourceObjectId",
+        "sourceRevisionId",
+        "sourceVersion",
+        "referenceDigest",
+        "references"
       ]
     },
     "PreviewGrant": {
@@ -4506,16 +4596,8 @@
           "description": "非撤回null"
         },
         "references": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ResourceReferencesChangedPayload",
-              "description": "ResourceReferencesChangedPayload"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "非refnull"
+          "type": "null",
+          "description": "发布事件输入固定null；历史v1资源载荷只读解析，发布/撤回不能再生产资源来源事件"
         },
         "eventId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
