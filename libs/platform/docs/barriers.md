@@ -20,15 +20,15 @@ Prepare持久draining，拒新HTTP/paid/periodic/job claim，取消旧进程租�
 
 SnapshotWorkState为{outboxRevision,workRevision,pendingOutbox,pendingWork}。两个revision都为真实SQL单调正数，未知失败。pendingOutbox包括未来重试、leased、quarantined所有未发布活动；旧代已明确撤资格的discarded仍保留原行但不算活动。pendingWork为本域真实待收尾执行/持久变更，不把稳定保留未知费用或冻结收费队列自动当成可继续执行。ObserveBarrier返回{owner,activityRevision,work,revisionWatermark,business,cleanup,fileOps,drainCallbacks}，观察前后activity必须一致且已经Drain。
 
-SnapshotSealProof为{barrierId,dataEpoch,observations,brokerBefore,brokerAfter,nonJobsSeals?,nonJobsProofHash?}。observations必须按owner排序，恰好14个唯一owner全部覆盖。broker observation为{revision,pendingDeliveries,activeLeases}，revision必须来自真实发布/ack/lease水位；非jobs只要求两个broker观察合法，不要求前后相等或pending/lease为0。它不包含冻结queued job。所有owner进程计数、活动outbox/work均为0。jobs最终封口才要求broker前后完全相同且pending/lease为0。proofHash=SHA256(CanonicalJSON完整proof)。
+SnapshotSealProof为{barrierId,dataEpoch,observations,brokerBefore,brokerAfter,nonJobsSeals?,nonJobsProofHash?}。observations必须按owner排序，恰好14个唯一owner全部覆盖。协调器先提供可最终复用的broker基础观察：{revision,pendingDeliveries,activeLeases}来自真实发布/ack/lease水位，前后完全相同且pending/lease为0；它不包含冻结queued job。所有owner进程计数、活动outbox/work均为0。非jobs不在本域封口后等待第二次broker回执，jobs最后重新读取broker并确认仍等于该基础观察。proofHash=SHA256(CanonicalJSON完整proof)。
 
-所有非jobs先用同一不含nonJobs字段的proof封口。其VerifyGlobalSeal只读取并核当前持久prepare/drain/epoch和协调阶段，不等待最终broker回执；Manager mutex拒新cleanup，SealWork真实SQL事务CAS两个持久水位并禁止后续本域业务写，状态safe和sealProofHash持久后才返回。jobs最后用原完全相同观察/broker水位以及13个{owner,sealProofHash}真实回执，nonJobsProofHash为去掉nonJobs字段后原proof hash；jobs的VerifyGlobalSeal才核13域实际封口和最终broker仍同水位。该闭包阻止错时采样0后新增发布源，不是各域各自drain就safe。
+所有非jobs先用同一不含nonJobs字段且包含稳定零broker基础观察的proof封口。其VerifyGlobalSeal只读取并核当前持久prepare/drain/epoch和协调阶段，不在本域封口后等待第二次broker回执；Manager mutex拒新cleanup，SealWork真实SQL事务CAS两个持久水位并禁止后续本域业务写，状态safe和sealProofHash持久后才返回。jobs最后用原完全相同观察/broker基础水位以及13个{owner,sealProofHash}真实回执，nonJobsProofHash为去掉nonJobs字段后原proof hash；jobs的VerifyGlobalSeal重新读取broker并确认仍同基础水位。该闭包阻止错时采样0后新增发布源，不是各域各自drain就safe。
 
 ### `step=observe` 的服务调用边界
 
-`BarrierRequest` 使用既有 `step:"observe"`、`operationId`、`barrierId`、`mode`、`deadline`；不得携带 `sealProof` 或 `expectedSealHash`。该步只读持久 prepare/drain/seal、运行 `dataEpoch` 和协调记录，不写观察、不签回执、不改变屏障状态。服务调用必须使用本域既有服务断言，`caller` 与服务slug一致，`audience=jobs`，`dataEpoch` 与原操作一致；不携带用户委托，也不能把客户端自报 actor 当授权。
+`BarrierRequest` 使用既有 `step:"observe"`、`operationId`、`barrierId`、`mode`、`deadline`；不得携带 `sealProof` 或 `expectedSealHash`。该步只读持久 prepare/drain/seal、运行 `dataEpoch`、协调记录和可最终复用的稳定零broker基础观察，不写观察、不签回执、不改变屏障状态。服务调用必须使用本域既有服务断言，`caller` 与服务slug一致，`audience=jobs`，`dataEpoch` 与原操作一致；不携带用户委托，也不能把客户端自报 actor 当授权。
 
-非jobs的 `VerifyGlobalSeal(ctx, proof, proofHash)` 只能接受与本域相同的 `barrierId/dataEpoch`、当前持久阶段和原proof摘要；它可以调用 jobs 的只读 `step=observe` 端口，但只等待 prepare/drain/epoch 证据。缺证据、阶段倒退、epoch不符或协调端不可达时失败关闭；不等待 `nonJobsSeals` 或最终 broker 水位。
+非jobs的 `VerifyGlobalSeal(ctx, proof, proofHash)` 只能接受与本域相同的 `barrierId/dataEpoch`、当前持久阶段和原proof摘要；它可以调用 jobs 的只读 `step=observe` 端口，但只等待 prepare/drain/epoch及已选定基础proof证据，不在本域封口后等待第二次broker回执。缺证据、阶段倒退、epoch不符或协调端不可达时失败关闭；不等待 `nonJobsSeals` 或封口后的最终 broker 水位。
 
 jobs的最终 `VerifyGlobalSeal` 只能在13个非jobs已持久 `safe` 且原回执可由 `VerifyActivationReceipt` 核验后调用；它复用同一不含 `nonJobs` 字段的proof和broker观察，要求13份 `{owner,sealProofHash}`、`nonJobsProofHash`、broker前后相同且pending/lease为0全部成立。prepare/drain/seal/resume-drain等变更步骤仍只由 data-protection 服务身份加超管委托驱动。当前 jobs 的 `coordinateBarrier` OpenAPI 仍把整个操作绑定为 data-protection+超管委托，因此在该合同拆分出 service-only observe 之前，identity、site-config 的跨域回调保持阻塞，不得自行伪造证据。
 

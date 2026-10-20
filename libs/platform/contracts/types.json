@@ -1339,7 +1339,7 @@
     "SnapshotConfig": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Go启动可信必需回调：Runtime/BeginDrain/Drain/Watermark/Capture/MigrateStage/ValidateStaged/StageBudget/ValidateManifest/ObserveWork/SealWork/ResumeWork/VerifyGlobalSeal。ObserveWork真实全未决持久活动，SealWork同域事务CAS全部写水位与gate；非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，jobs最后才核13域回执与最终broker水位，缺一或证据未知失败。CleanupRoutes固定编译策略，AuthorizeCleanupOrigin核drain回调原批准任务，不能以协调器随机root代替。",
+      "description": "Go启动可信必需回调：Runtime/BeginDrain/Drain/Watermark/Capture/MigrateStage/ValidateStaged/StageBudget/ValidateManifest/ObserveWork/SealWork/ResumeWork/VerifyGlobalSeal。ObserveWork真实全未决持久活动，SealWork同域事务CAS全部写水位与gate；协调器先提供稳定零broker基础proof，非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，jobs最后重新核broker仍等基础proof并核13域回执，缺一或证据未知失败。CleanupRoutes固定编译策略，AuthorizeCleanupOrigin核drain回调原批准任务，不能以协调器随机root代替。",
       "properties": {}
     },
     "SnapshotAPI": {
@@ -1817,7 +1817,7 @@
         "brokerBefore",
         "brokerAfter"
       ],
-      "description": "14域按owner排序唯一全覆盖；非jobs阶段只携带合法broker观察并由VerifyGlobalSeal核持久prepare/drain/epoch，不要求broker前后相等或pending/lease为0。jobs最终proof必须保留同一观察与broker水位，核broker前后同水位且事件pending/lease=0，并带全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。"
+      "description": "14域按owner排序唯一全覆盖；协调器必须先提供可被最终复用的broker稳定零基础观察（broker前后同水位且pending/lease为0）。非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，不在本域封口后等待第二次broker回执；jobs最后重新读取真实broker，确认仍等于该基础观察，并核全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。"
     },
     "SnapshotSealReceipt": {
       "type": "object",

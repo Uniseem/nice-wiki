@@ -1160,7 +1160,7 @@ func EnqueueEvent(tx Tx, envelope EventEnvelope) error
 
 - 级别：参考
 - 文件：`libs/platform/outbox/outbox.go`
-- 作用：按封口owner分阶段校验真实proof；非jobs不等待最终broker，jobs最后校验broker与13份原回执
+- 作用：公共真实屏障、私有执行scope或有界一致IO机制
 
 ```go
 func EnsureSchema(ctx context.Context, db *sql.DB) error
@@ -1176,9 +1176,7 @@ func EnsureSchema(ctx context.Context, db *sql.DB) error
 
 **步骤**
 
-1. 校验14个owner观察按顺序唯一且本域与全域真实持久活动为零；broker观察字段缺失或负值失败关闭
-2. owner不是jobs时拒绝nonJobsSeals/nonJobsProofHash，但不要求brokerBefore与brokerAfter相等或pending/lease为0
-3. owner是jobs时要求brokerBefore与brokerAfter完全相等且pending/lease为0，并核13份nonJobsSeals和原nonJobsProofHash；未知来源、原根、状态或回执失败关闭。
+1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
 
 **错误**
 
@@ -8000,7 +7998,7 @@ func (m *SnapshotManager) ReadBarrierStatus() (*SnapshotBarrierStatus, time.Time
 
 - 级别：参考
 - 文件：`libs/platform/lifecycle/snapshot_barrier.go`
-- 作用：核14owner唯一排序全覆盖与本域真实零在途；非jobs阶段不等待最终broker，jobs最后才核broker稳定水位与13域回执。
+- 作用：核14owner唯一排序全覆盖与本域真实零在途；所有阶段复用可最终闭合的稳定零broker基础proof，非jobs不等待封口后的第二次broker回执。
 
 ```go
 func (m *SnapshotManager) SealBarrier(ctx context.Context, proof SnapshotSealProof) (SnapshotBarrierStatus, error)
@@ -8016,8 +8014,8 @@ func (m *SnapshotManager) SealBarrier(ctx context.Context, proof SnapshotSealPro
 
 **步骤**
 
-1. 核proof包含14个按owner排序且唯一的真实观察；非jobs只核broker字段为合法观察值，不能要求broker前后相等或pending/lease为0。
-2. 调用真实VerifyGlobalSeal核当前持久prepare/drain/epoch；13非jobs使用同一不含nonJobs字段的proof先CAS本域封口，jobs最后才核13份原回执、原proof hash与broker前后同水位且pending/lease为0。
+1. 核proof包含14个按owner排序且唯一的真实观察，并要求brokerBefore/brokerAfter构成可最终复用的稳定零基础截点；未知或非零失败关闭。
+2. 调用真实VerifyGlobalSeal核当前持久prepare/drain/epoch；13非jobs使用同一不含nonJobs字段的基础proof先CAS本域封口，不在本域封口后等待第二次broker回执；jobs最后重新读取真实broker确认仍等于基础截点，再核13份原回执与原proof hash。
 3. mutex关闭新cleanup并SealWork事务CAS全部持久写水位，持久safe与proofHash后方可导出。
 
 **错误**
@@ -8073,7 +8071,7 @@ func (m *SnapshotManager) ResumeDrain(ctx context.Context, barrierID, expectedSe
 
 - 级别：参考
 - 文件：`libs/platform/lifecycle/snapshot_barrier.go`
-- 作用：公共真实屏障、私有执行scope或有界一致IO机制
+- 作用：校验可被所有阶段复用的稳定零broker基础proof；jobs另行核最终broker仍未改变
 
 ```go
 func validateSnapshotSealProof(proof SnapshotSealProof, owner string) (SnapshotBarrierObservation, error)
@@ -8089,7 +8087,9 @@ func validateSnapshotSealProof(proof SnapshotSealProof, owner string) (SnapshotB
 
 **步骤**
 
-1. 只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。
+1. 校验14个owner观察按顺序唯一且本域与全域真实持久活动为零；brokerBefore与brokerAfter必须相等且pending/lease为0
+2. owner不是jobs时拒绝nonJobsSeals/nonJobsProofHash；其VerifyGlobalSeal只核协调阶段，不在本域封口后重新等待broker
+3. owner是jobs时核13份nonJobsSeals和原nonJobsProofHash；最终broker仍须由协调器重新读取并与基础截点相等，未知来源、原根、状态或回执失败关闭。
 
 **错误**
 
@@ -9419,7 +9419,7 @@ func SnapshotStageBinding(ctx context.Context) (string, string, string, error)
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
 - 依赖：无
 
-## platform.MigrateRestoredDatabase
+## outbox.MigrateRestoredDatabase
 
 - 级别：参考
 - 文件：`libs/platform/outbox/restore.go`
@@ -9500,7 +9500,7 @@ func PrepareRestoredOutbox(ctx context.Context, db *sql.DB) error
 - 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
 - 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
-- 依赖：`platform.MigrateRestoredDatabase`
+- 依赖：`outbox.MigrateRestoredDatabase`
 
 ## platform.SealTaskSecret
 

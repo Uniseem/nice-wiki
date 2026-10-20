@@ -2068,11 +2068,9 @@
           "signature": "func EnsureSchema(ctx context.Context, db *sql.DB) error",
           "inputs": [],
           "outputs": [],
-          "purpose": "按封口owner分阶段校验真实proof；非jobs不等待最终broker，jobs最后校验broker与13份原回执",
+          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
           "steps": [
-            "校验14个owner观察按顺序唯一且本域与全域真实持久活动为零；broker观察字段缺失或负值失败关闭",
-            "owner不是jobs时拒绝nonJobsSeals/nonJobsProofHash，但不要求brokerBefore与brokerAfter相等或pending/lease为0",
-            "owner是jobs时要求brokerBefore与brokerAfter完全相等且pending/lease为0，并核13份nonJobsSeals和原nonJobsProofHash；未知来源、原根、状态或回执失败关闭。"
+            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
           ],
           "errors": [
             {
@@ -13830,10 +13828,10 @@
           "signature": "func (m *SnapshotManager) SealBarrier(ctx context.Context, proof SnapshotSealProof) (SnapshotBarrierStatus, error)",
           "inputs": [],
           "outputs": [],
-          "purpose": "核14owner唯一排序全覆盖与本域真实零在途；非jobs阶段不等待最终broker，jobs最后才核broker稳定水位与13域回执。",
+          "purpose": "核14owner唯一排序全覆盖与本域真实零在途；所有阶段复用可最终闭合的稳定零broker基础proof，非jobs不等待封口后的第二次broker回执。",
           "steps": [
-            "核proof包含14个按owner排序且唯一的真实观察；非jobs只核broker字段为合法观察值，不能要求broker前后相等或pending/lease为0。",
-            "调用真实VerifyGlobalSeal核当前持久prepare/drain/epoch；13非jobs使用同一不含nonJobs字段的proof先CAS本域封口，jobs最后才核13份原回执、原proof hash与broker前后同水位且pending/lease为0。",
+            "核proof包含14个按owner排序且唯一的真实观察，并要求brokerBefore/brokerAfter构成可最终复用的稳定零基础截点；未知或非零失败关闭。",
+            "调用真实VerifyGlobalSeal核当前持久prepare/drain/epoch；13非jobs使用同一不含nonJobs字段的基础proof先CAS本域封口，不在本域封口后等待第二次broker回执；jobs最后重新读取真实broker确认仍等于基础截点，再核13份原回执与原proof hash。",
             "mutex关闭新cleanup并SealWork事务CAS全部持久写水位，持久safe与proofHash后方可导出。"
           ],
           "errors": [
@@ -13931,9 +13929,11 @@
           "signature": "func validateSnapshotSealProof(proof SnapshotSealProof, owner string) (SnapshotBarrierObservation, error)",
           "inputs": [],
           "outputs": [],
-          "purpose": "公共真实屏障、私有执行scope或有界一致IO机制",
+          "purpose": "校验可被所有阶段复用的稳定零broker基础proof；jobs另行核最终broker仍未改变",
           "steps": [
-            "只处理当前实际private lease、持久水位、固定清理作用域或真实源文件；未知来源、原根、状态或回执失败关闭。"
+            "校验14个owner观察按顺序唯一且本域与全域真实持久活动为零；brokerBefore与brokerAfter必须相等且pending/lease为0",
+            "owner不是jobs时拒绝nonJobsSeals/nonJobsProofHash；其VerifyGlobalSeal只核协调阶段，不在本域封口后重新等待broker",
+            "owner是jobs时核13份nonJobsSeals和原nonJobsProofHash；最终broker仍须由协调器重新读取并与基础截点相等，未知来源、原根、状态或回执失败关闭。"
           ],
           "errors": [
             {
@@ -16208,7 +16208,7 @@
       "purpose": "真实已认证恢复隔离副本机制",
       "functions": [
         {
-          "id": "platform.MigrateRestoredDatabase",
+          "id": "outbox.MigrateRestoredDatabase",
           "name": "MigrateRestoredDatabase",
           "signature": "func MigrateRestoredDatabase(ctx context.Context, db *sql.DB, migrate func(*sql.Tx) error) error",
           "inputs": [
@@ -16345,7 +16345,7 @@
           "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
           "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
           "dependencies": [
-            "platform.MigrateRestoredDatabase"
+            "outbox.MigrateRestoredDatabase"
           ],
           "resources": [],
           "contract": "reference"

@@ -45,5 +45,5 @@
 | `libs/platform/lifecycle/snapshot_capture.go` | 手写 | 公共真实在途屏障、固定签名清理或一致完整捕获机制 | `platform.CaptureSnapshotFiles`（参考） |
 | `libs/platform/outbox/observation.go` | 手写 | 公共真实在途屏障、固定签名清理或一致完整捕获机制 | `platform.Store.Observe`（参考）、`platform.Store.ObserveTx`（参考）、`platform.Store.Seal`（参考）、`platform.Store.SealTx`（参考）、`platform.Store.Resume`（参考）、`platform.Store.ResumeTx`（参考） |
 | `libs/platform/lifecycle/snapshot_stage_scope.go` | 手写 | 真实已认证恢复隔离副本机制 | `platform.SnapshotStageBinding`（参考） |
-| `libs/platform/outbox/restore.go` | 手写 | 真实已认证恢复隔离副本机制 | `platform.MigrateRestoredDatabase`（参考）、`platform.PrepareRestoredOutbox`（参考） |
+| `libs/platform/outbox/restore.go` | 手写 | 真实已认证恢复隔离副本机制 | `outbox.MigrateRestoredDatabase`（参考）、`platform.PrepareRestoredOutbox`（参考） |
 | `libs/platform/lifecycle/task_secret.go` | 手写 | 通用有界异步任务秘密加密，不含业务授权与持久策略 | `platform.SealTaskSecret`（参考）、`platform.OpenTaskSecret`（参考）、`platform.taskSecretAAD`（参考）、`platform.taskSecretCipher`（参考） |
