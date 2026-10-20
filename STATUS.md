@@ -8,6 +8,8 @@ identity 已按顺序接入 clean HEAD `f54792d29768a3c223de2b429da1628376aa84cd
 
 site-config 已按顺序接入 clean HEAD `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`（源码修复 `c3c7c10c11320ebff45c994f8458e54604a75343`）；模块改动范围仅 `modules/site-config/`，保留main验签接线。其恢复迁移合同明确调用 `outbox.MigrateRestoredDatabase`，不调用根 `platform` 影子函数；本次仍待GitLab CI，不把静态审查升为verified。
 
+traffic-guard 已接入 clean HEAD `85fc4639b34d0d321c59e59f3b6169319f7dfcba`（源码单元 `0c0e2e17e00adf2bb159de97c31f7bf8b58892b0`），仅新增快照归档读取单元并登记框架路径；其 `BuildApplication` 尚未装配真实 `SnapshotManager`，相关文件/函数继续 blocked，未标完成。
+
 历史远端推送基线为 `b986443d0dddf5482f7c3430e3dc7c8b99a24232`，对应 pipeline 162 全绿且生成补丁 0；当前本地 `origin/main` 与 `gitlab/main` 跟踪 ref 均为 `6204dfc94510f28752fe8da81df9f3a4d3ce781d`。本地计划收尾基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，对应 pipeline 163 全绿且生成补丁 0；当前集成提交和模块候选尚未推送。
 
 四路 WIP 原样保留，不 reset、不强推：

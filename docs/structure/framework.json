@@ -6339,6 +6339,11 @@
       "purpose": "只在内存选择可信来源；同文件职责限本域以下登记函数"
     },
     {
+      "path": "modules/traffic-guard/internal/snapshot_archive.go",
+      "kind": "handwritten",
+      "purpose": "风控域快照归档读取；缺真实SnapshotManager时失败关闭"
+    },
+    {
       "path": "modules/traffic-guard/internal/sweeper.go",
       "kind": "handwritten",
       "purpose": "风控本轮实际持久化与管理接口源码"

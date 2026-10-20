@@ -24,6 +24,8 @@
 
 site-config 已顺序集成 clean HEAD `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`、源码修复 `c3c7c10c11320ebff45c994f8458e54604a75343`；公告 `COMMITTED` 单条隔离修复保留main验签。其合同和实现统一使用 `outbox.MigrateRestoredDatabase`，本次模块源码尚待GitLab CI。
 
+traffic-guard 已按本域静态审查结果接入 clean HEAD `85fc4639b34d0d321c59e59f3b6169319f7dfcba`、源码单元 `0c0e2e17e00adf2bb159de97c31f7bf8b58892b0`；新增 `internal/snapshot_archive.go` 已登记框架。因 `BuildApplication` 尚未装配真实 `SnapshotManager`，本模块新增/受影响项保持 blocked，未运行本机Go或CI。
+
 ## 全域封口 `step=observe` 合同决策
 
 已确认非jobs不能等待封口后的最终broker：协调器必须先选择可最终复用的稳定零broker基础proof，13个非jobs使用同一份不含`nonJobsSeals/nonJobsProofHash`的proof执行本域封口；其`VerifyGlobalSeal`只读协调阶段、持久prepare/drain事实和`dataEpoch`，不再等第二次broker回执。jobs最后重新读取broker确认仍等于基础proof，再核13个真实激活回执和原`nonJobsProofHash`。所有缺证据、epoch/barrier不符、阶段倒退或未知状态都失败关闭；prepare/drain/seal/resume-drain仍由data-protection服务身份加超管委托驱动。

@@ -8,6 +8,8 @@
 
 site-config 已顺序接入 clean `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`（源码 `c3c7c10c11320ebff45c994f8458e54604a75343`）；其真实恢复迁移调用唯一公共 `outbox.MigrateRestoredDatabase`。identity 已暂停等待新 clean SHA，jobs 仍等待 `step=observe` service-only 合同。
 
+traffic-guard 已接入 clean `85fc4639b34d0d321c59e59f3b6169319f7dfcba`、源码 `0c0e2e17e00adf2bb159de97c31f7bf8b58892b0`；只接入独立快照归档读取单元，`BuildApplication` 缺真实 `SnapshotManager` 仍 blocked。
+
 此前文档收尾基线不包含 identity、site-config、jobs 或公共平台 WIP，也不把部分源码检查当成 R1 完成。四路旧 WIP 仍保留在各自分支，当前计数仍为 1645/2414 函数达到源码检查门槛，accepted 为 0；没有真实业务验收、模型调用或部署。
 
 截至 `main=a32f3f4c` 的收尾事实如下；源码恢复候选另按当前交接记录：

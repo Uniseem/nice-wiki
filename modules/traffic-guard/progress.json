@@ -4,10 +4,10 @@
   "phase": "implementation",
   "contractSha256": "9da9d18f576757e7076150ee0b9d3a7ff227f5b02c75793ece03806eaaa02bf1",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
-  "assignedSession": "风控三批源码交付冻结，由根统一GitLab与双推",
-  "branch": "codex/traffic-guard-20261018-bulk",
-  "baseCommit": "0a69a5a5d7f903cc411d7556f5c3a6269b5db5c2",
-  "deliveryCommit": "836e8db42fdb6106842c40055cebef6068e5fba7",
+  "assignedSession": "2026-10-20续作：受控快照归档读取源码单元",
+  "branch": "codex/traffic-guard-20261020-r1",
+  "baseCommit": "6204dfc94510f28752fe8da81df9f3a4d3ce781d",
+  "deliveryCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
   "deployment": "not_started",
   "files": [
     {
@@ -353,12 +353,12 @@
     {
       "path": "modules/traffic-guard/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "implementationCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。 文件内函数按逐项台账判断，文件存在不代表全部职责完成。"
+        "state": "not_run",
+        "evidence": "本次接入受控快照归档路由与运行权威回调；按用户要求未在本机或SSH运行Go、gofmt、build、vet、test、pnpm、make check，待GitLab复核。"
       },
-      "blocker": "源码检查通过；文件内未完职责以函数台账与交接为准，整体服务未完成。"
+      "blocker": "SnapshotManager真实回调、写窗口、其余handler、后台与恢复回执仍未完整装配；源码单元待GitLab。"
     },
     {
       "path": "modules/traffic-guard/internal/transport/server.go",
@@ -542,23 +542,23 @@
     },
     {
       "path": "modules/traffic-guard/internal/guard_runtime.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": "新增SnapshotAPI与运行权威装配字段，旧源码检查证据不覆盖本次提交；待GitLab复核。"
       },
-      "blocker": null
+      "blocker": "本次结构接线尚未经过用户指定GitLab检查。"
     },
     {
       "path": "modules/traffic-guard/internal/http_management.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": "新增readSnapshotArchive二进制HTTP路由，旧源码检查证据不覆盖本次提交；待GitLab复核。"
       },
-      "blocker": null
+      "blocker": "本次路由与流式输出尚未经过用户指定GitLab检查。"
     },
     {
       "path": "modules/traffic-guard/migrations/0003_guard_runtime.sql",
@@ -572,13 +572,13 @@
     },
     {
       "path": "modules/traffic-guard/internal/snapshot_archive.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "源码已交付并仅做静态合同/差异复核；未运行用户禁止的本机或SSH Go相关命令，待GitLab检查。"
       },
-      "blocker": null
+      "blocker": "未经过GitLab生成、readonly build/vet/gofmt与make check；真实SnapshotManager尚未由BuildApplication装配。"
     }
   ],
   "functions": [
@@ -1070,12 +1070,12 @@
       "id": "traffic-guard.BuildApplication",
       "path": "modules/traffic-guard/internal/app/wire.go",
       "state": "blocked",
-      "implementationCommit": "e8d9215",
+      "implementationCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
       "verification": {
         "state": "not_run",
-        "evidence": "已将真实管理/信号HTTP map交公共入口；缺其他handler及运行依赖仍失败关闭。"
+        "evidence": "本次接入真实运行权威回调、归档HTTP端口与控制操作分类；缺SnapshotManager、其余handler、预算key、后台和恢复回执仍失败关闭。"
       },
-      "blocker": "运行写窗口、独立预算key、其余完整处理函数、后台及恢复回执仍缺。"
+      "blocker": "运行写窗口、独立预算key、SnapshotManager真实回调、其余完整处理函数、后台及恢复回执仍缺；本次源码待GitLab。"
     },
     {
       "id": "traffic-guard.Serve",
@@ -1443,13 +1443,13 @@
     {
       "id": "traffic-guard.NewGuardHandlers",
       "path": "modules/traffic-guard/internal/http_management.go",
-      "state": "verified",
-      "implementationCommit": "3deb8ba9cd394ec43274999eaf4f5e0484e224ae",
+      "state": "blocked",
+      "implementationCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
       "verification": {
-        "state": "passed",
-        "evidence": "自部署GitLab pipeline70（生成311，三个Go分片312/313/314，前端315）全部成功；精确879713字节生成物回传到3deb8ba9cd394ec43274999eaf4f5e0484e224ae；pipeline71对该精确SHA再次全部成功并核对生成零漂移。16个Go模块readonly build/vet/gofmt与go test、完整make check、Vue类型检查与构建通过；go test无测试文件，不代表业务验收。"
+        "state": "not_run",
+        "evidence": "新增受控快照归档HTTP端口及维护控制分类，旧源码检查证据不覆盖本次提交；待GitLab复核。"
       },
-      "blocker": null
+      "blocker": "本次handler映射尚未经过用户指定GitLab检查。"
     },
     {
       "id": "traffic-guard.networkPolicyRate",
@@ -1586,14 +1586,14 @@
     {
       "id": "traffic-guard.ReadSnapshotArchive",
       "path": "modules/traffic-guard/internal/snapshot_archive.go",
-      "state": "planned",
-      "implementationCommit": null,
+      "state": "blocked",
+      "implementationCommit": "0c0e2e17e00adf2bb159de97c31f7bf8b58892b0",
       "verification": {
         "state": "not_run",
-        "evidence": null
+        "evidence": "已按binding合同实现身份、维护代次、固定ObjectRef与平台OpenArchive接线；仅完成静态复核，待GitLab检查。"
       },
-      "blocker": null
+      "blocker": "未运行用户指定GitLab检查，且BuildApplication尚未装配真实SnapshotManager。"
     }
   ],
-  "rule": "三批累计32个原有主业务函数已有完整源码；ConsumeEvents因公共窄接口及准确退出统计缺口保持partial，未用NormalizePeer参考助手已删除，CheckBan合并为唯一实际函数。所有本轮新增/修改仍blocked待根GitLab，旧未改证据保留。完整启动/恢复装配与业务验收未齐，accepted为0。按根要求冻结，不扩功能、不push。"
+  "rule": "本次在main=6204dfc9基础上交付ReadSnapshotArchive源码单元：GuardRuntime保存真实运行权威与SnapshotAPI，HTTP绑定data-protection维护读取端口，缺SnapshotManager时失败关闭。该单元及被改文件均blocked待用户指定GitLab；未本机/SSH运行Go、gofmt、build、vet、test、pnpm、make check，未做真实接口/模型/服务/部署，accepted为0。其余完整启动、后台、事件订阅与恢复装配仍按逐项台账阻塞。"
 }

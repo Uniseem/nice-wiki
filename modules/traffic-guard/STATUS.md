@@ -1,3 +1,12 @@
+# 2026-10-20 续作：受控快照归档读取源码单元
+
+本工作树已从用户指定 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d` 建立续作分支 `codex/traffic-guard-20261020-r1`；旧的 `codex/traffic-guard-20261018-bulk` 分支引用保留。源码提交为 `0c0e2e17e00adf2bb159de97c31f7bf8b58892b0`。本次只改 `modules/traffic-guard/`。
+
+- 新增 `internal/snapshot_archive.go`：`ReadSnapshotArchive` 要求 data-protection 服务携带已验证 admin 会话，核当前维护 backup/restore 屏障与 active dataEpoch，固定 traffic-guard、版本1、`application/x-tar` 的 `ObjectRef`，调用平台 `SnapshotAPI.OpenArchive`，缺真实管理器依赖时失败关闭。
+- `internal/guard_runtime.go` 保存真实运行权威回调与 `SnapshotAPI`；`internal/http_management.go` 接入 `readSnapshotArchive` 二进制流路由；`internal/app/wire.go` 登记 data-protection 调用方、maintenance/controller scope 和运行回调。
+- 仅做静态合同审阅与 `git diff --check`，通过；未在本机或SSH运行 Go、gofmt、build、vet、test、pnpm、make check，未运行真实接口、模型、服务或部署。按用户要求本单元及受影响文件保持 `blocked`，不记 implemented/verified。
+- 完整 `BuildApplication` 仍失败关闭：真实 `SnapshotManager` 回调、写窗口、预算key、其他快照/后台/事件处理器和恢复回执尚未装配；没有用空 manager 或空 scope 放行启动。
+
 # 2026-10-18 续写第二批检查通过
 
 GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。

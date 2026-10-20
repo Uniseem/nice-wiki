@@ -1,3 +1,22 @@
+# 2026-10-20 续作：受控快照归档读取源码单元
+
+基线为 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`，工作树分支为 `codex/traffic-guard-20261020-r1`，独占范围仍为 `modules/traffic-guard/`。旧分支 `codex/traffic-guard-20261018-bulk` 仅保留作历史引用；主线已含三批风控源码的等价提交，因此本次没有强行解决跨域合并冲突。
+
+## 本次交付
+
+- 源码提交：`0c0e2e17e00adf2bb159de97c31f7bf8b58892b0`（`traffic-guard：接入受控快照归档读取`）。
+- [internal/snapshot_archive.go](../internal/snapshot_archive.go)：实现 `ReadSnapshotArchive`。它只接受 `data-protection` 调用方及可信 admin 会话，读取 site-config 运行权威，要求维护中的 `backup_barrier` 或带 restoreId 的 `restore_staging`，核请求代次，固定本域 `ObjectRef`，再调用平台 `SnapshotAPI.OpenArchive`。平台负责完成回执、manifest 绑定、文件长度和 SHA-256 核对；本域不接受路径、不写入、不删除、不重算归档。
+- [internal/http_management.go](../internal/http_management.go)：把 `readSnapshotArchive` 接入统一 handler map，成功响应只写固定媒体类型和长度的 tar 流；错误仍走公共 Problem。
+- [internal/app/wire.go](../internal/app/wire.go)、[internal/guard_runtime.go](../internal/guard_runtime.go)：登记 data-protection 调用方与 maintenance/controller scope，并把可信运行权威和 `SnapshotAPI` 留作启动装配输入。当前 `SnapshotAPI` 尚未由 `BuildApplication` 构造，缺依赖时保持失败关闭。
+
+## 检查与状态
+
+只运行了 `git diff --check` 和 JSON/文本静态复核，未运行 Go、gofmt、build、vet、test、pnpm、make check，也未调用真实接口、模型、服务或部署。源码单元、被改的 handler/runtime/wire 文件和台账对应函数均保持 `blocked`，不能据此记 `implemented` 或 `verified`。
+
+## 阻塞与下一项
+
+完整启动仍受真实 `SnapshotManager` 回调、WriteWindow、独立预算key、剩余 snapshot/barrier handler、后台/事件循环和 activation/restore 回执阻塞。下一项只做一件事：由主代理在本域启动装配中对照 `libs/platform/lifecycle.SnapshotConfig`，接入 traffic-guard 的真实 `ObserveWork`、`SealWork`、`Capture`、`MigrateStage`、`ValidateStaged`、`StageBudget` 和跨域封口证明回调；任何回调缺失继续拒绝返回可运行 `Application`。
+
 # 2026-10-18 续写第二批检查通过
 
 GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前端385）全部成功，16个Go模块readonly build/vet/gofmt、已有普通go test、完整make check及前端类型检查/构建通过。pipeline83各编译分片通过但缺既有信封校验登记，已补并复检；实际普通测试无测试文件。源码生成物由GitLab工具回传，不代表业务验收、隔离行为验收或部署。

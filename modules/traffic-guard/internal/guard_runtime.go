@@ -20,6 +20,8 @@ type GuardRuntime struct {
 	Store                 *PolicyStore
 	Identity              platform.AuthorizationClient
 	WriteWindow           platform.WriteWindowConfig
+	Runtime               func(context.Context) (platform.RuntimeView, error)
+	Snapshot              lifecycle.SnapshotAPI
 	SigningKey            platform.SigningKey
 	BudgetKey             platform.SigningKey
 	PreviousBudgetKeys    []platform.SigningKey

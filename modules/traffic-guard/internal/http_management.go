@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"nice-wiki/libs/platform"
 	"strconv"
@@ -13,7 +14,7 @@ import (
 // 管理动作的私有marker表示本次公共边界已即时查权，领域函数不再重复查询identity。
 func NewGuardHandlers(runtime GuardRuntime) map[string]http.Handler {
 	handlers := NewLoginHandlers(runtime.Store)
-	for _, operation := range []string{"getPolicy", "updatePolicy", "createBan", "revokeBan", "listBans", "listRiskEvents", "reportModelRisk", "queueSessionAdmission", "createAdmission", "renewAdmission", "releaseAdmission", "consumeAdmission", "verifyAdmission", "issueChallenge", "verifyChallenge"} {
+	for _, operation := range []string{"getPolicy", "updatePolicy", "createBan", "revokeBan", "listBans", "listRiskEvents", "reportModelRisk", "queueSessionAdmission", "createAdmission", "renewAdmission", "releaseAdmission", "consumeAdmission", "verifyAdmission", "issueChallenge", "verifyChallenge", "readSnapshotArchive"} {
 		handlers[operation] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			ctx := WithGuardRuntime(r.Context(), runtime)
@@ -130,6 +131,27 @@ func NewGuardHandlers(runtime GuardRuntime) map[string]http.Handler {
 				if err = bind(&body); err == nil {
 					result, err = VerifyAdmissionHTTP(ctx, op, VerifyAdmissionHTTPInput{r.PathValue("admissionId"), body.RequestID, op.DataEpoch, body.Token})
 				}
+			case "readSnapshotArchive":
+				byteSize, parseErr := strconv.ParseInt(r.URL.Query().Get("byteSize"), 10, 64)
+				if parseErr != nil {
+					err = platform.NewError(platform.CodeValidation, false, "快照归档字节数不可读")
+					break
+				}
+				archive, readErr := ReadSnapshotArchive(ctx, op, SnapshotArchiveReadInput{
+					SnapshotID: r.PathValue("snapshotId"),
+					SHA256:     platform.Hash(r.URL.Query().Get("sha256")),
+					ByteSize:   byteSize,
+				})
+				if readErr != nil {
+					err = readErr
+					break
+				}
+				defer archive.Archive.Close()
+				w.Header().Set("Content-Type", archive.Object.MediaType)
+				w.Header().Set("Content-Length", strconv.FormatInt(archive.Object.ByteSize, 10))
+				w.WriteHeader(http.StatusOK)
+				_, _ = io.Copy(w, archive.Archive)
+				return
 			}
 			var limited *admissionRateError
 			if errors.As(err, &limited) && limited.retryAfterMs > 0 {

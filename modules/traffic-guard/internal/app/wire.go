@@ -80,7 +80,15 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	guardRuntime := trafficguard.GuardRuntime{Store: store, Identity: identityClient, SigningKey: key, Anchors: anchors, Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), ValidateIdentityEvent: validateIdentityEvent}
+	guardRuntime := trafficguard.GuardRuntime{
+		Store:                 store,
+		Identity:              identityClient,
+		Runtime:               func(work context.Context) (platform.RuntimeView, error) { return lifecycle.ReadRuntime(work, runtimeAuthority) },
+		SigningKey:            key,
+		Anchors:               anchors,
+		Jobs:                  gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key),
+		ValidateIdentityEvent: validateIdentityEvent,
+	}
 	_, err = apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -106,8 +114,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"verifyAdmission":       {"qa"},
 			"issueChallenge":        {"portal"},
 			"verifyChallenge":       {"portal"},
+			"readSnapshotArchive":   {"data-protection"},
 		},
 		ServiceActorCallers: map[string][]string{"getPolicy": {"traffic-guard"}},
+		ControllerOperations: map[string]bool{"readSnapshotArchive": true},
+		MaintenanceOperations: map[string]bool{"readSnapshotArchive": true},
 		Authorize:           apivalidate.NewIdentityAuthorizer(identityClient),
 	}, trafficguard.NewGuardHandlers(guardRuntime))
 	if err != nil {
