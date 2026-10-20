@@ -237,6 +237,14 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 	if bundle.Description != "" {
 		metadata += "<meta name=\"description\" content=\"" + html.EscapeString(bundle.Description) + "\">"
 	}
+	languages := languageLinks(ctx, node.CanonicalPath, locale)
+	if site, siteErr := siteForSEO(ctx); siteErr == nil {
+		// 规范地址与各语言互链，帮搜索引擎把译文当作同一页的不同语言版本。
+		metadata += "<link rel=\"canonical\" href=\"" + html.EscapeString(site+node.CanonicalPath) + "\">"
+		for _, link := range languages {
+			metadata += "<link rel=\"alternate\" hreflang=\"" + html.EscapeString(link.Tag) + "\" href=\"" + html.EscapeString(site+link.Href) + "\">"
+		}
+	}
 	composed, err := ComposeHTML(ctx, op, ComposeHTMLInput{
 		SafeHTML:     body.SafeHTML,
 		Title:        bundle.Title,
@@ -247,7 +255,7 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		DocumentID:   node.DocumentID,
 		MarkdownURL:  node.CanonicalPath + ".md",
 		Announcement: loadAnnouncement(ctx, op),
-		Languages:    languageLinks(ctx, node.CanonicalPath, locale),
+		Languages:    languages,
 		AIEnabled:    qaAvailable(ctx, op),
 		AskURL:       "/" + locale + "/ask",
 	})

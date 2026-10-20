@@ -105,3 +105,16 @@ func languageLinks(ctx context.Context, canonicalPath, current string) []Languag
 	}
 	return links
 }
+
+// siteForSEO 站点公开地址（去掉末尾斜杠），读取失败时不输出规范链接。
+func siteForSEO(ctx context.Context) (string, error) {
+	directory, err := directoryFrom(ctx)
+	if err != nil {
+		return "", err
+	}
+	snapshot, err := readSiteSnapshot(ctx, directory.SiteConfig)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimRight(snapshot.publicBaseURL, "/"), nil
+}
