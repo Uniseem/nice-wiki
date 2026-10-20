@@ -261,7 +261,7 @@ func validatePreservedEvents(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-func JobsStageBudget(manifest lifecycle.DomainSnapshotManifest) (int64, error) {
+func JobsStageBudget(_ context.Context, manifest lifecycle.DomainSnapshotManifest) (int64, error) {
 	if err := ValidateJobsSnapshotManifestValue(manifest); err != nil {
 		return 0, err
 	}

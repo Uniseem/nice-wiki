@@ -4477,7 +4477,7 @@ func validatePreservedEvents(ctx context.Context, db *sql.DB) error
 - 作用：按真实源清单计算隔离迁移峰值预算
 
 ```go
-func JobsStageBudget(manifest lifecycle.DomainSnapshotManifest) (int64, error)
+func JobsStageBudget(ctx context.Context, manifest lifecycle.DomainSnapshotManifest) (int64, error)
 ```
 
 **输入**

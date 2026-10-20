@@ -2,7 +2,7 @@
   "version": 1,
   "module": "jobs",
   "phase": "implementation",
-  "contractSha256": "f705cd062559e5ba8e8c06d215393cd9f67413fa52dc468f03b588c620ed17a4",
+  "contractSha256": "ca19b4e4afe6494c2b7260de6a9ea699d80c568646debbef9208fa11ed0b6636",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "本次在merge main=6204dfc94510f28752fe8da81f9f3a4d3ce781d后的工作树收口activation响应CAS回执绑定、最终屏障proof字段透传、显式16表写门、13个非jobs服务只读step=observe和同库observeBrokerTx；事务边界修正提交c125fa87d58db59f57a44ed09cf221530d99e556，CoordinateBarrier.observe复用原tx调用observeBrokerTx；接下来等待jobs CoordinateBarrier经data-protection版本化API触发的本域writer、公共ObserveTx接入与GitLab复核，未新增测试、真实接口或部署。",
   "branch": "codex/resume-20261020-jobs",

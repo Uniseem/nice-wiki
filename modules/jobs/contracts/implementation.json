@@ -6231,7 +6231,7 @@
         },{
           "id": "jobs.JobsStageBudget",
           "name": "JobsStageBudget",
-          "signature": "func JobsStageBudget(manifest lifecycle.DomainSnapshotManifest) (int64, error)",
+          "signature": "func JobsStageBudget(ctx context.Context, manifest lifecycle.DomainSnapshotManifest) (int64, error)",
           "inputs": [], "outputs": [], "purpose": "按真实源清单计算隔离迁移峰值预算", "steps": ["累加文件大小并核上限与溢出"], "errors": [], "sideEffects": [], "authorization": {"permission": "service", "rule": "platform SnapshotManager调用"}, "concurrency": "纯读取", "idempotency": "确定性计算", "dependencies": ["jobs.ValidateJobsSnapshotManifestValue"], "resources": [], "contract": "reference"
         },{
           "id": "jobs.snapshotRefToLifecycle",
