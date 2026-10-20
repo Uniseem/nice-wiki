@@ -1156,7 +1156,7 @@ func EnqueueEvent(tx Tx, envelope EventEnvelope) error
 - 幂等：eventId唯一
 - 依赖：无
 
-## outbox.RegisterWorkTable
+## platform.RegisterWorkTable
 
 - 级别：参考
 - 文件：`libs/platform/outbox/outbox.go`
@@ -9459,7 +9459,7 @@ func SnapshotStageBinding(ctx context.Context) (string, string, string, error)
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
 - 依赖：无
 
-## outbox.MigrateRestoredDatabase
+## platform.MigrateRestoredDatabase
 
 - 级别：参考
 - 文件：`libs/platform/outbox/restore.go`
@@ -9540,7 +9540,7 @@ func PrepareRestoredOutbox(ctx context.Context, db *sql.DB) error
 - 授权：permission：service；rule：可信启动装配；签名cleanup只固定原资源动作且原root/site/epoch/class全等，不替代费用授权。
 - 并发：活动计数Manager mutex；持久水位SQL CAS；控制操作串行。
 - 幂等：绑定真实原请求/原水位/原proof；不伪造空成功。
-- 依赖：`outbox.MigrateRestoredDatabase`
+- 依赖：`platform.MigrateRestoredDatabase`
 
 ## platform.SealTaskSecret
 

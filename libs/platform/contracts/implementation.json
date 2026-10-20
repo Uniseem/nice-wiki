@@ -16402,7 +16402,7 @@
           "concurrency": "活动计数Manager mutex；持久水位SQL CAS；控制操作串行。",
           "idempotency": "绑定真实原请求/原水位/原proof；不伪造空成功。",
           "dependencies": [
-            "outbox.MigrateRestoredDatabase"
+            "platform.MigrateRestoredDatabase"
           ],
           "resources": [],
           "contract": "reference"

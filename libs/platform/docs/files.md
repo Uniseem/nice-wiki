@@ -10,7 +10,7 @@
 | `libs/platform/serviceauth/delegation.go` | 手写 | 服务签名、用户委托验证、恢复激活回执与作用域绑定的分页游标签名 | `platform.SignActivationReceipt`（参考）、`platform.normalizeActivationReceiptClaims`（参考）、`platform.decodeCanonicalReceiptJSON`（参考）、`platform.VerifyActivationReceipt`（参考）、`platform.VerifyDelegation`、`platform.SignCursor`（参考）、`platform.VerifyCursor`（参考）、`platform.SignSessionAccess`（参考）、`platform.VerifySessionAccess`（参考）、`platform.GenerateSessionSecrets`（参考）、`platform.SignDelegation`（参考）、`platform.validSessionClaims`（参考）、`platform.PrivateOperationDigest`（参考） |
 | `libs/platform/opctx/context.go` | 手写 | 可信OperationContext构建 | `platform.BuildOperationContext` |
 | `libs/platform/problem/problem.go` | 手写 | 公共Problem输出 | `platform.WriteProblem`、`platform.FromError`（参考） |
-| `libs/platform/outbox/outbox.go` | 手写 | 事务内outbox登记 | `platform.EnqueueEvent`、`outbox.RegisterWorkTable`（参考）、`platform.EnsureSchema`（参考） |
+| `libs/platform/outbox/outbox.go` | 手写 | 事务内outbox登记 | `platform.EnqueueEvent`、`platform.RegisterWorkTable`（参考）、`platform.EnsureSchema`（参考） |
 | `libs/platform/outbox/relay.go` | 手写 | outbox转发循环 | `platform.RunRelay`、`platform.NewEventPublisher`（参考）、`platform.PublishEvent`（参考）、`platform.relayWriteContext`（参考）、`platform.RunRelayBatch`（参考） |
 | `libs/platform/inbox/inbox.go` | 手写 | 事件inbox去重 | `platform.ClaimInbox`、`platform.ClaimInboxBeforeWrite`（参考）、`platform.claimInbox`（参考）、`platform.validateEnvelope`（参考） |
 | `libs/platform/inbox/consumer.go` | 手写 | 事件订阅循环 | `platform.RunConsumer`、`platform.RunConsumerWithResult`、`platform.consumerLoop.start`（参考）、`platform.consumerLoop.stop`（参考）、`platform.consumerLoop.worker`（参考）、`platform.consumerLoop.queueFor`（参考）、`platform.consumerLoop.operation`（参考）、`platform.consumerLoop.dispatch`（参考）、`platform.consumerLoop.acknowledge`（参考）、`platform.consumerLoop.process`（参考）、`platform.consumerLoop.classify`（参考）、`platform.inbox.eventKey`（参考）、`platform.consumerLoop.pauseFor`（参考）、`platform.inbox.readRuntime`（参考）、`platform.inbox.sleep`（参考）、`platform.inbox.isConfigRejected`（参考） |
@@ -45,5 +45,5 @@
 | `libs/platform/lifecycle/snapshot_capture.go` | 手写 | 公共真实在途屏障、固定签名清理或一致完整捕获机制 | `platform.CaptureSnapshotFiles`（参考） |
 | `libs/platform/outbox/observation.go` | 手写 | 公共真实在途屏障、固定签名清理或一致完整捕获机制 | `platform.Store.Observe`（参考）、`platform.Store.ObserveTx`（参考）、`platform.Store.Seal`（参考）、`platform.Store.SealTx`（参考）、`platform.Store.Resume`（参考）、`platform.Store.ResumeTx`（参考） |
 | `libs/platform/lifecycle/snapshot_stage_scope.go` | 手写 | 真实已认证恢复隔离副本机制 | `platform.SnapshotStageBinding`（参考） |
-| `libs/platform/outbox/restore.go` | 手写 | 真实已认证恢复隔离副本机制 | `outbox.MigrateRestoredDatabase`（参考）、`platform.PrepareRestoredOutbox`（参考） |
+| `libs/platform/outbox/restore.go` | 手写 | 真实已认证恢复隔离副本机制 | `platform.MigrateRestoredDatabase`（参考）、`platform.PrepareRestoredOutbox`（参考） |
 | `libs/platform/lifecycle/task_secret.go` | 手写 | 通用有界异步任务秘密加密，不含业务授权与持久策略 | `platform.SealTaskSecret`（参考）、`platform.OpenTaskSecret`（参考）、`platform.taskSecretAAD`（参考）、`platform.taskSecretCipher`（参考） |

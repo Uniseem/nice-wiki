@@ -2,7 +2,7 @@
   "version": 1,
   "module": "platform",
   "phase": "implementation",
-  "contractSha256": "18a56bbb959bd4c85d3a2c5f55d5b3a026ce6e1bb03f54afcab8cfbbd893d006",
+  "contractSha256": "620242d0649dd004909d6dd1ea47533ae4068382900717d5f5bead3491c487c7",
   "hashAlgorithm": "sha256(canonical JSON UTF8, sorted keys, no whitespace)",
   "assignedSession": "2026-10-20集成：合入main已验证验签，保留Sign/Tx WIP并补只读屏障与恢复迁移公共单元；待GitLab源码检查。",
   "branch": "codex/resume-20261020-integration",
@@ -2656,7 +2656,7 @@
       "blocker": null
     },
     {
-      "id": "outbox.RegisterWorkTable",
+      "id": "platform.RegisterWorkTable",
       "path": "libs/platform/outbox/outbox.go",
       "state": "in_progress",
       "implementationCommit": null,
@@ -3041,7 +3041,7 @@
       "blocker": "尚无本次候选精确GitLab SHA；只读状态不导出私有snapshot-barrier.json。"
     },
     {
-      "id": "outbox.MigrateRestoredDatabase",
+      "id": "platform.MigrateRestoredDatabase",
       "path": "libs/platform/outbox/restore.go",
       "state": "in_progress",
       "implementationCommit": null,

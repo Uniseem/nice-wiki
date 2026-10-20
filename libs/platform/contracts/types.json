@@ -2050,6 +2050,54 @@
         "ciphertext"
       ],
       "description": "原始byte切片JSON按标准base64编码；持久位置、授权与回收由本域决定，无permit续期语义。"
+    },
+    "Observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "leased": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quarantined": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "isolated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sealHash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision",
+        "pending",
+        "leased",
+        "quarantined",
+        "isolated",
+        "sealHash"
+      ],
+      "x-internal": true,
+      "description": "outbox同一SQLite事务的真实revision、活动计数、隔离计数和sealHash；未知状态不当作零。"
+    },
+    "SQLDB": {
+      "type": "object",
+      "x-internal": true,
+      "description": "database/sql兼容的本域SQLite数据库句柄；不序列化。"
+    },
+    "RestoredDatabaseMigration": {
+      "type": "object",
+      "x-internal": true,
+      "description": "在认证staged数据库同一sql.Tx内执行本域已登记schema/索引迁移的Go回调；不修改业务事实。"
     }
   }
 }
