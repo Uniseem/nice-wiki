@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 113 个函数：约束 33 个，参考 80 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 108 个函数：约束 33 个，参考 75 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1372,6 +1372,142 @@ func (s *ActiveStore) homeWriteContext(ctx context.Context, op OperationContext)
 - 幂等：保留原sourceOperationId/候选材料与完整digest；未知状态失败关闭
 - 依赖：`platform.NewWriteContext`、`site-config.homeDependencies`
 
+## site-config.ExportSnapshot
+
+- 级别：约束
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：导出屏障水位的一致快照
+
+```go
+func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExportRequest) (SnapshotExportResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `SnapshotExportRequest` | 导出屏障水位的一致快照的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `SnapshotExportResult` | 导出屏障水位的一致快照的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准 |
+
+**步骤**
+
+1. 验证本域 barrier=safe 和当前 dataEpoch；按 includeSecrets 策略封装敏感字段
+2. 流式复制私有数据库一致视图及所有权威文件到本服务只读对象；manifest 列 hash/size/schema
+3. fsync 完成后返回 SnapshotRef；失败只清理未完成临时对象，不修改活动数据
+
+**错误**
+
+- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+- `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
+- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
+- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `DEADLINE_EXCEEDED`：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准（可重试）
+
+- 副作用：本服务屏障/快照/恢复日志与私有对象写入
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
+- 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
+- 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
+- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.Export`、`site-config.WithSnapshotRuntime`
+
+## site-config.StageSnapshot
+
+- 级别：约束
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据
+
+```go
+func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStageRequest) (SnapshotStageResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | data-protection服务身份携带发起恢复的superadmin委托 | callerService=data-protection；dataEpoch等于site-config当前active epoch |
+| `input` | `SnapshotStageRequest` | 暂存请求 | 必须通过公共schema；snapshot.owner等于本域 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `SnapshotStageResult` | 暂存回执 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含路径、密钥或正文 |
+
+**步骤**
+
+1. 校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
+2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
+3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
+4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
+
+**错误**
+
+- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
+- `LOCKED`：runtime阶段或restoreId不符，或本域屏障未safe（不可重试）
+- `INTEGRITY_ERROR`：归档hash、owner或manifest不一致；临时目录已删除（不可重试）
+- `UNSUPPORTED_SCHEMA`：快照schema高于本版本可迁移范围（不可重试）
+- `CONFLICT`：同restoreId已暂存不同checksum（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
+
+- 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
+- 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
+- 幂等：restoreId+checksum唯一；重复调用返回已记录回执
+- 依赖：`data-protection:serveRestoreArchive`、`site-config.ReadRuntimeState`、`platform.SnapshotManager.Stage`、`site-config.WithSnapshotRuntime`
+
+## site-config.DiscardSnapshot
+
+- 级别：约束
+- 文件：`modules/site-config/internal/home_service.go`
+- 作用：删除某次恢复的暂存目录或恢复完成后换出的旧数据目录
+
+```go
+func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDiscardRequest) (SnapshotDiscardResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | data-protection服务身份携带发起恢复的superadmin委托 | callerService=data-protection；dataEpoch等于site-config当前active epoch |
+| `input` | `SnapshotDiscardRequest` | 丢弃请求 | 必须通过公共schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `SnapshotDiscardResult` | 丢弃结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含路径、密钥或正文 |
+
+**步骤**
+
+1. 校验data-protection服务身份（用户授权已由data-protection核验）
+2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
+3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
+4. 删除后在control区记录discarded；目录不存在返回removed=false
+
+**错误**
+
+- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
+- `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
+
+- 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
+- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
+- 并发：control区按restoreId串行
+- 幂等：重复删除返回removed=false
+- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.Discard`、`site-config.WithSnapshotRuntime`
+
 ## site-config.ValidateHomeLinks
 
 - 级别：参考
@@ -1525,40 +1661,6 @@ func ReadRuntimeState(ctx context.Context, op OperationContext, input ReadRuntim
 - 幂等：只读
 - 依赖：无
 
-## site-config.ConfigureGlobalSealVerifier
-
-- 级别：参考
-- 文件：`modules/site-config/internal/snapshot_service.go`
-- 作用：注入唯一全域GlobalSeal核验端口
-
-```go
-func ConfigureGlobalSealVerifier(verify func(context.Context, SnapshotSealProof, string) error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `verify` | `func(context.Context, SnapshotSealProof, string) error` | 集成会话装配的真实全域封口核验回调 | 必须由可信集成装配；不得由HTTP输入或本域请求构造 |
-
-**输出**
-
-无
-
-**步骤**
-
-1. 保存回调供同一SnapshotManager的SealBarrier调用；缺失时验签失败关闭
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：仅可信集成启动装配
-- 并发：装配后只读；seal调用可并发但由Manager串行
-- 幂等：重复装配替换可信回调，不写业务数据
-- 依赖：无
-
 ## site-config.observeSiteWork
 
 - 级别：参考
@@ -1699,7 +1801,7 @@ func observeSiteWorkFacts(ctx context.Context, store *ActiveStore, tx *sql.Tx) (
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `observation` | `Observation` | 公共outbox真实观察 | revision来自公共control，不由MAX或COUNT计算 |
+| `observation` | `OutboxObservation` | 公共outbox真实观察 | revision来自公共control，不由MAX或COUNT计算 |
 | `pendingWork` | `int64` | 本域待决业务工作计数 | 只表示真实待决事实，不作为版本号 |
 | `error` | `error` | 公共观察或本域事实读取失败 | 未知状态失败关闭 |
 
@@ -1801,7 +1903,7 @@ func NewSnapshotManager(dataRoot string, openedEpoch Identifier, runtime func(co
 - 授权：仅本域可信Build装配
 - 并发：一个Application一个Manager；公共Manager串行屏障/文件IO
 - 幂等：复用公共Manager持久journal和本域outbox水位
-- 依赖：`platform.NewSnapshotManager`、`platform.CaptureSnapshotFiles`、`outbox.MigrateRestoredDatabase`、`site-config.observeSiteWork`、`site-config.sealSiteWork`、`site-config.resumeSiteWork`、`site-config.drainSiteConfigReferences`
+- 依赖：`platform.NewSnapshotManager`、`platform.CaptureSnapshotFiles`、`platform.MigrateRestoredDatabase`、`site-config.observeSiteWork`、`site-config.sealSiteWork`、`site-config.resumeSiteWork`、`site-config.drainSiteConfigReferences`
 
 ## site-config.ConfigureActivationVerifier
 
@@ -1954,111 +2056,6 @@ func OpenRuntimeStore(ctx context.Context, dataRoot string) (*RuntimeStore, erro
 - 幂等：重复启动读取已有RuntimeState，不重新生成epoch
 - 依赖：`site-config.All`
 
-## site-config.ConfigureActivationVerifier
-
-- 级别：参考
-- 文件：`modules/site-config/internal/runtime_store.go`
-- 作用：将BuildApplication加载的信任锚装配到本域控制库验签器
-
-```go
-func ConfigureActivationVerifier(anchors TrustAnchors) error
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `anchors` | `TrustAnchors` | BuildApplication从受信配置加载的服务公钥表 | 只接受可信Build装配；不接受HTTP或runtime监视器输入 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `error` | `Error` | 控制库未打开时失败 | 失败不把验签依赖标记为可用 |
-
-**步骤**
-
-1. 读取本域当前RuntimeStore并调用RuntimeStore.ConfigureActivationVerifier；runtime监视器只调用无锚NewRuntimeClient，不覆盖已装配状态
-
-**错误**
-
-- `DEPENDENCY_UNAVAILABLE`：控制库未打开（可重试）
-
-- 副作用：无
-- 授权：仅可信BuildApplication装配
-- 并发：装配阶段单flight；验签读取可并发
-- 幂等：重复装配替换同一进程的可信锚，不写control.db
-- 依赖：`site-config.RuntimeStore.ConfigureActivationVerifier`
-
-## site-config.RuntimeStore.ConfigureActivationVerifier
-
-- 级别：参考
-- 文件：`modules/site-config/internal/runtime_store.go`
-- 作用：为持久激活回执验签装配服务信任锚
-
-```go
-func (s *RuntimeStore) ConfigureActivationVerifier(anchors TrustAnchors)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `anchors` | `TrustAnchors` | BuildApplication从受信配置加载的服务公钥表 | 只由可信Build装配；不接受HTTP请求字段 |
-
-**输出**
-
-无
-
-**步骤**
-
-1. 保存已加载的TrustAnchors供RegisterActivation只读使用
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：仅可信BuildApplication装配
-- 并发：装配后只读；可与回执读取并发
-- 幂等：重复装配替换同一进程的可信锚，不写control.db
-- 依赖：无
-
-## site-config.RuntimeStore.activationVerifierAnchors
-
-- 级别：参考
-- 文件：`modules/site-config/internal/runtime_store.go`
-- 作用：读取Build已装配的激活回执验签锚
-
-```go
-func (s *RuntimeStore) activationVerifierAnchors() (TrustAnchors, error)
-```
-
-**输入**
-
-无
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `anchors` | `TrustAnchors` | Build已装配的服务公钥表 | 成功时必须来自Build已装配且包含服务公钥的信任锚 |
-| `error` | `Error` | 验签锚未装配时返回DEPENDENCY_UNAVAILABLE | 失败时不得返回可用验签锚，调用方必须失败关闭 |
-
-**步骤**
-
-1. 仅返回已装配且含服务公钥的信任锚；缺失时返回DEPENDENCY_UNAVAILABLE
-
-**错误**
-
-- `DEPENDENCY_UNAVAILABLE`：Build尚未装配验签锚（可重试）
-
-- 副作用：无
-- 授权：仅本域RegisterActivation内部调用
-- 并发：只读，可并发
-- 幂等：只读
-- 依赖：无
-
 ## site-config.OpenActiveStore
 
 - 级别：参考
@@ -2122,7 +2119,7 @@ func (s *ActiveStore) OutboxStore() *outbox.Store
 
 | 名称 | 类型 | 说明 | 约束 |
 |---|---|---|---|
-| `store` | `*outbox.Store` | 同库公共outbox端口；nil表示句柄不可用 | 不复制领取、封口、恢复隔离机制 |
+| `store` | `OutboxStore` | 同库公共outbox端口；nil表示句柄不可用 | 不复制领取、封口、恢复隔离机制 |
 
 **步骤**
 
@@ -2174,7 +2171,7 @@ func registerSiteConfigWorkTables(ctx context.Context, db *sql.DB) error
 - 授权：仅本域启动或已认证隔离stage迁移装配
 - 并发：由公共登记接口保证同库幂等
 - 幂等：重复登记同一表不改变业务事实
-- 依赖：`outbox.RegisterWorkTable`
+- 依赖：`platform.RegisterWorkTable`
 
 ## site-config.ValidateActiveReady
 
@@ -2425,45 +2422,6 @@ func RegisterActivation(ctx context.Context, op OperationContext, input Register
 - 并发：(restoreId,module)唯一键；多个域可并发但revision CAS串行
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
 - 依赖：`site-config.RuntimeStore.activationVerifierAnchors`、`site-config.verifyActivationReceipt`
-
-## site-config.verifyActivationReceipt
-
-- 级别：参考
-- 文件：`modules/site-config/internal/runtime_transition.go`
-- 作用：把本域输入绑定为公共激活回执claims并调用统一验签器
-
-```go
-func verifyActivationReceipt(anchors TrustAnchors, issuer string, input RegisterActivationInput) error
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `anchors` | `TrustAnchors` | Build已装配的服务公钥表 | 必须来自可信Build装配；不接受HTTP或请求输入自带的信任锚 |
-| `issuer` | `string` | 已验证的caller服务身份 | 必须是入口已验证且与receipt.module一致的服务身份 |
-| `input` | `RegisterActivationInput` | 已通过schema、caller、epoch、CAS与phase检查的回执输入 | 必须通过RegisterActivation既有schema、幂等、epoch、CAS与phase检查；不含anchors字段 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `error` | `Error` | 验签失败返回INTEGRITY_ERROR | 失败时不产生持久副作用 |
-
-**步骤**
-
-1. 以input.restoreId及receipt全部签名字段构造Version=1 claims，RecordedAt统一为UTC RFC3339Nano
-2. 调用platform.VerifyActivationReceipt；UNAUTHENTICATED验签失败转换为本域INTEGRITY_ERROR
-
-**错误**
-
-- `INTEGRITY_ERROR`：持久激活回执签名或载荷绑定不一致（不可重试）
-
-- 副作用：无
-- 授权：由RegisterActivation在已完成服务身份与阶段检查后调用
-- 并发：纯函数；输入不可变
-- 幂等：无持久副作用
-- 依赖：`platform.VerifyActivationReceipt`
 
 ## site-config.CheckWriteEpoch
 
@@ -3181,7 +3139,7 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：每进程一个转发循环；行级租约防多实例重复领取；同subject按outbox序号串行发送
 - 幂等：eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认
-- 依赖：`jobs:publishEvent`、`platform.RunRelayBatch`、`platform.NewEventPublisher`、`platform.SnapshotManager.AdmitEventBatch`、`platform.SnapshotManager.BindOutboxEventScope`
+- 依赖：`jobs:publishEvent`、`platform.RunRelayBatch`、`platform.NewEventPublisher`、`platform.SnapshotManager.AdmitEventBatch`、`platform.SnapshotManager.BindOutboxEventScope`、`site-config.WithRelayRuntime`
 
 ## site-config.WithRelayRuntime
 
@@ -3347,7 +3305,7 @@ func AcquireBarrier(ctx context.Context, op OperationContext, input BarrierReque
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
 - 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
-- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.PrepareBarrier`、`platform.SnapshotManager.DrainBarrier`、`platform.SnapshotManager.ObserveBarrier`、`platform.SnapshotManager.SealBarrier`、`platform.SnapshotManager.ResumeDrain`
+- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.PrepareBarrier`、`platform.SnapshotManager.DrainBarrier`、`platform.SnapshotManager.ObserveBarrier`、`platform.SnapshotManager.SealBarrier`、`platform.SnapshotManager.ResumeDrain`、`site-config.WithSnapshotRuntime`
 
 ## site-config.ReleaseBarrier
 
@@ -3390,143 +3348,7 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, input ReleaseBarri
 - 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：写请求 operationId+规范请求摘要为唯一键；同键同摘要返回已存结果，同键异摘要 CONFLICT
-- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.ReadBarrierStatus`、`platform.SnapshotManager.ReleaseBarrier`
-
-## site-config.ExportSnapshot
-
-- 级别：约束
-- 文件：`modules/site-config/internal/snapshot_service.go`
-- 作用：导出屏障水位的一致快照
-
-```go
-func ExportSnapshot(ctx context.Context, op OperationContext, input SnapshotExportRequest) (SnapshotExportResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `SnapshotExportRequest` | 导出屏障水位的一致快照的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SnapshotExportResult` | 导出屏障水位的一致快照的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；DEADLINE_EXCEEDED: 依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准 |
-
-**步骤**
-
-1. 验证本域 barrier=safe 和当前 dataEpoch；按 includeSecrets 策略封装敏感字段
-2. 流式复制私有数据库一致视图及所有权威文件到本服务只读对象；manifest 列 hash/size/schema
-3. fsync 完成后返回 SnapshotRef；失败只清理未完成临时对象，不修改活动数据
-
-**错误**
-
-- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
-- `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
-- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
-- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
-- `DEADLINE_EXCEEDED`：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准（可重试）
-
-- 副作用：本服务屏障/快照/恢复日志与私有对象写入
-- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
-- 并发：屏障与暂存按 barrierId/restoreId 串行；活动事务计数达到零后才 safe；恢复在进程重启时整体换入active目录
-- 幂等：operationId/backupId/restoreId+摘要去重；重复返回已记录阶段
-- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.Export`
-
-## site-config.StageSnapshot
-
-- 级别：约束
-- 文件：`modules/site-config/internal/snapshot_service.go`
-- 作用：把本域备份归档暂存到restore/<restoreId>/staged，不触碰active数据
-
-```go
-func StageSnapshot(ctx context.Context, op OperationContext, input SnapshotStageRequest) (SnapshotStageResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | data-protection服务身份携带发起恢复的superadmin委托 | callerService=data-protection；dataEpoch等于site-config当前active epoch |
-| `input` | `SnapshotStageRequest` | 暂存请求 | 必须通过公共schema；snapshot.owner等于本域 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SnapshotStageResult` | 暂存回执 | 无error时有效 |
-| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含路径、密钥或正文 |
-
-**步骤**
-
-1. 校验data-protection服务身份（用户授权已由data-protection核验）；site-config runtime为restore_staging且restoreId一致；本域restore屏障为safe
-2. 经data-protection:serveRestoreArchive按restoreId拉取本域归档，边读边算SHA-256，写入<dataRoot>/restore/<restoreId>/staged.tmp
-3. 校验checksum、owner、manifest内文件hash，以及dataSchemaVersion不高于本版本可迁移范围；任一不符删除临时目录并返回INTEGRITY_ERROR或UNSUPPORTED_SCHEMA
-4. fsync后改名为staged，在control区记录暂存回执（restoreId、snapshotId、checksum）；active目录与数据库连接保持不变
-
-**错误**
-
-- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
-- `LOCKED`：runtime阶段或restoreId不符，或本域屏障未safe（不可重试）
-- `INTEGRITY_ERROR`：归档hash、owner或manifest不一致；临时目录已删除（不可重试）
-- `UNSUPPORTED_SCHEMA`：快照schema高于本版本可迁移范围（不可重试）
-- `CONFLICT`：同restoreId已暂存不同checksum（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：拉取归档失败或磁盘空间不足；临时目录已删除（可重试）
-
-- 副作用：写<dataRoot>/restore/<restoreId>/staged与control区回执；HTTP读取data-protection恢复归档
-- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
-- 并发：control区按restoreId串行；不锁active读写；同一时间只允许一个恢复
-- 幂等：restoreId+checksum唯一；重复调用返回已记录回执
-- 依赖：`data-protection:serveRestoreArchive`、`site-config.ReadRuntimeState`、`platform.SnapshotManager.Stage`
-
-## site-config.DiscardSnapshot
-
-- 级别：约束
-- 文件：`modules/site-config/internal/snapshot_service.go`
-- 作用：删除某次恢复的暂存目录或恢复完成后换出的旧数据目录
-
-```go
-func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDiscardRequest) (SnapshotDiscardResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | data-protection服务身份携带发起恢复的superadmin委托 | callerService=data-protection；dataEpoch等于site-config当前active epoch |
-| `input` | `SnapshotDiscardRequest` | 丢弃请求 | 必须通过公共schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SnapshotDiscardResult` | 丢弃结果 | 无error时有效 |
-| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含路径、密钥或正文 |
-
-**步骤**
-
-1. 校验data-protection服务身份（用户授权已由data-protection核验）
-2. scope=staged：仅当runtime不在restore_switching/restore_rolling_back、且control日志显示本域尚未换入该restoreId时删除restore/<restoreId>/staged
-3. scope=before：仅当该恢复已completed或已整体换回、且control日志确认active不是该before时删除restore/<restoreId>/before
-4. 删除后在control区记录discarded；目录不存在返回removed=false
-
-**错误**
-
-- `FORBIDDEN`：调用方不是data-protection或缺superadmin委托（不可重试）
-- `LOCKED`：当前恢复阶段不允许删除该目录（不可重试）
-
-- 副作用：删除<dataRoot>/restore/<restoreId>下的目录；写control区回执
-- 授权：permission：service；rule：仅data-protection服务身份；用户授权已由data-protection在发起时核验（手动备份/恢复需superadmin，定时备份按超管保存的设置）
-- 并发：control区按restoreId串行
-- 幂等：重复删除返回removed=false
-- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.Discard`
+- 依赖：`site-config.ReadRuntimeState`、`platform.SnapshotManager.ReadBarrierStatus`、`platform.SnapshotManager.ReleaseBarrier`、`site-config.WithSnapshotRuntime`
 
 ## site-config.UpdateBranding
 
@@ -3930,7 +3752,7 @@ func ListResourceReferences(ctx context.Context, op OperationContext, input List
 - 授权：service:media/data-protection或site.manage
 - 并发：不可变COMMITTED文件一致水位读取
 - 幂等：只读
-- 依赖：无
+- 依赖：`site-config.authorizeResourceReferenceRead`
 
 ## site-config.authorizeResourceReferenceRead
 
@@ -4397,4 +4219,4 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 - 授权：permission：superadmin；rule：仅data-protection服务身份加已验证superadmin委托；绑定本域精确完成归档与维护屏障
 - 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
 - 幂等：同完整引用只读复用，不生成或重算归档
-- 依赖：`platform.SnapshotManager.OpenArchive`
+- 依赖：`platform.SnapshotManager.OpenArchive`、`site-config.WithSnapshotRuntime`
