@@ -54,8 +54,9 @@ const initialize = () => run(async () => {
   // 基准语言要在本地化域登记为默认语言，公开页才能按该语言渲染。
   const languages = await request<{ languages: any[] }>('/v1/languages?includeDisabled=true');
   if (!languages.languages.some((l) => l.tag === baseLanguage.value)) {
-    await request(`/v1/languages/${baseLanguage.value}`, { method: 'PUT', body: {
-      expectedVersion: 0, idempotencyKey: crypto.randomUUID().replaceAll('-', ''),
+    const idempotencyKey = crypto.randomUUID().replaceAll('-', '');
+    await request(`/v1/languages/${baseLanguage.value}`, { method: 'PUT', idempotencyKey, body: {
+      expectedVersion: 0, idempotencyKey,
       language: { tag: baseLanguage.value, version: 1, enabled: true, isDefault: true, automaticTranslation: false, direction: 'ltr', reflectionEnabled: false, batchOutputTokens: 1000, translationMemoryMinimumCharacters: 20 },
     } });
   }

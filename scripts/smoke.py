@@ -72,7 +72,8 @@ def main():
         step("初始化站点", call("POST", "/v1/initialization", {"name": "示例文档站", "baseLanguage": "zh-Hans"}))
     status, langs = call("GET", "/v1/languages?includeDisabled=false")
     if not langs.get("languages"):
-        step("启用基准语言", call("PUT", "/v1/languages/zh-Hans", {"expectedVersion": 0, "idempotencyKey": uuid.uuid4().hex, "language": {
+        key = uuid.uuid4().hex
+        step("启用基准语言", call("PUT", "/v1/languages/zh-Hans", headers={"Idempotency-Key": key}, body={"expectedVersion": 0, "idempotencyKey": key, "language": {
             "tag": "zh-Hans", "version": 1, "enabled": True, "isDefault": True, "automaticTranslation": False, "direction": "ltr",
             "reflectionEnabled": False, "batchOutputTokens": 1000, "translationMemoryMinimumCharacters": 20}}))
     doc = step("新建文档", call("POST", "/v1/documents", {"title": "快速开始", "parentId": None, "beforeDocumentId": None}))
