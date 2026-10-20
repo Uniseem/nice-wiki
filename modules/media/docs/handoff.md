@@ -113,6 +113,17 @@ GitLab pipeline84（源码72219d7；生成381、三个Go分片382/383/384、前�
 
 公共结构：根已登记0005_manual_cleanup.sql，三个新增源码路径原已登记。两源Page schema仅引用生产方既有ListResourceReferencesResult，未改跨域API/事件。manual_cleanup_assets保存原扫描不可变材料，未来确认不能覆盖；manual_cleanup_marks单独保存人工确认时精确fence/generation，须与delete_pending/计划状态同事务；CleanupPlan.referenceGeneration只是逐资产最大原快照，不是全局删除授权。
 
+# 2026-10-20：确认来源事件幂等回放
+
+- 基线：`main=6204dfc9`；独立分支 `codex/media-idempotent-replay-20261020`；本轮最终源码/合同提交 `1127e16e2ead5dcdab7df31a98ca5d3f131daf33`。修改范围仅为 `modules/media/`。
+- 修改函数：`media.ApplyReferenceEvent`，实际路径 `modules/media/internal/reference_repository.go`。当原 `sourceOperationId` 已由 Acquire/Confirm 持久为 `confirmed`，且事件来源字段、规范完整引用集合与 `referenceDigest` 完全一致时，事务内按 head 版本补齐本域 `reference_entries`/`reference_heads`；已确认来源不再次提升 generation。相同 head 返回原 applied/generation 语义，较旧版本只保留 history，空集合照常绑定 head。
+- 完整材料不一致、同版本异来源、异 digest 或已封存来源仍失败关闭。现有来源锁、对象锁、资产锁、store 互斥、SQL 事务和 `ClaimInboxBeforeWrite` 首写隔离均保留；没有新增表、共享类型、content 事件版本或跨域代码。
+- 静态核验：`git diff --check`、JSON 解析、`render_docs.py --check` 通过。未运行本机/SSH Go、gofmt、build、vet、test、pnpm、make check、GitLab CI、真实接口/模型/服务/部署；未 push。progress 已将本函数与 `reference_repository.go` 恢复为 `in_progress`，等待 GitLab CI。
+
+## 下一步（一项）
+
+由集成代理把提交送入用户自部署 GitLab CI，复核生成、所有 Go 模块 readonly build/vet/gofmt 与完整 `make check`；CI 通过前不恢复 `verified`。B1 的 content 事件 v1/v2 对齐由唯一集成代理另行处理。
+
 # 资源媒体会话交接
 
 ## 两轮并行第二轮：源决定确认/封存（2026-10-16，已交付冻结）

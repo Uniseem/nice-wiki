@@ -1,3 +1,12 @@
+# 2026-10-20：确认来源事件幂等回放修复（未跑CI）
+
+本轮从 `main=6204dfc9` 独立接续，仅修改 `modules/media/`。源码、media 实现合同与生成函数文档已提交：`1127e16e2ead5dcdab7df31a98ca5d3f131daf33`。
+
+- `media.ApplyReferenceEvent` 现在核对已 `confirmed` 的 `sourceOperationId` 与事件的规范完整引用集合、来源字段和 `referenceDigest`；同材料回放按现有对象 head 水位补齐对应 `reference_entries` 与必要的 `reference_heads`。
+- 回放不重复提升 `reference_generation`；低版本只补为 `history`，不覆盖新 head；同版本异来源、异材料或异 digest 仍返回 `INTEGRITY_ERROR`；空集合沿用同一来源绑定和 head CAS。
+- 复用现有来源→对象→资产→store→SQL 边界、`ClaimInboxBeforeWrite` 首写隔离及 `reference_heads` CAS；未修改 content 事件 v1/v2、共享类型或其他模块。
+- 已完成 `git diff --check`、JSON 解析和本域文档生成一致性核对。未运行 GitLab CI、本机 Go/gofmt/build/vet/test、make check、真实接口/模型/服务或部署，状态保持 `in_progress`，等待 CI 复核。
+
 # 2026-10-18 收尾检查与停止
 
 自部署GitLab pipeline118：生成及重复生成、16模块readonly build/vet/gofmt、已有普通go test、完整make check、六前端类型/构建通过；无测试文件；仅源码检查，非业务验收。
