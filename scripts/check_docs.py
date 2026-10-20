@@ -14,7 +14,50 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 ISSUES = []
 CACHE = {}
-BUILTINS = {'any', 'CancelFunc', 'string', 'bool', 'int', 'int32', 'int64', 'uint64', 'float64', 'byte', 'bytes', 'error', 'void', 'number', 'boolean', 'Context', 'Reader', 'Writer', 'ResponseWriter', 'Request', 'Time', 'Promise', 'Record', 'Map', 'Set', 'Uint8Array', 'AbortSignal', 'HTMLElement', 'Event', 'KeyboardEvent', 'MouseEvent', 'File', 'Blob', 'unknown'}
+BUILTINS = {'any', 'CancelFunc', 'string', 'bool', 'int', 'int32', 'int64', 'uint64', 'float64', 'byte', 'bytes', 'error', 'void', 'number', 'boolean', 'Context', 'Reader', 'Writer', 'ResponseWriter', 'Request', 'Time', 'Promise', 'Record', 'Map', 'Set', 'Uint8Array', 'AbortSignal', 'HTMLElement', 'Event', 'KeyboardEvent', 'MouseEvent', 'File', 'Blob', 'unknown', 'func', 'interface', 'struct', 'chan', 'uintptr', 'rune', 'complex64', 'complex128'}
+STANDARD_TYPE_PACKAGES = {
+    'archive', 'bufio', 'bytes', 'context', 'crypto', 'database', 'encoding', 'errors', 'fmt',
+    'hash', 'html', 'io', 'log', 'math', 'mime', 'net', 'os', 'path', 'reflect', 'regexp',
+    'runtime', 'sort', 'strconv', 'strings', 'sync', 'syscall', 'text', 'time', 'unicode',
+    'unsafe', 'url', 'sql', 'http', 'json', 'filepath', 'fs', 'atomic', 'tls', 'subtle',
+    'rand', 'hex', 'base64', 'binary', 'template', 'csv', 'xml'
+}
+
+
+def _without_inline_interface_body(type_text):
+    """去掉Go inline interface的方法体，避免方法名/参数名伪装成业务类型。"""
+    text = type_text
+    while True:
+        match = re.search(r'\binterface\s*\{', text)
+        if not match:
+            return text
+        depth = 0
+        end = None
+        for index in range(match.end() - 1, len(text)):
+            if text[index] == '{':
+                depth += 1
+            elif text[index] == '}':
+                depth -= 1
+                if depth == 0:
+                    end = index + 1
+                    break
+        if end is None:
+            return text[:match.start()] + ' interface '
+        text = text[:match.start()] + ' interface ' + text[end:]
+
+
+def contract_type_names(type_text):
+    """提取应由合同登记的叶子类型，忽略包限定符和标准库限定类型。"""
+    text = _without_inline_interface_body(str(type_text or ''))
+
+    def replace_qualified(match):
+        package, leaf = match.group(1), match.group(2)
+        if package in STANDARD_TYPE_PACKAGES:
+            return ''
+        return leaf
+
+    text = re.sub(r'\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b', replace_qualified, text)
+    return re.findall(r'[A-Za-z_][A-Za-z0-9_]*', text)
 
 
 def fail(label, message):
@@ -106,6 +149,10 @@ def check_modules(modules, permissions, codes, shared=()):
     operations = {}
     planned = set()
     shared_slugs = {c['slug'] for c in shared}
+    shared_types = {}
+    for component in shared:
+        shared_types[component['slug']] = load_json(ROOT / component['root'] / 'contracts/types.json').get('$defs', {})
+    shared_type_names = set().union(*(set(defs) for defs in shared_types.values()))
     count = {'modules': len(modules), 'shared': len(shared), 'files': 0, 'functions': 0, 'operations': 0, 'types': 0}
     for module in list(modules) + list(shared):
         slug = module['slug']
@@ -166,9 +213,9 @@ def check_modules(modules, permissions, codes, shared=()):
                     for param in fn.get(group, []):
                         if not all(key in param for key in ('name', 'type', 'description', 'constraints')):
                             fail(fid, '输入输出字段不完整')
-                        type_names = re.findall(r'[A-Za-z_][A-Za-z0-9_]*', param.get('type', ''))
+                        type_names = contract_type_names(param.get('type', ''))
                         for name in type_names:
-                            if name not in types and name not in common and name not in BUILTINS and name not in ('context', 'io', 'http', 'time', 'map'):
+                            if name not in types and name not in common and name not in shared_type_names and name not in BUILTINS:
                                 fail(fid, '未登记类型 ' + name)
                 for error in fn.get('errors', []):
                     code = error.get('code') if isinstance(error, dict) else error
