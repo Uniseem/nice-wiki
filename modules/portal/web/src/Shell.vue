@@ -9,6 +9,8 @@ defineEmits<{ (e: 'sign-out'): void }>();
 // 已有界面的模块；portal 只负责导航与挂载，页面由各域自己的 module.js 提供。
 const modules = [
   { id: 'content', label: '文档' },
+  { id: 'site-config', label: '站点设置' },
+  { id: 'identity', label: '账号与权限' },
   { id: 'jobs', label: '任务队列' },
 ];
 

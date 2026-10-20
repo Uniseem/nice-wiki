@@ -49,7 +49,7 @@ def setup():
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
 
 
-WEB_MODULES = ["content", "jobs"]
+WEB_MODULES = ["content", "site-config", "identity", "jobs"]
 
 
 def build(slugs):
@@ -63,18 +63,24 @@ def port_open(port):
         return sock.connect_ex(("127.0.0.1", port)) == 0
 
 
+def quiet(cmd, cwd):
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    if result.returncode:
+        sys.exit(f"命令失败 {' '.join(cmd)} @ {cwd}\n{result.stdout}{result.stderr}")
+
+
 def build_web():
     """后台前端：壳放在 web/ 根，各域界面放在 web/modules/<域>/。"""
     web = path("web")
     subprocess.run(["rm", "-rf", web])
     os.makedirs(os.path.join(web, "modules"))
     shell = os.path.join(ROOT, "modules", "portal", "web")
-    subprocess.check_call(["pnpm", "install", "--frozen-lockfile"], cwd=shell)
-    subprocess.check_call(["pnpm", "exec", "vite", "build", "--outDir", web, "--emptyOutDir"], cwd=shell)
+    quiet(["pnpm", "install", "--frozen-lockfile"], shell)
+    quiet(["pnpm", "exec", "vite", "build", "--outDir", web, "--emptyOutDir"], shell)
     for m in WEB_MODULES:
         d = os.path.join(ROOT, "modules", m, "web")
-        subprocess.check_call(["pnpm", "install", "--frozen-lockfile"], cwd=d)
-        subprocess.check_call(["pnpm", "exec", "vite", "build", "--outDir", os.path.join(web, "modules", m), "--emptyOutDir"], cwd=d)
+        quiet(["pnpm", "install", "--frozen-lockfile"], d)
+        quiet(["pnpm", "exec", "vite", "build", "--outDir", os.path.join(web, "modules", m), "--emptyOutDir"], d)
 
 
 def pidfile(s):

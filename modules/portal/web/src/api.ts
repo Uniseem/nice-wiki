@@ -9,11 +9,19 @@ export class ApiError extends Error {
   }
 }
 
-export function setCSRF(token: string | null): void {
+export function setCSRF(token: string | null, sessionId?: string | null): void {
   try {
     if (token) sessionStorage.setItem(csrfKey, token);
     else sessionStorage.removeItem(csrfKey);
+    if (sessionId !== undefined) {
+      if (sessionId) sessionStorage.setItem('nw_session_id', sessionId);
+      else sessionStorage.removeItem('nw_session_id');
+    }
   } catch { /* 隐私模式下忽略 */ }
+}
+
+export function currentSessionId(): string {
+  try { return sessionStorage.getItem('nw_session_id') ?? ''; } catch { return ''; }
 }
 
 function csrf(): string {
@@ -38,7 +46,7 @@ async function refresh(): Promise<boolean> {
       });
       if (!response.ok) return false;
       const body = await response.json();
-      setCSRF(body?.session?.csrfToken ?? body?.tokens?.csrfToken ?? null);
+      setCSRF(body?.session?.csrfToken ?? body?.tokens?.csrfToken ?? null, body?.session?.sessionId);
       return true;
     } catch { return false; } finally { setTimeout(() => { refreshing = null; }, 0); }
   })();

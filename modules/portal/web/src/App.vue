@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { ApiError, request, setCSRF } from './api';
+import { ApiError, currentSessionId, request, setCSRF } from './api';
 import AuthPage from './AuthPage.vue';
 import Shell from './Shell.vue';
 
@@ -28,8 +28,11 @@ function signedIn(next: any) {
 }
 
 async function signedOut() {
-  try { await request('/v1/sessions/current', { method: 'DELETE' }); } catch { /* 退出以清本地状态为准 */ }
-  setCSRF(null);
+  const id = currentSessionId();
+  if (id) {
+    try { await request(`/v1/sessions/${id}`, { method: 'DELETE', body: {} }); } catch { /* 退出以清本地状态为准 */ }
+  }
+  setCSRF(null, null);
   account.value = null;
   phase.value = 'auth';
   history.replaceState(null, '', '/admin/login');

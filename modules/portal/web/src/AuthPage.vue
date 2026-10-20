@@ -33,7 +33,7 @@ async function run(action: () => Promise<void>) {
 }
 
 async function afterLogin(result: any) {
-  setCSRF(result.session.csrfToken);
+  setCSRF(result.session.csrfToken, result.session.sessionId);
   account = result.account ?? (await request<{ account: any }>('/v1/self')).account;
   const init = await request<{ initialized: boolean }>('/v1/initialization');
   if (init.initialized) emit('signed-in', account);
