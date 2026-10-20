@@ -5646,7 +5646,7 @@
             "platform.ReadRestoreSwapState",
             "identity.InvalidateRestoredSessions",
             "platform.SignActivationReceipt",
-            "site-config.RegisterActivation"
+            "site-config:registerActivation"
           ],
           "resources": [],
           "contract": "reference"

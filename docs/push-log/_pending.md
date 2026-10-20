@@ -51,3 +51,9 @@ traffic-guard 已按本域静态审查结果接入 clean HEAD `85fc4639b34d0d321
 job726原始`generated.patch`已重新下载并应用到本地follow-up；仅排除两个已窄修源码路径，其他artifact均由CI原patch写入，包含gofmt/gen/docs/路由生成，无lock或私有路径。应用后JSON与`git diff --check`通过，`make privacy`通过；结构摘要检查失败203项，具体为新增合同类型未登记、重复函数/未来文件、函数可达性与handoff摘要过期，未以本次9b候选名义修复或重推。
 
 候选 `284737bee5c95632ddcce4ce8fb034d72e7f7f96` 的pipeline180结果：生成/格式、content-media、AI、前端成功；foundation job 732 失败，`modules/identity/internal/app/wire.go:199` 调用 `gen.SiteConfigClient.RegisterActivation`，但当前生成client未提供该方法。job731的`generated.patch`大小792字节，SHA-256 `f15530fd247b4c195af91d1e40691a36453e0f6e8a5d3e8949647b2d35de3211`，仅为identity barrier格式生成差异。未修改或推送第三个SHA。
+
+foundation缺边的合同根因已定位并本地窄修：identity `restoreIdentityAfterSwap` 的唯一跨服务依赖已由 `site-config.RegisterActivation` 改为版本化 operationId `site-config:registerActivation`；文档已由 `make docs` 重生，生成 client 留待后续CI `make gen/docs`。当前仍不推送新SHA。
+
+## 下一项：B1资源引用事件合同冻结（仅设计）
+
+`content.ResourceReferencesChangedPayload` 与 `media.ApplyReferenceEventInput` 尚无唯一确定映射：需先冻结 `referenceId` 来源、`draft/published` 到 `current` 的映射、`confirmed`、空集合、撤回及 `sourceRevisionId/sourceVersion` 语义，并明确 `AssetReference` 的 `kind`、期限和摘要绑定。完成该合同前不接消费订阅、不让content或media自行猜字段；本项不改当前CI候选。

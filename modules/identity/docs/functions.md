@@ -5175,7 +5175,7 @@ func restoreIdentityAfterSwap(ctx context.Context, dataRoot string, runtime plat
 - 授权：启动可信装配；不接受HTTP输入
 - 并发：启动恢复互斥；依赖本域事务与持久journal串行
 - 幂等：按restoreId+state派生稳定activation operationId；会话失效与site-config登记均可重试
-- 依赖：`platform.ReadRestoreSwapState`、`identity.InvalidateRestoredSessions`、`platform.SignActivationReceipt`、`site-config.RegisterActivation`
+- 依赖：`platform.ReadRestoreSwapState`、`identity.InvalidateRestoredSessions`、`platform.SignActivationReceipt`、`site-config:registerActivation`
 
 ## identity.Serve
 
