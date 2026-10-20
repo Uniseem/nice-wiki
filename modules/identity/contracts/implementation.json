@@ -3986,7 +3986,7 @@
           ],
           "purpose": "用服务器文件恢复唯一超管口令",
           "steps": [
-            "重新核对固定文件hash，定位唯一superadmin",
+            "重新核对固定文件hash，定位唯一superadmin，并核对superadmin.siteId等于受信后台scope.siteId",
             "HashPassword，事务更新凭据/mustChangePassword=true并撤销全部session",
             "提交回执后原子删除仅该固定file；删除失败下次读同hash回执只补删，不重复重置"
           ],
@@ -4128,7 +4128,12 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
-        }
+        },
+        {"id":"identity.NewBackgroundTasks","name":"NewBackgroundTasks","signature":"func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error)","inputs":[{"name":"store","type":"*Store","description":"identity active业务库句柄","constraints":"非nil且数据库已打开"},{"name":"siteConfig","type":"platform.SiteConfigClient","description":"site-config运行权威客户端","constraints":"非nil可信客户端"},{"name":"snapshot","type":"*lifecycle.SnapshotManager","description":"本域唯一SnapshotManager","constraints":"非nil真实scope"},{"name":"publisher","type":"platform.EventPublisher","description":"jobs事件发布端口","constraints":"非nil版本化客户端"},{"name":"dataEpoch","type":"platform.Identifier","description":"启动时绑定的数据代次","constraints":"有效非空标识"}],"outputs":[{"name":"tasks","type":"[]platform.BackgroundTask","description":"本域已登记后台入口","constraints":"仅包含两个真实任务"},{"name":"error","type":"error","description":"依赖缺失的安全错误","constraints":["失败时不返回业务结果"]}],"purpose":"装配本域后台重置观察与outbox转发入口","steps":["缺依赖不登记后台任务"],"errors":[],"sideEffects":[],"authorization":"仅完整启动装配","concurrency":"受信后台串行或纯函数","idempotency":"按输入/既有持久回执","dependencies":["identity.runSuperadminResetObserver","identity.runOutboxRelay"],"resources":[],"contract":"reference"},
+        {"id":"identity.runSuperadminResetObserver","name":"runSuperadminResetObserver","signature":"func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, dataEpoch platform.Identifier) error","inputs":[{"name":"ctx","type":"context.Context","description":"后台任务上下文","constraints":"取消即停止"},{"name":"store","type":"*Store","description":"identity active业务库","constraints":"非nil已打开"},{"name":"siteConfig","type":"platform.SiteConfigClient","description":"运行权威客户端","constraints":"非nil"},{"name":"snapshot","type":"*lifecycle.SnapshotManager","description":"本域保护scope","constraints":"非nil"},{"name":"dataEpoch","type":"platform.Identifier","description":"任务绑定代次","constraints":"有效且不从请求自报"}],"outputs":[{"name":"error","type":"error","description":"后台循环终止错误","constraints":["失败时不返回业务结果"]}],"purpose":"观察固定超管重置文件","steps":["通过platform.RunRecoveryLoop每5秒执行观察与应用"],"errors":[],"sideEffects":[],"authorization":"仅完整启动装配","concurrency":"受信后台串行或纯函数","idempotency":"按输入/既有持久回执","dependencies":["identity.waitForIdentitySite","platform.RunRecoveryLoop","platform.SnapshotManager.AdmitBusiness","platform.SnapshotManager.WriteWindow","identity.ObserveSuperadminResetFile"],"resources":[],"contract":"reference"},
+        {"id":"identity.runOutboxRelay","name":"runOutboxRelay","signature":"func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher, dataEpoch platform.Identifier) error","inputs":[{"name":"ctx","type":"context.Context","description":"后台任务上下文","constraints":"取消即停止"},{"name":"store","type":"*Store","description":"identity active业务库","constraints":"非nil已打开"},{"name":"siteConfig","type":"platform.SiteConfigClient","description":"运行权威客户端","constraints":"非nil"},{"name":"snapshot","type":"*lifecycle.SnapshotManager","description":"本域保护scope","constraints":"非nil"},{"name":"publisher","type":"platform.EventPublisher","description":"jobs发布端口","constraints":"非nil"},{"name":"dataEpoch","type":"platform.Identifier","description":"任务绑定代次","constraints":"有效且不从请求自报"}],"outputs":[{"name":"error","type":"error","description":"后台循环终止错误","constraints":["失败时不返回业务结果"]}],"purpose":"持续转发已提交outbox","steps":["通过platform.RunRecoveryLoop每秒调用单批RelayOutbox"],"errors":[],"sideEffects":[],"authorization":"仅完整启动装配","concurrency":"受信后台串行或纯函数","idempotency":"按输入/既有持久回执","dependencies":["identity.waitForIdentitySite","platform.RunRecoveryLoop","platform.SnapshotManager.AdmitEventBatch","platform.SnapshotManager.BindOutboxEventScope","platform.SnapshotManager.WriteWindow","identity.RelayOutbox"],"resources":[],"contract":"reference"},
+        {"id":"identity.waitForIdentitySite","name":"waitForIdentitySite","signature":"func waitForIdentitySite(ctx context.Context, store *Store, interval time.Duration) (platform.Identifier, error)","inputs":[{"name":"ctx","type":"context.Context","description":"权威轮询上下文","constraints":"取消即返回"},{"name":"store","type":"*Store","description":"identity active业务库","constraints":"非nil已打开"},{"name":"interval","type":"time.Duration","description":"轮询间隔","constraints":"由固定后台常量提供"}],"outputs":[{"name":"siteID","type":"platform.Identifier","description":"唯一超管所属站点","constraints":"仅唯一active超管时成功"},{"name":"error","type":"error","description":"权威读取错误","constraints":["失败时不返回业务结果"]}],"purpose":"读取后台固定站点scope","steps":["读取唯一超管；无账号等待"],"errors":[],"sideEffects":[],"authorization":"仅完整启动装配","concurrency":"受信后台串行或纯函数","idempotency":"按输入/既有持久回执","dependencies":["identity.readUniqueSuperadmin"],"resources":[],"contract":"reference"},
+        {"id":"identity.identityBackgroundOperation","name":"identityBackgroundOperation","signature":"func identityBackgroundOperation(siteID, dataEpoch platform.Identifier, deadline time.Time) platform.OperationContext","inputs":[{"name":"siteID","type":"platform.Identifier","description":"后台固定站点","constraints":"由本域权威读取取得"},{"name":"dataEpoch","type":"platform.Identifier","description":"后台绑定代次","constraints":"启动装配提供有效值"},{"name":"deadline","type":"time.Time","description":"本轮后台操作截止","constraints":"UTC有效时间"}],"outputs":[{"name":"op","type":"platform.OperationContext","description":"身份后台服务操作上下文","constraints":"CallerService为identity且Actor为service"}],"purpose":"构造后台服务操作scope","steps":["生成并绑定operationId、siteId、dataEpoch、deadline"],"errors":[],"sideEffects":[],"authorization":"仅完整启动装配","concurrency":"受信后台串行或纯函数","idempotency":"按输入/既有持久回执","dependencies":[],"resources":[],"contract":"reference"}
       ]
     },
     {
@@ -4198,7 +4203,7 @@
     {
       "path": "modules/identity/internal/outbox_repository.go",
       "kind": "handwritten",
-      "purpose": "与身份提交原子登记事件",
+      "purpose": "与身份提交原子登记事件并装配可靠转发循环",
       "functions": [
         {
           "id": "identity.PublishIdentityEvent",
@@ -4323,7 +4328,8 @@
               "type": "RelayOutboxResult",
               "description": "本批转发计数",
               "constraints": [
-                "无error时有效"
+                "无error时有效",
+                "relayed/pending/quarantined只描述本批"
               ]
             },
             {
@@ -4338,15 +4344,25 @@
           ],
           "purpose": "把已提交的outbox事件可靠转交jobs；进程启动先补发，之后后台循环",
           "steps": [
-            "进程启动完成journal恢复后立即运行一次，之后每次本域提交通知或1秒轮询运行；按outbox序号以30秒行租约领取≤batchLimit条未转发行，只读已提交事务",
+            "公共持续循环启动后立即调用一次，之后每秒调用；每次按outbox序号以30秒行租约领取≤batchLimit条未转发行，只读已提交事务",
             "逐条调用jobs:publishEvent，携带固定eventId、payloadHash、dataEpoch与subject revision；jobs持久确认后在本地事务把该行标relayed并记录jobs eventSeq",
             "网络失败或超时保留该行，按1/2/4秒指数退避（上限60秒）在下一轮重试；同eventId异hash或信封校验失败标quarantined并报警，不再重试也不删除",
             "屏障draining期间继续转发已提交行直至为空或屏障超时；快照包含未转发行；恢复换入新数据后丢弃旧dataEpoch未转发行，以恢复后的权威状态为准"
           ],
           "errors": [
             {
+              "code": "VALIDATION",
+              "when": "batchLimit不在1..100",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "不是identity服务后台调用",
+              "retryable": false
+            },
+            {
               "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "jobs不可用或超时；行保留待下一轮",
+              "when": "jobs、site-config或本域运行依赖不可用；行保留待下一轮",
               "retryable": true
             },
             {
@@ -4372,10 +4388,72 @@
           "idempotency": "eventId在业务事务内固定；jobs按eventId+payloadHash去重，重复发送返回原确认",
           "dependencies": [
             "jobs:publishEvent",
-            "platform.RunRelay"
+            "platform.RunRelayBatch",
+            "site-config:readRuntimeState",
+            "platform.SnapshotManager.AdmitEventBatch",
+            "platform.SnapshotManager.BindOutboxEventScope",
+            "platform.SnapshotManager.WriteWindow",
+            "identity.checkIdentityRepositoryContext"
           ],
           "resources": [],
           "contract": "binding"
+        },
+        {
+          "id": "identity.WithRelayRuntime",
+          "name": "WithRelayRuntime",
+          "signature": "func WithRelayRuntime(ctx context.Context, store *Store, publisher platform.EventPublisher, snapshot *lifecycle.SnapshotManager, siteConfig platform.SiteConfigClient) context.Context",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "后台转发可信上下文",
+              "constraints": "仅进程内上下文；不接受网络输入"
+            },
+            {
+              "name": "store",
+              "type": "*Store",
+              "description": "identity active业务库句柄",
+              "constraints": "必须为非nil且持有数据库"
+            },
+            {
+              "name": "publisher",
+              "type": "platform.EventPublisher",
+              "description": "jobs事件发布端口",
+              "constraints": "必须为非nil版本化客户端"
+            },
+            {
+              "name": "snapshot",
+              "type": "*lifecycle.SnapshotManager",
+              "description": "本域唯一SnapshotManager",
+              "constraints": "必须为非nil真实scope"
+            },
+            {
+              "name": "siteConfig",
+              "type": "platform.SiteConfigClient",
+              "description": "site-config运行权威客户端",
+              "constraints": "必须为非nil可信客户端"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "context.Context",
+              "description": "携带真实转发依赖的上下文",
+              "constraints": "仅保存私有句柄；缺任一依赖时RelayOutbox失败关闭"
+            }
+          ],
+          "purpose": "向后台RelayOutbox注入真实存储、jobs、运行权威和Manager scope",
+          "steps": [
+            "以私有context key保存进程内句柄；不从请求或配置正文接受替代依赖"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅完整启动后台装配",
+          "concurrency": "只读句柄注入；实际IO由转发循环和Manager控制",
+          "idempotency": "确定性上下文转换",
+          "dependencies": [],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
@@ -4465,6 +4543,45 @@
             "identity.identityStoreFromContext",
             "identity.checkIdentityRepositoryContext"
           ],
+          "resources": [],
+          "contract": "reference"
+        },
+        {
+          "id": "identity.WithIdentityRestoreID",
+          "name": "WithIdentityRestoreID",
+          "signature": "func WithIdentityRestoreID(ctx context.Context, restoreID platform.Identifier) context.Context",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "启动恢复可信上下文",
+              "constraints": "仅进程内注入，不接受网络输入"
+            },
+            {
+              "name": "restoreID",
+              "type": "platform.Identifier",
+              "description": "公共恢复编排已核验的restoreId",
+              "constraints": "必须为有效非空标识；不从dataEpoch推导"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "context.Context",
+              "description": "携带恢复标识的可信上下文",
+              "constraints": "只保存私有context key；不序列化句柄"
+            }
+          ],
+          "purpose": "把公共恢复编排已核验的restoreId绑定到本域启动调用",
+          "steps": [
+            "以私有context key保存restoreId，禁止从请求字段或数据代次猜测"
+          ],
+          "errors": [],
+          "sideEffects": [],
+          "authorization": "仅启动恢复装配",
+          "concurrency": "纯上下文转换",
+          "idempotency": "确定性，不改变业务状态",
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         }
@@ -4581,7 +4698,8 @@
           "idempotency": "operationId/backupId/restoreId+摘要去重；重复返回已记录阶段",
           "dependencies": [
             "site-config:readRuntimeState",
-            "platform.SnapshotManager.EnterBarrier"
+            "platform.SnapshotManager.EnterBarrier",
+            "platform.SnapshotManager.ReadBarrierStatus"
           ],
           "resources": [],
           "contract": "binding"
@@ -4678,7 +4796,12 @@
           ],
           "resources": [],
           "contract": "binding"
-        }
+        },
+        {"id":"identity.requireProtectionService","name":"requireProtectionService","signature":"func requireProtectionService(op OperationContext) error","inputs":[{"name":"op","type":"OperationContext","description":"平台入口建立的可信操作上下文，含CallerService与Actor","constraints":"仅接受已完成服务身份、dataEpoch和委托校验的上下文"}],"outputs":[{"name":"error","type":"error","description":"授权失败或依赖缺失的安全错误","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"核验data-protection调用及service或超管短委托授权","steps":["确认CallerService为data-protection","接受data-protection服务主体或同调用链的有效superadmin委托，其他主体失败关闭"],"errors":[],"sideEffects":[],"authorization":"data-protection服务主体或其携带的已验证superadmin委托","concurrency":"只读可信操作上下文","idempotency":"纯校验","dependencies":["identity.validSuperadminDelegation"],"resources":[],"contract":"reference"},
+        {"id":"identity.barrierMode","name":"barrierMode","signature":"func barrierMode(value interface{}) (string, error)","inputs":[{"name":"value","type":"interface{}","description":"OpenAPI屏障模式原始值","constraints":"只接受字符串backup或restore；不信任未校验网络值"}],"outputs":[{"name":"mode","type":"string","description":"规范化屏障模式","constraints":"仅为backup或restore"},{"name":"error","type":"error","description":"安全失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"解析备份或恢复屏障模式","steps":["仅接受backup或restore枚举，未知值返回VALIDATION"],"errors":[],"sideEffects":[],"authorization":"本域屏障用例","concurrency":"纯函数","idempotency":"确定性","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.snapshotSealProof","name":"snapshotSealProof","signature":"func snapshotSealProof(input gen.SnapshotSealProof) (lifecycle.SnapshotSealProof, error)","inputs":[{"name":"input","type":"gen.SnapshotSealProof","description":"生成代码校验后的封口证明DTO","constraints":"字段已通过入口schema校验；仅做本域到公共类型转换"}],"outputs":[{"name":"proof","type":"lifecycle.SnapshotSealProof","description":"公共SnapshotManager使用的封口证明","constraints":"逐字段保留broker、owner、work和非jobs回执；输入不完整时无成功结果"},{"name":"error","type":"error","description":"安全失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"把生成DTO转换为公共封口证明","steps":["逐项转换broker、观察、非jobs回执与水位","缺屏障或dataEpoch失败关闭"],"errors":[],"sideEffects":[],"authorization":"本域屏障用例","concurrency":"纯函数","idempotency":"确定性","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.barrierStatus","name":"barrierStatus","signature":"func barrierStatus(status lifecycle.SnapshotBarrierStatus, observation *lifecycle.SnapshotBarrierObservation) BarrierStatus","inputs":[{"name":"status","type":"lifecycle.SnapshotBarrierStatus","description":"公共SnapshotManager返回的屏障状态","constraints":"仅使用公共Manager已证明的状态、代次、水位和seal hash"},{"name":"observation","type":"*lifecycle.SnapshotBarrierObservation","description":"可选的本域观察事实","constraints":"nil表示调用方没有观察事实；不补造观察值"}],"outputs":[{"name":"result","type":"BarrierStatus","description":"本域屏障状态DTO","constraints":"只映射公共状态；不增加未经Manager证明的字段"}],"purpose":"把公共屏障状态映射为HTTP结果","steps":["映射状态、代次、水位、seal hash和observe事实"],"errors":[],"sideEffects":[],"authorization":"本域屏障用例","concurrency":"纯函数","idempotency":"确定性","dependencies":["identity.barrierStatusValue"],"resources":[],"contract":"reference"},
+        {"id":"identity.barrierStatusValue","name":"barrierStatusValue","signature":"func barrierStatusValue(status lifecycle.SnapshotBarrierStatus, observation *lifecycle.SnapshotBarrierObservation) gen.BarrierStatus","inputs":[{"name":"status","type":"lifecycle.SnapshotBarrierStatus","description":"公共SnapshotManager返回的屏障状态","constraints":"只读公共Manager结果"},{"name":"observation","type":"*lifecycle.SnapshotBarrierObservation","description":"可选的本域观察事实","constraints":"nil保持DTO观察字段为空；不生成默认事实"}],"outputs":[{"name":"result","type":"gen.BarrierStatus","description":"生成目录定义的屏障状态DTO","constraints":"逐字段映射owner、state、dataEpoch、watermark、seal hash和observation"}],"purpose":"生成安全屏障DTO","steps":["不添加未由公共Manager证明的字段"],"errors":[],"sideEffects":[],"authorization":"本域屏障用例","concurrency":"纯函数","idempotency":"确定性","dependencies":[],"resources":[],"contract":"reference"}
       ]
     },
     {
@@ -4990,7 +5113,32 @@
           ],
           "resources": [],
           "contract": "binding"
-        }
+        },
+        {"id":"identity.WithSnapshotManager","name":"WithSnapshotManager","signature":"func WithSnapshotManager(ctx context.Context, manager *lifecycle.SnapshotManager) context.Context","inputs":[{"name":"ctx","type":"context.Context","description":"本域可信上下文","constraints":"仅进程内上下文，不接受网络输入"},{"name":"manager","type":"*lifecycle.SnapshotManager","description":"启动装配的公共快照管理器","constraints":"必须为本域唯一共享的非nil实例"}],"outputs":[{"name":"result","type":"context.Context","description":"携带SnapshotManager句柄的上下文","constraints":"只保存私有context key；不序列化或改变业务状态"}],"purpose":"向本域可信上下文注入同一快照管理器","steps":["仅保存进程内manager句柄，不接受网络输入"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.WithSnapshotRuntime","name":"WithSnapshotRuntime","signature":"func WithSnapshotRuntime(ctx context.Context, runtime platform.SiteConfigClient) context.Context","inputs":[{"name":"ctx","type":"context.Context","description":"本域可信上下文","constraints":"仅进程内上下文，不接受网络输入"},{"name":"runtime","type":"platform.SiteConfigClient","description":"site-config运行权威客户端","constraints":"由启动装配提供非nil客户端；不接受请求方替代"}],"outputs":[{"name":"result","type":"context.Context","description":"携带运行权威客户端的上下文","constraints":"只保存私有context key；不复制运行状态"}],"purpose":"注入site-config运行权威客户端","steps":["仅保存进程内客户端句柄"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.WithRestoreArchiveClient","name":"WithRestoreArchiveClient","signature":"func WithRestoreArchiveClient(ctx context.Context, client RestoreArchiveClient) context.Context","inputs":[{"name":"ctx","type":"context.Context","description":"本域可信上下文","constraints":"仅进程内上下文，不接受网络输入"},{"name":"client","type":"RestoreArchiveClient","description":"data-protection受控归档读取端口","constraints":"由启动装配提供版本化非nil客户端；不接受路径或URL"}],"outputs":[{"name":"result","type":"context.Context","description":"携带受控归档端口的上下文","constraints":"只保存私有context key；不暴露客户端句柄"}],"purpose":"注入data-protection归档读取端口","steps":["仅保存版本化受控客户端句柄"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.snapshotManagerFromContext","name":"snapshotManagerFromContext","signature":"func snapshotManagerFromContext(ctx context.Context) (*lifecycle.SnapshotManager, error)","inputs":[{"name":"ctx","type":"context.Context","description":"本域可信上下文","constraints":"必须由启动装配注入SnapshotManager"}],"outputs":[{"name":"manager","type":"*lifecycle.SnapshotManager","description":"可信公共快照管理器","constraints":"成功时非nil；缺失时不返回空管理器"},{"name":"error","type":"error","description":"管理器未注入时的DEPENDENCY_UNAVAILABLE","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"取得可信快照管理器","steps":["缺失时DEPENDENCY_UNAVAILABLE，禁止伪造manager"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.snapshotRuntimeFromContext","name":"snapshotRuntimeFromContext","signature":"func snapshotRuntimeFromContext(ctx context.Context) (platform.SiteConfigClient, error)","inputs":[{"name":"ctx","type":"context.Context","description":"本域可信上下文","constraints":"必须由启动装配注入site-config客户端"}],"outputs":[{"name":"runtime","type":"platform.SiteConfigClient","description":"可信运行权威客户端","constraints":"成功时非nil；缺失时失败关闭"},{"name":"error","type":"error","description":"运行权威未注入时的DEPENDENCY_UNAVAILABLE","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"取得可信运行权威客户端","steps":["缺失时失败关闭"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.restoreArchiveClientFromContext","name":"restoreArchiveClientFromContext","signature":"func restoreArchiveClientFromContext(ctx context.Context) (RestoreArchiveClient, error)","inputs":[{"name":"ctx","type":"context.Context","description":"本域可信上下文","constraints":"必须由启动装配注入归档读取端口"}],"outputs":[{"name":"client","type":"RestoreArchiveClient","description":"data-protection受控归档读取端口","constraints":"成功时非nil；缺失时失败关闭"},{"name":"error","type":"error","description":"归档端口未注入时的DEPENDENCY_UNAVAILABLE","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"取得data-protection受控归档读取端口","steps":["缺失时失败关闭"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.snapshotRefToLifecycle","name":"snapshotRefToLifecycle","signature":"func snapshotRefToLifecycle(input gen.SnapshotRef) lifecycle.SnapshotRef","inputs":[{"name":"input","type":"gen.SnapshotRef","description":"生成代码定义的快照引用DTO","constraints":"字段已由入口schema约束；只允许映射已声明owner、版本、hash、长度和数据代次"}],"outputs":[{"name":"result","type":"lifecycle.SnapshotRef","description":"公共快照引用","constraints":"逐字段映射，不生成ID、版本、hash或长度"}],"purpose":"把HTTP快照引用映射为公共类型","steps":["逐字段保留owner、版本、hash、长度、代次"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.snapshotRefFromLifecycle","name":"snapshotRefFromLifecycle","signature":"func snapshotRefFromLifecycle(input lifecycle.SnapshotRef) gen.SnapshotRef","inputs":[{"name":"input","type":"lifecycle.SnapshotRef","description":"公共快照引用","constraints":"只接受公共Manager返回的已核引用"}],"outputs":[{"name":"result","type":"gen.SnapshotRef","description":"生成代码定义的快照引用DTO","constraints":"逐字段映射公共ObjectRef；不生成新值"}],"purpose":"把公共快照引用映射为HTTP类型","steps":["逐字段映射公共ObjectRef，不生成新值"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.NewSnapshotManager","name":"NewSnapshotManager","signature":"func NewSnapshotManager(store *Store, dataRoot string, openedEpoch platform.Identifier, runtime platform.SiteConfigClient) (*lifecycle.SnapshotManager, error)","inputs":[{"name":"store","type":"*Store","description":"identity active业务库与control句柄","constraints":"必须为非nil且已打开业务数据库"},{"name":"dataRoot","type":"string","description":"本域私有数据根目录","constraints":"启动装配提供绝对私有路径；不来自HTTP输入"},{"name":"openedEpoch","type":"platform.Identifier","description":"当前已打开的数据代次","constraints":"必须为有效非空数据代次"},{"name":"runtime","type":"platform.SiteConfigClient","description":"site-config运行权威客户端","constraints":"必须为非nil可信客户端"}],"outputs":[{"name":"manager","type":"*lifecycle.SnapshotManager","description":"装配好的本域公共快照管理器","constraints":"成功时非nil并绑定全部本域回调；全域证明缺失时运行封口失败关闭"},{"name":"error","type":"error","description":"SnapshotManager配置不完整或公共构造失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"装配identity真实SnapshotConfig","steps":["装配Runtime、drain、watermark、ObserveWork、SealWork、ResumeWork、Capture、Stage迁移与校验回调","VerifyGlobalSeal在协调协议未提供时失败关闭"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["platform.NewSnapshotManager","platform.ReadRuntime","identity.beginIdentityDrain","identity.drainIdentityWork","identity.identityWatermark","identity.observeIdentityWork","identity.sealIdentityWork","identity.resumeIdentityWork","identity.captureIdentitySnapshot","identity.migrateIdentityStage","identity.validateIdentityStaged","identity.identityStageBudget","identity.validateIdentitySnapshotManifest"],"resources":[],"contract":"reference"},
+        {"id":"identity.beginIdentityDrain","name":"beginIdentityDrain","signature":"func beginIdentityDrain(ctx context.Context, store *Store) error","inputs":[{"name":"ctx","type":"context.Context","description":"公共SnapshotManager排空上下文","constraints":"沿用外层截止和取消信号"},{"name":"store","type":"*Store","description":"identity active业务库句柄","constraints":"必须为已打开的非nil Store"}],"outputs":[{"name":"error","type":"error","description":"outbox schema或业务库观察不可用时的安全错误","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"验证identity库与outbox在进入drain时可读","steps":["确保outbox schema存在","Ping业务库并读取真实outbox观察"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["platform.EnsureSchema","platform.Store.Observe"],"resources":[],"contract":"reference"},
+        {"id":"identity.drainIdentityWork","name":"drainIdentityWork","signature":"func drainIdentityWork(ctx context.Context, store *Store) error","inputs":[{"name":"ctx","type":"context.Context","description":"公共SnapshotManager排空上下文","constraints":"沿用外层截止和取消信号"},{"name":"store","type":"*Store","description":"identity active业务库句柄","constraints":"必须为已打开的非nil Store"}],"outputs":[{"name":"error","type":"error","description":"未决本域工作未在截止前排空或观察失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"等待identity真实未决work排空","steps":["反复读取同库work事实与outbox活动","截止前未清零返回DEADLINE_EXCEEDED"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["identity.observeIdentityWork"],"resources":[],"contract":"reference"},
+        {"id":"identity.observeIdentityWork","name":"observeIdentityWork","signature":"func observeIdentityWork(ctx context.Context, store *Store) (lifecycle.SnapshotWorkState, error)","inputs":[{"name":"ctx","type":"context.Context","description":"公共SnapshotManager观察上下文","constraints":"沿用外层截止和取消信号"},{"name":"store","type":"*Store","description":"identity active业务库句柄","constraints":"必须为已打开的非nil Store；观察与outbox使用同一SQLite"}],"outputs":[{"name":"work","type":"lifecycle.SnapshotWorkState","description":"identity本域持久工作观察值","constraints":"包含真实outbox revision、workRevision、pendingOutbox和pendingWork；任一水位未知则无成功结果"},{"name":"error","type":"error","description":"同库事务、outbox或统一workRevision不可读","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"在同一SQLite事务读取outbox和identity持久work事实","steps":["调用platform.EnsureSchema和platform.Store.ObserveTx读取outbox事实","读取统一持久workRevision与未决决定","统一workRevision未冻结时失败关闭"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["platform.EnsureSchema","platform.Store.ObserveTx","identity.readIdentityWorkRevision","identity.readIdentityPendingWorkQuery"],"resources":[],"contract":"reference"},
+        {"id":"identity.readIdentityWorkRevision","name":"readIdentityWorkRevision","signature":"func readIdentityWorkRevision(ctx context.Context, store *Store, tx platform.Tx) (int64, error)","inputs":[{"name":"ctx","type":"context.Context","description":"同库事务查询上下文","constraints":"沿用外层事务截止和取消信号"},{"name":"store","type":"*Store","description":"identity active业务库句柄","constraints":"非nil且绑定同一SQLite"},{"name":"tx","type":"platform.Tx","description":"调用方持有的同库事务","constraints":"必须是ObserveWork/SealWork当前事务；不由本函数提交或回滚"}],"outputs":[{"name":"revision","type":"int64","description":"公共outbox control真实单调revision，作为identity workRevision","constraints":"来自同一事务platform.Store.ObserveTx；必须为正数"},{"name":"error","type":"error","description":"真实revision不可读的安全错误","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"复用同库outbox control的真实单调revision作为identity workRevision","steps":["在调用方事务中调用platform.Store.ObserveTx并返回真实Revision；不读取业务表MAX/COUNT"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"遵循调用方SQLite事务串行","idempotency":"只读同库事实","dependencies":["platform.Store.ObserveTx"],"resources":[],"contract":"reference"},
+        {"id":"identity.readIdentityPendingWorkQuery","name":"readIdentityPendingWorkQuery","signature":"func readIdentityPendingWorkQuery(ctx context.Context, query interface { QueryRowContext(context.Context, string, ...any) *sql.Row }, store *Store) (int64, error)","inputs":[{"name":"ctx","type":"context.Context","description":"同库待决事实查询上下文","constraints":"沿用外层事务截止和取消信号"},{"name":"query","type":"interface { QueryRowContext(context.Context, string, ...any) *sql.Row }","description":"提供QueryRowContext的identity业务库查询器","constraints":"必须读取同一active SQLite事务"},{"name":"store","type":"*Store","description":"identity control与journal句柄","constraints":"必须为已打开的非nil Store；control决定与业务库按既有恢复协议读取"}],"outputs":[{"name":"pending","type":"int64","description":"未决回执、bootstrap reserved决定和open journal条目数量","constraints":"非负；不把稳定保留或未知状态当作已排空"},{"name":"error","type":"error","description":"待决持久事实不可读","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"读取未决回执、bootstrap决定与journal open事实","steps":["从传入同库query读取未决回执","读取control bootstrap reserved与journal open"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.identityWatermark","name":"identityWatermark","signature":"func identityWatermark(ctx context.Context, store *Store) (int64, error)","inputs":[{"name":"ctx","type":"context.Context","description":"公共SnapshotManager水位查询上下文","constraints":"沿用外层截止和取消信号"},{"name":"store","type":"*Store","description":"identity active业务库句柄","constraints":"必须为已打开的非nil Store"}],"outputs":[{"name":"watermark","type":"int64","description":"identity安全截点revisionWatermark","constraints":"必须来自统一持久workRevision；缺口时失败关闭"},{"name":"error","type":"error","description":"水位事务或统一workRevision不可用","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"读取identity真实安全截点水位","steps":["开启只读事务读取统一持久workRevision","缺统一序号失败关闭"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["identity.readIdentityWorkRevision"],"resources":[],"contract":"reference"},
+        {"id":"identity.sealIdentityWork","name":"sealIdentityWork","signature":"func sealIdentityWork(ctx context.Context, store *Store, expected lifecycle.SnapshotWorkState, proofHash string) error","inputs":[{"name":"ctx","type":"context.Context","description":"公共SnapshotManager封口上下文","constraints":"沿用外层截止和取消信号"},{"name":"store","type":"*Store","description":"identity active业务库句柄","constraints":"必须为已打开的非nil Store"},{"name":"expected","type":"lifecycle.SnapshotWorkState","description":"同一次观察得到的本域工作水位","constraints":"必须原样绑定outboxRevision、workRevision和pending计数"},{"name":"proofHash","type":"string","description":"公共封口证明摘要","constraints":"必须是已由公共Manager计算的有效hash；不接受请求方自报替代"}],"outputs":[{"name":"error","type":"error","description":"同库水位改变、统一CAS未装配或outbox事务封口失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"同库CAS identity work水位与outbox封口","steps":["同一事务调用platform.Store.ObserveTx并核expected水位","统一workRevision未装配或CAS不符失败","调用platform.Store.SealTx并提交同一事务"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["platform.Store.ObserveTx","identity.readIdentityWorkRevision","identity.readIdentityPendingWorkQuery","platform.Store.SealTx"],"resources":[],"contract":"reference"},
+        {"id":"identity.resumeIdentityWork","name":"resumeIdentityWork","signature":"func resumeIdentityWork(ctx context.Context, store *Store, proofHash string) error","inputs":[{"name":"ctx","type":"context.Context","description":"公共SnapshotManager重开上下文","constraints":"沿用外层截止和取消信号"},{"name":"store","type":"*Store","description":"identity active业务库句柄","constraints":"必须为已打开的非nil Store"},{"name":"proofHash","type":"string","description":"原公共封口证明摘要","constraints":"必须精确绑定原seal hash；不接受新摘要"}],"outputs":[{"name":"error","type":"error","description":"outbox ResumeTx缺失、原封口绑定不符或事务提交失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"按原seal hash同库重开identity旧work","steps":["同一事务调用platform.Store.ResumeTx","提交失败关闭"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["platform.Store.ResumeTx"],"resources":[],"contract":"reference"},
+        {"id":"identity.captureIdentitySnapshot","name":"captureIdentitySnapshot","signature":"func captureIdentitySnapshot(ctx context.Context, store *Store, dataRoot string, cut lifecycle.SnapshotSafeCut, workspace string, input lifecycle.SnapshotExportInput) (lifecycle.DomainSnapshotManifest, error)","inputs":[{"name":"ctx","type":"context.Context","description":"公共SnapshotManager文件捕获上下文","constraints":"沿用外层截止和取消信号"},{"name":"store","type":"*Store","description":"identity active业务库句柄","constraints":"必须为已打开的非nil Store"},{"name":"dataRoot","type":"string","description":"本域私有数据根目录","constraints":"必须是启动装配绑定的绝对私有路径"},{"name":"cut","type":"lifecycle.SnapshotSafeCut","description":"公共Manager已证明的safe截点","constraints":"barrier、dataEpoch和watermark必须来自同一safe记录"},{"name":"workspace","type":"string","description":"公共Manager分配的隔离工作目录","constraints":"必须是受控私有stage路径"},{"name":"input","type":"lifecycle.SnapshotExportInput","description":"公共导出输入","constraints":"必须与cut的barrier和dataEpoch一致；不改变公共输入"}],"outputs":[{"name":"manifest","type":"lifecycle.DomainSnapshotManifest","description":"identity V1域快照清单","constraints":"owner为identity；文件、schema、源数据代次和revisionWatermark均来自真实捕获"},{"name":"error","type":"error","description":"水位变化、数据库捕获、迁移集或清单构造失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"捕获identity active数据库与完整V1 manifest","steps":["核safe epoch、barrier和统一work watermark","用platform.CaptureSnapshotFiles复制identity.db并fsync/hash","前后水位不一致失败"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["identity.identityWatermark","platform.EnsureSchema","platform.CaptureSnapshotFiles","identity.All"],"resources":[],"contract":"reference"},
+        {"id":"identity.validateIdentitySnapshotManifest","name":"validateIdentitySnapshotManifest","signature":"func validateIdentitySnapshotManifest(raw []byte) error","inputs":[{"name":"raw","type":"[]byte","description":"待校验的域快照manifest JSON","constraints":"必须是完整原始清单；不得含未知字段或多余JSON值"}],"outputs":[{"name":"error","type":"error","description":"清单schema、canonical编码或库存不合法","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"严格校验identity V1 manifest canonical JSON","steps":["DisallowUnknownFields并核canonical编码","只接受identity owner、V1和非nil基础库存"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["platform.CanonicalJSON"],"resources":[],"contract":"reference"},
+        {"id":"identity.identityStageBudget","name":"identityStageBudget","signature":"func identityStageBudget(ctx context.Context, manifest lifecycle.DomainSnapshotManifest) (int64, error)","inputs":[{"name":"ctx","type":"context.Context","description":"公共SnapshotManager预算上下文","constraints":"沿用外层截止和取消信号"},{"name":"manifest","type":"lifecycle.DomainSnapshotManifest","description":"已验证的identity域快照清单","constraints":"只接受identity V1和单identity.db；文件大小受公共归档预算约束"}],"outputs":[{"name":"budget","type":"int64","description":"identity staged迁移峰值预算","constraints":"正数且不超过公共最大归档预算"},{"name":"error","type":"error","description":"manifest版本、文件库存或预算超限","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"计算identity staged迁移峰值预算","steps":["只接受identity V1单identity.db","给出源库、迁移和journal峰值上界"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["platform.CanonicalJSON"],"resources":[],"contract":"reference"},
+        {"id":"identity.migrateIdentityStage","name":"migrateIdentityStage","signature":"func migrateIdentityStage(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error","inputs":[{"name":"ctx","type":"context.Context","description":"公共SnapshotManager恢复迁移上下文","constraints":"沿用外层截止和取消信号"},{"name":"manifest","type":"lifecycle.DomainSnapshotManifest","description":"已核验的identity域快照清单","constraints":"必须是identity V1清单"},{"name":"targetEpoch","type":"string","description":"公共恢复目标数据代次","constraints":"必须是有效代次且与manifest.SourceEpoch不同"},{"name":"root","type":"string","description":"公共Manager认证后的staged根目录","constraints":"必须与platform.SnapshotStageBinding返回的私有root完全一致"}],"outputs":[{"name":"error","type":"error","description":"安全失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"在认证隔离stage中迁移identity库并隔离恢复outbox","steps":["核platform.SnapshotStageBinding","调用identity.migrateIdentitySnapshotDB经platform.MigrateRestoredDatabase执行已登记迁移和旧资格隔离","验证数据库"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["platform.SnapshotStageBinding","identity.identityStageBudget","identity.openIdentitySnapshotDB","identity.migrateIdentitySnapshotDB","identity.validateIdentitySnapshotDatabase"],"resources":[],"contract":"reference"},
+        {"id":"identity.validateIdentityStaged","name":"validateIdentityStaged","signature":"func validateIdentityStaged(ctx context.Context, manifest lifecycle.DomainSnapshotManifest, targetEpoch, root string) error","inputs":[{"name":"ctx","type":"context.Context","description":"公共SnapshotManager恢复验证上下文","constraints":"沿用外层截止和取消信号"},{"name":"manifest","type":"lifecycle.DomainSnapshotManifest","description":"已核验的identity域快照清单","constraints":"必须是identity V1清单"},{"name":"targetEpoch","type":"string","description":"公共恢复目标数据代次","constraints":"必须是有效代次且与manifest.SourceEpoch不同"},{"name":"root","type":"string","description":"公共Manager认证后的staged根目录","constraints":"必须是同一restore stage私有路径"}],"outputs":[{"name":"error","type":"error","description":"安全失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"重启前验证identity staged库与outbox封口证据","steps":["核target epoch和预算","只读打开staged identity.db","核schema、认证代次和platform.Store.Observe返回的outbox seal hash"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["identity.identityStageBudget","identity.openIdentitySnapshotDB","identity.validateIdentitySnapshotDatabase","platform.Store.Observe"],"resources":[],"contract":"reference"},
+        {"id":"identity.openIdentitySnapshotDB","name":"openIdentitySnapshotDB","signature":"func openIdentitySnapshotDB(ctx context.Context, path string, readOnly bool) (*sql.DB, error)","inputs":[{"name":"ctx","type":"context.Context","description":"恢复数据库打开上下文","constraints":"沿用外层截止和取消信号"},{"name":"path","type":"string","description":"staged identity.db私有路径","constraints":"必须经platform.ValidatePrivatePath核验的regular-file路径"},{"name":"readOnly","type":"bool","description":"是否以只读模式打开","constraints":"只读验证为true；迁移写入为false"}],"outputs":[{"name":"db","type":"*sql.DB","description":"隔离identity数据库句柄","constraints":"成功时单连接；调用方负责关闭"},{"name":"error","type":"error","description":"路径、打开、Ping或journal模式失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"以私有路径边界打开隔离identity数据库","steps":["调用platform.ValidatePrivatePath","单连接Ping并设置foreign_keys/busy_timeout","写模式使用DELETE journal"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["platform.ValidatePrivatePath"],"resources":[],"contract":"reference"},
+        {"id":"identity.migrateIdentitySnapshotDB","name":"migrateIdentitySnapshotDB","signature":"func migrateIdentitySnapshotDB(ctx context.Context, db *sql.DB) error","inputs":[{"name":"ctx","type":"context.Context","description":"恢复迁移上下文","constraints":"沿用外层截止和取消信号"},{"name":"db","type":"*sql.DB","description":"隔离staged identity数据库","constraints":"必须为可写单连接数据库；不修改active数据库"}],"outputs":[{"name":"error","type":"error","description":"安全失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"经公共恢复数据库机制在同一事务应用已登记迁移并登记业务work表","steps":["调用platform.MigrateRestoredDatabase；回调只执行identity.All登记迁移","迁移完成后按identityWorkTables调用platform.RegisterWorkTable；不重标原队列epoch"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"公共恢复数据库事务串行","idempotency":"按schema_migrations与公共恢复回执","dependencies":["platform.MigrateRestoredDatabase","platform.RegisterWorkTable","identity.All"],"resources":[],"contract":"reference"},
+        {"id":"identity.validateIdentitySnapshotDatabase","name":"validateIdentitySnapshotDatabase","signature":"func validateIdentitySnapshotDatabase(ctx context.Context, db *sql.DB, sourceEpoch string, sourceSchema int) error","inputs":[{"name":"ctx","type":"context.Context","description":"恢复数据库验证上下文","constraints":"沿用外层截止和取消信号"},{"name":"db","type":"*sql.DB","description":"隔离staged identity数据库","constraints":"必须为只读或已完成迁移的数据库"},{"name":"sourceEpoch","type":"string","description":"manifest声明的源数据代次","constraints":"必须为有效数据代次；只绑定session_families.data_epoch"},{"name":"sourceSchema","type":"int","description":"manifest声明的源schema版本","constraints":"必须为已登记且不超过当前迁移集的正数"}],"outputs":[{"name":"error","type":"error","description":"安全失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"校验隔离identity数据库schema、超管和认证代次","steps":["核当前迁移完整","核唯一超管上限","核auth_state自身合法且session_families分别绑定同一auth_epoch与source data_epoch","不把auth_epoch当作data_epoch"],"errors":[],"sideEffects":[],"authorization":"本域SnapshotManager回调或启动可信装配","concurrency":"由外层SnapshotManager或恢复控制串行","idempotency":"按外层操作或持久阶段回执","dependencies":["identity.All"],"resources":[],"contract":"reference"}
       ]
     },
     {
@@ -5184,7 +5332,8 @@
           "dependencies": [],
           "resources": [],
           "contract": "reference"
-        }
+        },
+        {"id":"identity.EnsureOutbox","name":"EnsureOutbox","signature":"func (s *Store) EnsureOutbox(ctx context.Context) error","inputs":[{"name":"s","type":"*Store","description":"identity active业务库Store接收者","constraints":"必须为非nil且持有已打开的业务库"},{"name":"ctx","type":"context.Context","description":"启动装配上下文","constraints":"沿用启动取消信号"}],"outputs":[{"name":"error","type":"error","description":"安全失败","constraints":["nil表示成功；非nil时业务结果无效"]}],"purpose":"启动时建立同库outbox与全部identity业务表work gate","steps":["调用platform.EnsureSchema；按identityWorkTables逐表调用platform.RegisterWorkTable","不复制公共SQL，不使用MAX/COUNT构造版本"],"errors":[],"sideEffects":["建立本域同库outbox控制表与业务表work gate"],"authorization":"启动装配","concurrency":"单连接串行","idempotency":"注册接口幂等","dependencies":["platform.EnsureSchema","platform.RegisterWorkTable"],"resources":[],"contract":"reference"}
       ]
     },
     {
@@ -5389,8 +5538,7 @@
           "concurrency": "装配单flight；ready前不接受业务；不共享DB或执行外域算法",
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
-            "site-config:registerActivation",
-            "identity.InvalidateRestoredSessions",
+            "identity.restoreIdentityAfterSwap",
             "identity.ObserveSuperadminResetFile",
             "identity.RelayOutbox",
             "platform.ApplyRestoreSwap",
@@ -5418,13 +5566,97 @@
             "本域无独立web/UI；内部Go API继续由identity OpenAPI生成，portal浏览器认证副本由portal OpenAPI x-browser-auth-adapters与Browser*类型合成，禁止将内部token响应类型直接供浏览器"
           ],
           "contract": "binding"
+        },
+        {
+          "id": "identity.restoreIdentityAfterSwap",
+          "name": "restoreIdentityAfterSwap",
+          "signature": "func restoreIdentityAfterSwap(ctx context.Context, dataRoot string, runtime platform.RuntimeView, swap platform.SwapResult, store *identity.Store, key platform.SigningKey, activationClient *gen.SiteConfigClient) (platform.Identifier, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "启动恢复上下文",
+              "constraints": "沿用启动取消和截止；不携带敏感正文"
+            },
+            {
+              "name": "dataRoot",
+              "type": "string",
+              "description": "本域私有数据根目录",
+              "constraints": "由启动配置提供；仅交公共ReadRestoreSwapState核验"
+            },
+            {
+              "name": "runtime",
+              "type": "platform.RuntimeView",
+              "description": "换目录前读取的site-config运行权威",
+              "constraints": "必须包含当前restoreId、targetDataEpoch与维护阶段"
+            },
+            {
+              "name": "swap",
+              "type": "platform.SwapResult",
+              "description": "公共ApplyRestoreSwap的真实动作结果",
+              "constraints": "只接受switched或rolled-back；不从目录猜测动作"
+            },
+            {
+              "name": "store",
+              "type": "*identity.Store",
+              "description": "已完成迁移和journal恢复的本域业务库句柄",
+              "constraints": "必须为非nil；调用方负责失败时关闭"
+            },
+            {
+              "name": "key",
+              "type": "platform.SigningKey",
+              "description": "本域受控服务签名密钥引用",
+              "constraints": "只用于SignActivationReceipt；私钥不进入请求或日志"
+            },
+            {
+              "name": "activationClient",
+              "type": "*gen.SiteConfigClient",
+              "description": "site-config RegisterActivation版本化客户端",
+              "constraints": "非nil；通过公共服务断言传输"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "openedEpoch",
+              "type": "platform.Identifier",
+              "description": "恢复后本域真实OpenedDataEpoch",
+              "constraints": "switched返回evidence.TargetEpoch；rolled-back或none保留控制runtime.DataEpoch"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "恢复证据、会话失效、签名或activation登记错误",
+              "constraints": "失败时openedEpoch无效；不返回空成功"
+            }
+          ],
+          "purpose": "消费公共换目录证据并在换入后撤销恢复快照中的会话",
+          "steps": [
+            "调用platform.ReadRestoreSwapState核完整stage、目录组合与动作一致",
+            "switched时用独立NewAuthEpoch调用identity.InvalidateRestoredSessions；rolled-back不改认证代次",
+            "用serviceauth.SignActivationReceipt签名现有UTC规范claims，并用运行控制host revision调用RegisterActivation"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "switched时更新auth_state并撤销恢复数据中的全部session与refresh族"
+          ],
+          "authorization": "启动可信装配；不接受HTTP输入",
+          "concurrency": "启动恢复互斥；依赖本域事务与持久journal串行",
+          "idempotency": "按restoreId+state派生稳定activation operationId；会话失效与site-config登记均可重试",
+          "dependencies": [
+            "platform.ReadRestoreSwapState",
+            "identity.InvalidateRestoredSessions",
+            "platform.SignActivationReceipt",
+            "site-config.RegisterActivation"
+          ],
+          "resources": [],
+          "contract": "reference"
         }
       ]
     },
     {
       "path": "modules/identity/internal/transport/server.go",
       "kind": "handwritten",
-      "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪",
+      "purpose": "HTTP/worker生命周期、后台任务、优雅关闭、匿名健康与就绪",
       "functions": [
         {
           "id": "identity.Serve",
@@ -5682,7 +5914,8 @@
           "purpose": "装配真实已实现认证组；缺合同handler时公共工厂拒绝整体启动",
           "steps": [
             "装配真实已实现认证组；缺合同handler时公共工厂拒绝整体启动",
-            "维护白名单仅checkAuthorization与verifySessionCSRF控制链只读核权；登录/刷新/账号写不绕过维护屏障"
+            "维护白名单仅checkAuthorization与verifySessionCSRF控制链只读核权；登录/刷新/账号写不绕过维护屏障",
+            "后台入口不在此处伪造；完整启动取得真实SnapshotManager后通过InstallBackgroundTasks统一登记"
           ],
           "errors": [],
           "sideEffects": [],
@@ -5786,6 +6019,9 @@
           "resources": [],
           "contract": "reference"
         },
+        {"id":"identity.SnapshotManager","name":"SnapshotManager","signature":"func (a *Application) SnapshotManager() *lifecycle.SnapshotManager","inputs":[{"name":"a","type":"*Application","description":"identity应用容器接收者","constraints":"必须为已成功装配的Application"}],"outputs":[{"name":"manager","type":"*lifecycle.SnapshotManager","description":"Application持有的同一公共快照管理器","constraints":"与后台任务和HTTP上下文共享同一指针；不创建新实例"}],"purpose":"返回BuildApplication已装配的同一SnapshotManager","steps":["只返回进程内manager句柄"],"errors":[],"sideEffects":[],"authorization":"启动装配","concurrency":"只读应用容器","idempotency":"确定性","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.BackgroundTasks","name":"BackgroundTasks","signature":"func (a *Application) BackgroundTasks() []platform.BackgroundTask","inputs":[{"name":"a","type":"*Application","description":"identity应用容器接收者","constraints":"已装配后台任务列表"}],"outputs":[{"name":"tasks","type":"[]platform.BackgroundTask","description":"后台任务快照","constraints":"返回副本；调用方不能修改Application内部列表"}],"purpose":"向统一进程模板暴露本域后台入口","steps":["复制已装配任务切片并返回"],"errors":[],"sideEffects":[],"authorization":"启动生命周期内部","concurrency":"只读容器","idempotency":"确定性","dependencies":[],"resources":[],"contract":"reference"},
+        {"id":"identity.InstallBackgroundTasks","name":"InstallBackgroundTasks","signature":"func (a *Application) InstallBackgroundTasks(siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher) error","inputs":[{"name":"a","type":"*Application","description":"identity应用容器接收者","constraints":"已由NewApplication装配"},{"name":"siteConfig","type":"platform.SiteConfigClient","description":"运行权威客户端","constraints":"非nil真实客户端"},{"name":"snapshot","type":"*lifecycle.SnapshotManager","description":"本域唯一SnapshotManager","constraints":"必须与Application内指针相同"},{"name":"publisher","type":"platform.EventPublisher","description":"jobs发布端口","constraints":"非nil版本化客户端"}],"outputs":[{"name":"error","type":"error","description":"后台依赖或重复装配错误","constraints":["缺依赖不登记任务；重复调用失败"]}],"purpose":"在完整启动阶段一次性登记真实后台任务","steps":["核对site-config、Manager、publisher和openedEpoch；调用identity.NewBackgroundTasks；拒绝重复登记"],"errors":[],"sideEffects":["更新Application内部后台任务列表"],"authorization":"仅完整启动装配","concurrency":"单次装配串行","idempotency":"重复调用返回CONFLICT","dependencies":["identity.NewBackgroundTasks"],"resources":[],"contract":"reference"},
         {
           "id": "identity.jsonOperation",
           "name": "jsonOperation",
@@ -5998,7 +6234,8 @@
           ],
           "resources": [],
           "contract": "binding"
-        }
+        },
+        {"id":"identity.validSuperadminDelegation","name":"validSuperadminDelegation","signature":"func validSuperadminDelegation(op OperationContext) bool","inputs":[{"name":"op","type":"OperationContext","description":"平台入口建立的受信操作上下文","constraints":"Actor必须为已验证admin；SubjectID、SiteID、SessionID均为有效标识且含superadmin grant"}],"outputs":[{"name":"valid","type":"bool","description":"超管短委托是否完整有效","constraints":"仅true时允许data-protection受控恢复或屏障动作"}],"purpose":"核data-protection调用链携带的超管短委托","steps":["要求admin主体、站点、session和superadmin grant完整"],"errors":[],"sideEffects":[],"authorization":"data-protection服务调用链","concurrency":"纯校验","idempotency":"确定性","dependencies":["identity.hasGrant"],"resources":[],"contract":"reference"}
       ],
       "kind": "handwritten"
     }

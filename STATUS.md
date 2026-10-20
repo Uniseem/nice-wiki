@@ -4,11 +4,11 @@
 
 本次集成已将本地 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d` 安全合入当前集成树，保留 `e85dde0583938bb4207bc3a1117e62549d21018c` WIP记录；main 已包含 pipeline173/174 验证的 `VerifyActivationReceipt` 与 site-config `RegisterActivation`。当前公共候选继续保留 e85 的 `SignActivationReceipt`、`ObserveTx/SealTx/ResumeTx`，并新增只读 `ReadBarrierStatus`、`MigrateRestoredDatabase`及非jobs不等待最终broker的分阶段封口合同；这些新增/修改源码尚无本次候选GitLab SHA，仍按blocked/in_progress记录。
 
-identity源码交付 `e6c131dfbbb1bf117e60c6eaca1faa5b3a809743`、clean HEAD `0c56660baa6dd2d5a93bb42da550328a45cfccf5`；jobs源码交付 `879a41d430b89af5a0b88dd8d86d24f8f25763e3`、clean HEAD `7bc01a2917302324b84e3f594c5f249b7fc22c4e`。两模块暂不合入：均等待平台公共合同和jobs `step=observe` service-only授权分支明确；identity/site-config的 `VerifyGlobalSeal` 缺协调只读证据时必须失败关闭。用户未跟踪的 `kangaroo-down-under.html` 未触碰。
+identity 已按顺序接入 clean HEAD `f54792d29768a3c223de2b429da1628376aa84cd`（源码包 `5962be0953753b7fc88c990362da60c20260926d`），恢复迁移调用为实际 `outbox.MigrateRestoredDatabase`；jobs源码交付 `879a41d430b89af5a0b88dd8d86d24f8f25763e3`、clean HEAD `7bc01a2917302324b84e3f594c5f249b7fc22c4e`，仍等待 jobs `step=observe` service-only授权分支。identity/site-config的 `VerifyGlobalSeal` 缺协调只读证据时必须失败关闭。用户未跟踪的 `kangaroo-down-under.html` 未触碰。
 
 site-config 已按顺序接入 clean HEAD `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`（源码修复 `c3c7c10c11320ebff45c994f8458e54604a75343`）；模块改动范围仅 `modules/site-config/`，保留main验签接线。其恢复迁移合同明确调用 `outbox.MigrateRestoredDatabase`，不调用根 `platform` 影子函数；本次仍待GitLab CI，不把静态审查升为verified。
 
-远端推送基线仍为 `b986443d0dddf5482f7c3430e3dc7c8b99a24232`，对应 pipeline 162 全绿且生成补丁 0。本地计划收尾基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，对应 pipeline 163 全绿且生成补丁 0。本轮不把任何源码 WIP 或失败候选计入正式交付。
+历史远端推送基线为 `b986443d0dddf5482f7c3430e3dc7c8b99a24232`，对应 pipeline 162 全绿且生成补丁 0；当前本地 `origin/main` 与 `gitlab/main` 跟踪 ref 均为 `6204dfc94510f28752fe8da81df9f3a4d3ce781d`。本地计划收尾基线为 `1857ef4bb1a936d3e8c7a8b091a38ee2e2331ef8`，对应 pipeline 163 全绿且生成补丁 0；当前集成提交和模块候选尚未推送。
 
 四路 WIP 原样保留，不 reset、不强推：
 

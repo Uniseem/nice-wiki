@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"sync"
@@ -46,20 +47,34 @@ type Application struct {
 	sessionRuntime      identity.SessionRuntime
 	loginRuntime        identity.LoginRuntime
 	registrationRuntime identity.RegistrationClient
+	snapshot            *lifecycle.SnapshotManager
+	dataProtection      *gen.DataProtectionClient
 	state               atomic.Int32
 	serveStarted        atomic.Bool
+	drainOnce           sync.Once
+	drainErr            error
 	shutdownOnce        sync.Once
 	shutdownErr         error
 	httpServer          *http.Server
+	backgroundTasks     []platform.BackgroundTask
 }
 
 // NewApplication 组装真实认证组并要求公共入口核对完整OpenAPI覆盖。
 // 缺其余handler明确失败；openedEpoch绑定当前打开的业务代次。
 func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, store *identity.Store, openedEpoch platform.Identifier, sessionRuntime identity.SessionRuntime) (*Application, error) {
+	if config.Dependencies["data-protection"] == "" {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "缺少data-protection依赖地址")
+	}
+	snapshot, err := identity.NewSnapshotManager(store, config.DataRoot, openedEpoch, runtimeAuthority)
+	if err != nil {
+		return nil, err
+	}
 	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, store: store,
 		openedEpoch: openedEpoch, sessionRuntime: sessionRuntime,
 		loginRuntime:        identity.LoginRuntime{Client: gen.NewTrafficGuardClient(config.Dependencies["traffic-guard"], moduleName, sessionRuntime.Key)},
-		registrationRuntime: identity.RegistrationClient{Client: gen.NewSiteConfigClient(config.Dependencies["site-config"], moduleName, sessionRuntime.Key)}}
+		registrationRuntime: identity.RegistrationClient{Client: gen.NewSiteConfigClient(config.Dependencies["site-config"], moduleName, sessionRuntime.Key)},
+		snapshot:            snapshot,
+		dataProtection:      gen.NewDataProtectionClient(config.Dependencies["data-protection"], moduleName, sessionRuntime.Key)}
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "身份HTTP规格不可读取")
@@ -71,14 +86,33 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 			callers[id] = []string{"portal"}
 		}
 	}
+	for _, id := range []string{"acquireBarrier", "releaseBarrier", "exportSnapshot", "stageSnapshot", "discardSnapshot", "readSnapshotArchive"} {
+		callers[id] = []string{"data-protection"}
+	}
 	callers["checkAuthorization"] = []string{"portal", "identity", "site-config", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "jobs", "analytics", "data-protection"}
+	serviceCallers := map[string][]string{
+		"acquireBarrier": {"data-protection"}, "releaseBarrier": {"data-protection"},
+		"exportSnapshot": {"data-protection"}, "stageSnapshot": {"data-protection"},
+		"discardSnapshot": {"data-protection"},
+	}
+	controllerOperations := map[string]bool{
+		"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true,
+		"stageSnapshot": true, "discardSnapshot": true, "readSnapshotArchive": true,
+	}
+	maintenanceOperations := map[string]bool{
+		"checkAuthorization": true, "verifySessionCSRF": true,
+		"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true,
+		"stageSnapshot": true, "discardSnapshot": true, "readSnapshotArchive": true,
+	}
 	limits := map[string]int64{}
 	for id := range handlers {
 		limits[id] = 16 << 10
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
-		Self: moduleName, Anchors: anchors, OpenedDataEpoch: openedEpoch, AllowedCallers: callers, OperationBodyLimits: limits,
-		MaintenanceOperations: map[string]bool{"checkAuthorization": true, "verifySessionCSRF": true},
+		Self: moduleName, Anchors: anchors, OpenedDataEpoch: openedEpoch, AllowedCallers: callers,
+		ServiceActorCallers: serviceCallers, ControllerOperations: controllerOperations,
+		AdmitBusiness: snapshot.AdmitBusiness, OperationBodyLimits: limits,
+		MaintenanceOperations: maintenanceOperations,
 		Runtime: func(ctx context.Context) (platform.RuntimeView, error) {
 			return lifecycle.ReadRuntime(ctx, runtimeAuthority)
 		},
@@ -97,7 +131,10 @@ func (a *Application) identityContext(ctx context.Context) context.Context {
 	ctx = identity.WithSessionRuntime(ctx, a.sessionRuntime)
 	ctx = identity.WithSessionCursorKey(ctx, a.sessionRuntime.Key)
 	ctx = identity.WithLoginRuntime(ctx, a.loginRuntime)
-	return identity.WithRegistrationRuntime(ctx, a.registrationRuntime)
+	ctx = identity.WithRegistrationRuntime(ctx, a.registrationRuntime)
+	ctx = identity.WithSnapshotManager(ctx, a.snapshot)
+	ctx = identity.WithSnapshotRuntime(ctx, a.runtime)
+	return identity.WithRestoreArchiveClient(ctx, a.dataProtection)
 }
 
 func (a *Application) authorizeOperation(ctx context.Context, op OperationContext, permission, action string) error {
@@ -136,6 +173,10 @@ func (a *Application) operationHandlers() map[string]http.Handler {
 		"changePassword":     jsonOperation(a, identity.ChangePassword),
 		"verifySessionCSRF":  jsonOperation(a, identity.VerifySessionCSRF),
 		"checkAuthorization": jsonOperation(a, identity.CheckAuthorization),
+		"acquireBarrier":     jsonOperation(a, identity.AcquireBarrier),
+		"exportSnapshot":     jsonOperation(a, identity.ExportSnapshot),
+		"stageSnapshot":      jsonOperation(a, identity.StageSnapshot),
+		"discardSnapshot":    jsonOperation(a, identity.DiscardSnapshot),
 		"health": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			result, err := Health(r.Context(), a)
 			if err != nil {
@@ -185,6 +226,31 @@ func (a *Application) operationHandlers() map[string]http.Handler {
 		}
 		writeJSON(w, http.StatusOK, result)
 	})
+	handlers["releaseBarrier"] = jsonOperation(a, identity.ReleaseBarrier, func(input *identity.ReleaseBarrierInput, r *http.Request) {
+		input.BarrierID = r.PathValue("barrierId")
+	})
+	handlers["readSnapshotArchive"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := a.identityContext(r.Context())
+		op, _ := platform.OperationContextFrom(ctx)
+		byteSize, err := strconv.ParseInt(r.URL.Query().Get("byteSize"), 10, 64)
+		if err != nil {
+			writeProblem(w, platform.NewError(platform.CodeValidation, false, "归档长度不可解析"))
+			return
+		}
+		result, err := identity.ReadSnapshotArchive(ctx, op, identity.SnapshotArchiveReadInput{
+			SnapshotID: r.PathValue("snapshotId"), SHA256: r.URL.Query().Get("sha256"), ByteSize: byteSize,
+		})
+		if err != nil {
+			writeProblem(w, err)
+			return
+		}
+		defer result.Stream.Close()
+		w.Header().Set("Content-Type", "application/x-tar")
+		w.Header().Set("Content-Length", strconv.FormatInt(byteSize, 10))
+		if _, err := io.Copy(w, result.Stream); err != nil {
+			return
+		}
+	})
 	return handlers
 }
 
@@ -214,7 +280,10 @@ func jsonOperation[I any, O any](a *Application, execute operationExecutor[I, O]
 
 // Serve 与 Shutdown 实现 platform.Application，供进程模板调用。
 func (a *Application) Serve(ctx context.Context) error    { return Serve(ctx, a) }
+func (a *Application) Drain(ctx context.Context) error    { return Drain(ctx, a) }
 func (a *Application) Shutdown(ctx context.Context) error { return Shutdown(ctx, a) }
+
+var _ platform.BackgroundApplication = (*Application)(nil)
 
 // registerHealthRoutes 匿名可访问；不暴露路径、端点或secret。
 func (a *Application) registerHealthRoutes(mux *http.ServeMux) {
@@ -252,25 +321,61 @@ func Serve(ctx context.Context, app *Application) error {
 	return nil
 }
 
+// BackgroundTasks 供统一进程模板启动和等待本域后台入口。
+func (a *Application) BackgroundTasks() []platform.BackgroundTask {
+	return append([]platform.BackgroundTask(nil), a.backgroundTasks...)
+}
+
+// InstallBackgroundTasks 只由完整启动装配在真实SnapshotManager可用后调用。
+// 本域后台入口固定使用Manager准入/WriteWindow，任一依赖缺失均拒绝装配。
+func (a *Application) InstallBackgroundTasks(siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher) error {
+	if siteConfig == nil || snapshot == nil || snapshot != a.snapshot || publisher == nil || !platform.ValidIdentifier(a.openedEpoch) {
+		return platform.NewError(platform.CodeDependencyUnavailable, false, "身份后台真实运行依赖未装配")
+	}
+	if len(a.backgroundTasks) != 0 {
+		return platform.NewError(platform.CodeConflict, false, "身份后台入口重复装配")
+	}
+	tasks, err := identity.NewBackgroundTasks(a.store, siteConfig, snapshot, publisher, a.openedEpoch)
+	if err != nil {
+		return err
+	}
+	a.backgroundTasks = tasks
+	return nil
+}
+
+// SnapshotManager返回BuildApplication已装配的同一保护实例，供后台任务复用。
+func (a *Application) SnapshotManager() *lifecycle.SnapshotManager { return a.snapshot }
+
+// Drain 只停止HTTP入口并等待在途响应；后台任务先由上进程模板取消，
+// 完成后再由Shutdown关闭数据库。
+func Drain(ctx context.Context, app *Application) error {
+	app.drainOnce.Do(func() {
+		app.state.CompareAndSwap(stateReady, stateDraining)
+		err := app.httpServer.Shutdown(ctx)
+		switch {
+		case err == nil:
+		case errors.Is(err, context.DeadlineExceeded):
+			app.drainErr = platform.NewError(platform.CodeDeadlineExceeded, true, "关闭期限内未能安全排空HTTP入口")
+		default:
+			app.drainErr = platform.NewError(platform.CodeInternal, false, "关闭HTTP入口失败")
+		}
+	})
+	return app.drainErr
+}
+
 // Shutdown 停止接受新请求并等待在途响应到安全点；sync.Once 保证重复
 // 调用返回同一次结果，deadline 未安全返回 DEADLINE_EXCEEDED。
 func Shutdown(ctx context.Context, app *Application) error {
 	app.shutdownOnce.Do(func() {
-		app.state.CompareAndSwap(stateReady, stateDraining)
-		err := app.httpServer.Shutdown(ctx)
-		if err == nil {
-			if storeErr := app.store.Close(); storeErr != nil {
-				app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭业务库失败")
-				return
-			}
-			app.state.Store(stateClosed)
+		if err := Drain(ctx, app); err != nil {
+			app.shutdownErr = err
 			return
 		}
-		if errors.Is(err, context.DeadlineExceeded) {
-			app.shutdownErr = platform.NewError(platform.CodeDeadlineExceeded, true, "关闭期限内未能安全停止在途操作")
+		if storeErr := app.store.Close(); storeErr != nil {
+			app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭业务库失败")
 			return
 		}
-		app.shutdownErr = platform.NewError(platform.CodeInternal, false, "关闭HTTP服务失败")
+		app.state.Store(stateClosed)
 	})
 	return app.shutdownErr
 }

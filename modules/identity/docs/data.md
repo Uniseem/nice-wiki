@@ -119,6 +119,14 @@
 
 恢复重建必须验证 manifest 哈希和私有事务水位。derived cache 可重建；权威记录缺失或 schema 未知应隔离并停止对外发布。
 
+## R1-F01 快照封口水位
+
+identity 不新增独立workRevision表或近似聚合。启动迁移完成后，`Store.EnsureOutbox` 按本域可信表清单向公共 outbox 注册 `accounts`、`credentials`、`account_permissions`、`sessions`、`preferences`、`operation_receipts`、`auth_state`、`session_families` 和 `consumed_refresh_tokens`；公共同库work gate复用 `nw_outbox_control.revision` 作为本域真实单调workRevision。
+
+ObserveWork、Watermark 和 SealWork 在同一 SQLite 事务内调用公共 `Store.ObserveTx`，将该真实revision与未决回执、bootstrap决定、journal open事实一起核对；SealWork随后调用公共 `Store.SealTx`并提交同一事务。ResumeWork调用公共 `Store.ResumeTx`。不读取业务表 MAX/COUNT作为版本，不改写原业务epoch、payload、root或费用事实。
+
+恢复 staged 只调用公共 `MigrateRestoredDatabase`，回调执行已登记连续迁移；公共机制负责临时打开既有gate、旧代活动资格隔离和hostHash重封，迁移后再注册本域业务表work gate。当前分支等待集成代理提供这些公共方法后由统一CI验证，未新增迁移。
+
 ## 自身会话列表与撤销持久化（R1-01）
 
 `0002_session_revocation.sql` 仅为 `operation_receipts` 追加可空 `result_json` 和自身会话分页索引，不改写旧会话。自有账户会话撤销事务保存完整计数及其哈希；幂等重放返回原计数，不再次撤销首次提交后新建的会话。旧回执没有完整结果时拒绝猜测恢复结果。嵌入账户状态迁移事务时，回执与提交由外层用例统一负责，身份事件函数只追加同事务 outbox。

@@ -15,6 +15,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/identity/migrations"
 )
 
@@ -22,6 +23,18 @@ const (
 	databaseName = "identity.db"
 	journalName  = "identity-journal.jsonl"
 )
+
+var identityWorkTables = []string{
+	"accounts",
+	"credentials",
+	"account_permissions",
+	"sessions",
+	"preferences",
+	"operation_receipts",
+	"auth_state",
+	"session_families",
+	"consumed_refresh_tokens",
+}
 
 // Store 是本域active区业务库与control区决定日志的句柄。
 type Store struct {
@@ -35,6 +48,22 @@ type Store struct {
 	JournalRecovered bool
 	// AppliedMigrations 本次启动后已应用的迁移数。
 	AppliedMigrations int64
+}
+
+// EnsureOutbox在启动时建立本域事件控制表；表与身份业务库同一SQLite连接。
+func (s *Store) EnsureOutbox(ctx context.Context) error {
+	if s == nil || s.db == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "身份业务库尚未打开")
+	}
+	if err := outbox.EnsureSchema(ctx, s.db); err != nil {
+		return err
+	}
+	for _, table := range identityWorkTables {
+		if err := outbox.RegisterWorkTable(ctx, s.db, table); err != nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "身份业务表work gate登记失败")
+		}
+	}
+	return nil
 }
 
 // journalEntry 决定日志一行；同一id可追加多行，最后一行状态生效。

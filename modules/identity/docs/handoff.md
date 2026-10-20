@@ -1,3 +1,43 @@
+# 本轮接管交接：屏障、快照与保护入口（2026-10-20）
+
+- 工作树 `/private/tmp/nice-wiki-resume-identity`，分支 `codex/resume-20261020-identity`；接管基线 `5466c47d22249c224d57009a329786f1d019fa80`，源码组初始提交 `7720ba1d`，代次/接口/台账校正提交 `8a6c6840c32aa4a44f320e1d2c3c43a7b01495dd`，合同字段/依赖更正提交 `aedbe4ce74a882da42216d5cbd9edf23f4db5397`，work gate/恢复接线提交 `f2806d4ba5c5dda35b6b05c0ab49d456d765b69d`，activation接线提交 `3310d07aa84fbc1354390af5ff2bbb75136038fb`，activation合同ID修正提交 `9fbc7a11365595fb9149873465b0b1b5847be83c`；先合并 `main=6204dfc9`，合并提交 `111281ed5f6458f663de719c124ca8ab5eab5809`，恢复激活核对提交 `e6c131dfbbb1bf117e60c6eaca1faa5b3a809743`，恢复迁移调用修正提交 `5962be0953753b7fc88c990362da60c20260926d`。仅拥有 `modules/identity/`，未修改公共源码、主仓或远程；合并带入的公共/他域文件不在本轮编辑范围。
+- 本轮继续修改 `internal/app/wire.go`：`restoreIdentityAfterSwap` 在真实 `RegisterActivation` 返回后核对控制runtime字段和持久化的完整 identity receipt，确保恢复切换/换回回执已经由site-config保存；未CI项目不标implemented/verified。
+- `internal/barrier_service.go`、`internal/snapshot_service.go`、`internal/snapshot_archive.go` 已落盘六个保护源码单元和归档流；HTTP 入口把 data-protection caller、controller/maintenance 规则和同一 manager scope 接通。因未通过 GitLab CI，相关文件/函数保持 `in_progress/not_run`，不记 `implemented`。
+- identity `SnapshotConfig` 已落盘真实回调：读取同一 SQLite 的 outbox/业务水位，在 safe 截点使用平台 `CaptureSnapshotFiles` 复制 `active/identity.db`，生成 V1 manifest；staged 只在公共认证归档后经 `MigrateRestoredDatabase` 迁移已登记schema、登记work表并验证目标库。控制库、reset 文件和服务密钥不进入快照。
+- `migrateIdentitySnapshotDB` 已改为调用 integration 树实际存在的 `outbox.MigrateRestoredDatabase`（`libs/platform/outbox/restore.go:14`）。本域 `implementation.json` 暂保留公共合同当前登记的 `platform.MigrateRestoredDatabase`，待根集成代理审查公共合同 ID 后统一同步，不在本域擅改公共合同。
+- `VerifyGlobalSeal` 当前只是硬返回 `DEPENDENCY_UNAVAILABLE`，没有读取真实 jobs 协调阶段、14 域封口回执或最终 broker 水位；因此不能把完整 `SnapshotManager` 或 `BuildApplication` 记作完成。源码已直接调用冻结的公共 `Store.ObserveTx/SealTx/ResumeTx`、`RegisterWorkTable`、`MigrateRestoredDatabase` 和 `ReadBarrierStatus`，公共实现由集成代理提供。
+- staged 身份库校验保留两种代次职责：`auth_state.auth_epoch` 是认证权威，session family 的 `auth_epoch` 必须与其一致；session family 的 `data_epoch` 单独必须等于快照 manifest 的 `SourceEpoch`。workRevision复用同库outbox真实revision，ObserveWork、Watermark、SealWork、Capture不再使用分散表MAX/COUNT近似。
+- 33 个新增助手及本轮后台/恢复接线助手的合同已同步真实inputs/outputs字段和公共机器依赖ID；本轮不新增保护能力或迁移。恢复会话失效已接入公共换目录证据，activation receipt仍待公共签名接口。
+- `BuildApplication` 源码已接入 manager、outbox schema、两个后台入口和真实activation receipt调用方；当前合并后的 main 已有 `VerifyActivationReceipt` 与 `RegisterActivation` 验签/登记，但没有 `serviceauth.SignActivationReceipt`，所以本域调用方仍待公共签名函数。未运行本机 Go/gofmt/build/vet/test/生成/`make check`，未运行CI、真实接口、模型、服务或部署。
+- `VerifyGlobalSeal` 仍失败关闭。当前没有可调用的真实 jobs 协调器端口；公共请求必须提供非jobs阶段核验接口（核真实协调阶段与同一proof，不等待最终broker）以及jobs最终核验接口（13域实际回执加最终broker同水位），不能让identity自行读取请求自报或伪造封口。
+
+## 下一步（一项）
+
+主代理请合入 `serviceauth.SignActivationReceipt(key platform.SigningKey, claims serviceauth.ActivationReceiptClaims) (string, error)`，并提供上述分阶段真实封口校验端口；identity随后只接入已冻结端口，再交根统一GitLab CI。取得精确SHA后更新`progress.json` verification，不在本域修改公共协议。
+
+# R1-F01 独立源码组交接（2026-10-20，待 GitLab CI）
+
+## 范围与结果
+
+- 专用隔离工作树；分支 `codex/closeout-20261020-identity`；基线 `8606ae365af973050ced01ed435c4b951642fe95`。仅修改 `modules/identity/`。
+- 静态核对 `NormalizeAccountName`、`AssertSuperadminImmutable`、`HashPassword`、`VerifyPassword`、`ValidatePasswordChange`及账号索引读写。现有实现符合合同，未为刷新台账重写。账号索引继续使用 `Σ(account.revision+1)` 作为只增账号集合水位，索引领先或同水位异内容失败关闭，滞后由 `WriteAccountIndex` 重建。
+- 发现并修复登录用户枚举侧信道：`CreateSession` 查无账号时，现对固定有效 Argon2id PHC 执行与真实账号相同的口令校验并发限制和成本，再发送统一的 rejected 终局。该修复不新增样例或测试。
+- `RelayOutbox`恢复公共单批合同：输入仍由公共schema约束 batchLimit，输出为 relayed/pending/quarantined，调用 `outbox.RunRelayBatch` 后逐字段映射真实结果。持续轮询不由该函数承担。
+- `identity.NewBackgroundTasks` 使用 `lifecycle.RunRecoveryLoop` 每秒调用一次 `RelayOutbox`；通过真实 `SnapshotManager.AdmitEventBatch`、`BindOutboxEventScope`、`WriteWindow`和 site-config 运行权威执行，不接受 nil scope。
+- 超管重置 observer 只做一次只读站点发现，取得唯一超管的不变 siteId 后进入 `lifecycle.RunRecoveryLoop`，每5秒调用 `ObserveSuperadminResetFile`。准入使用真实 `SnapshotManager.AdmitBusiness`，写窗口使用 `SnapshotManager.WriteWindow`；维护、备份和恢复阶段不会绕过屏障。`ApplySuperadminReset`另核受信 op 站点与唯一超管站点一致。
+- `Application`实现 `backgroundTasks`、`BackgroundTasks()`、`Drain()`，并通过 `InstallBackgroundTasks` 接收真实 site-config、SnapshotManager 与 jobs 发布端。依赖未齐时拒绝安装；不登记无scope后台。
+- 完整启动仍失败关闭：六个 barrier/snapshot/archive handler、恢复激活、屏障/快照回调和真实 snapshots/work watermarks未实现。BuildApplication 不因本组放宽 handler 覆盖。
+
+## 未执行与阻塞
+
+- 未运行本机Go、gofmt、build、vet、tests、make check；未运行CI、真实接口、模型、服务、镜像或部署。
+- 所有改动保持 blocked（待CI）；本域合同已同步单批 outbox 语义、后台任务装配与站点scope约束。
+- 等待 R1-00/P01 冻结 `VerifyGlobalSeal`、真实 work水位/封口、ActivationReceipt签验与最终barrier合同。冻结前不添加占位实现、通用SQL gate或触发器。
+
+## 下一步（一项）
+
+收到主代理“接口可用/开始实施”release 后，在同一 R1-F01 分支接真实 SnapshotManager，补齐 barrier/snapshot/archive 六项 handler、恢复激活与完整 BuildApplication，再交根集成 CI。
+
 # 超管重置文件交接（2026-10-17）
 
 - 分支：`codex/identity-20261017-r4`

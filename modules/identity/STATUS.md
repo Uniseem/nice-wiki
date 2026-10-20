@@ -1,3 +1,36 @@
+# R1-F01 identity 快照保护源码组（2026-10-20，待 GitLab CI）
+
+本轮接管基线为 `5466c47d22249c224d57009a329786f1d019fa80`，源码组初始提交为 `7720ba1d`，代次/接口/台账校正提交为 `8a6c6840c32aa4a44f320e1d2c3c43a7b01495dd`，合同字段/依赖更正提交为 `aedbe4ce74a882da42216d5cbd9edf23f4db5397`，work gate/恢复接线提交为 `f2806d4ba5c5dda35b6b05c0ab49d456d765b69d`，activation接线提交为 `3310d07aa84fbc1354390af5ff2bbb75136038fb`，activation合同ID修正提交为 `9fbc7a11365595fb9149873465b0b1b5847be83c`；本轮先合并 `main=6204dfc9`，合并提交为 `111281ed5f6458f663de719c124ca8ab5eab5809`，恢复激活核对提交为 `e6c131dfbbb1bf117e60c6eaca1faa5b3a809743`，恢复迁移调用修正提交为 `5962be0953753b7fc88c990362da60c20260926d`。本轮源码/记录仍仅修改 `modules/identity/`；未运行本机 Go、gofmt、build、vet、测试、生成或 `make check`，未 push、未调用真实接口/模型、未部署。
+
+本轮继续收口 `restoreIdentityAfterSwap`：真实调用 `RegisterActivation` 后，现在核对 site-config 返回的 runtime dataEpoch、restoreId、targetDataEpoch、恢复phase及已持久化 identity 回执的完整字段和签名；不等待最终broker水位。未CI项保持`in_progress/blocked`。
+
+- `AcquireBarrier`、`ReleaseBarrier`、`ExportSnapshot`、`StageSnapshot`、`DiscardSnapshot`、`ReadSnapshotArchive` 六个登记源码单元已落盘；HTTP caller、maintenance、controller 与同一 `SnapshotManager` scope 已接线，但均保持 `in_progress/not_run`，没有达到 `implemented` 门槛。
+- `SnapshotConfig` 回调源码已落盘：identity active 数据库 work 水位、outbox 事务观察/封口/恢复调用、safe 截点 SQL 捕获、V1 manifest 校验、staged schema 迁移/校验、恢复 outbox 隔离和预算回调。已接入冻结的work-table注册、同库真实revision和`MigrateRestoredDatabase`调用；`VerifyGlobalSeal` 当前仍硬返回 `DEPENDENCY_UNAVAILABLE`，没有读取真实jobs协调证据。
+- `migrateIdentitySnapshotDB` 已按 integration 树实际定义改调 `outbox.MigrateRestoredDatabase`（`libs/platform/outbox/restore.go:14`）；本域 `implementation.json` 仍保留公共合同当前登记的 `platform.MigrateRestoredDatabase`，等待根集成代理完成公共合同审查后统一同步。
+- `BuildApplication` 正常路径源码已接入 manager、outbox 控制表、两个后台入口和真实 activation receipt 调用方；合并后的 main 已提供 `VerifyActivationReceipt`，但仍缺 `serviceauth.SignActivationReceipt`，且 `VerifyGlobalSeal` 没有真实协调器端口，`BuildApplication`保持`blocked/not_run`。
+- 公共 `RegisterWorkTable`、`Store.ObserveTx/SealTx/ResumeTx`、`MigrateRestoredDatabase`、`SnapshotManager.ReadBarrierStatus` 已按冻结签名直接接线；公共实现由集成代理提供，本域不复制。所有本轮新改 Go 文件/函数均为 `in_progress` 或 `blocked`，等待统一GitLab CI。
+- staged 身份库校验分别核对 `auth_state.auth_epoch` 与 `session_families.auth_epoch`，并独立核对 `session_families.data_epoch` 与 manifest `SourceEpoch`；不会把认证代次映射成数据代次。workRevision复用同库outbox真实revision，不使用MAX/COUNT近似。
+- 33 个新增助手已登记真实参数/返回值名称、类型、description、constraints；直接公共依赖统一写为 `platform.SnapshotStageBinding`、`platform.PrepareRestoredOutbox`、`platform.Store.Observe`/`ObserveTx`/`SealTx`/`ResumeTx` 等机器合同ID。没有新增保护能力或迁移；统一workRevision/write gate只提交方案供主代理复核。全域封口仍保持失败关闭：非jobs只应核协调阶段和同一proof，不能等待最终broker回执；jobs最后才核13域回执及最终broker水位。
+
+## 下一步（一项）
+
+主代理补入公共 `serviceauth.SignActivationReceipt`，并提供区分非jobs“协调阶段核验”和jobs最终broker核验的真实 `VerifyGlobalSeal` 端口后，复核本域接线并交统一GitLab CI；当前所有新改Go仍不标implemented/verified。
+
+# R1-F01 独立实施（2026-10-20，待 GitLab CI）
+
+分支 `codex/closeout-20261020-identity`，基线 `8606ae365af973050ced01ed435c4b951642fe95`。当前只交付 R1-F01 中不依赖未冻结保护接口的紧密源码组，不表示 identity 完整启动完成。
+
+- 已逐项核对六个 implemented 函数和账号索引语义。`NormalizeAccountName`、`AssertSuperadminImmutable`、`HashPassword`、`VerifyPassword`、`ValidatePasswordChange`与本域账号索引实现符合当前合同，未重写。修复 `CreateSession` 的未知账号侧信道：查无账号时对固定 dummy PHC 执行同参数、同并发的 Argon2 校验后再返回统一未认证。
+- `RelayOutbox` 已按公共 `RelayOutboxInput`/`RelayOutboxResult` 实现为单批调用，直接复用 `outbox.RunRelayBatch`并原样映射 relayed/pending/quarantined。持续 1 秒调度由 `NewBackgroundTasks` 内的 `lifecycle.RunRecoveryLoop`承担，不另行维护循环或统计。
+- 超管重置后台不再直接按裸 ticker 调用业务函数。唯一超管出现后，以其实体站点构造受信操作，再通过 `lifecycle.RunRecoveryLoop`、真实 `SnapshotManager.AdmitBusiness`、运行权威和`WriteWindow`每 5 秒执行；维护/备份/恢复阶段不能绕过门禁写凭据。
+- `Application` 已实现 `BackgroundTasks`/`Drain`，并提供 `InstallBackgroundTasks`。只有真实 SnapshotManager、运行权威和 jobs 发布端全部可用时才登记后台；当前完整启动继续要求全部 OpenAPI handler，缺六个屏障/快照 handler 时由公共工厂拒绝。
+
+本组尚未运行本机 Go、gofmt、build、vet、测试或 `make check`，根统一 GitLab CI 前不能标 implemented/verified。屏障/快照实现、恢复激活、完整 BuildApplication 和全域封口继续等待 R1-00/P01冻结。行为验收、真实接口、模型、服务和部署未开始。
+
+## 下一步（一项）
+
+收到主代理“接口可用/开始实施”release 后，在同一 R1-F01 分支接真实 SnapshotManager，补齐 barrier/snapshot/archive 六项 handler、恢复激活和完整 BuildApplication，再交根统一集成 CI。
+
 # 集成检查（2026-10-17）
 
 超管重置已合入 main，GitLab pipeline 42 把本轮函数记为 verified。5 秒监视和完整启动仍未接上。下面是合入前的模块记录。

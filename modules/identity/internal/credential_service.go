@@ -70,6 +70,9 @@ const (
 	passwordMinRunes    = 8
 	verifyMinRunes      = 1
 	passwordConcurrency = 4
+
+	// 未知账号仍执行一次与真实凭据相同成本的校验，避免登录耗时暴露账号是否存在。
+	dummyPasswordHash = "$argon2id$v=19$m=65536,t=3,p=4$aWRlbnRpdHktZHVtbXkhIQ$/jAVsYll50/iROkHJ9TDvm1shH4nHBDSKSkLncDhO4g"
 )
 
 // Argon2id 需要有界并发，避免多个登录/改密请求同时消耗过多内存。

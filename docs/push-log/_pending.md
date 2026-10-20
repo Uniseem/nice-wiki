@@ -30,7 +30,7 @@ site-config 已顺序集成 clean HEAD `d51bd3df0efe0c2156b1e0e443a82c6986a43c64
 
 三模块代理的精确可调用合同如下：
 
-- `identity`：在其真实`SnapshotConfig.VerifyGlobalSeal`装配中实现`func(context.Context, SnapshotSealProof, string) error`这一回调边界；非jobs分支只能使用既有服务身份调用jobs `POST /v1/barriers:coordinate` 的`step:"observe"`，请求复用`operationId/barrierId/mode/deadline`，不得带`sealProof`或`expectedSealHash`、用户委托或自报actor。只接受jobs返回的持久`barrierId/state/dataEpoch/revisionWatermark`与原操作一致，并把缺失/不可达映射为失败关闭。不得读取jobs数据库、伪造broker/回执或在observe分支写本域观察。identity已交源码`e6c131dfbbb1bf117e60c6eaca1faa5b3a809743`、clean HEAD `0c56660baa6dd2d5a93bb42da550328a45cfccf5`；待平台公共候选和jobs observe合同先定后顺序集成。
+- `identity`：在其真实`SnapshotConfig.VerifyGlobalSeal`装配中实现`func(context.Context, SnapshotSealProof, string) error`这一回调边界；非jobs分支只能使用既有服务身份调用jobs `POST /v1/barriers:coordinate` 的`step:"observe"`，请求复用`operationId/barrierId/mode/deadline`，不得带`sealProof`或`expectedSealHash`、用户委托或自报actor。只接受jobs返回的持久`barrierId/state/dataEpoch/revisionWatermark`与原操作一致，并把缺失/不可达映射为失败关闭。不得读取jobs数据库、伪造broker/回执或在observe分支写本域观察。identity已集成源码`5962be0953753b7fc88c990362da60c20260926d`、clean HEAD `f54792d29768a3c223de2b429da1628376aa84cd`；待jobs observe合同后再做源码CI，不把静态审查升为verified。
 
 - `site-config`：复用同一`SnapshotConfig.VerifyGlobalSeal(ctx, proof, proofHash)`只读回调和上述service assertion；RegisterActivation仍只消费已验签的`ActivationReceipt`，不得把`ReadBarrierStatus`或当前runtime自报当13域封口证据。非jobs阶段不等待`nonJobsSeals`或最终broker；缺jobs持久observe证据即返回依赖不可用/完整性错误并保持维护。
 

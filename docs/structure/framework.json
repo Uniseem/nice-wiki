@@ -2284,6 +2284,21 @@
       "purpose": "打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志"
     },
     {
+      "path": "modules/identity/internal/barrier_service.go",
+      "kind": "handwritten",
+      "purpose": "身份域公共屏障、真实工作水位与封口回调装配"
+    },
+    {
+      "path": "modules/identity/internal/snapshot_archive.go",
+      "kind": "handwritten",
+      "purpose": "身份域快照归档读取与真实库存校验"
+    },
+    {
+      "path": "modules/identity/internal/snapshot_service.go",
+      "kind": "handwritten",
+      "purpose": "身份域快照公共端口装配、封口回调与恢复迁移"
+    },
+    {
       "path": "modules/identity/internal/transport/server.go",
       "kind": "handwritten",
       "purpose": "HTTP/worker生命周期、优雅关闭、匿名健康与就绪"

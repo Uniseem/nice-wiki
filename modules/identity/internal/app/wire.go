@@ -7,11 +7,14 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/identity/internal"
+	"nice-wiki/modules/identity/internal/gen"
 	"nice-wiki/modules/identity/internal/transport"
 )
 
@@ -52,11 +55,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	if swap.Action != platform.SwapNone {
-		// 回执需要 stageId/manifestHash/域签名，只能由暂存与屏障函数
-		// （后续工作包）提供；在此之前换入数据拒绝开放入口。
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖暂存/屏障函数，尚未实现")
-	}
 	store, err := identity.OpenDatabase(config.DataRoot)
 	if err != nil {
 		return nil, err
@@ -65,7 +63,17 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		store.Close()
 		return nil, err
 	}
+	if err := store.EnsureOutbox(ctx); err != nil {
+		store.Close()
+		return nil, err
+	}
 	if err := store.RecoverJournal(); err != nil {
+		store.Close()
+		return nil, err
+	}
+	activationClient := gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key)
+	openedEpoch, err := restoreIdentityAfterSwap(ctx, config.DataRoot, view, swap, store, key, activationClient)
+	if err != nil {
 		store.Close()
 		return nil, err
 	}
@@ -74,12 +82,177 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		store.Close()
 		return nil, err
 	}
-	application, err := transport.NewApplication(config, anchors, runtimeAuthority, store, view.DataEpoch, identity.SessionRuntime{Key: key, Anchors: anchors, PublicOrigin: origin})
+	application, err := transport.NewApplication(config, anchors, runtimeAuthority, store, openedEpoch, identity.SessionRuntime{Key: key, Anchors: anchors, PublicOrigin: origin})
 	if err != nil {
 		store.Close()
 		return nil, err
 	}
+	if config.Dependencies["jobs"] == "" {
+		store.Close()
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "缺少jobs依赖地址")
+	}
+	publisher := outbox.NewEventPublisher(gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key))
+	if err := application.InstallBackgroundTasks(runtimeAuthority, application.SnapshotManager(), publisher); err != nil {
+		store.Close()
+		return nil, err
+	}
 	return application, nil
+}
+
+// restoreIdentityAfterSwap只消费公共换目录证据，完成本域恢复会话失效，
+// 并用服务身份签名/登记activation receipt；不从私有stage文件解析字段，
+// 不续用过期proof或伪造superadmin授权。
+type activationReceiptRequest struct {
+	ExpectedRevision platform.Revision      `json:"expectedRevision"`
+	RestoreID        platform.Identifier    `json:"restoreId"`
+	Receipt           activationReceiptBody `json:"receipt"`
+}
+
+type activationReceiptBody struct {
+	ManifestHash    platform.Hash       `json:"manifestHash"`
+	Module          string              `json:"module"`
+	RecordedAt      platform.Timestamp  `json:"recordedAt"`
+	Signature       string              `json:"signature"`
+	StageID         platform.Identifier  `json:"stageId"`
+	State           string              `json:"state"`
+	TargetDataEpoch platform.Identifier  `json:"targetDataEpoch"`
+}
+
+func restoreIdentityAfterSwap(ctx context.Context, dataRoot string, runtime platform.RuntimeView, swap platform.SwapResult, store *identity.Store, key platform.SigningKey, activationClient *gen.SiteConfigClient) (platform.Identifier, error) {
+	if swap.Action == platform.SwapNone {
+		return runtime.DataEpoch, nil
+	}
+	evidence, err := lifecycle.ReadRestoreSwapState(dataRoot, swap.RestoreID)
+	if err != nil {
+		return "", err
+	}
+	if !evidence.Known || evidence.StageID == "" || !platform.ValidIdentifier(evidence.StageID) || !platform.ValidHash(evidence.ManifestHash) || !platform.ValidIdentifier(evidence.HostEpoch) || !platform.ValidIdentifier(evidence.TargetEpoch) || runtime.RestoreID != swap.RestoreID || string(runtime.DataEpoch) != evidence.HostEpoch || string(runtime.TargetDataEpoch) != evidence.TargetEpoch || !runtime.Maintenance {
+		return "", platform.NewError(platform.CodeIntegrityError, false, "恢复换目录证据与当前控制runtime不一致")
+	}
+	state := ""
+	openedEpoch := platform.Identifier(evidence.HostEpoch)
+	switch swap.Action {
+	case platform.SwapSwitched:
+		if runtime.Phase != platform.PhaseRestoreSwitching || !evidence.Switched || evidence.RolledBack || evidence.Aborted {
+			return "", platform.NewError(platform.CodeIntegrityError, false, "恢复换入证据与运行phase不一致")
+		}
+		state = "switched"
+		openedEpoch = platform.Identifier(evidence.TargetEpoch)
+		opID := platform.NewIdentifier()
+		op := platform.OperationContext{
+			RequestID:       opID,
+			OperationID:     opID,
+			RootOperationID: opID,
+			CallerService:   ModuleSlug,
+			Actor: platform.AuthContext{
+				Kind:      "service",
+				SubjectID: ModuleSlug,
+			},
+			Deadline:  time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano),
+			DataEpoch: platform.Identifier(evidence.TargetEpoch),
+		}
+		restoreCtx := identity.WithIdentityStore(ctx, store)
+		restoreCtx = identity.WithIdentityRestoreID(restoreCtx, swap.RestoreID)
+		if _, err := identity.InvalidateRestoredSessions(restoreCtx, op, identity.InvalidateRestoredSessionsInput{TargetDataEpoch: platform.Identifier(evidence.TargetEpoch)}); err != nil {
+			return "", err
+		}
+	case platform.SwapRolledBack:
+		if runtime.Phase != platform.PhaseRestoreRollingBack || !evidence.RolledBack || evidence.Switched || evidence.Aborted {
+			return "", platform.NewError(platform.CodeIntegrityError, false, "恢复换回证据与运行phase不一致")
+		}
+		state = "rolled-back"
+	default:
+		return "", platform.NewError(platform.CodeIntegrityError, false, "未知恢复换目录动作")
+	}
+	if activationClient == nil {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "site-config激活回执客户端未装配")
+	}
+	recordedAt := platform.Timestamp(time.Now().UTC().Format(time.RFC3339Nano))
+	claims := serviceauth.ActivationReceiptClaims{
+		Version:         1,
+		RestoreID:       swap.RestoreID,
+		Module:          ModuleSlug,
+		StageID:         platform.Identifier(evidence.StageID),
+		TargetDataEpoch: platform.Identifier(evidence.TargetEpoch),
+		State:           state,
+		ManifestHash:    platform.Hash(evidence.ManifestHash),
+		RecordedAt:      recordedAt,
+	}
+	signature, err := serviceauth.SignActivationReceipt(key, claims)
+	if err != nil {
+		return "", err
+	}
+	activationID := platform.Identifier(platform.HashBytes([]byte("identity.activation." + string(swap.RestoreID) + "." + state)))
+	activationOp := platform.OperationContext{
+		RequestID:       activationID,
+		OperationID:     activationID,
+		RootOperationID: activationID,
+		CallerService:   ModuleSlug,
+		Actor: platform.AuthContext{
+			Kind:      "service",
+			SubjectID: ModuleSlug,
+		},
+		Deadline:  time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano),
+		DataEpoch: runtime.DataEpoch,
+	}
+	activationCtx := platform.WithOperationContext(ctx, activationOp)
+	rawResult, err := activationClient.RegisterActivation(activationCtx, activationReceiptRequest{
+		ExpectedRevision: runtime.Revision,
+		RestoreID:        swap.RestoreID,
+		Receipt: activationReceiptBody{
+			ManifestHash:    claims.ManifestHash,
+			Module:          claims.Module,
+			RecordedAt:      claims.RecordedAt,
+			Signature:       signature,
+			StageID:         claims.StageID,
+			State:           claims.State,
+			TargetDataEpoch: claims.TargetDataEpoch,
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	var activationResult struct {
+		State struct {
+			ActivationReceipts []activationReceiptBody `json:"activationReceipts"`
+			DataEpoch          platform.Identifier    `json:"dataEpoch"`
+			Phase              string                 `json:"phase"`
+			RestoreID          *platform.Identifier   `json:"restoreId"`
+			TargetDataEpoch    *platform.Identifier   `json:"targetDataEpoch"`
+		} `json:"state"`
+	}
+	if json.Unmarshal(rawResult, &activationResult) != nil {
+		return "", platform.NewError(platform.CodeIntegrityError, false, "激活回执响应不完整")
+	}
+	expectedPhase := platform.PhaseRestoreSwitching
+	if state == "rolled-back" {
+		expectedPhase = platform.PhaseRestoreRollingBack
+	}
+	stateValue := activationResult.State
+	if stateValue.DataEpoch != runtime.DataEpoch || stateValue.Phase != expectedPhase ||
+		stateValue.RestoreID == nil || *stateValue.RestoreID != swap.RestoreID ||
+		stateValue.TargetDataEpoch == nil || *stateValue.TargetDataEpoch != evidence.TargetEpoch {
+		return "", platform.NewError(platform.CodeIntegrityError, false, "激活回执响应与运行控制状态不一致")
+	}
+	recordedAtTime, parseErr := platform.ParseTimestamp(claims.RecordedAt)
+	if parseErr != nil {
+		return "", platform.NewError(platform.CodeIntegrityError, false, "激活回执时间不可核对")
+	}
+	found := false
+	for _, receipt := range stateValue.ActivationReceipts {
+		storedAt, storedErr := platform.ParseTimestamp(receipt.RecordedAt)
+		if storedErr == nil && storedAt.Equal(recordedAtTime) && receipt.ManifestHash == claims.ManifestHash &&
+			receipt.Module == claims.Module && receipt.StageID == claims.StageID &&
+			receipt.State == claims.State && receipt.TargetDataEpoch == claims.TargetDataEpoch &&
+			receipt.Signature == signature {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return "", platform.NewError(platform.CodeIntegrityError, false, "激活回执未在运行状态中持久化")
+	}
+	return openedEpoch, nil
 }
 
 // NewRuntimeClient 构造 site-config 运行权威客户端（platform.SiteConfigClient），

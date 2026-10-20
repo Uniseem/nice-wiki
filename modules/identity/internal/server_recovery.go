@@ -31,6 +31,9 @@ const (
 	maxAccountIndexBytes    = 16 << 20
 	maxIndexedAccounts      = 10000
 	maxSuperadminResetBytes = passwordMaxRunes * utf8.UTFMax
+	superadminResetInterval = 5000 * time.Millisecond
+	outboxRelayInterval     = 1000 * time.Millisecond
+	outboxRelayBatchLimit   = 100
 )
 
 var (
@@ -613,6 +616,9 @@ func applySuperadminResetLocked(ctx context.Context, op OperationContext, input 
 	if err != nil {
 		return ApplySuperadminResetResult{}, err
 	}
+	if account.SiteID != op.Actor.SiteID {
+		return ApplySuperadminResetResult{}, platform.NewError(platform.CodeForbidden, false, "超管重置站点与可信scope不一致")
+	}
 	if found {
 		return finishSuperadminResetFile(store.dataRoot, input.Candidate.FileHash, missing)
 	}
@@ -664,7 +670,7 @@ func checkSuperadminResetContext(ctx context.Context, op OperationContext) error
 	if err := checkIdentityRepositoryContext(ctx, op); err != nil {
 		return err
 	}
-	if op.CallerService != "identity" || op.Actor.Kind != "service" {
+	if op.CallerService != "identity" || op.Actor.Kind != "service" || !platform.ValidIdentifier(op.Actor.SiteID) {
 		return platform.NewError(platform.CodeForbidden, false, "超管重置只允许本机身份进程")
 	}
 	return nil
@@ -956,4 +962,132 @@ func consumeSuperadminResetFile(dataRoot string, fileHash platform.Hash) error {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "重置文件删除失败")
 	}
 	return nil
+}
+
+// NewBackgroundTasks 只返回具有真实运行权威和SnapshotManager scope的入口。
+// 完整启动装配在保护接口冻结后调用；缺任一依赖时不登记后台任务。
+func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error) {
+	if store == nil || store.db == nil || siteConfig == nil || snapshot == nil || publisher == nil || !platform.ValidIdentifier(dataEpoch) {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "身份后台任务真实运行依赖尚未装配")
+	}
+	return []platform.BackgroundTask{
+		{
+			Name: "identity.superadmin-reset",
+			Run: func(ctx context.Context) error {
+				return runSuperadminResetObserver(ctx, store, siteConfig, snapshot, dataEpoch)
+			},
+		},
+		{
+			Name: "identity.outbox",
+			Run: func(ctx context.Context) error {
+				return runOutboxRelay(ctx, store, siteConfig, snapshot, publisher, dataEpoch)
+			},
+		},
+	}, nil
+}
+
+// runSuperadminResetObserver 先用只读发现取得唯一超管所属站点，再把真实
+// identity 操作放入公共恢复循环；业务文件读取和凭据写入只在Manager
+// AdmitBusiness与WriteWindow同时允许时执行。
+func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, dataEpoch platform.Identifier) error {
+	siteID, err := waitForIdentitySite(ctx, store, superadminResetInterval)
+	if err != nil {
+		return err
+	}
+	if ctx.Err() != nil {
+		return nil
+	}
+	op := identityBackgroundOperation(siteID, dataEpoch, time.Now().UTC().Add(time.Minute))
+	return lifecycle.RunRecoveryLoop(platform.WithOperationContext(ctx, op), platform.RecoveryLoopConfig{
+		AdmitBatch:  snapshot.AdmitBusiness,
+		PollMillis:  int(superadminResetInterval / time.Millisecond),
+		Runtime:     siteConfig.ReadRuntimeState,
+		WriteWindow: snapshot.WriteWindow,
+		Recover: func(work context.Context) error {
+			op, ok := platform.OperationContextFrom(work)
+			if !ok {
+				return platform.NewError(platform.CodeDependencyUnavailable, true, "超管重置后台缺少受信操作上下文")
+			}
+			work = WithIdentityStore(work, store)
+			_, err := ObserveSuperadminResetFile(work, op, ObserveSuperadminResetFileInput{})
+			return err
+		},
+	})
+}
+
+// runOutboxRelay 只负责把单批RelayOutbox交给公共恢复循环调度；
+// 轮询、Manager准入、运行权威与写窗口均由platform实现。
+func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher, dataEpoch platform.Identifier) error {
+	siteID, err := waitForIdentitySite(ctx, store, outboxRelayInterval)
+	if err != nil {
+		return err
+	}
+	if ctx.Err() != nil {
+		return nil
+	}
+	op := identityBackgroundOperation(siteID, dataEpoch, time.Now().UTC().Add(time.Minute))
+	return lifecycle.RunRecoveryLoop(platform.WithOperationContext(ctx, op), platform.RecoveryLoopConfig{
+		AdmitBatch:  snapshot.AdmitEventBatch,
+		PollMillis:  int(outboxRelayInterval / time.Millisecond),
+		Runtime:     siteConfig.ReadRuntimeState,
+		WriteWindow: snapshot.WriteWindow,
+		Recover: func(work context.Context) error {
+			op, ok := platform.OperationContextFrom(work)
+			if !ok {
+				return platform.NewError(platform.CodeDependencyUnavailable, true, "outbox后台缺少受信操作上下文")
+			}
+			relayCtx := WithRelayRuntime(work, store, publisher, snapshot, siteConfig)
+			_, err := RelayOutbox(relayCtx, op, RelayOutboxInput{BatchLimit: outboxRelayBatchLimit})
+			return err
+		},
+	})
+}
+
+// waitForIdentitySite 只做本域权威读取，不触碰reset文件或产生业务写入。
+// 超管出现后其站点身份不可变，因此后续真实后台循环可固定绑定该scope。
+func waitForIdentitySite(ctx context.Context, store *Store, interval time.Duration) (platform.Identifier, error) {
+	for {
+		var count int
+		if err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM accounts WHERE is_superadmin = 1`).Scan(&count); err != nil {
+			return "", identityDBError()
+		}
+		switch count {
+		case 0:
+		case 1:
+			account, err := readUniqueSuperadmin(ctx, store.db)
+			if err != nil {
+				return "", err
+			}
+			return account.SiteID, nil
+		default:
+			return "", platform.NewError(platform.CodeIntegrityError, false, "唯一超管权威不唯一")
+		}
+		timer := time.NewTimer(interval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return "", nil
+		case <-timer.C:
+		}
+	}
+}
+
+func identityBackgroundOperation(siteID, dataEpoch platform.Identifier, deadline time.Time) platform.OperationContext {
+	operationID := platform.NewIdentifier()
+	deadlineString := deadline.UTC().Format(time.RFC3339Nano)
+	return platform.OperationContext{
+		RequestID:       operationID,
+		OperationID:     operationID,
+		RootOperationID: operationID,
+		CallerService:   "identity",
+		Actor: platform.AuthContext{
+			SubjectID: "identity",
+			Kind:      "service",
+			SiteID:    siteID,
+			Grants:    []string{},
+			ExpiresAt: deadlineString,
+		},
+		Deadline:  deadlineString,
+		DataEpoch: dataEpoch,
+	}
 }

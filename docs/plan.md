@@ -4,7 +4,7 @@
 
 本计划已于 2026-10-20 经主代理审核通过并冻结，是当前唯一总计划，覆盖 R1 全部 15 个业务域、`libs/platform`、部署编排、UI、任务与事件、保护/恢复、R2 和最终发布交接。`main=a32f3f4c`代表此前文档收尾基线；用户于 2026-10-20 随后恢复 R1 源码实施，当前候选仍须严格留在本计划冻结工作包和既有恢复合同内，R1-00 不新增产品或第二套公共协议。
 
-当前集成基线已安全合入最新本地 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`。main 已含 pipeline173/174 通过的验签与 site-config 最小接线；本工作树保留 e85 公共WIP并只在 R1-00 合同范围内补充 `ReadBarrierStatus`、恢复迁移事务入口、keyId严格校验及分阶段全域封口规则。identity `e6c131dfbbb1bf117e60c6eaca1faa5b3a809743`/clean `0c56660baa6dd2d5a93bb42da550328a45cfccf5` 与 jobs `879a41d430b89af5a0b88dd8d86d24f8f25763e3`/clean `7bc01a2917302324b84e3f594c5f249b7fc22c4e` 暂待平台合同和 jobs service-only observe 授权分支，不顺序合入。
+当前集成基线已安全合入最新本地 `main=6204dfc94510f28752fe8da81df9f3a4d3ce781d`。main 已含 pipeline173/174 通过的验签与 site-config 最小接线；本工作树保留 e85 公共WIP并只在 R1-00 合同范围内补充 `ReadBarrierStatus`、恢复迁移事务入口、keyId严格校验及分阶段全域封口规则。site-config 已接入 `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`，identity 已接入 `f54792d29768a3c223de2b429da1628376aa84cd`/源码 `5962be0953753b7fc88c990362da60c20260926d`；jobs `879a41d430b89af5a0b88dd8d86d24f8f25763e3`/clean `7bc01a2917302324b84e3f594c5f249b7fc22c4e` 仍待 service-only observe 授权分支。
 
 site-config 已顺序接入 clean `d51bd3df0efe0c2156b1e0e443a82c6986a43c64`（源码 `c3c7c10c11320ebff45c994f8458e54604a75343`）；其真实恢复迁移调用唯一公共 `outbox.MigrateRestoredDatabase`。identity 已暂停等待新 clean SHA，jobs 仍等待 `step=observe` service-only 合同。
 

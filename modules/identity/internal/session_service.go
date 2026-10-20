@@ -544,6 +544,9 @@ func CreateSession(ctx context.Context, op OperationContext, input CreateSession
 		Scan(&accountID, &siteID, &passwordHash, &credentialRevision, &status)
 	readTx.Rollback()
 	if errors.Is(err, sql.ErrNoRows) {
+		if _, err := VerifyPassword(VerifyPasswordInput{Password: input.Password, EncodedHash: dummyPasswordHash}); err != nil {
+			return CreateSessionResult{}, err
+		}
 		outcomeSent = true
 		if err := finishIdentityLogin(ctx, op, attempt, "rejected"); err != nil {
 			return CreateSessionResult{}, err
