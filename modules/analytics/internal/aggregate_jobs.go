@@ -203,8 +203,7 @@ func submitAggregateIntents(ctx context.Context, op OperationContext) error {
 			Type   string             `json:"type"`
 			Ref    platform.ObjectRef `json:"inputRef"`
 			Dedupe string             `json:"dedupeKey"`
-			Epoch  string             `json:"dataEpoch"`
-		}{"analytics", intent.Kind, intent.Ref, intent.ID, rt.Epoch}, intent.ID)
+		}{"analytics", intent.Kind, intent.Ref, intent.ID}, intent.Operation)
 		cancel()
 		if e != nil {
 			return e

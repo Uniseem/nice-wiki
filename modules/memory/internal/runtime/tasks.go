@@ -168,8 +168,7 @@ func DispatchAssistantInputs(ctx context.Context, limit int) (int, error) {
 			Type  string             `json:"type"`
 			Ref   platform.ObjectRef `json:"inputRef"`
 			Key   string             `json:"dedupeKey"`
-			Epoch string             `json:"dataEpoch"`
-		}{"memory", "memory.assistant", r.Ref, id, op.DataEpoch}, id)
+		}{"memory", "memory.assistant", r.Ref, id}, id)
 		if err != nil {
 			return count, err
 		}
@@ -311,8 +310,7 @@ func DispatchAssistantCancellations(ctx context.Context, limit int) error {
 				Type  string             `json:"type"`
 				Ref   platform.ObjectRef `json:"inputRef"`
 				Key   string             `json:"dedupeKey"`
-				Epoch string             `json:"dataEpoch"`
-			}{"memory", "memory.assistant", r.Ref, id, op.DataEpoch}, id)
+			}{"memory", "memory.assistant", r.Ref, id}, id)
 			if err != nil {
 				return err
 			}

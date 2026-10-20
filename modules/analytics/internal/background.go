@@ -2,8 +2,10 @@ package analytics
 
 import (
 	"context"
+	"fmt"
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"os"
 	"sync"
 	"time"
 )
@@ -43,7 +45,9 @@ func RunPageBackground(ctx context.Context, rt *Runtime) error {
 		}
 		return nil
 	})
-	launchPageLoop(func(ctx context.Context) error { return runAnalyticsPeriodic(ctx, rt, 60000, SchedulePageAggregates) })
+	launchPageLoop(func(ctx context.Context) error {
+		return runAnalyticsPeriodic(ctx, rt, 60000, "聚合调度", SchedulePageAggregates)
+	})
 	launchPageLoop(func(ctx context.Context) error {
 		for ctx.Err() == nil {
 			call, done, op := backgroundOperation(ctx, rt, "", "", 24*time.Hour)
@@ -60,13 +64,13 @@ func RunPageBackground(ctx context.Context, rt *Runtime) error {
 		return nil
 	})
 	launchPageLoop(func(ctx context.Context) error {
-		return runAnalyticsPeriodic(ctx, rt, 1000, func(ctx context.Context, op OperationContext) error {
+		return runAnalyticsPeriodic(ctx, rt, 1000, "聚合事件发布", func(ctx context.Context, op OperationContext) error {
 			_, err := PublishAggregateEvents(ctx, op, PublishAggregateEventsInput{BatchSize: 100, DataEpoch: rt.Epoch})
 			return err
 		})
 	})
 	launchPageLoop(func(ctx context.Context) error { return RunRetentionBackground(ctx, rt) })
-	err := runAnalyticsPeriodic(work, rt, 5000, func(ctx context.Context, op OperationContext) error {
+	err := runAnalyticsPeriodic(work, rt, 5000, "访问信标落库", func(ctx context.Context, op OperationContext) error {
 		_, err := FlushBeacons(ctx, op, FlushBeaconsInput{BatchSize: 500, DataEpoch: rt.Epoch})
 		return err
 	})
@@ -84,11 +88,15 @@ func RunPageBackground(ctx context.Context, rt *Runtime) error {
 }
 
 // runAnalyticsPeriodic只装配本域可信操作，轮询/运行权威/安全窗口由平台统一执行。
-func runAnalyticsPeriodic(ctx context.Context, rt *Runtime, millis int, run func(context.Context, OperationContext) error) error {
+func runAnalyticsPeriodic(ctx context.Context, rt *Runtime, millis int, label string, run func(context.Context, OperationContext) error) error {
 	return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: millis, Runtime: rt.Window.Runtime, WriteWindow: rt.Window.WriteWindow, Recover: func(ctx context.Context) error {
 		call, cancel, op := backgroundOperation(ctx, rt, "", "", 30*time.Second)
 		defer cancel()
-		return run(call, op)
+		err := run(call, op)
+		if err != nil && os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "统计后台任务失败 %s：%v\n", label, err)
+		}
+		return err
 	}})
 }
 
@@ -113,7 +121,7 @@ func DrainBeacons(ctx context.Context, rt *Runtime) error {
 // RunRetentionBackground有界续清，仅把本域保留策略回调交给平台周期机制。
 func RunRetentionBackground(ctx context.Context, rt *Runtime) error {
 	lastHour, lastAudit := "", ""
-	return runAnalyticsPeriodic(ctx, rt, 60000, func(call context.Context, op OperationContext) error {
+	return runAnalyticsPeriodic(ctx, rt, 60000, "保留清理", func(call context.Context, op OperationContext) error {
 		now := time.Now().UTC()
 		if err := PruneDaySalts(call, rt, now); err != nil {
 			return err
