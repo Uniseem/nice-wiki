@@ -6,7 +6,7 @@
 
 outbox新增`Store.ObserveTx/SealTx/ResumeTx`：只接收调用方同一SQLite `platform.Tx`，原Observe/Seal/Resume与事务变体复用同一SQL；不新增回调框架。域须把真实工作水位/CAS和outbox状态同事务提交，多文件或多DB只在真实SnapshotManager文件scope及本域journal证据内收敛，不使用统一“多文件必失败”替代正文权威捕获。
 
-本轮尚无GitLab生成/format/build/vet/check证据，台账函数保持blocked/not_run，完成数不增加。jobs全域封口权威与restore control epoch规则仅形成待审提案，未在根或任何域写替代实现。未吸收identity/site-config/jobs未审准提交，无真实接口/模型/部署。
+GitLab pipeline164首先发现`VerifyActivationReceipt`动态错误消息的vet失败；`b46ce3d9`修正后，pipeline165的生成、三个Go分片、前端与既有普通go test通过，生成补丁0。foundation的完整make check只失败于5个新接口尚无消费者依赖边，因此接口源码可冻结给首批接线，台账仍保持blocked/not_run，完成数不增加。jobs全域封口权威与restore control epoch规则仅形成待审提案，未在根或任何域写替代实现。未吸收identity/site-config/jobs未审准提交，无真实接口/模型/部署。
 
 以下为历史交接。
 

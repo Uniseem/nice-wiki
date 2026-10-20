@@ -4,7 +4,7 @@
 
 新增outbox同事务变体：`ObserveTx`、`SealTx`、`ResumeTx`。域业务水位CAS与outbox封口须共用调用方持有的同一`platform.Tx`，不新增SnapshotWorkCallbacks框架。
 
-当前仅源码与机器合同，GitLab生成、三个Go分片、前端及完整make check尚未执行，完成数未增加。未接真实业务、模型、部署，未新增tests/fixture/mock/样例。
+GitLab pipeline164首先发现动态错误消息导致的vet失败，已在`b46ce3d9`修正。pipeline165的生成、三个Go分片、前端与既有普通go test通过，生成补丁0；foundation的完整make check只失败于5个新接口尚无消费者依赖边。接口源码可冻结供首批接线，但台账保持blocked，完成数未增加。未接真实业务、模型、部署，未新增tests/fixture/mock/样例。
 
 以下为历史记录。
 
