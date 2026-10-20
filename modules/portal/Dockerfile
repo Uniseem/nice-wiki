@@ -19,6 +19,8 @@ COPY modules/model-gateway/web/ modules/model-gateway/web/
 RUN cd modules/model-gateway/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/model-gateway --emptyOutDir
 COPY modules/memory/web/ modules/memory/web/
 RUN cd modules/memory/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/memory --emptyOutDir
+COPY modules/qa/web/ modules/qa/web/
+RUN cd modules/qa/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/qa --emptyOutDir
 COPY modules/traffic-guard/web/ modules/traffic-guard/web/
 RUN cd modules/traffic-guard/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/traffic-guard --emptyOutDir
 COPY modules/jobs/web/ modules/jobs/web/

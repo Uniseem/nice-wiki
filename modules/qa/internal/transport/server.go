@@ -74,6 +74,7 @@ func NewOperationHandlers(bind func(context.Context) context.Context) map[string
 			result, err := conversation.GetConversation(ctx, op, conversation.GetConversationInput{ConversationID: r.PathValue("conversationId"), Cursor: r.URL.Query().Get("cursor"), Limit: limit})
 			writeResult(w, op, 200, result, err)
 		}),
+		"putQaPolicy": jsonOperation(bind, http.StatusOK, admin.PutQaPolicy, nil),
 		"readQaPolicy": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx, op, err := operationContext(r, bind)
 			if err != nil {

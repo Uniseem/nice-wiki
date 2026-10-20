@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"encoding/json"
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
@@ -76,6 +77,49 @@ func ReadPublicCapability(ctx context.Context, op OperationContext, input ReadPu
 				result.Reason = gen.ReadPublicCapabilityResultReason("unavailable")
 			}
 		}
+	}
+	return result, nil
+}
+
+type PutQaPolicyInput = gen.PutQaPolicyInput
+type PutQaPolicyResult = gen.PutQaPolicyResult
+
+// PutQaPolicy 乐观并发地替换公开问答策略；同幂等键重放原结果，不重复写。
+func PutQaPolicy(ctx context.Context, op OperationContext, input PutQaPolicyInput) (PutQaPolicyResult, error) {
+	if err := qaruntime.RequireAdmin(op, "qa.manage"); err != nil {
+		return PutQaPolicyResult{}, err
+	}
+	tx, err := qaruntime.BeginWrite(ctx, op)
+	if err != nil {
+		return PutQaPolicyResult{}, err
+	}
+	defer tx.Close()
+	var replayed PutQaPolicyResult
+	if found, replayErr := qaruntime.ReplayReceipt(tx, op, "qa.PutQaPolicy", input.IdempotencyKey, input, &replayed); replayErr != nil || found {
+		return replayed, replayErr
+	}
+	current, err := qaruntime.ReadPolicy(tx)
+	if err != nil {
+		return PutQaPolicyResult{}, err
+	}
+	if current.Version != input.ExpectedVersion {
+		return PutQaPolicyResult{}, platform.NewError(platform.CodeVersionMismatch, false, "问答策略版本已变化")
+	}
+	next := input.Policy
+	next.Version = current.Version + 1
+	raw, err := json.Marshal(next)
+	if err != nil || tx.Runtime.Validators["QaPolicy"] == nil || tx.Runtime.Validators["QaPolicy"](raw) != nil {
+		return PutQaPolicyResult{}, platform.NewError(platform.CodeValidation, false, "问答策略不符合合同")
+	}
+	if _, err = tx.Tx.ExecContext(tx.Context, `UPDATE qa_policy SET version=?,policy_json=? WHERE singleton=1 AND version=?`, next.Version, raw, current.Version); err != nil {
+		return PutQaPolicyResult{}, qaruntime.StorageError(err)
+	}
+	result := PutQaPolicyResult{Policy: next}
+	if err = qaruntime.SaveReceipt(tx, op, "qa.PutQaPolicy", input.IdempotencyKey, input, result); err != nil {
+		return PutQaPolicyResult{}, err
+	}
+	if err = tx.Commit(); err != nil {
+		return PutQaPolicyResult{}, err
 	}
 	return result, nil
 }
