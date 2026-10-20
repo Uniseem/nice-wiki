@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { ModuleUIBootstrap } from '../../../../libs/platform/web/module-api';
-import { apiClient } from './api';
+import { apiClient, currentGrants } from './api';
 
 defineProps<{ account: any }>();
 defineEmits<{ (e: 'sign-out'): void }>();
@@ -12,6 +12,8 @@ const modules = [
   { id: 'site-config', label: '站点设置' },
   { id: 'identity', label: '账号与权限' },
   { id: 'jobs', label: '任务队列' },
+  { id: 'analytics', label: '统计与审计' },
+  { id: 'data-protection', label: '备份与恢复' },
 ];
 
 const path = ref(location.pathname);
@@ -43,7 +45,7 @@ async function mountCurrent() {
     const mod = await import(/* @vite-ignore */ `/_admin/modules/${current.value.id}/module.js?v=${Date.now()}`);
     const bootstrap: ModuleUIBootstrap = {
       module: current.value.id, apiBaseURL: '', locale: 'zh-Hans', mountSelector: '#module-root',
-      capabilities: [], buildRevision: String(Date.now()), apiClient,
+      capabilities: currentGrants(), buildRevision: String(Date.now()), apiClient,
     };
     mod.mountModuleUI(el, bootstrap);
   } catch (e) {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { ApiError, currentSessionId, request, setCSRF } from './api';
+import { ApiError, currentGrants, currentSessionId, refresh, request, setCSRF } from './api';
 import AuthPage from './AuthPage.vue';
 import Shell from './Shell.vue';
 
@@ -12,6 +12,8 @@ async function boot() {
   try {
     const self = await request<{ account: any }>('/v1/self');
     account.value = self.account;
+    // 授权项只在登录/刷新响应里；新开标签页时会话存储为空，静默刷新一次补上。
+    if (!currentGrants().length) await refresh();
     phase.value = 'app';
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 401) console.error(error);

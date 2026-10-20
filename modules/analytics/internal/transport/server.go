@@ -53,7 +53,7 @@ type Application struct {
 // NewApplication 绑定本域OpenAPI完整路由；业务路由在能力未实现期间
 // 统一返回DEPENDENCY_UNAVAILABLE，不返回伪造统计或审计结果。
 func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtime platform.SiteConfigClient, storage *analytics.Runtime, identity *gen.IdentityClient) (*Application, error) {
-	application := &Application{config: config, anchors: anchors, runtime: runtime, storage: storage}
+	application := &Application{config: config, anchors: anchors, runtime: runtime, storage: storage, journalRecovered: storage != nil}
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "统计接口规格不可读")

@@ -35,6 +35,8 @@ def setup():
                "signingKeyRef": os.path.join(sec, "signing-key.json"),
                "dependencies": {s: f"http://127.0.0.1:{p}" for s, p in PORTS.items() if s != slug},
                "allowLocalHTTP": True}
+        if slug == "analytics":
+            cfg["reportingTimeZone"] = "Asia/Shanghai"
         if slug == "site-config":
             cfg["publicBaseURL"] = f"http://127.0.0.1:{PORTS['public-site']}"
         if slug in ("identity", "portal"):
@@ -49,7 +51,7 @@ def setup():
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
 
 
-WEB_MODULES = ["content", "site-config", "identity", "jobs"]
+WEB_MODULES = ["content", "site-config", "identity", "jobs", "analytics", "data-protection"]
 
 
 def build(slugs):

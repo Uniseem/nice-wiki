@@ -67,6 +67,19 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 		}
 	}
 	stripUnsupportedKeywords(spec)
+	// 处理函数表的键同样按首字母小写归一，兼容用内嵌规格里的 PascalCase operationId 组表的服务。
+	normalized := make(map[string]http.Handler, len(handlers))
+	for id, handler := range handlers {
+		if id != "" {
+			normalized[strings.ToLower(id[:1])+id[1:]] = handler
+		}
+	}
+	handlers = normalized
+	config.AllowedCallers = lowerKeys(config.AllowedCallers)
+	config.ServiceActorCallers = lowerKeys(config.ServiceActorCallers)
+	config.MaintenanceOperations = lowerKeys(config.MaintenanceOperations)
+	config.ControllerOperations = lowerKeys(config.ControllerOperations)
+	config.OperationBodyLimits = lowerKeys(config.OperationBodyLimits)
 	if config.AdmitBusiness == nil {
 		// 未接入快照屏障的服务：只确认代次一致且处于运行阶段。
 		config.AdmitBusiness = simpleAdmission(config.Runtime, config.OpenedDataEpoch)
@@ -101,7 +114,7 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 				continue
 			}
 			if len(config.AllowedCallers[id]) == 0 {
-				return nil, platform.NewError(platform.CodeIntegrityError, false, "接口缺少固定调用服务策略")
+				return nil, platform.NewError(platform.CodeIntegrityError, false, "接口缺少固定调用服务策略：%s", id)
 			}
 			if !config.ControllerOperations[id] && config.AdmitBusiness == nil {
 				return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "非控制HTTP独立业务scope未装配")
@@ -585,4 +598,18 @@ func simpleAdmission(runtime func(context.Context) (platform.RuntimeView, error)
 		}
 		return ctx, func() {}, nil
 	}
+}
+
+// lowerKeys 把 operationId 键的首字母统一成小写；调用方可能用内嵌规格里的 PascalCase 写策略表。
+func lowerKeys[V any](in map[string]V) map[string]V {
+	if in == nil {
+		return nil
+	}
+	out := make(map[string]V, len(in))
+	for key, value := range in {
+		if key != "" {
+			out[strings.ToLower(key[:1])+key[1:]] = value
+		}
+	}
+	return out
 }

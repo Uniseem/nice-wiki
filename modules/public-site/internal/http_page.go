@@ -96,8 +96,12 @@ type HandleHomeResult struct {
 	Location string
 }
 
-// HandleHome 暂以导航树第一篇文档作为首页；没有已发布文档时给出空站提示。
+// HandleHome 用站点配置里的首页文案渲染一屏首页，按钮指向导航树里的第一篇文档。
 func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHomeInput) (HandleHomeResult, error) {
+	directory, err := directoryFrom(ctx)
+	if err != nil {
+		return HandleHomeResult{}, err
+	}
 	navigation, err := BuildNavigation(ctx, op, BuildNavigationInput{in.Locale, in.DataEpoch, 10000})
 	if err != nil {
 		return HandleHomeResult{}, err
@@ -106,10 +110,37 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 	if err != nil {
 		return HandleHomeResult{}, err
 	}
-	if len(nodes) == 0 {
-		return HandleHomeResult{200, "<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><meta charset=\"utf-8\"><title>文档</title><body><p>还没有已发布的文档。</p></body></html>", ""}, nil
+	raw, err := directory.SiteConfig.ReadSiteConfig(ctx)
+	if err != nil {
+		return HandleHomeResult{}, err
 	}
-	return HandleHomeResult{302, "", nodes[0].CanonicalPath}, nil
+	var config struct {
+		Config struct {
+			Name string `json:"name"`
+			Home struct {
+				MainTitle      string `json:"mainTitle"`
+				Subtitle       string `json:"subtitle"`
+				BackgroundText string `json:"backgroundText"`
+				OverlayPercent int64  `json:"overlayPercent"`
+				TextColor      string `json:"textColor"`
+			} `json:"home"`
+		} `json:"config"`
+	}
+	if json.Unmarshal(raw, &config) != nil {
+		return HandleHomeResult{}, dependency("站点首页配置不可读")
+	}
+	var labels, urls []string
+	if len(nodes) > 0 {
+		labels, urls = []string{"开始阅读"}, []string{nodes[0].CanonicalPath}
+	}
+	home := config.Config.Home
+	hero, err := RenderHero(ctx, op, RenderHeroInput{Title: home.MainTitle, Subtitle: home.Subtitle, BackgroundKind: "solid", OverlayPercent: home.OverlayPercent,
+		ButtonLabels: labels, ButtonURLs: urls, BackgroundText: home.BackgroundText, TextColor: home.TextColor})
+	if err != nil {
+		return HandleHomeResult{}, err
+	}
+	page := "<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + html.EscapeString(config.Config.Name) + "</title><style>body{margin:0;font:16px/1.6 system-ui}.hero a{display:inline-block;margin:.5rem;padding:.6rem 1.4rem;border:1px solid currentColor;border-radius:999px;color:inherit;text-decoration:none}</style></head><body>" + hero.HTML + "</body></html>"
+	return HandleHomeResult{Status: 200, HTML: page}, nil
 }
 
 func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch string, pick func([]NavigationNode) (NavigationNode, bool)) (string, error) {

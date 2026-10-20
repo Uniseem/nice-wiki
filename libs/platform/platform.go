@@ -133,6 +133,9 @@ func NormalizeIOError(err error, fallbackCode string, retryable bool, safeMessag
 	if errors.Is(err, context.DeadlineExceeded) {
 		return NewError(CodeDeadlineExceeded, false, "操作已到截止时间")
 	}
+	if os.Getenv("NW_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "未知错误被归一化为 %s（%s）：%v\n", fallbackCode, safeMessage, err)
+	}
 	return NewError(fallbackCode, retryable, "%s", safeMessage)
 }
 

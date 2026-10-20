@@ -9,15 +9,20 @@ export class ApiError extends Error {
   }
 }
 
-export function setCSRF(token: string | null, sessionId?: string | null): void {
+export function setCSRF(token: string | null, sessionId?: string | null, grants?: string[]): void {
   try {
     if (token) sessionStorage.setItem(csrfKey, token);
     else sessionStorage.removeItem(csrfKey);
+    if (grants) sessionStorage.setItem('nw_grants', JSON.stringify(grants));
     if (sessionId !== undefined) {
       if (sessionId) sessionStorage.setItem('nw_session_id', sessionId);
       else sessionStorage.removeItem('nw_session_id');
     }
   } catch { /* 隐私模式下忽略 */ }
+}
+
+export function currentGrants(): string[] {
+  try { return JSON.parse(sessionStorage.getItem('nw_grants') ?? '[]'); } catch { return []; }
 }
 
 export function currentSessionId(): string {
@@ -36,7 +41,7 @@ function newKey(): string {
 let refreshing: Promise<boolean> | null = null;
 
 // 访问令牌过期时静默刷新一次；刷新失败说明需要重新登录。
-async function refresh(): Promise<boolean> {
+export async function refresh(): Promise<boolean> {
   refreshing ??= (async () => {
     try {
       const response = await fetch('/v1/sessions:refresh', {
@@ -46,7 +51,7 @@ async function refresh(): Promise<boolean> {
       });
       if (!response.ok) return false;
       const body = await response.json();
-      setCSRF(body?.session?.csrfToken ?? body?.tokens?.csrfToken ?? null, body?.session?.sessionId);
+      setCSRF(body?.session?.csrfToken ?? body?.tokens?.csrfToken ?? null, body?.session?.sessionId, body?.session?.auth?.grants);
       return true;
     } catch { return false; } finally { setTimeout(() => { refreshing = null; }, 0); }
   })();
