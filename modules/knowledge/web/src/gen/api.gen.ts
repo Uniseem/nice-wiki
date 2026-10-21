@@ -423,6 +423,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/document-index:read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 读取文档索引视图
+         * @description 按预算把文档卡片和发布树压缩成文档索引：三级细节逐步降级，再从最深的子树开始折叠成分区；同时给出全量 index.md。只读，不调模型。
+         */
+        post: operations["readDocumentIndex"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -783,6 +803,8 @@ export interface components {
             lexicalOnly: boolean;
             /** @description 问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。 */
             admissionPermit?: components["schemas"]["AdmissionPermit"];
+            /** @description 只在这些文档里检索（问答按文档路由选出）；省略时全站检索 */
+            documentIds?: components["schemas"]["Identifier"][];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         RedactDiagnosticsResult: {
@@ -1269,6 +1291,50 @@ export interface components {
             paidResultRefs: components["schemas"]["Identifier"][];
         };
         ReadJobRecoveryResult: components["schemas"]["OwnerRecoveryResult"];
+        /** @description 文档索引视图里的一个选项：一篇文档或一个折叠后的分区 */
+        DocumentIndexEntry: {
+            /**
+             * @description 文档或分区
+             * @enum {string}
+             */
+            kind: "document" | "section";
+            /** @description 文档，或分区的根文档 */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 选项覆盖的全部文档（分区含根和全部后代） */
+            documentIds: components["schemas"]["Identifier"][];
+            /** @description 标题 */
+            title: string;
+            /** @description 规范路径 */
+            path: string;
+            /** @description 给决策模型的选项说明（按细节级别） */
+            text: string;
+            /** @description 文档 2 详细、1 摘要、0 只有主题；分区 -1 */
+            level: number;
+        };
+        ReadDocumentIndexResult: {
+            /** @description 发布树与卡片版本 */
+            versionHash: components["schemas"]["Hash"];
+            /** @description 路由视图选项 */
+            entries: components["schemas"]["DocumentIndexEntry"][];
+            /** @description 全量 index.md（每篇标题、路径和摘要，按文档树缩进） */
+            markdown: string;
+        };
+        DocumentImportance: {
+            documentId: components["schemas"]["Identifier"];
+            /** @description 重要度（如近期被问答引用次数） */
+            weight: number;
+        };
+        /** @description 按预算读取文档索引视图 */
+        ReadDocumentIndexInput: {
+            /** @description 选项说明合计的估算token预算，默认12000 */
+            budgetTokens?: number;
+            /** @description 最多选项数，默认200 */
+            maxOptions?: number;
+            /** @description 只看这篇文档及其子文档（展开分区） */
+            rootDocumentId?: components["schemas"]["Identifier"];
+            /** @description 重要度越高越晚降级 */
+            importance?: components["schemas"]["DocumentImportance"][];
+        };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Attempt: {
             /** @description 尝试ID */
@@ -4226,6 +4292,98 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    readDocumentIndex: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 若输入schema含idempotencyKey必须一致；同键不同hash为409。 */
+                "Idempotency-Key"?: string;
+                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
+                "X-Request-Id": components["schemas"]["Identifier"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadDocumentIndexInput"];
+            };
+        };
+        responses: {
+            /** @description 读取文档索引视图成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadDocumentIndexResult"];
+                };
+            };
+            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 对象不存在、游标已过保留期或公开派生结果尚不可用。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；错误code必须来自处理函数集合。 */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
         };
     };

@@ -130,6 +130,28 @@
       "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
     },
     {
+      "id": "knowledge.summary",
+      "name": "文档卡片（摘要、主题、能回答的问题）",
+      "owner": "knowledge",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [],
+      "defaultMaxOutputTokens": 600,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "2026-10-21 文档索引重新设计：每篇文档一张卡片，给问答路由用"
+    },
+    {
+      "id": "knowledge.decide",
+      "name": "知识索引决策（旧卡片是否仍准确等）",
+      "owner": "knowledge",
+      "defaultTier": "decision",
+      "defaultMemoryRoles": [],
+      "defaultMaxOutputTokens": 0,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "2026-10-21 决策模型门控：正文小改动不重写卡片"
+    },
+    {
       "id": "knowledge.describe",
       "name": "文字附件/视频公开元信息描述",
       "owner": "knowledge",

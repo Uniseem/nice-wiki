@@ -14,6 +14,8 @@ type SearchLexicalInput struct {
 	Normalized string `json:"normalized"`
 	Language   string `json:"language"`
 	Limit      int    `json:"limit"`
+	// Documents 非空时只在这些文档里排名（词频统计仍按全站）。
+	Documents map[string]bool `json:"-"`
 }
 type SearchLexicalResult struct {
 	Candidates []gen.Candidate `json:"candidates"`
@@ -50,6 +52,9 @@ func SearchLexical(ctx context.Context, op OperationContext, input SearchLexical
 	if len(snapshot.Rows) > 0 && totalLength > 0 {
 		average := float64(totalLength) / float64(len(snapshot.Rows))
 		for _, row := range snapshot.Rows {
+			if len(input.Documents) > 0 && !input.Documents[row.Chunk.Document.DocumentId] {
+				continue
+			}
 			score := 0.0
 			for term := range queryTerms {
 				tf := float64(row.Terms[term])

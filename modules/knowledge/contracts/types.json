@@ -2056,6 +2056,16 @@
         "admissionPermit": {
           "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
           "description": "问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。"
+        },
+        "documentIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "description": "只在这些文档里检索（问答按文档路由选出）；省略时全站检索"
         }
       },
       "required": [
@@ -4025,6 +4035,142 @@
       "description": "仅进程内portal注入的同源HTTP客户端，不经JSON传输；接口由ui/src/client.ts定义。",
       "additionalProperties": false,
       "properties": {}
+    },
+    "DocumentIndexEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "文档索引视图里的一个选项：一篇文档或一个折叠后的分区",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "document",
+            "section"
+          ],
+          "description": "文档或分区"
+        },
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档，或分区的根文档"
+        },
+        "documentIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "description": "选项覆盖的全部文档（分区含根和全部后代）"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 65536,
+          "description": "标题"
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 65536,
+          "description": "规范路径"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 65536,
+          "description": "给决策模型的选项说明（按细节级别）"
+        },
+        "level": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 2,
+          "description": "文档 2 详细、1 摘要、0 只有主题；分区 -1"
+        }
+      },
+      "required": [
+        "kind",
+        "documentId",
+        "documentIds",
+        "title",
+        "path",
+        "text",
+        "level"
+      ]
+    },
+    "DocumentImportance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000,
+          "description": "重要度（如近期被问答引用次数）"
+        }
+      },
+      "required": [
+        "documentId",
+        "weight"
+      ]
+    },
+    "ReadDocumentIndexInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "按预算读取文档索引视图",
+      "properties": {
+        "budgetTokens": {
+          "type": "integer",
+          "minimum": 500,
+          "maximum": 60000,
+          "description": "选项说明合计的估算token预算，默认12000"
+        },
+        "maxOptions": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 254,
+          "description": "最多选项数，默认200"
+        },
+        "rootDocumentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "只看这篇文档及其子文档（展开分区）"
+        },
+        "importance": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/DocumentImportance"
+          },
+          "description": "重要度越高越晚降级"
+        }
+      }
+    },
+    "ReadDocumentIndexResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "versionHash": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
+          "description": "发布树与卡片版本"
+        },
+        "entries": {
+          "type": "array",
+          "maxItems": 254,
+          "items": {
+            "$ref": "#/$defs/DocumentIndexEntry"
+          },
+          "description": "路由视图选项"
+        },
+        "markdown": {
+          "type": "string",
+          "maxLength": 4194304,
+          "description": "全量 index.md（每篇标题、路径和摘要，按文档树缩进）"
+        }
+      },
+      "required": [
+        "versionHash",
+        "entries",
+        "markdown"
+      ]
     }
   }
 }

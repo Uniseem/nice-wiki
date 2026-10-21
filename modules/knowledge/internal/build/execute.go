@@ -4,13 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"nice-wiki/libs/platform"
+	"nice-wiki/modules/knowledge/internal/card"
 	"nice-wiki/modules/knowledge/internal/chunk"
 	"nice-wiki/modules/knowledge/internal/extract"
 	"nice-wiki/modules/knowledge/internal/gen"
 	indexer "nice-wiki/modules/knowledge/internal/index"
 	modelruntime "nice-wiki/modules/knowledge/internal/model"
 	"nice-wiki/modules/knowledge/internal/source"
+	"os"
 	"time"
 	"unicode/utf8"
 )
@@ -161,6 +164,10 @@ func ExecuteBuild(ctx context.Context, op OperationContext, input JobExecutionIn
 		if err = FreezeBuildPlan(ctx, op, payload.BuildID, leaseID, "enriched_chunks", enriched); err != nil {
 			return JobExecutionResult{}, err
 		}
+	}
+	// 文档卡片只是问答路由的辅助：失败时保留旧卡片，索引照常上线，下次发布再补。
+	if err = card.RefreshCard(ctx, op, payload.BuildID, payload.Document, enriched); err != nil && os.Getenv("NW_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "文档卡片未更新 document=%s err=%v\n", payload.Document.DocumentId, err)
 	}
 	for start := 0; start < len(enriched); start += 256 {
 		if _, err = indexer.WriteStagingChunks(ctx, op, indexer.WriteStagingChunksInput{BuildID: payload.BuildID, Chunks: enriched[start:min(start+256, len(enriched))], LeaseID: leaseID}); err != nil {

@@ -19,6 +19,7 @@ import (
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/knowledge/internal/admin"
 	"nice-wiki/modules/knowledge/internal/build"
+	"nice-wiki/modules/knowledge/internal/card"
 	indexconfig "nice-wiki/modules/knowledge/internal/config"
 	"nice-wiki/modules/knowledge/internal/gen"
 	domainruntime "nice-wiki/modules/knowledge/internal/runtime"
@@ -94,6 +95,7 @@ func NewOperationHandlers(bind func(context.Context) context.Context) map[string
 		}),
 		"searchKnowledge":      jsonOperation(bind, search.Retrieve, http.StatusOK),
 		"readSections":         jsonOperation(bind, search.ReadSections, http.StatusOK),
+		"readDocumentIndex":    jsonOperation(bind, card.ReadDocumentIndex, http.StatusOK),
 		"createQueryEmbedding": jsonOperation(bind, search.CreateQueryEmbedding, http.StatusOK),
 		"getBuild": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx, op, err := operationContext(r, bind)
@@ -212,7 +214,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域HTTP合同不可读")
 	}
 	router, err := apivalidate.NewServiceHandler(schema, platform.ServiceBoundaryConfig{Self: "knowledge", Anchors: anchors, Runtime: func(ctx context.Context) (platform.RuntimeView, error) { return lifecycle.ReadRuntime(ctx, authority) }, OpenedDataEpoch: epoch, Authorize: authorize, MaxBodyBytes: 2 << 20, AllowedCallers: map[string][]string{
-		"readIndexConfig": {"portal"}, "putIndexConfig": {"portal"}, "readIndexOptions": {"portal"}, "createBuild": {"portal"}, "cancelBuild": {"portal"}, "listBuilds": {"portal"}, "getBuild": {"portal"}, "redactDiagnostics": {"portal"}, "estimateRebuildPlan": {"portal"}, "approveRebuildPlan": {"portal"}, "searchKnowledge": {"qa"}, "readSections": {"qa"}, "createQueryEmbedding": {"qa"}, "acquireBarrier": {"data-protection"}, "releaseBarrier": {"data-protection"}, "exportSnapshot": {"data-protection"}, "stageSnapshot": {"data-protection"}, "discardSnapshot": {"data-protection"}, "inspectEvidence": {"data-protection"}, "readJobRecovery": {"jobs"}}, ServiceActorCallers: map[string][]string{"searchKnowledge": {"qa"}, "readSections": {"qa"}, "createQueryEmbedding": {"qa"}, "readJobRecovery": {"jobs"}}, MaintenanceOperations: map[string]bool{"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "inspectEvidence": true, "readJobRecovery": true}}, handlers)
+		"readIndexConfig": {"portal"}, "putIndexConfig": {"portal"}, "readIndexOptions": {"portal"}, "createBuild": {"portal"}, "cancelBuild": {"portal"}, "listBuilds": {"portal"}, "getBuild": {"portal"}, "redactDiagnostics": {"portal"}, "estimateRebuildPlan": {"portal"}, "approveRebuildPlan": {"portal"}, "searchKnowledge": {"qa"}, "readSections": {"qa"}, "readDocumentIndex": {"qa"}, "createQueryEmbedding": {"qa"}, "acquireBarrier": {"data-protection"}, "releaseBarrier": {"data-protection"}, "exportSnapshot": {"data-protection"}, "stageSnapshot": {"data-protection"}, "discardSnapshot": {"data-protection"}, "inspectEvidence": {"data-protection"}, "readJobRecovery": {"jobs"}}, ServiceActorCallers: map[string][]string{"searchKnowledge": {"qa"}, "readSections": {"qa"}, "readDocumentIndex": {"qa"}, "createQueryEmbedding": {"qa"}, "readJobRecovery": {"jobs"}}, MaintenanceOperations: map[string]bool{"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "inspectEvidence": true, "readJobRecovery": true}}, handlers)
 	if err != nil {
 		return nil, err
 	}

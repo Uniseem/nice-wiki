@@ -112,7 +112,14 @@ func Retrieve(ctx context.Context, op OperationContext, input RetrieveInput) (Re
 		return RetrieveResult{}, err
 	}
 	ctx = context.WithValue(ctx, snapshotKey{}, snapshot)
-	lexical, err := SearchLexical(ctx, op, SearchLexicalInput{Normalized: query.Normalized, Language: input.Language, Limit: 80})
+	// 问答按文档路由选出的文档：只在这些文档里检索。
+	documents := map[string]bool{}
+	if input.DocumentIds != nil {
+		for _, id := range *input.DocumentIds {
+			documents[string(id)] = true
+		}
+	}
+	lexical, err := SearchLexical(ctx, op, SearchLexicalInput{Normalized: query.Normalized, Language: input.Language, Limit: 80, Documents: documents})
 	if err != nil {
 		return RetrieveResult{}, err
 	}
@@ -138,7 +145,7 @@ func Retrieve(ctx context.Context, op OperationContext, input RetrieveInput) (Re
 			}
 			embedding = result.Vector
 		}
-		vector, err = SearchVector(ctx, op, SearchVectorInput{Vector: embedding, Space: input.Space, Limit: 80})
+		vector, err = SearchVector(ctx, op, SearchVectorInput{Vector: embedding, Space: input.Space, Limit: 80, Documents: documents})
 		if err != nil {
 			return RetrieveResult{}, err
 		}

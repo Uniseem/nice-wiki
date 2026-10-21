@@ -30,12 +30,12 @@ const tokenizers = [
   { value: 'none;tiktoken-go@v0.7.0;cl100k_base', label: 'cl100k_base', description: '多数向量模型可用的近似计数' },
   { value: 'none;tiktoken-go@v0.7.0;o200k_base', label: 'o200k_base', description: 'OpenAI 新一代模型的分词' },
 ];
-// 任务目录与 contracts/ai-tasks.json 一致（23 项）；新增任务时这里要同步。
+// 任务目录与 contracts/ai-tasks.json 一致（25 项）；新增任务时这里要同步。
 const tasks: [string, string, string][] = [
   ['qa.preflight', 'fast', '前置分类、改写、完整性与风险'], ['qa.inspect', 'fast', '检索核查'], ['qa.answer', 'accurate', '最终回答'],
   ['qa.answer-fast', 'fast', '简单问题的快速回答'], ['qa.decide', 'decision', '每轮问答决策（意图、风险、难度）'],
   ['qa.cache-match', 'fast', '缓存同义复用判断'], ['qa.cache-translate', 'fast', '缓存回答翻译'], ['qa.compact', 'fast', '对话增量压缩'],
-  ['knowledge.context', 'fast', '检索单元背景上下文'], ['knowledge.describe', 'fast', '文字附件/视频公开元信息描述'],
+  ['knowledge.context', 'fast', '检索单元背景上下文'], ['knowledge.summary', 'fast', '文档卡片（摘要、主题、能回答的问题）'], ['knowledge.decide', 'decision', '知识索引决策（旧卡片是否仍准确）'], ['knowledge.describe', 'fast', '文字附件/视频公开元信息描述'],
   ['knowledge.describe-visual', 'vision', '图片、画板、视频封面视觉描述'], ['knowledge.extract-attachment', 'vision', '非文本附件内容提取'],
   ['knowledge.embed', 'embedding', '生成向量'], ['knowledge.rerank', 'rerank', '召回重排'],
   ['localization.document', 'accurate', '块级文档翻译'], ['localization.ui', 'accurate', '站点/界面文字翻译'], ['localization.terms', 'accurate', '首次文档术语抽取'],

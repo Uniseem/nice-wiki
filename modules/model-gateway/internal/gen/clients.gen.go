@@ -413,6 +413,9 @@ var AITaskCatalog = map[string]AITaskEntry{
 	"knowledge.context": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{
 		"chat",
 	}},
+	"knowledge.decide": {Owner: "knowledge", DefaultTier: "decision", RequiredCapabilities: []string{
+		"decision",
+	}},
 	"knowledge.describe": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{
 		"chat",
 	}},
@@ -427,6 +430,9 @@ var AITaskCatalog = map[string]AITaskEntry{
 	}},
 	"knowledge.rerank": {Owner: "knowledge", DefaultTier: "rerank", RequiredCapabilities: []string{
 		"rerank",
+	}},
+	"knowledge.summary": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
 	}},
 	"localization.document": {Owner: "localization", DefaultTier: "accurate", RequiredCapabilities: []string{
 		"chat",

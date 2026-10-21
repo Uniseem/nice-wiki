@@ -13,6 +13,8 @@ type SearchVectorInput struct {
 	Vector []float64          `json:"vector"`
 	Space  gen.EmbeddingSpace `json:"space"`
 	Limit  int                `json:"limit"`
+	// Documents 非空时只在这些文档里排名。
+	Documents map[string]bool `json:"-"`
 }
 type SearchVectorResult struct {
 	Candidates []gen.Candidate `json:"candidates"`
@@ -72,6 +74,9 @@ func SearchVector(ctx context.Context, op OperationContext, input SearchVectorIn
 	}
 	ranks := make([]ranked, 0)
 	for _, row := range snapshot.Rows {
+		if len(input.Documents) > 0 && !input.Documents[row.Chunk.Document.DocumentId] {
+			continue
+		}
 		if !validVector(row.Vector, input.Space.Dimensions) {
 			return SearchVectorResult{}, platform.NewError(platform.CodeIntegrityError, false, "索引向量损坏")
 		}

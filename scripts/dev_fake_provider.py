@@ -27,6 +27,12 @@ def reply_text(messages, last):
             return json.dumps({"items": [{"chunkId": i, "prefix": "（假背景）"} for i in ids]}, ensure_ascii=False)
         except Exception as e:
             return "{}"
+    if "概括卡片" in system:
+        try:
+            title = json.loads(last)["title"] or "文档"
+            return json.dumps({"summary": "（假摘要）介绍" + title + "。", "topics": [title], "questions": ["怎么使用" + title + "？"]}, ensure_ascii=False)
+        except Exception:
+            return "{}"
     if "分析资料边界内的问题" in system:
         try:
             q = json.loads(last)["question"]
