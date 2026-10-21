@@ -33,8 +33,8 @@ async function submit() {
     <p v-if="done" class="ok">口令已修改，正在进入后台…</p>
     <form @submit.prevent="submit">
       <label>旧口令</label><input v-model="oldPassword" type="password" autocomplete="current-password" required>
-      <label>新口令</label><input v-model="newPassword" type="password" autocomplete="new-password" required minlength="12">
-      <label>确认新口令</label><input v-model="confirmation" type="password" autocomplete="new-password" required minlength="12">
+      <label>新口令</label><input v-model="newPassword" type="password" autocomplete="new-password" required minlength="8">
+      <label>确认新口令</label><input v-model="confirmation" type="password" autocomplete="new-password" required minlength="8">
       <p v-if="error" class="error">{{ error }}</p>
       <div style="margin-top:.8rem"><button class="primary" :disabled="busy || done">修改口令</button></div>
     </form>
