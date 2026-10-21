@@ -545,6 +545,7 @@ export interface components {
         GuardQueueSessionAdmissionResult: components["schemas"]["QueueSessionAdmissionResult"];
         GetInvocationResult: components["schemas"]["types_GetInvocationResult"];
         LookupInvocationResult: components["schemas"]["types_LookupInvocationResult"];
+        KnowledgeReadDocumentIndexResult: components["schemas"]["ReadDocumentIndexResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /**
@@ -2440,6 +2441,34 @@ export interface components {
             output?: components["schemas"]["ModelOutput"];
         };
         types_LookupInvocationResult: components["schemas"]["types_GetInvocationResult"];
+        /** @description 文档索引视图里的一个选项：一篇文档或一个折叠后的分区 */
+        DocumentIndexEntry: {
+            /**
+             * @description 文档或分区
+             * @enum {string}
+             */
+            kind: "document" | "section";
+            /** @description 文档，或分区的根文档 */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 选项覆盖的全部文档（分区含根和全部后代） */
+            documentIds: components["schemas"]["Identifier"][];
+            /** @description 标题 */
+            title: string;
+            /** @description 规范路径 */
+            path: string;
+            /** @description 给决策模型的选项说明（按细节级别） */
+            text: string;
+            /** @description 文档 2 详细、1 摘要、0 只有主题；分区 -1 */
+            level: number;
+        };
+        ReadDocumentIndexResult: {
+            /** @description 发布树与卡片版本 */
+            versionHash: components["schemas"]["Hash"];
+            /** @description 路由视图选项 */
+            entries: components["schemas"]["DocumentIndexEntry"][];
+            /** @description 全量 index.md（每篇标题、路径和摘要，按文档树缩进） */
+            markdown: string;
+        };
     };
     responses: never;
     parameters: never;

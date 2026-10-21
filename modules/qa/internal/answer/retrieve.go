@@ -15,6 +15,16 @@ type RetrieveEvidenceInput struct {
 	Policy     gen.TypesQaPolicy         `json:"policy"`
 	Embedding  *qaruntime.QueryEmbedding `json:"embedding,omitempty"`
 	Language   string                    `json:"language"`
+	// DocumentIDs 是文档路由选出的文档：在它们里面另检索一次，和全站检索合并，防止路由选错时漏掉材料。
+	DocumentIDs []string `json:"documentIds,omitempty"`
+	// Select 是材料筛选：给出候选片段，返回要保留的片段 ID；nil 表示原样使用。
+	Select func([]EvidenceCandidate) []string `json:"-"`
+}
+
+// EvidenceCandidate 是交给材料筛选的一段候选材料。
+type EvidenceCandidate struct {
+	ChunkID string
+	Text    string
 }
 type RetrieveEvidenceResult struct {
 	Citations        []gen.Citation `json:"citations"`
@@ -51,54 +61,96 @@ func RetrieveEvidence(ctx context.Context, op OperationContext, input RetrieveEv
 		}
 		embedding = &created.Embedding
 	}
-	raw, err := runtime.Knowledge.SearchKnowledge(qaruntime.ServiceReadContext(ctx, op), struct {
-		Query         string                    `json:"query"`
-		Language      string                    `json:"language"`
-		Space         gen.EmbeddingSpace        `json:"space"`
-		MaximumTokens int                       `json:"maximumTokens"`
-		LexicalOnly   bool                      `json:"lexicalOnly"`
-		Embedding     *qaruntime.QueryEmbedding `json:"embedding"`
-		Permit        *platform.AdmissionPermit `json:"admissionPermit,omitempty"`
-	}{input.Normalized, runtime.BaseLanguage, input.Policy.RetrievalSpace, min(4096, input.Policy.MaximumContextTokens), false, embedding, runtime.AdmissionPermit})
+	search := func(documentIDs []string) ([]evidenceChunk, bool, string, error) {
+		request := map[string]any{"query": input.Normalized, "language": runtime.BaseLanguage, "space": input.Policy.RetrievalSpace, "maximumTokens": min(4096, input.Policy.MaximumContextTokens), "lexicalOnly": false, "embedding": embedding}
+		if runtime.AdmissionPermit != nil {
+			request["admissionPermit"] = runtime.AdmissionPermit
+		}
+		if len(documentIDs) > 0 {
+			request["documentIds"] = documentIDs
+		}
+		raw, err := runtime.Knowledge.SearchKnowledge(qaruntime.ServiceReadContext(ctx, op), request)
+		if err != nil {
+			return nil, false, "", err
+		}
+		var response struct {
+			Result struct {
+				Candidates []struct {
+					Chunk evidenceChunk `json:"chunk"`
+				} `json:"candidates"`
+				Space            gen.EmbeddingSpace `json:"space"`
+				IndexVersionHash string             `json:"indexVersionHash"`
+				Truncated        bool               `json:"truncated"`
+			} `json:"result"`
+		}
+		if err := qaruntime.DecodeResponse(runtime, "KnowledgeSearchResult", raw, &response); err != nil {
+			return nil, false, "", err
+		}
+		if response.Result.Space != input.Policy.RetrievalSpace || len(response.Result.Candidates) > 8 {
+			return nil, false, "", platform.NewError(platform.CodeIntegrityError, false, "证据结果空间或数量不一致")
+		}
+		chunks := make([]evidenceChunk, 0, len(response.Result.Candidates))
+		for _, candidate := range response.Result.Candidates {
+			chunks = append(chunks, candidate.Chunk)
+		}
+		return chunks, response.Result.Truncated, response.Result.IndexVersionHash, nil
+	}
+	global, truncated, indexVersion, err := search(nil)
 	if err != nil {
 		return RetrieveEvidenceResult{}, err
 	}
-	var response struct {
-		Result struct {
-			Candidates []struct {
-				Chunk evidenceChunk `json:"chunk"`
-			} `json:"candidates"`
-			Space            gen.EmbeddingSpace `json:"space"`
-			IndexVersionHash string             `json:"indexVersionHash"`
-			Truncated        bool               `json:"truncated"`
-		} `json:"result"`
-	}
-	if err := qaruntime.DecodeResponse(runtime, "KnowledgeSearchResult", raw, &response); err != nil {
-		return RetrieveEvidenceResult{}, err
-	}
-	if response.Result.Space != input.Policy.RetrievalSpace || len(response.Result.Candidates) > 8 {
-		return RetrieveEvidenceResult{}, platform.NewError(platform.CodeIntegrityError, false, "证据结果空间或数量不一致")
-	}
-	ids := make([]string, 0, len(response.Result.Candidates))
-	refs := make([]gen.PublishedRevisionRef, 0, len(response.Result.Candidates))
-	original := make(map[string]evidenceChunk)
-	for _, candidate := range response.Result.Candidates {
-		chunk := candidate.Chunk
-		if _, exists := original[chunk.ChunkID]; exists {
-			return RetrieveEvidenceResult{}, platform.NewError(platform.CodeIntegrityError, false, "证据结果分块标识重复")
+	merged := global
+	if len(input.DocumentIDs) > 0 {
+		routed, _, _, err := search(input.DocumentIDs)
+		if err != nil {
+			return RetrieveEvidenceResult{}, err
 		}
-		original[chunk.ChunkID] = chunk
+		merged = append(routed, global...)
+	}
+	original := make(map[string]evidenceChunk)
+	candidates := make([]evidenceChunk, 0, len(merged))
+	for _, chunk := range merged {
+		if _, exists := original[chunk.ChunkID]; !exists {
+			original[chunk.ChunkID] = chunk
+			candidates = append(candidates, chunk)
+		}
+	}
+	if input.Select != nil && len(candidates) > 0 {
+		offered := make([]EvidenceCandidate, len(candidates))
+		for i, chunk := range candidates {
+			offered[i] = EvidenceCandidate{ChunkID: chunk.ChunkID, Text: chunk.Text}
+		}
+		keep := map[string]bool{}
+		for _, id := range input.Select(offered) {
+			keep[id] = true
+		}
+		kept := candidates[:0]
+		for _, chunk := range candidates {
+			if keep[chunk.ChunkID] {
+				kept = append(kept, chunk)
+			}
+		}
+		candidates = kept
+	}
+	ids := make([]string, 0, 8)
+	refs := make([]gen.PublishedRevisionRef, 0, 8)
+	budget := min(4096, input.Policy.MaximumContextTokens)
+	for _, chunk := range candidates {
+		if len(ids) == 8 || chunk.TokenCount > budget {
+			continue
+		}
+		budget -= chunk.TokenCount
 		ids = append(ids, chunk.ChunkID)
 		refs = append(refs, chunk.Document)
 	}
-	result := RetrieveEvidenceResult{Citations: make([]gen.Citation, 0), EvidenceText: "[]", IndexVersionHash: response.Result.IndexVersionHash}
+	result := RetrieveEvidenceResult{Citations: make([]gen.Citation, 0), EvidenceText: "[]", IndexVersionHash: indexVersion}
 	if len(ids) == 0 {
-		if response.Result.Truncated {
+		if truncated && input.Select == nil {
 			return RetrieveEvidenceResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "材料预算不足，不能把未召回材料当作无来源答案")
 		}
 		return result, nil
 	}
-	raw, err = runtime.Knowledge.ReadSections(qaruntime.ServiceReadContext(ctx, op), struct {
+	raw, err := runtime.Knowledge.ReadSections(qaruntime.ServiceReadContext(ctx, op), struct {
 		IDs  []string                   `json:"chunkIds"`
 		Refs []gen.PublishedRevisionRef `json:"documentRefs"`
 	}{ids, refs})

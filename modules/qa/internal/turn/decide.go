@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 	"unicode/utf8"
 
 	"nice-wiki/libs/platform"
@@ -16,10 +15,11 @@ import (
 
 // turnDecision 是决策模型（如 Jev）对一轮提问的类型化判断；nil 表示决策模型不可用，本轮按原流程走。
 type turnDecision struct {
-	intent     string // docs / smalltalk / off_topic / unclear
-	risk       string // normal / suspicious / abusive
-	standalone bool   // 不看上文也能看懂
-	simple     bool   // 简单问题，可以用快速档回答
+	intent     string   // docs / smalltalk / off_topic / unclear
+	risk       string   // normal / suspicious / abusive
+	standalone bool     // 不看上文也能看懂
+	simple     bool     // 简单问题，可以用快速档回答
+	documents  []string // 文档路由选出的文档；空表示只做全站检索
 }
 
 // 判断阈值：拿不准时按“文档问题、正常、需要上文、复杂”处理，宁可多花一次调用也不误拒。
@@ -29,7 +29,7 @@ const (
 	difficultyConfidence = 0.7
 )
 
-// decideTurn 每轮先让决策模型做一次判断：意图、风险、是否独立、难度。模型 4 秒内没结果或出错就返回 nil。
+// decideTurn 每轮先让决策模型做一次判断：意图、风险、是否独立、难度，以及该读哪些文档（同一次调用）。模型 4 秒内没结果或出错就返回 nil。
 func decideTurn(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, conversation history.Conversation) *turnDecision {
 	decision, err := askDecision(ctx, op, record, conversation)
 	if err != nil {
@@ -80,20 +80,15 @@ func askDecision(ctx context.Context, op OperationContext, record qaruntime.Turn
 	if followup {
 		questions["standalone"] = platform.DecisionQuestion{Type: "noul", Instructions: "不看 recentConversation 和 earlierSummary，只看 question，能完全明白访客在问什么吗？出现“它”“这个”“上面说的”这类要靠上文才懂的指代时回答否。"}
 	}
-	work, cancel := context.WithTimeout(ctx, 4*time.Second)
-	defer cancel()
-	outcome, err := qaruntime.InvokeModel(work, op, qaruntime.InvokeModelInput{Request: platform.CreateInvocationInput{
-		TaskID: "qa.decide", ProfileID: profile, Capability: platform.CapabilityDecision, IDempotencyKey: "decide",
-		Messages: []platform.GatewayMessage{}, Texts: []string{}, CandidateIDs: []platform.Identifier{},
-		Decision: &platform.DecisionRequest{State: state, Questions: questions},
-	}})
+	// 文档路由放进同一次调用；文档索引读不到时这一轮只做全站检索。
+	var byKey map[string]qaruntime.DocumentIndexEntry
+	if entries, err := qaruntime.ReadDocumentIndex(ctx, op, ""); err == nil && len(entries) > 0 {
+		questions["document"], byKey = documentQuestion(entries)
+	}
+	answers, err := decide(ctx, op, profile, "decide", state, questions)
 	if err != nil {
 		return nil, err
 	}
-	if outcome.State != "completed" || outcome.CurrentSnapshot == nil || outcome.CurrentSnapshot.Output == nil {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "每轮决策结果未完成")
-	}
-	answers := outcome.CurrentSnapshot.Output.Decision
 	choice := func(id, fallback string, threshold float64) string {
 		answer, ok := answers[id]
 		if !ok || answer.Type != "choice" || answer.Probabilities[answer.Choice] < threshold {
@@ -110,8 +105,18 @@ func askDecision(ctx context.Context, op OperationContext, record qaruntime.Turn
 	if answer, ok := answers["standalone"]; followup && ok && answer.Noul != nil {
 		decision.standalone = *answer.Noul >= 0.5
 	}
+	if answer, ok := answers["document"]; ok && decision.standalone {
+		documents, expand := pickDocuments(answer, byKey)
+		if os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "文档路由 层级=0 选项=%d 文档=%d 展开分区=%q\n", len(byKey), len(documents), expand)
+		}
+		if expand != "" {
+			documents = routeDocuments(ctx, op, record.Question, expand, 1)
+		}
+		decision.documents = documents
+	}
 	if os.Getenv("NW_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "每轮决策 turn=%s intent=%s risk=%s standalone=%v simple=%v\n", record.Turn.TurnId, decision.intent, decision.risk, decision.standalone, decision.simple)
+		fmt.Fprintf(os.Stderr, "每轮决策 turn=%s intent=%s risk=%s standalone=%v simple=%v documents=%d\n", record.Turn.TurnId, decision.intent, decision.risk, decision.standalone, decision.simple, len(decision.documents))
 	}
 	return decision, nil
 }

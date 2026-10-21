@@ -51,7 +51,7 @@ type runtimeKey struct{}
 // NewRuntime 固定所有使用的生产方响应校验器；未知响应不当作成功。
 func NewRuntime(runtime Runtime) (Runtime, error) {
 	runtime.Validators = make(map[string]func(json.RawMessage) error)
-	for _, name := range []string{"QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
+	for _, name := range []string{"QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "KnowledgeReadDocumentIndexResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
 		validator, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if err != nil {
 			return Runtime{}, err
@@ -524,6 +524,84 @@ func PublishedTitles(ctx context.Context, op OperationContext) ([]string, error)
 		titles = append(titles, node.Title)
 	}
 	return titles, nil
+}
+
+// DocumentIndexEntry 是文档索引视图的一个选项：一篇文档或一个折叠后的分区。
+type DocumentIndexEntry struct {
+	Kind        string   `json:"kind"`
+	DocumentID  string   `json:"documentId"`
+	DocumentIDs []string `json:"documentIds"`
+	Title       string   `json:"title"`
+	Path        string   `json:"path"`
+	Text        string   `json:"text"`
+	Level       int      `json:"level"`
+}
+
+// ReadDocumentIndex 从知识索引读路由视图（按预算压缩过的文档卡片）；root 非空时只看该分区。
+// 重要度取近期问答引用各文档的次数，常被引用的文档保留更多细节。
+func ReadDocumentIndex(ctx context.Context, op OperationContext, root string) ([]DocumentIndexEntry, error) {
+	runtime, err := FromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if runtime.Knowledge == nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "知识索引权威未装配")
+	}
+	importance, err := citedDocuments(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+	type weight struct {
+		DocumentID string `json:"documentId"`
+		Weight     int    `json:"weight"`
+	}
+	weights := make([]weight, 0, len(importance))
+	for id, count := range importance {
+		weights = append(weights, weight{id, count})
+	}
+	request := map[string]any{"budgetTokens": 12000, "maxOptions": 120, "importance": weights}
+	if root != "" {
+		request["rootDocumentId"] = root
+	}
+	raw, err := runtime.Knowledge.ReadDocumentIndex(ServiceReadContext(ctx, op), request)
+	if err != nil {
+		return nil, err
+	}
+	var result struct {
+		Entries []DocumentIndexEntry `json:"entries"`
+	}
+	if err := DecodeResponse(runtime, "KnowledgeReadDocumentIndexResult", raw, &result); err != nil {
+		return nil, err
+	}
+	return result.Entries, nil
+}
+
+// citedDocuments 数近 500 轮已完成问答里各文档被引用的次数。
+func citedDocuments(ctx context.Context, op OperationContext) (map[string]int, error) {
+	tx, err := BeginRead(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Close()
+	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT citations_json FROM turns WHERE site_id=? AND data_epoch=? AND state='completed' ORDER BY created_ns DESC LIMIT 500`, op.Actor.SiteID, op.DataEpoch)
+	if err != nil {
+		return nil, StorageError(err)
+	}
+	defer rows.Close()
+	counts := map[string]int{}
+	for rows.Next() {
+		var raw []byte
+		if err := rows.Scan(&raw); err != nil {
+			return nil, StorageError(err)
+		}
+		var citations []gen.Citation
+		if json.Unmarshal(raw, &citations) == nil {
+			for _, citation := range citations {
+				counts[string(citation.Document.DocumentId)]++
+			}
+		}
+	}
+	return counts, StorageError(rows.Err())
 }
 
 // MemoryContext 是单一task/语言已渲染注入文本；字节数不包含JSON元数据。

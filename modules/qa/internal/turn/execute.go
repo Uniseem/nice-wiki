@@ -109,7 +109,17 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 		}
 		query = canonical.Normalized
 	}
-	evidence, err := answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language})
+	// 文档路由和材料筛选：独立问题在每轮决策里已经选好文档；追问改写出独立问题后再单独路由一次。
+	var documents []string
+	var selectEvidence func([]answer.EvidenceCandidate) []string
+	if decision != nil {
+		documents = decision.documents
+		if !decision.standalone && planned != nil {
+			documents = routeDocuments(ctx, op, query, "", 0)
+		}
+		selectEvidence = evidenceSelector(ctx, op, query)
+	}
+	evidence, err := answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language, DocumentIDs: documents, Select: selectEvidence})
 	if err != nil {
 		return err
 	}

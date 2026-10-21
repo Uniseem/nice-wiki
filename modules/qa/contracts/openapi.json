@@ -3295,6 +3295,9 @@
       },
       "LookupInvocationResult": {
         "$ref": "../../model-gateway/contracts/types.json#/$defs/LookupInvocationResult"
+      },
+      "KnowledgeReadDocumentIndexResult": {
+        "$ref": "../../knowledge/contracts/types.json#/$defs/ReadDocumentIndexResult"
       }
     }
   },
@@ -3332,6 +3335,7 @@
     "JobsRequestCancelResult",
     "GuardQueueSessionAdmissionResult",
     "GetInvocationResult",
-    "LookupInvocationResult"
+    "LookupInvocationResult",
+    "KnowledgeReadDocumentIndexResult"
   ]
 }
