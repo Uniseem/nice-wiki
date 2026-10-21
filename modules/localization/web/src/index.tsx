@@ -1,7 +1,7 @@
 import { Globe, Plus } from '@gravity-ui/icons';
 import { Button, Card, Chip, Form, Modal, Table } from '@heroui/react';
 import {
-  api, confirmAction, EmptyBlock, ErrorBlock, LoadingBlock, newKey, Notice, PageHeader, Panel, MiniStat, SelectInput, SwitchInput, TextInput,
+  adminLanguage, api, confirmAction, EmptyBlock, ErrorBlock, findSiteLanguage, LoadingBlock, newKey, Notice, PageHeader, Panel, MiniStat, SelectInput, siteLanguages, SwitchInput,
   useAction, useHasGrant, useLoad,
 } from '@ui';
 import { useEffect, useMemo, useState } from 'react';
@@ -11,9 +11,7 @@ type Progress = { language: string; completedUnits: number; queuedUnits: number;
 type Active = { translationId: string; documentId: string; language: string; state: string };
 type NavNode = { documentId: string; title?: string; publication: unknown };
 
-const rtlPrefixes = ['ar', 'he', 'fa', 'ur'];
-const suggestions = ['en', 'ja', 'ko', 'zh-Hant', 'fr', 'de', 'es', 'ru', 'pt'];
-const names = new Intl.DisplayNames(['zh-Hans'], { type: 'language' });
+const names = new Intl.DisplayNames([adminLanguage()], { type: 'language' });
 const nameOf = (tag: string) => { try { return names.of(tag) ?? tag; } catch { return tag; } };
 // 站点要求：基准语言之外的英文始终启用并在发布时自动翻译（AI 决策模型只读英文），不能关。
 const requiredEnglish = (language: Language) => !language.isDefault && /^en(-|$)/i.test(language.tag);
@@ -216,18 +214,18 @@ function Translations({ base, languages }: { base: string; languages: Language[]
   );
 }
 
+// 添加语言只能从预设的站点语言里选（服务端同样只接受这些）。
 function AddLanguage({ existing, onClose, onAdded }: { existing: string[]; onClose: () => void; onAdded: () => void }) {
-  const [tag, setTag] = useState('');
+  const available = siteLanguages.filter((language) => !existing.includes(language.tag));
+  const [tag, setTag] = useState(available[0]?.tag ?? '');
   const { busy, run } = useAction();
-  const valid = /^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$/.test(tag);
   const add = async () => {
-    const value = tag.trim();
     const done = await run(async () => {
       const idempotencyKey = newKey();
-      await api(`/v1/languages/${encodeURIComponent(value)}`, {
+      await api(`/v1/languages/${encodeURIComponent(tag)}`, {
         method: 'PUT', idempotencyKey, body: {
           expectedVersion: 0, idempotencyKey, language: {
-            tag: value, version: 1, enabled: false, isDefault: false, automaticTranslation: false, direction: rtlPrefixes.includes(value.split('-')[0]) ? 'rtl' : 'ltr',
+            tag, version: 1, enabled: false, isDefault: false, automaticTranslation: false, direction: findSiteLanguage(tag)?.direction ?? 'ltr',
             reflectionEnabled: false, batchOutputTokens: 1000, translationMemoryMinimumCharacters: 20,
           },
         },
@@ -242,18 +240,22 @@ function AddLanguage({ existing, onClose, onAdded }: { existing: string[]; onClo
         <Modal.Dialog>
           <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>添加语言</Modal.Heading></Modal.Header>
-          <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); if (valid) void add(); }}>
+          <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); if (tag) void add(); }}>
             <Modal.Body className="flex flex-col gap-4">
-              <TextInput autoFocus isRequired description={valid ? `将添加：${nameOf(tag)}` : 'BCP 47 语言标签，如 en、ja、zh-Hant。'} error={tag && !valid ? '格式不对' : existing.includes(tag) ? '这个语言已经存在' : null} label="语言标签" value={tag} onChange={setTag} />
-              <div className="flex flex-wrap gap-1.5">
-                {suggestions.filter((item) => !existing.includes(item)).map((item) => (
-                  <Button key={item} size="sm" variant={tag === item ? 'primary' : 'tertiary'} onPress={() => setTag(item)}>{nameOf(item)}</Button>
-                ))}
-              </div>
+              {available.length ? (
+                <div className="grid grid-cols-2 gap-1.5">
+                  {available.map((language) => (
+                    <Button key={language.tag} size="sm" variant={tag === language.tag ? 'primary' : 'tertiary'} onPress={() => setTag(language.tag)}>
+                      <span lang={language.tag}>{language.native}</span>
+                    </Button>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-muted">预设的语言都已添加。</p>}
+              {tag && <p className="text-sm text-muted">将添加：{nameOf(tag)}</p>}
             </Modal.Body>
             <Modal.Footer>
               <Button variant="tertiary" onPress={onClose}>取消</Button>
-              <Button isDisabled={!valid || existing.includes(tag)} isPending={busy} type="submit">添加</Button>
+              <Button isDisabled={!tag} isPending={busy} type="submit">添加</Button>
             </Modal.Footer>
           </Form>
         </Modal.Dialog>

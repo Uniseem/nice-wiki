@@ -1,12 +1,13 @@
 import { ArrowRight, Globe, Lock, Person } from '@gravity-ui/icons';
 import { Button, Card, Form, Spinner } from '@heroui/react';
-import { api, errorText, Notice, SelectInput, storeSession, TextInput, ThemeMenu } from '@ui';
+import { adminLanguage, api, chosenAdminLanguage, errorText, findSiteLanguage, Notice, setAdminLanguage, siteLanguages, storeSession, TextInput, ThemeMenu } from '@ui';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ensureBaseLanguage, type Account } from './App';
 import { SiteMark, useSiteBrand } from './brand';
 
-// 进入后台的向导：还没有账号 → 注册唯一的超级管理员；已有账号 → 登录；登录后站点未初始化 → 填站点名与基准语言。
-type Step = 'loading' | 'register' | 'login' | 'site';
+// 进入后台的向导。首次进站：选语言 → 注册唯一的超级管理员 → 填站点名完成初始化；所选语言既是站点基准语言，也是后台界面语言。
+// 已有账号 → 登录；登录后站点还没初始化 → 继续选语言和填站点名。
+type Step = 'loading' | 'language' | 'register' | 'login' | 'site';
 type SessionReply = { session: { csrfToken: string; sessionId: string; auth?: { grants?: string[] } }; account?: Account };
 
 // 登录设备列表里显示的说明，如“Chrome · macOS”；只取浏览器和系统名，不带版本号。
@@ -17,27 +18,34 @@ function deviceLabel(): string {
   return system ? `${browser} · ${system}` : browser;
 }
 
-export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => Promise<void> }) {
+export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Account) => Promise<void>; pending?: Account }) {
   const [step, setStep] = useState<Step>('loading');
   const [accountName, setAccountName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [siteName, setSiteName] = useState('');
-  const [baseLanguage, setBaseLanguage] = useState<'zh-Hans' | 'en'>('zh-Hans');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
   const brand = useSiteBrand();
 
+  // 站点还没初始化时，没选过语言就先选语言（选完整页刷新，界面换成该语言）。
+  const setupStep = (next: Step): Step => (chosenAdminLanguage() ? next : 'language');
+
   useEffect(() => {
+    if (pending) {
+      setAccount(pending);
+      setStep(setupStep('site'));
+      return;
+    }
     api<{ registrationOpen: boolean }>('/v1/registration')
       .then((state) => {
         // 只有创建第一个管理员时预填 admin；登录页留空，子账号不用先删掉它。
         if (state.registrationOpen) setAccountName('admin');
-        setStep(state.registrationOpen ? 'register' : 'login');
+        setStep(state.registrationOpen ? setupStep('register') : 'login');
       })
       .catch((problem) => { setError(errorText(problem)); setStep('login'); });
-  }, []);
+  }, [pending]);
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -50,7 +58,7 @@ export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => P
     const signedIn = result.account ?? (await api<{ account: Account }>('/v1/self')).account;
     const init = await api<{ initialized: boolean }>('/v1/initialization');
     if (init.initialized) await onSignedIn(signedIn);
-    else { setAccount(signedIn); setStep('site'); }
+    else { setAccount(signedIn); setStep(setupStep('site')); }
   }
 
   const submit = () => run(async () => {
@@ -60,17 +68,18 @@ export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => P
     } else if (step === 'login') {
       await afterLogin(await api<SessionReply>('/v1/sessions', { method: 'POST', body: { accountName, password, deviceLabel: deviceLabel() } }));
     } else if (step === 'site') {
-      await api('/v1/initialization', { method: 'POST', body: { name: siteName, baseLanguage } });
-      await ensureBaseLanguage(baseLanguage);
+      await api('/v1/initialization', { method: 'POST', body: { name: siteName, baseLanguage: adminLanguage() } });
+      await ensureBaseLanguage(adminLanguage());
       await onSignedIn(account!);
     }
   });
 
   const heading: Record<Step, [string, string]> = {
     loading: ['', ''],
+    language: ['', ''],
     register: ['创建管理员账号', '这是站点的第一个账号，将成为唯一的超级管理员。'],
     login: ['登录后台', '使用管理员分配的账号和口令登录。'],
-    site: ['初始化站点', '给站点起个名字，并选择文档的基准语言。初始化不调用模型。'],
+    site: ['初始化站点', '给站点起个名字。初始化不调用模型。'],
   };
 
   return (
@@ -83,9 +92,11 @@ export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => P
           <div className="text-xs text-muted">文档站后台</div>
         </div>
       </div>
-      <Card className="w-full max-w-sm gap-6 p-6 sm:p-8">
+      <Card className={step === 'language' ? 'w-full max-w-lg gap-6 p-6 sm:p-8' : 'w-full max-w-sm gap-6 p-6 sm:p-8'}>
         {step === 'loading' ? (
           <div className="flex justify-center py-10"><Spinner /></div>
+        ) : step === 'language' ? (
+          <LanguagePicker />
         ) : (
           <>
             <Card.Header className="gap-1.5">
@@ -96,13 +107,14 @@ export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => P
               {step === 'site' ? (
                 <>
                   <TextInput autoFocus isRequired label="站点名称" maxLength={120} placeholder="例如：产品文档" value={siteName} onChange={setSiteName} />
-                  <SelectInput
-                    description="文档按这个语言写作，其他语言通过翻译生成。"
-                    label="基准语言"
-                    options={[{ value: 'zh-Hans', label: '简体中文（zh-Hans）' }, { value: 'en', label: 'English（en）' }]}
-                    value={baseLanguage}
-                    onChange={setBaseLanguage}
-                  />
+                  <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-secondary px-3 py-2.5">
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted">基准语言</div>
+                      <div className="text-sm font-medium text-foreground">{findSiteLanguage(adminLanguage())?.native}</div>
+                    </div>
+                    <Button size="sm" variant="ghost" onPress={() => setAdminLanguage('')}>更换</Button>
+                  </div>
+                  <p className="text-xs leading-5 text-muted">文档按这个语言写作，其他语言通过翻译生成；初始化后不能更改。后台界面也用这个语言。</p>
                 </>
               ) : (
                 <>
@@ -129,6 +141,27 @@ export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => P
       </Card>
       <p className="mt-6 text-xs text-muted">忘记口令请联系超级管理员重置。</p>
     </div>
+  );
+}
+
+// 首次进站的第一页：选站点语言。这时还不知道访客读哪种语言，标题用双语，选项用各语言自己的名字。
+function LanguagePicker() {
+  return (
+    <>
+      <Card.Header className="gap-1.5">
+        {/* i18n-ignore：选语言之前的固定双语标题 */}
+        <Card.Title className="text-xl font-semibold">选择语言 · Choose a language</Card.Title>
+        {/* i18n-ignore */}
+        <Card.Description className="leading-6">站点文档和后台都用这个语言，之后还能添加其他语言。<br />Your docs and this admin will use it. You can add more languages later.</Card.Description>
+      </Card.Header>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {siteLanguages.map((language) => (
+          <Button key={language.tag} className="justify-start" variant="tertiary" onPress={() => setAdminLanguage(language.tag)}>
+            <span dir={language.direction} lang={language.tag}>{language.native}</span>
+          </Button>
+        ))}
+      </div>
+    </>
   );
 }
 

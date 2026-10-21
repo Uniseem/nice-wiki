@@ -14,7 +14,8 @@ export type Account = {
   siteId?: string;
 };
 
-type Phase = { kind: 'loading' } | { kind: 'auth' } | { kind: 'app'; account: Account };
+// auth 阶段带 pending：已登录但站点还没初始化，直接进初始化向导。
+type Phase = { kind: 'loading' } | { kind: 'auth'; pending?: Account } | { kind: 'app'; account: Account };
 
 // React Aria 自带文字（日期选择等）按地区写法认语言。
 const ariaLocale: Record<string, string> = { 'zh-Hans': 'zh-CN', 'zh-Hant': 'zh-TW', pt: 'pt-BR' };
@@ -50,6 +51,8 @@ export function App() {
         const self = await api<{ account: Account }>('/v1/self');
         // 授权项只在登录/刷新响应里；新开标签页时会话存储为空，静默刷新一次补上。
         if (!currentGrants().length) await refresh();
+        const init = await api<{ initialized: boolean }>('/v1/initialization');
+        if (!init.initialized) { setPhase({ kind: 'auth', pending: self.account }); return; }
         await enter(self.account);
       } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 401) console.error(error);
@@ -76,7 +79,7 @@ export function App() {
         <Toast.Provider placement="top" />
         <DialogHost />
         {phase.kind === 'loading' && <div className="flex min-h-dvh items-center justify-center"><CenteredSpinner /></div>}
-        {phase.kind === 'auth' && <AuthScreen onSignedIn={enter} />}
+        {phase.kind === 'auth' && <AuthScreen pending={phase.pending} onSignedIn={enter} />}
         {phase.kind === 'app' && <AdminLayout account={phase.account} onAccountChange={(account) => setPhase({ kind: 'app', account })} onSignOut={signOut} />}
       </I18nProvider>
     </RouterProvider>
