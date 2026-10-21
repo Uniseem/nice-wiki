@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"database/sql"
+	"errors"
 	"net/http"
 	"nice-wiki/libs/platform"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
@@ -125,6 +126,33 @@ func OpenAttemptCredential(ctx context.Context, op OperationContext, attemptID s
 	if epoch != op.DataEpoch {
 		return nil, platform.NewError(platform.CodeStaleResult, false, "原凭据引用代际已变化")
 	}
+	return openCredential(store, attempt.Provider.ProviderId, attempt.CredentialVersion, nonce, ciphertext)
+}
+
+// OpenProviderCredential 取供应方当前有效密钥，供管理员拉取模型列表这类只读外呼；没有密钥返回 NOT_FOUND。
+func OpenProviderCredential(ctx context.Context, op OperationContext, providerID string) ([]byte, error) {
+	store := gatewayruntime.CurrentStore()
+	if store == nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "凭据私有存储未装配")
+	}
+	tx, err := store.BeginTx(ctx)
+	if err != nil {
+		return nil, credentialStorageError(err)
+	}
+	var version int
+	var nonce, ciphertext []byte
+	err = tx.QueryRowContext(ctx, `SELECT c.credential_version,c.nonce,c.ciphertext FROM providers p JOIN credentials c ON c.provider_id=p.provider_id AND c.credential_version=p.credential_version AND c.data_epoch=p.data_epoch WHERE p.provider_id=? AND p.data_epoch=?`, providerID, op.DataEpoch).Scan(&version, &nonce, &ciphertext)
+	_ = tx.Rollback()
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, platform.NewError(platform.CodeNotFound, false, "供应方还没有设置密钥")
+	}
+	if err != nil {
+		return nil, credentialStorageError(err)
+	}
+	return openCredential(store, providerID, version, nonce, ciphertext)
+}
+
+func openCredential(store *gatewayruntime.Store, providerID string, version int, nonce, ciphertext []byte) ([]byte, error) {
 	key, err := loadCredentialMasterKey(store.MasterKeyRef())
 	if err != nil {
 		return nil, err
@@ -142,7 +170,7 @@ func OpenAttemptCredential(ctx context.Context, op OperationContext, attemptID s
 		Format            string `json:"format"`
 		ProviderID        string `json:"providerId"`
 		CredentialVersion int    `json:"credentialVersion"`
-	}{"credential-aes256gcm-v1", attempt.Provider.ProviderId, attempt.CredentialVersion})
+	}{"credential-aes256gcm-v1", providerID, version})
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, aad)
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "原凭据认证失败")

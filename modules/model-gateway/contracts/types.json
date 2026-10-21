@@ -5910,6 +5910,205 @@
           }
         }
       ]
+    },
+    "ReadProviderCatalogResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providers": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/CatalogProvider"
+          },
+          "description": "热门在前，其余按名称排序"
+        }
+      },
+      "required": [
+        "providers"
+      ],
+      "description": "内置目录里可直接接入的供应方。封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CatalogProvider": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "catalogId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "目录里的供应方标识，如 alibaba-cn"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "显示名"
+        },
+        "baseUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "接口根地址"
+        },
+        "adapter": {
+          "type": "string",
+          "enum": [
+            "openai_chat",
+            "anthropic_messages",
+            "gemini"
+          ],
+          "description": "调用协议；同一供应方的向量模型按协议自动走嵌入接口"
+        },
+        "keyNames": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "description": "该供应方常用的密钥环境变量名，仅作提示"
+        },
+        "modelCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000,
+          "description": "目录里的模型数"
+        },
+        "popular": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "热门排序，从 1 开始；0 表示不在热门里"
+        }
+      },
+      "required": [
+        "catalogId",
+        "name",
+        "baseUrl",
+        "adapter",
+        "keyNames",
+        "modelCount",
+        "popular"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DiscoverProviderModelsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "listed": {
+          "type": "boolean",
+          "description": "是否拿到了供应方自己的模型列表；false 时 models 只来自内置目录"
+        },
+        "listProblem": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "没拿到列表的原因（不含密钥和响应正文）"
+        },
+        "catalogId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "按接口地址匹配到的目录供应方"
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 5000,
+          "items": {
+            "$ref": "#/$defs/AvailableModel"
+          },
+          "description": "按名称排序"
+        }
+      },
+      "required": [
+        "listed",
+        "models"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "AvailableModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerModelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "调用时传给供应方的模型名"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "显示名，目录里没有时等于模型名"
+        },
+        "capabilities": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "enum": [
+              "chat",
+              "vision",
+              "embedding",
+              "rerank",
+              "reasoning"
+            ]
+          },
+          "description": "按目录模态和模型名推断的能力，添加前可改"
+        },
+        "contextWindow": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "上下文窗口（目录给出时）"
+        },
+        "maxOutputTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "最大输出（目录给出时）"
+        },
+        "inCatalog": {
+          "type": "boolean",
+          "description": "内置目录里有这个模型"
+        },
+        "listedByProvider": {
+          "type": "boolean",
+          "description": "供应方列表里有这个模型（账号当前可用）"
+        }
+      },
+      "required": [
+        "providerModelId",
+        "name",
+        "capabilities",
+        "inCatalog",
+        "listedByProvider"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ReadProviderCatalogInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "description": "无输入。封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DiscoverProviderModelsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "providerId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "已保存的供应方，来自路径"
+        }
+      },
+      "required": [
+        "providerId"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     }
   }
 }

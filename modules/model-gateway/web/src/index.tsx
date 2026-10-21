@@ -4,10 +4,11 @@ import {
   api, askText, CheckGroupInput, ErrorBlock, FormGrid, LoadingBlock, Mono, newKey, Notice, notify, NumberInput, PageHeader, SelectInput, TextInput, useAction, useLoad,
 } from '@ui';
 import { useState, type ReactNode } from 'react';
+import { AddModelsDialog, ConnectProviderDialog, protocolLabels } from './connect';
 
 type Money = { currency: string; micros: number };
 type Provider = { providerId: string; displayName: string; adapter: string; baseUrl: string; credentialConfigured: boolean; credentialVersion: number };
-type Model = { modelId: string; providerId: string; providerModelVersion: string; capabilities: string[]; maxInputTokens: number; maxOutputTokens: number; enabled: boolean };
+type Model = { modelId: string; version: number; providerId: string; providerModelVersion: string; capabilities: string[]; dimension: number; preprocessorVersion: string; maxInputTokens: number; maxOutputTokens: number; catalogOrigin: string; manualOverride: boolean; enabled: boolean };
 type Profile = { profileId: string; version: number; costClass: string; tier: string; orderedModelIds: string[]; maximumCost: Money; dailyLimitCost: Money; concurrency: number };
 type Assignment = { taskId: string; tier: string; version: number; overrideModelId?: string };
 type Catalog = { providers: Provider[]; models: Model[]; profiles: Profile[]; taskAssignments: Assignment[] };
@@ -15,10 +16,6 @@ type Catalog = { providers: Provider[]; models: Model[]; profiles: Profile[]; ta
 const tiers: Record<string, string> = { fast: '快速', accurate: '准确', vision: '视觉', embedding: '向量', rerank: '重排' };
 // 计费暂停：费用类别在界面上只当“用途”展示，不再有价格和费用上限。
 const costClasses: Record<string, string> = { qa: '访客问答', background: '后台任务', 'admin-probe': '连接测试' };
-const adapters: Record<string, string> = {
-  openai_chat: 'OpenAI 兼容对话', anthropic_messages: 'Anthropic 消息', gemini: 'Gemini 对话',
-  openai_embeddings: 'OpenAI 兼容向量', gemini_embeddings: 'Gemini 向量', rerank: '重排序',
-};
 const capabilities = [
   { value: 'chat', label: '对话', description: '回答、翻译、分类等文本生成' },
   { value: 'vision', label: '视觉', description: '读图、描述画板和封面' },
@@ -50,7 +47,8 @@ const idPattern = '[A-Za-z0-9._:-]+';
 export default function ModelsPage() {
   const catalog = useLoad((signal) => api<Catalog>('/v1/admin/catalog', { signal }), []);
   const [tab, setTab] = useState('providers');
-  const [dialog, setDialog] = useState<'provider' | 'model' | Profile | 'profile' | null>(null);
+  const [dialog, setDialog] = useState<'provider' | 'models' | 'manual-model' | Profile | 'profile' | null>(null);
+  const [modelsProvider, setModelsProvider] = useState<string | undefined>();
   const { busy, run } = useAction();
 
   const autoSetup = async () => {
@@ -92,6 +90,12 @@ export default function ModelsPage() {
     }, '密钥已加密保存');
   };
 
+  const toggleModel = (model: Model) => run(async () => {
+    const idempotencyKey = newKey();
+    await api(`/v1/admin/models/${encodeURIComponent(model.modelId)}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: model.version, idempotencyKey, model: { ...model, version: model.version + 1, enabled: !model.enabled } } });
+    catalog.reload();
+  }, model.enabled ? '模型已停用，档位里不会再选它' : '模型已启用');
+
   const assign = (task: [string, string, string], modelId: string) => run(async () => {
     const [taskId, tier] = task;
     const existing = catalog.data!.taskAssignments.find((item) => item.taskId === taskId);
@@ -130,11 +134,11 @@ export default function ModelsPage() {
               </Tabs.List>
             </Tabs.ListContainer>
             <Tabs.Panel id="providers">
-              <Section action={<Button variant="secondary" onPress={() => setDialog('provider')}><Plus />添加供应方</Button>} hint="供应方是模型服务的接入点（地址 + 协议 + 密钥）。">
+              <Section action={<Button variant="secondary" onPress={() => setDialog('provider')}><Plus />接入供应方</Button>} hint="从 models.dev 目录里选供应方，只需填密钥；同一个供应方的对话和向量模型共用一个接入。">
                 <DataTable label="供应方" columns={['名称', '协议', '地址', '密钥', '']} empty="还没有供应方。先添加一个，再设置密钥。" rows={c.providers.map((provider) => [
                   provider.providerId,
                   <span><span className="block font-medium">{provider.displayName}</span><Mono>{provider.providerId}</Mono></span>,
-                  adapters[provider.adapter] ?? provider.adapter,
+                  protocolLabels[provider.adapter] ?? provider.adapter,
                   <span className="break-all text-sm text-muted">{provider.baseUrl}</span>,
                   provider.credentialConfigured ? <Chip color="success" size="sm" variant="soft">已配置 · v{provider.credentialVersion}</Chip> : <Chip color="warning" size="sm" variant="soft">未配置</Chip>,
                   <Button isDisabled={busy} size="sm" variant="secondary" onPress={() => saveSecret(provider)}><KeyIcon />{provider.credentialConfigured ? '轮换' : '设置密钥'}</Button>,
@@ -142,14 +146,15 @@ export default function ModelsPage() {
               </Section>
             </Tabs.Panel>
             <Tabs.Panel id="models">
-              <Section action={<Button isDisabled={!c.providers.length} variant="secondary" onPress={() => setDialog('model')}><Plus />添加模型</Button>} hint="模型属于某个供应方，能力决定它能进入哪个级别的档位。">
-                <DataTable label="模型" columns={['模型', '供应方', '能力', '上下文 / 输出', '状态']} empty="还没有模型。" rows={c.models.map((model) => [
+              <Section action={<Button isDisabled={!c.providers.length} variant="secondary" onPress={() => { setModelsProvider(undefined); setDialog('models'); }}><Plus />添加模型</Button>} hint="从供应方拉取账号可用的模型勾选添加；能力决定它能进入哪个级别的档位。停用的模型不会再被选进档位。">
+                <DataTable label="模型" columns={['模型', '供应方', '能力', '上下文 / 输出', '状态', '']} empty="还没有模型。" rows={c.models.map((model) => [
                   model.modelId,
                   <span><span className="block font-medium">{model.providerModelVersion}</span><Mono>{model.modelId}</Mono></span>,
                   c.providers.find((provider) => provider.providerId === model.providerId)?.displayName ?? model.providerId,
                   <span className="flex flex-wrap gap-1">{model.capabilities.map((cap) => <Chip key={cap} size="sm" variant="soft">{capabilities.find((item) => item.value === cap)?.label ?? extraCapabilityLabels[cap] ?? cap}</Chip>)}</span>,
                   <span className="tabular-nums">{model.maxInputTokens.toLocaleString()} / {model.maxOutputTokens.toLocaleString()}</span>,
                   <Chip color={model.enabled ? 'success' : 'default'} size="sm" variant="soft">{model.enabled ? '启用' : '停用'}</Chip>,
+                  <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => void toggleModel(model)}>{model.enabled ? '停用' : '启用'}</Button>,
                 ])} />
               </Section>
             </Tabs.Panel>
@@ -182,8 +187,9 @@ export default function ModelsPage() {
           </Tabs>
         </>
       )}
-      {dialog === 'provider' && <ProviderDialog onClose={() => setDialog(null)} onSaved={() => { setDialog(null); catalog.reload(); setTab('providers'); }} />}
-      {dialog === 'model' && c && <ModelDialog providers={c.providers} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); catalog.reload(); setTab('models'); }} />}
+      {dialog === 'provider' && c && <ConnectProviderDialog existing={c.providers} onClose={() => setDialog(null)} onConnected={(providerId) => { catalog.reload(); setModelsProvider(providerId); setDialog('models'); }} />}
+      {dialog === 'models' && c && <AddModelsDialog initialProviderId={modelsProvider} models={c.models} providers={c.providers} onClose={() => setDialog(null)} onManual={() => setDialog('manual-model')} onSaved={() => { setDialog(null); catalog.reload(); setTab('models'); }} />}
+      {dialog === 'manual-model' && c && <ModelDialog providers={c.providers} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); catalog.reload(); setTab('models'); }} />}
       {(dialog === 'profile' || (dialog && typeof dialog === 'object')) && c && (
         <ProfileDialog models={c.models} profile={typeof dialog === 'object' ? dialog : null} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); catalog.reload(); }} />
       )}
@@ -261,36 +267,6 @@ function Dialog({ title, onClose, onSubmit, busy, submitLabel, children }: { tit
   );
 }
 
-function ProviderDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ providerId: '', adapter: 'openai_chat', baseUrl: 'https://', displayName: '' });
-  const { busy, run } = useAction();
-  const submit = async () => {
-    const done = await run(async () => {
-      const idempotencyKey = newKey();
-      await api(`/v1/admin/providers/${form.providerId}`, {
-        method: 'PUT', idempotencyKey, body: {
-          expectedVersion: 0, idempotencyKey, provider: {
-            providerId: form.providerId, version: 1, adapter: form.adapter, baseUrl: form.baseUrl, enabled: true, credentialVersion: 0, connectTimeoutMs: 5000, requestTimeoutMs: 60000,
-            displayName: form.displayName || form.providerId, extraHeaderNames: [], extraHeaderSecretRefs: [], concurrencyLimit: 4, streamIdleTimeoutMs: 30000,
-          },
-        },
-      });
-      return true;
-    }, '供应方已添加，请接着设置密钥');
-    if (done) onSaved();
-  };
-  return (
-    <Dialog busy={busy} submitLabel="添加" title="添加供应方" onClose={onClose} onSubmit={() => void submit()}>
-      <FormGrid>
-        <TextInput isRequired description="字母、数字和 . _ : -，之后不能改。" label="供应方 ID" pattern={idPattern} placeholder="openai" value={form.providerId} onChange={(providerId) => setForm({ ...form, providerId })} />
-        <TextInput label="显示名" placeholder="OpenAI" value={form.displayName} onChange={(displayName) => setForm({ ...form, displayName })} />
-      </FormGrid>
-      <SelectInput label="协议" options={Object.entries(adapters).map(([value, label]) => ({ value, label }))} value={form.adapter} onChange={(adapter) => setForm({ ...form, adapter })} />
-      <TextInput isRequired description="接口根地址，例如 https://api.example.com/v1" label="地址" pattern="https?://.+" type="url" value={form.baseUrl} onChange={(baseUrl) => setForm({ ...form, baseUrl })} />
-    </Dialog>
-  );
-}
-
 function ModelDialog({ providers, onClose, onSaved }: { providers: Provider[]; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({ modelId: '', providerId: providers[0]?.providerId ?? '', providerModelVersion: '', capabilities: ['chat'] as string[], dimension: 0, tokenizer: tokenizers[0].value, maxInputTokens: 128000, maxOutputTokens: 4096 });
   const { busy, run } = useAction();
@@ -311,7 +287,7 @@ function ModelDialog({ providers, onClose, onSaved }: { providers: Provider[]; o
     if (done) onSaved();
   };
   return (
-    <Dialog busy={busy} submitLabel="添加" title="添加模型" onClose={onClose} onSubmit={() => void submit()}>
+    <Dialog busy={busy} submitLabel="添加" title="手动添加模型" onClose={onClose} onSubmit={() => void submit()}>
       <FormGrid>
         <TextInput isRequired description="网关内部使用的 ID。" label="模型 ID" pattern={idPattern} placeholder="gpt-main" value={form.modelId} onChange={(modelId) => setForm({ ...form, modelId })} />
         <SelectInput isRequired label="供应方" options={providers.map((provider) => ({ value: provider.providerId, label: provider.displayName }))} value={form.providerId} onChange={(providerId) => setForm({ ...form, providerId })} />
@@ -363,7 +339,7 @@ function ProfileDialog({ models, profile, onClose, onSaved }: { models: Model[];
     if (done) onSaved();
   };
   // 只列出具备该级别所需能力的模型（快速/准确要对话，视觉要视觉……）。
-  const remaining = models.filter((model) => !form.modelIds.includes(model.modelId) && model.capabilities.includes(tierCapability[form.tier] ?? 'chat'));
+  const remaining = models.filter((model) => model.enabled && !form.modelIds.includes(model.modelId) && model.capabilities.includes(tierCapability[form.tier] ?? 'chat'));
   return (
     <Dialog busy={busy} submitLabel="保存" title={profile ? `编辑档位 ${profile.profileId}` : '新建档位'} onClose={onClose} onSubmit={() => void submit()}>
       <FormGrid columns={3}>

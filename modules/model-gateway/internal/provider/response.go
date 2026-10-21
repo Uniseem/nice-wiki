@@ -437,7 +437,7 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 				done = true
 				return nil
 			}
-			if err := ConsumeProviderFrame([]byte(raw), string(provider.Adapter), capability, request.ModelVersion, request.ReportedCurrency, &outcome, writeText); err != nil {
+			if err := ConsumeProviderFrame([]byte(raw), EffectiveAdapter(string(provider.Adapter), capability), capability, request.ModelVersion, request.ReportedCurrency, &outcome, writeText); err != nil {
 				return err
 			}
 			var terminal struct {
@@ -487,7 +487,7 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 		if len(raw) > 32<<20 {
 			return outcome, platform.NewError(platform.CodeBudgetExceeded, false, "供应方响应超过32MiB预算")
 		}
-		if err := ConsumeProviderFrame(raw, string(provider.Adapter), capability, request.ModelVersion, request.ReportedCurrency, &outcome, writeText); err != nil {
+		if err := ConsumeProviderFrame(raw, EffectiveAdapter(string(provider.Adapter), capability), capability, request.ModelVersion, request.ReportedCurrency, &outcome, writeText); err != nil {
 			return outcome, err
 		}
 		if capability == "rerank" && response.StatusCode < 400 {

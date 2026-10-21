@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 248 个函数：约束 43 个，参考 205 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 250 个函数：约束 45 个，参考 205 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -11083,3 +11083,91 @@ export default function ModelsPage(): React.JSX.Element
 - 并发：单页面实例；切换页面时取消未完成的读取
 - 幂等：写操作带 Idempotency-Key 与版本前提
 - 依赖：无
+
+## model-gateway.ReadProviderCatalog
+
+- 级别：约束
+- 文件：`modules/model-gateway/internal/catalog/discover.go`
+- 作用：读取可直接接入的供应方目录
+
+```go
+func ReadProviderCatalog(ctx context.Context, op OperationContext, input ReadProviderCatalogInput) (ReadProviderCatalogResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止外呼 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造 |
+| `input` | `ReadProviderCatalogInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadProviderCatalogResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含密钥或供应方响应正文 |
+
+**步骤**
+
+1. 解析内置 models.dev 快照，进程内只解析一次。
+2. 只保留本网关协议能调用的供应方：OpenAI 兼容（含 OpenAI、OpenRouter）、Anthropic、Gemini；没有可用接口地址的跳过。
+3. 热门供应方按固定顺序排前，其余按名称排序。
+
+**错误**
+
+- `INTEGRITY_ERROR`：内置目录损坏（不可重试）
+
+- 副作用：无
+- 授权：permission：model.manage；rule：后台管理员
+- 并发：只读内置数据
+- 幂等：只读
+- 依赖：无
+- 其他依赖说明：内置 models.dev 快照
+
+## model-gateway.DiscoverProviderModels
+
+- 级别：约束
+- 文件：`modules/model-gateway/internal/catalog/discover.go`
+- 作用：拉取供应方当前可用的模型
+
+```go
+func DiscoverProviderModels(ctx context.Context, op OperationContext, input DiscoverProviderModelsInput) (DiscoverProviderModelsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止外呼 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造 |
+| `input` | `DiscoverProviderModelsInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `DiscoverProviderModelsResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含密钥或供应方响应正文 |
+
+**步骤**
+
+1. 读取供应方协议、地址和当前有效密钥；没有密钥时只返回目录里的模型。
+2. 按协议请求供应方的模型列表，15 秒超时，响应上限 8MiB；失败只记原因，不带响应正文。
+3. 按接口地址匹配目录供应方，用目录补全名称、上下文、输出上限和输入模态，推断对话/视觉/向量/重排/推理能力。
+4. 去掉明显不是文本模型的条目（语音、实时、图像或视频生成），按名称排序。
+
+**错误**
+
+- `NOT_FOUND`：供应方不存在（不可重试）
+- `VERSION_MISMATCH`：数据代次已变化（不可重试）
+- `INTEGRITY_ERROR`：密钥材料或内置目录损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储不可用（可重试）
+
+- 副作用：向供应方发一次只读的模型列表请求
+- 授权：permission：superadmin；rule：使用已存密钥，仅超级管理员
+- 并发：短读事务取出密钥后结束，外呼不持有事务
+- 幂等：只读
+- 依赖：无
+- 其他依赖说明：本域供应方与密钥表；内置 models.dev 快照

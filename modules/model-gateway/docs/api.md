@@ -44,6 +44,8 @@
 | GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `model-gateway.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 | GET `/v1/statistics/ledger` | `readUsageStatisticsPage` | `model-gateway.ReadUsageStatisticsPage` | `service` | `—` → 200 `ReadUsageStatisticsPageResult` | analytics专用固定水位安全账本变更页 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 429`、`HTTP 503`、`HTTP 504` |
 | POST `/v1/task-routes:resolve` | `resolveTaskRoute` | `model-gateway.ResolveTaskRoute` | `service` | `ResolveRouteInput` → 200 `ResolveRouteResult` | 免费读取当前任务真实固定路线 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 429`、`HTTP 503`、`HTTP 504` |
+| GET `/v1/admin/provider-catalog` | `readProviderCatalog` | `model-gateway.ReadProviderCatalog` | `model.manage` | `—` → 200 `ReadProviderCatalogResult` | 读取可直接接入的供应方目录 | `FORBIDDEN`、`HTTP 400`、`HTTP 401`、`HTTP 404`、`HTTP 409`、`HTTP 429`、`HTTP 500`、`HTTP 503`、`HTTP 504` |
+| GET `/v1/admin/providers/{providerId}/available-models` | `discoverProviderModels` | `model-gateway.DiscoverProviderModels` | `superadmin` | `—` → 200 `DiscoverProviderModelsResult` | 拉取供应方当前可用的模型 | `FORBIDDEN`、`HTTP 400`、`HTTP 401`、`HTTP 404`、`HTTP 409`、`HTTP 429`、`HTTP 500`、`HTTP 503`、`HTTP 504` |
 <!-- openapi:end -->
 
 完整字段、requestBody/query/path/header、错误HTTP状态和security见openapi.json。请求JSON上限1MiB，UTF8，Content-Type=application/json，拒绝额外字段/null。私网所有请求服务认证；管理写请求Origin/CSRF检查。HTTP202只确认持久接受，后续状态/账单以事件和读取操作为准。

@@ -159,6 +159,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	for operationID, handler := range catalog.NewCatalogHandlers() {
 		handlers[operationID] = handler
 	}
+	for operationID, handler := range catalog.NewDiscoveryHandlers() {
+		handlers[operationID] = handler
+	}
 	for operationID, handler := range admin.NewAdminHandlers(authorize) {
 		handlers[operationID] = handler
 	}
@@ -205,6 +208,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"readModels":              assignmentCallers,
 			"readProfiles":            assignmentCallers,
 			"readAdminCatalog":        {"portal"},
+			"readProviderCatalog":     {"portal"},
+			"discoverProviderModels":  {"portal"},
 			"createConnectionProbe":   {"portal"},
 			"readFeeBudgetPolicy":     {"portal"},
 			"putFeeBudgetPolicy":      {"portal"},

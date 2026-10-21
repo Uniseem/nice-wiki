@@ -57,6 +57,15 @@ type BuildProviderRequestResult struct {
 }
 
 // BuildProviderRequest只使用accepted固定的模型/渠道/密文引用，不追随新active配置。
+// EffectiveAdapter 让一个供应方同时承载对话和向量模型（参照 opencode 一个供应方挂多种模型）：
+// OpenAI 兼容供应方的向量模型走 /embeddings；Gemini 的向量请求本来就在 gemini 分支里按能力区分。
+func EffectiveAdapter(adapter, capability string) string {
+	if adapter == "openai_chat" && capability == "embedding" {
+		return "openai_embeddings"
+	}
+	return adapter
+}
+
 func BuildProviderRequest(ctx context.Context, op OperationContext, input BuildProviderRequestInput) (BuildProviderRequestResult, error) {
 	tx, err := gatewayruntime.BeginExecution(ctx, op, false)
 	if err != nil {
@@ -109,7 +118,7 @@ func BuildProviderRequest(ctx context.Context, op OperationContext, input BuildP
 	path := ""
 	body := ""
 	base := strings.TrimRight(attempt.Provider.BaseUrl, "/")
-	switch string(attempt.Provider.Adapter) {
+	switch EffectiveAdapter(string(attempt.Provider.Adapter), string(request.Capability)) {
 	case "anthropic_messages":
 		mapped, err := MapAnthropicRequest(ctx, op, MapAnthropicRequestInput{Messages: request.Messages, ModelID: attempt.Model.ProviderModelVersion, MaximumOutputTokens: output, Images: images, Stream: true})
 		if err != nil {

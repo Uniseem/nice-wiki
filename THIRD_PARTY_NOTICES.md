@@ -32,6 +32,10 @@ OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设�
 
 - github.com/oschwald/maxminddb-golang v1.13.1（ISC，ADR0005/D51已确认）：analytics只读取可信部署提供的本地MaxMind数据库，不下载数据库、不发送原始地址；固定来源 https://github.com/oschwald/maxminddb-golang/tree/v1.13.1 ，许可原文 https://github.com/oschwald/maxminddb-golang/blob/v1.13.1/LICENSE 。仅Go模块依赖，不复制源码；数据库内容不属于该库许可，仍由部署方自行提供合法数据。go.sum由GitLab Go工具生成。
 
+## opencode（设计参考，未复制代码）
+
+模型网关的“接入供应方 / 添加模型”流程参照 opencode 的做法：供应方和模型来自 models.dev 目录，接入时只填密钥，模型从目录带出名称、上下文和模态，热门供应方排前。来源 https://github.com/anomalyco/opencode （提交 4d5965762ec5e0d1a0b14630553fc62b51a11fba），许可 MIT，Copyright (c) 2025 opencode。用户于 2026-10-21 要求参考其实现、按许可自行决定照写或复制；opencode 的 MIT 比本仓库的 AGPL-3.0 宽松，本仓库用 Go 与 React 重写，未复制其源码或数据文件，因此无需随附其许可全文。
+
 ## models.dev 公开模型目录数据
 
 用户于2026-10-18明确批准仅引入MIT公开目录JSON，未复制业务代码。来源[models.dev API](https://models.dev/api.json)，固定内容版本`sha256:80a19a3c78de1a7b0eb0a72e13e44df21180f0681d6cdf1dbd4c4c345fae3fb6`，原始5806411字节，取回时间2026-10-18T07:44:00.690256Z。API数据版本以实际内容hash固定，不声称某开发分支commit生成该数据。版权Copyright (c) 2025 models.dev，许可MIT，原文见[登记许可](docs/licenses/models-dev-MIT.txt)及内置目录LICENSE，source.json保留来源与ETag。

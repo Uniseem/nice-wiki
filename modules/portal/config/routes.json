@@ -552,6 +552,16 @@
       "streaming": false
     },
     {
+      "method": "GET",
+      "path": "/v1/admin/provider-catalog",
+      "owner": "model-gateway",
+      "operationId": "readProviderCatalog",
+      "permission": "model.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
       "method": "PUT",
       "path": "/v1/admin/providers/{providerId}",
       "owner": "model-gateway",
@@ -559,6 +569,16 @@
       "permission": "superadmin",
       "admission": null,
       "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/providers/{providerId}/available-models",
+      "owner": "model-gateway",
+      "operationId": "discoverProviderModels",
+      "permission": "superadmin",
+      "admission": null,
+      "timeoutMs": 20000,
       "streaming": false
     },
     {

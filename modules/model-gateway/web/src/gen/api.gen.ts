@@ -719,6 +719,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/provider-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取可直接接入的供应方目录
+         * @description 参照 opencode 的接入方式：供应方和模型来自内置 models.dev 目录，只列出本网关协议能直接调用的供应方，热门的排在前面。只读，不联网。
+         */
+        get: operations["readProviderCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/providers/{providerId}/available-models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 拉取供应方当前可用的模型
+         * @description 用该供应方当前密钥请求它自己的模型列表（OpenAI 兼容与 Anthropic 为 /models，Gemini 为 /models?pageSize），再用内置目录补全名称、上下文和输入模态；列表接口不可用时退回目录里的模型。只读，不产生模型调用。
+         */
+        get: operations["discoverProviderModels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2008,6 +2048,59 @@ export interface components {
             taskId: string;
             /** @description 只核对可信op.costClass，不覆盖 */
             costClass: components["schemas"]["CostClass"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        CatalogProvider: {
+            /** @description 目录里的供应方标识，如 alibaba-cn */
+            catalogId: string;
+            /** @description 显示名 */
+            name: string;
+            /** @description 接口根地址 */
+            baseUrl: string;
+            /**
+             * @description 调用协议；同一供应方的向量模型按协议自动走嵌入接口
+             * @enum {string}
+             */
+            adapter: "openai_chat" | "anthropic_messages" | "gemini";
+            /** @description 该供应方常用的密钥环境变量名，仅作提示 */
+            keyNames: string[];
+            /** @description 目录里的模型数 */
+            modelCount: number;
+            /** @description 热门排序，从 1 开始；0 表示不在热门里 */
+            popular: number;
+        };
+        /** @description 内置目录里可直接接入的供应方。封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        ReadProviderCatalogResult: {
+            /** @description 热门在前，其余按名称排序 */
+            providers: components["schemas"]["CatalogProvider"][];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        AvailableModel: {
+            /** @description 调用时传给供应方的模型名 */
+            providerModelId: string;
+            /** @description 显示名，目录里没有时等于模型名 */
+            name: string;
+            /** @description 按目录模态和模型名推断的能力，添加前可改 */
+            capabilities: ("chat" | "vision" | "embedding" | "rerank" | "reasoning")[];
+            /** @description 上下文窗口（目录给出时） */
+            contextWindow?: number;
+            /** @description 最大输出（目录给出时） */
+            maxOutputTokens?: number;
+            /** @description 内置目录里有这个模型 */
+            inCatalog: boolean;
+            /** @description 供应方列表里有这个模型（账号当前可用） */
+            listedByProvider: boolean;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        DiscoverProviderModelsResult: {
+            /** @description 是否拿到了供应方自己的模型列表；false 时 models 只来自内置目录 */
+            listed: boolean;
+            /** @description 没拿到列表的原因（不含密钥和响应正文） */
+            listProblem?: string;
+            /** @description 按接口地址匹配到的目录供应方 */
+            catalogId?: string;
+            /** @description 按名称排序 */
+            models: components["schemas"]["AvailableModel"][];
         };
         /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
         "common.schema_AssetVersionRef": {
@@ -5947,6 +6040,211 @@ export interface operations {
                 };
             };
             /** @description 严格失败，未知来源不伪空页/0。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readProviderCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 读取可直接接入的供应方目录成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadProviderCatalogResult"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    discoverProviderModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 已保存的供应方 */
+                providerId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 拉取供应方当前可用的模型成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoverProviderModelsResult"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
             504: {
                 headers: {
                     [name: string]: unknown;

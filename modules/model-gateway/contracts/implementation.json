@@ -24040,6 +24040,182 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/model-gateway/internal/catalog/discover.go",
+      "kind": "handwritten",
+      "purpose": "参照 opencode 的供应方接入：内置 models.dev 目录里的供应方列表，以及按已存密钥拉取供应方当前可用模型并用目录补全。",
+      "functions": [
+        {
+          "id": "model-gateway.ReadProviderCatalog",
+          "name": "ReadProviderCatalog",
+          "signature": "func ReadProviderCatalog(ctx context.Context, op OperationContext, input ReadProviderCatalogInput) (ReadProviderCatalogResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止外呼"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ReadProviderCatalogInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadProviderCatalogResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含密钥或供应方响应正文"
+              ]
+            }
+          ],
+          "purpose": "读取可直接接入的供应方目录",
+          "steps": [
+            "解析内置 models.dev 快照，进程内只解析一次。",
+            "只保留本网关协议能调用的供应方：OpenAI 兼容（含 OpenAI、OpenRouter）、Anthropic、Gemini；没有可用接口地址的跳过。",
+            "热门供应方按固定顺序排前，其余按名称排序。"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "内置目录损坏",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "model.manage",
+            "rule": "后台管理员"
+          },
+          "concurrency": "只读内置数据",
+          "idempotency": "只读",
+          "dependencies": [],
+          "resources": [
+            "内置 models.dev 快照"
+          ],
+          "contract": "binding"
+        },
+        {
+          "id": "model-gateway.DiscoverProviderModels",
+          "name": "DiscoverProviderModels",
+          "signature": "func DiscoverProviderModels(ctx context.Context, op OperationContext, input DiscoverProviderModelsInput) (DiscoverProviderModelsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止外呼"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "DiscoverProviderModelsInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "DiscoverProviderModelsResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含密钥或供应方响应正文"
+              ]
+            }
+          ],
+          "purpose": "拉取供应方当前可用的模型",
+          "steps": [
+            "读取供应方协议、地址和当前有效密钥；没有密钥时只返回目录里的模型。",
+            "按协议请求供应方的模型列表，15 秒超时，响应上限 8MiB；失败只记原因，不带响应正文。",
+            "按接口地址匹配目录供应方，用目录补全名称、上下文、输出上限和输入模态，推断对话/视觉/向量/重排/推理能力。",
+            "去掉明显不是文本模型的条目（语音、实时、图像或视频生成），按名称排序。"
+          ],
+          "errors": [
+            {
+              "code": "NOT_FOUND",
+              "when": "供应方不存在",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "数据代次已变化",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "when": "密钥材料或内置目录损坏",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "向供应方发一次只读的模型列表请求"
+          ],
+          "authorization": {
+            "permission": "superadmin",
+            "rule": "使用已存密钥，仅超级管理员"
+          },
+          "concurrency": "短读事务取出密钥后结束，外呼不持有事务",
+          "idempotency": "只读",
+          "dependencies": [],
+          "resources": [
+            "本域供应方与密钥表",
+            "内置 models.dev 快照"
+          ],
+          "contract": "binding"
+        }
+      ]
     }
   ],
   "jobHandlers": {
