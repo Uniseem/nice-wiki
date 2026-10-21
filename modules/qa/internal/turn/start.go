@@ -49,17 +49,21 @@ func StartTurn(ctx context.Context, op OperationContext, input StartTurnInput) (
 		err = qaruntime.StorageError(read.Tx.QueryRowContext(read.Context, `SELECT COUNT(*) FROM turns WHERE conversation_id=? AND state NOT IN ('completed','cancelled','failed','invalidated')`, input.ConversationId).Scan(&active))
 	}
 	read.Close()
+	switch {
+	case err != nil:
+	case !policy.Enabled:
+		err = platform.NewError(platform.CodeForbidden, false, "公开问答尚未开启")
+	case active > 0:
+		err = platform.NewError(platform.CodeConflict, false, "上一个问题还在回答，请稍候")
+	case utf8.RuneCountInString(input.Question) > policy.MaximumQuestionCharacters || len(input.Question) > 8192:
+		err = platform.NewError(platform.CodeValidation, false, "问题过长")
+	}
 	if err != nil {
+		// 入口为这次提问领的准入还没用就被拒了（比如会话已过期）：释放占位，访客马上换新会话再问不会被并发上限挡住。
+		if runtime.Guard != nil {
+			_, _ = runtime.Guard.ReleaseAdmission(qaruntime.ServiceReadContext(ctx, op), input.Admission.AdmissionId, struct{}{}, "qa.turn.release."+platform.HashBytes([]byte(op.RootOperationID+":"+input.Admission.AdmissionId)))
+		}
 		return result, err
-	}
-	if !policy.Enabled {
-		return result, platform.NewError(platform.CodeForbidden, false, "公开问答尚未开启")
-	}
-	if active > 0 {
-		return result, platform.NewError(platform.CodeConflict, false, "上一个问题还在回答，请稍候")
-	}
-	if utf8.RuneCountInString(input.Question) > policy.MaximumQuestionCharacters || len(input.Question) > 8192 {
-		return result, platform.NewError(platform.CodeValidation, false, "问题过长")
 	}
 	permit := platform.AdmissionPermit{AdmissionID: input.Admission.AdmissionId, RequestID: input.Admission.RequestId, SubjectID: input.Admission.SubjectId, Action: input.Admission.Action, Token: input.Admission.Token, ExpiresAt: input.Admission.ExpiresAt.UTC().Format(time.RFC3339Nano), SessionBudgetScope: input.Admission.SessionBudgetScope, NetworkBudgetScope: input.Admission.NetworkBudgetScope, DataEpoch: input.Admission.DataEpoch, Audience: string(input.Admission.Audience)}
 	validated, err := admission.ValidateAdmission(ctx, op, admission.ValidateAdmissionInput{Admission: permit, ConversationID: input.ConversationId, Action: "qa.ask"})

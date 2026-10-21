@@ -159,7 +159,10 @@ func releaseTurnPermit(ctx context.Context, record qaruntime.TurnRecord) error {
 	if runtime.Guard == nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "准入释放权威未装配")
 	}
-	raw, err := runtime.Guard.ReleaseAdmission(qaruntime.ServiceReadContext(ctx, record.Operation), record.Permit.AdmissionID, struct{}{}, "qa.release."+record.Turn.TurnId)
+	// 轮次常在原请求结束后才收尾（长回答、重启后收尾），原请求的截止时间早已过去，释放调用用新的短截止时间。
+	op := record.Operation
+	op.Deadline = time.Now().UTC().Add(15 * time.Second).Format(time.RFC3339Nano)
+	raw, err := runtime.Guard.ReleaseAdmission(qaruntime.ServiceReadContext(ctx, op), record.Permit.AdmissionID, struct{}{}, "qa.release."+record.Turn.TurnId)
 	if err != nil {
 		return err
 	}
