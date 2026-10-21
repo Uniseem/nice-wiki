@@ -24,6 +24,13 @@ const capabilities = [
   { value: 'embedding', label: '向量', description: '知识库检索用的嵌入' },
   { value: 'rerank', label: '重排', description: '检索结果重排序' },
 ];
+// 目录里可能出现、但添加时不需要手选的能力，只用于显示。
+const extraCapabilityLabels: Record<string, string> = { structured: '结构化输出', reasoning: '推理', translation: '翻译', file: '文件' };
+// 知识库按分词器估算分块的词元数，只认这两种。
+const tokenizers = [
+  { value: 'none;tiktoken-go@v0.7.0;cl100k_base', label: 'cl100k_base', description: '多数向量模型可用的近似计数' },
+  { value: 'none;tiktoken-go@v0.7.0;o200k_base', label: 'o200k_base', description: 'OpenAI 新一代模型的分词' },
+];
 // 任务目录与 contracts/ai-tasks.json 一致（21 项）；新增任务时这里要同步。
 const tasks: [string, string, string][] = [
   ['qa.preflight', 'fast', '前置分类、改写、完整性与风险'], ['qa.inspect', 'fast', '检索核查'], ['qa.answer', 'accurate', '最终回答'],
@@ -140,7 +147,7 @@ export default function ModelsPage() {
                   model.modelId,
                   <span><span className="block font-medium">{model.providerModelVersion}</span><Mono>{model.modelId}</Mono></span>,
                   c.providers.find((provider) => provider.providerId === model.providerId)?.displayName ?? model.providerId,
-                  <span className="flex flex-wrap gap-1">{model.capabilities.map((cap) => <Chip key={cap} size="sm" variant="soft">{capabilities.find((item) => item.value === cap)?.label ?? cap}</Chip>)}</span>,
+                  <span className="flex flex-wrap gap-1">{model.capabilities.map((cap) => <Chip key={cap} size="sm" variant="soft">{capabilities.find((item) => item.value === cap)?.label ?? extraCapabilityLabels[cap] ?? cap}</Chip>)}</span>,
                   <span className="tabular-nums">{model.maxInputTokens.toLocaleString()} / {model.maxOutputTokens.toLocaleString()}</span>,
                   <Chip color={model.enabled ? 'success' : 'default'} size="sm" variant="soft">{model.enabled ? '启用' : '停用'}</Chip>,
                 ])} />
@@ -286,7 +293,7 @@ function ProviderDialog({ onClose, onSaved }: { onClose: () => void; onSaved: ()
 }
 
 function ModelDialog({ providers, onClose, onSaved }: { providers: Provider[]; onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ modelId: '', providerId: providers[0]?.providerId ?? '', providerModelVersion: '', capabilities: ['chat'] as string[], dimension: 0, maxInputTokens: 128000, maxOutputTokens: 4096, inputUsd: 0, outputUsd: 0 });
+  const [form, setForm] = useState({ modelId: '', providerId: providers[0]?.providerId ?? '', providerModelVersion: '', capabilities: ['chat'] as string[], dimension: 0, tokenizer: tokenizers[0].value, maxInputTokens: 128000, maxOutputTokens: 4096, inputUsd: 0, outputUsd: 0 });
   const { busy, run } = useAction();
   const submit = async () => {
     const done = await run(async () => {
@@ -298,7 +305,7 @@ function ModelDialog({ providers, onClose, onSaved }: { providers: Provider[]; o
           ...(priced ? { manualPrice: { inputPerMillionCost: { currency: 'USD', micros: toMicros(form.inputUsd) }, outputPerMillionCost: { currency: 'USD', micros: toMicros(form.outputUsd) }, fixedCost: { currency: 'USD', micros: 0 } } } : {}),
           model: {
             modelId: form.modelId, version: 1, providerId: form.providerId, providerModelVersion: form.providerModelVersion, capabilities: form.capabilities, dimension: form.dimension,
-            preprocessorVersion: 'none', maxInputTokens: form.maxInputTokens, maxOutputTokens: form.maxOutputTokens, catalogOrigin: 'manual', manualOverride: true, enabled: true,
+            preprocessorVersion: form.capabilities.includes('embedding') ? form.tokenizer : 'none', maxInputTokens: form.maxInputTokens, maxOutputTokens: form.maxOutputTokens, catalogOrigin: 'manual', manualOverride: true, enabled: true,
           },
         },
       });
@@ -318,7 +325,12 @@ function ModelDialog({ providers, onClose, onSaved }: { providers: Provider[]; o
         <NumberInput label="上下文窗口（词元）" minValue={1} value={form.maxInputTokens} onChange={(maxInputTokens) => setForm({ ...form, maxInputTokens })} />
         <NumberInput label="最大输出（词元）" minValue={1} value={form.maxOutputTokens} onChange={(maxOutputTokens) => setForm({ ...form, maxOutputTokens })} />
       </FormGrid>
-      {form.capabilities.includes('embedding') && <NumberInput description="向量模型的输出维度。" label="向量维度" minValue={0} value={form.dimension} onChange={(dimension) => setForm({ ...form, dimension })} />}
+      {form.capabilities.includes('embedding') && (
+        <FormGrid>
+          <NumberInput description="向量模型的输出维度。" label="向量维度" minValue={0} value={form.dimension} onChange={(dimension) => setForm({ ...form, dimension })} />
+          <SelectInput description="知识库用它估算分块的词元数。" label="分词器" options={tokenizers} value={form.tokenizer} onChange={(tokenizer) => setForm({ ...form, tokenizer })} />
+        </FormGrid>
+      )}
       <FormGrid>
         <NumberInput description="美元 / 百万词元，0 表示未知。" formatOptions={{ maximumFractionDigits: 4 }} label="输入单价" minValue={0} value={form.inputUsd} onChange={(inputUsd) => setForm({ ...form, inputUsd })} />
         <NumberInput description="美元 / 百万词元，0 表示未知。" formatOptions={{ maximumFractionDigits: 4 }} label="输出单价" minValue={0} value={form.outputUsd} onChange={(outputUsd) => setForm({ ...form, outputUsd })} />

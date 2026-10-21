@@ -141,8 +141,9 @@ function HomeTab({ config, onSaved }: TabProps) {
   useEffect(() => setForm(fromConfig()), [config]); // eslint-disable-line
   const { busy, run } = useAction();
   const canReadDocs = useHasGrant('content.read');
-  const docs = useLoad((signal) => canReadDocs ? api<{ documents: { documentId: string; title: string; state: string }[] }>('/v1/tree', { signal }).then((tree) => tree.documents.filter((doc) => doc.state === 'published')) : Promise.resolve(null), [canReadDocs]);
-  const docOptions = useMemo(() => (docs.data ?? []).map((doc) => ({ value: doc.documentId, label: doc.title })), [docs.data]);
+  const docs = useLoad((signal) => canReadDocs ? api<{ documents: { documentId: string; title: string; state: string; pathSegment: string | null }[] }>('/v1/tree', { signal }).then((tree) => tree.documents.filter((doc) => doc.state === 'published')) : Promise.resolve(null), [canReadDocs]);
+  // 同名文档用页面路径区分。
+  const docOptions = useMemo(() => (docs.data ?? []).map((doc) => ({ value: doc.documentId, label: doc.title, description: doc.pathSegment ? `/${doc.pathSegment}` : undefined })), [docs.data]);
   const setButton = (index: number, patch: Partial<Button_>) => setForm((current) => ({ ...current, buttons: current.buttons.map((b, i) => i === index ? { ...b, ...patch } : b) }));
 
   const save = () => run(async () => {
