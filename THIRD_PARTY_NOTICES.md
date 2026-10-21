@@ -35,3 +35,7 @@ OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设�
 ## go-git v5.16.3
 
 ADR0005已批准的版本镜像依赖，固定github.com/go-git/go-git/v5 v5.16.3，Apache-2.0；Copyright 2018 Sourced Technologies, S.L.。原许可见[固定版本许可](docs/licenses/go-git-v5.16.3-Apache-2.0.txt)，源为[官方tag](https://github.com/go-git/go-git/tree/v5.16.3)。数据保护独立WIP拟通过依赖API使用，不复制业务实现；本次main尚未引入该依赖，保留固定版本许可登记，未执行远程业务镜像同步。
+
+## Excalidraw 与 React（后台编辑器画板）
+
+后台内容编辑器的画板块使用 @excalidraw/excalidraw 0.18.1（MIT，Copyright (c) 2020 Excalidraw）及其对等依赖 react / react-dom 18.3.1（MIT，Copyright (c) Meta Platforms, Inc. and affiliates）。来源 https://github.com/excalidraw/excalidraw/tree/v0.18.1 、https://github.com/facebook/react/tree/v18.3.1 ；仅作为 npm 依赖打包进 `modules/content/web`，由 pnpm-lock.yaml 固定，不复制其源码；画板代码只在用户打开画板时懒加载。

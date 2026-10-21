@@ -42,3 +42,7 @@
 .slash-menu li.on, .slash-menu li:hover { background: #2563eb22; }
 .ProseMirror .columns { display: flex; gap: 1rem; margin: .8rem 0; }
 .ProseMirror .column { flex: 1 1 0; min-width: 0; border: 1px dashed #9ca3af80; border-radius: 4px; padding: .2rem .6rem; }
+.ProseMirror img.drawing { max-width: 100%; background: #fff; border: 1px solid #8884; border-radius: 4px; cursor: pointer; }
+.drawing-dialog { position: fixed; inset: 0; z-index: 1000; background: var(--bg, #fff); display: flex; flex-direction: column; }
+.drawing-bar { display: flex; align-items: center; gap: .6rem; padding: .5rem 1rem; border-bottom: 1px solid #8884; }
+.drawing-host { flex: 1; min-height: 0; }

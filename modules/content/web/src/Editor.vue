@@ -11,6 +11,9 @@ import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table
 import { Attachment, Callout, Column, Columns, MathBlock } from './blocks';
 import { ImageBlock } from './image';
 import { VideoBlock } from './video';
+import { Drawing } from './drawing';
+import DrawingDialog from './DrawingDialog.vue';
+import type { DrawingAttrs } from './DrawingDialog.vue';
 import { captureVideoPoster, uploadAsset, uploadImage } from './upload';
 import { messageOf } from './client';
 import type { JSONNode } from './convert';
@@ -27,7 +30,7 @@ const editor = useEditor({
     StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: false }),
     Link.configure({ openOnClick: false, autolink: false, protocols: ['mailto'], HTMLAttributes: { rel: 'noopener noreferrer nofollow' } }),
     Table.configure({ resizable: false }), TableRow, TableHeader, TableCell,
-    TaskList, TaskItem.configure({ nested: true }), Highlight, ImageBlock, VideoBlock, Callout, MathBlock, Attachment, Columns, Column, StableIds,
+    TaskList, TaskItem.configure({ nested: true }), Highlight, ImageBlock, VideoBlock, Callout, MathBlock, Attachment, Columns, Column, Drawing, StableIds,
   ],
   // 只有用户在编辑器里操作（获得焦点）才算修改，加载时补稳定 ID 不触发保存。
   onUpdate: ({ editor }) => { if (editor.isFocused) emit('change', editor.getJSON() as JSONNode); },
@@ -37,8 +40,21 @@ const editor = useEditor({
     handlePaste: (_view, event) => handleFiles(event.clipboardData?.files),
     handleDrop: (_view, event) => handleFiles((event as DragEvent).dataTransfer?.files),
     handleKeyDown: (_view, event) => slashKey(event),
+    // 双击画板块：重新打开画板编辑。
+    handleDoubleClickOn: (_view, pos, node) => { if (node.type.name !== 'drawing' || !props.editable) return false; drawing.value = { pos, initial: { scene: node.attrs.scene, lightSVG: node.attrs.lightSVG, darkSVG: node.attrs.darkSVG } }; return true; },
   },
 });
+
+const drawing = ref<{ pos: number | null; initial: DrawingAttrs | null } | null>(null);
+function saveDrawing(attrs: DrawingAttrs) {
+  const e = editor.value, target = drawing.value;
+  if (!e || !target) return;
+  if (target.pos !== null) e.chain().focus().setNodeSelection(target.pos).updateAttributes('drawing', attrs).run();
+  else e.chain().focus().insertContent({ type: 'drawing', attrs }).run();
+  drawing.value = null;
+  emit('change', e.getJSON() as JSONNode); // 插入时编辑器可能还没拿到焦点，主动通知保存
+
+}
 
 function handleFiles(files: FileList | null | undefined): boolean {
   const images = Array.from(files ?? []).filter((f) => f.type.startsWith('image/'));
@@ -67,6 +83,7 @@ const slashCommands = [
   { label: '两栏', key: 'columns 分栏', run: (e: any) => insertColumns(e, 2) },
   { label: '三栏', key: 'columns 分栏', run: (e: any) => insertColumns(e, 3) },
   { label: '公式', key: 'math latex', run: (e: any) => { const latex = window.prompt('LaTeX 公式'); if (latex) e.chain().focus().insertContent({ type: 'mathBlock', attrs: { latex } }).run(); } },
+  { label: '画板', key: 'drawing board excalidraw', run: () => { drawing.value = { pos: null, initial: null }; } },
   { label: '图片', key: 'image', run: () => fileInput.value?.click() },
   { label: '视频', key: 'video mp4 webm', run: () => videoInput.value?.click() },
   { label: '附件', key: 'file attachment', run: () => attachInput.value?.click() },
@@ -229,12 +246,14 @@ ready = true;
       <button v-for="b in buttons" :key="b.label" type="button" :class="{ on: b.on(editor) }" :disabled="!editable" @click="b.run(editor)">{{ b.label }}</button>
       <button type="button" :disabled="!editable || uploading" @click="fileInput?.click()">{{ uploading ? '上传中…' : '图片' }}</button>
       <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden @change="insertImage">
+      <button type="button" :disabled="!editable" @click="drawing = { pos: null, initial: null }">画板</button>
       <button type="button" :disabled="!editable || uploading" @click="videoInput?.click()">视频</button>
       <input ref="videoInput" type="file" accept="video/mp4,video/webm" hidden @change="insertVideo">
       <button type="button" :disabled="!editable || uploading" @click="attachInput?.click()">附件</button>
       <input ref="attachInput" type="file" hidden @change="insertAttachment">
     </div>
     <p v-if="uploadError" class="error">{{ uploadError }}</p>
+    <DrawingDialog v-if="drawing" :initial="drawing.initial" @save="saveDrawing" @close="drawing = null" />
     <EditorContent :editor="editor" />
     <ul v-if="slash && slashItems.length" class="slash-menu" :style="{ left: slash.left + 'px', top: slash.top + 'px' }">
       <li v-for="(c, i) in slashItems" :key="c.label" :class="{ on: i === slashIndex }" @mousedown.prevent="runSlash(c)">{{ c.label }}</li>

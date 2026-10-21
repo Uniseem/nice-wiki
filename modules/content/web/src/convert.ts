@@ -73,6 +73,12 @@ function block(node: JSONNode, inColumn = false): any {
       if (!a) throw new Error('附件缺少资源引用');
       return { type: 'attachment', attrs: { blockId, asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize }, displayName: node.attrs?.displayName || '附件' } };
     }
+    case 'drawing': {
+      const { scene, lightSVG, darkSVG } = node.attrs ?? {};
+      if (!scene || !lightSVG || !darkSVG) throw new Error('画板缺少资源引用');
+      const ref = (a: any) => ({ assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize });
+      return { type: 'drawing', attrs: { blockId, scene: ref(scene), lightSVG: ref(lightSVG), darkSVG: ref(darkSVG), widthPercent: node.attrs?.widthPercent ?? null, caption: [] } };
+    }
     case 'table': return { type: 'table', attrs: { blockId }, content: (node.content ?? []).map(tableRow) };
     case 'video': {
       const a = node.attrs?.source?.asset;

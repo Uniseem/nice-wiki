@@ -10,7 +10,7 @@ async function sha256(data: ArrayBuffer): Promise<string> {
 const chunkSize = 4 << 20;
 
 // 内容寻址上传：声明 sha256 → 顺序分块（每块带自己的 sha256）→ 完成后得到就绪资源。
-export async function uploadAsset(file: File, kind: 'image' | 'attachment' | 'video'): Promise<AssetRef> {
+export async function uploadAsset(file: File, kind: 'image' | 'attachment' | 'video' | 'drawing_scene' | 'drawing_svg'): Promise<AssetRef> {
   return (await uploadAssetFull(file, kind)).ref;
 }
 
@@ -39,7 +39,7 @@ export async function uploadImage(file: File): Promise<AssetRef> {
   return original.ref;
 }
 
-async function uploadAssetFull(file: File, kind: 'image' | 'attachment' | 'video'): Promise<AssetInfo> {
+async function uploadAssetFull(file: File, kind: 'image' | 'attachment' | 'video' | 'drawing_scene' | 'drawing_svg'): Promise<AssetInfo> {
   const bytes = await file.arrayBuffer();
   const begin = await api<{ upload: any }>('/v1/uploads', { method: 'POST', body: { sha256: await sha256(bytes), byteSize: bytes.byteLength, originalName: file.name.slice(0, 255), kind } });
   let upload = begin.upload;
