@@ -14,12 +14,8 @@ const defaultSourceCodeURL = "https://github.com/Uniseem/nice-wiki"
 // loadFooter 读取站点配置里的页脚：返回站长写的部分（版权、自定义外链、ICP 备案）的 HTML 和源码链接地址。
 // 读取失败或没配置时返回空串和默认源码链接，不影响页面。
 func loadFooter(ctx context.Context, op platform.OperationContext) (string, string) {
-	directory, err := directoryFrom(ctx)
-	if err != nil || directory.SiteConfig == nil {
-		return "", defaultSourceCodeURL
-	}
-	raw, err := directory.SiteConfig.ReadSiteConfig(ctx)
-	if err != nil {
+	raw, ok := readSiteConfigCached(ctx)
+	if !ok {
 		return "", defaultSourceCodeURL
 	}
 	var config struct {

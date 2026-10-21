@@ -21,8 +21,8 @@ func loadAnnouncement(ctx context.Context, op platform.OperationContext) string 
 	if err != nil || directory.SiteConfig == nil {
 		return ""
 	}
-	raw, err := directory.SiteConfig.ReadSiteConfig(ctx)
-	if err != nil {
+	raw, ok := readSiteConfigCached(ctx)
+	if !ok {
 		return ""
 	}
 	var config struct {

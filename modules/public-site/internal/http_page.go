@@ -233,14 +233,21 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 	if err != nil {
 		return "", err
 	}
-	metadata := "<title>" + html.EscapeString(bundle.Title) + "</title>"
-	if bundle.Description != "" {
-		metadata += "<meta name=\"description\" content=\"" + html.EscapeString(bundle.Description) + "\">"
+	meta := loadSiteMeta(ctx)
+	fullTitle := meta.pageTitle(bundle.Title)
+	description := bundle.Description
+	if description == "" {
+		description = meta.Description // 文档没有摘要时用站点描述
+	}
+	metadata := "<title>" + html.EscapeString(fullTitle) + "</title>"
+	if description != "" {
+		metadata += "<meta name=\"description\" content=\"" + html.EscapeString(description) + "\">"
 	}
 	languages := languageLinks(ctx, node.CanonicalPath, locale)
 	if site, siteErr := siteForSEO(ctx); siteErr == nil {
 		// 规范地址与各语言互链，帮搜索引擎把译文当作同一页的不同语言版本。
 		metadata += "<link rel=\"canonical\" href=\"" + html.EscapeString(site+node.CanonicalPath) + "\">"
+		metadata += meta.headTags(fullTitle, description, site+node.CanonicalPath)
 		for _, link := range languages {
 			metadata += "<link rel=\"alternate\" hreflang=\"" + html.EscapeString(link.Tag) + "\" href=\"" + html.EscapeString(site+link.Href) + "\">"
 		}
@@ -281,6 +288,8 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		AskURL:        "/" + locale + "/ask",
 		UIStrings:     loadUIStrings(ctx, locale),
 		Footer:        footerHTML,
+		SiteName:      meta.Name,
+		LogoURL:       meta.Logo.url(),
 		SourceCodeURL: sourceURL,
 	})
 	if err != nil {
