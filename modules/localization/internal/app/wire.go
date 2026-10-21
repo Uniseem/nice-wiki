@@ -157,7 +157,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		AdmitBusiness:   lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, view.DataEpoch),
 		Authorize:       apivalidate.NewIdentityAuthorizer(identity),
 		ServiceActorCallers: map[string][]string{"readLanguageSuggestionApproval": {"model-gateway"},
-			"listLanguages": {"public-site"}, "readInterfaceCatalog": {"public-site"},
+			"listLanguages": {"public-site"}, "readInterfaceCatalog": {"public-site"}, "listTranslationTitles": {"public-site"},
 		},
 		AllowedCallers: map[string][]string{"readLanguageSuggestionPolicy": {"portal"}, "putLanguageSuggestionPolicy": {"portal"}, "readLanguageSuggestionApproval": {"model-gateway"},
 			"putLanguage":          {"portal"},
@@ -166,7 +166,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"approveLanguagePlan":  {"portal"},
 			"listLanguages":        {"portal", "public-site"},
 			"putGlossaryTerm":      {"portal"}, "deleteGlossaryTerm": {"portal"}, "listGlossary": {"portal"}, "rollbackAutomaticGlossaryBatch": {"portal"}, "applyApprovedGlossaryProposal": {"memory"},
-			"saveLanguagePreference": {"public-site"}, "readTranslation": {"public-site"}, "listTranslationProgress": {"portal"}, "createTranslation": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "requestInterfaceTranslation": {"portal"}, "readCacheAnswerTranslation": {"qa"},
+			"saveLanguagePreference": {"public-site"}, "readTranslation": {"public-site"}, "listTranslationTitles": {"public-site"}, "listTranslationProgress": {"portal"}, "createTranslation": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "requestInterfaceTranslation": {"portal"}, "readCacheAnswerTranslation": {"qa"},
 		},
 	}, handlers)
 	if err != nil {

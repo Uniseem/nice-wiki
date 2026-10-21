@@ -3,6 +3,7 @@ package publicsite
 import (
 	"context"
 	"encoding/json"
+	"net/url"
 	"sort"
 	"strings"
 	"sync"
@@ -96,5 +97,48 @@ func loadUIStrings(ctx context.Context, locale string) map[string]string {
 	uiCache.Lock()
 	uiCache.entries[locale] = uiCacheEntry{result, time.Now().Add(time.Minute)}
 	uiCache.Unlock()
+	return result
+}
+
+type translatedTitle struct{ revision, title string }
+
+var titleCache = struct {
+	sync.Mutex
+	entries map[string]titleCacheEntry
+}{entries: map[string]titleCacheEntry{}}
+
+type titleCacheEntry struct {
+	titles  map[string]translatedTitle
+	expires time.Time
+}
+
+// loadTranslatedTitles 读取某语言各文档的标题译文（文档 ID → 对应发布修订与译文标题），缓存一分钟；读不到就当没有，页面沿用原文标题。
+func loadTranslatedTitles(ctx context.Context, locale string) map[string]translatedTitle {
+	titleCache.Lock()
+	if entry, ok := titleCache.entries[locale]; ok && time.Now().Before(entry.expires) {
+		titleCache.Unlock()
+		return entry.titles
+	}
+	titleCache.Unlock()
+	result := map[string]translatedTitle{}
+	if directory, err := directoryFrom(ctx); err == nil && directory.Localization != nil {
+		if raw, err := directory.Localization.ListTranslationTitles(ctx, url.Values{"targetLanguage": {locale}}); err == nil {
+			var reply struct {
+				Titles []struct {
+					DocumentID          string `json:"documentId"`
+					PublishedRevisionID string `json:"publishedRevisionId"`
+					Title               string `json:"title"`
+				} `json:"titles"`
+			}
+			if json.Unmarshal(raw, &reply) == nil {
+				for _, item := range reply.Titles {
+					result[item.DocumentID] = translatedTitle{item.PublishedRevisionID, item.Title}
+				}
+			}
+		}
+	}
+	titleCache.Lock()
+	titleCache.entries[locale] = titleCacheEntry{result, time.Now().Add(time.Minute)}
+	titleCache.Unlock()
 	return result
 }

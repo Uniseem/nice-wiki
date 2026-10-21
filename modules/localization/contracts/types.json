@@ -5001,6 +5001,46 @@
         "texts",
         "keyCount"
       ]
+    },
+    "ListTranslationTitlesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "titles": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "documentId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "文档"
+              },
+              "publishedRevisionId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "译文对应的发布修订"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "译文标题"
+              }
+            },
+            "required": [
+              "documentId",
+              "publishedRevisionId",
+              "title"
+            ]
+          },
+          "description": "各文档的标题译文"
+        }
+      },
+      "required": [
+        "titles"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     }
   }
 }

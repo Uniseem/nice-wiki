@@ -1032,7 +1032,8 @@
             "content:validatePublications",
             "site-config:readSiteConfig",
             "localization:listLanguages",
-            "localization:readInterfaceCatalog"
+            "localization:readInterfaceCatalog",
+            "localization:listTranslationTitles"
           ],
           "resources": [],
           "contract": "reference"

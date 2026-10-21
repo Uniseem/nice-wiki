@@ -9,7 +9,11 @@ import (
 
 func NewTranslationHandlers() map[string]http.Handler {
 	return map[string]http.Handler{
-		"readTranslation":   language.JSONHandler(ReadTranslation),
+		"readTranslation": language.JSONHandler(ReadTranslation),
+		"listTranslationTitles": language.JSONHandler(ListTranslationTitles, func(i *ListTranslationTitlesInput, r *http.Request) error {
+			i.TargetLanguage = r.URL.Query().Get("targetLanguage")
+			return nil
+		}),
 		"createTranslation": language.JSONHandler(CreateTranslation),
 		"estimateLanguagePlan": language.JSONHandler(EstimateLanguagePlan, func(i *EstimateLanguagePlanInput, r *http.Request) error {
 			if i.Language != r.PathValue("tag") {

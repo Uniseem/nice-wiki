@@ -12109,6 +12109,89 @@
       ]
     },
     {
+      "path": "modules/localization/internal/translation/titles.go",
+      "kind": "handwritten",
+      "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。",
+      "functions": [
+        {
+          "id": "localization.ListTranslationTitles",
+          "name": "ListTranslationTitles",
+          "signature": "func ListTranslationTitles(ctx context.Context, op OperationContext, input ListTranslationTitlesInput) (ListTranslationTitlesResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播；不得携带正文到日志",
+              "constraints": [
+                "用户取消、进程退出或截止到达即停止新副作用"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信操作上下文",
+              "constraints": [
+                "服务边界构建，禁止浏览器自造",
+                "dataEpoch等于site-config当前active epoch"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "ListTranslationTitlesInput",
+              "description": "输入",
+              "constraints": [
+                "必须通过对应schema"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ListTranslationTitlesResult",
+              "description": "结果",
+              "constraints": [
+                "无error时有效"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "Error",
+              "description": "失败时result无效，返回标准Problem",
+              "constraints": [
+                "只使用登记错误码",
+                "detail不含正文、密钥或IP"
+              ]
+            }
+          ],
+          "purpose": "列出某语言各文档已完成译文的标题，供公开站点在导航与面包屑里显示译文标题",
+          "steps": [
+            "仅公开站点服务可读",
+            "按文档取该语言最新就绪译文对象的标题"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "调用方不是公开站点服务",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅 public-site 服务身份"
+          },
+          "concurrency": "只读快照或CAS",
+          "idempotency": "读取幂等；写入按operationId",
+          "dependencies": [
+            "localization.ReadData",
+            "localization.StorageError"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
       "path": "modules/localization/internal/translation/progress.go",
       "kind": "handwritten",
       "purpose": "本域完整源模板/只读交付或权威客户端的实际实现。",

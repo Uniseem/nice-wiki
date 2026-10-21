@@ -663,6 +663,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/translation-titles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 列出译文标题
+         * @description 列出某语言各文档已完成译文的标题（仅公开站点服务）
+         */
+        get: operations["listTranslationTitles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2052,6 +2072,18 @@ export interface components {
             siteId: components["schemas"]["Identifier"];
             dataEpoch: components["schemas"]["Identifier"];
             approvedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        ListTranslationTitlesResult: {
+            /** @description 各文档的标题译文 */
+            titles: {
+                /** @description 文档 */
+                documentId: components["schemas"]["Identifier"];
+                /** @description 译文对应的发布修订 */
+                publishedRevisionId: components["schemas"]["Identifier"];
+                /** @description 译文标题 */
+                title: string;
+            }[];
         };
         /**
          * @description 可信服务上下文决定，公开请求不能指定
@@ -5147,6 +5179,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    listTranslationTitles: {
+        parameters: {
+            query: {
+                /** @description 目标语言 */
+                targetLanguage: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListTranslationTitlesResult"];
+                };
+            };
+            /** @description FORBIDDEN：权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
         };
     };
