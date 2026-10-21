@@ -196,6 +196,12 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	deadline := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)
 	site := a.currentSite(r.Context())
+	// 站点还没初始化（读不到站点身份）：打开根路径直接去后台的初始化向导。
+	if site == "" && r.Method == http.MethodGet && r.URL.Path == "/" {
+		w.Header().Set("Cache-Control", "no-store")
+		http.Redirect(w, r, "/admin", http.StatusFound)
+		return
+	}
 	if site == "" {
 		site = "system"
 	}
