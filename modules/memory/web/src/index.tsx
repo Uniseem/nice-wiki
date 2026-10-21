@@ -1,12 +1,49 @@
 import { BookOpen, Pencil, Plus } from '@gravity-ui/icons';
 import { Button, Card, Chip, Drawer, Form, Tabs } from '@heroui/react';
-import { api, EmptyBlock, ErrorBlock, fmtRelative, FormGrid, LoadingBlock, newKey, NumberInput, PageHeader, TextAreaInput, TextInput, useAction, useLoad } from '@ui';
+import { api, CheckGroupInput, EmptyBlock, ErrorBlock, errorText, fmtRelative, FormGrid, LoadingBlock, newKey, NumberInput, PageHeader, TextAreaInput, TextInput, useAction, useLoad } from '@ui';
 import { useState } from 'react';
 
 type Entry = {
   entryId: string; version: number; title: string; body: string; bodyHash: string; language: string; tags: string[]; priority: number; state: string; updatedAt: string;
   description: string; maximumBytes: number; readonly: boolean; source: string; autoUpdateEnabled: boolean; fileRef: unknown;
 };
+
+type Mapping = { mappingId: string; taskId: string; entryId: string; language: string; order: number; enabled: boolean; revision: number };
+
+// 记忆用在哪些 AI 任务：后台只给几个大类，保存时展开成按任务的映射。翻译目前不读记忆，所以不列出。
+const scopes = [
+  { id: 'qa', label: '问答回答', description: '访客提问时放在回答模型系统提示的最前面。', tasks: ['qa.answer'] },
+  { id: 'knowledge', label: '知识索引', description: '建索引时生成背景短句和图片描述用；改动后下次建索引会重新生成（会调用模型）。', tasks: ['knowledge.context', 'knowledge.describe', 'knowledge.describe-visual'] },
+];
+const scopeTasks = scopes.flatMap((scope) => scope.tasks);
+
+async function loadMappings(signal: AbortSignal): Promise<Map<string, Mapping[]>> {
+  const lists = await Promise.all(scopeTasks.map((task) => api<{ mappings: Mapping[] }>(`/v1/mappings?taskId=${encodeURIComponent(task)}`, { signal }).then((result) => result.mappings)));
+  const byEntry = new Map<string, Mapping[]>();
+  for (const mapping of lists.flat()) byEntry.set(mapping.entryId, [...(byEntry.get(mapping.entryId) ?? []), mapping]);
+  return byEntry;
+}
+
+const scopesOf = (mappings: Mapping[]) => scopes.filter((scope) => mappings.some((mapping) => mapping.enabled && scope.tasks.includes(mapping.taskId))).map((scope) => scope.id);
+
+// 让条目的任务映射与勾选一致：补上缺的、删掉取消的、语言跟着条目走。
+async function syncMappings(entryId: string, language: string, chosen: string[], existing: Mapping[]) {
+  const wanted = new Set(scopes.filter((scope) => chosen.includes(scope.id)).flatMap((scope) => scope.tasks));
+  for (const mapping of existing) {
+    const idempotencyKey = newKey();
+    if (!wanted.has(mapping.taskId)) {
+      await api(`/v1/mappings/${mapping.mappingId}?expectedRevision=${mapping.revision}`, { method: 'DELETE', idempotencyKey });
+    } else if (mapping.language !== language || !mapping.enabled) {
+      await api(`/v1/mappings/${mapping.mappingId}`, { method: 'PUT', idempotencyKey, body: { expectedRevision: mapping.revision, idempotencyKey, mapping: { ...mapping, language, enabled: true } } });
+    }
+    wanted.delete(mapping.taskId);
+  }
+  for (const taskId of wanted) {
+    const idempotencyKey = newKey();
+    const mappingId = newKey();
+    await api(`/v1/mappings/${mappingId}`, { method: 'PUT', idempotencyKey, body: { expectedRevision: 0, idempotencyKey, mapping: { mappingId, taskId, entryId, language, order: 0, enabled: true, revision: 0 } } });
+  }
+}
 
 const maxBytes = 4096;
 const bytesOf = (text: string) => new TextEncoder().encode(text).length;
@@ -19,6 +56,7 @@ async function sha256(text: string): Promise<string> {
 export default function MemoryPage() {
   const [state, setState] = useState<'active' | 'archived'>('active');
   const entries = useLoad((signal) => api<{ entries: Entry[] }>(`/v1/entries?state=${state}&limit=100`, { signal }).then((result) => result.entries), [state]);
+  const mappings = useLoad(loadMappings, []);
   const [editing, setEditing] = useState<Entry | 'new' | null>(null);
   const { busy, run } = useAction();
 
@@ -32,7 +70,7 @@ export default function MemoryPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="长期记忆"
-        description="写给 AI 的长期背景：术语、语气、禁忌、产品事实等。按优先级进入问答和翻译的上下文；修改不会调用模型。"
+        description="写给 AI 的长期背景：术语、语气、禁忌、产品事实等。按优先级放进所选 AI 任务的系统提示最前面；修改不会调用模型。"
         actions={<Button onPress={() => setEditing('new')}><Plus />新建记忆</Button>}
       />
       <Tabs selectedKey={state} onSelectionChange={(key) => setState(key as 'active' | 'archived')}>
@@ -66,6 +104,12 @@ export default function MemoryPage() {
                     <Chip size="sm" variant="soft">{entry.language}</Chip>
                     {entry.tags.map((tag) => <Chip key={tag} size="sm" variant="tertiary">#{tag}</Chip>)}
                     {entry.readonly && <Chip color="warning" size="sm" variant="soft">只读</Chip>}
+                    {mappings.data && (() => {
+                      const used = scopesOf(mappings.data.get(entry.entryId) ?? []);
+                      return used.length
+                        ? scopes.filter((scope) => used.includes(scope.id)).map((scope) => <Chip key={scope.id} color="accent" size="sm" variant="soft">{scope.label}</Chip>)
+                        : <Chip color="warning" size="sm" variant="soft">未用于任何任务</Chip>;
+                    })()}
                     <span className="ms-auto text-xs text-muted">更新于 {fmtRelative(entry.updatedAt)}</span>
                   </div>
                   <Card.Footer className="gap-2">
@@ -78,20 +122,31 @@ export default function MemoryPage() {
           )}
         </Tabs.Panel>
       </Tabs>
-      {editing && <EntryDrawer entry={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); entries.reload(); }} />}
+      {editing && (
+        <EntryDrawer
+          entry={editing === 'new' ? null : editing}
+          existing={editing === 'new' ? [] : mappings.data?.get(editing.entryId) ?? (mappings.data ? [] : undefined)}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); entries.reload(); mappings.reload(); }}
+        />
+      )}
     </div>
   );
 }
 
-function EntryDrawer({ entry, onClose, onSaved }: { entry: Entry | null; onClose: () => void; onSaved: () => void }) {
+// existing 是该条目现有的任务映射；还没读到时为 undefined，先不让保存，免得重复添加。
+function EntryDrawer({ entry, existing, onClose, onSaved }: { entry: Entry | null; existing: Mapping[] | undefined; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
     title: entry?.title ?? '', description: entry?.description ?? '', body: entry?.body ?? '', language: entry?.language ?? 'zh-Hans', priority: entry?.priority ?? 50, tags: entry?.tags.join(', ') ?? '',
   });
+  const [chosen, setChosen] = useState<string[] | null>(entry ? null : ['qa']);
+  const used = chosen ?? (existing ? scopesOf(existing) : []);
   const { busy, run } = useAction();
   const size = bytesOf(form.body);
 
   const save = async () => {
-    const done = await run(async () => {
+    const entryId = entry?.entryId ?? newKey();
+    const saved = await run(async () => {
       const tags = form.tags.split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
       const bodyHash = await sha256(form.body);
       const idempotencyKey = newKey();
@@ -102,7 +157,7 @@ function EntryDrawer({ entry, onClose, onSaved }: { entry: Entry | null; onClose
         await api('/v1/entries', {
           method: 'POST', idempotencyKey, body: {
             idempotencyKey, entry: {
-              entryId: newKey(), version: 0, title: form.title, body: form.body, bodyHash, language: form.language, tags, priority: form.priority, state: 'active', updatedAt: now,
+              entryId, version: 0, title: form.title, body: form.body, bodyHash, language: form.language, tags, priority: form.priority, state: 'active', updatedAt: now,
               description: form.description, maximumBytes: maxBytes, readonly: false, source: 'manual', autoUpdateEnabled: false,
               fileRef: { owner: 'memory', objectId: newKey(), version: 1, sha256: bodyHash, byteSize: bytesOf(form.body), mediaType: 'text/markdown' },
             },
@@ -110,8 +165,17 @@ function EntryDrawer({ entry, onClose, onSaved }: { entry: Entry | null; onClose
         });
       }
       return true;
+    });
+    if (!saved) return;
+    // 条目已经保存；映射失败也关掉抽屉重新读取，再编辑时按最新状态补齐。
+    await run(async () => {
+      try {
+        await syncMappings(entryId, form.language, used, existing ?? []);
+      } catch (problem) {
+        throw new Error(`记忆已保存，但“用于”没有更新：${errorText(problem)}`);
+      }
     }, '已保存');
-    if (done) onSaved();
+    onSaved();
   };
 
   return (
@@ -120,7 +184,7 @@ function EntryDrawer({ entry, onClose, onSaved }: { entry: Entry | null; onClose
         <Drawer.Dialog className="w-full max-w-xl">
           <Drawer.CloseTrigger aria-label="关闭" />
           <Drawer.Header><Drawer.Heading>{entry ? '编辑记忆' : '新建记忆'}</Drawer.Heading></Drawer.Header>
-          <Form className="flex min-h-0 flex-1 flex-col" onSubmit={(event) => { event.preventDefault(); if (size <= maxBytes) void save(); }}>
+          <Form className="flex min-h-0 flex-1 flex-col" onSubmit={(event) => { event.preventDefault(); if (size <= maxBytes && existing) void save(); }}>
             <Drawer.Body className="flex flex-col gap-4">
               <TextInput isRequired label="标题" maxLength={200} value={form.title} onChange={(title) => setForm({ ...form, title })} />
               <TextInput isRequired description="一句话说明它什么时候有用，例如“所有回答”“涉及价格时”。" label="说明" maxLength={300} value={form.description} onChange={(description) => setForm({ ...form, description })} />
@@ -134,14 +198,23 @@ function EntryDrawer({ entry, onClose, onSaved }: { entry: Entry | null; onClose
                 onChange={(body) => setForm({ ...form, body })}
               />
               <FormGrid columns={3}>
-                <TextInput label="语言" value={form.language} onChange={(language) => setForm({ ...form, language })} />
+                <TextInput description="und 表示所有语言。" label="语言" value={form.language} onChange={(language) => setForm({ ...form, language })} />
                 <NumberInput description="越大越优先。" label="优先级" maxValue={100} minValue={1} value={form.priority} onChange={(priority) => setForm({ ...form, priority })} />
                 <TextInput description="逗号分隔。" label="标签" value={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
               </FormGrid>
+              <CheckGroupInput
+                columns={1}
+                description={used.length ? undefined : '不勾选时这条记忆不会进入任何 AI 任务。'}
+                isDisabled={!existing}
+                label="用于"
+                options={scopes.map((scope) => ({ value: scope.id, label: scope.label, description: scope.description }))}
+                value={used}
+                onChange={setChosen}
+              />
             </Drawer.Body>
             <Drawer.Footer>
               <Button variant="tertiary" onPress={onClose}>取消</Button>
-              <Button isDisabled={size > maxBytes} isPending={busy} type="submit">保存</Button>
+              <Button isDisabled={size > maxBytes || !existing} isPending={busy} type="submit">保存</Button>
             </Drawer.Footer>
           </Form>
         </Drawer.Dialog>
