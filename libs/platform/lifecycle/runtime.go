@@ -108,14 +108,17 @@ func RunRecoveryLoop(ctx context.Context, config platform.RecoveryLoopConfig) er
 		if ctx.Err() != nil {
 			return nil
 		}
-		if err != nil && os.Getenv("NW_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "恢复循环批次失败：%v\n", err)
+		// 恢复切换和数据代次变化要重启进程；其他错误只影响这一批，记下来下一轮再试，
+		// 不让一条处理不了的记录（或一次被拒的调用）拖垮整个服务。
+		if errors.Is(err, ErrRestartForRestore) {
+			return err
+		}
+		var failure *platform.Error
+		if errors.As(err, &failure) && failure.Code == platform.CodeVersionMismatch {
+			return err
 		}
 		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
-			var failure *platform.Error
-			if !errors.As(err, &failure) || !failure.Retryable {
-				return err
-			}
+			fmt.Fprintf(os.Stderr, "恢复循环批次失败，稍后重试：%v\n", err)
 		}
 		timer := time.NewTimer(time.Duration(config.PollMillis) * time.Millisecond)
 		select {

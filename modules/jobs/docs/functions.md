@@ -1692,7 +1692,7 @@ func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInp
 
 **步骤**
 
-1. 从持久job owner/type/epoch映射gen.JobTypes.managementPermission并请求identity最新具体功能授权，job.manage只作入口粗能力；进入事务后重核已授权owner/type/epoch
+1. 任务所属服务（服务身份且主体=调用方=持久owner）直接放行；否则从持久job owner/type/epoch映射gen.JobTypes.managementPermission并请求identity最新具体功能授权，job.manage只作入口粗能力；进入事务后重核已授权owner/type/epoch
 2. 核对当前epoch并读任务；queued/retry-wait立即cancelled，leased/running写cancel-requested，终局与既有cancel-requested原样返回；orphan只持久cancelRequested意图并等待owner安全确认，不伪造cancelled
 3. 与完成以同事务revision CAS竞争；同operationId保存输入hash及原响应
 4. 状态变更、outbox与回执同事务提交；不代替owner调用模型取消
@@ -1706,7 +1706,7 @@ func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInp
 - `DEPENDENCY_UNAVAILABLE` / HTTP 503：操作键冲突、旧epoch或可信依赖不可用（可重试）
 
 - 副作用：写cancel状态/outbox
-- 授权：permission：job.manage；rule：job.manage入口粗能力；终点按持久任务类型登记的managementPermission实时核权，不用用户自报owner/type
+- 授权：permission：job.manage；rule：job.manage入口粗能力；终点按持久任务类型登记的managementPermission实时核权，不用用户自报owner/type；任务所属服务以自己的服务身份取消自己名下的任务时不需要管理员授权
 - 并发：CAS与完成竞争，完成先提交则返回succeeded
 - 幂等：operationId幂等
 - 依赖：`identity:checkAuthorization`、`jobs.authorizeJobManagement`、`jobs.beginLeaseOperation`、`jobs.readJobRecord`、`jobs.receipt`、`jobs.saveReceipt`、`jobs.enqueueState`

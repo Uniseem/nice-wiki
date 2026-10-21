@@ -400,7 +400,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"claimJob":  queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
 			"publishEvent": producerCallers, "acknowledgeEvent": consumerCallers, "subscribeEvents": consumerCallers,
 			"listJobs":          {"portal"},
-			"cancelJob":         {"portal"},
+			"cancelJob":         {"portal", "knowledge", "memory", "qa"},
 			"readJob":           readJobCallers,
 			"listDeliveries":    {"portal"},
 			"replayDelivery":    {"portal"},
@@ -414,6 +414,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"readSnapshotArchive": {"data-protection"},
 		},
 		ServiceActorCallers: map[string][]string{
+			"cancelJob": {"knowledge", "memory", "qa"},
 			"createJob": queueCallers,
 			"readJob":   queueCallers,
 			"claimJob":  queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,

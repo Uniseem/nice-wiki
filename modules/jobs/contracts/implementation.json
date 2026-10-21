@@ -2856,7 +2856,7 @@
           ],
           "purpose": "请求取消任务",
           "steps": [
-            "从持久job owner/type/epoch映射gen.JobTypes.managementPermission并请求identity最新具体功能授权，job.manage只作入口粗能力；进入事务后重核已授权owner/type/epoch",
+            "任务所属服务（服务身份且主体=调用方=持久owner）直接放行；否则从持久job owner/type/epoch映射gen.JobTypes.managementPermission并请求identity最新具体功能授权，job.manage只作入口粗能力；进入事务后重核已授权owner/type/epoch",
             "核对当前epoch并读任务；queued/retry-wait立即cancelled，leased/running写cancel-requested，终局与既有cancel-requested原样返回；orphan只持久cancelRequested意图并等待owner安全确认，不伪造cancelled",
             "与完成以同事务revision CAS竞争；同operationId保存输入hash及原响应",
             "状态变更、outbox与回执同事务提交；不代替owner调用模型取消"
@@ -2900,7 +2900,7 @@
           ],
           "authorization": {
             "permission": "job.manage",
-            "rule": "job.manage入口粗能力；终点按持久任务类型登记的managementPermission实时核权，不用用户自报owner/type"
+            "rule": "job.manage入口粗能力；终点按持久任务类型登记的managementPermission实时核权，不用用户自报owner/type；任务所属服务以自己的服务身份取消自己名下的任务时不需要管理员授权"
           },
           "concurrency": "CAS与完成竞争，完成先提交则返回succeeded",
           "idempotency": "operationId幂等",

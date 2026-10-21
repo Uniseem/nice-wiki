@@ -82,6 +82,11 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 	if job.epoch != op.DataEpoch {
 		return jobRecord{}, epochMismatch()
 	}
+	// 任务所属服务管理自己的任务（问答取消访客停掉的一轮、知识索引取消被替换的建索引任务等）不需要管理员权限；
+	// 传输层只放这些服务调用 cancelJob。
+	if op.Actor.Kind == "service" && op.Actor.SubjectID == op.CallerService && op.CallerService == job.owner {
+		return job, nil
+	}
 	permission, err := jobManagementPermission(job.owner, job.jobType)
 	if err != nil {
 		return jobRecord{}, err
