@@ -16,6 +16,12 @@ type HandleLLMsRootResult struct {
 
 // HandleLLMsRoot 只列启用语言的索引入口，不混合正文。
 func HandleLLMsRoot(ctx context.Context, op platform.OperationContext, in HandleLLMsRootInput) (HandleLLMsRootResult, error) {
+	// 站点关闭“允许搜索引擎收录”时不提供这份面向爬虫的文件。
+	if enabled, policyErr := readIndexingPolicy(ctx); policyErr != nil {
+		return HandleLLMsRootResult{}, policyErr
+	} else if !enabled {
+		return HandleLLMsRootResult{Status: 404}, nil
+	}
 	directory, err := directoryFrom(ctx)
 	if err != nil {
 		return HandleLLMsRootResult{}, err

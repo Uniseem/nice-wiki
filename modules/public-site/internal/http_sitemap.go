@@ -28,6 +28,12 @@ type HandleSitemapShardResult struct {
 
 // HandleSitemapIndex 按当前权威公开集合生成每语言固定分片地址。
 func HandleSitemapIndex(ctx context.Context, op platform.OperationContext, in HandleSitemapIndexInput) (HandleSitemapIndexResult, error) {
+	// 站点关闭“允许搜索引擎收录”时不提供这份面向爬虫的文件。
+	if enabled, policyErr := readIndexingPolicy(ctx); policyErr != nil {
+		return HandleSitemapIndexResult{}, policyErr
+	} else if !enabled {
+		return HandleSitemapIndexResult{Status: 404}, nil
+	}
 	directory, err := directoryFrom(ctx)
 	if err != nil {
 		return HandleSitemapIndexResult{}, err
@@ -63,6 +69,12 @@ func HandleSitemapIndex(ctx context.Context, op platform.OperationContext, in Ha
 
 // HandleSitemapShard 越界不回退其他分片，所有条目在 BuildSitemapEntries 中最终重验。
 func HandleSitemapShard(ctx context.Context, op platform.OperationContext, in HandleSitemapShardInput) (HandleSitemapShardResult, error) {
+	// 站点关闭“允许搜索引擎收录”时不提供这份面向爬虫的文件。
+	if enabled, policyErr := readIndexingPolicy(ctx); policyErr != nil {
+		return HandleSitemapShardResult{}, policyErr
+	} else if !enabled {
+		return HandleSitemapShardResult{Status: 404}, nil
+	}
 	if in.Shard < 0 {
 		return HandleSitemapShardResult{}, platform.NewError(platform.CodeValidation, false, "INVALID_SHARD")
 	}

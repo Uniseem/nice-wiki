@@ -17,13 +17,9 @@ type HandleRobotsResult struct {
 
 // readIndexingPolicy 读取站点唯一 indexingEnabled，不从派生缓存猜配置。
 func readIndexingPolicy(ctx context.Context) (bool, error) {
-	directory, err := directoryFrom(ctx)
-	if err != nil {
-		return false, err
-	}
-	raw, err := directory.SiteConfig.ReadSiteConfig(ctx)
-	if err != nil {
-		return false, err
+	raw, ok := readSiteConfigCached(ctx)
+	if !ok {
+		return false, dependency("站点配置权威不可读")
 	}
 	var result struct {
 		Config *struct {

@@ -185,6 +185,9 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 	siteMeta := loadSiteMeta(ctx)
 	homeBase, _ := siteForSEO(ctx)
 	homeHead := ""
+	if indexing, policyErr := readIndexingPolicy(ctx); policyErr == nil && !indexing {
+		homeHead += "<meta name=\"robots\" content=\"noindex,nofollow\">"
+	}
 	if siteMeta.Description != "" {
 		homeHead = "<meta name=\"description\" content=\"" + html.EscapeString(siteMeta.Description) + "\">"
 	}
@@ -247,6 +250,9 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		description = meta.Description // 文档没有摘要时用站点描述
 	}
 	metadata := "<title>" + html.EscapeString(fullTitle) + "</title>"
+	if indexing, policyErr := readIndexingPolicy(ctx); policyErr == nil && !indexing {
+		metadata += "<meta name=\"robots\" content=\"noindex,nofollow\">" // 站点关闭收录：页面本身也声明不要索引
+	}
 	if description != "" {
 		metadata += "<meta name=\"description\" content=\"" + html.EscapeString(description) + "\">"
 	}

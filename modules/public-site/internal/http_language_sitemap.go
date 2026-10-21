@@ -19,6 +19,12 @@ type HandleLanguageSitemapResult struct {
 
 // HandleLanguageSitemap 每语言不超过一万项时直接返回 urlset，超过时只列该语言分片。
 func HandleLanguageSitemap(ctx context.Context, op platform.OperationContext, in HandleLanguageSitemapInput) (HandleLanguageSitemapResult, error) {
+	// 站点关闭“允许搜索引擎收录”时不提供这份面向爬虫的文件。
+	if enabled, policyErr := readIndexingPolicy(ctx); policyErr != nil {
+		return HandleLanguageSitemapResult{}, policyErr
+	} else if !enabled {
+		return HandleLanguageSitemapResult{Status: 404}, nil
+	}
 	entries, err := BuildSitemapEntries(ctx, op, BuildSitemapEntriesInput{in.Locale, string(in.DataEpoch)})
 	if err != nil {
 		return HandleLanguageSitemapResult{}, err
