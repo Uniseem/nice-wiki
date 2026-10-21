@@ -1,4 +1,4 @@
-# 状态（2026-10-21）
+# 状态（2026-10-22）
 
 ## 现在能用什么
 
@@ -31,6 +31,8 @@ python3 scripts/dev.py up
 - 部署文件（只在本机 docker 演练过）：各域 Dockerfile、`deploy/docker-compose.yml`、Caddyfile、`deploy/init-secrets.sh`，由 `scripts/gen_deploy.py` 生成。
 
 ## 下一步（按顺序）
+
+先修 [代码审查](docs/review-2026-10-22.md) 中的 5 项 P1：草稿资源公开、撤销/回滚失败、在线备份一致性、人工译文保护、切换文档丢失未保存内容；再处理其中 6 项 P2。
 
 1. 首次发布时 AI 生成路径名和 SEO 描述（任务 content.slug / content.seo）后端还没接。
 2. 资源库：确认清理后在 24 小时保护窗口内看不到待删计划、也不能撤销（缺“列出计划”接口）。
