@@ -29,7 +29,7 @@ export default function BackupPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t('备份与恢复')}
-        description={t('完整备份包含全部服务的数据（SQLite 取一致快照）。备份期间站点照常运行。')}
+        description={t('完整备份包含全部服务的数据，备份期间站点照常运行。各服务的数据库依次快照，相隔很短但不是同一时点，备份进行中的保存或发布可能只有一部分进备份；迁移服务器等需要严格一致时，在部署目录运行 deploy/backup.sh 停机备份。')}
         actions={<Button onPress={() => setCreating(true)}><Plus />{t('创建备份')}</Button>}
       />
       <div className="grid gap-6 xl:grid-cols-3">

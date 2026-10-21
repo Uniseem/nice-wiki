@@ -13,6 +13,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/fs"
 	"net/http"
@@ -29,7 +30,9 @@ import (
 )
 
 // 简易在线备份：把配置里列出的各服务数据目录打成一个 tar.gz。
-// SQLite 库用 VACUUM INTO 取一致快照，其余文件原样复制；不含密钥目录。
+// 先在一轮里给全部服务的 SQLite 库各取一份 VACUUM INTO 快照，再复制其余文件：各服务都是先写不可变文件再提交 SQL，
+// 所以快照里引用到的正文、资源、译文文件一定在归档里。不暂停写入：各库快照之间相隔很短但不是同一时点，
+// 跨服务的事件可能有一条落在缝里；要严格一致用 deploy/backup.sh 停机备份。不含密钥目录。
 // 创建同步完成，下载用一次性短期令牌。
 
 var (
@@ -134,12 +137,41 @@ func writeBackupArchive(ctx context.Context, target string, sources map[string]s
 		slugs = append(slugs, slug)
 	}
 	sort.Strings(slugs)
+	// 第一轮：只快照数据库，尽量缩短各库之间的时间差。
+	snapshots := map[string]string{}
+	for _, slug := range slugs {
+		root := sources[slug]
+		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if entry.IsDir() || !entry.Type().IsRegular() || !strings.HasSuffix(path, ".db") {
+				return nil
+			}
+			snap := filepath.Join(scratch, slug+"-"+hex.EncodeToString(randomBytes(6))+".db")
+			if err := vacuumInto(ctx, path, snap); err != nil {
+				return err
+			}
+			snapshots[path] = snap
+			return nil
+		})
+		if err != nil {
+			return backupManifest{}, platform.NewError(platform.CodeInternal, true, "快照服务数据库失败")
+		}
+	}
+	// 第二轮：数据库用快照，其余文件原样复制；复制时已经消失的临时文件跳过。
 	var manifest backupManifest
 	for _, slug := range slugs {
 		domain := backupDomain{Slug: slug}
 		root := sources[slug]
 		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
+				if errors.Is(walkErr, fs.ErrNotExist) {
+					return nil
+				}
 				return walkErr
 			}
 			if err := ctx.Err(); err != nil {
@@ -151,14 +183,16 @@ func writeBackupArchive(ctx context.Context, target string, sources map[string]s
 			}
 			source := path
 			if strings.HasSuffix(rel, ".db") {
-				snap := filepath.Join(scratch, slug+"-"+hex.EncodeToString(randomBytes(6))+".db")
-				if err := vacuumInto(ctx, path, snap); err != nil {
-					return err
+				snap, found := snapshots[path]
+				if !found {
+					return nil
 				}
 				source = snap
-				defer os.Remove(snap)
 			}
 			size, err := addTarFile(tw, slug+"/"+filepath.ToSlash(rel), source)
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil
+			}
 			if err != nil {
 				return err
 			}
