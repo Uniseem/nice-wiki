@@ -3,7 +3,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import type { ModuleUIBootstrap } from '../../../../libs/platform/web/module-api';
 import type { components } from './gen/api.gen';
 const props = defineProps<{ bootstrap: ModuleUIBootstrap; parentSignal: AbortSignal }>();
-const emit = defineEmits<{ selectBackup: [id: string] }>();
 type Backup = components['schemas']['ReadBackupResult'] & { backupId: string };
 type RequestBackupInput = { includeSecrets: boolean };
 type RequestBackupResult = { backupId: string };
@@ -117,7 +116,7 @@ async function downloadBackup(backup: Backup): Promise<void> {
         <h3>{{ backup.backupId }}</h3><p>状态：{{ backup.state }}</p>
         <details v-if="backup.manifestJSON"><summary>完整清单与各域水位</summary><pre>{{ backup.manifestJSON }}</pre></details>
         <ul v-if="backup.issues.length"><li v-for="(issue, index) in backup.issues" :key="index">{{ issue.owner }}：{{ issue.reason }}</li></ul>
-        <template v-if="backup.state === 'ready'"><p>完整备份已就绪。</p><button v-if="isSuperadmin" :disabled="downloading" @click="downloadBackup(backup)">下载完整便携备份</button><button @click="emit('selectBackup', backup.backupId)">选择此备份用于恢复或镜像</button></template>
+        <template v-if="backup.state === 'ready'"><p>完整备份已就绪。</p><button v-if="isSuperadmin" :disabled="downloading" @click="downloadBackup(backup)">下载完整便携备份</button></template>
       </article>
       <button v-if="nextCursor" :disabled="loading" @click="loadBackups(true)">下一页</button>
     </template>

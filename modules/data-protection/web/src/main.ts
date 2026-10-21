@@ -1,8 +1,6 @@
-import { createApp, h, onBeforeUnmount, ref, type App } from 'vue';
+import { createApp, h, onBeforeUnmount, type App } from 'vue';
 import type { ModuleUIBootstrap } from '../../../../libs/platform/web/module-api';
 import BackupPanel from './BackupPanel.vue';
-import RestoreWizard from './RestoreWizard.vue';
-import GitSyncPanel from './GitSyncPanel.vue';
 
 const mounts = new WeakMap<HTMLElement, { app: App; revision: string }>();
 
@@ -17,15 +15,18 @@ export function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBoots
   const controller = new AbortController();
   const app = createApp({
     setup() {
-      const selectedBackup = ref('');
       onBeforeUnmount(() => controller.abort());
       return () => h('section', { class: 'data-protection', lang: bootstrap.locale }, [
         h('h1', '数据保护'),
-        h('p', '完整备份、全站恢复与版本镜像。备份和恢复期间站点会进入维护。'),
-        h('p', { class: 'hint' }, '提示：目前只有“完整备份”（创建、列表、下载 tar.gz，含每日自动备份）可用，默认不含密钥，超管可勾选包含（归档为明文，请妥善保管）；在线恢复和镜像还在开发中。恢复请在服务器上运行 deploy/restore-archive.sh 或 deploy/restore.sh，备份时务必连同 deploy/secrets 一起保管。'),
-        h(BackupPanel, { bootstrap, parentSignal: controller.signal, onSelectBackup: (id: string) => { selectedBackup.value = id; } }),
-        h(RestoreWizard, { bootstrap, parentSignal: controller.signal, initialBackup: selectedBackup.value }),
-        h(GitSyncPanel, { bootstrap, parentSignal: controller.signal, initialBackup: selectedBackup.value }),
+        h('p', '完整备份：创建、列表、下载（可设口令加密，含密钥的备份必须设口令），可开每日自动备份。备份期间站点照常运行。'),
+        h(BackupPanel, { bootstrap, parentSignal: controller.signal }),
+        h('section', { 'aria-labelledby': 'restore-heading' }, [
+          h('h2', { id: 'restore-heading' }, '如何恢复'),
+          h('p', '恢复会替换全站数据，需要在服务器上停服务后进行，目前不能在后台页面里直接恢复；版本镜像与远程同步尚未提供。'),
+          h('p', '把下载的备份放到服务器上，在部署目录运行：'),
+          h('pre', 'deploy/restore-archive.sh <备份文件的绝对路径>'),
+          h('p', '加密备份（.enc）会先提示输入口令，也可设环境变量 NW_BACKUP_PASSPHRASE 免交互。脚本会先校验归档、停服务、逐个数据卷替换并重新启动；含密钥的备份会把密钥解到 deploy/secrets-restored，确认后再覆盖 deploy/secrets。恢复完成后请用备份中的账号重新登录。'),
+        ]),
       ]);
     },
   });
