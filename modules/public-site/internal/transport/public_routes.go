@@ -167,6 +167,10 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			result, err := publicsite.HandleLLMsIndex(ctx, op, publicsite.HandleLLMsIndexInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
 			return result.Status, result.Text, err
 		}),
+		"handleLLMsFull": text("text/plain; charset=utf-8", func(ctx context.Context, op platform.OperationContext, r *http.Request) (int, string, error) {
+			result, err := publicsite.HandleLLMsFull(publicsite.WithLinkDirectory(ctx, directory), op, publicsite.HandleLLMsFullInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
+			return result.Status, result.Text, err
+		}),
 		"handleSitemapIndex": text("application/xml", func(ctx context.Context, op platform.OperationContext, r *http.Request) (int, string, error) {
 			result, err := publicsite.HandleSitemapIndex(ctx, op, publicsite.HandleSitemapIndexInput{DataEpoch: string(op.DataEpoch)})
 			return result.Status, result.Xml, err
