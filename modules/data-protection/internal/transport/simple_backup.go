@@ -2,8 +2,12 @@ package transport
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/pbkdf2"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
@@ -301,6 +305,21 @@ func (s *server) simpleAuthorizeDownload(op platform.OperationContext, id string
 }
 
 func (s *server) simpleStreamBackup(w http.ResponseWriter, r *http.Request, id string) error {
+	dir, err := s.backupDir(id)
+	if err != nil {
+		return err
+	}
+	// 口令先校验再消耗一次性令牌，口令不合格时可以直接重试。
+	passphrase := r.Header.Get("X-Backup-Passphrase")
+	if raw, err := os.ReadFile(filepath.Join(dir, "manifest.json")); err == nil {
+		var manifest backupManifest
+		if json.Unmarshal(raw, &manifest) == nil && manifest.IncludeSecrets && passphrase == "" {
+			return platform.NewError(platform.CodeValidation, false, "含密钥的备份必须设置下载口令")
+		}
+	}
+	if passphrase != "" && len(passphrase) < 12 {
+		return platform.NewError(platform.CodeValidation, false, "下载口令至少 12 个字符")
+	}
 	token := r.Header.Get("X-Backup-Download-Token")
 	downloadMu.Lock()
 	grant, ok := downloadAuth[token]
@@ -309,20 +328,66 @@ func (s *server) simpleStreamBackup(w http.ResponseWriter, r *http.Request, id s
 	if !ok || grant.backupID != id || grant.expires.Before(time.Now()) {
 		return platform.NewError(platform.CodeForbidden, false, "下载授权无效或已过期")
 	}
-	dir, err := s.backupDir(id)
-	if err != nil {
-		return err
-	}
 	f, err := os.Open(filepath.Join(dir, "backup.tar.gz"))
 	if err != nil {
 		return platform.NewError(platform.CodeNotFound, false, "备份文件不存在")
 	}
 	defer f.Close()
-	w.Header().Set("Content-Type", "application/gzip")
-	w.Header().Set("Content-Disposition", `attachment; filename="backup-`+id+`.tar.gz"`)
 	w.Header().Set("Cache-Control", "no-store")
-	_, _ = io.Copy(w, f)
+	if passphrase == "" {
+		w.Header().Set("Content-Type", "application/gzip")
+		w.Header().Set("Content-Disposition", `attachment; filename="backup-`+id+`.tar.gz"`)
+		_, _ = io.Copy(w, f)
+		return nil
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", `attachment; filename="backup-`+id+`.tar.gz.enc"`)
+	_ = encryptStream(w, f, passphrase)
 	return nil
+}
+
+// encryptStream 输出 OpenSSL 兼容格式（"Salted__" + 8 字节盐 + AES-256-CBC 密文，PKCS7 填充，PBKDF2-SHA256 10 万轮），
+// 备份可以直接用 openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 解密。
+func encryptStream(w io.Writer, in io.Reader, passphrase string) error {
+	salt := randomBytes(8)
+	derived, err := pbkdf2.Key(sha256.New, passphrase, salt, 100000, 48)
+	if err != nil {
+		return err
+	}
+	block, err := aes.NewCipher(derived[:32])
+	if err != nil {
+		return err
+	}
+	mode := cipher.NewCBCEncrypter(block, derived[32:])
+	if _, err := w.Write(append([]byte("Salted__"), salt...)); err != nil {
+		return err
+	}
+	buf := make([]byte, 64<<10)
+	var pending []byte
+	for {
+		n, readErr := in.Read(buf)
+		pending = append(pending, buf[:n]...)
+		if full := len(pending) / aes.BlockSize * aes.BlockSize; full > 0 {
+			out := make([]byte, full)
+			mode.CryptBlocks(out, pending[:full])
+			if _, err := w.Write(out); err != nil {
+				return err
+			}
+			pending = append(pending[:0], pending[full:]...)
+		}
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return readErr
+		}
+	}
+	pad := aes.BlockSize - len(pending)
+	last := append(pending, bytes.Repeat([]byte{byte(pad)}, pad)...)
+	out := make([]byte, len(last))
+	mode.CryptBlocks(out, last)
+	_, err = w.Write(out)
+	return err
 }
 
 // 每日本地备份：配置存成 simple-backups/schedule.json，后台每分钟检查一次，

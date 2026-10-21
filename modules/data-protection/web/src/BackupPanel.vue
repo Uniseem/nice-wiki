@@ -15,6 +15,8 @@ const controller = new AbortController();
 const signal = AbortSignal.any([controller.signal, props.parentSignal]);
 let operationId = '', operationInput = '';
 onBeforeUnmount(() => controller.abort());
+const passphrase = ref('');
+const needsPassphrase = (backup: Backup) => { try { return JSON.parse(backup.manifestJSON).includeSecrets === true; } catch { return false; } };
 const keepCount = ref(7), scheduleSaved = ref('');
 onMounted(() => { if (canManage.value) { void loadBackups(false); void loadSchedule(); } });
 async function loadSchedule(): Promise<void> {
@@ -70,15 +72,17 @@ async function submitBackup(): Promise<void> {
 // 便携包可以很大，只使用浏览器文件流；不退回整包Blob占用内存。
 async function downloadBackup(backup: Backup): Promise<void> {
   if (downloading.value || backup.state !== 'ready' || !isSuperadmin.value) return;
+  if (passphrase.value && passphrase.value.length < 12) { error.value = '下载口令至少 12 个字符。'; return; }
+  if (needsPassphrase(backup) && !passphrase.value) { error.value = '这份备份含密钥，下载前请先在上方填写下载口令（至少 12 个字符）。'; return; }
   const picker = (window as Window & { showSaveFilePicker?: (options: { suggestedName: string }) => Promise<{ createWritable(): Promise<WritableStream<Uint8Array>> }> }).showSaveFilePicker;
   if (!picker) { error.value = '当前浏览器不支持流式保存大型备份，请使用支持文件流保存的浏览器。'; return; }
   downloading.value = true; error.value = '';
   let output: WritableStream<Uint8Array> | undefined;
   try {
-    const handle = await picker.call(window, { suggestedName: `backup-${backup.backupId}.tar.gz` });
+    const handle = await picker.call(window, { suggestedName: `backup-${backup.backupId}.tar.gz${passphrase.value ? '.enc' : ''}` });
     if (signal.aborted) return;
     const authorization = await props.bootstrap.apiClient.request<components['schemas']['AuthorizeBackupDownloadResult']>(`/v1/backups/${encodeURIComponent(backup.backupId)}:download`, { method: 'POST', body: {}, signal, idempotencyKey: crypto.randomUUID() });
-    const response = await props.bootstrap.apiClient.request<Response>(`/v1/backups/${encodeURIComponent(backup.backupId)}/download`, { responseType: 'stream', backupDownloadToken: authorization.downloadToken, signal });
+    const response = await props.bootstrap.apiClient.request<Response>(`/v1/backups/${encodeURIComponent(backup.backupId)}/download`, { responseType: 'stream', backupDownloadToken: authorization.downloadToken, backupPassphrase: passphrase.value || undefined, signal });
     if (!response.ok || !response.body) throw new Error('完整备份流不可用');
     output = await handle.createWritable();
     await response.body.pipeTo(output, { signal });
@@ -105,6 +109,7 @@ async function downloadBackup(backup: Backup): Promise<void> {
         <button type="submit" :disabled="busy">保存自动备份设置</button>
         <p v-if="scheduleSaved" role="status">{{ scheduleSaved }}</p>
       </form>
+      <label v-if="isSuperadmin">下载口令（可选；含密钥的备份必填，至少 12 个字符；用 openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 解密） <input v-model="passphrase" type="password" autocomplete="new-password" :disabled="downloading"></label>
       <p role="status">{{ notice }}</p><p v-if="error" role="alert">{{ error }}</p>
       <button :disabled="loading" @click="loadBackups(false)">刷新备份目录</button>
       <p v-if="loading">正在读取目录…</p><p v-else-if="!error && !backups.length">尚无可显示的备份。</p>

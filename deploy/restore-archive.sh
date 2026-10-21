@@ -2,10 +2,19 @@
 # 从后台“备份与恢复”页下载的 tar.gz 备份恢复（归档里每个顶层目录对应一个服务的数据卷）。会覆盖当前数据卷，请先确认。
 # 恢复后目录统一收紧为仅属主可访问（服务要求数据目录私有）。
 # 密钥不在默认备份里：需要原来的 deploy/secrets（同一套签名密钥与主密钥）。
-# 用法：deploy/restore-archive.sh <备份tar.gz路径>
+# 用法：deploy/restore-archive.sh <备份 tar.gz 或 tar.gz.enc 的绝对路径>
 set -eu
 cd "$(dirname "$0")"
 archive="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+# 带 .enc 后缀的是设了下载口令的加密备份：先用 openssl 解密到临时文件（会提示输入口令）。
+case "$archive" in
+	*.enc)
+		plain="$(mktemp).tar.gz"
+		trap 'rm -f "$plain"' EXIT
+		openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -in "$archive" -out "$plain" || { echo "解密失败（口令不对或文件损坏），未做任何改动"; exit 1; }
+		archive="$plain"
+		;;
+esac
 docker run --rm -v "$archive":/in/backup.tar.gz:ro alpine tar tzf /in/backup.tar.gz > /dev/null || { echo "备份文件不可读，未做任何改动"; exit 1; }
 printf '将用 %s 覆盖当前所有数据卷，输入 yes 继续：' "$archive"
 read answer

@@ -11,6 +11,8 @@ export interface ModuleAPIRequest {
   restoreProgressToken?: string;
   restoreControlGrant?: string;
   backupDownloadToken?: string;
+  // 下载备份时的加密口令，只映射到 X-Backup-Passphrase 头。
+  backupPassphrase?: string;
 }
 
 export interface ModuleAPIClient {

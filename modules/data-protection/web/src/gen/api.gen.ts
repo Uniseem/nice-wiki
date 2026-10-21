@@ -1957,6 +1957,8 @@ export interface operations {
                 "X-Request-Id"?: components["schemas"]["Identifier"];
                 /** @description AuthorizeBackupDownload签发的单用途令牌；流入口实际要求，兼容字段只通过请求头，不进URL。 */
                 "X-Backup-Download-Token"?: string;
+                /** @description 下载口令：设置后输出 OpenSSL 兼容的 AES-256-CBC（PBKDF2-SHA256，10 万轮）加密流，可用 openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 解密；含密钥的备份必须设置。只通过请求头，不进URL，不记录。 */
+                "X-Backup-Passphrase"?: string;
             };
             path: {
                 /** @description 路径值由HTTP绑定器填入函数Input，正文不得声明冲突值 */

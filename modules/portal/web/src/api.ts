@@ -76,6 +76,8 @@ export async function request<T>(path: string, options: ModuleAPIRequest = {}, r
     headers['X-Chunk-SHA256'] = options.uploadChunk.sha256;
     headers['If-Match'] = String(options.uploadChunk.revision);
   }
+  if (options.backupDownloadToken) headers['X-Backup-Download-Token'] = options.backupDownloadToken;
+  if (options.backupPassphrase) headers['X-Backup-Passphrase'] = options.backupPassphrase;
   if (method !== 'GET') {
     headers['Idempotency-Key'] = options.idempotencyKey ?? newKey();
     headers['X-CSRF-Token'] = csrf();
@@ -90,6 +92,7 @@ export async function request<T>(path: string, options: ModuleAPIRequest = {}, r
     throw new ApiError(response.status, payload?.code ?? 'UNKNOWN', payload?.detail ?? `请求失败（${response.status}）`, payload);
   }
   switch (options.responseType) {
+    case 'stream': return response as T;
     case 'blob': return (await response.blob()) as T;
     case 'text': return (await response.text()) as T;
     default: return (response.status === 204 ? undefined : await response.json()) as T;
