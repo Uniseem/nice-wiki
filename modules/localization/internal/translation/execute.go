@@ -76,8 +76,10 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		return err
 	}
 	memory := platform.MemoryContext{TaskID: "localization.document", Language: target, VersionHash: platform.HashBytes(nil)}
-	// 这篇文档上一份完成的译文里，原文没变的单元直接沿用（人工改过的也保留），只把新增或改过的单元交给模型。
+	// 这篇文档上一份完成的译文里，原文没变的单元直接沿用，只把新增或改过的单元交给模型。
+	// 人工改过或受保护的单元（及受保护整块下新出现的单元）不交给模型，规则同 PlanIncrementalTranslation。
 	previous := map[string]gen.TranslationUnit{}
+	wholeProtected, rowProtected := map[string]bool{}, map[string]bool{}
 	err = language.ReadData(ctx, op, func(tx *sql.Tx) error {
 		prior, found, err := LatestManifest(ctx, tx, op, document.DocumentId, target, true)
 		if err != nil || !found || prior.ID == translationID {
@@ -88,8 +90,16 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 			return err
 		}
 		for _, unit := range object.Units {
-			if unit.Status != "fallback" {
-				previous[unit.UnitId] = unit
+			if unit.Status == "fallback" {
+				continue
+			}
+			previous[unit.UnitId] = unit
+			if protectedUnit(unit) {
+				if unit.ParentBlockId == nil || *unit.ParentBlockId == unit.UnitId {
+					wholeProtected[unit.UnitId] = true
+				} else {
+					rowProtected[*unit.ParentBlockId] = true
+				}
 			}
 		}
 		return nil
@@ -98,16 +108,20 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		return err
 	}
 	translated := make([]gen.TranslationUnit, 0, len(split.Units))
+	// 每次调用模型之前都确认译文没被取消，正文批次和标题一样。
+	dispatch := func(units []gen.TranslationUnit) ([]gen.TranslationUnit, error) {
+		if translationCancelled(ctx, op, translationID) {
+			return nil, errTranslationCancelled
+		}
+		return translateBatch(ctx, op, translationID, route, memory, source, units)
+	}
 	var batch []gen.TranslationUnit
 	size := 0
 	flush := func() error {
 		if len(batch) == 0 {
 			return nil
 		}
-		if translationCancelled(ctx, op, translationID) {
-			return errTranslationCancelled
-		}
-		done, err := translateBatch(ctx, op, translationID, route, memory, source, batch)
+		done, err := dispatch(batch)
 		if err != nil {
 			return err
 		}
@@ -115,9 +129,29 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		batch, size = nil, 0
 		return nil
 	}
-	for _, unit := range split.Units {
+	for i, unit := range split.Units {
 		text := *unit.SourceText
-		if prior, ok := previous[unit.UnitId]; ok && prior.SourceHash == unit.SourceHash {
+		parent := unit.UnitId
+		if unit.ParentBlockId != nil {
+			parent = *unit.ParentBlockId
+		}
+		prior, ok := previous[unit.UnitId]
+		if ok && protectedUnit(prior) {
+			// 原文变了：旧译文还套得进新原文的标签结构就沿用并标待复核；套不进先不写，读取时由受保护投影恢复。
+			if prior.SourceHash != unit.SourceHash {
+				if _, err := ParseSlotValues(split.Templates[i].Slots, prior.TargetText); err != nil {
+					continue
+				}
+				prior.SourceHash, prior.Status = unit.SourceHash, "review"
+			}
+			prior.Document, prior.TargetLanguage, prior.SourceText, prior.PreviousTargetText = document, unit.TargetLanguage, unit.SourceText, nil
+			translated = append(translated, prior)
+			continue
+		}
+		if !ok && (wholeProtected[parent] || (unit.UnitId == parent && rowProtected[parent])) {
+			continue
+		}
+		if ok && prior.SourceHash == unit.SourceHash {
 			prior.Document, prior.TargetLanguage, prior.SourceText, prior.PreviousTargetText = document, unit.TargetLanguage, unit.SourceText, nil
 			translated = append(translated, prior)
 			continue
@@ -146,11 +180,23 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 	if strings.TrimSpace(source.Title) != "" {
 		sourceTitle := source.Title
 		titleUnit := gen.TranslationUnit{UnitId: "title." + platform.HashBytes([]byte(sourceTitle))[:16], SourceText: &sourceTitle, SourceHash: platform.HashBytes([]byte(sourceTitle))}
-		if done, titleErr := translateBatch(ctx, op, translationID, route, memory, source, []gen.TranslationUnit{titleUnit}); titleErr == nil && len(done) == 1 {
+		done, titleErr := dispatch([]gen.TranslationUnit{titleUnit})
+		if errors.Is(titleErr, errTranslationCancelled) {
+			return titleErr
+		}
+		if titleErr == nil && len(done) == 1 {
 			title = strings.TrimSpace(done[0].TargetText)
 		}
 	}
 	return language.WriteData(ctx, op, func(tx *sql.Tx) error {
+		// 最后一批调用期间被取消的，不再写出结果。
+		var state string
+		if err := tx.QueryRowContext(ctx, `SELECT state FROM translation_manifests WHERE translation_id=?`, translationID).Scan(&state); err != nil {
+			return language.StorageError(err)
+		}
+		if state != "running" {
+			return errTranslationCancelled
+		}
 		object := TranslationObject{Title: title,
 			Translation: gen.Translation{TranslationId: translationID, Document: document, TargetLanguage: target, State: gen.TranslationState("ready"), Total: len(translated), Completed: len(translated), MemoryVersionHash: memory.VersionHash},
 			SourceTree:  split.SourceTree, Units: translated,
@@ -161,6 +207,11 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		_, err := tx.ExecContext(ctx, `UPDATE translation_manifests SET state='ready',updated_at=? WHERE translation_id=? AND state='running'`, platform.Now(), translationID)
 		return language.StorageError(err)
 	})
+}
+
+// protectedUnit 人工改过或标了保护的译文单元，不能被机器译文覆盖。
+func protectedUnit(unit gen.TranslationUnit) bool {
+	return unit.Protected || unit.Origin == "human"
 }
 
 // translateBatch 翻译一批单元并校验：模型必须完整返回本批 unitId，编号标签不得改变。
