@@ -559,6 +559,22 @@
   "id": "Aliran data cadangan tidak tersedia",
   "ar": "تدفق بيانات النسخة غير متاح"
  },
+ "备份文件的绝对路径": {
+  "zh-Hant": "備份檔案的絕對路徑",
+  "en": "absolute-path-to-backup",
+  "ja": "バックアップファイルの絶対パス",
+  "ko": "백업 파일의 절대 경로",
+  "fr": "chemin-absolu-de-la-sauvegarde",
+  "de": "absoluter-Pfad-der-Sicherung",
+  "es": "ruta-absoluta-de-la-copia",
+  "pt": "caminho-absoluto-do-backup",
+  "ru": "абсолютный-путь-к-копии",
+  "it": "percorso-assoluto-del-backup",
+  "vi": "đường-dẫn-tuyệt-đối-của-bản-sao-lưu",
+  "th": "พาธเต็มของไฟล์สำรอง",
+  "id": "path-absolut-cadangan",
+  "ar": "المسار-المطلق-للنسخة"
+ },
  "大小": {
   "zh-Hant": "大小",
   "en": "Size",
