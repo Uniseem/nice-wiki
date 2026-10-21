@@ -326,11 +326,6 @@ func (c *MediaClient) ReadAsset(ctx context.Context, assetId string, queries ...
 	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
-// ReadVideoMetadata POST /v1/videos/metadata（media:readVideoMetadata）。
-func (c *MediaClient) ReadVideoMetadata(ctx context.Context, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPost, "/v1/videos/metadata", body, "")
-}
-
 // ReleaseResourceReferences POST /v1/references:release（media:releaseResourceReferences）。
 func (c *MediaClient) ReleaseResourceReferences(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/references:release", body, "")

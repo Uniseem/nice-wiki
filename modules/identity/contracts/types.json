@@ -1247,9 +1247,15 @@
         },
         "password": {
           "type": "string",
-          "description": "口令，UI仅这两字段",
+          "description": "口令",
           "minLength": 1,
           "maxLength": 256
+        },
+        "deviceLabel": {
+          "type": "string",
+          "description": "浏览器按 User-Agent 生成的设备说明（如“Chrome · macOS”），只用于登录设备列表展示；省略为空",
+          "minLength": 0,
+          "maxLength": 100
         }
       },
       "required": [

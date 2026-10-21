@@ -11,8 +11,10 @@ import (
 	"time"
 )
 
+// auditCursor 审计分页从快照上界往下翻（最新的在前）：Before 是下一页的开区间上界，After 是保留锚下界。
 type auditCursor struct {
 	After   int64  `json:"after"`
+	Before  int64  `json:"before"`
 	Upper   int64  `json:"upper"`
 	Binding string `json:"binding"`
 	Expires int64  `json:"expires"`
@@ -70,7 +72,7 @@ func QueryAudits(ctx context.Context, op OperationContext, in QueryAuditsInput) 
 		return QueryAuditsResult{}, err
 	}
 	binding := platform.HashBytes(bindingRaw)
-	scope := "analytics.audits.v1:" + binding
+	scope := "analytics.audits.v2:" + binding
 	tx, err := rt.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return QueryAuditsResult{}, platform.NormalizeIOError(err, platform.CodeInternal, true, "开始审计快照失败")
@@ -88,13 +90,14 @@ func QueryAudits(ctx context.Context, op OperationContext, in QueryAuditsInput) 
 		if cursor.Upper < anchor {
 			cursor.Upper = anchor
 		}
+		cursor.Before = cursor.Upper + 1
 	} else {
 		raw, verifyErr := serviceauth.VerifyCursor(rt.Key, scope, in.Cursor)
-		if verifyErr != nil || json.Unmarshal(raw, &cursor) != nil || cursor.Binding != binding || cursor.Expires <= time.Now().UTC().Unix() || cursor.Anchor != anchor || cursor.After < anchor || cursor.After > cursor.Upper {
+		if verifyErr != nil || json.Unmarshal(raw, &cursor) != nil || cursor.Binding != binding || cursor.Expires <= time.Now().UTC().Unix() || cursor.Anchor != anchor || cursor.After != anchor || cursor.Before <= anchor || cursor.Before > cursor.Upper+1 {
 			return QueryAuditsResult{}, platform.NewError(platform.CodeStaleResult, false, "审计游标过期、保留锚或身份筛选已经变化")
 		}
 	}
-	rows, err := tx.QueryContext(ctx, "SELECT seq,audit_id FROM audit_records WHERE seq>? AND seq<=? AND (?='' OR action=?) AND (?='' OR occurred_at>=?) AND (?='' OR occurred_at<?) AND data_epoch=? ORDER BY seq LIMIT ?", cursor.After, cursor.Upper, in.Action, in.Action, from, from, to, to, op.DataEpoch, in.Limit+1)
+	rows, err := tx.QueryContext(ctx, "SELECT seq,audit_id FROM audit_records WHERE seq>? AND seq<? AND (?='' OR action=?) AND (?='' OR occurred_at>=?) AND (?='' OR occurred_at<?) AND data_epoch=? ORDER BY seq DESC LIMIT ?", cursor.After, cursor.Before, in.Action, in.Action, from, from, to, to, op.DataEpoch, in.Limit+1)
 	if err != nil {
 		return QueryAuditsResult{}, platform.NormalizeIOError(err, platform.CodeInternal, true, "读取审计分页失败")
 	}
@@ -119,7 +122,7 @@ func QueryAudits(ctx context.Context, op OperationContext, in QueryAuditsInput) 
 		return QueryAuditsResult{}, platform.NormalizeIOError(err, platform.CodeInternal, true, "读取审计分页失败")
 	}
 	if hasMore {
-		cursor.After = last
+		cursor.Before = last
 		raw, encodeErr := platform.CanonicalJSON(cursor)
 		if encodeErr != nil {
 			return QueryAuditsResult{}, encodeErr

@@ -759,11 +759,11 @@ export interface components {
             /** @description scheduleId；UTF-8；不得为 null */
             scheduleId: string;
         };
-        /** @description 每日本地备份配置，默认02:00站点时区/N=20；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
+        /** @description 每日本地备份配置：每天 03:00（所选时区）建一份，保留最近 keepCount 份；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         ScheduleLocalBackupRequestBody: {
-            /** @description timezone；UTF-8；不得为 null */
+            /** @description IANA 时区名；UTF-8；不得为 null */
             timezone: string;
-            /** @description keepCount 非负 int64；不用浮点数 */
+            /** @description 保留份数 1–60；0 表示关闭每日自动备份，已有备份保留 */
             keepCount: number;
         };
         /** @description 初始化向导从完整备份恢复成功结果；失败不返回半成功结果 */

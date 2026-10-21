@@ -613,8 +613,10 @@ export interface components {
         CreateSessionInput: {
             /** @description AccountName */
             accountName: components["schemas"]["AccountName"];
-            /** @description 口令，UI仅这两字段 */
+            /** @description 口令 */
             password: string;
+            /** @description 浏览器按 User-Agent 生成的设备说明（如“Chrome · macOS”），只用于登录设备列表展示；省略为空 */
+            deviceLabel?: string;
         };
         /**
          * @description 已确认10项功能，默认全部勾选

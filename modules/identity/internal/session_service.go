@@ -390,6 +390,7 @@ func RefreshSession(ctx context.Context, op OperationContext, input RefreshSessi
 type CreateSessionInput struct {
 	AccountName AccountName `json:"accountName"`
 	Password    string      `json:"password"`
+	DeviceLabel string      `json:"deviceLabel"`
 }
 type CreateSessionResult struct {
 	Tokens    SessionTokens `json:"tokens"`
@@ -469,12 +470,12 @@ func finishIdentityLogin(ctx context.Context, op OperationContext, attempt login
 	return nil
 }
 
-func insertSession(ctx context.Context, tx *sql.Tx, account Account, credentialRevision platform.Revision) (Session, platform.AuthContext, error) {
+func insertSession(ctx context.Context, tx *sql.Tx, account Account, credentialRevision platform.Revision, deviceLabel string) (Session, platform.AuthContext, error) {
 	now := time.Now().UTC()
 	session := Session{SessionID: platform.NewIdentifier(), AccountID: account.AccountID, SiteID: account.SiteID,
 		CredentialRevision: credentialRevision, PermissionRevision: account.PermissionRevision,
 		IssuedAt: now.Format(time.RFC3339Nano), ExpiresAt: now.Add(15 * time.Minute).Format(time.RFC3339Nano),
-		AbsoluteExpiresAt: now.Add(7 * 24 * time.Hour).Format(time.RFC3339Nano), RestrictedToPasswordChange: account.MustChangePassword, Revision: 1}
+		AbsoluteExpiresAt: now.Add(7 * 24 * time.Hour).Format(time.RFC3339Nano), DeviceLabel: deviceLabel, RestrictedToPasswordChange: account.MustChangePassword, Revision: 1}
 	_, err := tx.ExecContext(ctx, `INSERT INTO sessions(session_id,account_id,site_id,credential_revision,permission_revision,
         issued_at,expires_at,absolute_expires_at,device_label,restricted_to_password_change,revision) VALUES(?,?,?,?,?,?,?,?,?,?,1)`,
 		session.SessionID, session.AccountID, session.SiteID, session.CredentialRevision, session.PermissionRevision,
@@ -618,7 +619,7 @@ func CreateSession(ctx context.Context, op OperationContext, input CreateSession
 			return CreateSessionResult{}, identityDBError()
 		}
 	}
-	session, auth, err := insertSession(ctx, tx, account, credentialRevision)
+	session, auth, err := insertSession(ctx, tx, account, credentialRevision, input.DeviceLabel)
 	if err != nil {
 		return CreateSessionResult{}, err
 	}

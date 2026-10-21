@@ -109,16 +109,21 @@ function Schedule() {
   const { busy, run } = useAction();
   const schedule = settings.data?.schedule;
   const value = keepCount ?? schedule?.keepCount ?? 7;
-  const save = () => run(async () => {
+  // 保留份数为 0 表示关闭；已有备份保留。
+  const save = (keep: number, message: string) => run(async () => {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    await api('/v1/local-backup-schedule', { method: 'PUT', body: { keepCount: value, timezone }, idempotencyKey: newKey() });
+    await api('/v1/local-backup-schedule', { method: 'PUT', body: { keepCount: keep, timezone }, idempotencyKey: newKey() });
+    setKeepCount(null);
     settings.reload();
-  }, '已开启每日自动备份');
+  }, message);
   return (
     <Panel title="每日自动备份" description="每天 03:00（按浏览器所在时区）自动创建一份，超出份数的旧备份会被清理。">
       {schedule ? <Chip color="success" variant="soft">已开启 · {schedule.timezone} · 保留 {schedule.keepCount} 份</Chip> : <Chip variant="soft">未开启</Chip>}
       <NumberInput label="保留份数" maxValue={60} minValue={1} value={value} onChange={setKeepCount} />
-      <div><Button isPending={busy} variant="secondary" onPress={save}>{schedule ? '更新设置' : '开启自动备份'}</Button></div>
+      <div className="flex flex-wrap gap-2">
+        <Button isPending={busy} variant="secondary" onPress={() => save(value, schedule ? '自动备份设置已更新' : '已开启每日自动备份')}>{schedule ? '更新设置' : '开启自动备份'}</Button>
+        {schedule && <Button isDisabled={busy} variant="tertiary" onPress={() => save(0, '已关闭每日自动备份，已有备份保留')}>关闭自动备份</Button>}
+      </div>
     </Panel>
   );
 }

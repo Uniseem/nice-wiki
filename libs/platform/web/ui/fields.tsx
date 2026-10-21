@@ -1,6 +1,6 @@
 import { Button, Checkbox, CheckboxGroup, cn, Description, FieldError, Input, Label, ListBox, NumberField, Radio, RadioGroup, Select, Switch, TextArea, TextField } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 // 表单控件：统一 HeroUI 的 标签 + 输入 + 说明 + 校验错误 组合。卡片里默认用 secondary（无阴影的填充样式）。
 
@@ -16,11 +16,24 @@ type Common = {
   'aria-label'?: string;
 };
 
+// React Aria 的原生校验只在失焦/提交时刷新显示，而自定义错误期间不记录原生结果；
+// 错误消失后会残留旧提示（如“请填写此字段”）。错误消失时补发一次 change，让它按当前值重新提交。
+function useRecommit<T extends HTMLElement>(error: string | null | undefined) {
+  const ref = useRef<T>(null);
+  const had = useRef(false);
+  useEffect(() => {
+    if (had.current && !error) ref.current?.dispatchEvent(new Event('change'));
+    had.current = !!error;
+  }, [error]);
+  return ref;
+}
+
 export function TextInput({ label, description, error, isRequired, isDisabled, className, variant = 'secondary', value, onChange, placeholder, type, maxLength, minLength, pattern, autoComplete, autoFocus, isReadOnly, name, onBlur, validate, ...rest }: Common & {
   value: string; onChange: (value: string) => void; placeholder?: string; type?: 'text' | 'password' | 'email' | 'url' | 'search' | 'tel';
   maxLength?: number; minLength?: number; pattern?: string; autoComplete?: string; autoFocus?: boolean; isReadOnly?: boolean; name?: string;
   onBlur?: () => void; validate?: (value: string) => string | null | undefined;
 }) {
+  const input = useRecommit<HTMLInputElement>(error);
   return (
     <TextField
       aria-label={rest['aria-label']}
@@ -42,7 +55,7 @@ export function TextInput({ label, description, error, isRequired, isDisabled, c
       onChange={onChange}
     >
       {label && <Label>{label}</Label>}
-      <Input placeholder={placeholder} variant={variant} />
+      <Input ref={input} placeholder={placeholder} variant={variant} />
       {description && <Description>{description}</Description>}
       <FieldError>{error || undefined}</FieldError>
     </TextField>
@@ -52,6 +65,7 @@ export function TextInput({ label, description, error, isRequired, isDisabled, c
 export function TextAreaInput({ label, description, error, isRequired, isDisabled, className, variant = 'secondary', value, onChange, placeholder, rows = 4, maxLength, isReadOnly, ...rest }: Common & {
   value: string; onChange: (value: string) => void; placeholder?: string; rows?: number; maxLength?: number; isReadOnly?: boolean;
 }) {
+  const area = useRecommit<HTMLTextAreaElement>(error);
   return (
     <TextField
       aria-label={rest['aria-label']}
@@ -65,7 +79,7 @@ export function TextAreaInput({ label, description, error, isRequired, isDisable
       onChange={onChange}
     >
       {label && <Label>{label}</Label>}
-      <TextArea placeholder={placeholder} rows={rows} variant={variant} />
+      <TextArea ref={area} placeholder={placeholder} rows={rows} variant={variant} />
       {description && <Description>{description}</Description>}
       <FieldError>{error || undefined}</FieldError>
     </TextField>

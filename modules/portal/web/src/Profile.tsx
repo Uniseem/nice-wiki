@@ -20,7 +20,9 @@ export default function Profile() {
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const { busy, run } = useAction();
-  const sessions = useLoad((signal) => api<{ sessions: Session[] }>('/v1/sessions?limit=100', { signal }).then((result) => result.sessions), []);
+  // 还没改初始口令的会话不能读登录设备列表（服务端拒绝），改完口令后再加载。
+  const restricted = account.mustChangePassword;
+  const sessions = useLoad((signal) => restricted ? Promise.resolve([] as Session[]) : api<{ sessions: Session[] }>('/v1/sessions?limit=100', { signal }).then((result) => result.sessions), [restricted]);
 
   async function changePassword() {
     setError('');
@@ -54,6 +56,16 @@ export default function Profile() {
   const active = (sessions.data ?? [])
     .filter((session) => !session.revokedAt && session.absoluteExpiresAt > now)
     .sort((a, b) => Number(b.sessionId === self) - Number(a.sessionId === self) || b.issuedAt.localeCompare(a.issuedAt));
+  const others = active.filter((session) => session.sessionId !== self);
+
+  const revokeOthers = async () => {
+    const ok = await confirmAction({ title: `让其他 ${others.length} 个设备全部退出？`, body: '这些设备需要重新登录，当前设备不受影响。', confirmLabel: '全部退出', tone: 'warning' });
+    if (!ok) return;
+    await run(async () => {
+      for (const session of others) await api(`/v1/sessions/${session.sessionId}`, { method: 'DELETE', body: {} });
+    }, '其他设备已全部退出');
+    sessions.reload();
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -90,8 +102,12 @@ export default function Profile() {
         </Panel>
       </div>
 
-      <Panel title="登录设备" description="当前仍有效的登录。看到不认识的设备时，立即让它退出并修改口令。">
-        {sessions.error ? <ErrorBlock error={sessions.error} onRetry={sessions.reload} /> : sessions.loading && !sessions.data ? <LoadingBlock lines={3} /> : (
+      <Panel
+        title="登录设备"
+        description="当前仍有效的登录。看到不认识的设备时，立即让它退出并修改口令。"
+        actions={others.length > 1 ? <Button isDisabled={busy} size="sm" variant="tertiary" onPress={revokeOthers}>让其他设备全部退出</Button> : undefined}
+      >
+        {restricted ? <p className="text-sm text-muted">修改初始口令后可以查看和管理登录设备。</p> : sessions.error ? <ErrorBlock error={sessions.error} onRetry={sessions.reload} /> : sessions.loading && !sessions.data ? <LoadingBlock lines={3} /> : (
           <Table variant="secondary">
             <Table.ScrollContainer>
               <Table.Content aria-label="登录设备" className="min-w-[560px]">

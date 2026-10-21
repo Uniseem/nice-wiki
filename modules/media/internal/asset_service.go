@@ -125,7 +125,7 @@ func (s *localBlobStore) readAssetListingCursor(op OperationContext, input ListA
 	if err != nil {
 		return assetListingCursor{}, "", err
 	}
-	scope := "media.assets.v1:" + platform.HashBytes(material)
+	scope := "media.assets.v2:" + platform.HashBytes(material)
 	position := assetListingCursor{SchemaVersion: 1}
 	if input.Page.Cursor != "" {
 		raw, err := serviceauth.VerifyCursor(*s.listingKey, scope, input.Page.Cursor)
@@ -156,7 +156,7 @@ func readAssetListingRevision(ctx context.Context, q sqlExecer) (int64, error) {
 	return revision, nil
 }
 
-// readAssetListingPage 在单一短只读快照读水位和有界候选，结束事务后才允许回源/签名。
+// readAssetListingPage 在单一短只读快照读水位和有界候选（按上传时间从新到旧），结束事务后才允许回源/签名。
 func (s *localBlobStore) readAssetListingPage(ctx context.Context, op OperationContext, input ListAssetsInput, position assetListingCursor, unused bool) (assetListingPage, error) {
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
@@ -174,7 +174,7 @@ func (s *localBlobStore) readAssetListingPage(ctx context.Context, op OperationC
 	if input.Kind != nil {
 		kind = string(*input.Kind)
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT a.asset_id,a.site_id,a.sha256,a.byte_size,a.media_type,a.state,CASE WHEN length(CAST(a.asset_json AS BLOB))<=16777216 THEN a.asset_json ELSE NULL END,r.deletion_fence,r.reference_generation,json_extract(a.asset_json,'$.createdAt') FROM assets a LEFT JOIN reference_objects r ON r.asset_id=a.asset_id WHERE a.site_id=? AND (?='' OR json_extract(a.asset_json,'$.kind')=?) AND (?=0 OR a.state='ready') AND (?='' OR (json_extract(a.asset_json,'$.kind'),json_extract(a.asset_json,'$.createdAt'),a.asset_id)>(?,?,?)) ORDER BY json_extract(a.asset_json,'$.kind'),json_extract(a.asset_json,'$.createdAt'),a.asset_id LIMIT ?`, op.Actor.SiteID, kind, kind, unused, position.AfterAssetId, position.AfterKind, position.AfterCreatedAt, position.AfterAssetId, input.Page.Limit+1)
+	rows, err := tx.QueryContext(ctx, `SELECT a.asset_id,a.site_id,a.sha256,a.byte_size,a.media_type,a.state,CASE WHEN length(CAST(a.asset_json AS BLOB))<=16777216 THEN a.asset_json ELSE NULL END,r.deletion_fence,r.reference_generation,json_extract(a.asset_json,'$.createdAt') FROM assets a LEFT JOIN reference_objects r ON r.asset_id=a.asset_id WHERE a.site_id=? AND (?='' OR json_extract(a.asset_json,'$.kind')=?) AND (?=0 OR a.state='ready') AND (?='' OR (json_extract(a.asset_json,'$.createdAt'),a.asset_id)<(?,?)) ORDER BY json_extract(a.asset_json,'$.createdAt') DESC,a.asset_id DESC LIMIT ?`, op.Actor.SiteID, kind, kind, unused, position.AfterAssetId, position.AfterCreatedAt, position.AfterAssetId, input.Page.Limit+1)
 	if err != nil {
 		return assetListingPage{}, mapMediaDBError(err, "读取资源列表候选失败")
 	}

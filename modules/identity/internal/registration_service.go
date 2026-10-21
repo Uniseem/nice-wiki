@@ -208,7 +208,7 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 	if err := insertAccount(ctx, tx, account, hashed.EncodedHash); err != nil {
 		return RegisterFirstSuperadminResult{}, err
 	}
-	session, auth, err := insertSession(ctx, tx, account, 1)
+	session, auth, err := insertSession(ctx, tx, account, 1, "")
 	if err != nil {
 		return RegisterFirstSuperadminResult{}, err
 	}

@@ -12,6 +12,11 @@ type Snapshot = { currentReferences: Reference[]; historyReferences: Reference[]
 
 const kinds: Record<string, string> = { image: '图片', attachment: '附件', video: '视频', drawing_scene: '画板场景', drawing_svg: '画板图像', platform_cover: '平台封面' };
 const sources: Record<string, string> = { content: '文档', 'site-config': '站点设置' };
+// 只给非“可用”状态打标；待删除的资源在保护窗口结束前仍在列表里。
+const states: Record<string, { label: string; tone: 'default' | 'warning' | 'danger' }> = {
+  uploading: { label: '上传中', tone: 'default' }, validating: { label: '校验中', tone: 'default' }, blocked: { label: '已拦截', tone: 'danger' },
+  delete_pending: { label: '待删除', tone: 'warning' }, deleted: { label: '已删除', tone: 'danger' },
+};
 const kindIcon = (kind: string) => kind === 'image' || kind === 'platform_cover' ? Picture : kind === 'video' ? Video : kind.startsWith('drawing') ? Brush : FileIcon;
 
 export default function LibraryPage() {
@@ -159,7 +164,12 @@ export default function LibraryPage() {
                             </span>
                           </span>
                         </Table.Cell>
-                        <Table.Cell><Chip size="sm" variant="soft">{kinds[asset.kind] ?? asset.kind}</Chip></Table.Cell>
+                        <Table.Cell>
+                          <span className="flex flex-wrap gap-1">
+                            <Chip size="sm" variant="soft">{kinds[asset.kind] ?? asset.kind}</Chip>
+                            {states[asset.state] && <Chip color={states[asset.state].tone} size="sm" variant="soft">{states[asset.state].label}</Chip>}
+                          </span>
+                        </Table.Cell>
                         <Table.Cell className="tabular-nums">{fmtBytes(asset.ref.byteSize)}</Table.Cell>
                         <Table.Cell>{fmtDateTime(asset.createdAt)}</Table.Cell>
                         <Table.Cell className="text-end"><Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => showReferences(asset)}><LinkIcon />查看</Button></Table.Cell>

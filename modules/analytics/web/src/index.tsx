@@ -189,6 +189,16 @@ function AuditTab() {
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<AuditResult | null>(null);
   const window_ = useMemo(() => range(presets[preset][1]), [preset]);
+  // 主体显示账号名：只有超管能读账号列表，读不到就显示编号。
+  const [names, setNames] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    type Named = { accountId: string; accountName: string };
+    void Promise.all([
+      api<{ account: Named }>('/v1/self').then((result) => [result.account]).catch(() => [] as Named[]),
+      api<{ accounts: Named[] }>('/v1/accounts?limit=100').then((result) => result.accounts).catch(() => [] as Named[]),
+    ]).then(([self, others]) => setNames(new Map([...self, ...others].map((account) => [account.accountId, account.accountName]))));
+  }, []);
+  const actorOf = (id: string) => names.get(id) ?? <Mono>{id}</Mono>;
 
   const load = async (cursor: string) => {
     setLoading(true);
@@ -231,7 +241,7 @@ function AuditTab() {
                   <Table.Row key={item.auditJSON.auditId} id={item.auditJSON.auditId}>
                     <Table.Cell>{fmtDateTime(item.auditJSON.occurredAt)}</Table.Cell>
                     <Table.Cell><Mono>{item.auditJSON.action}</Mono></Table.Cell>
-                    <Table.Cell><Mono>{item.auditJSON.actorId}</Mono></Table.Cell>
+                    <Table.Cell>{actorOf(item.auditJSON.actorId)}</Table.Cell>
                     <Table.Cell>{item.auditJSON.resultCode}</Table.Cell>
                     <Table.Cell>{item.chainValid ? <Chip color="success" size="sm" variant="soft"><CircleCheck />通过</Chip> : <Chip color="danger" size="sm" variant="soft"><CircleExclamation />未通过</Chip>}</Table.Cell>
                     <Table.Cell className="text-end"><Button size="sm" variant="tertiary" onPress={() => setDetail(item)}>详情</Button></Table.Cell>
@@ -257,7 +267,7 @@ function AuditTab() {
               <Drawer.Body className="flex flex-col gap-4">
                 {detail.chainValid ? <Chip color="success" variant="soft"><CircleCheck />本条内容与前驱链校验通过</Chip> : <Chip color="danger" variant="soft"><CircleExclamation />链完整性校验未通过，请核查</Chip>}
                 <Details items={[
-                  ['动作', <Mono>{detail.auditJSON.action}</Mono>], ['主体', <Mono>{detail.auditJSON.actorId}</Mono>], ['资源', <Mono>{detail.auditJSON.resourceId}</Mono>],
+                  ['动作', <Mono>{detail.auditJSON.action}</Mono>], ['主体', actorOf(detail.auditJSON.actorId)], ['资源', <Mono>{detail.auditJSON.resourceId}</Mono>],
                   ['结果', detail.auditJSON.resultCode], ['发生时间', fmtDateTime(detail.auditJSON.occurredAt)],
                 ]} />
                 <pre className="max-h-96 overflow-auto rounded-xl bg-surface-secondary p-3 font-mono text-xs leading-5">{JSON.stringify(detail.auditJSON, null, 2)}</pre>

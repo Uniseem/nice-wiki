@@ -280,18 +280,6 @@ func (c *AnalyticsClient) IngestTrustedBeacon(ctx context.Context, body any, ide
 	return c.do(ctx, http.MethodPost, "/v1/internal/beacons", body, idempotencyKey)
 }
 
-// ContentClient 调用content服务（自动附服务断言）。
-type ContentClient struct{ *producerClient }
-
-func NewContentClient(baseURL, issuer string, key platform.SigningKey) *ContentClient {
-	return &ContentClient{newProducerClient("content", baseURL, issuer, key)}
-}
-
-// SaveDraft PUT /v1/documents/{documentId}/draft（content:saveDraft）。
-func (c *ContentClient) SaveDraft(ctx context.Context, documentId string, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPut, "/v1/documents/"+url.PathEscape(documentId)+"/draft", body, "")
-}
-
 // IdentityClient 调用identity服务（自动附服务断言）。
 type IdentityClient struct{ *producerClient }
 
@@ -312,11 +300,6 @@ func (c *IdentityClient) ReadPreferences(ctx context.Context) (json.RawMessage, 
 // ReadSelf GET /v1/self（identity:readSelf）。
 func (c *IdentityClient) ReadSelf(ctx context.Context) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/v1/self", nil, "")
-}
-
-// RefreshSession POST /v1/sessions:refresh（identity:refreshSession）。
-func (c *IdentityClient) RefreshSession(ctx context.Context, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPost, "/v1/sessions:refresh", body, "")
 }
 
 // UpdatePreferences PUT /v1/preferences（identity:updatePreferences）。

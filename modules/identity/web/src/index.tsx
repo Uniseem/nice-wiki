@@ -96,8 +96,8 @@ export default function AccountsPage() {
                               <Dropdown.Item id="permissions" textValue="编辑权限"><Label>编辑权限</Label></Dropdown.Item>
                               <Dropdown.Item id="reset" textValue="重置口令"><Label>重置口令</Label></Dropdown.Item>
                               {account.status === 'active'
-                                ? <Dropdown.Item id="disable" textValue="停用"><Label>停用</Label></Dropdown.Item>
-                                : <Dropdown.Item id="enable" textValue="恢复"><Label>恢复</Label></Dropdown.Item>}
+                                ? <Dropdown.Item key="disable" id="disable" textValue="停用"><Label>停用</Label></Dropdown.Item>
+                                : <Dropdown.Item key="enable" id="enable" textValue="恢复"><Label>恢复</Label></Dropdown.Item>}
                               <Dropdown.Item id="delete" textValue="删除" variant="danger"><Label>删除</Label></Dropdown.Item>
                             </Dropdown.Menu>
                           </Dropdown.Popover>

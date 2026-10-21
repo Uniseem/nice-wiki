@@ -1,10 +1,11 @@
 import { ArrowRightFromSquare, ArrowUpRightFromSquare, Bars, Person } from '@gravity-ui/icons';
 import { Button, buttonVariants, cn, Drawer, Dropdown, Label, ScrollShadow, Separator } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { api, CenteredSpinner, ErrorBlock, navigate, Notice, ThemeMenu, useGrants, usePath } from '@ui';
+import { CenteredSpinner, ErrorBlock, navigate, Notice, ThemeMenu, useGrants, usePath } from '@ui';
 import { Component, createContext, Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Account } from './App';
 import { canOpen, legacyPath, pageFor, pages, sections, type Page } from './routes';
+import { SiteMark, useSiteBrand } from './brand';
 
 const AccountContext = createContext<Account | null>(null);
 export const useAccount = () => useContext(AccountContext)!;
@@ -13,11 +14,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   const path = usePath();
   const grants = useGrants();
   const [navOpen, setNavOpen] = useState(false);
-  const [siteName, setSiteName] = useState('');
-
-  useEffect(() => {
-    api<{ config: { name: string } }>('/v1/config').then((result) => setSiteName(result.config.name)).catch(() => {});
-  }, []);
+  const brand = useSiteBrand();
 
   // 必须先改口令的子账号只开放个人设置；其余按授权项显示（只是少展示，权限仍在服务端校验）。
   const visible = useMemo(() => account.mustChangePassword ? pages.filter((page) => page.key === 'me') : pages.filter((page) => canOpen(page, grants)), [account.mustChangePassword, grants]);
@@ -36,7 +33,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
     <AccountContext.Provider value={account}>
       <div className="flex min-h-dvh bg-background">
         <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-e border-separator bg-surface lg:flex">
-          <Brand siteName={siteName} />
+          <Brand brand={brand} />
           <ScrollShadow className="flex-1 px-3 pb-4" hideScrollBar>{nav}</ScrollShadow>
           <AccountBox account={account} onSignOut={onSignOut} />
         </aside>
@@ -44,7 +41,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
         <Drawer.Backdrop isOpen={navOpen} onOpenChange={setNavOpen}>
           <Drawer.Content placement="left">
             <Drawer.Dialog aria-label="后台导航" className="flex h-full w-72 max-w-[85vw] flex-col p-0">
-              <Brand siteName={siteName} />
+              <Brand brand={brand} />
               <div className="flex-1 overflow-y-auto px-3 pb-4">{nav}</div>
               <AccountBox account={account} onSignOut={onSignOut} />
             </Drawer.Dialog>
@@ -83,12 +80,12 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   );
 }
 
-function Brand({ siteName }: { siteName: string }) {
+function Brand({ brand }: { brand: ReturnType<typeof useSiteBrand> }) {
   return (
     <a className="flex h-14 shrink-0 items-center gap-2.5 px-5" href="/admin/dashboard" onClick={(event) => { event.preventDefault(); navigate('/admin/dashboard'); }}>
-      <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-foreground">{(siteName || 'N').slice(0, 1).toUpperCase()}</span>
+      <SiteMark brand={brand} className="size-8 shrink-0 rounded-lg text-sm" />
       <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold text-foreground">{siteName || 'nice-wiki'}</span>
+        <span className="block truncate text-sm font-semibold text-foreground">{brand.name || 'nice-wiki'}</span>
         <span className="block text-xs text-muted">后台管理</span>
       </span>
     </a>

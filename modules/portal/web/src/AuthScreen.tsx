@@ -3,14 +3,23 @@ import { Button, Card, Form, Spinner } from '@heroui/react';
 import { api, errorText, Notice, SelectInput, storeSession, TextInput, ThemeMenu } from '@ui';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ensureBaseLanguage, type Account } from './App';
+import { SiteMark, useSiteBrand } from './brand';
 
 // 进入后台的向导：还没有账号 → 注册唯一的超级管理员；已有账号 → 登录；登录后站点未初始化 → 填站点名与基准语言。
 type Step = 'loading' | 'register' | 'login' | 'site';
 type SessionReply = { session: { csrfToken: string; sessionId: string; auth?: { grants?: string[] } }; account?: Account };
 
+// 登录设备列表里显示的说明，如“Chrome · macOS”；只取浏览器和系统名，不带版本号。
+function deviceLabel(): string {
+  const agent = navigator.userAgent;
+  const browser = /Edg\//.test(agent) ? 'Edge' : /OPR\//.test(agent) ? 'Opera' : /Firefox\//.test(agent) ? 'Firefox' : /Chrome\//.test(agent) ? 'Chrome' : /Safari\//.test(agent) ? 'Safari' : '浏览器';
+  const system = /iPhone|iPad/.test(agent) ? 'iOS' : /Android/.test(agent) ? 'Android' : /Mac OS X/.test(agent) ? 'macOS' : /Windows/.test(agent) ? 'Windows' : /Linux/.test(agent) ? 'Linux' : '';
+  return system ? `${browser} · ${system}` : browser;
+}
+
 export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => Promise<void> }) {
   const [step, setStep] = useState<Step>('loading');
-  const [accountName, setAccountName] = useState('admin');
+  const [accountName, setAccountName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [siteName, setSiteName] = useState('');
@@ -18,10 +27,15 @@ export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => P
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
+  const brand = useSiteBrand();
 
   useEffect(() => {
     api<{ registrationOpen: boolean }>('/v1/registration')
-      .then((state) => setStep(state.registrationOpen ? 'register' : 'login'))
+      .then((state) => {
+        // 只有创建第一个管理员时预填 admin；登录页留空，子账号不用先删掉它。
+        if (state.registrationOpen) setAccountName('admin');
+        setStep(state.registrationOpen ? 'register' : 'login');
+      })
       .catch((problem) => { setError(errorText(problem)); setStep('login'); });
   }, []);
 
@@ -44,7 +58,7 @@ export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => P
       if (password !== confirmation) throw new Error('两次输入的口令不一致');
       await afterLogin(await api<SessionReply>('/v1/registration', { method: 'POST', body: { accountName, password, passwordConfirmation: confirmation } }));
     } else if (step === 'login') {
-      await afterLogin(await api<SessionReply>('/v1/sessions', { method: 'POST', body: { accountName, password } }));
+      await afterLogin(await api<SessionReply>('/v1/sessions', { method: 'POST', body: { accountName, password, deviceLabel: deviceLabel() } }));
     } else if (step === 'site') {
       await api('/v1/initialization', { method: 'POST', body: { name: siteName, baseLanguage } });
       await ensureBaseLanguage(baseLanguage);
@@ -63,9 +77,9 @@ export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => P
     <div className="relative flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-10">
       <div className="absolute end-4 top-4"><ThemeMenu /></div>
       <div className="mb-8 flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-accent text-lg font-bold text-accent-foreground">N</div>
+        <SiteMark brand={brand} className="size-10 shrink-0 rounded-xl text-lg" />
         <div>
-          <div className="text-lg font-semibold text-foreground">nice-wiki</div>
+          <div className="text-lg font-semibold text-foreground">{brand.name || 'nice-wiki'}</div>
           <div className="text-xs text-muted">文档站后台</div>
         </div>
       </div>

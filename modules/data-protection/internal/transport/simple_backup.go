@@ -392,6 +392,7 @@ func encryptStream(w io.Writer, in io.Reader, passphrase string) error {
 
 // 每日本地备份：配置存成 simple-backups/schedule.json，后台每分钟检查一次，
 // 当天（所选时区）03:00 之后还没有新备份就创建一份，并按 keepCount 删除最旧的。
+// keepCount 为 0 表示关闭：删掉配置文件，已有备份不动。
 type backupSchedule struct {
 	ScheduleID string `json:"scheduleId"`
 	KeepCount  int    `json:"keepCount"`
@@ -415,15 +416,18 @@ func (s *server) simpleSchedule(op platform.OperationContext, body gen.ScheduleL
 	if op.Actor.Kind != "admin" {
 		return gen.ScheduleLocalBackupResult{}, platform.NewError(platform.CodeForbidden, false, "只有后台管理员可以设置自动备份")
 	}
-	if body.KeepCount < 1 || body.KeepCount > 60 {
-		return gen.ScheduleLocalBackupResult{}, platform.NewError(platform.CodeValidation, false, "保留份数需在 1 到 60 之间")
-	}
 	if _, err := time.LoadLocation(body.Timezone); err != nil {
 		return gen.ScheduleLocalBackupResult{}, platform.NewError(platform.CodeValidation, false, "时区不合法")
 	}
 	schedule, ok := s.readSchedule()
 	if !ok {
 		schedule.ScheduleID = platform.NewIdentifier()
+	}
+	if body.KeepCount == 0 {
+		if err := os.Remove(filepath.Join(s.backupRoot(), "schedule.json")); err != nil && !os.IsNotExist(err) {
+			return gen.ScheduleLocalBackupResult{}, platform.NewError(platform.CodeInternal, true, "无法关闭自动备份")
+		}
+		return gen.ScheduleLocalBackupResult{ScheduleId: schedule.ScheduleID}, nil
 	}
 	schedule.KeepCount, schedule.Timezone, schedule.Revision = body.KeepCount, body.Timezone, schedule.Revision+1
 	raw, _ := json.Marshal(schedule)
