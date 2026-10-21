@@ -144,3 +144,65 @@ func ProposeCacheEntry(ctx context.Context, op OperationContext, input ProposeCa
 	}
 	return result, nil
 }
+
+type ApproveCacheEntryInput = gen.ApproveCacheEntryInput
+type ApproveCacheEntryResult = gen.ApproveCacheEntryResult
+
+// ApproveCacheEntry 把待批准的精选候选激活：重新核验引用，成功后长期有效（不按 TTL 过期），仍随来源撤回/改动失效。
+func ApproveCacheEntry(ctx context.Context, op OperationContext, input ApproveCacheEntryInput) (ApproveCacheEntryResult, error) {
+	if err := qaruntime.RequireAdmin(op, "qa.manage"); err != nil {
+		return ApproveCacheEntryResult{}, err
+	}
+	read, err := qaruntime.BeginRead(ctx, op)
+	if err != nil {
+		return ApproveCacheEntryResult{}, err
+	}
+	record, err := ReadCache(read, op, input.CacheId)
+	baseLanguage := read.Runtime.BaseLanguage
+	read.Close()
+	if err != nil {
+		return ApproveCacheEntryResult{}, err
+	}
+	if string(record.Entry.State) != "pending" || record.Entry.Version != input.ExpectedVersion {
+		return ApproveCacheEntryResult{}, platform.NewError(platform.CodeVersionMismatch, false, "只有版本一致的待批准条目可以批准")
+	}
+	citations, err := qaruntime.ValidateCitations(ctx, op, record.Entry.Citations, baseLanguage)
+	if err != nil {
+		return ApproveCacheEntryResult{}, err
+	}
+	tx, err := qaruntime.BeginWrite(ctx, op)
+	if err != nil {
+		return ApproveCacheEntryResult{}, err
+	}
+	defer tx.Close()
+	var result ApproveCacheEntryResult
+	if replay, err := qaruntime.ReplayReceipt(tx, op, "qa.ApproveCacheEntry", input.IdempotencyKey, input, &result); err != nil || replay {
+		return result, err
+	}
+	current, err := ReadCache(tx, op, input.CacheId)
+	if err != nil {
+		return ApproveCacheEntryResult{}, err
+	}
+	if string(current.Entry.State) != "pending" || current.Entry.Version != input.ExpectedVersion {
+		return ApproveCacheEntryResult{}, platform.NewError(platform.CodeVersionMismatch, false, "条目在批准前已变化")
+	}
+	current.Entry.Citations = citations
+	current.Entry.State = gen.CacheEntryState("active")
+	current.Entry.Curated = true
+	current.Entry.ExpiresAt = nil
+	current.Entry.Version++
+	if err := SaveCache(tx, op, current); err != nil {
+		return ApproveCacheEntryResult{}, err
+	}
+	if err := EmitCacheChanged(tx, op, current.Entry); err != nil {
+		return ApproveCacheEntryResult{}, err
+	}
+	result.Entry = current.Entry
+	if err := qaruntime.SaveReceipt(tx, op, "qa.ApproveCacheEntry", input.IdempotencyKey, input, result); err != nil {
+		return ApproveCacheEntryResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return ApproveCacheEntryResult{}, err
+	}
+	return result, nil
+}

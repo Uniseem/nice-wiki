@@ -36,6 +36,12 @@ func NewOperationHandlers(bind func(context.Context) context.Context) map[string
 			writeResult(w, op, http.StatusOK, result, err)
 		}),
 		"proposeCacheEntry": jsonOperation(bind, http.StatusCreated, cache.ProposeCacheEntry, nil),
+		"approveCacheEntry": jsonOperation(bind, http.StatusOK, cache.ApproveCacheEntry, func(r *http.Request, i *gen.ApproveCacheEntryInput) error {
+			if i.CacheId != r.PathValue("cacheId") {
+				return platform.NewError(platform.CodeValidation, false, "批准路径与正文条目不一致")
+			}
+			return nil
+		}),
 		"cancelTurn": jsonOperation(bind, http.StatusOK, turn.CancelTurn, func(r *http.Request, input *gen.CancelTurnInput) error {
 			if input.TurnId != r.PathValue("turnId") {
 				return platform.NewError(platform.CodeValidation, false, "路径与取消轮次不一致")

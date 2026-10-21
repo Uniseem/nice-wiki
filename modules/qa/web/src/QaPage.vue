@@ -45,12 +45,30 @@ async function load() {
   policy.value = current.policy;
   version.value = current.version;
   try { turns.value = (await api<{ items: any[] }>('/v1/admin/turns?limit=20')).items ?? []; } catch { turns.value = []; }
-  try { cacheEntries.value = (await api<{ entries: any[] }>('/v1/admin/cache?state=active&limit=20')).entries ?? []; } catch { cacheEntries.value = []; }
+  try { cacheEntries.value = (await api<{ entries: any[] }>('/v1/admin/cache?limit=30')).entries ?? []; } catch { cacheEntries.value = []; }
 }
 async function run(action: () => Promise<void>, done = '') {
   busy.value = true; error.value = ''; notice.value = '';
   try { await action(); await load(); if (done) notice.value = done; } catch (e) { error.value = messageOf(e); } finally { busy.value = false; }
 }
+// 精选：把一轮已完成的问答清理成公开的问题和答案（待批准），批准后长期有效、优先命中，仍随来源撤回/改动失效。
+const curate = ref<{ turnId: string; question: string; answer: string } | null>(null);
+async function openCurate(turn: any) {
+  try {
+    const record = await api<{ question: string; answer: string }>(`/v1/admin/turns/${turn.turnId}`);
+    curate.value = { turnId: turn.turnId, question: record.question, answer: record.answer };
+  } catch (e) { error.value = messageOf(e); }
+}
+const submitCurate = () => run(async () => {
+  if (!curate.value) return;
+  const idempotencyKey = crypto.randomUUID().replaceAll('-', '');
+  await api('/v1/admin/cache', { method: 'POST', idempotencyKey, body: { turnId: curate.value.turnId, publicQuestion: curate.value.question, publicAnswer: curate.value.answer, idempotencyKey } });
+  curate.value = null;
+}, '已提交为待批准的精选条目，请在下方“答案缓存条目”里批准。');
+const approveCache = (entry: any) => run(async () => {
+  const idempotencyKey = crypto.randomUUID().replaceAll('-', '');
+  await api(`/v1/admin/cache/${entry.cacheId}/approve`, { method: 'POST', idempotencyKey, body: { cacheId: entry.cacheId, expectedVersion: entry.version, idempotencyKey } });
+}, '精选条目已批准。');
 const disableCache = (entry: any) => {
   if (!confirm(`禁用后这条缓存答案不会再被复用：\n「${entry.question}」`)) return;
   return run(async () => {
@@ -88,7 +106,12 @@ onMounted(() => run(async () => {}));
       <legend>最近的问答记录</legend>
       <p v-if="!turns.length" class="hint">还没有问答记录。</p>
       <table v-else><thead><tr><th>时间</th><th>问题</th><th>状态</th></tr></thead>
-        <tbody><tr v-for="t in turns" :key="t.turnId"><td>{{ t.createdAt }}</td><td>{{ t.questionPreview }}</td><td>{{ t.answerKind || '未完成' }}{{ t.feedback ? '（反馈：' + t.feedback + '）' : '' }}</td></tr></tbody></table>
+        <tbody><tr v-for="t in turns" :key="t.turnId"><td>{{ t.createdAt }}</td><td>{{ t.questionPreview }}</td><td>{{ t.answerKind || '未完成' }}{{ t.feedback ? '（反馈：' + t.feedback + '）' : '' }} <button v-if="t.answerKind === 'answered'" :disabled="busy" @click="openCurate(t)">设为精选</button></td></tr></tbody></table>
+      <form v-if="curate" @submit.prevent="submitCurate" style="margin-top:.6rem">
+        <label>公开问题（去掉个人信息后的通用问法）</label><input type="text" v-model="curate.question" required>
+        <label>公开答案</label><textarea v-model="curate.answer" rows="4" required></textarea>
+        <div class="row" style="margin-top:.4rem"><button class="primary" :disabled="busy">提交精选</button><button type="button" @click="curate = null">取消</button></div>
+      </form>
     </fieldset>
     <fieldset>
       <legend>调试台</legend>
@@ -107,7 +130,7 @@ onMounted(() => run(async () => {}));
       <legend>答案缓存条目</legend>
       <p v-if="!cacheEntries.length" class="hint">还没有缓存条目。打开“答案缓存”后，完整且可共享的问题回答完会自动写入；撤回或改动来源文档后，相关缓存会因引用核验失败而不再命中。</p>
       <table v-else><thead><tr><th>问题</th><th>答案</th><th>语言</th><th>过期</th><th></th></tr></thead>
-        <tbody><tr v-for="c in cacheEntries" :key="c.cacheId"><td>{{ c.question }}</td><td>{{ (c.answer || '').slice(0, 80) }}</td><td>{{ c.language }}</td><td>{{ c.expiresAt ?? '精选' }}</td><td><button :disabled="busy" @click="disableCache(c)">禁用</button></td></tr></tbody></table>
+        <tbody><tr v-for="c in cacheEntries" :key="c.cacheId"><td>{{ c.question }}</td><td>{{ (c.answer || '').slice(0, 80) }}</td><td>{{ c.language }}</td><td>{{ c.curated ? '精选（长期）' : (c.expiresAt ?? '') }} {{ c.state === 'pending' ? '· 待批准' : c.state === 'disabled' ? '· 已禁用' : '' }}</td><td><button v-if="c.state === 'pending'" :disabled="busy" @click="approveCache(c)">批准</button> <button v-if="c.state !== 'disabled'" :disabled="busy" @click="disableCache(c)">禁用</button></td></tr></tbody></table>
     </fieldset>
   </div>
 </template>
