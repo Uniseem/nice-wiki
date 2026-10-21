@@ -106,7 +106,7 @@ def compose():
             lines += ["      - backups:/backups", "      - ./secrets:/backup-secrets:ro"] + [f"      - {s}-data:/sources/{s}" for s in SERVICES if s != slug]
         lines.append("")
     lines += ["  caddy:", "    image: caddy:2-alpine", "    restart: unless-stopped", "    networks: [internal]",
-              "    ports: [\"80:80\", \"443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
+              "    ports: [\"${NW_BIND:-0.0.0.0}:80:80\", \"${NW_BIND:-0.0.0.0}:443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
               "    volumes:", "      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "      - caddy-data:/data", "      - caddy-config:/config",
               "    depends_on: [portal]", "", "volumes:"]
     lines += [f"  {slug}-data:" for slug in SERVICES] + ["  backups:", "  caddy-data:", "  caddy-config:", ""]
@@ -144,6 +144,9 @@ vps.txt
 SITE_DOMAIN=docs.example.com
 NW_VERSION=dev
 GOMEMLIMIT=256MiB
+# 对外监听地址：默认全部网卡；尚未开放公网、只经 SSH 隧道访问时改成 127.0.0.1。
+# Docker 发布的端口不经过宿主机 INPUT 防火墙规则，要限制访问必须在这里绑定。
+NW_BIND=0.0.0.0
 """)
     write("deploy/init-secrets.sh", """#!/bin/sh
 # 首次部署：生成各服务的签名密钥与公钥表，并写出容器内使用的引用文件。
