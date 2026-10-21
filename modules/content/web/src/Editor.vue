@@ -8,7 +8,7 @@ import Highlight from '@tiptap/extension-highlight';
 import { StableIds } from './ids';
 import Link from '@tiptap/extension-link';
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
-import { Attachment, Callout, MathBlock } from './blocks';
+import { Attachment, Callout, Column, Columns, MathBlock } from './blocks';
 import { ImageBlock } from './image';
 import { VideoBlock } from './video';
 import { captureVideoPoster, uploadAsset, uploadImage } from './upload';
@@ -27,7 +27,7 @@ const editor = useEditor({
     StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: false }),
     Link.configure({ openOnClick: false, autolink: false, protocols: ['mailto'], HTMLAttributes: { rel: 'noopener noreferrer nofollow' } }),
     Table.configure({ resizable: false }), TableRow, TableHeader, TableCell,
-    TaskList, TaskItem.configure({ nested: true }), Highlight, ImageBlock, VideoBlock, Callout, MathBlock, Attachment, StableIds,
+    TaskList, TaskItem.configure({ nested: true }), Highlight, ImageBlock, VideoBlock, Callout, MathBlock, Attachment, Columns, Column, StableIds,
   ],
   // 只有用户在编辑器里操作（获得焦点）才算修改，加载时补稳定 ID 不触发保存。
   onUpdate: ({ editor }) => { if (editor.isFocused) emit('change', editor.getJSON() as JSONNode); },
@@ -64,11 +64,18 @@ const slashCommands = [
   { label: '表格', key: 'table', run: (e: any) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
   { label: '提示框', key: 'callout info', run: (e: any) => e.chain().focus().wrapIn('callout', { kind: 'info' }).run() },
   { label: '警告框', key: 'warning', run: (e: any) => e.chain().focus().wrapIn('callout', { kind: 'warning' }).run() },
+  { label: '两栏', key: 'columns 分栏', run: (e: any) => insertColumns(e, 2) },
+  { label: '三栏', key: 'columns 分栏', run: (e: any) => insertColumns(e, 3) },
   { label: '公式', key: 'math latex', run: (e: any) => { const latex = window.prompt('LaTeX 公式'); if (latex) e.chain().focus().insertContent({ type: 'mathBlock', attrs: { latex } }).run(); } },
   { label: '图片', key: 'image', run: () => fileInput.value?.click() },
   { label: '视频', key: 'video mp4 webm', run: () => videoInput.value?.click() },
   { label: '附件', key: 'file attachment', run: () => attachInput.value?.click() },
 ];
+function insertColumns(e: any, count: number) {
+  if (e.isActive('column')) return; // 分栏不能嵌套
+  const column = () => ({ type: 'column', content: [{ type: 'paragraph' }] });
+  e.chain().focus().insertContent({ type: 'columns', content: Array.from({ length: count }, column) }).run();
+}
 const slashItems = computed(() => {
   const q = slash.value?.query.trim().toLowerCase() ?? '';
   return slashCommands.filter((c) => !q || c.label.includes(q) || c.key.includes(q));
@@ -184,6 +191,8 @@ const buttons = [
   { label: '链接', run: setLink, on: (e: any) => e.isActive('link') },
   { label: '提示', run: (e: any) => toggleCallout(e, 'info'), on: (e: any) => e.isActive('callout', { kind: 'info' }) },
   { label: '警告', run: (e: any) => toggleCallout(e, 'warning'), on: (e: any) => e.isActive('callout', { kind: 'warning' }) },
+  { label: '两栏', run: (e: any) => insertColumns(e, 2), on: (e: any) => e.isActive('columns') },
+  { label: '三栏', run: (e: any) => insertColumns(e, 3), on: (e: any) => e.isActive('columns') },
   { label: '代码语言', run: setCodeLanguage, on: () => false },
   { label: '公式', run: insertMath, on: () => false },
   { label: '表格', run: (e: any) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), on: (e: any) => e.isActive('table') },

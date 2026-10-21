@@ -37,3 +37,28 @@ export const Attachment = Node.create({
   parseHTML() { return [{ tag: 'div[data-attachment]' }]; },
   renderHTML({ node }) { return ['div', { 'data-attachment': '', class: 'attachment' }, `📎 ${node.attrs.displayName}`]; },
 });
+
+// 多栏：2–4 栏并排，每栏是普通块；栏数决定等分比例，栏不能再嵌套多栏。
+export const Columns = Node.create({
+  name: 'columns',
+  group: 'block',
+  content: 'column{2,4}',
+  isolating: true,
+  defining: true,
+  addAttributes() {
+    return { blockId: { default: null, rendered: false } };
+  },
+  parseHTML() { return [{ tag: 'div[data-columns]' }]; },
+  renderHTML() { return ['div', { 'data-columns': '', class: 'columns' }, 0]; },
+});
+
+export const Column = Node.create({
+  name: 'column',
+  content: 'block+',
+  isolating: true,
+  addAttributes() {
+    return { columnId: { default: null, rendered: false } };
+  },
+  parseHTML() { return [{ tag: 'div[data-column]' }]; },
+  renderHTML() { return ['div', { 'data-column': '', class: 'column' }, 0]; },
+});

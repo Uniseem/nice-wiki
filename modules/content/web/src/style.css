@@ -40,3 +40,5 @@
 .slash-menu { position: absolute; z-index: 10; list-style: none; margin: 0; padding: .3rem; min-width: 10rem; max-height: 16rem; overflow: auto; background: Canvas; border: 1px solid #8886; border-radius: 8px; box-shadow: 0 6px 20px #0003; }
 .slash-menu li { padding: .25rem .6rem; border-radius: 4px; cursor: pointer; }
 .slash-menu li.on, .slash-menu li:hover { background: #2563eb22; }
+.ProseMirror .columns { display: flex; gap: 1rem; margin: .8rem 0; }
+.ProseMirror .column { flex: 1 1 0; min-width: 0; border: 1px dashed #9ca3af80; border-radius: 4px; padding: .2rem .6rem; }

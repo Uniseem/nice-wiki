@@ -5,7 +5,7 @@ import { newId } from './convert';
 // 每类节点用哪个属性保存稳定 ID（与 content 块 schema 一致）。
 const idKey: Record<string, string> = {
   paragraph: 'blockId', heading: 'blockId', blockquote: 'blockId', horizontalRule: 'blockId', bulletList: 'blockId', orderedList: 'blockId',
-  taskList: 'blockId', codeBlock: 'blockId', image: 'blockId', video: 'blockId', table: 'blockId', callout: 'blockId', mathBlock: 'blockId', attachment: 'blockId',
+  taskList: 'blockId', codeBlock: 'blockId', image: 'blockId', video: 'blockId', table: 'blockId', callout: 'blockId', mathBlock: 'blockId', attachment: 'blockId', columns: 'blockId', column: 'columnId',
   listItem: 'itemId', taskItem: 'itemId', tableRow: 'rowId', tableCell: 'cellId', tableHeader: 'cellId',
 };
 

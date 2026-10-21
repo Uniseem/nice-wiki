@@ -35,16 +35,24 @@ function inlines(nodes: JSONNode[] | undefined): any[] {
   return out;
 }
 
-function blocks(nodes: JSONNode[] | undefined): any[] {
-  return (nodes ?? []).map(block);
+function blocks(nodes: JSONNode[] | undefined, inColumn = false): any[] {
+  return (nodes ?? []).map((n) => block(n, inColumn));
 }
 
-function block(node: JSONNode): any {
+// 2–4 栏等分；比例保留 6 位小数，余数补在最后一栏，保证总和为 1。
+function equalRatios(count: number): number[] {
+  const each = Math.floor(1e6 / count) / 1e6;
+  const ratios = Array<number>(count).fill(each);
+  ratios[count - 1] = Math.round((1 - each * (count - 1)) * 1e6) / 1e6;
+  return ratios;
+}
+
+function block(node: JSONNode, inColumn = false): any {
   const blockId = node.attrs?.blockId ?? newId();
   switch (node.type) {
     case 'paragraph': return { type: 'paragraph', attrs: { blockId }, content: inlines(node.content) };
     case 'heading': return { type: 'heading', attrs: { blockId, level: Math.min(4, Math.max(2, node.attrs?.level ?? 2)) }, content: inlines(node.content) };
-    case 'blockquote': return { type: 'blockquote', attrs: { blockId }, content: blocks(node.content) };
+    case 'blockquote': return { type: 'blockquote', attrs: { blockId }, content: blocks(node.content, inColumn) };
     case 'horizontalRule': return { type: 'horizontalRule', attrs: { blockId } };
     case 'bulletList': return { type: 'bulletList', attrs: { blockId }, content: (node.content ?? []).map(listItem) };
     case 'orderedList': return { type: 'orderedList', attrs: { blockId, start: node.attrs?.start ?? 1 }, content: (node.content ?? []).map(listItem) };
@@ -53,7 +61,12 @@ function block(node: JSONNode): any {
       const text = (node.content ?? []).map((c) => c.text ?? '').join('');
       return { type: 'codeBlock', attrs: { blockId, language: node.attrs?.language || null }, content: text ? [{ type: 'text', text }] : [] };
     }
-    case 'callout': return { type: 'callout', attrs: { blockId, kind: node.attrs?.kind ?? 'info' }, content: blocks(node.content) };
+    case 'callout': return { type: 'callout', attrs: { blockId, kind: node.attrs?.kind ?? 'info' }, content: blocks(node.content, inColumn) };
+    case 'columns': {
+      if (inColumn) throw new Error('分栏不能嵌套分栏');
+      const cols = node.content ?? [];
+      return { type: 'columns', attrs: { blockId, widthRatios: equalRatios(cols.length) }, content: cols.map((c) => ({ type: 'column', attrs: { columnId: c.attrs?.columnId ?? newId() }, content: blocks(c.content, true) })) };
+    }
     case 'mathBlock': return { type: 'mathBlock', attrs: { blockId, latex: node.attrs?.latex || ' ' } };
     case 'attachment': {
       const a = node.attrs?.asset;
