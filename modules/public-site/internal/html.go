@@ -118,7 +118,7 @@ var languagePromptKeys = []string{"要切换到这种语言阅读吗？", "切�
 
 func newShell(in ComposeHTMLInput, kind string) shell {
 	s := shell{
-		Locale: in.Locale, Dir: "ltr", Kind: kind, DocumentID: in.DocumentID,
+		Locale: in.Locale, Dir: textDirection(in.Locale), Kind: kind, DocumentID: in.DocumentID,
 		Head: template.HTML(in.Metadata), Announcement: template.HTML(in.Announcement), Footer: template.HTML(in.Footer),
 		SiteName: in.SiteName, LogoURL: in.LogoURL, HomeURL: "/" + in.Locale + "/", AskURL: in.AskURL, SourceURL: in.SourceCodeURL,
 		AIEnabled: in.AIEnabled, catalog: in.UIStrings,
@@ -133,7 +133,6 @@ func newShell(in ComposeHTMLInput, kind string) shell {
 	if hexColor.MatchString(in.ThemeColor) {
 		s.Accent = template.CSS(in.ThemeColor)
 	}
-	s.Dir = textDirection(in.Locale)
 	for _, link := range in.Languages {
 		label := languageNames[link.Tag]
 		if label == "" {
@@ -265,13 +264,13 @@ type statusPage struct {
 	Code                                 int
 }
 
-// textDirection 是语言的书写方向：阿拉伯文等从右到左的语言返回 rtl，其余留空（默认从左到右）。
+// textDirection 是语言的书写方向：阿拉伯文等从右到左的语言返回 rtl，其余 ltr。
 func textDirection(locale string) string {
 	switch strings.SplitN(locale, "-", 2)[0] {
 	case "ar", "he", "fa", "ur":
 		return "rtl"
 	}
-	return ""
+	return "ltr"
 }
 
 // RenderStatusPage 404/410/暂时不可用等说明页，沿用公开站样式。
