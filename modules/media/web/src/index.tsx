@@ -1,7 +1,7 @@
 import { Brush, File as FileIcon, Link as LinkIcon, Picture, TrashBin, Video } from '@gravity-ui/icons';
 import { Button, Checkbox, Chip, Drawer, Table, Tabs } from '@heroui/react';
 import type { Selection } from '@heroui/react';
-import { api, confirmAction, Details, EmptyBlock, ErrorBlock, fmtBytes, fmtDateTime, LoadingBlock, Mono, notify, Notice, PageHeader, Panel, SelectInput, useAction } from '@ui';
+import { api, assetURL, confirmAction, Details, EmptyBlock, ErrorBlock, fmtBytes, fmtDateTime, LoadingBlock, Mono, navigate, notify, Notice, PageHeader, Panel, SelectInput, useAction } from '@ui';
 import { useCallback, useEffect, useState } from 'react';
 
 type AssetRef = { assetId: string; version: number; sha256: string; mediaType: string; byteSize: number };
@@ -11,6 +11,7 @@ type Reference = { documentId?: string; sourceObjectId?: string; sourceService: 
 type Snapshot = { currentReferences: Reference[]; historyReferences: Reference[] };
 
 const kinds: Record<string, string> = { image: '图片', attachment: '附件', video: '视频', drawing_scene: '画板场景', drawing_svg: '画板图像', platform_cover: '平台封面' };
+const sources: Record<string, string> = { content: '文档', 'site-config': '站点设置' };
 const kindIcon = (kind: string) => kind === 'image' || kind === 'platform_cover' ? Picture : kind === 'video' ? Video : kind.startsWith('drawing') ? Brush : FileIcon;
 
 export default function LibraryPage() {
@@ -22,7 +23,7 @@ export default function LibraryPage() {
   const [error, setError] = useState<unknown>(null);
   const [selected, setSelected] = useState<Selection>(new Set());
   const [plan, setPlan] = useState<Plan | null>(null);
-  const [refs, setRefs] = useState<{ asset: Asset; snapshot: Snapshot } | null>(null);
+  const [refs, setRefs] = useState<{ asset: Asset; snapshot: Snapshot; titles: Map<string, string> } | null>(null);
   const { busy, run } = useAction();
 
   const load = useCallback(async (more: boolean, from: string | null) => {
@@ -42,9 +43,15 @@ export default function LibraryPage() {
 
   const chosen = selected === 'all' ? assets : assets.filter((asset) => (selected as Set<string>).has(asset.ref.assetId));
 
+  // 引用列表里显示文档标题；没有文档读取权限时退回显示编号。
   const showReferences = (asset: Asset) => run(async () => {
-    const result = await api<{ snapshot: Snapshot }>(`/v1/assets/${asset.ref.assetId}/references`);
-    setRefs({ asset, snapshot: result.snapshot });
+    const [result, titles] = await Promise.all([
+      api<{ snapshot: Snapshot }>(`/v1/assets/${asset.ref.assetId}/references`),
+      api<{ documents: { documentId: string; title: string }[] }>('/v1/tree')
+        .then((tree) => new Map(tree.documents.map((doc) => [doc.documentId, doc.title])))
+        .catch(() => new Map<string, string>()),
+    ]);
+    setRefs({ asset, snapshot: result.snapshot, titles });
   });
 
   const propose = () => run(async () => {
@@ -114,7 +121,7 @@ export default function LibraryPage() {
             <Table.ScrollContainer>
               <Table.Content
                 aria-label="资源列表"
-                className="min-w-[760px]"
+                className="min-w-[600px]"
                 selectedKeys={tab === 'unused' ? selected : undefined}
                 selectionMode={tab === 'unused' ? 'multiple' : 'none'}
                 onSelectionChange={tab === 'unused' ? setSelected : undefined}
@@ -144,7 +151,7 @@ export default function LibraryPage() {
                         <Table.Cell>
                           <span className="flex min-w-0 items-center gap-3">
                             <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-secondary">
-                              {asset.ref.mediaType.startsWith('image/') ? <img alt="" className="size-full object-cover" loading="lazy" src={`/v1/assets/${asset.ref.assetId}/bytes`} /> : <Icon className="size-5 text-muted" />}
+                              {asset.ref.mediaType.startsWith('image/') ? <img alt="" className="size-full object-cover" loading="lazy" src={assetURL(asset.ref)} /> : <Icon className="size-5 text-muted" />}
                             </span>
                             <span className="min-w-0">
                               <span className="block truncate font-medium text-foreground">{asset.originalName}</span>
@@ -169,8 +176,8 @@ export default function LibraryPage() {
 
       {refs && (
         <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) setRefs(null); }}>
-          <Drawer.Content className="w-full max-w-md" placement="right">
-            <Drawer.Dialog>
+          <Drawer.Content placement="right">
+            <Drawer.Dialog className="w-full max-w-md">
               <Drawer.CloseTrigger />
               <Drawer.Header><Drawer.Heading className="truncate">“{refs.asset.originalName}”的引用</Drawer.Heading></Drawer.Header>
               <Drawer.Body className="flex flex-col gap-5">
@@ -182,8 +189,10 @@ export default function LibraryPage() {
                       <ul className="flex flex-col gap-1.5">
                         {(list as Reference[]).map((ref) => (
                           <li key={ref.sourceRevisionId + (ref.documentId ?? ref.sourceObjectId)} className="flex items-center justify-between gap-2 rounded-lg bg-surface-secondary px-3 py-2 text-sm">
-                            <span className="truncate">{ref.documentId ? '文档' : '对象'} <Mono>{ref.documentId ?? ref.sourceObjectId}</Mono></span>
-                            <Chip size="sm" variant="soft">{ref.sourceService}</Chip>
+                            {ref.documentId && refs.titles.has(ref.documentId)
+                              ? <a className="truncate text-accent hover:underline" href={`/admin/content?doc=${ref.documentId}`} onClick={(event) => { event.preventDefault(); navigate(`/admin/content?doc=${ref.documentId}`); }}>{refs.titles.get(ref.documentId)}</a>
+                              : <span className="truncate">{ref.documentId ? '文档' : '对象'} <Mono>{ref.documentId ?? ref.sourceObjectId}</Mono></span>}
+                            <Chip size="sm" variant="soft">{sources[ref.sourceService] ?? ref.sourceService}</Chip>
                           </li>
                         ))}
                       </ul>

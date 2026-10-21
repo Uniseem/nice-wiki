@@ -125,8 +125,8 @@ export function HistoryDrawer({ documentId, writable, onRollback, onClose }: { d
   };
   return (
     <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
-      <Drawer.Content className="w-full max-w-md" placement="right">
-        <Drawer.Dialog>
+      <Drawer.Content placement="right">
+        <Drawer.Dialog className="w-full max-w-md">
           <Drawer.CloseTrigger />
           <Drawer.Header><Drawer.Heading>发布历史</Drawer.Heading></Drawer.Header>
           <Drawer.Body>

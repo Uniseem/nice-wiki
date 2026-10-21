@@ -81,7 +81,7 @@ function JobsTab() {
       ) : (
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label="任务列表" className="min-w-[760px]">
+            <Table.Content aria-label="任务列表" className="min-w-[680px]">
               <Table.Header>
                 <Table.Column isRowHeader>任务</Table.Column>
                 <Table.Column>状态</Table.Column>
@@ -159,8 +159,8 @@ function JobDrawer({ job, onClose, onChanged }: { job: Job; onClose: () => void;
   const state = detail.data?.state ?? job.state;
   return (
     <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
-      <Drawer.Content className="w-full max-w-lg" placement="right">
-        <Drawer.Dialog>
+      <Drawer.Content placement="right">
+        <Drawer.Dialog className="w-full max-w-lg">
           <Drawer.CloseTrigger />
           <Drawer.Header><Drawer.Heading>{job.owner} · {job.type}</Drawer.Heading></Drawer.Header>
           <Drawer.Body className="flex flex-col gap-5">
@@ -206,7 +206,7 @@ function DeliveriesTab() {
   return (
     <Table>
       <Table.ScrollContainer>
-        <Table.Content aria-label="死信投递" className="min-w-[720px]">
+        <Table.Content aria-label="死信投递" className="min-w-[640px]">
           <Table.Header>
             <Table.Column isRowHeader>事件</Table.Column>
             <Table.Column>来源 → 接收方</Table.Column>
@@ -241,7 +241,7 @@ function SchedulesTab() {
     <>
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="定时调度" className="min-w-[720px]">
+          <Table.Content aria-label="定时调度" className="min-w-[640px]">
             <Table.Header>
               <Table.Column isRowHeader>任务</Table.Column>
               <Table.Column>周期</Table.Column>

@@ -1,4 +1,4 @@
-import { ArrowUpRightFromSquare, Picture, Plus, TrashBin } from '@gravity-ui/icons';
+import { Picture, Plus, TrashBin } from '@gravity-ui/icons';
 import { Button, Card, Chip, Form, Tabs } from '@heroui/react';
 import {
   api, assetURL, ColorInput, Details, ErrorBlock, FileButton, FormGrid, LoadingBlock, NumberInput, PageHeader, Panel, RadioInput, SelectInput, SwitchInput,
@@ -26,11 +26,7 @@ export default function SitePage() {
   const c = config.data;
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="站点设置"
-        description="站名、品牌、首页、公告横幅和页脚。保存后公开站几秒内生效。"
-        actions={<a className="button button--secondary button--md" href="/" rel="noopener" target="_blank"><ArrowUpRightFromSquare />打开公开站</a>}
-      />
+      <PageHeader title="站点设置" description="站名、品牌、首页、公告横幅和页脚。保存后公开站几秒内生效。" />
       {!c ? <LoadingBlock lines={6} /> : (
         <Tabs selectedKey={tab} onSelectionChange={(key) => setTab(String(key))}>
           <Tabs.ListContainer className="mb-6 overflow-x-auto">
@@ -75,8 +71,8 @@ function BasicTab({ config, onSaved }: TabProps) {
   }, '基本信息已保存');
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <Panel className="lg:col-span-2" title="基本信息" description="显示在公开站页头、浏览器标签和搜索结果里。">
+    <div className="grid gap-6 xl:grid-cols-3">
+      <Panel className="xl:col-span-2" title="基本信息" description="显示在公开站页头、浏览器标签和搜索结果里。">
         <Form className="flex flex-col gap-5" onSubmit={(event) => { event.preventDefault(); void save(); }}>
           <FormGrid>
             <TextInput isRequired label="站点名称" maxLength={120} value={form.name} onChange={set('name')} />
@@ -90,7 +86,7 @@ function BasicTab({ config, onSaved }: TabProps) {
       </Panel>
       <Panel title="站点信息">
         <Details items={[
-          ['公开地址', <a className="text-accent hover:underline" href={config.publicBaseURL} rel="noopener" target="_blank">{config.publicBaseURL}</a>],
+          ['公开地址', <a className="break-all text-accent hover:underline" href={config.publicBaseURL} rel="noopener" target="_blank">{config.publicBaseURL}</a>],
           ['基准语言', config.baseLanguage],
           ['配置版本', `#${config.revision}`],
         ]} />
@@ -207,10 +203,10 @@ function HomeTab({ config, onSaved }: TabProps) {
       <div className="xl:col-span-2">
         <div className="sticky top-20 flex flex-col gap-2">
           <span className="text-sm font-medium text-muted">预览</span>
-          <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-2xl border border-border" style={{ background: form.color || (dark ? '#F5F7FA' : '#172033') }}>
+          <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-2xl border border-border" style={{ background: form.color || (dark ? '#F5F7FA' : '#172033') }}>
             <div className="absolute inset-0" style={{ background: `rgb(0 0 0 / ${form.overlayPercent}%)` }} />
             <div className={`relative px-6 text-center ${dark ? 'text-[#172033]' : 'text-white'}`}>
-              {form.backgroundText && <div className="pointer-events-none absolute inset-x-0 -top-8 text-5xl font-bold opacity-15">{form.backgroundText}</div>}
+              {form.backgroundText && <div className="pointer-events-none absolute inset-x-0 -top-8 whitespace-nowrap text-5xl font-bold opacity-15">{form.backgroundText}</div>}
               <div className="text-2xl font-semibold tracking-tight">{form.mainTitle || '主标题'}</div>
               {form.subtitle && <div className="mt-2 text-sm opacity-80">{form.subtitle}</div>}
               <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -251,8 +247,8 @@ function BannerTab({ config, onSaved }: TabProps) {
     onSaved();
   }, '公告横幅已保存');
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <Panel className="lg:col-span-2" title="公告横幅" description="显示在公开站每个页面顶部的一条通知，访客可以关闭。">
+    <div className="grid gap-6 xl:grid-cols-3">
+      <Panel className="xl:col-span-2" title="公告横幅" description="显示在公开站每个页面顶部的一条通知，访客可以关闭。">
         <Form className="flex flex-col gap-5" onSubmit={(event) => { event.preventDefault(); void save(); }}>
           <TextInput isRequired label="横幅文字" maxLength={2000} placeholder="例如：v2.0 已发布，查看更新说明" value={text} onChange={setText} />
           <TextInput description="点击横幅时打开的地址，可以留空。" label="链接" placeholder="https://…" type="url" value={url} onChange={setUrl} />

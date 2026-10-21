@@ -30,6 +30,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
   const [holder, setHolder] = useState('');
   const [title, setTitle] = useState('');
   const [save, setSave] = useState<SaveState>({ kind: 'idle' });
+  const [draftHash, setDraftHash] = useState('');
   const [loadError, setLoadError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<'publish' | 'settings' | 'move' | 'history' | null>(null);
@@ -56,6 +57,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
           },
         });
         state.draft = result.draft;
+        setDraftHash(result.draft.bodyHash);
         if (state.pending === sent) { state.dirty = false; setSave({ kind: 'saved', at: new Date() }); } else setSave({ kind: 'dirty' });
         return true;
       } catch (problem) {
@@ -83,7 +85,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
 
   const applyMeta = useCallback((next: Meta, draft?: Draft) => {
     live.current.meta = next;
-    if (draft) live.current.draft = draft;
+    if (draft) { live.current.draft = draft; setDraftHash(draft.bodyHash); }
     setMeta(next);
     setTitle(next.title);
   }, []);
@@ -246,6 +248,8 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
   if (!meta || !initial) return <div className="flex flex-1 items-center justify-center"><Spinner /></div>;
 
   const link = meta.state === 'published' ? publicPath(meta) : null;
+  // 草稿正文与线上版本一致（且没有待保存的输入）时，无需再发布。
+  const upToDate = meta.state === 'published' && (save.kind === 'idle' || save.kind === 'saved') && draftHash === meta.publishedReference?.contentHash;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-col gap-3 border-b border-separator px-5 pb-3 pt-4 sm:px-6">
@@ -264,7 +268,9 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
           <div className="flex items-center gap-2">
             <Button isDisabled={busy} size="sm" variant="secondary" onPress={preview}><Eye />预览</Button>
             {canPublish && (
-              <Button isDisabled={!writable} isPending={busy} size="sm" onPress={startPublish}><PaperPlane />{meta.state === 'published' ? '发布更新' : '发布'}</Button>
+              <Button isDisabled={!writable || upToDate} isPending={busy} size="sm" variant={upToDate ? 'secondary' : 'primary'} onPress={startPublish}>
+                <PaperPlane />{upToDate ? '已是最新' : meta.state === 'published' ? '发布更新' : '发布'}
+              </Button>
             )}
             <Dropdown>
               <Button isIconOnly aria-label="更多操作" size="sm" variant="tertiary"><Ellipsis /></Button>
@@ -291,6 +297,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           <Chip color={meta.state === 'published' ? 'success' : 'default'} size="sm" variant="soft">{meta.state === 'published' ? '已发布' : '草稿'}</Chip>
+          {meta.state === 'published' && !upToDate && <Chip color="warning" size="sm" variant="soft">有未发布的修改</Chip>}
           {meta.pathSegment ? <span>路径 /{meta.pathSegment}</span> : <span>发布时设置页面路径</span>}
           {link && <a className="inline-flex items-center gap-1 text-accent hover:underline" href={link} rel="noopener" target="_blank">查看公开页<ArrowUpRightFromSquare className="size-3" /></a>}
           <SaveIndicator state={save} />

@@ -56,7 +56,7 @@ export default function AccountsPage() {
       {accounts.error ? <ErrorBlock error={accounts.error} onRetry={accounts.reload} /> : !accounts.data ? <LoadingBlock lines={5} /> : (
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label="账号列表" className="min-w-[720px]">
+            <Table.Content aria-label="账号列表" className="min-w-[640px]">
               <Table.Header>
                 <Table.Column isRowHeader>账号</Table.Column>
                 <Table.Column>状态</Table.Column>

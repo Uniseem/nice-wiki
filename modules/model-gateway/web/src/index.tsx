@@ -218,7 +218,7 @@ function DataTable({ label, columns, rows, empty }: { label: string; columns: st
   return (
     <Table>
       <Table.ScrollContainer>
-        <Table.Content aria-label={label} className="min-w-[720px]">
+        <Table.Content aria-label={label} className="min-w-[640px]">
           <Table.Header>
             {columns.map((column, index) => <Table.Column key={index} isRowHeader={index === 0} className={index === columns.length - 1 && !column ? 'text-end' : undefined}>{column}</Table.Column>)}
           </Table.Header>

@@ -217,7 +217,7 @@ function AuditTab() {
       ) : (
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label="管理审计" className="min-w-[760px]">
+            <Table.Content aria-label="管理审计" className="min-w-[680px]">
               <Table.Header>
                 <Table.Column isRowHeader>时间</Table.Column>
                 <Table.Column>动作</Table.Column>
@@ -250,8 +250,8 @@ function AuditTab() {
       )}
       {detail && (
         <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) setDetail(null); }}>
-          <Drawer.Content className="w-full max-w-lg" placement="right">
-            <Drawer.Dialog>
+          <Drawer.Content placement="right">
+            <Drawer.Dialog className="w-full max-w-lg">
               <Drawer.CloseTrigger />
               <Drawer.Header><Drawer.Heading>审计详情</Drawer.Heading></Drawer.Header>
               <Drawer.Body className="flex flex-col gap-4">

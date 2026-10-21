@@ -150,14 +150,14 @@ export function SwitchInput({ label, description, isSelected, onChange, isDisabl
   label: ReactNode; description?: ReactNode; isSelected: boolean; onChange: (value: boolean) => void; isDisabled?: boolean; className?: string; size?: 'sm' | 'md' | 'lg';
 }) {
   return (
-    <Switch className={cn('items-start', className)} isDisabled={isDisabled} isSelected={isSelected} size={size} onChange={onChange}>
-      <Switch.Control>
-        <Switch.Thumb />
-      </Switch.Control>
+    <Switch className={className} isDisabled={isDisabled} isSelected={isSelected} size={size} onChange={onChange}>
       <Switch.Content>
+        <Switch.Control>
+          <Switch.Thumb />
+        </Switch.Control>
         <Label>{label}</Label>
-        {description && <Description>{description}</Description>}
       </Switch.Content>
+      {description && <Description>{description}</Description>}
     </Switch>
   );
 }
@@ -262,7 +262,7 @@ export function ColorInput({ label, description, value, onChange, placeholder = 
         </label>
         <TextInput
           aria-label={label}
-          className="flex-1"
+          className="min-w-0 flex-1"
           error={value && !valid ? '请输入 #RRGGBB 格式，例如 #2563EB' : null}
           isDisabled={isDisabled}
           isRequired={isRequired}

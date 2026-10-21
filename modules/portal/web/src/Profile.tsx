@@ -4,7 +4,7 @@ import { api, ApiError, confirmAction, currentSessionId, Details, ErrorBlock, fm
 import { useState } from 'react';
 import { useAccount } from './AdminLayout';
 
-type Session = { sessionId: string; issuedAt: string; expiresAt: string; deviceLabel: string; restrictedToPasswordChange: boolean; revokedAt: string | null };
+type Session = { sessionId: string; issuedAt: string; absoluteExpiresAt: string; deviceLabel: string; restrictedToPasswordChange: boolean; revokedAt: string | null };
 
 const groupLabels: Record<string, string> = {
   edit_documents: '编辑文档', publish_documents: '发布与删除', manage_translations: '管理翻译', manage_languages: '管理语言',
@@ -20,7 +20,7 @@ export default function Profile() {
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const { busy, run } = useAction();
-  const sessions = useLoad((signal) => api<{ sessions: Session[] }>('/v1/sessions', { signal }).then((result) => result.sessions), []);
+  const sessions = useLoad((signal) => api<{ sessions: Session[] }>('/v1/sessions?limit=100', { signal }).then((result) => result.sessions), []);
 
   async function changePassword() {
     setError('');
@@ -49,7 +49,11 @@ export default function Profile() {
   };
 
   const self = currentSessionId();
-  const active = (sessions.data ?? []).filter((session) => !session.revokedAt);
+  // 访问期限过了仍可续期，只有撤销或超过绝对期限才算失效；当前设备排最前，其余按登录时间倒序。
+  const now = new Date().toISOString();
+  const active = (sessions.data ?? [])
+    .filter((session) => !session.revokedAt && session.absoluteExpiresAt > now)
+    .sort((a, b) => Number(b.sessionId === self) - Number(a.sessionId === self) || b.issuedAt.localeCompare(a.issuedAt));
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,8 +61,8 @@ export default function Profile() {
       {account.mustChangePassword && (
         <Notice status="warning" title="请先修改初始口令">这是超级管理员为你设置的初始口令，修改之后才能使用后台的其他功能。</Notice>
       )}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Panel className="lg:col-span-1" title="账号">
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Panel className="xl:col-span-1" title="账号">
           <Details items={[
             ['账号名', account.accountName],
             ['身份', account.isSuperadmin ? '超级管理员' : '子账号'],
@@ -71,7 +75,7 @@ export default function Profile() {
           ]} />
         </Panel>
 
-        <Panel className="lg:col-span-2" title="修改口令" description="至少 8 位。修改后其他设备上的登录会失效。">
+        <Panel className="xl:col-span-2" title="修改口令" description="至少 8 位。修改后其他设备上的登录会失效。">
           {done ? (
             <Notice status="success" title="口令已修改">正在重新进入后台…</Notice>
           ) : (
@@ -94,7 +98,7 @@ export default function Profile() {
                 <Table.Header>
                   <Table.Column isRowHeader>设备</Table.Column>
                   <Table.Column>登录时间</Table.Column>
-                  <Table.Column>到期</Table.Column>
+                  <Table.Column>有效期至</Table.Column>
                   <Table.Column className="text-end">操作</Table.Column>
                 </Table.Header>
                 <Table.Body renderEmptyState={() => <div className="py-6 text-center text-sm text-muted">没有有效的登录。</div>}>
@@ -108,7 +112,7 @@ export default function Profile() {
                         </span>
                       </Table.Cell>
                       <Table.Cell>{fmtRelative(session.issuedAt)}</Table.Cell>
-                      <Table.Cell>{fmtDateTime(session.expiresAt)}</Table.Cell>
+                      <Table.Cell>{fmtDateTime(session.absoluteExpiresAt)}</Table.Cell>
                       <Table.Cell className="text-end">
                         {session.sessionId !== self && <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => revoke(session)}>退出</Button>}
                       </Table.Cell>

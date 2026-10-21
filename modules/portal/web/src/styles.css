@@ -78,9 +78,6 @@
   .ProseMirror th {
     @apply relative min-w-12;
   }
-  .ProseMirror .tableWrapper {
-    @apply my-5 overflow-x-auto;
-  }
   .ProseMirror pre {
     @apply relative;
   }

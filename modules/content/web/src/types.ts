@@ -11,11 +11,12 @@ export type Meta = {
   pathSegment: string | null;
   seoDescription: string | null;
   revision: number;
+  publishedReference?: { contentHash: string } | null;
   shareImage?: unknown;
   sourceLanguage?: string;
 };
 
-export type Draft = { draftVersion: number; revisionId: string };
+export type Draft = { draftVersion: number; revisionId: string; bodyHash: string };
 
 export type Lease = {
   leaseId: string;

@@ -16,8 +16,8 @@ export function QaFloating({ open, onOpenChange, locale, t }: { open: boolean; o
         </Button>
       )}
       <Drawer.Backdrop isOpen={open} variant="transparent" onOpenChange={onOpenChange}>
-        <Drawer.Content className={wide ? 'w-[26rem] max-w-[92vw]' : 'h-[85dvh]'} placement={wide ? 'right' : 'bottom'}>
-          <Drawer.Dialog aria-label={t('AI 问答')} className="flex h-full flex-col gap-0 p-0">
+        <Drawer.Content placement={wide ? 'right' : 'bottom'}>
+          <Drawer.Dialog aria-label={t('AI 问答')} className={`flex flex-col gap-0 p-0 ${wide ? 'h-full w-[26rem] max-w-[92vw]' : 'h-[85dvh]'}`}>
             {!wide && <Drawer.Handle />}
             <Drawer.CloseTrigger aria-label={t('关闭')} />
             <Drawer.Header className="border-b border-separator px-4 py-3">

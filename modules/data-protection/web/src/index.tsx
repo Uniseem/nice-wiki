@@ -32,9 +32,9 @@ export default function BackupPage() {
         description="完整备份包含全部服务的数据（SQLite 取一致快照）。备份期间站点照常运行。"
         actions={<Button onPress={() => setCreating(true)}><Plus />创建备份</Button>}
       />
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 xl:grid-cols-3">
         <Schedule />
-        <Panel className="lg:col-span-2" title="如何恢复" description="恢复会替换全站数据，需要在服务器上停服务后进行，目前不能在后台直接恢复。">
+        <Panel className="xl:col-span-2" title="如何恢复" description="恢复会替换全站数据，需要在服务器上停服务后进行，目前不能在后台直接恢复。">
           <ol className="flex list-decimal flex-col gap-2 ps-5 text-sm leading-6 text-foreground">
             <li>下载备份，放到服务器上。</li>
             <li>在部署目录运行 <Mono>deploy/restore-archive.sh &lt;备份文件的绝对路径&gt;</Mono>。</li>
@@ -50,7 +50,7 @@ export default function BackupPage() {
         ) : (
           <Table variant="secondary">
             <Table.ScrollContainer>
-              <Table.Content aria-label="备份" className="min-w-[720px]">
+              <Table.Content aria-label="备份" className="min-w-[640px]">
                 <Table.Header>
                   <Table.Column isRowHeader>备份</Table.Column>
                   <Table.Column>状态</Table.Column>

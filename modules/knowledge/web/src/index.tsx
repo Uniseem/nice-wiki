@@ -90,8 +90,8 @@ export default function KnowledgePage() {
         <>
           {o.modelsState !== 'ready' && <Notice status="warning" title="模型目录暂不可用">无法配置索引（{o.modelErrorCode ?? o.modelsState}）。请先检查“模型接入”。</Notice>}
           {o.modelsState === 'ready' && !embeddingProfiles.length && <Notice status="warning" title="还没有向量档位">先在“模型接入”里添加带“向量”能力的模型，并生成档位。</Notice>}
-          <div className="grid gap-6 lg:grid-cols-5">
-            <Panel className="lg:col-span-2" title="入库配置" description="切块越小检索越精细，但数量更多、费用更高。">
+          <div className="grid gap-6 xl:grid-cols-5">
+            <Panel className="xl:col-span-2" title="入库配置" description="切块越小检索越精细，但数量更多、费用更高。">
               <Form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void saveConfig(); }}>
                 <SelectInput
                   isRequired
@@ -109,7 +109,7 @@ export default function KnowledgePage() {
               </Form>
             </Panel>
             <Panel
-              className="lg:col-span-3"
+              className="xl:col-span-3"
               title="已发布文档"
               description={enabled ? '为文档建立或刷新索引。' : '保存并启用入库配置后才能建立索引。'}
               actions={o.documents.length > 0 ? <Button isDisabled={busy || !enabled} size="sm" variant="secondary" onPress={() => build(o.documents)}>全部建立索引</Button> : undefined}

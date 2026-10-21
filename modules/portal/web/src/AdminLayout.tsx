@@ -2,7 +2,7 @@ import { ArrowRightFromSquare, ArrowUpRightFromSquare, Bars, Person } from '@gra
 import { Button, buttonVariants, cn, Drawer, Dropdown, Label, ScrollShadow, Separator } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import { api, CenteredSpinner, ErrorBlock, navigate, Notice, ThemeMenu, useGrants, usePath } from '@ui';
-import { Component, createContext, Suspense, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Component, createContext, Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Account } from './App';
 import { canOpen, legacyPath, pageFor, pages, sections, type Page } from './routes';
 
@@ -42,8 +42,8 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
         </aside>
 
         <Drawer.Backdrop isOpen={navOpen} onOpenChange={setNavOpen}>
-          <Drawer.Content className="w-72 max-w-[85vw]" placement="left">
-            <Drawer.Dialog aria-label="后台导航" className="flex h-full flex-col p-0">
+          <Drawer.Content placement="left">
+            <Drawer.Dialog aria-label="后台导航" className="flex h-full w-72 max-w-[85vw] flex-col p-0">
               <Brand siteName={siteName} />
               <div className="flex-1 overflow-y-auto px-3 pb-4">{nav}</div>
               <AccountBox account={account} onSignOut={onSignOut} />
@@ -96,8 +96,11 @@ function Brand({ siteName }: { siteName: string }) {
 }
 
 function Navigation({ pages: items, current, onNavigate }: { pages: Page[]; current?: Page; onNavigate: () => void }) {
+  const nav = useRef<HTMLElement>(null);
+  // 侧栏较长时，让当前页面的条目保持在可见范围内。
+  useEffect(() => { nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' }); }, [current?.key]);
   return (
-    <nav aria-label="后台页面" className="flex flex-col gap-4 pt-2">
+    <nav ref={nav} aria-label="后台页面" className="flex flex-col gap-4 pt-2">
       {sections.map((section) => {
         const group = items.filter((page) => page.navigation && page.section === section);
         if (!group.length) return null;

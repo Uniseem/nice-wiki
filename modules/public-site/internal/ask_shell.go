@@ -34,7 +34,7 @@ func HandleAskShell(ctx context.Context, op platform.OperationContext, in Handle
 	title := meta.pageTitle(uiText(in.Locale, catalog, "AI 问答"))
 	page := askPage{shell: newShell(ComposeHTMLInput{
 		Metadata: "<title>" + html.EscapeString(title) + "</title><meta name=\"robots\" content=\"noindex\">" + meta.headTags(title, "", "", ""),
-		Locale:   in.Locale, Announcement: loadAnnouncement(ctx, op), Footer: footerHTML, SourceCodeURL: sourceURL,
+		Locale:   in.Locale, Announcement: loadAnnouncement(ctx, op), Languages: languageLinks(ctx, "/"+in.Locale+"/ask", in.Locale), Footer: footerHTML, SourceCodeURL: sourceURL,
 		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor, AIEnabled: qaAvailable(ctx, op), AskURL: "/" + in.Locale + "/ask", UIStrings: catalog,
 	}, "ask"), Tree: tree}
 	page.HasNav = len(tree) > 0

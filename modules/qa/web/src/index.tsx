@@ -115,7 +115,7 @@ function TurnsTab() {
       {!turns.data.length ? <EmptyBlock icon={<Comments />} title="还没有问答记录" description="开启公开问答后，访客的提问会出现在这里。" /> : (
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label="问答记录" className="min-w-[720px]">
+            <Table.Content aria-label="问答记录" className="min-w-[640px]">
               <Table.Header>
                 <Table.Column isRowHeader>问题</Table.Column>
                 <Table.Column>结果</Table.Column>
@@ -188,7 +188,7 @@ function CacheTab() {
   return (
     <Table>
       <Table.ScrollContainer>
-        <Table.Content aria-label="答案缓存" className="min-w-[800px]">
+        <Table.Content aria-label="答案缓存" className="min-w-[680px]">
           <Table.Header>
             <Table.Column isRowHeader>问题</Table.Column>
             <Table.Column>答案</Table.Column>
@@ -255,15 +255,15 @@ function DebugTab() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-5">
-      <Panel className="lg:col-span-2" title="试问" description="检索知识库并调用模型回答，会产生费用（按“后台任务”类别计）。">
+    <div className="grid gap-6 xl:grid-cols-5">
+      <Panel className="xl:col-span-2" title="试问" description="检索知识库并调用模型回答，会产生费用（按“后台任务”类别计）。">
         <Form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void ask(); }}>
           <TextAreaInput isRequired label="问题" maxLength={500} placeholder="例如：如何安装？" rows={4} value={question} onChange={setQuestion} />
           <TextInput isRequired description="后台任务类别的档位，例如 background-accurate。" label="诊断档位" value={profileId} onChange={setProfileId} />
           <div className="flex justify-end"><Button isPending={state.running} type="submit"><PaperPlane />{state.running ? '诊断中…' : '试问'}</Button></div>
         </Form>
       </Panel>
-      <Panel className="lg:col-span-3" title="结果">
+      <Panel className="xl:col-span-3" title="结果">
         {!state.status && <p className="text-sm text-muted">回答、引用和失败原因会显示在这里。</p>}
         {state.status === 'running' && !state.answer && <div className="flex items-center gap-2 text-sm text-muted"><Spinner size="sm" />正在检索并生成回答…</div>}
         {state.answer && <div className="whitespace-pre-wrap rounded-xl bg-surface-secondary p-4 text-sm leading-7 text-foreground">{state.answer}</div>}

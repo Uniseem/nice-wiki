@@ -78,8 +78,8 @@ export function MobileNav({ open, onOpenChange, t }: { open: boolean; onOpenChan
   if (!html) return null;
   return (
     <Drawer.Backdrop isOpen={open} onOpenChange={onOpenChange}>
-      <Drawer.Content className="w-80 max-w-[85vw]" placement="left">
-        <Drawer.Dialog aria-label={t('文档树')} className="flex h-full flex-col p-0">
+      <Drawer.Content placement="left">
+        <Drawer.Dialog aria-label={t('文档树')} className="flex h-full w-80 max-w-[85vw] flex-col p-0">
           <Drawer.CloseTrigger aria-label={t('关闭')} />
           <Drawer.Header className="px-4 py-3"><Drawer.Heading className="text-base">{t('文档树')}</Drawer.Heading></Drawer.Header>
           <nav aria-label={t('文档树')} className="nw-tree min-h-0 flex-1 overflow-y-auto px-3 pb-6 text-sm" dangerouslySetInnerHTML={{ __html: html }} />

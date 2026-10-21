@@ -65,8 +65,8 @@ export default function ContentPage() {
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0">
       <aside className="hidden w-72 shrink-0 flex-col border-e border-separator bg-surface md:flex">{panel}</aside>
       <Drawer.Backdrop isOpen={listOpen} onOpenChange={setListOpen}>
-        <Drawer.Content className="w-80 max-w-[90vw]" placement="left">
-          <Drawer.Dialog aria-label="文档列表" className="h-full p-0">{panel}</Drawer.Dialog>
+        <Drawer.Content placement="left">
+          <Drawer.Dialog aria-label="文档列表" className="h-full w-80 max-w-[90vw] p-0">{panel}</Drawer.Dialog>
         </Drawer.Content>
       </Drawer.Backdrop>
       <section className="flex min-w-0 flex-1 flex-col">

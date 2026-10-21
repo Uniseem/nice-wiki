@@ -36,9 +36,9 @@
   .nw-prose :is(img, video) { @apply h-auto max-w-full rounded-xl; }
   .nw-prose figure { @apply my-6; }
   .nw-prose figcaption { @apply mt-2 text-center text-sm text-muted; }
-  .nw-prose .table-wrap { @apply my-5 overflow-x-auto rounded-xl border border-border; }
+  .nw-prose :is(.table-wrap, .tableWrapper) { @apply my-5 overflow-x-auto rounded-xl border border-border; }
   .nw-prose table { @apply w-full border-collapse text-sm; }
-  .nw-prose :not(.table-wrap) > table { @apply my-5; }
+  .nw-prose :not(.table-wrap, .tableWrapper) > table { @apply my-5; }
   .nw-prose :is(th, td) { @apply border-b border-e border-border px-3 py-2 text-start align-top; }
   .nw-prose :is(th, td):last-child { @apply border-e-0; }
   .nw-prose tr:last-child > :is(th, td) { @apply border-b-0; }
