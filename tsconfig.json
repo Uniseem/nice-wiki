@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@ui": ["./libs/platform/web/ui/index.ts"],
+      "@ui/*": ["./libs/platform/web/ui/*"],
+      "@modules/*": ["./modules/*"]
+    }
+  },
+  "include": ["libs/platform/web/**/*.ts", "libs/platform/web/**/*.tsx", "modules/*/web/src/**/*.ts", "modules/*/web/src/**/*.tsx"]
+}

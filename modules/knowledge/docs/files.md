@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 111 个：手写 92、UI 3、生成 5、配置 10、迁移 1。函数 221 个：约束 35，参考 186。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 103 个：手写 91、UI 1、生成 4、配置 6、迁移 1。函数 210 个：约束 35，参考 175。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -41,8 +41,6 @@
 | `modules/knowledge/internal/admin/diagnostics.go` | 手写 | 返回安全诊断所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.RedactDiagnostics` |
 | `modules/knowledge/internal/search/sections.go` | 手写 | 按引用读取证据片段所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.ReadSections` |
 | `modules/knowledge/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.AcquireBarrier`、`knowledge.ReleaseBarrier`、`knowledge.ExportSnapshot`、`knowledge.StageSnapshot`、`knowledge.DiscardSnapshot` |
-| `modules/knowledge/ui/src/views/OverviewView.vue` | UI | 加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `knowledge.LoadAdminOverview`（参考）、`knowledge.safeCode`（参考）、`knowledge.refresh`（参考）、`knowledge.createBuild`（参考）、`knowledge.cancelBuild`（参考）、`knowledge.afterSave`（参考）、`knowledge.estimateRebuild`（参考）、`knowledge.approveRebuild`（参考）、`knowledge.formatQuoteMoney`（参考） |
-| `modules/knowledge/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `knowledge.SubmitPrimaryEdit`（参考）、`knowledge.save`（参考） |
 | `modules/knowledge/internal/chunk/context.go` | 手写 | 发布后补检索片段上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.EnrichChunkContext`（参考）、`knowledge.ReadContextPrefixes`（参考）、`knowledge.ContextSourceKey`（参考）、`knowledge.ClaimContextIntents`（参考）、`knowledge.ApplyChunkContext`（参考）、`knowledge.ContextSemanticKey`（参考）、`knowledge.FreezeContextPlan`（参考）、`knowledge.ContextResultHash`（参考） |
 | `modules/knowledge/internal/search/inspect.go` | 手写 | 快速检索员有限核查所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.InspectEvidence` |
 | `modules/knowledge/internal/search/query-embedding.go` | 手写 | 统一生成并复用查询嵌入所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.CreateQueryEmbedding`、`knowledge.acquireQueryFlight`（参考） |
@@ -58,18 +56,12 @@
 | `modules/knowledge/Dockerfile` | 配置 | Node22真实独立UI frozen锁类型检查和构建、Go1.25 readonly多阶段镜像；只带二进制/非敏感配置/UI dist，以10008非root与本域独占卷运行；完整app仍按代码缺口失败关闭 | 无 |
 | `modules/knowledge/Makefile` | 配置 | 本域GitLab编译/readonly vet/gofmt与Node22既有UI类型检查/构建入口；generate委托根唯一gen；不新增测试或样例 | 无 |
 | `modules/knowledge/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
-| `modules/knowledge/ui/package.json` | 配置 | 该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务 | 无 |
-| `modules/knowledge/ui/pnpm-lock.yaml` | 生成 | 由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest | 无 |
-| `modules/knowledge/ui/vite.config.ts` | 配置 | 该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token | 无 |
-| `modules/knowledge/ui/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
-| `modules/knowledge/ui/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
-| `modules/knowledge/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `knowledge.mountModuleUI` |
 | `modules/knowledge/internal/model/client.go` | 手写 | 仅公共模型适配与请求独立许可；独立包避免索引和运行编排循环 | `knowledge.InvokeModel`（参考）、`knowledge.NewModelRuntime`（参考）、`knowledge.WithModelRuntime`（参考）、`knowledge.CompletedOutput`（参考）、`knowledge.BindAdmissionPermit`（参考）、`knowledge.WithModelLease`（参考） |
 | `modules/knowledge/internal/build/execute.go` | 手写 | 执行一次文档索引构建 | `knowledge.ExecuteBuild`、`knowledge.PrepareBuildChunks`（参考） |
 | `modules/knowledge/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/knowledge/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/knowledge/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
-| `modules/knowledge/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
+| `modules/knowledge/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/knowledge/internal/build/rebuild.go` | 手写 | 全量重建前估算费用 | `knowledge.EstimateRebuildPlan`、`knowledge.ApproveRebuildPlan`、`knowledge.ReadRebuildDocuments`（参考）、`knowledge.PrepareRebuildPolicy`（参考）、`knowledge.CheckRebuildApproval`（参考）、`knowledge.AddRebuildQuoteRoute`（参考）、`knowledge.QuoteRebuildComponents`（参考）、`knowledge.PrepareRebuildSnapshot`（参考）、`knowledge.ReadRebuildSource`（参考）、`knowledge.FreezeRebuildRoutePrices`（参考） |
 | `modules/knowledge/internal/index/repository.go` | 手写 | 按本域active私有路径打开SQLite，执行内嵌只追加迁移和平台inbox/outbox建表，旧身份不重标 | `knowledge.OpenRepository`（参考）、`knowledge.BeginIndexWrite`（参考）、`knowledge.ReadConfig`（参考）、`knowledge.ReadOperationReceipt`（参考）、`knowledge.SaveOperationReceipt`（参考）、`knowledge.EnsureBuildDiskBudget`（参考） |
 | `modules/knowledge/migrations/002_workflows.sql` | 手写 | 本域配置、原回执与构建调度/模型步骤持久状态，只追加迁移 | 无 |
@@ -80,7 +72,6 @@
 | `modules/knowledge/internal/admin/options.go` | 手写 | 现有管理页面真实选项与独立不可用状态 | `knowledge.ReadIndexOptions`、`knowledge.optionErrorCode`（参考） |
 | `modules/knowledge/internal/index/catalog.go` | 手写 | 权威无密钥模型目录与精确费用类别/空间选择 | `knowledge.ReadModelCatalog`（参考）、`knowledge.EmbeddingProfile`（参考）、`knowledge.TextProfile`（参考）、`knowledge.ReadTaskAssignment`（参考）、`knowledge.ProfileModelSnapshots`（参考） |
 | `modules/knowledge/internal/model/tokenize.go` | 手写 | 免费模型真实BPE与完整固定空间/字节来源核对 | `knowledge.TokenizeSource`（参考） |
-| `modules/knowledge/ui/src/style.css` | 手写 | 本域响应式管理页面与可见焦点状态 | 无 |
 | `modules/knowledge/internal/source/blocks.go` | 手写 | 真实原文片段/规范字节映射/BPE游标 | `knowledge.BuildSourceBlocks`（参考）、`knowledge.CollectSourceLeaves`（参考） |
 | `modules/knowledge/internal/model/journal.go` | 手写 | 本域付费步骤意图/真实引用/完整原结果持久，不复制网关机制 | `knowledge.WithModelOwner`（参考）、`knowledge.beginModelWrite`（参考）、`knowledge.BeginModelStep`（参考）、`knowledge.SaveModelProgress`（参考）、`knowledge.CompleteModelStep`（参考）、`knowledge.RecordModelObservation`（参考）、`knowledge.MarkModelDispatch`（参考） |
 | `modules/knowledge/migrations/004_model_result_hash.sql` | 手写 | 付费步骤完整结果摘要，只追加迁移 | 无 |
@@ -117,3 +108,4 @@
 | `modules/knowledge/migrations/013_rebuild_plans.sql` | 手写 | 真实全量估价快照与24小时批准、创建任务回执同事务 | 无 |
 | `modules/knowledge/internal/index/route.go` | 手写 | 严格MG resolveTaskRoute同快照resolved/candidates/routeVersion和候选modelSnapshotHash/embeddingSpace，不复制筛选/覆盖/快照hash算法 | `knowledge.ReadTaskRoute`（参考） |
 | `modules/knowledge/internal/model/expectation.go` | 手写 | 只绑定原明确批准opaque路由和逐真实候选价格快照，接受事务CAS由MG统一拥有 | `knowledge.WithModelExpectations`（参考） |
+| `modules/knowledge/web/src/index.tsx` | UI | 知识索引：入库配置、为已发布文档建立索引、索引任务进度与取消 | `knowledge.KnowledgePage` |

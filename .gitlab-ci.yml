@@ -46,13 +46,8 @@ variables:
       for m in libs/platform modules/*; do
         if test -f "$m/go.mod"; then (cd "$m" && go mod tidy) || exit 1; fi
       done
-    - |
-      for frontend_dir in modules/*/ui modules/*/web; do
-        if test -f "$frontend_dir/package.json"; then
-          pnpm --dir "$frontend_dir" install --lockfile-only --ignore-scripts || exit 1
-          git add -N "$frontend_dir/pnpm-lock.yaml"
-        fi
-      done
+    - pnpm install --lockfile-only --ignore-scripts
+    - git add -N pnpm-lock.yaml
     - git ls-files -z '*.go' | xargs -0 gofmt -w
     - make docs
     - make gen
@@ -102,18 +97,18 @@ variables:
     - job: 生成与格式
       artifacts: true
   cache:
-    key: node22-module-frontends
+    key: node22-web
     paths:
       - .cache/npm/
       - .cache/pnpm-store/
   script:
     - if test -s generated.patch; then git apply generated.patch; fi
     - npm install --global pnpm@9.15.9
-    - |
-      for frontend_dir in modules/*/ui modules/*/web; do
-        if test -f "$frontend_dir/package.json"; then
-          pnpm --dir "$frontend_dir" install --frozen-lockfile --store-dir "$CI_PROJECT_DIR/.cache/pnpm-store" || exit 1
-          pnpm --dir "$frontend_dir" typecheck || exit 1
-          pnpm --dir "$frontend_dir" build || exit 1
-        fi
-      done
+    - pnpm install --frozen-lockfile --store-dir "$CI_PROJECT_DIR/.cache/pnpm-store"
+    - pnpm typecheck
+    - pnpm build
+  # 构建产物（后台单页应用 + 公开页样式与交互岛）留 7 天，便于下载到本机直接联调。
+  artifacts:
+    expire_in: 7 days
+    paths:
+      - web-dist/

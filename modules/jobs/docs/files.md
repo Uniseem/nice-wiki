@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 59 个：手写 29、UI 4、生成 8、配置 10、迁移 8。函数 165 个：约束 35，参考 130。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 51 个：手写 29、UI 1、生成 7、配置 6、迁移 8。函数 161 个：约束 35，参考 126。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -26,9 +26,6 @@
 | `modules/jobs/internal/retention.go` | 手写 | 清理已完成记录；同文件职责限本域以下登记函数 | `jobs.PurgeExpiredHistory`（参考） |
 | `modules/jobs/internal/snapshot.go` | 手写 | 导出队列与事件一致快照；同文件职责限本域以下登记函数 | `jobs.CreateSnapshot`、`jobs.ValidateJobsSnapshotManifest`（参考）、`jobs.ValidateJobsSnapshotManifestValue`（参考）、`jobs.DrainJobs`（参考）、`jobs.MigrateJobsStage`（参考）、`jobs.ValidateJobsStaged`（参考）、`jobs.revokeRestoredEligibility`（参考）、`jobs.runRestoredJobsMigrations`（参考）、`jobs.validateJobsPreservedFacts`（参考）、`jobs.validatePreservedEvents`（参考）、`jobs.JobsStageBudget`（参考）、`jobs.snapshotRefToLifecycle`（参考）、`jobs.snapshotRefFromLifecycle`（参考）、`jobs.optionalString`（参考）、`jobs.NewSnapshotHandlers`（参考） |
 | `modules/jobs/internal/import.go` | 手写 | 验证任务快照；同文件职责限本域以下登记函数 | `jobs.StageSnapshot`、`jobs.DiscardSnapshot` |
-| `modules/jobs/web/src/QueuePanel.vue` | UI | Vue3模块交互：RequestJobCancellation；同文件职责限本域以下登记函数 | `jobs.RequestJobCancellation`（参考） |
-| `modules/jobs/web/src/ScheduleEditor.vue` | UI | Vue3模块交互：SaveSchedule；同文件职责限本域以下登记函数 | `jobs.SaveSchedule`（参考） |
-| `modules/jobs/web/src/progress.ts` | UI | Vue3模块交互：ReconnectProgress；同文件职责限本域以下登记函数 | `jobs.ConfigureProgressAPI`（参考）、`jobs.ReconnectProgress`（参考） |
 | `modules/jobs/internal/http_event_subscription.go` | 手写 | 已登记消费者订阅事件SSE；同文件职责限本域以下登记函数 | `jobs.SubscribeEvents`、`jobs.Next`（参考）、`jobs.LastID`（参考）、`jobs.Close`（参考）、`jobs.nextDelivery`（参考） |
 | `modules/jobs/config/defaults.json` | 配置 | 首版默认参数与环境覆盖允许列表；禁止secret原文，secret仅外部ref；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/jobs/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
@@ -41,12 +38,6 @@
 | `modules/jobs/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/jobs；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
 | `modules/jobs/Makefile` | 配置 | generate校验并生成合同绑定；build执行go build ./cmd/jobs与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例 | 无 |
 | `modules/jobs/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
-| `modules/jobs/web/package.json` | 配置 | 该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务 | 无 |
-| `modules/jobs/web/pnpm-lock.yaml` | 生成 | 由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest | 无 |
-| `modules/jobs/web/vite.config.ts` | 配置 | 该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token | 无 |
-| `modules/jobs/web/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
-| `modules/jobs/web/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
-| `modules/jobs/web/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `jobs.mountModuleUI` |
 | `modules/jobs/config/event-subscriptions.json` | 生成 | 事件订阅目录：由全部模块contracts/events.json的consume条目生成（事件名/版本→消费模块与处理函数），jobs启动时加载；未登记订阅拒绝 | 无 |
 | `modules/jobs/config/job-types.json` | 生成 | 任务类型目录：由全部模块implementation.json的jobTypes生成（类型→owner、执行函数、系统默认schedule）；jobs启动时加载，未登记类型拒绝创建 | 无 |
 | `modules/jobs/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
@@ -65,3 +56,4 @@
 | `modules/jobs/migrations/0008_schedules.sql` | 迁移 | 只追加定时任务的类型、输入引用、代次、操作回执和到期索引；不重建schedules，不删除已有行 | 无 |
 | `modules/jobs/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `jobs.ReadSnapshotArchive` |
 | `modules/jobs/internal/app/owner_recovery.go` | 手写 | 只读当前真实站点身份 | `jobs.ReadQueueSiteID`（参考）、`jobs.NewOwnerRecoveryChecker`（参考） |
+| `modules/jobs/web/src/index.tsx` | UI | 任务队列：任务列表与详情（进度流断线重连）、死信投递重放、定时调度编辑 | `jobs.JobsPage` |

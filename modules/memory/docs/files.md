@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 65 个：手写 45、UI 3、生成 5、配置 10、迁移 2。函数 115 个：约束 43，参考 72。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 58 个：手写 45、UI 1、生成 4、配置 6、迁移 2。函数 113 个：约束 43，参考 70。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -35,8 +35,6 @@
 | `modules/memory/internal/events/outbox.go` | 手写 | 发布记忆引用式事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.PublishOutbox` |
 | `modules/memory/internal/runtime/prune.go` | 手写 | 回收无引用派生注入清单所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.PruneContextSnapshots`（参考） |
 | `modules/memory/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.AcquireBarrier`、`memory.ReleaseBarrier`、`memory.ExportSnapshot`、`memory.StageSnapshot`、`memory.DiscardSnapshot` |
-| `modules/memory/ui/src/views/OverviewView.vue` | UI | 加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `memory.LoadAdminOverview`（参考） |
-| `modules/memory/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `memory.SubmitPrimaryEdit`（参考） |
 | `modules/memory/internal/context/preflight.go` | 手写 | 保存前完整投影注入预算所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ValidateProjectedBudgets`（参考）、`memory.joinTaskIDs`（参考）、`memory.EmitContextChanged`（参考） |
 | `modules/memory/internal/assistant/overview.go` | 手写 | 自动维护项目概述并保护人工修改所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.UpdateProjectOverview` |
 | `modules/memory/internal/assistant/conversation.go` | 手写 | 保存可连续的记忆助手对话所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.AppendAssistantMessage`、`memory.ReadAssistantConversation`、`memory.DeleteAssistantConversation`、`memory.readConversation`（参考） |
@@ -53,21 +51,16 @@
 | `modules/memory/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/memory；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
 | `modules/memory/Makefile` | 配置 | generate校验并生成合同绑定；build执行go build ./cmd/memory与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例 | 无 |
 | `modules/memory/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
-| `modules/memory/ui/package.json` | 配置 | 该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务 | 无 |
-| `modules/memory/ui/pnpm-lock.yaml` | 生成 | 由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest | 无 |
-| `modules/memory/ui/vite.config.ts` | 配置 | 该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token | 无 |
-| `modules/memory/ui/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
-| `modules/memory/ui/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
-| `modules/memory/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `memory.mountModuleUI` |
 | `modules/memory/internal/events/subscription.go` | 手写 | 订阅并分派本域登记的跨域事件 | `memory.ConsumeEvents` |
 | `modules/memory/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `memory.InvokeModel`（参考）、`memory.ConfigureGateway`（参考） |
 | `modules/memory/internal/events/publication-count.go` | 手写 | 统计新发布数以触发项目概述更新 | `memory.CountPublication` |
 | `modules/memory/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/memory/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/memory/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
-| `modules/memory/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
+| `modules/memory/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/memory/internal/runtime/business.go` | 手写 | 本域实际业务实现与受信装配辅助；仅访问本域私有数据。 | `memory.ConfigureWrites`（参考）、`memory.ReadSnapshot`（参考）、`memory.Write`（参考）、`memory.RequireManager`（参考）、`memory.DBError`（参考）、`memory.ValidateTask`（参考）、`memory.ReadEntryObject`（参考）、`memory.decodeEntry`（参考）、`memory.SaveEntryObject`（参考）、`memory.InsertEntryVersion`（参考）、`memory.Emit`（参考）、`memory.ReadAllEntries`（参考）、`memory.NormalizeLineEndings`（参考）、`memory.SaveContextManifest`（参考）、`memory.ConfigurePublisher`（参考）、`memory.RelayBatch`（参考） |
 | `modules/memory/internal/runtime/tasks.go` | 手写 | 本域实际业务实现与受信装配辅助；仅访问本域私有数据。 | `memory.ConfigureAssistantClients`（参考）、`memory.SelectAssistantProfile`（参考）、`memory.SaveAssistantInput`（参考）、`memory.ReadAssistantInput`（参考）、`memory.DispatchAssistantInputs`（参考）、`memory.AssistantInput`（参考）、`memory.ReplayReceipt`（参考）、`memory.ValidateForeign`（参考）、`memory.ConfigureValidators`（参考）、`memory.CurrentAssistantState`（参考）、`memory.DispatchAssistantCancellations`（参考） |
 | `modules/memory/internal/transport/business.go` | 手写 | 本域实际业务实现与受信装配辅助；仅访问本域私有数据。 | `memory.operationHandlers`（参考）、`memory.jsonOperation`（参考）、`memory.respond`（参考）、`memory.matchPath`（参考）、`memory.optionalString`（参考）、`memory.optionalInt`（参考）、`memory.queryLimit`（参考） |
 | `modules/memory/migrations/002_business.sql` | 手写 | 业务回执、提交manifest、派生清单及助手固定输入的只追加迁移。 | 无 |
 | `modules/memory/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `memory.ReadSnapshotArchive` |
+| `modules/memory/web/src/index.tsx` | UI | 长期记忆：记忆条目的新建、编辑、归档与恢复 | `memory.MemoryPage` |

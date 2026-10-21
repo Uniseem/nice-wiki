@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 97 个函数：约束 33 个，参考 64 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 94 个函数：约束 33 个，参考 61 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2604,139 +2604,6 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.Discard`
 
-## traffic-guard.SaveGuardPolicy
-
-- 级别：参考
-- 文件：`modules/traffic-guard/web/src/PolicyEditor.vue`
-- 作用：Vue3模块交互：SaveGuardPolicy
-
-```ts
-function SaveGuardPolicy(input: SaveGuardPolicyInput, signal: AbortSignal): Promise<SaveGuardPolicyResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `SaveGuardPolicyInput` | Vue3模块交互：SaveGuardPolicy；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SaveGuardPolicyResult` | Vue3模块交互：SaveGuardPolicy成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 提交策略CAS
-2. 409保留表单并展示服务器revision，界面不显示费用额度
-3. 处理401重新登录、403清空敏感界面
-4. 按operationId重试不重复提交
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：guard.manage；rule：guard.manage
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
-- 其他依赖说明：traffic-guard OpenAPI HTTP/JSON/SSE
-
-## traffic-guard.SubmitBan
-
-- 级别：参考
-- 文件：`modules/traffic-guard/web/src/BanList.vue`
-- 作用：Vue3模块交互：SubmitBan
-
-```ts
-function SubmitBan(input: SubmitBanInput, signal: AbortSignal): Promise<SubmitBanResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `SubmitBanInput` | Vue3模块交互：SubmitBan；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SubmitBanResult` | Vue3模块交互：SubmitBan成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 提交匿名主体引用临时封禁
-2. 只展示reasonCode/expiry，不输入原始IP
-3. 处理401重新登录、403清空敏感界面
-4. 按operationId重试不重复提交
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：guard.manage；rule：guard.manage
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
-- 其他依赖说明：traffic-guard OpenAPI HTTP/JSON/SSE
-
-## traffic-guard.RunPoWChallenge
-
-- 级别：参考
-- 文件：`modules/traffic-guard/web/src/client.ts`
-- 作用：Vue3模块交互：RunPoWChallenge
-
-```ts
-function RunPoWChallenge(input: RunPoWChallengeInput, signal: AbortSignal): Promise<RunPoWChallengeResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `RunPoWChallengeInput` | Vue3模块交互：RunPoWChallenge；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `RunPoWChallengeResult` | Vue3模块交互：RunPoWChallenge成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. Web Worker每4096次hash让出事件循环
-2. 截止expiresAt或用户取消立即停止
-3. 验证结果仍需服务端CAS
-4. 处理401重新登录、403清空敏感界面
-5. 按operationId重试不重复提交
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：anonymous；rule：anonymous
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
-- 其他依赖说明：traffic-guard OpenAPI HTTP/JSON/SSE
-
 ## traffic-guard.ReportQuestionSignals
 
 - 级别：约束
@@ -3197,44 +3064,6 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 幂等：GET只读重复安全
 - 依赖：无
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
-
-## traffic-guard.mountModuleUI
-
-- 级别：约束
-- 文件：`modules/traffic-guard/web/src/main.ts`
-- 作用：本域Vue3应用/岛的唯一UI构建入口
-
-```ts
-function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `rootElement` | `HTMLElement` | 已经存在的模块挂载节点 | DOM标准库；为空或不属于当前document拒绝 |
-| `bootstrap` | `ModuleUIBootstrap` | 已由portal/Go输出的安全启动元数据 | module固定本域，不含service凭证/secret |
-
-**输出**
-
-无
-
-**步骤**
-
-1. 校验rootElement与bootstrap module/capabilities；按本域已登记Vue页面导入模块路由，createApp挂载，不注册别域业务组件
-2. 只装配同源HTTP/JSON/SSE客户端和已有权限清理/语言逻辑，复用identity/qa会话，缺AI能力保持关闭提示
-3. 同DOM重复mount先复用既有实例；unmount停止AbortController/SSE/listeners，不能清服务端业务记录
-
-**错误**
-
-- `VALIDATION` / HTTP 400：bootstrap不匹配本域或DOM无效（不可重试）
-
-- 副作用：挂载本域Vue组件和浏览器事件；不新建业务记录
-- 授权：permission：anonymous；rule：只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限
-- 并发：同DOM一个Vue实例，AbortController取消旧请求
-- 幂等：同DOM/buildRevision重复挂载复用实例
-- 依赖：无
-- 其他依赖说明：本域已登记UI页面函数
 
 ## traffic-guard.ListRiskEvents
 
@@ -3846,3 +3675,36 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 - 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
 - 幂等：同完整引用只读复用，不生成或重算归档
 - 依赖：`platform.SnapshotManager.OpenArchive`
+
+## traffic-guard.GuardPage
+
+- 级别：约束
+- 文件：`modules/traffic-guard/web/src/index.tsx`
+- 作用：防滥用：访客提问准入策略、禁令、可疑事件与一键封禁
+
+```ts
+export default function GuardPage(): React.JSX.Element
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取策略（未保存过时给默认值）、禁令与可疑事件
+2. 建立禁令只接受不可逆网络引用
+
+**错误**
+
+- 无
+
+- 副作用：浏览器内调用同源版本化接口
+- 授权：页面可见性只是少展示；每个接口仍由服务端按当前授权校验
+- 并发：单页面实例；切换页面时取消未完成的读取
+- 幂等：写操作带 Idempotency-Key 与版本前提
+- 依赖：无

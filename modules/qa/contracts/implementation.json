@@ -8687,202 +8687,6 @@
       ]
     },
     {
-      "path": "modules/qa/ui/src/views/OverviewView.vue",
-      "kind": "ui",
-      "purpose": "加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。",
-      "functions": [
-        {
-          "id": "qa.LoadAdminOverview",
-          "name": "LoadAdminOverview",
-          "signature": "export async function loadAdminOverview(input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult>",
-          "inputs": [
-            {
-              "name": "input",
-              "type": "LoadAdminOverviewInput",
-              "description": "本域封闭输入；每个字段规格见types.json $defs/LoadAdminOverviewInput",
-              "constraints": "schema required/additionalProperties/range全部强制；null禁止。"
-            },
-            {
-              "name": "signal",
-              "type": "AbortSignal",
-              "description": "界面导航及取消信号",
-              "constraints": "取消后不更新已卸载组件。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "LoadAdminOverviewResult",
-              "description": "成功结果；逐字段见types $defs/LoadAdminOverviewResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            }
-          ],
-          "purpose": "加载本域后台概览",
-          "steps": [
-            "1 portal提供已认证apiClient",
-            "2 读取本域管理API",
-            "3 取消旧navigation请求",
-            "4 基于server version显示状态且不在UI推测费用或任务成功",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "只读请求与组件状态更新"
-          ],
-          "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/qa/ui/src/views/EditView.vue",
-      "kind": "ui",
-      "purpose": "提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。",
-      "functions": [
-        {
-          "id": "qa.SubmitPrimaryEdit",
-          "name": "SubmitPrimaryEdit",
-          "signature": "export async function submitPrimaryEdit(input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult>",
-          "inputs": [
-            {
-              "name": "input",
-              "type": "SubmitPrimaryEditInput",
-              "description": "本域封闭输入；每个字段规格见types.json $defs/SubmitPrimaryEditInput",
-              "constraints": "schema required/additionalProperties/range全部强制；null禁止。"
-            },
-            {
-              "name": "signal",
-              "type": "AbortSignal",
-              "description": "界面导航及取消信号",
-              "constraints": "取消后不更新已卸载组件。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "SubmitPrimaryEditResult",
-              "description": "成功结果；逐字段见types $defs/SubmitPrimaryEditResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            }
-          ],
-          "purpose": "提交本域明确人工修改",
-          "steps": [
-            "1 表单逐字段验证本域schema",
-            "2 生成幂等键并携expectedVersion",
-            "3 调本域approveCacheEntry API",
-            "4 409保留用户输入并显示当前版本，不自动覆盖重发",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "本域HTTP写请求和组件状态更新"
-          ],
-          "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
       "path": "modules/qa/internal/context/page.go",
       "kind": "handwritten",
       "purpose": "验证当前页面上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
@@ -11177,91 +10981,6 @@
       "functions": []
     },
     {
-      "path": "modules/qa/ui/package.json",
-      "kind": "config",
-      "purpose": "该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务",
-      "functions": []
-    },
-    {
-      "path": "modules/qa/ui/pnpm-lock.yaml",
-      "kind": "generated",
-      "purpose": "由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest",
-      "functions": []
-    },
-    {
-      "path": "modules/qa/ui/vite.config.ts",
-      "kind": "config",
-      "purpose": "该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token",
-      "functions": []
-    },
-    {
-      "path": "modules/qa/ui/tsconfig.json",
-      "kind": "config",
-      "purpose": "严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像",
-      "functions": []
-    },
-    {
-      "path": "modules/qa/ui/index.html",
-      "kind": "config",
-      "purpose": "该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret",
-      "functions": []
-    },
-    {
-      "path": "modules/qa/ui/src/main.ts",
-      "kind": "ui",
-      "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
-      "functions": [
-        {
-          "id": "qa.mountModuleUI",
-          "name": "mountModuleUI",
-          "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
-          "inputs": [
-            {
-              "name": "rootElement",
-              "type": "HTMLElement",
-              "description": "已经存在的模块挂载节点",
-              "constraints": "DOM标准库；为空或不属于当前document拒绝"
-            },
-            {
-              "name": "bootstrap",
-              "type": "ModuleUIBootstrap",
-              "description": "已由portal/Go输出的安全启动元数据",
-              "constraints": "module固定本域，不含service凭证/secret"
-            }
-          ],
-          "outputs": [],
-          "purpose": "本域Vue3应用/岛的唯一UI构建入口",
-          "steps": [
-            "校验rootElement与bootstrap module/capabilities；按本域已登记Vue页面导入模块路由，createApp挂载，不注册别域业务组件",
-            "只装配同源HTTP/JSON/SSE客户端和已有权限清理/语言逻辑，复用identity/qa会话，缺AI能力保持关闭提示",
-            "同DOM重复mount先复用既有实例；unmount停止AbortController/SSE/listeners，不能清服务端业务记录"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "condition": "bootstrap不匹配本域或DOM无效",
-              "httpStatus": 400,
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "挂载本域Vue组件和浏览器事件；不新建业务记录"
-          ],
-          "authorization": {
-            "permission": "anonymous",
-            "rule": "只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限"
-          },
-          "concurrency": "同DOM一个Vue实例，AbortController取消旧请求",
-          "idempotency": "同DOM/buildRevision重复挂载复用实例",
-          "dependencies": [],
-          "resources": [
-            "本域已登记UI页面函数"
-          ],
-          "contract": "binding"
-        }
-      ]
-    },
-    {
       "path": "modules/qa/internal/events/subscription.go",
       "kind": "handwritten",
       "purpose": "订阅并分派本域登记的跨域事件",
@@ -11740,7 +11459,7 @@
       "functions": []
     },
     {
-      "path": "modules/qa/ui/src/gen/api.gen.ts",
+      "path": "modules/qa/web/src/gen/api.gen.ts",
       "kind": "generated",
       "purpose": "make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改",
       "functions": []
@@ -12621,6 +12340,64 @@
             "qa.ValidateCachedAnswer",
             "qa.ServiceReadContext"
           ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/qa/web/src/index.tsx",
+      "kind": "ui",
+      "purpose": "问答管理：策略、问答记录与精选、答案缓存、调试台",
+      "functions": [
+        {
+          "id": "qa.QaPage",
+          "name": "QaPage",
+          "signature": "export default function QaPage(): React.JSX.Element",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "问答管理：策略、问答记录与精选、答案缓存、调试台",
+          "steps": [
+            "按授权项显示标签页",
+            "调试台结果只读取隔离的诊断记录"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "浏览器内调用同源版本化接口"
+          ],
+          "authorization": "页面可见性只是少展示；每个接口仍由服务端按当前授权校验",
+          "concurrency": "单页面实例；切换页面时取消未完成的读取",
+          "idempotency": "写操作带 Idempotency-Key 与版本前提",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/qa/web/src/island/index.tsx",
+      "kind": "ui",
+      "purpose": "公开页问答岛：文档页右下角的问答面板，独立问答页用同一会话的内嵌形态（QaInline）",
+      "functions": [
+        {
+          "id": "qa.QaFloating",
+          "name": "QaFloating",
+          "signature": "export function QaFloating(props: { open: boolean; onOpenChange: (open: boolean) => void; locale: string; t: (key: string) => string }): React.JSX.Element",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公开页问答岛：文档页右下角的问答面板，独立问答页用同一会话的内嵌形态（QaInline）",
+          "steps": [
+            "需要人机验证时在 Web Worker 里完成工作量证明后重试",
+            "流式读取回答与引用，可停止、可评价；会话与记录只存浏览器会话存储"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "浏览器内调用同源版本化接口"
+          ],
+          "authorization": "页面可见性只是少展示；每个接口仍由服务端按当前授权校验",
+          "concurrency": "单页面实例；切换页面时取消未完成的读取",
+          "idempotency": "写操作带 Idempotency-Key 与版本前提",
+          "dependencies": [],
           "resources": [],
           "contract": "binding"
         }

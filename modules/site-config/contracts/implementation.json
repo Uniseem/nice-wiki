@@ -6920,6 +6920,35 @@
         }
       ],
       "kind": "handwritten"
+    },
+    {
+      "path": "modules/site-config/web/src/index.tsx",
+      "kind": "ui",
+      "purpose": "站点设置：基本信息、品牌图片、首页主视觉（含预览）、公告横幅、页脚",
+      "functions": [
+        {
+          "id": "site-config.SitePage",
+          "name": "SitePage",
+          "signature": "export default function SitePage(): React.JSX.Element",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "站点设置：基本信息、品牌图片、首页主视觉（含预览）、公告横幅、页脚",
+          "steps": [
+            "读取站点配置，按分组表单修改",
+            "每次保存带配置版本前提，保存后重新读取最新版本"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "浏览器内调用同源版本化接口"
+          ],
+          "authorization": "页面可见性只是少展示；每个接口仍由服务端按当前授权校验",
+          "concurrency": "单页面实例；切换页面时取消未完成的读取",
+          "idempotency": "写操作带 Idempotency-Key 与版本前提",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
     }
   ],
   "jobTypes": [],

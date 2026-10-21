@@ -400,7 +400,7 @@ def check_wiring(modules, shared=()):
         for dep in functions[fid].get('dependencies', []):
             stack.append(ops.get(dep, {}).get('x-handler') if ':' in dep else dep)
     for fid in functions:
-        if fid not in seen and not files[fid].endswith(('.ts', '.vue')):
+        if fid not in seen and not files[fid].endswith(('.ts', '.tsx')):
             fail(fid, '从任何入口都不可达（接口处理、事件处理、启动入口）')
     generic = ('acquireBarrier', 'releaseBarrier', 'exportSnapshot', 'stageSnapshot', 'discardSnapshot', 'health', 'ready')
     for key, op in ops.items():

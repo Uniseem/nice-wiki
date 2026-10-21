@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 121 个函数：约束 41 个，参考 80 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 120 个函数：约束 42 个，参考 78 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -3921,101 +3921,6 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.Discard`
 
-## qa.LoadAdminOverview
-
-- 级别：参考
-- 文件：`modules/qa/ui/src/views/OverviewView.vue`
-- 作用：加载本域后台概览
-
-```ts
-export async function loadAdminOverview(input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `LoadAdminOverviewInput` | 本域封闭输入；每个字段规格见types.json $defs/LoadAdminOverviewInput | schema required/additionalProperties/range全部强制；null禁止。 |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `LoadAdminOverviewResult` | 成功结果；逐字段见types $defs/LoadAdminOverviewResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-
-**步骤**
-
-1. portal提供已认证apiClient
-2. 读取本域管理API
-3. 取消旧navigation请求
-4. 基于server version显示状态且不在UI推测费用或任务成功
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：只读请求与组件状态更新
-- 授权：权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
-
-## qa.SubmitPrimaryEdit
-
-- 级别：参考
-- 文件：`modules/qa/ui/src/views/EditView.vue`
-- 作用：提交本域明确人工修改
-
-```ts
-export async function submitPrimaryEdit(input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `SubmitPrimaryEditInput` | 本域封闭输入；每个字段规格见types.json $defs/SubmitPrimaryEditInput | schema required/additionalProperties/range全部强制；null禁止。 |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SubmitPrimaryEditResult` | 成功结果；逐字段见types $defs/SubmitPrimaryEditResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-
-**步骤**
-
-1. 表单逐字段验证本域schema
-2. 生成幂等键并携expectedVersion
-3. 调本域approveCacheEntry API
-4. 409保留用户输入并显示当前版本，不自动覆盖重发
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-
-**错误**
-
-- `VALIDATION` / HTTP 400：（不可重试）
-- `VERSION_MISMATCH` / HTTP 409：（不可重试）
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：本域HTTP写请求和组件状态更新
-- 授权：权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
-
 ## qa.ResolveCurrentPageHint
 
 - 级别：参考
@@ -5063,44 +4968,6 @@ func(reader *answerEventStream)Close()error
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：无
 
-## qa.mountModuleUI
-
-- 级别：约束
-- 文件：`modules/qa/ui/src/main.ts`
-- 作用：本域Vue3应用/岛的唯一UI构建入口
-
-```ts
-function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `rootElement` | `HTMLElement` | 已经存在的模块挂载节点 | DOM标准库；为空或不属于当前document拒绝 |
-| `bootstrap` | `ModuleUIBootstrap` | 已由portal/Go输出的安全启动元数据 | module固定本域，不含service凭证/secret |
-
-**输出**
-
-无
-
-**步骤**
-
-1. 校验rootElement与bootstrap module/capabilities；按本域已登记Vue页面导入模块路由，createApp挂载，不注册别域业务组件
-2. 只装配同源HTTP/JSON/SSE客户端和已有权限清理/语言逻辑，复用identity/qa会话，缺AI能力保持关闭提示
-3. 同DOM重复mount先复用既有实例；unmount停止AbortController/SSE/listeners，不能清服务端业务记录
-
-**错误**
-
-- `VALIDATION` / HTTP 400：bootstrap不匹配本域或DOM无效（不可重试）
-
-- 副作用：挂载本域Vue组件和浏览器事件；不新建业务记录
-- 授权：permission：anonymous；rule：只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限
-- 并发：同DOM一个Vue实例，AbortController取消旧请求
-- 幂等：同DOM/buildRevision重复挂载复用实例
-- 依赖：无
-- 其他依赖说明：本域已登记UI页面函数
-
 ## qa.ConsumeEvents
 
 - 级别：约束
@@ -5598,3 +5465,69 @@ func ReadCacheTranslationSource(ctx context.Context,op OperationContext,input Re
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：`qa.BeginRead`、`qa.ReadCache`、`qa.ValidateCachedAnswer`、`qa.ServiceReadContext`
+
+## qa.QaPage
+
+- 级别：约束
+- 文件：`modules/qa/web/src/index.tsx`
+- 作用：问答管理：策略、问答记录与精选、答案缓存、调试台
+
+```ts
+export default function QaPage(): React.JSX.Element
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按授权项显示标签页
+2. 调试台结果只读取隔离的诊断记录
+
+**错误**
+
+- 无
+
+- 副作用：浏览器内调用同源版本化接口
+- 授权：页面可见性只是少展示；每个接口仍由服务端按当前授权校验
+- 并发：单页面实例；切换页面时取消未完成的读取
+- 幂等：写操作带 Idempotency-Key 与版本前提
+- 依赖：无
+
+## qa.QaFloating
+
+- 级别：约束
+- 文件：`modules/qa/web/src/island/index.tsx`
+- 作用：公开页问答岛：文档页右下角的问答面板，独立问答页用同一会话的内嵌形态（QaInline）
+
+```ts
+export function QaFloating(props: { open: boolean; onOpenChange: (open: boolean) => void; locale: string; t: (key: string) => string }): React.JSX.Element
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 需要人机验证时在 Web Worker 里完成工作量证明后重试
+2. 流式读取回答与引用，可停止、可评价；会话与记录只存浏览器会话存储
+
+**错误**
+
+- 无
+
+- 副作用：浏览器内调用同源版本化接口
+- 授权：页面可见性只是少展示；每个接口仍由服务端按当前授权校验
+- 并发：单页面实例；切换页面时取消未完成的读取
+- 幂等：写操作带 Idempotency-Key 与版本前提
+- 依赖：无

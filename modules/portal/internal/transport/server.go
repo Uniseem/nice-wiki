@@ -121,7 +121,7 @@ func (a *Application) registerLocalRoutes(mux *http.ServeMux) error {
 	return nil
 }
 
-// MountWeb 提供后台静态页面：/admin/* 回退到壳的 index.html，/_admin/* 提供壳与各域 module.js。
+// MountWeb 提供后台静态页面：/admin/* 回退到后台单页应用的 index.html，/_admin/* 提供其脚本与样式，/_site/* 提供公开页的样式与交互岛。
 // 目录缺失时不挂载（后台页面不可用，接口代理照常工作）。
 func (a *Application) MountWeb(dir string) {
 	if info, err := os.Stat(filepath.Join(dir, "index.html")); err != nil || info.IsDir() {
@@ -133,6 +133,12 @@ func (a *Application) MountWeb(dir string) {
 	mux.HandleFunc("GET /_admin/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
 		files.ServeHTTP(w, r)
+	})
+	// 公开页的样式表、交互岛脚本和 KaTeX：前端构建产出在 site/ 子目录。
+	site := http.StripPrefix("/_site/", http.FileServer(http.Dir(filepath.Join(dir, "site"))))
+	mux.HandleFunc("GET /_site/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		site.ServeHTTP(w, r)
 	})
 	shell := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

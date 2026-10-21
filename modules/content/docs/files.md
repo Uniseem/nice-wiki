@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 74 个：手写 47、UI 12、生成 5、配置 10。函数 266 个：约束 43，参考 223。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 58 个：手写 47、UI 1、生成 4、配置 6。函数 253 个：约束 43，参考 210。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -35,17 +35,6 @@
 | `modules/content/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `content.AcquireBarrier`、`content.ReleaseBarrier` |
 | `modules/content/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `content.ExportSnapshot`、`content.StageSnapshot`、`content.DiscardSnapshot` |
 | `modules/content/internal/public_route_reader.go` | 手写 | 公开导航读取已发布文档树 | `content.ReadPublicTree`、`content.ResolvePublicPath`、`content.readPublicRouteSnapshot`（参考） |
-| `modules/content/web/src/editor/editor-runtime.ts` | UI | 创建Tiptap3/Vue编辑器会话 | `content.createEditorSession`（参考） |
-| `modules/content/web/src/editor/block-actions.ts` | UI | 拖拽手柄菜单排序/转换/复制/删除 | `content.applyBlockAction`（参考） |
-| `modules/content/web/src/editor/slash-menu.ts` | UI | slash插入菜单与Markdown输入快捷键 | `content.resolveSlashMenu`（参考） |
-| `modules/content/web/src/editor/paste-adapter.ts` | UI | Word/网页/Markdown粘贴清理并转换块 | `content.normalizePastedContent`（参考） |
-| `modules/content/web/src/editor/autosave-controller.ts` | UI | 去抖自动保存共享草稿 | `content.scheduleAutosave`（参考） |
-| `modules/content/web/src/editor/lock-client.ts` | UI | 每30秒锁心跳与15分钟空闲提醒 | `content.maintainEditHeartbeat`（参考）、`content.applyForcedReadOnly`（参考） |
-| `modules/content/web/src/editor/internal-link-picker.ts` | UI | 插入文档选择器生成ID站内链接 | `content.selectInternalLink`（参考） |
-| `modules/content/web/src/editor/image-uploader.ts` | UI | 浏览器生成多宽WebP连原图上传 | `content.prepareImageUploads`（参考） |
-| `modules/content/web/src/editor/drawing-wrapper.ts` | UI | Vue包装Excalidraw并按需加载 | `content.openDrawingEditor`（参考）、`content.saveDrawingFiles`（参考） |
-| `modules/content/web/src/editor/video-insertion.ts` | UI | 统一上传/平台视频插入 | `content.prepareVideoBlock`（参考） |
-| `modules/content/web/src/editor/columns-resizer.ts` | UI | 调整2–4栏宽比例 | `content.resizeColumns`（参考） |
 | `modules/content/cmd/content/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `content.main` |
 | `modules/content/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `content.BuildApplication` |
 | `modules/content/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `content.Serve`、`content.Shutdown`、`content.Health`、`content.Ready`、`content.RegisterReferenceRoutes`（参考）、`content.RegisterTreeRoutes`（参考）、`content.RegisterPublicationRoutes`（参考） |
@@ -55,12 +44,6 @@
 | `modules/content/Makefile` | 配置 | generate校验并生成合同绑定；build执行go build ./cmd/content与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例 | 无 |
 | `modules/content/config/service.defaults.json` | 配置 | ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/content/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
-| `modules/content/web/package.json` | 配置 | 该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务 | 无 |
-| `modules/content/web/pnpm-lock.yaml` | 生成 | 由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest | 无 |
-| `modules/content/web/vite.config.ts` | 配置 | 该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token | 无 |
-| `modules/content/web/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
-| `modules/content/web/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
-| `modules/content/web/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `content.mountModuleUI` |
 | `modules/content/internal/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `content.InvokeModel`（参考） |
 | `modules/content/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/content/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
@@ -80,3 +63,4 @@
 | `modules/content/migrations/0007_metadata_operations.sql` | 手写 | 只追加完整同代metadata原回执：scope/caller/actor/request hash/result/hash，同真实CAS/outbox事务，不建资源影子来源 | 无 |
 | `modules/content/migrations/0008_publication_snapshots.sql` | 手写 | 只追加发布快照、署名历史、已发布引用和版本化重定向清单 | 无 |
 | `modules/content/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `content.ReadSnapshotArchive` |
+| `modules/content/web/src/index.tsx` | UI | 文档管理：文档树、Tiptap 编辑器（稳定块 ID、斜杠菜单、画板、公式、上传）、编辑锁与自动保存、发布/撤回/历史/回收站 | `content.ContentPage` |

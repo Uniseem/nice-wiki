@@ -1,14 +1,16 @@
 # 界面装配契约
 
-portal维护后台导航、权限菜单、全局错误与加载外壳；业务域拥有本域页面、状态和API客户端。每域manifest声明moduleId、apiVersion、uiVersion、routeBase、entryAsset、requiredPermissions、capabilities；静态入口只允许同源已注册位置，不接受访客提供脚本URL。
+前端统一用 React 19 + HeroUI v3（Tailwind CSS v4），仓库根是唯一的 pnpm 工程（`package.json`、`pnpm-lock.yaml`、`tsconfig.json`），由 GitLab CI 类型检查并构建，产物在 `web-dist/`。
 
-路由以/admin/模块名开头，公开页面由public-site完整HTML输出；问答和语言建议岛通过各域版本化入口加载。模块页面独立构建，API兼容更新只部署该域；公共设计令牌/纯基础组件固定版本，不共享业务Pinia store，不跨域导入内部组件。
+- 后台是一个单页应用：外壳在 `modules/portal/web`（登录与初始化向导、分组导航、主题、个人设置、仪表盘），各域页面源码在 `modules/<域>/web/src/index.tsx`（默认导出页面组件），由外壳按路由懒加载。portal 在 `/_admin/` 提供静态文件，`/admin/*` 回退到其 index.html。
+- 后台页面键、路径、所需权限与中文标签由公共 permission-groups.json 的 adminRoutes 唯一登记，外壳直接读取它；权限列表为任一满足，只决定显示什么，接口仍由各服务端校验当前权威。
+- 各页共用的基础件在 `libs/platform/web/ui`：同源 API 客户端（CSRF、单次静默刷新、401 回登录、Idempotency-Key）、HeroUI 表单控件封装、页头/分区/空状态/加载/错误版式、Toast 与确认/输入对话框、媒体内容寻址上传、正文排版样式。不共享业务状态，不跨域导入别域页面组件。
+- 公开页面由 public-site 用 html/template 输出完整 HTML（正文、导航、目录、页脚都在首屏，SEO、Markdown、llms 不依赖脚本），直接使用 HeroUI 的组件类与 Tailwind 工具类；样式表与交互岛由 `modules/public-site/web` 构建到 `/_site/`（site.css、site.js、KaTeX）。交互岛是一个 React 根，通过 portal 接管页头操作（AI 问答、语言、明暗）、窄屏文档树抽屉和问答区；问答岛属于 qa 域（`modules/qa/web/src/island`）。页面界面文字在服务端按语言取好，下发给岛。
+- 明暗主题用 HeroUI 的 useTheme（localStorage 的 heroui-theme、html 上的 .dark），后台与公开站同源互通；首屏前由内联/静态脚本先套上，避免闪烁。
 
-后台全部中文；错误、空态、缺能力、冲突、进度和费用确认均有可操作说明。编辑器按content块schema维护稳定ID，界面不能擅增未登记块/属性。共享文档格式是契约，不把每块渲染拆为一次网络调用。
+后台全部中文；错误、空态、缺能力、冲突、进度和费用确认均有可操作说明，确认与输入用对话框而不是浏览器自带弹窗。编辑器按 content 块 schema 维护稳定 ID，界面不能擅增未登记块/属性。共享文档格式是契约，不把每块渲染拆为一次网络调用。
 
-业务模块的implementation清单包含本域UI文件和事件处理函数；没有UI的基础服务可由portal管理页调用其API，但在files.md明确所有权。测试/E2E或新借用UI组件仍须另行授权。
-
-后台页面键、路径、所需权限与中文标签由公共permission-groups.json的adminRoutes唯一登记，identity和portal通过make gen各取只读数据；权限列表为任一满足，接口仍核当前权威。偏好语言仅当前内置zh-Hans/en，不把站点内容语言冒充已提供界面翻译。偏好不存在时system/zh-Hans/dashboard/revision0；保存须内外revision一致，成功CAS提升一次，重放原安全结果，不更新认证或权限水位。
+偏好语言仅当前内置 zh-Hans/en，不把站点内容语言冒充已提供界面翻译。偏好不存在时 system/zh-Hans/dashboard/revision0；保存须内外 revision 一致，成功 CAS 提升一次，重放原安全结果，不更新认证或权限水位。
 
 ## 后台页面清单
 
@@ -33,6 +35,6 @@ portal维护后台导航、权限菜单、全局错误与加载外壳；业务�
 | 账号与权限 | `/admin/accounts` | identity | `identity:listAccounts`、`identity:createAccount`、`identity:setAccountStatus`、`identity:setAccountPermissions`、`identity:resetAccountPassword` | accounts.md、D21、D35 |
 | 备份恢复与版本镜像 | `/admin/backup` | data-protection | `data-protection:readProtectionSettings`、`data-protection:listBackups`、`data-protection:readBackup`、`data-protection:createBackup`、`data-protection:scheduleLocalBackup`、`data-protection:authorizeBackupDownload`、`data-protection:streamPortableBackup`、`data-protection:importPortableBackup`、`data-protection:validateRestore`、`data-protection:createRestore`、`data-protection:readRestoreProgress`、`data-protection:continueRestore`、`data-protection:abortRestore`、`data-protection:cleanupRestore`、`data-protection:readMirrorStatus`、`data-protection:buildMirror`、`data-protection:configureRemote`、`data-protection:syncMirror` | security-ops.md、D16、D28 |
 
-公开页面（public-site 完整 HTML）挂载两个浏览器岛：问答浮窗与独立问答页（qa：`createConversation`、`startTurn`、`resumeAnswerStream`、`cancelTurn`、`recordFeedback`、`getConversation`、`deleteConversation`；traffic-guard：`issueChallenge`、`verifyChallenge`），语言建议（localization：`suggestLanguage`、`saveLanguagePreference`）。页面访问统计由浏览器调用 analytics `ingestBeacon`。
+公开页面（public-site 完整 HTML）上的交互岛：问答面板与独立问答页（qa：`createConversation`、`startTurn`、`resumeAnswerStream`、`cancelTurn`、`recordFeedback`、`getConversation`、`deleteConversation`；traffic-guard：`issueChallenge`、`verifyChallenge`），语言建议（localization：`suggestLanguage`、`saveLanguagePreference`）。页面访问统计由浏览器调用 analytics `ingestBeacon`。
 
-浏览器模块使用`libs/platform/web/module-api.ts`的非序列化ModuleUIBootstrap.apiClient。portal挂载时注入request端口，域UI仅请求本域版本化路径、body/signal/responseType/idempotencyKey，不接收HttpOnly token或任意认证头。portal实现仍须强制同源域前缀、CSRF、单次刷新与权限变化；类型文件存在不代表壳已装配完成。
+浏览器请求的参数形状见 `libs/platform/web/module-api.ts`（body/signal/responseType/idempotencyKey 与少数映射成固定请求头的字段）；页面只请求版本化同源路径，不接触 HttpOnly 会话令牌或任意认证头。

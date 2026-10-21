@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html"
+	"html/template"
 	"net/url"
 	"strings"
 
@@ -91,7 +93,7 @@ func resolveMoved(ctx context.Context, in HandlePageInput) (HandlePageResult, er
 			return HandlePageResult{Status: 301, Location: href}, nil
 		}
 	case "gone":
-		return HandlePageResult{Status: 410, HTML: "<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><meta charset=\"utf-8\"><title>页面已删除</title><body><h1>该页面已被删除</h1></body></html>"}, nil
+		return HandlePageResult{Status: 410, HTML: RenderStatusPage(in.Locale, 410, "页面已删除", "这篇文档已经被删除。")}, nil
 	}
 	return HandlePageResult{}, nil
 }
@@ -106,7 +108,24 @@ type HandleHomeResult struct {
 	Location string
 }
 
-// HandleHome 用站点配置里的首页文案渲染一屏首页，按钮指向导航树里的第一篇文档。
+type heroButton struct {
+	Label, URL string
+	Primary    bool
+}
+type homeSection struct {
+	Title, URL string
+	Children   []string
+}
+type homePage struct {
+	shell
+	HeroTitle, HeroSubtitle, HeroBackgroundText string
+	HeroBackground, HeroOverlay                 template.CSS
+	HeroDark, HeroCustomColor                   bool
+	HeroButtons                                 []heroButton
+	Sections                                    []homeSection
+}
+
+// HandleHome 用站点配置里的首页文案渲染首页主视觉，下面按导航树列出顶层文档。
 func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHomeInput) (HandleHomeResult, error) {
 	directory, err := directoryFrom(ctx)
 	if err != nil {
@@ -139,6 +158,7 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 				} `json:"background"`
 				Buttons []struct {
 					Text   string `json:"text"`
+					Style  string `json:"style"`
 					Target struct {
 						Kind       string `json:"kind"`
 						URL        string `json:"url"`
@@ -152,7 +172,10 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 		return HandleHomeResult{}, dependency("站点首页配置不可读")
 	}
 	home := config.Config.Home
-	var labels, urls []string
+	if home.OverlayPercent < 0 || home.OverlayPercent > 100 {
+		return HandleHomeResult{}, platform.NewError(platform.CodeValidation, false, "INVALID_HERO")
+	}
+	var buttons []heroButton
 	for _, button := range home.Buttons {
 		target := ""
 		switch button.Target.Kind {
@@ -167,33 +190,56 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 		case "qa":
 			target = "/" + in.Locale + "/ask"
 		}
-		if target != "" && len(labels) < 3 {
-			labels, urls = append(labels, button.Text), append(urls, target)
+		if target != "" && safeLink(target) && len(buttons) < 3 {
+			buttons = append(buttons, heroButton{Label: button.Text, URL: target, Primary: button.Style != "secondary"})
 		}
 	}
-	if len(labels) == 0 && len(nodes) > 0 {
-		labels, urls = []string{"开始阅读"}, []string{nodes[0].CanonicalPath}
+	meta := loadSiteMeta(ctx)
+	homeBase, _ := siteForSEO(ctx)
+	head := "<title>" + html.EscapeString(config.Config.Name) + "</title>"
+	if indexing, policyErr := readIndexingPolicy(ctx); policyErr == nil && !indexing {
+		head += "<meta name=\"robots\" content=\"noindex,nofollow\">"
 	}
-	hero, err := RenderHero(ctx, op, RenderHeroInput{Title: home.MainTitle, Subtitle: home.Subtitle, BackgroundKind: "solid", OverlayPercent: home.OverlayPercent,
-		ButtonLabels: labels, ButtonURLs: urls, BackgroundText: home.BackgroundText, TextColor: home.TextColor})
+	if meta.Description != "" {
+		head += "<meta name=\"description\" content=\"" + html.EscapeString(meta.Description) + "\">"
+	}
+	head += strings.Replace(meta.headTags(config.Config.Name, meta.Description, "", homeBase), "og:type\" content=\"article\"", "og:type\" content=\"website\"", 1)
+	footerHTML, sourceURL := loadFooter(ctx, op)
+	page := homePage{shell: newShell(ComposeHTMLInput{
+		Metadata: head, Locale: in.Locale, Announcement: loadAnnouncement(ctx, op), Languages: languageLinks(ctx, "/"+in.Locale+"/", in.Locale),
+		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor, Footer: footerHTML, SourceCodeURL: sourceURL,
+		UIStrings: loadUIStrings(ctx, in.Locale), AIEnabled: qaAvailable(ctx, op), AskURL: "/" + in.Locale + "/ask",
+	}, "home"), HeroTitle: home.MainTitle, HeroSubtitle: home.Subtitle, HeroBackgroundText: home.BackgroundText, HeroDark: home.TextColor == "dark"}
+	if len(buttons) == 0 && len(nodes) > 0 {
+		buttons = []heroButton{{Label: page.T("开始阅读"), URL: nodes[0].CanonicalPath, Primary: true}}
+	}
+	page.HeroButtons = buttons
+	switch {
+	case home.Background.Kind == "color" && hexColor.MatchString(home.Background.Color):
+		page.HeroBackground, page.HeroCustomColor = template.CSS(home.Background.Color), true
+	case page.HeroDark:
+		page.HeroBackground = "var(--background)"
+	default:
+		page.HeroBackground = "#0B1220"
+	}
+	page.HeroOverlay = template.CSS(fmt.Sprintf("rgb(0 0 0 / %d%%)", home.OverlayPercent))
+	// 首页下方：顶层文档各一张卡片，列出前几篇子文档。
+	children := map[string][]string{}
+	for _, node := range nodes {
+		if node.ParentID != nil && len(children[*node.ParentID]) < 4 {
+			children[*node.ParentID] = append(children[*node.ParentID], node.Title)
+		}
+	}
+	for _, node := range nodes {
+		if node.ParentID == nil {
+			page.Sections = append(page.Sections, homeSection{Title: node.Title, URL: node.CanonicalPath, Children: children[node.DocumentID]})
+		}
+	}
+	rendered, err := render("home", page)
 	if err != nil {
 		return HandleHomeResult{}, err
 	}
-	if home.Background.Kind == "color" && len(home.Background.Color) == 7 && home.Background.Color[0] == '#' {
-		hero.HTML = strings.Replace(hero.HTML, "<main class=\"hero ", "<main style=\"background:"+html.EscapeString(home.Background.Color)+"\" class=\"hero ", 1)
-	}
-	siteMeta := loadSiteMeta(ctx)
-	homeBase, _ := siteForSEO(ctx)
-	homeHead := ""
-	if indexing, policyErr := readIndexingPolicy(ctx); policyErr == nil && !indexing {
-		homeHead += "<meta name=\"robots\" content=\"noindex,nofollow\">"
-	}
-	if siteMeta.Description != "" {
-		homeHead = "<meta name=\"description\" content=\"" + html.EscapeString(siteMeta.Description) + "\">"
-	}
-	homeHead += strings.Replace(siteMeta.headTags(config.Config.Name, siteMeta.Description, "", homeBase), "og:type\" content=\"article\"", "og:type\" content=\"website\"", 1)
-	page := "<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + html.EscapeString(config.Config.Name) + "</title>" + homeHead + "<style>body{margin:0;font:16px/1.6 system-ui}" + announcementCSS + ".hero a{display:inline-block;margin:.5rem;padding:.6rem 1.4rem;border:1px solid currentColor;border-radius:999px;color:inherit;text-decoration:none}</style></head><body>" + loadAnnouncement(ctx, op) + hero.HTML + "</body></html>"
-	return HandleHomeResult{Status: 200, HTML: page}, nil
+	return HandleHomeResult{Status: 200, HTML: rendered}, nil
 }
 
 func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch string, markdown bool, pick func([]NavigationNode) (NavigationNode, bool)) (string, error) {
@@ -303,6 +349,7 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		Footer:        footerHTML,
 		SiteName:      meta.Name,
 		LogoURL:       meta.Logo.url(),
+		ThemeColor:    meta.ThemeColor,
 		SourceCodeURL: sourceURL,
 	})
 	if err != nil {

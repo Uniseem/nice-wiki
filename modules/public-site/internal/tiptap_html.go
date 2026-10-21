@@ -12,6 +12,8 @@ import (
 	"nice-wiki/libs/platform"
 )
 
+const attachmentIcon = `<svg class="size-4 shrink-0 text-muted" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13.5 7.5-5.3 5.3a3.25 3.25 0 0 1-4.6-4.6l5.6-5.6a2.1 2.1 0 0 1 3 3L6.6 11.2a1 1 0 0 1-1.4-1.4L10.5 4.5"/></svg>`
+
 type RenderTiptapHTMLInput struct {
 	Document TiptapDocument
 	Locale   string
@@ -109,13 +111,13 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 			}
 			iterator, err := lexer.Tokenise(nil, nodeText(node))
 			if err == nil {
-				// 行内样式，不依赖额外样式表；整页仍是 Go 直接输出的完整 HTML。
-				err = chromahtml.New(chromahtml.WithClasses(false)).Format(&output, styles.Get("github"), iterator)
+				// 用类名输出，配色（浅色 github / 深色 github-dark）由页面头部按明暗主题提供。
+				err = chromahtml.New(chromahtml.WithClasses(true)).Format(&output, styles.Get("github"), iterator)
 			}
 			if err != nil {
 				return "", platform.NewError(platform.CodeInternal, false, "CODE_HIGHLIGHT_FAILED")
 			}
-			return "<div" + idAttribute + " class=\"code-block\">" + output.String() + "</div>", nil
+			return "<div" + idAttribute + " class=\"code-block\" data-language=\"" + html.EscapeString(language) + "\">" + output.String() + "</div>", nil
 		}
 		if node.Type == "image" || node.Type == "drawing" || node.Type == "attachment" || node.Type == "video" {
 			value := node.Attrs["asset"]
@@ -158,7 +160,7 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 				return "<div" + idAttribute + " class=\"media-unavailable\" style=\"width:640px;max-width:100%;min-height:180px\">" + html.EscapeString(label) + "（资源暂不可用）</div>", nil
 			}
 			if node.Type == "attachment" {
-				return "<a" + idAttribute + " class=\"attachment\" href=\"" + html.EscapeString(delivery.URL) + "\" download>" + html.EscapeString(label) + "</a>", nil
+				return "<p><a" + idAttribute + " class=\"attachment\" href=\"" + html.EscapeString(delivery.URL) + "\" download>" + attachmentIcon + html.EscapeString(label) + "</a></p>", nil
 			}
 			if node.Type == "video" {
 				poster, _ := media(node.Attrs["poster"])
@@ -190,9 +192,10 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 			}
 			image := "<img" + idAttribute + " loading=\"lazy\" src=\"" + html.EscapeString(delivery.URL) + "\" alt=\"" + html.EscapeString(label) + "\" srcset=\"" + srcset.String() + "\" sizes=\"(max-width:900px) 100vw, 760px\"" + dimensions + ">"
 			if node.Type == "drawing" {
-				dark, available := media(node.Attrs["darkSVG"])
-				if available {
-					image = "<picture><source media=\"(prefers-color-scheme:dark)\" srcset=\"" + html.EscapeString(dark.URL) + "\">" + image + "</picture>"
+				// 浅色与深色两张图都输出，按页面的明暗主题（而不是系统设置）显示其中一张。
+				image = "<img" + idAttribute + " class=\"drawing drawing-light\" loading=\"lazy\" src=\"" + html.EscapeString(delivery.URL) + "\" alt=\"" + html.EscapeString(label) + "\">"
+				if dark, available := media(node.Attrs["darkSVG"]); available {
+					image += "<img class=\"drawing drawing-dark\" loading=\"lazy\" src=\"" + html.EscapeString(dark.URL) + "\" alt=\"" + html.EscapeString(label) + "\">"
 				}
 			}
 			return "<figure>" + image + "</figure>", nil
@@ -260,6 +263,10 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 			attributes += " class=\"column\""
 		default:
 			return "", platform.NewError(platform.CodeValidation, false, "UNSUPPORTED_NODE")
+		}
+		if tag == "table" {
+			// 宽表格在窄屏上横向滚动，不撑破版面。
+			return "<div class=\"table-wrap\"><table" + attributes + ">" + text + "</table></div>", nil
 		}
 		return "<" + tag + attributes + ">" + text + "</" + tag + ">", nil
 	}

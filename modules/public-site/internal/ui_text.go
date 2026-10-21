@@ -4,54 +4,46 @@ import (
 	"context"
 	"encoding/json"
 	"net/url"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 )
 
 // 页面自带的界面文字默认是中文；基准语言以外的语言（以及所有非中文页面）改用英文。
-// 只替换固定文案，正文和用户填写的内容不经过这里。
+// 只替换固定文案，正文和用户填写的内容不经过这里。整句在前、片段在后（替换按参数顺序匹配）。
 var englishUI = strings.NewReplacer(
 	"当前语言的译文尚未完成，部分内容显示旧译文或原文。", "This translation is still in progress; some content shows an older translation or the original.",
+	"回答由 AI 生成，可能有误，请以文档原文为准。", "Answers are AI-generated and may be wrong; check the docs for details.",
+	"向这个站点的文档提问，回答会附上来源。", "Ask questions about these docs; answers cite their sources.",
+	"需要启用 JavaScript 才能使用 AI 问答。", "JavaScript is required for Ask AI.",
+	"地址可能有误，或这篇文档还没有发布。", "The address may be wrong, or this page is not published yet.",
 	"复制失败，请打开 Markdown 版本", "Copy failed; open the Markdown version",
+	"公开问答暂未开放。", "Ask AI is not available yet.", "这篇文档已经被删除。", "This page has been deleted.",
+	"页面暂时无法访问", "Page temporarily unavailable", "请稍后刷新重试。", "Please refresh and try again later.",
+	"页面不存在", "Page not found", "页面已删除", "Page deleted", "回到首页", "Back to home",
 	"打开本页目录", "Open table of contents", "打开文档树", "Open navigation",
 	"本页目录", "On this page", "文档树", "Navigation", "相邻文档", "Adjacent pages", "面包屑", "Breadcrumb",
-	"AI 未启用", "AI unavailable", "AI 问答", "Ask AI", "亮 / 暗", "Light / Dark",
-	"复制为 Markdown", "Copy as Markdown", "Markdown 版本", "Markdown version", "已复制", "Copied",
+	"AI 未启用", "AI unavailable", "AI 问答", "Ask AI", "亮 / 暗", "Light / Dark", "跟随系统", "System", "浅色", "Light", "深色", "Dark",
+	"复制为 Markdown", "Copy as Markdown", "Markdown 版本", "Markdown version", "复制代码", "Copy code", "已复制", "Copied",
+	"跳到正文", "Skip to content", "开始阅读", "Start reading", "思考中…", "Thinking…", "感谢反馈", "Thanks for the feedback",
+	"有帮助", "Helpful", "没帮助", "Not helpful", "停止", "Stop",
 	"上一篇", "Previous", "下一篇", "Next", "首页", "Home", "源代码", "Source code", "视频播放器", "Video player",
-	"\">文档</a>", "\">Docs</a>", "aria-label=\"语言\"", "aria-label=\"Language\"",
+	"文档", "Docs", "语言", "Language",
 	"新对话", "New chat", "发送", "Send", "关闭", "Close", "问问这个站点的文档…", "Ask about these docs…",
 	"来源：", "Source: ", "这次没有回答成功（", "Could not answer (", "），请稍后再试。", "). Please try again later.",
 	"回答连接失败（", "Connection failed (", "请求失败（", "Request failed (", "人机验证没有完成", "Verification failed",
 	"人机验证无法在此浏览器运行", "Verification is not supported in this browser", "错误", "error", "：", ": ", "）", ")", "（", " (",
 )
 
-// localizeUI：中文页面原样输出；其他语言先套用界面字典里已翻译的条目，没翻译的退回英文。
-func localizeUI(locale, text string, catalog map[string]string) string {
+// uiText：中文页面原样返回；其他语言先查界面字典里已翻译的条目，没翻译的退回英文。
+func uiText(locale string, catalog map[string]string, key string) string {
 	if locale == "zh" || strings.HasPrefix(locale, "zh-") {
-		return text
+		return key
 	}
-	if len(catalog) > 0 {
-		keys := make([]string, 0, len(catalog))
-		for k := range catalog {
-			keys = append(keys, k)
-		}
-		sort.Slice(keys, func(i, j int) bool { return len(keys[i]) > len(keys[j]) })
-		pairs := make([]string, 0, 2*len(keys))
-		for _, k := range keys {
-			switch k {
-			case "文档": // 页头链接，避免误换其他文字里的“文档”
-				pairs = append(pairs, "\">文档</a>", "\">"+catalog[k]+"</a>")
-			case "语言":
-				pairs = append(pairs, "aria-label=\"语言\"", "aria-label=\""+catalog[k]+"\"")
-			default:
-				pairs = append(pairs, k, catalog[k])
-			}
-		}
-		text = strings.NewReplacer(pairs...).Replace(text)
+	if value, ok := catalog[key]; ok && value != "" {
+		return value
 	}
-	return englishUI.Replace(text)
+	return englishUI.Replace(key)
 }
 
 var uiCache = struct {

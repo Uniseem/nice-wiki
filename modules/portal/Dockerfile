@@ -2,35 +2,27 @@
 FROM node:24-slim AS web
 RUN npm install -g pnpm@9.15.9
 WORKDIR /src
+COPY package.json pnpm-lock.yaml tsconfig.json ./
+RUN pnpm install --frozen-lockfile
+COPY contracts/permission-groups.json contracts/permission-groups.json
 COPY libs/platform/web/ libs/platform/web/
 COPY modules/portal/web/ modules/portal/web/
-RUN cd modules/portal/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web --emptyOutDir
 COPY modules/content/web/ modules/content/web/
-RUN cd modules/content/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/content --emptyOutDir
 COPY modules/site-config/web/ modules/site-config/web/
-RUN cd modules/site-config/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/site-config --emptyOutDir
 COPY modules/identity/web/ modules/identity/web/
-RUN cd modules/identity/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/identity --emptyOutDir
 COPY modules/media/web/ modules/media/web/
-RUN cd modules/media/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/media --emptyOutDir
 COPY modules/localization/web/ modules/localization/web/
-RUN cd modules/localization/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/localization --emptyOutDir
 COPY modules/model-gateway/web/ modules/model-gateway/web/
-RUN cd modules/model-gateway/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/model-gateway --emptyOutDir
 COPY modules/knowledge/web/ modules/knowledge/web/
-RUN cd modules/knowledge/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/knowledge --emptyOutDir
 COPY modules/memory/web/ modules/memory/web/
-RUN cd modules/memory/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/memory --emptyOutDir
 COPY modules/qa/web/ modules/qa/web/
-RUN cd modules/qa/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/qa --emptyOutDir
 COPY modules/traffic-guard/web/ modules/traffic-guard/web/
-RUN cd modules/traffic-guard/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/traffic-guard --emptyOutDir
 COPY modules/jobs/web/ modules/jobs/web/
-RUN cd modules/jobs/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/jobs --emptyOutDir
 COPY modules/analytics/web/ modules/analytics/web/
-RUN cd modules/analytics/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/analytics --emptyOutDir
 COPY modules/data-protection/web/ modules/data-protection/web/
-RUN cd modules/data-protection/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/data-protection --emptyOutDir
+COPY modules/public-site/web/ modules/public-site/web/
+COPY modules/public-site/internal/ modules/public-site/internal/
+RUN NW_WEB_OUT=/out/web pnpm build
 
 FROM golang:1.25-alpine AS build
 WORKDIR /src

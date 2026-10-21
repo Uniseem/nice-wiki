@@ -3490,7 +3490,7 @@
           ],
           "authorization": "service:jobs可信事件投递",
           "concurrency": "sourceOperation→sourceObject→asset升序→store→SQL",
-            "idempotency": "jobs信封eventId+payloadHash唯一、sourceVersion单调+已确认完整来源材料回放",
+          "idempotency": "jobs信封eventId+payloadHash唯一、sourceVersion单调+已确认完整来源材料回放",
           "dependencies": [
             "platform.ClaimInboxBeforeWrite",
             "media.mediaWriteContext",
@@ -8423,6 +8423,35 @@
       "kind": "migration",
       "purpose": "仅已过期未完成上传删除意图与续清，不触碰ready资产",
       "functions": []
+    },
+    {
+      "path": "modules/media/web/src/index.tsx",
+      "kind": "ui",
+      "purpose": "资源库：全部/未被引用资源、引用详情、清理计划与确认",
+      "functions": [
+        {
+          "id": "media.LibraryPage",
+          "name": "LibraryPage",
+          "signature": "export default function LibraryPage(): React.JSX.Element",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "资源库：全部/未被引用资源、引用详情、清理计划与确认",
+          "steps": [
+            "分页列出资源，可按类别筛选",
+            "未被引用的资源可勾选生成清理计划，确认时显示历史版本风险"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "浏览器内调用同源版本化接口"
+          ],
+          "authorization": "页面可见性只是少展示；每个接口仍由服务端按当前授权校验",
+          "concurrency": "单页面实例；切换页面时取消未完成的读取",
+          "idempotency": "写操作带 Idempotency-Key 与版本前提",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
     }
   ],
   "jobTypes": [

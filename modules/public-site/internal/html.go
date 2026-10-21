@@ -1,13 +1,25 @@
 package publicsite
 
 import (
+	"bytes"
 	"context"
-	"html"
-	"net/url"
-	"nice-wiki/libs/platform"
-	"strconv"
+	"embed"
+	"encoding/json"
+	"html/template"
+	"regexp"
 	"strings"
+
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/styles"
+	"nice-wiki/libs/platform"
 )
+
+// 页面模板（templates/pages.html）：HeroUI v3 组件类 + Tailwind 工具类，样式表由前端构建产出到 /_site/site.css。
+//
+//go:embed templates/*.html
+var templateFS embed.FS
+
+var pageTemplates = template.Must(template.ParseFS(templateFS, "templates/*.html"))
 
 type ComposeHTMLInput struct {
 	SafeHTML      string
@@ -24,6 +36,7 @@ type ComposeHTMLInput struct {
 	Languages     []LanguageLink
 	SiteName      string // 站名，非空时页头品牌显示站名（和站标）
 	LogoURL       string
+	ThemeColor    string // #RRGGBB，作为 HeroUI 的强调色
 	Footer        string // 站长写的页脚（版权、链接、ICP），已转义的 HTML
 	SourceCodeURL string // 页脚“源代码”链接，空则用默认
 	Untranslated  bool
@@ -35,155 +48,226 @@ type ComposeHTMLInput struct {
 type LanguageLink struct{ Tag, Href string }
 type ComposeHTMLResult struct{ HTML string }
 
-// ComposeHTML 正文、导航及目录由 Go 完整输出，脚本只增强交互。
-func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHTMLInput) (ComposeHTMLResult, error) {
-	// 站长写的文字（标题、导航、公告、页脚等）不能被界面文字替换表误改：先换成占位符，界面本地化之后再还原。
-	var kept []string
-	keep := func(text string) string {
-		kept = append(kept, text)
-		return "\x01" + strconv.Itoa(len(kept)-1) + "\x02"
+type languageItem struct {
+	Tag     string `json:"tag"`
+	Href    string `json:"href"`
+	Label   string `json:"label"`
+	Current bool   `json:"current"`
+}
+
+// shell 是所有公开页共用的外壳数据；T 把中文界面文字换成当前语言。
+type shell struct {
+	Locale, Dir, Kind, DocumentID                          string
+	Head, ExtraHead, Announcement, Footer                  template.HTML
+	Accent                                                 template.CSS
+	SiteName, Initial, LogoURL, HomeURL, AskURL, SourceURL string
+	AIEnabled, HasNav                                      bool
+	Languages                                              []languageItem
+	Config                                                 string
+	catalog                                                map[string]string
+}
+
+func (s shell) T(key string) string { return uiText(s.Locale, s.catalog, key) }
+
+type treeNode struct {
+	Title, URL    string
+	Current, Open bool
+	Children      []treeNode
+}
+
+type tocLink struct{ Label, Anchor, Indent string }
+type crumb struct {
+	Label, URL string
+	Current    bool
+}
+
+type docPage struct {
+	shell
+	Tree           []treeNode
+	Title          string
+	Body           template.HTML
+	TOC            []tocLink
+	Breadcrumbs    []crumb
+	Previous, Next *Breadcrumb
+	Untranslated   bool
+	MarkdownURL    string
+}
+
+var hexColor = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
+
+var languageNames = map[string]string{
+	"zh-Hans": "简体中文", "zh-Hant": "繁體中文", "zh": "中文", "en": "English", "ja": "日本語", "ko": "한국어", "fr": "Français", "de": "Deutsch",
+	"es": "Español", "ru": "Русский", "pt": "Português", "it": "Italiano", "ar": "العربية", "he": "עברית", "fa": "فارسی", "vi": "Tiếng Việt", "th": "ไทย",
+}
+
+// 岛（React）用到的界面文字：在服务端按页面语言取好，随页面下发。
+var islandStrings = []string{
+	"AI 问答", "新对话", "发送", "关闭", "停止", "问问这个站点的文档…", "来源：", "这次没有回答成功（", "），请稍后再试。", "回答连接失败（", "请求失败（",
+	"人机验证没有完成", "人机验证无法在此浏览器运行", "思考中…", "有帮助", "没帮助", "感谢反馈", "回答由 AI 生成，可能有误，请以文档原文为准。",
+	"亮 / 暗", "浅色", "深色", "跟随系统", "语言", "文档树", "本页目录", "复制代码", "已复制", "复制失败，请打开 Markdown 版本", "复制为 Markdown", "视频播放器",
+}
+
+func newShell(in ComposeHTMLInput, kind string) shell {
+	s := shell{
+		Locale: in.Locale, Dir: "ltr", Kind: kind, DocumentID: in.DocumentID,
+		Head: template.HTML(in.Metadata), Announcement: template.HTML(in.Announcement), Footer: template.HTML(in.Footer),
+		SiteName: in.SiteName, LogoURL: in.LogoURL, HomeURL: "/" + in.Locale + "/", AskURL: in.AskURL, SourceURL: in.SourceCodeURL,
+		AIEnabled: in.AIEnabled, catalog: in.UIStrings,
 	}
-	var output strings.Builder
-	output.WriteString("<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">")
-	output.WriteString(keep(in.Metadata))
-	output.WriteString(`<style>` + announcementCSS + `:root{color-scheme:light dark;font:16px/1.65 system-ui}*{box-sizing:border-box}body{margin:0}a{color:inherit}header{padding:1rem 2rem;border-bottom:1px solid #8885;display:flex;gap:1rem;align-items:center}header>a:first-child{margin-right:auto}.layout{display:grid;grid-template-columns:minmax(12rem,18rem) minmax(0,1fr) minmax(10rem,16rem);max-width:1600px;margin:auto;min-height:75vh}.tree,.toc{padding:1.5rem;overflow-wrap:anywhere}.tree ul{padding-left:1rem}.current{font-weight:bold}main{min-width:0;max-width:900px;padding:2rem}main img,main video,main svg{max-width:100%;height:auto}table{border-collapse:collapse;display:block;overflow:auto}td,th{border:1px solid #8885;padding:.5rem}pre{padding:1rem;overflow:auto}.columns{display:grid;gap:1rem}.callout{border-left:4px solid #2563eb;padding:1rem}.warning{border-color:#d97706}.danger{border-color:#dc2626}.neighbors{display:flex;justify-content:space-between;gap:2rem;margin-top:3rem}footer{padding:2rem 2rem 5rem;text-align:center;border-top:1px solid #8885}.toc a{display:block}.mobile-menu{display:none}button{font:inherit}body[data-theme=dark]{color-scheme:dark}body[data-theme=light]{color-scheme:light}@media(max-width:900px){.layout{display:block}.tree,.toc{display:none}.tree[data-open],.toc[data-open]{display:block}.mobile-menu{display:inline-block}main{padding:1rem}.columns{display:block}header{padding:1rem;flex-wrap:wrap}}@media print{header,.tree,.toc,.ai-island{display:none}.layout{display:block}}</style></head><body data-doc="` + html.EscapeString(in.DocumentID) + `" data-locale="` + html.EscapeString(in.Locale) + `">`)
-	output.WriteString(keep(in.Announcement))
-	brand := "文档"
-	if in.SiteName != "" {
-		brand = keep(html.EscapeString(in.SiteName))
-		if in.LogoURL != "" {
-			brand = "<img src=\"" + html.EscapeString(in.LogoURL) + "\" alt=\"\" style=\"height:1.5em;vertical-align:middle;margin-right:.4em\">" + brand
+	if s.SiteName == "" {
+		s.SiteName = s.T("文档")
+	}
+	s.Initial = strings.ToUpper(string([]rune(s.SiteName)[:1]))
+	if s.SourceURL == "" {
+		s.SourceURL = defaultSourceCodeURL
+	}
+	if hexColor.MatchString(in.ThemeColor) {
+		s.Accent = template.CSS(in.ThemeColor)
+	}
+	switch strings.SplitN(in.Locale, "-", 2)[0] {
+	case "ar", "he", "fa", "ur":
+		s.Dir = "rtl"
+	}
+	for _, link := range in.Languages {
+		label := languageNames[link.Tag]
+		if label == "" {
+			label = link.Tag
 		}
+		s.Languages = append(s.Languages, languageItem{Tag: link.Tag, Href: link.Href, Label: label, Current: link.Tag == in.Locale})
 	}
-	output.WriteString("<header><a href=\"./\">" + brand + "</a><button class=\"mobile-menu\" type=\"button\" data-toggle=\"tree\" aria-label=\"打开文档树\">文档树</button><button class=\"mobile-menu\" type=\"button\" data-toggle=\"toc\" aria-label=\"打开本页目录\">本页目录</button>")
-	if in.AIEnabled {
-		output.WriteString("<a href=\"#ask\" data-ask>AI 问答</a>")
-	} else {
-		output.WriteString("<span title=\"尚未配置 AI 能力\">AI 未启用</span>")
+	ui := make(map[string]string, len(islandStrings))
+	for _, key := range islandStrings {
+		ui[key] = s.T(key)
 	}
-	if len(in.Languages) > 1 {
-		output.WriteString("<select aria-label=\"语言\" onchange=\"location.href=this.value\">")
-		for _, link := range in.Languages {
-			selected := ""
-			if link.Tag == in.Locale {
-				selected = " selected"
-			}
-			output.WriteString("<option value=\"" + html.EscapeString(link.Href) + "\"" + selected + ">" + html.EscapeString(link.Tag) + "</option>")
-		}
-		output.WriteString("</select>")
-	} else {
-		output.WriteString("<span>" + html.EscapeString(in.Locale) + "</span>")
-	}
-	output.WriteString("<button type=\"button\" data-theme-toggle>亮 / 暗</button></header><div class=\"layout\"><nav class=\"tree\" aria-label=\"文档树\">")
-	nodes, err := navigationOrder(in.Navigation)
+	config, _ := json.Marshal(map[string]any{
+		"kind": kind, "locale": in.Locale, "documentId": in.DocumentID, "aiEnabled": in.AIEnabled, "askUrl": in.AskURL,
+		"languages": s.Languages, "ui": ui,
+	})
+	s.Config = string(config)
+	return s
+}
+
+// buildTree 按导航顺序组装文档树；当前文档的祖先默认展开。
+func buildTree(nodes []NavigationNode, current string) ([]treeNode, error) {
+	ordered, err := navigationOrder(nodes)
 	if err != nil {
-		return ComposeHTMLResult{}, err
+		return nil, err
 	}
-	parents := make(map[string][]NavigationNode)
-	for _, node := range nodes {
+	children := map[string][]NavigationNode{}
+	byID := map[string]NavigationNode{}
+	for _, node := range ordered {
 		parent := ""
 		if node.ParentID != nil {
 			parent = *node.ParentID
 		}
-		parents[parent] = append(parents[parent], node)
-	}
-	currentAncestors := map[string]bool{in.DocumentID: true}
-	byID := map[string]NavigationNode{}
-	for _, node := range nodes {
+		children[parent] = append(children[parent], node)
 		byID[node.DocumentID] = node
 	}
-	for id := in.DocumentID; id != ""; {
+	open := map[string]bool{}
+	for id := current; id != ""; {
 		node, ok := byID[id]
 		if !ok || node.ParentID == nil {
 			break
 		}
 		id = *node.ParentID
-		currentAncestors[id] = true
+		open[id] = true
 	}
-	var tree func(string)
-	tree = func(parent string) {
-		if len(parents[parent]) == 0 {
-			return
+	var build func(string) []treeNode
+	build = func(parent string) []treeNode {
+		out := make([]treeNode, 0, len(children[parent]))
+		for _, node := range children[parent] {
+			out = append(out, treeNode{Title: node.Title, URL: node.CanonicalPath, Current: node.DocumentID == current, Open: open[node.DocumentID] || node.DocumentID == current, Children: build(node.DocumentID)})
 		}
-		output.WriteString("<ul>")
-		for _, node := range parents[parent] {
-			output.WriteString("<li>")
-			hasChildren := len(parents[node.DocumentID]) > 0
-			if hasChildren {
-				open := ""
-				if currentAncestors[node.DocumentID] {
-					open = " open"
-				}
-				output.WriteString("<details" + open + "><summary>")
+		return out
+	}
+	return build(""), nil
+}
+
+// 代码高亮的配色：浅色 github、深色 github-dark，放进 components 层，正文排版里的背景与边框优先。
+var codeHighlightCSS = func() string {
+	var light, dark strings.Builder
+	formatter := chromahtml.New(chromahtml.WithClasses(true))
+	_ = formatter.WriteCSS(&light, styles.Get("github"))
+	_ = formatter.WriteCSS(&dark, styles.Get("github-dark"))
+	keep := func(css string) string {
+		var out []string
+		for _, line := range strings.Split(css, "\n") {
+			if strings.Contains(line, "/* Background */") || strings.Contains(line, "/* PreWrapper */") {
+				continue
 			}
-			class := ""
-			if node.DocumentID == in.DocumentID {
-				class = " class=\"current\" aria-current=\"page\""
-			}
-			output.WriteString("<a" + class + " href=\"" + html.EscapeString(node.CanonicalPath) + "\">" + keep(html.EscapeString(node.Title)) + "</a>")
-			if hasChildren {
-				output.WriteString("</summary>")
-				tree(node.DocumentID)
-				output.WriteString("</details>")
-			}
-			output.WriteString("</li>")
+			out = append(out, line)
 		}
-		output.WriteString("</ul>")
+		return strings.Join(out, "\n")
 	}
-	tree("")
-	output.WriteString("</nav><main><nav aria-label=\"面包屑\">")
-	for i, crumb := range in.Breadcrumbs {
-		if i > 0 {
-			output.WriteString(" / ")
-		}
-		label := html.EscapeString(crumb.Label)
-		if i > 0 { // 第一项是固定的“首页”，其余是站长写的标题
-			label = keep(label)
-		}
-		output.WriteString("<a href=\"" + html.EscapeString(crumb.URL) + "\">" + label + "</a>")
+	return "<style>@layer components{" + keep(light.String()) + strings.ReplaceAll(keep(dark.String()), ".chroma", ".dark .chroma") + "}</style>"
+}()
+
+func render(name string, data any) (string, error) {
+	var out bytes.Buffer
+	if err := pageTemplates.ExecuteTemplate(&out, name, data); err != nil {
+		return "", platform.NewError(platform.CodeInternal, false, "PAGE_TEMPLATE_FAILED")
 	}
-	output.WriteString("</nav><h1>" + keep(html.EscapeString(in.Title)) + "</h1>")
-	if in.Untranslated {
-		output.WriteString("<aside role=\"status\">当前语言的译文尚未完成，部分内容显示旧译文或原文。</aside>")
+	return out.String(), nil
+}
+
+// ComposeHTML 正文、导航及目录由 Go 完整输出，脚本只增强交互。
+func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHTMLInput) (ComposeHTMLResult, error) {
+	tree, err := buildTree(in.Navigation, in.DocumentID)
+	if err != nil {
+		return ComposeHTMLResult{}, err
 	}
-	output.WriteString("\x00BODY\x00")
-	output.WriteString("<nav class=\"neighbors\" aria-label=\"相邻文档\">")
-	for _, group := range []struct {
-		label string
-		items []Breadcrumb
-	}{{"上一篇", in.Previous}, {"下一篇", in.Next}} {
-		for _, item := range group.items {
-			output.WriteString("<a href=\"" + html.EscapeString(item.URL) + "\">" + group.label + "：" + keep(html.EscapeString(item.Label)) + "</a>")
-		}
+	page := docPage{shell: newShell(in, "doc"), Tree: tree, Title: in.Title, Body: template.HTML(in.SafeHTML), Untranslated: in.Untranslated}
+	page.HasNav = len(tree) > 0
+	if strings.Contains(in.SafeHTML, "class=\"code-block\"") {
+		page.ExtraHead += template.HTML(codeHighlightCSS)
 	}
-	output.WriteString("</nav>")
-	if safeLink(in.MarkdownURL) {
-		output.WriteString("<a data-markdown href=\"" + html.EscapeString(in.MarkdownURL) + "\">Markdown 版本</a> <button type=\"button\" data-copy-markdown>复制为 Markdown</button>")
-	}
-	output.WriteString("</main><nav class=\"toc\" aria-label=\"本页目录\">")
 	for _, item := range in.TOC {
-		output.WriteString("<a href=\"#" + html.EscapeString(url.PathEscape(item.Anchor)) + "\" data-level=\"" + strings.Repeat("·", item.Level-1) + "\">" + keep(html.EscapeString(item.Label)) + "</a>")
+		indent := ""
+		switch item.Level {
+		case 3:
+			indent = "ps-6"
+		case 4:
+			indent = "ps-9"
+		}
+		page.TOC = append(page.TOC, tocLink{Label: item.Label, Anchor: item.Anchor, Indent: indent})
 	}
-	sourceURL := in.SourceCodeURL
-	if sourceURL == "" {
-		sourceURL = defaultSourceCodeURL
+	for i, item := range in.Breadcrumbs {
+		label := item.Label
+		if i == 0 {
+			label = page.T(label) // 第一项是固定的“首页”，其余是站长写的标题
+		}
+		page.Breadcrumbs = append(page.Breadcrumbs, crumb{Label: label, URL: item.URL, Current: i == len(in.Breadcrumbs)-1})
 	}
-	output.WriteString("</nav></div><footer>" + keep(in.Footer) + " <a href=\"" + html.EscapeString(sourceURL) + "\">源代码</a></footer>")
-	if in.AIEnabled {
-		output.WriteString("<div class=\"ai-island\" data-qa-session=\"shared\" data-document-id=\"" + html.EscapeString(in.DocumentID) + "\"></div><script>" + qaIslandScript + "</script>")
+	if len(page.Breadcrumbs) < 2 {
+		page.Breadcrumbs = nil
 	}
-	if strings.Contains(in.SafeHTML, "math-source") {
-		// 公式由浏览器端 KaTeX 渲染；脚本失败时保留 LaTeX 源码。
-		output.WriteString(`<link rel="stylesheet" href="/_admin/katex/katex.min.css"><script src="/_admin/katex/katex.min.js"></script><script>document.querySelectorAll('.math-source').forEach(function(e){try{katex.render(e.textContent,e,{displayMode:e.tagName==='DIV',throwOnError:false})}catch(x){}})</script>`)
+	if len(in.Previous) > 0 {
+		page.Previous = &in.Previous[0]
 	}
-	if len(in.Languages) > 1 {
-		// 语言建议（规则兜底）：浏览器偏好语言与本页语言不同、且本站启用了它时，页首给一个可关闭的提示，绝不自动跳转。
-		output.WriteString(`<script>(function(){var s=document.querySelector('select[onchange]');if(!s||sessionStorage.getItem('nw-lang-hint'))return;var cur=document.body.dataset.locale||'';var prefs=(navigator.languages||[navigator.language||'']).map(function(x){return x.toLowerCase()});var opts=[].slice.call(s.options);for(var i=0;i<prefs.length;i++){var p=prefs[i],base=p.split('-')[0];if(cur.toLowerCase()===p||cur.toLowerCase().split('-')[0]===base)return;var hit=opts.filter(function(o){var t=o.text.toLowerCase();return t===p||t.split('-')[0]===base})[0];if(hit){var bar=document.createElement('aside');bar.setAttribute('role','note');bar.style.cssText='padding:.4rem 1rem;text-align:center;background:#8881;font-size:.9rem';var a=document.createElement('a');a.href=hit.value;a.textContent='🌐 '+hit.text;var x=document.createElement('button');x.type='button';x.textContent='×';x.setAttribute('aria-label','Close');x.style.cssText='margin-left:.75rem;border:0;background:none;cursor:pointer';x.onclick=function(){sessionStorage.setItem('nw-lang-hint','1');bar.remove()};bar.append(a,x);document.body.prepend(bar);return}}})()</script>`)
+	if len(in.Next) > 0 {
+		page.Next = &in.Next[0]
 	}
-	output.WriteString(`<script>document.querySelectorAll('[data-toggle]').forEach(function(b){b.onclick=function(){document.querySelector('.'+b.dataset.toggle).toggleAttribute('data-open')}});document.querySelector('[data-theme-toggle]').onclick=function(){document.body.dataset.theme=document.body.dataset.theme==='dark'?'light':'dark'};var copy=document.querySelector('[data-copy-markdown]');if(copy)copy.onclick=async function(){var a=document.querySelector('[data-markdown]');try{var r=await fetch(a.href,{cache:'no-store'});if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());copy.textContent='已复制'}catch(e){copy.textContent='复制失败，请打开 Markdown 版本'}};document.querySelectorAll('[data-embed]').forEach(function(b){b.onclick=function(){var f=document.createElement('iframe');f.src=b.dataset.embed;f.title=b.dataset.title||'视频播放器';f.allowFullscreen=true;f.referrerPolicy='no-referrer';f.setAttribute('sandbox','allow-scripts allow-same-origin allow-presentation');b.replaceWith(f)}});(function(){var d=document.body.dataset.doc;if(!d||!window.fetch)return;var r='';try{r=new URL(document.referrer).hostname}catch(e){}if(/^[0-9.]+$/.test(r)||r.indexOf(':')>=0)r='';var p={beaconId:crypto.randomUUID().split('-').join(''),documentId:d,locale:document.body.dataset.locale,eventType:'page-view',status:200,elapsedMs:Math.min(60000,Math.round(performance.now())),referrerDomain:r,userAgent:navigator.userAgent.slice(0,1000)};fetch('/v1/beacons',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json','Idempotency-Key':p.beaconId},body:JSON.stringify(p)}).catch(function(){})})();</script></body></html>`)
-	localized := localizeUI(in.Locale, output.String(), in.UIStrings)
-	for i := len(kept) - 1; i >= 0; i-- {
-		localized = strings.Replace(localized, "\x01"+strconv.Itoa(i)+"\x02", kept[i], 1)
+	if safeLink(in.MarkdownURL) {
+		page.MarkdownURL = in.MarkdownURL
 	}
-	return ComposeHTMLResult{strings.Replace(localized, "\x00BODY\x00", in.SafeHTML, 1)}, nil
+	html, err := render("doc", page)
+	return ComposeHTMLResult{html}, err
+}
+
+type statusPage struct {
+	Locale, Title, Hint, Home, Back string
+	Code                            int
+}
+
+// RenderStatusPage 404/410/暂时不可用等说明页，沿用公开站样式。
+func RenderStatusPage(locale string, code int, title, hint string) string {
+	if locale == "" {
+		locale = "zh-Hans"
+	}
+	page := statusPage{Locale: locale, Code: code, Title: uiText(locale, nil, title), Hint: uiText(locale, nil, hint), Home: "/", Back: uiText(locale, nil, "回到首页")}
+	html, err := render("status", page)
+	if err != nil {
+		return "<!doctype html><title>" + template.HTMLEscapeString(page.Title) + "</title><h1>" + template.HTMLEscapeString(page.Title) + "</h1>"
+	}
+	return html
 }

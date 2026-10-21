@@ -1,0 +1,145 @@
+/* 公开站样式入口：Tailwind v4 + HeroUI v3。Go 模板与 Go 源码里的类名同样要被扫描到。 */
+@layer theme, base, components, utilities;
+
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@import "@heroui/styles/base/base.css" layer(base);
+@import "@heroui/styles/components/index.css" layer(components);
+@import "@heroui/styles/themes/default/index.css" layer(theme);
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/variants";
+@import "../../../../libs/platform/web/ui/content.css";
+
+@source "./";
+@source "../../internal";
+@source "../../../qa/web/src/island";
+@source "../../../../libs/platform/web/ui";
+/* 模板里由条件拼出的类名，扫描不一定能完整识别，显式列出。 */
+@source inline("pb-8 pb-24 ps-6 ps-9 text-accent text-white text-[#172033]");
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+@layer base {
+  html {
+    @apply bg-background text-foreground;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  /* 文档树：分组用 details/summary，子级用竖线缩进。 */
+  .nw-tree ul ul {
+    @apply ms-3 mt-0.5 border-s border-separator ps-2;
+  }
+  .nw-tree-item {
+    @apply flex min-h-8 cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1 text-muted transition-colors hover:bg-default hover:text-foreground;
+  }
+  .nw-tree-item > a {
+    @apply min-w-0 flex-1 truncate py-0.5;
+  }
+  a.nw-tree-item {
+    @apply block truncate;
+  }
+  .nw-tree-item.nw-current {
+    @apply bg-accent-soft font-medium text-accent-soft-foreground;
+  }
+  .nw-tree summary {
+    @apply list-none;
+  }
+  .nw-tree summary::-webkit-details-marker,
+  .nw-toc-mobile summary::-webkit-details-marker {
+    display: none;
+  }
+  .nw-tree-caret {
+    @apply flex size-5 shrink-0 items-center justify-center text-muted transition-transform;
+  }
+  .nw-tree-caret svg {
+    @apply size-3.5;
+  }
+  details[open] > summary .nw-tree-caret {
+    @apply rotate-90;
+  }
+
+  /* 本页目录：当前小节高亮（由脚本按滚动位置切换 data-active）。 */
+  .nw-toc-link {
+    @apply -ms-px block border-s-2 border-transparent py-1 ps-3 text-muted transition-colors hover:text-foreground;
+  }
+  .nw-toc-mobile .nw-toc-link {
+    @apply ms-0 rounded-lg border-0 py-1.5 hover:bg-default;
+  }
+  .nw-toc-link[data-active] {
+    @apply border-accent font-medium text-accent;
+  }
+
+  /* 标题旁的锚点链接，悬停时出现。 */
+  .nw-anchor {
+    @apply ms-2 font-normal text-muted no-underline opacity-0 transition-opacity;
+  }
+  :is(h2, h3, h4):hover > .nw-anchor,
+  .nw-anchor:focus-visible {
+    @apply opacity-100;
+  }
+
+  /* 代码块右上角的复制按钮。 */
+  .nw-copy {
+    @apply absolute end-2 top-2 z-10 opacity-0 transition-opacity;
+  }
+  .code-block:hover .nw-copy,
+  .nw-copy:focus-visible,
+  .nw-copy[data-copied] {
+    @apply opacity-100;
+  }
+  .code-block[data-language]:not([data-language="plaintext"])::before {
+    content: attr(data-language);
+    @apply pointer-events-none absolute end-3 top-2.5 font-sans text-xs text-muted transition-opacity;
+  }
+  .code-block:hover::before {
+    @apply opacity-0;
+  }
+
+  /* 首页主视觉的按钮（深色背景上用反色）。 */
+  .nw-hero-primary {
+    @apply bg-white text-[#0B1220] hover:bg-white/90;
+  }
+  .nw-hero-secondary {
+    @apply border border-current bg-transparent text-current hover:bg-white/10;
+  }
+
+  /* 问答回答里的排版比正文紧凑一些。 */
+  .nw-answer {
+    @apply text-sm leading-6;
+  }
+  .nw-answer :is(p, ul, ol, pre) {
+    @apply my-2;
+  }
+  .nw-answer pre {
+    @apply p-3 text-xs;
+  }
+
+  /* 平台视频的“点击播放”入口。 */
+  .platform-video img {
+    @apply m-0 w-full rounded-none;
+  }
+  .platform-video figcaption {
+    @apply px-4 pt-3 text-start;
+  }
+  .platform-video > :is(button, a) {
+    @apply mx-4 my-3 inline-flex;
+  }
+}
+
+@media print {
+  header,
+  footer,
+  .nw-sidebar,
+  [data-toc],
+  #nw-qa-root {
+    display: none !important;
+  }
+}

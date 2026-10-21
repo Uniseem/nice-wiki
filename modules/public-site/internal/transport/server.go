@@ -302,5 +302,6 @@ func writePageProblem(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)
-	_, _ = w.Write([]byte("<!doctype html><html lang=\"zh-Hans\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"robots\" content=\"noindex\"><title>" + title + "</title><style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:grid;place-items:center;font:16px/1.6 system-ui;text-align:center}h1{font-size:1.4rem}a{color:#2563eb}</style></head><body><main><h1>" + title + "</h1><p>" + hint + "</p><p><a href=\"/\">回到首页</a></p></main></body></html>"))
+	locale, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
+	_, _ = w.Write([]byte(publicsite.RenderStatusPage(locale, status, title, hint)))
 }

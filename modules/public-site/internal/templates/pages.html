@@ -1,0 +1,147 @@
+{{/* 公开站页面模板：Go 输出完整 HTML（正文、导航、目录都在首屏），样式用 HeroUI v3 的组件类与 Tailwind 工具类，
+     交互（页头操作、移动端目录、AI 问答）由 /_site/site.js 里的 React 岛接管。界面文字一律经 .T 本地化。 */}}
+
+{{define "head"}}<!doctype html>
+<html lang="{{.Locale}}" dir="{{.Dir}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+{{.Head}}
+<script>(function(){try{var t=localStorage.getItem('heroui-theme')||'system';if(t==='system')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.add(t);document.documentElement.setAttribute('data-theme',t)}catch(e){}})()</script>
+<link rel="stylesheet" href="/_site/site.css">
+{{if .Accent}}<style>:root{--accent:{{.Accent}};--focus:{{.Accent}}}</style>{{end}}
+{{.ExtraHead}}
+<script type="module" src="/_site/site.js"></script>
+</head>
+<body class="flex min-h-dvh flex-col bg-background text-foreground antialiased" data-doc="{{.DocumentID}}" data-locale="{{.Locale}}" data-page="{{.Kind}}">
+<a class="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-surface focus:px-4 focus:py-2 focus:shadow-overlay" href="#nw-main">{{.T "跳到正文"}}</a>
+{{.Announcement}}
+<header class="sticky top-0 z-40 border-b border-separator bg-background/80 backdrop-blur-md">
+  <div class="mx-auto flex h-16 w-full max-w-[1440px] items-center gap-2 px-4 sm:px-6">
+    {{if .HasNav}}<button type="button" class="button button--ghost button--sm button--icon-only lg:hidden" data-open-nav aria-label="{{.T "打开文档树"}}">{{template "icon-menu"}}</button>{{end}}
+    <a href="{{.HomeURL}}" class="flex min-w-0 items-center gap-2.5 rounded-xl text-base font-semibold text-foreground">
+      {{if .LogoURL}}<img src="{{.LogoURL}}" alt="" class="h-8 w-auto max-w-32 object-contain">{{else}}<span class="flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent text-sm font-bold text-accent-foreground">{{.Initial}}</span>{{end}}
+      <span class="truncate">{{.SiteName}}</span>
+    </a>
+    <div class="ms-auto flex items-center gap-1" id="nw-header">
+      {{if .AIEnabled}}<a class="button button--secondary button--sm" href="{{.AskURL}}">{{template "icon-sparkles"}}<span class="hidden sm:inline">{{.T "AI 问答"}}</span></a>{{end}}
+      {{if gt (len .Languages) 1}}<span class="hidden sm:inline-flex items-center gap-1">{{range .Languages}}<a class="button button--ghost button--sm {{if .Current}}text-accent{{end}}" href="{{.Href}}" hreflang="{{.Tag}}">{{.Label}}</a>{{end}}</span>{{end}}
+    </div>
+  </div>
+</header>
+{{end}}
+
+{{define "foot"}}
+<footer class="mt-auto border-t border-separator">
+  <div class="mx-auto flex w-full max-w-[1440px] flex-col items-center justify-between gap-3 px-4 pt-8 text-sm text-muted sm:flex-row sm:px-6 {{if and .AIEnabled (ne .Kind "ask")}}pb-24{{else}}pb-8{{end}}">
+    <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center sm:justify-start [&_a]:hover:text-foreground [&_a]:hover:underline">{{.Footer}}</div>
+    <a class="inline-flex items-center gap-1.5 hover:text-foreground" href="{{.SourceURL}}" rel="noopener">{{template "icon-code"}}{{.T "源代码"}}</a>
+  </div>
+</footer>
+<div id="nw-islands" hidden data-config="{{.Config}}"></div>
+</body>
+</html>
+{{end}}
+
+{{define "tree"}}<ul class="flex flex-col gap-0.5">{{range .}}
+  <li>{{if .Children}}<details class="nw-tree-group group/tree"{{if .Open}} open{{end}}>
+    <summary class="nw-tree-item {{.Indent}}{{if .Current}} nw-current{{end}}"><a href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a><span class="nw-tree-caret" aria-hidden="true">{{template "icon-chevron"}}</span></summary>
+    {{template "tree" .Children}}
+  </details>{{else}}<a class="nw-tree-item {{.Indent}}{{if .Current}} nw-current{{end}}" href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a>{{end}}</li>{{end}}
+</ul>{{end}}
+
+{{define "sidebar"}}{{if .Tree}}
+<aside class="nw-sidebar sticky top-16 hidden max-h-[calc(100dvh-4rem)] w-64 shrink-0 overflow-y-auto py-8 pe-3 lg:block">
+  <nav aria-label="{{.T "文档树"}}" class="nw-tree text-sm" id="nw-tree">{{template "tree" .Tree}}</nav>
+</aside>{{end}}{{end}}
+
+{{define "doc"}}{{template "head" .}}
+<div class="mx-auto flex w-full max-w-[1440px] flex-1 items-start gap-10 px-4 sm:px-6">
+  {{template "sidebar" .}}
+  <main class="min-w-0 flex-1 py-8 lg:py-12" id="nw-main">
+    <article class="mx-auto w-full max-w-3xl">
+      {{if .Breadcrumbs}}<nav aria-label="{{.T "面包屑"}}" class="mb-5 overflow-x-auto"><ol class="breadcrumbs">{{range $i, $c := .Breadcrumbs}}<li class="breadcrumbs__item">{{if $i}}<span class="breadcrumbs__separator" aria-hidden="true">{{template "icon-chevron"}}</span>{{end}}<a class="breadcrumbs__link" href="{{$c.URL}}"{{if $c.Current}} data-current="true" aria-current="page"{{end}}>{{$c.Label}}</a></li>{{end}}</ol></nav>{{end}}
+      <h1 class="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{{.Title}}</h1>
+      {{if .Untranslated}}<div class="alert alert--warning mt-6" role="status"><div class="alert__content"><p class="alert__title">{{.T "当前语言的译文尚未完成，部分内容显示旧译文或原文。"}}</p></div></div>{{end}}
+      {{if .TOC}}<details class="nw-toc-mobile mt-6 rounded-2xl border border-border bg-surface xl:hidden">
+        <summary class="flex cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-medium">{{.T "本页目录"}}<span class="nw-tree-caret" aria-hidden="true">{{template "icon-chevron"}}</span></summary>
+        <nav class="flex flex-col gap-0.5 px-2 pb-3 text-sm" aria-label="{{.T "本页目录"}}">{{range .TOC}}<a class="nw-toc-link {{.Indent}}" href="#{{.Anchor}}">{{.Label}}</a>{{end}}</nav>
+      </details>{{end}}
+      <div class="nw-prose mt-8" id="nw-content">{{.Body}}</div>
+      {{if .MarkdownURL}}<div class="mt-14 flex flex-wrap items-center gap-2 border-t border-separator pt-6">
+        <a class="button button--tertiary button--sm" data-markdown href="{{.MarkdownURL}}">{{template "icon-file"}}{{.T "Markdown 版本"}}</a>
+        <button class="button button--ghost button--sm" type="button" data-copy-markdown>{{template "icon-copy"}}<span>{{.T "复制为 Markdown"}}</span></button>
+      </div>{{end}}
+      {{if or .Previous .Next}}<nav class="mt-8 grid gap-4 sm:grid-cols-2" aria-label="{{.T "相邻文档"}}">
+        {{with .Previous}}<a class="card card--default group/nb gap-1 p-4 transition-colors hover:bg-surface-secondary" href="{{.URL}}"><span class="text-xs text-muted">← {{$.T "上一篇"}}</span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{else}}<span class="hidden sm:block"></span>{{end}}
+        {{with .Next}}<a class="card card--default group/nb items-end gap-1 p-4 text-end transition-colors hover:bg-surface-secondary" href="{{.URL}}"><span class="text-xs text-muted">{{$.T "下一篇"}} →</span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{end}}
+      </nav>{{end}}
+    </article>
+  </main>
+  {{if .TOC}}<aside class="sticky top-16 hidden max-h-[calc(100dvh-4rem)] w-56 shrink-0 overflow-y-auto py-12 xl:block">
+    <p class="mb-3 text-xs font-semibold tracking-wide text-muted">{{.T "本页目录"}}</p>
+    <nav class="nw-toc flex flex-col border-s border-separator text-sm" data-toc aria-label="{{.T "本页目录"}}">{{range .TOC}}<a class="nw-toc-link {{.Indent}}" href="#{{.Anchor}}">{{.Label}}</a>{{end}}</nav>
+  </aside>{{else}}<div class="hidden w-56 shrink-0 xl:block"></div>{{end}}
+</div>
+{{template "foot" .}}{{end}}
+
+{{define "ask"}}{{template "head" .}}
+<div class="mx-auto flex w-full max-w-[1440px] flex-1 items-start gap-10 px-4 sm:px-6">
+  {{template "sidebar" .}}
+  <main class="flex min-w-0 flex-1 flex-col py-8 lg:py-12" id="nw-main">
+    <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
+      <div>
+        <h1 class="text-3xl font-semibold tracking-tight text-foreground">{{.T "AI 问答"}}</h1>
+        <p class="mt-2 text-muted">{{if .AIEnabled}}{{.T "向这个站点的文档提问，回答会附上来源。"}}{{else}}{{.T "公开问答暂未开放。"}}{{end}}</p>
+      </div>
+      {{if .AIEnabled}}<div class="flex min-h-[28rem] flex-1 flex-col" id="nw-ask"><noscript><p class="text-sm text-muted">{{.T "需要启用 JavaScript 才能使用 AI 问答。"}}</p></noscript></div>{{end}}
+    </div>
+  </main>
+</div>
+{{template "foot" .}}{{end}}
+
+{{define "home"}}{{template "head" .}}
+<main class="flex flex-1 flex-col" id="nw-main">
+  <section class="relative isolate flex min-h-[min(72svh,44rem)] items-center justify-center overflow-hidden px-4 py-20 {{if .HeroDark}}text-[#172033]{{else}}text-white{{end}}" style="background: {{.HeroBackground}}">
+    <div class="absolute inset-0 -z-10" style="background: {{.HeroOverlay}}"></div>
+    {{if not .HeroCustomColor}}<div class="absolute inset-0 -z-10 opacity-60 [background:radial-gradient(60rem_30rem_at_50%_-10%,var(--accent),transparent_70%)]"></div>{{end}}
+    <div class="relative mx-auto flex max-w-3xl flex-col items-center text-center">
+      {{if .HeroBackgroundText}}<div aria-hidden="true" class="pointer-events-none absolute -top-16 left-1/2 -z-10 -translate-x-1/2 select-none whitespace-nowrap text-[clamp(4rem,14vw,10rem)] font-black leading-none tracking-tighter opacity-10">{{.HeroBackgroundText}}</div>{{end}}
+      <h1 class="text-4xl font-semibold tracking-tight sm:text-6xl">{{.HeroTitle}}</h1>
+      {{if .HeroSubtitle}}<p class="mt-5 max-w-2xl text-lg leading-8 opacity-80 sm:text-xl">{{.HeroSubtitle}}</p>{{end}}
+      {{if .HeroButtons}}<nav class="mt-10 flex flex-wrap items-center justify-center gap-3" aria-label="{{.T "首页"}}">{{range .HeroButtons}}<a class="button button--lg {{if .Primary}}{{if $.HeroDark}}button--primary{{else}}nw-hero-primary{{end}}{{else}}nw-hero-secondary{{end}}" href="{{.URL}}">{{.Label}}</a>{{end}}</nav>{{end}}
+    </div>
+  </section>
+  {{if .Sections}}<section class="mx-auto w-full max-w-[1200px] px-4 py-16 sm:px-6">
+    <h2 class="text-2xl font-semibold tracking-tight text-foreground">{{.T "文档"}}</h2>
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{{range .Sections}}
+      <a class="card card--default group/card gap-2 p-5 transition-shadow hover:shadow-overlay" href="{{.URL}}">
+        <span class="flex items-center justify-between gap-3"><span class="text-base font-semibold text-foreground group-hover/card:text-accent">{{.Title}}</span><span class="text-muted transition-transform group-hover/card:translate-x-0.5" aria-hidden="true">→</span></span>
+        {{if .Children}}<span class="flex flex-col gap-1 text-sm text-muted">{{range .Children}}<span class="truncate">{{.}}</span>{{end}}</span>{{end}}
+      </a>{{end}}
+    </div>
+  </section>{{end}}
+</main>
+{{template "foot" .}}{{end}}
+
+{{define "status"}}<!doctype html>
+<html lang="{{.Locale}}">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>{{.Title}}</title>
+<script>(function(){try{var t=localStorage.getItem('heroui-theme')||'system';if(t==='system')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.add(t)}catch(e){}})()</script>
+<link rel="stylesheet" href="/_site/site.css"></head>
+<body class="flex min-h-dvh items-center justify-center bg-background px-4 text-foreground antialiased">
+<main class="card card--default w-full max-w-md items-center gap-3 p-8 text-center">
+  <p class="text-5xl font-semibold tabular-nums text-muted">{{.Code}}</p>
+  <h1 class="text-xl font-semibold">{{.Title}}</h1>
+  <p class="text-sm text-muted">{{.Hint}}</p>
+  <a class="button button--primary mt-2" href="{{.Home}}">{{.Back}}</a>
+</main>
+</body>
+</html>{{end}}
+
+{{define "icon-menu"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>{{end}}
+{{define "icon-chevron"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg>{{end}}
+{{define "icon-sparkles"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 1.75 9.35 5.6a1.5 1.5 0 0 0 .92.92L14.25 8l-3.98 1.48a1.5 1.5 0 0 0-.92.92L8 14.25 6.65 10.4a1.5 1.5 0 0 0-.92-.92L1.75 8l3.98-1.48a1.5 1.5 0 0 0 .92-.92Z"/></svg>{{end}}
+{{define "icon-code"}}<svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg>{{end}}
+{{define "icon-file"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M9 1.75H4.5A1.75 1.75 0 0 0 2.75 3.5v9c0 .97.78 1.75 1.75 1.75h7c.97 0 1.75-.78 1.75-1.75V6L9 1.75Z"/><path d="M9 1.75V6h4.25"/></svg>{{end}}
+{{define "icon-copy"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.25" y="5.25" width="8.5" height="8.5" rx="1.75"/><path d="M10.75 5.25V3.5a1.75 1.75 0 0 0-1.75-1.75H3.5A1.75 1.75 0 0 0 1.75 3.5V9c0 .97.78 1.75 1.75 1.75h1.75"/></svg>{{end}}

@@ -9,7 +9,7 @@ SERVICES = {  # slug: 端口
     "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108, "memory": 8109,
     "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113,
 }
-WEB_MODULES = ["content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection"]
+WEB_MODULES = ["portal", "content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection", "public-site"]
 SUBNET = "198.51.100.0/24"  # 文档保留地址段，仅作内部桥接网络的子网
 
 
@@ -24,16 +24,18 @@ def dockerfile(slug, port):
     web = ""
     copy_web = ""
     if slug == "portal":
-        builds = "\n".join(
-            f"COPY modules/{m}/web/ modules/{m}/web/\nRUN cd modules/{m}/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web/modules/{m} --emptyOutDir"
-            for m in WEB_MODULES)
+        # 前端是仓库根的一个 pnpm 工程：先装依赖（只依赖清单，便于缓存），再拷入各域界面源码与公开页模板（样式构建要扫描其中的类名）。
+        sources = "\n".join(f"COPY modules/{m}/web/ modules/{m}/web/" for m in WEB_MODULES)
         web = f"""FROM node:24-slim AS web
 RUN npm install -g pnpm@9.15.9
 WORKDIR /src
+COPY package.json pnpm-lock.yaml tsconfig.json ./
+RUN pnpm install --frozen-lockfile
+COPY contracts/permission-groups.json contracts/permission-groups.json
 COPY libs/platform/web/ libs/platform/web/
-COPY modules/portal/web/ modules/portal/web/
-RUN cd modules/portal/web && pnpm install --frozen-lockfile && pnpm exec vite build --outDir /out/web --emptyOutDir
-{builds}
+{sources}
+COPY modules/public-site/internal/ modules/public-site/internal/
+RUN NW_WEB_OUT=/out/web pnpm build
 
 """
         copy_web = "COPY --from=web /out/web /web\nCOPY modules/portal/config/routes.json /config/routes.json\nENV NW_WEB_DIR=/web\n"
@@ -140,6 +142,7 @@ def main():
     write(".dockerignore", """# 构建上下文是仓库根：不带上本机的依赖目录、构建产物、开发数据和密钥。
 **/node_modules
 **/dist
+web-dist
 .git
 .local
 deploy/secrets

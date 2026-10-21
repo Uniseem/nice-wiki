@@ -1,0 +1,86 @@
+/* 后台样式入口：Tailwind v4 + HeroUI v3（与 @heroui/styles 自带入口相同的分层导入，只关闭自动扫描、显式列出源码目录）。 */
+@layer theme, base, components, utilities;
+
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@import "@heroui/styles/base/base.css" layer(base);
+@import "@heroui/styles/components/index.css" layer(components);
+@import "@heroui/styles/themes/default/index.css" layer(theme);
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/variants";
+@import "../../../../libs/platform/web/ui/content.css";
+
+@source "./";
+@source "../../../*/web/src";
+@source "../../../../libs/platform/web/ui";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+@layer base {
+  html,
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  body {
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  /* —— 编辑器（Tiptap / ProseMirror）—— */
+  .ProseMirror {
+    @apply min-h-[60vh] outline-none;
+  }
+  .ProseMirror p.is-editor-empty:first-child::before,
+  .ProseMirror p.is-empty::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none float-start h-0 text-muted;
+  }
+  .ProseMirror .columns {
+    @apply flex gap-4;
+  }
+  .ProseMirror .column {
+    @apply min-w-0 flex-1 rounded-lg border border-dashed border-border px-3 py-1;
+  }
+  .ProseMirror .math-block {
+    @apply cursor-pointer rounded-xl border border-border bg-surface-secondary px-4 py-3 font-mono text-sm text-foreground;
+  }
+  .ProseMirror .attachment {
+    @apply cursor-default;
+  }
+  .ProseMirror img.drawing {
+    @apply max-w-full cursor-zoom-in;
+  }
+  .ProseMirror :is(img, video, .attachment, .math-block, img.drawing).ProseMirror-selectednode {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+  .ProseMirror .selectedCell::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0 bg-accent-soft;
+  }
+  .ProseMirror td,
+  .ProseMirror th {
+    @apply relative min-w-12;
+  }
+  .ProseMirror .tableWrapper {
+    @apply my-5 overflow-x-auto;
+  }
+  .ProseMirror pre {
+    @apply relative;
+  }
+  .ProseMirror pre[data-language]::after {
+    content: attr(data-language);
+    @apply absolute end-3 top-2 font-sans text-xs text-muted;
+  }
+  .ProseMirror-gapcursor::after {
+    @apply border-t-foreground;
+  }
+
+  /* Excalidraw 全屏画板里不套用后台的正文字号。 */
+  .drawing-host .excalidraw {
+    --ui-font: var(--font-sans);
+  }
+}

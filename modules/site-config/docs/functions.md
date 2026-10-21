@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 108 个函数：约束 33 个，参考 75 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 109 个函数：约束 34 个，参考 75 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -4220,3 +4220,36 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 - 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
 - 幂等：同完整引用只读复用，不生成或重算归档
 - 依赖：`platform.SnapshotManager.OpenArchive`、`site-config.WithSnapshotRuntime`
+
+## site-config.SitePage
+
+- 级别：约束
+- 文件：`modules/site-config/web/src/index.tsx`
+- 作用：站点设置：基本信息、品牌图片、首页主视觉（含预览）、公告横幅、页脚
+
+```ts
+export default function SitePage(): React.JSX.Element
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取站点配置，按分组表单修改
+2. 每次保存带配置版本前提，保存后重新读取最新版本
+
+**错误**
+
+- 无
+
+- 副作用：浏览器内调用同源版本化接口
+- 授权：页面可见性只是少展示；每个接口仍由服务端按当前授权校验
+- 并发：单页面实例；切换页面时取消未完成的读取
+- 幂等：写操作带 Idempotency-Key 与版本前提
+- 依赖：无

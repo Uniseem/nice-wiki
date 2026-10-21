@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 71 个：手写 49、UI 5、生成 5、配置 10、迁移 2。函数 147 个：约束 33，参考 114。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 62 个：手写 49、UI 1、生成 4、配置 6、迁移 2。函数 126 个：约束 33，参考 93。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -28,9 +28,6 @@
 | `modules/analytics/internal/barrier.go` | 手写 | 进入analytics一致屏障；同文件职责限本域以下登记函数 | `analytics.EnterBarrier`、`analytics.ReleaseBarrier` |
 | `modules/analytics/internal/snapshot.go` | 手写 | 导出统计快照；同文件职责限本域以下登记函数 | `analytics.CreateSnapshot` |
 | `modules/analytics/internal/import.go` | 手写 | 校验统计恢复；同文件职责限本域以下登记函数 | `analytics.StageSnapshot`、`analytics.DiscardSnapshot` |
-| `modules/analytics/web/src/OverviewPanel.vue` | UI | Vue3模块交互：LoadStatistics；同文件职责限本域以下登记函数 | `analytics.clearOverview`（参考）、`analytics.loadOverview`（参考）、`analytics.exportOverviewCSV`（参考）、`analytics.downloadOverviewCSV`（参考） |
-| `modules/analytics/web/src/AuditExplorer.vue` | UI | Vue3模块交互：LoadAuditPage；同文件职责限本域以下登记函数 | `analytics.clearAudit`（参考）、`analytics.loadAudit`（参考）、`analytics.readAuditDetail`（参考）、`analytics.exportAuditCSV`（参考）、`analytics.downloadAuditCSV`（参考） |
-| `modules/analytics/web/src/client.ts` | UI | Vue3模块交互：DownloadAuthorizedExport；同文件职责限本域以下登记函数 | `analytics.DownloadAuthorizedExport`（参考）、`analytics.LoadStatistics`（参考）、`analytics.LoadAuditPage`（参考）、`analytics.problemCode`（参考）、`analytics.isAccessFailure`（参考）、`analytics.problemText`（参考）、`analytics.moneyText`（参考）、`analytics.utcInput`（参考）、`analytics.createAnalyticsClient`（参考）、`analytics.FetchAuditRecord`（参考）、`analytics.RequestExport`（参考） |
 | `modules/analytics/internal/crawler.go` | 手写 | 内存识别已知爬虫；同文件职责限本域以下登记函数 | `analytics.ClassifyCrawler`（参考） |
 | `modules/analytics/internal/geoip.go` | 手写 | 离线GeoIP国家；同文件职责限本域以下登记函数 | `analytics.LookupCountry`（参考）、`analytics.trustedPeer`（参考） |
 | `modules/analytics/internal/crawler_store.go` | 手写 | AI Markdown访问独立计数；同文件职责限本域以下登记函数 | `analytics.RecordCrawlerAccess`、`analytics.readReceipt`（参考）、`analytics.saveReceipt`（参考） |
@@ -45,12 +42,6 @@
 | `modules/analytics/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/analytics；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
 | `modules/analytics/Makefile` | 配置 | generate校验并生成合同绑定；build执行go build ./cmd/analytics与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例 | 无 |
 | `modules/analytics/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
-| `modules/analytics/web/package.json` | 配置 | 该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务 | 无 |
-| `modules/analytics/web/pnpm-lock.yaml` | 生成 | 由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest | 无 |
-| `modules/analytics/web/vite.config.ts` | 配置 | 该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token | 无 |
-| `modules/analytics/web/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
-| `modules/analytics/web/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
-| `modules/analytics/web/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `analytics.mountModuleUI`、`analytics.unmountAnalytics`（参考） |
 | `modules/analytics/internal/worker.go` | 手写 | 主动领取本域持久任务的循环 | `analytics.RunWorker` |
 | `modules/analytics/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/analytics/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
@@ -71,9 +62,9 @@
 | `modules/analytics/internal/usage_queries.go` | 手写 | 本域私有导出/保留期参考支持 | `analytics.QueryUsageStatistics` |
 | `modules/analytics/internal/export_recovery.go` | 手写 | 本域私有导出/保留期参考支持 | `analytics.PurgeExports`（参考）、`analytics.RecoverExports`（参考）、`analytics.ExportKind`（参考）、`analytics.exportObjectNameValid`（参考） |
 | `modules/analytics/migrations/0005_export_journal.sql` | 手写 | V5导出原主体/类型/代次/准备安装journal；旧未知记录拒绝静默迁移 | 无 |
-| `modules/analytics/web/src/style.css` | UI | 固定批准版本的独立Vue库构建/样式，不含凭据 | 无 |
 | `modules/analytics/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `analytics.ReadSnapshotArchive` |
 | `modules/analytics/internal/usage_gateway_types.go` | 手写 | model-gateway V2安全统计页、完整范围和可信注入窄接口的本域无损类型；HTTP机器来源仍引用生产方types | 无 |
 | `modules/analytics/internal/usage_events.go` | 手写 | 费用事件原引用解析与权威页绑定；不接受事件金额或修订为账项真相 | `analytics.parseUsageEventReference`（参考）、`analytics.validateUsageEventReference`（参考） |
 | `modules/analytics/internal/usage_models.go` | 手写 | model-gateway V2费用账项、观察和投影输入的单一本域无损事实模型 | 无 |
 | `modules/analytics/migrations/0006_usage_statistics_v2.sql` | 手写 | 连续V6完整费用事实、账项/观察当前投影；不改写V1旧费用表 | 无 |
+| `modules/analytics/web/src/index.tsx` | UI | 访问统计：区间访问与费用投影、按文档/按小时明细、CSV 导出、管理审计与链校验 | `analytics.AnalyticsPage` |

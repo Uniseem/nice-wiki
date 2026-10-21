@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 86 个函数：约束 33 个，参考 53 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 79 个函数：约束 33 个，参考 46 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2020,264 +2020,6 @@ func ReleaseBarrier(ctx context.Context, op OperationContext, in ReleaseBarrierI
 - 幂等：barrierId幂等
 - 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.ReleaseBarrier`
 
-## public-site.LoadPreview
-
-- 级别：参考
-- 文件：`modules/public-site/web/src/PreviewPanel.vue`
-- 作用：Vue3模块交互：LoadPreview
-
-```ts
-function LoadPreview(input: LoadPreviewInput, signal: AbortSignal): Promise<LoadPreviewResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `LoadPreviewInput` | Vue3模块交互：LoadPreview；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `LoadPreviewResult` | Vue3模块交互：LoadPreview成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 编辑器传入documentId/draftRevisionId与仅当前页内存的csrfToken，旧revision不再用于授权
-2. 领取拥有者previewId/token后携必填previewId查询fetch受保护HTML，在sandbox无脚本iframe显示
-3. 同operationId手动重试不重复提交；有效期前刷新复用owner幂等grant，不持久化token或HTML
-4. 取消旧请求，卸载/切换草稿/401/403立即清空敏感界面；错误只显示安全中文说明
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：content.preview；rule：content.preview
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：`public-site.requestPreview`
-- 其他依赖说明：public-site OpenAPI HTTP/JSON/SSE
-
-## public-site.load
-
-- 级别：参考
-- 文件：`modules/public-site/web/src/PreviewPanel.vue`
-- 作用：复用当前草稿operationId，过期或显式换稿后新领grant
-
-```ts
-async function load(): Promise<void>
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 复用当前草稿operationId，过期或显式换稿后新领grant
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：content.preview；rule：仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威
-- 并发：调用方传播取消，不修改共享业务记录
-- 幂等：只读或复用拥有者同operationId回执；不持久化token
-- 依赖：`public-site.LoadPreview`
-
-## public-site.LoadPublicCapabilities
-
-- 级别：参考
-- 文件：`modules/public-site/web/src/PublicSettingsPanel.vue`
-- 作用：Vue3模块交互：LoadPublicCapabilities
-
-```ts
-function LoadPublicCapabilities(input: LoadPublicCapabilitiesInput, signal: AbortSignal): Promise<LoadPublicCapabilitiesResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `LoadPublicCapabilitiesInput` | Vue3模块交互：LoadPublicCapabilities；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `LoadPublicCapabilitiesResult` | Vue3模块交互：LoadPublicCapabilities成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 加载公开索引和语言路由能力
-2. 展示site-config配置revision，写配置仍由其权威处理
-3. 处理401重新登录、403清空敏感界面
-4. 按operationId重试不重复提交
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：site.manage；rule：site.manage
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：无
-- 其他依赖说明：public-site OpenAPI HTTP/JSON/SSE
-
-## public-site.RequestPublicNavigation
-
-- 级别：参考
-- 文件：`modules/public-site/web/src/client.ts`
-- 作用：Vue3模块交互：RequestPublicNavigation
-
-```ts
-function RequestPublicNavigation(input: RequestPublicNavigationInput, signal: AbortSignal): Promise<RequestPublicNavigationResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `RequestPublicNavigationInput` | Vue3模块交互：RequestPublicNavigation；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `RequestPublicNavigationResult` | Vue3模块交互：RequestPublicNavigation成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 只请求当前站点同源APIBaseURL及显式语言navigation
-2. 503直接显示依赖不可用，不缓存旧private投影；401/403仅返回安全错误供外壳处理
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：anonymous；rule：anonymous
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：`public-site.sameOriginURL`、`public-site.responseProblem`
-- 其他依赖说明：public-site OpenAPI HTTP/JSON/SSE
-
-## public-site.sameOriginURL
-
-- 级别：参考
-- 文件：`modules/public-site/web/src/client.ts`
-- 作用：限制浏览器API只使用当前站点同源地址
-
-```ts
-function sameOriginURL(base: string, path: string): URL
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 限制浏览器API只使用当前站点同源地址
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：content.preview；rule：仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威
-- 并发：调用方传播取消，不修改共享业务记录
-- 幂等：只读或复用拥有者同operationId回执；不持久化token
-- 依赖：无
-
-## public-site.responseProblem
-
-- 级别：参考
-- 文件：`modules/public-site/web/src/client.ts`
-- 作用：只提取安全公共错误码，不回显敏感正文
-
-```ts
-async function responseProblem(response: Response): Promise<Problem>
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 只提取安全公共错误码，不回显敏感正文
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：content.preview；rule：仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威
-- 并发：调用方传播取消，不修改共享业务记录
-- 幂等：只读或复用拥有者同operationId回执；不持久化token
-- 依赖：无
-
-## public-site.requestPreview
-
-- 级别：参考
-- 文件：`modules/public-site/web/src/client.ts`
-- 作用：精确草稿签发与本人previewId/token读取，不自动重试mutation
-
-```ts
-async function requestPreview(input: LoadPreviewInput): Promise<LoadPreviewResult>
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 精确草稿签发与本人previewId/token读取，不自动重试mutation
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：content.preview；rule：仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威
-- 并发：调用方传播取消，不修改共享业务记录
-- 幂等：只读或复用拥有者同operationId回执；不持久化token
-- 依赖：`public-site.sameOriginURL`、`public-site.responseProblem`
-
 ## public-site.HandleRootRedirect
 
 - 级别：约束
@@ -3297,44 +3039,6 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 依赖：无
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
 
-## public-site.mountModuleUI
-
-- 级别：约束
-- 文件：`modules/public-site/web/src/main.ts`
-- 作用：本域Vue3应用/岛的唯一UI构建入口
-
-```ts
-function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `rootElement` | `HTMLElement` | 已经存在的模块挂载节点 | DOM标准库；为空或不属于当前document拒绝 |
-| `bootstrap` | `ModuleUIBootstrap` | 已由portal/Go输出的安全启动元数据 | module固定本域，不含service凭证/secret |
-
-**输出**
-
-无
-
-**步骤**
-
-1. 校验本域bootstrap与当前document连接中的挂载节点，同DOM/buildRevision重复调用复用实例
-2. 只挂载本域PreviewPanel，不跨域导入业务组件；编辑器以public-site:preview-request事件在当前页内存传递精确草稿/CSRF/operationId
-3. unmount取消AbortController并移除事件，清空CSRF及HTML；不清服务端业务记录
-
-**错误**
-
-- `VALIDATION` / HTTP 400：bootstrap不匹配本域或DOM无效（不可重试）
-
-- 副作用：挂载本域Vue组件和浏览器事件；不新建业务记录
-- 授权：permission：anonymous；rule：只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限
-- 并发：同DOM一个Vue实例，AbortController取消旧请求
-- 幂等：同DOM/buildRevision重复挂载复用实例
-- 依赖：`public-site.LoadPreview`
-- 其他依赖说明：本域已登记UI页面函数
-
 ## public-site.ConsumeEvents
 
 - 级别：约束
@@ -3467,3 +3171,36 @@ func ReadSnapshotArchive(ctx context.Context, op OperationContext, input Snapsho
 - 并发：只读流，接收方仍核完整ObjectRef/hash/EOF
 - 幂等：同完整引用只读复用，不生成或重算归档
 - 依赖：`platform.SnapshotManager.OpenArchive`
+
+## public-site.Islands
+
+- 级别：约束
+- 文件：`modules/public-site/web/src/site.tsx`
+- 作用：公开页交互岛：一个 React 根通过 portal 接管页头操作（问答、语言、明暗）、窄屏文档树抽屉与问答区；另附代码复制、目录高亮、公式、访问信标等增强
+
+```ts
+function Islands(props: { header: HTMLElement | null; ask: HTMLElement | null }): React.JSX.Element
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取页面下发的岛配置与界面文字
+2. 页面正文、导航和目录由 Go 完整输出，脚本只增强交互
+
+**错误**
+
+- 无
+
+- 副作用：浏览器内调用同源版本化接口
+- 授权：页面可见性只是少展示；每个接口仍由服务端按当前授权校验
+- 并发：单页面实例；切换页面时取消未完成的读取
+- 幂等：写操作带 Idempotency-Key 与版本前提
+- 依赖：无

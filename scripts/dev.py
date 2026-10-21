@@ -66,9 +66,6 @@ def setup():
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
 
 
-WEB_MODULES = ["content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection"]
-
-
 def build(slugs):
     for s in slugs:
         subprocess.check_call(["go", "build", "-o", path("bin", s), f"./cmd/{s}"], cwd=os.path.join(ROOT, "modules", s))
@@ -80,24 +77,20 @@ def port_open(port):
         return sock.connect_ex(("127.0.0.1", port)) == 0
 
 
-def quiet(cmd, cwd):
-    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+def quiet(cmd, cwd, env=None):
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, env={**os.environ, **(env or {})})
     if result.returncode:
         sys.exit(f"命令失败 {' '.join(cmd)} @ {cwd}\n{result.stdout}{result.stderr}")
 
 
 def build_web():
-    """后台前端：壳放在 web/ 根，各域界面放在 web/modules/<域>/。"""
+    """后台单页应用与公开页样式/交互岛：仓库根一个 pnpm 工程，产物放 .local/dev/web（site/ 是公开页部分）。
+    NW_SKIP_WEB_BUILD=1 且已有产物时跳过（例如直接用 GitLab CI 产出的 web-dist）。"""
     web = path("web")
-    subprocess.run(["rm", "-rf", web])
-    os.makedirs(os.path.join(web, "modules"))
-    shell = os.path.join(ROOT, "modules", "portal", "web")
-    quiet(["pnpm", "install", "--frozen-lockfile"], shell)
-    quiet(["pnpm", "exec", "vite", "build", "--outDir", web, "--emptyOutDir"], shell)
-    for m in WEB_MODULES:
-        d = os.path.join(ROOT, "modules", m, "web")
-        quiet(["pnpm", "install", "--frozen-lockfile"], d)
-        quiet(["pnpm", "exec", "vite", "build", "--outDir", os.path.join(web, "modules", m), "--emptyOutDir"], d)
+    if os.environ.get("NW_SKIP_WEB_BUILD") and os.path.exists(os.path.join(web, "index.html")):
+        return
+    quiet(["pnpm", "install", "--frozen-lockfile"], ROOT)
+    quiet(["pnpm", "build"], ROOT, {"NW_WEB_OUT": web})
 
 
 def pidfile(s):

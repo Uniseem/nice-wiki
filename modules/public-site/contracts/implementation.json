@@ -3749,360 +3749,6 @@
       ]
     },
     {
-      "path": "modules/public-site/web/src/PreviewPanel.vue",
-      "kind": "ui",
-      "purpose": "Vue3模块交互：LoadPreview；同文件职责限本域以下登记函数",
-      "functions": [
-        {
-          "id": "public-site.LoadPreview",
-          "name": "LoadPreview",
-          "signature": "function LoadPreview(input: LoadPreviewInput, signal: AbortSignal): Promise<LoadPreviewResult>",
-          "inputs": [
-            {
-              "name": "input",
-              "type": "LoadPreviewInput",
-              "description": "Vue3模块交互：LoadPreview；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            },
-            {
-              "name": "signal",
-              "type": "AbortSignal",
-              "description": "界面导航及取消信号",
-              "constraints": [
-                "取消后不更新已卸载组件"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "LoadPreviewResult",
-              "description": "Vue3模块交互：LoadPreview成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "Problem",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "Vue3模块交互：LoadPreview",
-          "steps": [
-            "编辑器传入documentId/draftRevisionId与仅当前页内存的csrfToken，旧revision不再用于授权",
-            "领取拥有者previewId/token后携必填previewId查询fetch受保护HTML，在sandbox无脚本iframe显示",
-            "同operationId手动重试不重复提交；有效期前刷新复用owner幂等grant，不持久化token或HTML",
-            "取消旧请求，卸载/切换草稿/401/403立即清空敏感界面；错误只显示安全中文说明"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
-              "httpStatus": 403,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 503,
-              "retryable": true,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
-              "code": "CONFLICT",
-              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
-              "httpStatus": 409,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            }
-          ],
-          "sideEffects": [
-            "更新组件本地状态；仅明确提交动作调用已授权API"
-          ],
-          "authorization": {
-            "permission": "content.preview",
-            "rule": "content.preview"
-          },
-          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
-          "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [
-            "public-site.requestPreview"
-          ],
-          "resources": [
-            "public-site OpenAPI HTTP/JSON/SSE"
-          ],
-          "contract": "reference"
-        },
-        {
-          "id": "public-site.load",
-          "name": "load",
-          "signature": "async function load(): Promise<void>",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "复用当前草稿operationId，过期或显式换稿后新领grant",
-          "steps": [
-            "复用当前草稿operationId，过期或显式换稿后新领grant"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "content.preview",
-            "rule": "仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威"
-          },
-          "concurrency": "调用方传播取消，不修改共享业务记录",
-          "idempotency": "只读或复用拥有者同operationId回执；不持久化token",
-          "dependencies": [
-            "public-site.LoadPreview"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/public-site/web/src/PublicSettingsPanel.vue",
-      "kind": "ui",
-      "purpose": "Vue3模块交互：LoadPublicCapabilities；同文件职责限本域以下登记函数",
-      "functions": [
-        {
-          "id": "public-site.LoadPublicCapabilities",
-          "name": "LoadPublicCapabilities",
-          "signature": "function LoadPublicCapabilities(input: LoadPublicCapabilitiesInput, signal: AbortSignal): Promise<LoadPublicCapabilitiesResult>",
-          "inputs": [
-            {
-              "name": "input",
-              "type": "LoadPublicCapabilitiesInput",
-              "description": "Vue3模块交互：LoadPublicCapabilities；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            },
-            {
-              "name": "signal",
-              "type": "AbortSignal",
-              "description": "界面导航及取消信号",
-              "constraints": [
-                "取消后不更新已卸载组件"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "LoadPublicCapabilitiesResult",
-              "description": "Vue3模块交互：LoadPublicCapabilities成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "Problem",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "Vue3模块交互：LoadPublicCapabilities",
-          "steps": [
-            "加载公开索引和语言路由能力",
-            "展示site-config配置revision，写配置仍由其权威处理",
-            "处理401重新登录、403清空敏感界面",
-            "按operationId重试不重复提交"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
-              "httpStatus": 403,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 503,
-              "retryable": true,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
-              "code": "CONFLICT",
-              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
-              "httpStatus": 409,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            }
-          ],
-          "sideEffects": [
-            "更新组件本地状态；仅明确提交动作调用已授权API"
-          ],
-          "authorization": {
-            "permission": "site.manage",
-            "rule": "site.manage"
-          },
-          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
-          "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [],
-          "resources": [
-            "public-site OpenAPI HTTP/JSON/SSE"
-          ],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/public-site/web/src/client.ts",
-      "kind": "ui",
-      "purpose": "Vue3模块交互：RequestPublicNavigation；同文件职责限本域以下登记函数",
-      "functions": [
-        {
-          "id": "public-site.RequestPublicNavigation",
-          "name": "RequestPublicNavigation",
-          "signature": "function RequestPublicNavigation(input: RequestPublicNavigationInput, signal: AbortSignal): Promise<RequestPublicNavigationResult>",
-          "inputs": [
-            {
-              "name": "input",
-              "type": "RequestPublicNavigationInput",
-              "description": "Vue3模块交互：RequestPublicNavigation；字段见本域types.json对应$defs",
-              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
-            },
-            {
-              "name": "signal",
-              "type": "AbortSignal",
-              "description": "界面导航及取消信号",
-              "constraints": [
-                "取消后不更新已卸载组件"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "RequestPublicNavigationResult",
-              "description": "Vue3模块交互：RequestPublicNavigation成功结果；字段见types.json",
-              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
-            },
-            {
-              "name": "error",
-              "type": "Problem",
-              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
-              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
-            }
-          ],
-          "purpose": "Vue3模块交互：RequestPublicNavigation",
-          "steps": [
-            "只请求当前站点同源APIBaseURL及显式语言navigation",
-            "503直接显示依赖不可用，不缓存旧private投影；401/403仅返回安全错误供外壳处理"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
-              "httpStatus": 403,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "condition": "DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败",
-              "httpStatus": 503,
-              "retryable": true,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            },
-            {
-              "code": "CONFLICT",
-              "condition": "CONFLICT：在步骤中的对应校验或依赖失败",
-              "httpStatus": 409,
-              "retryable": false,
-              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
-            }
-          ],
-          "sideEffects": [
-            "更新组件本地状态；仅明确提交动作调用已授权API"
-          ],
-          "authorization": {
-            "permission": "anonymous",
-            "rule": "anonymous"
-          },
-          "concurrency": "组件AbortController取消旧请求；同组件同动作单飞",
-          "idempotency": "mutation稳定operationId/query只读重复安全",
-          "dependencies": [
-            "public-site.sameOriginURL",
-            "public-site.responseProblem"
-          ],
-          "resources": [
-            "public-site OpenAPI HTTP/JSON/SSE"
-          ],
-          "contract": "reference"
-        },
-        {
-          "id": "public-site.sameOriginURL",
-          "name": "sameOriginURL",
-          "signature": "function sameOriginURL(base: string, path: string): URL",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "限制浏览器API只使用当前站点同源地址",
-          "steps": [
-            "限制浏览器API只使用当前站点同源地址"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "content.preview",
-            "rule": "仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威"
-          },
-          "concurrency": "调用方传播取消，不修改共享业务记录",
-          "idempotency": "只读或复用拥有者同operationId回执；不持久化token",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "public-site.responseProblem",
-          "name": "responseProblem",
-          "signature": "async function responseProblem(response: Response): Promise<Problem>",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "只提取安全公共错误码，不回显敏感正文",
-          "steps": [
-            "只提取安全公共错误码，不回显敏感正文"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "content.preview",
-            "rule": "仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威"
-          },
-          "concurrency": "调用方传播取消，不修改共享业务记录",
-          "idempotency": "只读或复用拥有者同operationId回执；不持久化token",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "public-site.requestPreview",
-          "name": "requestPreview",
-          "signature": "async function requestPreview(input: LoadPreviewInput): Promise<LoadPreviewResult>",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "精确草稿签发与本人previewId/token读取，不自动重试mutation",
-          "steps": [
-            "精确草稿签发与本人previewId/token读取，不自动重试mutation"
-          ],
-          "errors": [],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "content.preview",
-            "rule": "仅本域已验证的内部读取/渲染或当前浏览器会话调用链使用，不建立新授权权威"
-          },
-          "concurrency": "调用方传播取消，不修改共享业务记录",
-          "idempotency": "只读或复用拥有者同operationId回执；不持久化token",
-          "dependencies": [
-            "public-site.sameOriginURL",
-            "public-site.responseProblem"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
       "path": "modules/public-site/internal/http_root.go",
       "kind": "handwritten",
       "purpose": "根语言选择HTTP；同文件职责限本域以下登记函数",
@@ -5685,93 +5331,6 @@
       "functions": []
     },
     {
-      "path": "modules/public-site/web/package.json",
-      "kind": "config",
-      "purpose": "该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务",
-      "functions": []
-    },
-    {
-      "path": "modules/public-site/web/pnpm-lock.yaml",
-      "kind": "generated",
-      "purpose": "由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest",
-      "functions": []
-    },
-    {
-      "path": "modules/public-site/web/vite.config.ts",
-      "kind": "config",
-      "purpose": "该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token",
-      "functions": []
-    },
-    {
-      "path": "modules/public-site/web/tsconfig.json",
-      "kind": "config",
-      "purpose": "严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像",
-      "functions": []
-    },
-    {
-      "path": "modules/public-site/web/index.html",
-      "kind": "config",
-      "purpose": "该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret",
-      "functions": []
-    },
-    {
-      "path": "modules/public-site/web/src/main.ts",
-      "kind": "ui",
-      "purpose": "本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务",
-      "functions": [
-        {
-          "id": "public-site.mountModuleUI",
-          "name": "mountModuleUI",
-          "signature": "function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void",
-          "inputs": [
-            {
-              "name": "rootElement",
-              "type": "HTMLElement",
-              "description": "已经存在的模块挂载节点",
-              "constraints": "DOM标准库；为空或不属于当前document拒绝"
-            },
-            {
-              "name": "bootstrap",
-              "type": "ModuleUIBootstrap",
-              "description": "已由portal/Go输出的安全启动元数据",
-              "constraints": "module固定本域，不含service凭证/secret"
-            }
-          ],
-          "outputs": [],
-          "purpose": "本域Vue3应用/岛的唯一UI构建入口",
-          "steps": [
-            "校验本域bootstrap与当前document连接中的挂载节点，同DOM/buildRevision重复调用复用实例",
-            "只挂载本域PreviewPanel，不跨域导入业务组件；编辑器以public-site:preview-request事件在当前页内存传递精确草稿/CSRF/operationId",
-            "unmount取消AbortController并移除事件，清空CSRF及HTML；不清服务端业务记录"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "condition": "bootstrap不匹配本域或DOM无效",
-              "httpStatus": 400,
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "挂载本域Vue组件和浏览器事件；不新建业务记录"
-          ],
-          "authorization": {
-            "permission": "anonymous",
-            "rule": "只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限"
-          },
-          "concurrency": "同DOM一个Vue实例，AbortController取消旧请求",
-          "idempotency": "同DOM/buildRevision重复挂载复用实例",
-          "dependencies": [
-            "public-site.LoadPreview"
-          ],
-          "resources": [
-            "本域已登记UI页面函数"
-          ],
-          "contract": "binding"
-        }
-      ]
-    },
-    {
       "path": "modules/public-site/internal/events/consume.go",
       "kind": "handwritten",
       "purpose": "公开投影持久事件消费和恢复预热，不能改变内容权威",
@@ -6099,6 +5658,35 @@
         }
       ],
       "kind": "handwritten"
+    },
+    {
+      "path": "modules/public-site/web/src/site.tsx",
+      "kind": "ui",
+      "purpose": "公开页交互岛：一个 React 根通过 portal 接管页头操作（问答、语言、明暗）、窄屏文档树抽屉与问答区；另附代码复制、目录高亮、公式、访问信标等增强",
+      "functions": [
+        {
+          "id": "public-site.Islands",
+          "name": "Islands",
+          "signature": "function Islands(props: { header: HTMLElement | null; ask: HTMLElement | null }): React.JSX.Element",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "公开页交互岛：一个 React 根通过 portal 接管页头操作（问答、语言、明暗）、窄屏文档树抽屉与问答区；另附代码复制、目录高亮、公式、访问信标等增强",
+          "steps": [
+            "读取页面下发的岛配置与界面文字",
+            "页面正文、导航和目录由 Go 完整输出，脚本只增强交互"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "浏览器内调用同源版本化接口"
+          ],
+          "authorization": "页面可见性只是少展示；每个接口仍由服务端按当前授权校验",
+          "concurrency": "单页面实例；切换页面时取消未完成的读取",
+          "idempotency": "写操作带 Idempotency-Key 与版本前提",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
     }
   ],
   "jobTypes": [

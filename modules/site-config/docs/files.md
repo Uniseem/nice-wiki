@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 45 个：手写 30、生成 3、配置 6、迁移 6。函数 108 个：约束 33，参考 75。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 46 个：手写 30、UI 1、生成 3、配置 6、迁移 6。函数 109 个：约束 34，参考 75。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -51,3 +51,4 @@
 | `modules/site-config/internal/migrations/active/0004_config_operations.sql` | 迁移 | 一般设置操作的完整候选配置规范JSON/hash，只是重试恢复材料；正式配置仍以settings文件为权威 | 无 |
 | `modules/site-config/internal/migrations/active/0005_home_reference_decisions.sql` | 迁移 | 追加首页资源pin intent、持久终局、原pin及确认/释放续办阶段，不替代settings文件权威 | 无 |
 | `modules/site-config/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `site-config.ReadSnapshotArchive` |
+| `modules/site-config/web/src/index.tsx` | UI | 站点设置：基本信息、品牌图片、首页主视觉（含预览）、公告横幅、页脚 | `site-config.SitePage` |

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 221 个函数：约束 35 个，参考 186 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 210 个函数：约束 35 个，参考 175 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -3500,387 +3500,6 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.Discard`
 
-## knowledge.LoadAdminOverview
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
-- 作用：加载本域后台概览
-
-```ts
-export async function LoadAdminOverview(client: ModuleAPIClient, input: LoadAdminOverviewInput, signal: AbortSignal): Promise<LoadAdminOverviewResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `client` | `ModuleAPIClient` | portal非序列化同源调用端口 | 认证/CSRF/单次会话刷新由portal持有，禁止读取HttpOnly凭据 |
-| `input` | `LoadAdminOverviewInput` | 本域封闭输入；每个字段规格见types.json $defs/LoadAdminOverviewInput | schema required/additionalProperties/range全部强制；null禁止。 |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `LoadAdminOverviewResult` | 成功结果；逐字段见types $defs/LoadAdminOverviewResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-
-**步骤**
-
-1. 调用portal apiClient并行读真实配置/公开树模型选项/构建分页，配置NOT_FOUND只表示未配置，其他故障向页面反馈
-2. 导航/刷新先取消旧请求，卸载停止控制器，过时响应不更新UI；只显示服务端真实状态，无成功或费用推断
-3. Overview页面接全量免费估价与逐分项/未知提示，明确勾选后提交原planId/quoteHash批准；原回执/冲突和卸载取消保留
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：只读请求与组件状态更新
-- 授权：权限 knowledge.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge.safeCode`、`knowledge.ReadIndexConfig`、`knowledge.ReadIndexOptions`、`knowledge.ListBuilds`
-
-## knowledge.safeCode
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
-- 作用：只显示安全公共错误码，不插入原始详情
-
-```ts
-export function safeCode(error: unknown): string
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 只显示安全公共错误码，不插入原始详情
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
-- 并发：AbortController取消导航/卸载，过时响应不回写
-- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
-- 依赖：无
-
-## knowledge.refresh
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
-- 作用：取消旧导航并加载真实分页，过时响应不更新UI
-
-```ts
-async function refresh(cursor?: string): Promise<void>
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 取消旧导航并加载真实分页，过时响应不更新UI
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
-- 并发：AbortController取消导航/卸载，过时响应不回写
-- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
-- 依赖：`knowledge.LoadAdminOverview`、`knowledge.safeCode`
-
-## knowledge.createBuild
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
-- 作用：人工选择完整发布引用并明确确认可能费用后提交原幂等键；202只显示已接收
-
-```ts
-async function createBuild(): Promise<void>
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 人工选择完整发布引用并明确确认可能费用后提交原幂等键；202只显示已接收
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
-- 并发：AbortController取消导航/卸载，过时响应不回写
-- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
-- 依赖：`knowledge.CreateBuild`、`knowledge.refresh`、`knowledge.safeCode`
-
-## knowledge.cancelBuild
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
-- 作用：原构建固定取消键，提交真实取消后刷新状态，不推断退款
-
-```ts
-async function cancelBuild(buildId: string): Promise<void>
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 原构建固定取消键，提交真实取消后刷新状态，不推断退款
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
-- 并发：AbortController取消导航/卸载，过时响应不回写
-- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
-- 依赖：`knowledge.CancelBuild`、`knowledge.refresh`、`knowledge.safeCode`
-
-## knowledge.afterSave
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
-- 作用：保存只刷新真实配置，不自动构建
-
-```ts
-function afterSave(): void
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 保存只刷新真实配置，不自动构建
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
-- 并发：AbortController取消导航/卸载，过时响应不回写
-- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
-- 依赖：`knowledge.refresh`
-
-## knowledge.estimateRebuild
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
-- 作用：管理员免费估价，真实分项/未知数量与总价提示、原幂等键和卸载取消，不提交付费
-
-```ts
-async function estimateRebuild(): Promise<void>
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 管理员免费估价，真实分项/未知数量与总价提示、原幂等键和卸载取消，不提交付费
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：service；rule：只消费原已授权任务权威声明，不扩模型付费批准
-- 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
-- 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
-- 依赖：`knowledge.EstimateRebuildPlan`
-
-## knowledge.approveRebuild
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
-- 作用：明确勾选后按原planId/quoteHash提交批准，过期/冲突保持原输入并要求重估，不自动明批unknown
-
-```ts
-async function approveRebuild(): Promise<void>
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 明确勾选后按原planId/quoteHash提交批准，过期/冲突保持原输入并要求重估，不自动明批unknown
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：service；rule：只消费原已授权任务权威声明，不扩模型付费批准
-- 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
-- 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
-- 依赖：`knowledge.ApproveRebuildPlan`
-
-## knowledge.formatQuoteMoney
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/OverviewView.vue`
-- 作用：仅安全整数显示精确六位美元，超浏览器精确范围不伪造金额
-
-```ts
-function formatQuoteMoney(value: { currency: string; micros: number } | undefined): string
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 仅安全整数显示精确六位美元，超浏览器精确范围不伪造金额
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：service；rule：只消费原已授权任务权威声明，不扩模型付费批准
-- 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
-- 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
-- 依赖：无
-
-## knowledge.SubmitPrimaryEdit
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/EditView.vue`
-- 作用：提交本域明确人工修改
-
-```ts
-export async function SubmitPrimaryEdit(client: ModuleAPIClient, input: SubmitPrimaryEditInput, signal: AbortSignal): Promise<SubmitPrimaryEditResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `client` | `ModuleAPIClient` | portal非序列化同源调用端口 | 认证/CSRF/单次会话刷新由portal持有，禁止读取HttpOnly凭据 |
-| `input` | `SubmitPrimaryEditInput` | 本域封闭输入；每个字段规格见types.json $defs/SubmitPrimaryEditInput | schema required/additionalProperties/range全部强制；null禁止。 |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SubmitPrimaryEditResult` | 成功结果；逐字段见types $defs/SubmitPrimaryEditResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-
-**步骤**
-
-1. 校验整型分块/重叠范围、expectedVersion和原config版本，同输入重试保留原幂等键
-2. 仅人工提交PUT index-config，不自动重建；409保留输入、读取显示权威当前版本并停止自动覆盖
-3. 导航卸载取消请求，取消后不更新组件
-
-**错误**
-
-- `VALIDATION` / HTTP 400：（不可重试）
-- `VERSION_MISMATCH` / HTTP 409：（不可重试）
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：本域HTTP写请求和组件状态更新
-- 授权：权限 knowledge.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge.PutIndexConfig`
-
-## knowledge.save
-
-- 级别：参考
-- 文件：`modules/knowledge/ui/src/views/EditView.vue`
-- 作用：真实档位完整空间与语言；保存原版本/输入；409另读权威当前版本不自动重发
-
-```ts
-async function save(): Promise<void>
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 真实档位完整空间与语言；保存原版本/输入；409另读权威当前版本不自动重发
-
-**错误**
-
-- 无
-
-- 副作用：无
-- 授权：permission：knowledge.manage；rule：仅UI呈现；HTTP独立即时鉴权
-- 并发：AbortController取消导航/卸载，过时响应不回写
-- 幂等：人工mutation原幂等键保留，不自动重算或费用重试
-- 依赖：`knowledge.SubmitPrimaryEdit`、`knowledge.ReadIndexConfig`、`knowledge.safeCode`
-
 ## knowledge.EnrichChunkContext
 
 - 级别：参考
@@ -5028,44 +4647,6 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 - 并发：只读固定权威声明，无跨域业务表
 - 幂等：只读，无模型调用或费用
 - 依赖：`knowledge.NewOperationHandlers`、`knowledge.Health`、`knowledge.Ready`、`platform.NewServiceHandler`、`platform.ReadRuntime`
-
-## knowledge.mountModuleUI
-
-- 级别：约束
-- 文件：`modules/knowledge/ui/src/main.ts`
-- 作用：本域Vue3应用/岛的唯一UI构建入口
-
-```ts
-function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `rootElement` | `HTMLElement` | 已经存在的模块挂载节点 | DOM标准库；为空或不属于当前document拒绝 |
-| `bootstrap` | `ModuleUIBootstrap` | 已由portal/Go输出的安全启动元数据 | module固定本域，不含service凭证/secret |
-
-**输出**
-
-无
-
-**步骤**
-
-1. 校验DOM/module与非序列化apiClient；同DOM/buildRevision复用实例，版本变化先卸载旧Vue再挂载
-2. 仅本域Overview/Edit页面，knowledge.manage能力不足显示无权限；服务端仍独立鉴权
-3. Vue卸载取消所有控制器，不清服务器业务记录，不读认证cookie或token
-
-**错误**
-
-- `VALIDATION` / HTTP 400：bootstrap不匹配本域或DOM无效（不可重试）
-
-- 副作用：挂载本域Vue组件和浏览器事件；不新建业务记录
-- 授权：permission：anonymous；rule：只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限
-- 并发：同DOM一个Vue实例，AbortController取消旧请求
-- 幂等：同DOM/buildRevision重复挂载复用实例
-- 依赖：`knowledge.LoadAdminOverview`、`knowledge.SubmitPrimaryEdit`、`knowledge.refresh`、`knowledge.createBuild`、`knowledge.cancelBuild`、`knowledge.afterSave`、`knowledge.save`
-- 其他依赖说明：本域已登记UI页面函数
 
 ## knowledge.InvokeModel
 
@@ -8430,3 +8011,36 @@ func WithModelExpectations(ctx context.Context,expectations map[string]ModelExpe
 - 并发：锁外读取真实权威；原scope/CAS写入，付费接受路由/价格原子CAS由MG拥有
 - 幂等：原hash/key/op/root/route和价格快照保留，未知不换owner
 - 依赖：`knowledge.WithModelRuntime`
+
+## knowledge.KnowledgePage
+
+- 级别：约束
+- 文件：`modules/knowledge/web/src/index.tsx`
+- 作用：知识索引：入库配置、为已发布文档建立索引、索引任务进度与取消
+
+```ts
+export default function KnowledgePage(): React.JSX.Element
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 读取索引选项、配置与任务
+2. 建立索引前确认费用；有任务进行时定时刷新
+
+**错误**
+
+- 无
+
+- 副作用：浏览器内调用同源版本化接口
+- 授权：页面可见性只是少展示；每个接口仍由服务端按当前授权校验
+- 并发：单页面实例；切换页面时取消未完成的读取
+- 幂等：写操作带 Idempotency-Key 与版本前提
+- 依赖：无

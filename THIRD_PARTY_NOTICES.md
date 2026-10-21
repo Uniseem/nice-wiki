@@ -9,17 +9,21 @@
 - golang.org/x/crypto v0.55.0（BSD-3-Clause）：identity口令规则使用Argon2id；仅通过模块依赖引用，不复制源码。
 - golang.org/x/text v0.41.0（BSD-3-Clause，ADR0005已批准）：identity账号名NFC规范化、knowledge与qa文本NFKC规范化、qa语言标签BCP 47解析；仅通过模块依赖引用，不复制源码。
 
-- localization 界面工程（ADR0005前端选型，MIT/Apache-2.0）：vue 3.5.22、vue-router 4.5.1、pinia 3.0.3、vite 7.1.7、@vitejs/plugin-vue 6.0.1、typescript 6.0.0-beta；版本以 `modules/localization/ui/pnpm-lock.yaml` 为准（integrity 已与 npm registry 核对），不复制源码。
-
-- 后台界面工程（ADR0005前端选型，MIT）：modules/portal/web 与 modules/content/web、modules/jobs/web 使用 vue 3.5.22、vite 7.1.7、@vitejs/plugin-vue 6.0.1、typescript 6.0.0-beta；文档编辑器使用 Tiptap 3.32.0（@tiptap/core、vue-3、starter-kit、extension-task-list、extension-task-item、extension-highlight、pm）；版本以各目录 pnpm-lock.yaml 为准，仅依赖不复制源码。
+- 前端工程（2026-10-21 用户要求改为 React + 标准 HeroUI）：仓库根一个 pnpm 工程，版本以根目录 `pnpm-lock.yaml` 为准，只作依赖打包，不复制源码。
+  - react / react-dom 19.3.1（MIT，Copyright (c) Meta Platforms, Inc. and affiliates），来源 https://github.com/facebook/react 。
+  - @heroui/react、@heroui/styles 3.2.6（package.json 声明 MIT，包内 LICENSE 文件为 Apache-2.0 文本，作者 HeroUI），来源 https://github.com/heroui-inc/heroui/tree/v3 ；后台与公开页的组件和样式。
+  - react-aria、react-aria-components、@react-aria/ssr、@react-aria/utils、@internationalized/date（Apache-2.0，Copyright Adobe），HeroUI 的对等依赖，来源 https://github.com/adobe/react-spectrum 。
+  - tailwindcss、@tailwindcss/vite 4.3.3（MIT，Copyright Tailwind Labs, Inc.）与 tw-animate-css 1.4.0（MIT）：样式构建。
+  - @gravity-ui/icons 2.22.0（MIT，Copyright (c) 2022 YANDEX LLC）：界面图标，来源 https://github.com/gravity-ui/icons 。
+  - Tiptap 3.32.0（MIT，Copyright Tiptap GmbH）：@tiptap/core、react、starter-kit、extensions、extension-link、extension-table、extension-task-list、extension-task-item、extension-highlight、pm；文档编辑器。
+  - vite 7.3.7、@vitejs/plugin-react 5.2.0（MIT）与 typescript 6.0.3（Apache-2.0，Microsoft）：构建与类型检查，只在构建时使用。
 
 OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设计提及Go/Vue等技术不代表已安装依赖；实施前逐项确认版本、许可、版权与复制范围，新增借用项目取得用户确认，再记录到本文件。GPL代码只参考，不复制；Docmost社区版编辑器扩展是唯一例外（AGENTS与ADR0005）。
 
 - golang.org/x/net v0.58.0 / idna（BSD-3-Clause，Copyright 2009 The Go Authors）：平台公开地址IDNA Lookup规范化，仅模块引用、不复制代码。实施时读取官方Go模块原LICENSE核对；该版本为当前Go1.25可兼容的最高发布版，较新版本要求更高工具链。传递依赖由VPS go命令锁定，不手写go.sum。
 
 - github.com/alecthomas/chroma/v2 v2.20.0（MIT，ADR0005已选）：公开代码高亮，来源 https://github.com/alecthomas/chroma/tree/v2.20.0 ，仅依赖不复制业务代码。
-- katex 0.16.22（MIT，Copyright (c) 2013-2020 Khan Academy and other contributors）：公开页公式渲染，来源 https://github.com/KaTeX/KaTeX/tree/v0.16.22 ，随 portal 静态文件分发其脚本、样式、字体，不改动源码。
-- vue-tsc 3.1.1（MIT，Vue官方language-tools）：前端类型检查，来源 https://github.com/vuejs/language-tools ，仅开发构建依赖。
+- katex 0.16.22（MIT，Copyright (c) 2013-2020 Khan Academy and other contributors）：公开页公式渲染与编辑器里的公式预览，来源 https://github.com/KaTeX/KaTeX/tree/v0.16.22 ，随 portal 静态文件（/_site/katex/）分发其脚本、样式、字体，不改动源码。
 
 - github.com/tiktoken-go/tokenizer v0.7.0（MIT，Copyright (c) 2023 tiktoken-go）：经2026-10-18用户明确批准，用于模型网关显式绑定编码的离线BPE；固定来源 https://github.com/tiktoken-go/tokenizer/tree/v0.7.0 ，原许可 https://github.com/tiktoken-go/tokenizer/blob/v0.7.0/LICENSE 。仅Go模块依赖，不复制实现；发布程序保留依赖原LICENSE。
 - github.com/ledongthuc/pdf v0.0.0-20260907135840-6c8c28e0e8a0（BSD-3-Clause，Copyright 2009 The Go Authors）：同次用户批准的PDF项目，实际固定版本为BSD三条款，非最初提问误称的MIT。来源 https://github.com/ledongthuc/pdf/tree/6c8c28e0e8a0 ，原许可 https://github.com/ledongthuc/pdf/blob/6c8c28e0e8a0/LICENSE 。用于有界隔离提取，仅模块依赖；保留原版权、许可与免责声明，不复制业务实现。
@@ -38,4 +42,4 @@ ADR0005已批准的版本镜像依赖，固定github.com/go-git/go-git/v5 v5.16.
 
 ## Excalidraw 与 React（后台编辑器画板）
 
-后台内容编辑器的画板块使用 @excalidraw/excalidraw 0.18.1（MIT，Copyright (c) 2020 Excalidraw）及其对等依赖 react / react-dom 18.3.1（MIT，Copyright (c) Meta Platforms, Inc. and affiliates）。来源 https://github.com/excalidraw/excalidraw/tree/v0.18.1 、https://github.com/facebook/react/tree/v18.3.1 ；仅作为 npm 依赖打包进 `modules/content/web`，由 pnpm-lock.yaml 固定，不复制其源码；画板代码只在用户打开画板时懒加载。画板用到的字体（Excalifont、Virgil、Cascadia Code、Comic Shanns、Liberation Sans、Lilita One、Nunito、小赖字体等，均随 @excalidraw/excalidraw 包分发，各自按 SIL OFL 或同类宽松许可发布）在构建时原样复制到 content 界面目录，不改动、不单独再分发。
+后台内容编辑器的画板块使用 @excalidraw/excalidraw 0.18.1（MIT，Copyright (c) 2020 Excalidraw），与后台共用 react / react-dom 19.3.1。来源 https://github.com/excalidraw/excalidraw/tree/v0.18.1 ；仅作为 npm 依赖打包进后台应用，由根目录 pnpm-lock.yaml 固定，不复制其源码；画板代码只在用户打开画板时懒加载。画板用到的字体（Excalifont、Virgil、Cascadia Code、Comic Shanns、Liberation Sans、Lilita One、Nunito、小赖字体等，均随 @excalidraw/excalidraw 包分发，各自按 SIL OFL 或同类宽松许可发布）在构建时原样复制到后台静态目录（/_admin/excalidraw/），不改动、不单独再分发。

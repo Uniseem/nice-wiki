@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 72 个：手写 52、UI 4、生成 5、配置 10、迁移 1。函数 86 个：约束 33，参考 53。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 64 个：手写 52、UI 1、生成 4、配置 6、迁移 1。函数 79 个：约束 33，参考 46。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -40,9 +40,6 @@
 | `modules/public-site/internal/snapshot.go` | 手写 | 创建本域一致快照；同文件职责限本域以下登记函数 | `public-site.CreateSnapshot` |
 | `modules/public-site/internal/import.go` | 手写 | 验证待恢复快照；同文件职责限本域以下登记函数 | `public-site.StageSnapshot`、`public-site.DiscardSnapshot` |
 | `modules/public-site/internal/barrier.go` | 手写 | 公开渲染域进入安全屏障；同文件职责限本域以下登记函数 | `public-site.EnterBarrier`、`public-site.ReleaseBarrier` |
-| `modules/public-site/web/src/PreviewPanel.vue` | UI | Vue3模块交互：LoadPreview；同文件职责限本域以下登记函数 | `public-site.LoadPreview`（参考）、`public-site.load`（参考） |
-| `modules/public-site/web/src/PublicSettingsPanel.vue` | UI | Vue3模块交互：LoadPublicCapabilities；同文件职责限本域以下登记函数 | `public-site.LoadPublicCapabilities`（参考） |
-| `modules/public-site/web/src/client.ts` | UI | Vue3模块交互：RequestPublicNavigation；同文件职责限本域以下登记函数 | `public-site.RequestPublicNavigation`（参考）、`public-site.sameOriginURL`（参考）、`public-site.responseProblem`（参考）、`public-site.requestPreview`（参考） |
 | `modules/public-site/internal/http_root.go` | 手写 | 根语言选择HTTP；同文件职责限本域以下登记函数 | `public-site.HandleRootRedirect` |
 | `modules/public-site/internal/tiptap.go` | 手写 | 校验权威Tiptap渲染输入；同文件职责限本域以下登记函数 | `public-site.ParseTiptapDocument`（参考）、`public-site.attrString`（参考）、`public-site.attrInt`（参考）、`public-site.nodeText`（参考）、`public-site.assetFrom`（参考） |
 | `modules/public-site/internal/tiptap_html.go` | 手写 | 按节点输出完整HTML；同文件职责限本域以下登记函数 | `public-site.RenderTiptapHTML`（参考） |
@@ -65,12 +62,6 @@
 | `modules/public-site/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/public-site；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
 | `modules/public-site/Makefile` | 配置 | generate校验并生成合同绑定；build执行go build ./cmd/public-site与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例 | 无 |
 | `modules/public-site/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
-| `modules/public-site/web/package.json` | 配置 | 该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务 | 无 |
-| `modules/public-site/web/pnpm-lock.yaml` | 生成 | 由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest | 无 |
-| `modules/public-site/web/vite.config.ts` | 配置 | 该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token | 无 |
-| `modules/public-site/web/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
-| `modules/public-site/web/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
-| `modules/public-site/web/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `public-site.mountModuleUI` |
 | `modules/public-site/internal/events/consume.go` | 手写 | 公开投影持久事件消费和恢复预热，不能改变内容权威 | `public-site.ConsumeEvents` |
 | `modules/public-site/internal/worker.go` | 手写 | 主动领取本域持久任务的循环 | `public-site.RunWorker` |
 | `modules/public-site/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
@@ -78,3 +69,4 @@
 | `modules/public-site/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
 | `modules/public-site/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/public-site/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `public-site.ReadSnapshotArchive` |
+| `modules/public-site/web/src/site.tsx` | UI | 公开页交互岛：一个 React 根通过 portal 接管页头操作（问答、语言、明暗）、窄屏文档树抽屉与问答区；另附代码复制、目录高亮、公式、访问信标等增强 | `public-site.Islands` |

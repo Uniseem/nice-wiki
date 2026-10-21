@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 93 个：手写 71、UI 3、生成 5、配置 10、迁移 4。函数 274 个：约束 43，参考 231。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 85 个：手写 70、UI 1、生成 4、配置 6、迁移 4。函数 248 个：约束 43，参考 205。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -29,8 +29,6 @@
 | `modules/model-gateway/internal/admin/read.go` | 手写 | 真实安全目录读取与费用策略；账本/价格及space/最近探测分支按台账未完成。 | `model-gateway.GetLedger`、`model-gateway.GetPriceBook`、`model-gateway.ReadModels`、`model-gateway.ReadProfiles`、`model-gateway.ReadFeeBudgetPolicy`、`model-gateway.PutFeeBudgetPolicy`、`model-gateway.ReadAdminCatalog`、`model-gateway.requireCatalogReader`（参考）、`model-gateway.beginAdminSnapshot`（参考）、`model-gateway.readCatalogModels`（参考）、`model-gateway.readCatalogProfiles`（参考）、`model-gateway.readCatalogProviders`（参考）、`model-gateway.readCatalogAssignments`（参考）、`model-gateway.requireFeePolicyActor`（参考）、`model-gateway.readFeePolicy`（参考）、`model-gateway.readFeePolicyReceipt`（参考）、`model-gateway.adminStorageError`（参考）、`model-gateway.NewAdminHandlers`（参考） |
 | `modules/model-gateway/internal/admin/usage.go` | 手写 | 跨服务读取权威费用状态所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.QueryUsage`、`model-gateway.ledgerRuntime`（参考）、`model-gateway.validateLedgerCoverage`（参考）、`model-gateway.readLedgerRevision`（参考）、`model-gateway.readLedgerMetadata`（参考）、`model-gateway.readLedgerEntries`（参考）、`model-gateway.readLedgerPage`（参考）、`model-gateway.readRootMetadata`（参考）、`model-gateway.sumLedgerMoney`（参考）、`model-gateway.NewLedgerHandlers`（参考） |
 | `modules/model-gateway/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.AcquireBarrier`、`model-gateway.ReleaseBarrier`、`model-gateway.ExportSnapshot`、`model-gateway.StageSnapshot`、`model-gateway.DiscardSnapshot` |
-| `modules/model-gateway/ui/src/views/OverviewView.vue` | UI | 加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `model-gateway.LoadAdminOverview`（参考）、`model-gateway.clearSensitive`（参考）、`model-gateway.failure`（参考）、`model-gateway.micros`（参考）、`model-gateway.dollars`（参考）、`model-gateway.decimal`（参考）、`model-gateway.write`（参考）、`model-gateway.perform`（参考）、`model-gateway.reload`（参考）、`model-gateway.editModel`（参考）、`model-gateway.saveModel`（参考）、`model-gateway.editProfile`（参考）、`model-gateway.moveModel`（参考）、`model-gateway.saveProfile`（参考）、`model-gateway.editTask`（参考）、`model-gateway.saveTask`（参考）、`model-gateway.savePolicy`（参考）、`model-gateway.saveCredential`（参考）、`model-gateway.refreshCatalog`（参考）、`model-gateway.loadLedger`（参考）、`model-gateway.pollProbe`（参考）、`model-gateway.runProbe`（参考）、`model-gateway.stop`（参考） |
-| `modules/model-gateway/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `model-gateway.SubmitPrimaryEdit`（参考）、`model-gateway.clearSecrets`（参考）、`model-gateway.save`（参考） |
 | `modules/model-gateway/internal/catalog/task.go` | 手写 | 任务分配配置读写与QA免费可用性读取；真实本域SQL、权限、CAS、回执和平台outbox，不调用供应方。 | `model-gateway.PutTaskAssignment`、`model-gateway.ReadTaskAssignments`、`model-gateway.ReadTaskAvailability`、`model-gateway.beginAvailabilitySnapshot`（参考）、`model-gateway.readAvailabilityTask`（参考）、`model-gateway.readAvailabilityCandidate`（参考）、`model-gateway.availabilityReadError`（参考）、`model-gateway.NewTaskAvailabilityHandlers`（参考）、`model-gateway.readTaskAssignmentReceipt`（参考）、`model-gateway.validateTaskOverride`（参考） |
 | `modules/model-gateway/internal/catalog/refresh.go` | 手写 | 刷新公开模型目录所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RefreshModelCatalog`、`model-gateway.DownloadModelCatalog`（参考）、`model-gateway.NormalizeModelCatalog`（参考）、`model-gateway.ApplyCatalogSnapshot`（参考）、`model-gateway.SaveCatalogPrice`（参考）、`model-gateway.NewCatalogRefreshHandlers`（参考）、`model-gateway.ReadCatalogSource`（参考） |
 | `modules/model-gateway/internal/admin/probe.go` | 手写 | 显式测试连接所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CreateConnectionProbe`、`model-gateway.ReadLatestProbes`（参考）、`model-gateway.FeeProbeLimit`（参考） |
@@ -49,16 +47,10 @@
 | `modules/model-gateway/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/model-gateway；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
 | `modules/model-gateway/Makefile` | 配置 | generate校验并生成合同绑定；build执行go build ./cmd/model-gateway与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例 | 无 |
 | `modules/model-gateway/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
-| `modules/model-gateway/ui/package.json` | 配置 | 该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务 | 无 |
-| `modules/model-gateway/ui/pnpm-lock.yaml` | 生成 | 由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest | 无 |
-| `modules/model-gateway/ui/vite.config.ts` | 配置 | 该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token | 无 |
-| `modules/model-gateway/ui/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
-| `modules/model-gateway/ui/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
-| `modules/model-gateway/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `model-gateway.mountModuleUI` |
 | `modules/model-gateway/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/model-gateway/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改；同时从根AI任务目录生成AITaskCatalog owner/defaultTier/RequiredCapabilities，禁止手抄或运行时跨域读源文件 | 无 |
 | `modules/model-gateway/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
-| `modules/model-gateway/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
+| `modules/model-gateway/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/model-gateway/migrations/002_task_availability.sql` | 迁移 | 只追加任务分配、完整QA/后台档位字段与AES-GCM凭据持久schema；无默认种子、无费用变更；凭据读取仅存在性和长度。 | 无 |
 | `modules/model-gateway/migrations/003_fee_budget_policy.sql` | 手写 | 只追加费用策略单例和本地脱敏审计，无金额默认或探测种子，随active快照恢复。 | 无 |
 | `modules/model-gateway/migrations/004_price_book.sql` | 迁移 | 只追加不可变人工价目历史，无价格种子、目录来源伪造或费用状态。 | 无 |
@@ -80,7 +72,6 @@
 | `modules/model-gateway/internal/runtime/retirement.go` | 手写 | 按全部费用和原引用证明销毁退休密文，保留审计 | `model-gateway.DestroyRetiredSecrets`（参考） |
 | `modules/model-gateway/internal/runtime/relay.go` | 手写 | 复用平台私有outbox真实relay | `model-gateway.RelayOutbox`（参考） |
 | `modules/model-gateway/migrations/009_retired_secrets.sql` | 手写 | schema9退休材料版本审计与header墓碑 | 无 |
-| `modules/model-gateway/ui/src/vue.d.ts` | 手写 | Vue组件编译类型声明 | 无 |
 | `modules/model-gateway/migrations/010_model_catalog.sql` | 手写 | 明确源身份的公开目录实际更新，manualOverride优先，不猜接口/凭据/空间。 | 无 |
 | `modules/model-gateway/internal/invocation/lookup.go` | 手写 | 原完整请求纯读查找与完整tracking证明 | `model-gateway.RequireInvocationLookupTracking`（参考）、`model-gateway.LookupInvocation` |
 | `modules/model-gateway/migrations/011_invocation_lookup.sql` | 手写 | 创建键投影及不自动生产的tracking来源 | 无 |
@@ -99,3 +90,4 @@
 | `modules/model-gateway/migrations/015_snapshot_watermark.sql` | 手写 | 真实首次创建来源/完整typed SQL快照与原费用target认证投影 | 无 |
 | `modules/model-gateway/migrations/016_usage_observations.sql` | 手写 | 真实安全ledger+invocation/attempt/reservation同一全局变化时间线上界及不可变观察闭包 | 无 |
 | `modules/model-gateway/internal/admin/observations.go` | 手写 | 无ledger调用/独立attempt/held安全完整观察，和posted共享时间线上界 | `model-gateway.ReadUsageObservation`（参考） |
+| `modules/model-gateway/web/src/index.tsx` | UI | 模型接入：供应方与密钥、模型、档位、任务分配，一键生成档位与分配 | `model-gateway.ModelsPage` |

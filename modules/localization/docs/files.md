@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 96 个：手写 76、UI 3、生成 5、配置 10、迁移 2。函数 164 个：约束 49，参考 115。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 89 个：手写 76、UI 1、生成 4、配置 6、迁移 2。函数 162 个：约束 49，参考 113。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -44,8 +44,6 @@
 | `modules/localization/internal/runtime/recovery.go` | 手写 | 恢复翻译任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RecoverTranslationLeases`（参考） |
 | `modules/localization/internal/events/outbox.go` | 手写 | 持久发布翻译事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.PublishOutbox` |
 | `modules/localization/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.AcquireBarrier`、`localization.ReleaseBarrier`、`localization.ExportSnapshot`、`localization.StageSnapshot`、`localization.DiscardSnapshot` |
-| `modules/localization/ui/src/views/OverviewView.vue` | UI | 加载本域后台概览所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `localization.LoadAdminOverview`（参考） |
-| `modules/localization/ui/src/views/EditView.vue` | UI | 提交本域明确人工修改所属未来实现文件；Vue3组合式界面，路由由portal装配。 | `localization.SubmitPrimaryEdit`（参考） |
 | `modules/localization/internal/translation/tm.go` | 手写 | 精确翻译记忆复用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReuseTranslationMemory`（参考）、`localization.ReuseInSnapshot`（参考） |
 | `modules/localization/internal/glossary/extract.go` | 手写 | 首次翻译直接抽取入术语表所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ExtractAutomaticGlossary`（参考） |
 | `modules/localization/internal/glossary/rollback.go` | 手写 | 整批撤销自动术语所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RollbackAutomaticGlossaryBatch` |
@@ -66,19 +64,13 @@
 | `modules/localization/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/localization；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
 | `modules/localization/Makefile` | 配置 | generate校验并生成合同绑定；build执行go build ./cmd/localization与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例 | 无 |
 | `modules/localization/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
-| `modules/localization/ui/package.json` | 配置 | 该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务 | 无 |
-| `modules/localization/ui/pnpm-lock.yaml` | 生成 | 由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest | 无 |
-| `modules/localization/ui/vite.config.ts` | 配置 | 该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token | 无 |
-| `modules/localization/ui/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
-| `modules/localization/ui/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
-| `modules/localization/ui/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `localization.mountModuleUI` |
 | `modules/localization/internal/events/subscription.go` | 手写 | 订阅并分派本域登记的跨域事件 | `localization.ConsumeEvents` |
 | `modules/localization/internal/runtime/model_client.go` | 手写 | 经模型网关执行一次调用并读取到终态 | `localization.InvokeModel`（参考）、`localization.ConfigureExecutionAdapters`（参考）、`localization.PublishBatch`（参考）、`localization.ConfigurePlanAdapters`（参考）、`localization.validatePlanPayload`（参考）、`localization.ResolvePlanTaskRoute`（参考）、`localization.EstimatePlanTextTokens`（参考）、`localization.QuotePlanCost`（参考）、`localization.CreatePlanJob`（参考） |
 | `modules/localization/internal/translation/language_plan.go` | 手写 | 增量规划与启用前免费估价、明确批准和持久任务意图 | `localization.EstimateLanguagePlan`、`localization.ApproveLanguagePlan`、`localization.estimateDocumentPlan`（参考）、`localization.readInterfacePlan`（参考）、`localization.conservativeOutputTokens`（参考）、`localization.combineLanguagePlanQuotes`（参考）、`localization.planRouteFromRuntime`（参考）、`localization.checkedInt`（参考）、`localization.saveLanguagePlan`（参考）、`localization.readPlanResult`（参考）、`localization.checkLanguagePlanForApproval`（参考）、`localization.selectApprovalOperation`（参考）、`localization.checkLanguagePlanRevisions`（参考）、`localization.loadLanguagePlan`（参考）、`localization.ensureLanguagePlanJobs`（参考）、`localization.ensureLanguagePlanJob`（参考）、`localization.loadLanguagePlanJobs`（参考）、`localization.samePlanDocuments`（参考）、`localization.samePlanRoute`（参考）、`localization.sameApprovalOperation`（参考）、`localization.planJobType`（参考）、`localization.planJobIdempotencyKey`（参考）、`localization.checkLanguagePlanLocalState`（参考） |
 | `modules/localization/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/localization/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/localization/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
-| `modules/localization/ui/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
+| `modules/localization/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/localization/internal/language/transaction.go` | 手写 | 本域术语或既有事务机制的实际参考级支持。 | `localization.ReadData`（参考）、`localization.Mutate`（参考）、`localization.RequireAdministrator`（参考）、`localization.EmitReference`（参考）、`localization.StorageError`（参考）、`localization.WriteData`（参考） |
 | `modules/localization/internal/glossary/http.go` | 手写 | 本域术语或既有事务机制的实际参考级支持。 | `localization.NewGlossaryHandlers`（参考）、`localization.glossaryJSON`（参考） |
 | `modules/localization/internal/glossary/change.go` | 手写 | 本域术语或既有事务机制的实际参考级支持。 | `localization.HandleGlossaryChange`（参考） |
@@ -102,3 +94,4 @@
 | `modules/localization/migrations/005_suggestion_policy.sql` | 手写 | 只追加付费建议当前指针与不可变审批历史，不种默认允许 | 无 |
 | `modules/localization/migrations/006_language_plan.sql` | 手写 | 只追加语言估价计划、发布revision快照、原批准scope与逐任务持久意图 | 无 |
 | `modules/localization/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `localization.ReadSnapshotArchive` |
+| `modules/localization/web/src/index.tsx` | UI | 多语言：添加/启用语言、自动翻译、界面文字翻译、文档译文进度与取消 | `localization.LanguagesPage` |

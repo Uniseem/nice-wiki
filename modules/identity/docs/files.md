@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 37 个：手写 22、生成 4、配置 6、迁移 5。函数 151 个：约束 30，参考 121。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 38 个：手写 22、UI 1、生成 4、配置 6、迁移 5。函数 152 个：约束 31，参考 121。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -43,3 +43,4 @@
 | `modules/identity/migrations/0004_private_operation_receipts.sql` | 迁移 | 追加私有口令操作HMAC keyId，不保存普通口令SHA或raw cookie | 无 |
 | `modules/identity/migrations/control/0001_bootstrap.sql` | 迁移 | 独立control schema1与不可逆bootstrap决定；不随active恢复替换 | 无 |
 | `modules/identity/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `identity.ReadSnapshotArchive`、`identity.validSuperadminDelegation`（参考） |
+| `modules/identity/web/src/index.tsx` | UI | 账号与权限：子账号的新建、功能权限、停用/恢复/删除、重置口令 | `identity.AccountsPage` |

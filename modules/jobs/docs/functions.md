@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 165 个函数：约束 35 个，参考 130 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 161 个函数：约束 35 个，参考 126 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -4720,171 +4720,6 @@ func DiscardSnapshot(ctx context.Context, op OperationContext, input SnapshotDis
 - 幂等：重复删除返回removed=false
 - 依赖：`site-config:readRuntimeState`、`platform.SnapshotManager.Discard`
 
-## jobs.RequestJobCancellation
-
-- 级别：参考
-- 文件：`modules/jobs/web/src/QueuePanel.vue`
-- 作用：Vue3模块交互：RequestJobCancellation
-
-```ts
-function RequestJobCancellation(input: RequestJobCancellationInput, signal: AbortSignal): Promise<RequestJobCancellationResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `RequestJobCancellationInput` | Vue3模块交互：RequestJobCancellation；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `RequestJobCancellationResult` | Vue3模块交互：RequestJobCancellation成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 提交取消操作并展示cancel-requested直到owner安全确认，不假设点击即完成
-2. 处理401重新登录、403清空敏感界面
-3. 按operationId重试不重复提交
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：job.manage；rule：job.manage
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：`jobs:cancelJob`
-- 其他依赖说明：jobs OpenAPI HTTP/JSON/SSE
-
-## jobs.SaveSchedule
-
-- 级别：参考
-- 文件：`modules/jobs/web/src/ScheduleEditor.vue`
-- 作用：Vue3模块交互：SaveSchedule
-
-```ts
-function SaveSchedule(input: SaveScheduleInput, signal: AbortSignal): Promise<SaveScheduleResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `SaveScheduleInput` | Vue3模块交互：SaveSchedule；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `SaveScheduleResult` | Vue3模块交互：SaveSchedule成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 提交cron/timezone CAS；展示生产方列表中的真实nextAt并解释漏tick合并，不在浏览器另造cron求值器或伪造未来5次时间
-2. 处理401重新登录、403清空敏感界面
-3. 按operationId重试不重复提交
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：job.manage；rule：job.manage
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：`jobs:listSchedules`、`jobs:updateSchedule`
-- 其他依赖说明：jobs OpenAPI HTTP/JSON/SSE
-
-## jobs.ConfigureProgressAPI
-
-- 级别：参考
-- 文件：`modules/jobs/web/src/progress.ts`
-- 作用：把portal同源API端口装配给进度重连函数
-
-```ts
-function ConfigureProgressAPI(client: ModuleAPIClient): void
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `client` | `ModuleAPIClient` | portal注入的同源API客户端 | 只存在于内存，不包含service token，不允许跨域URL或自定义认证头 |
-
-**输出**
-
-无
-
-**步骤**
-
-1. 仅保存platform.ModuleAPIClient；不发起请求、不持久化凭据
-
-**错误**
-
-- 无
-
-- 副作用：更新当前模块实例的API端口引用
-- 授权：permission：anonymous；rule：只装配调用端口；每个API请求仍由portal和应用服务鉴权
-- 并发：同一模块挂载共享一个同源端口
-- 幂等：重复配置同一能力幂等
-- 依赖：无
-
-## jobs.ReconnectProgress
-
-- 级别：参考
-- 文件：`modules/jobs/web/src/progress.ts`
-- 作用：Vue3模块交互：ReconnectProgress
-
-```ts
-function ReconnectProgress(input: ReconnectProgressInput, signal: AbortSignal, onEvent: ProgressListener): Promise<ReconnectProgressResult>
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `input` | `ReconnectProgressInput` | Vue3模块交互：ReconnectProgress；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
-| `signal` | `AbortSignal` | 界面导航及取消信号 | 取消后不更新已卸载组件 |
-| `onEvent` | `ProgressListener` | 按实际SSE序号逐条交付进度 | 只在当前挂载仍有效时更新界面 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ReconnectProgressResult` | Vue3模块交互：ReconnectProgress成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
-| `error` | `Problem` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
-
-**步骤**
-
-1. 每个通过jobId/seq/phase/计数校验并交付给界面的进度事件立即更新外层cursor；连接中途失败后必须从最后已接受seq重连，不能回到连接开始时的cursor
-2. cursor过期或NOT_FOUND时先只读当前job状态；终局追平EOF成功结束，非终局才允许从0重建进度。VERSION_MISMATCH立即停止旧流并失败，不进入退避重试
-3. 401/403原样交给QueuePanel统一fail清空敏感界面；普通断线按1/2/4/8/16秒退避，重连耗尽仍未终局时返回DEPENDENCY_UNAVAILABLE，不静默成功
-
-**错误**
-
-- `VERSION_MISMATCH` / HTTP 409：任务所属数据代次已变化，旧进度流不得继续（不可重试）
-- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `DEPENDENCY_UNAVAILABLE` / HTTP 503：DEPENDENCY_UNAVAILABLE：在步骤中的对应校验或依赖失败（可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-- `CONFLICT` / HTTP 409：CONFLICT：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
-
-- 副作用：更新组件本地状态；仅明确提交动作调用已授权API
-- 授权：permission：job.manage；rule：job.manage
-- 并发：组件AbortController取消旧请求；同组件同动作单飞
-- 幂等：mutation稳定operationId/query只读重复安全
-- 依赖：`jobs.ConfigureProgressAPI`、`jobs:readJob`、`jobs:streamProgress`
-- 其他依赖说明：jobs OpenAPI HTTP/JSON/SSE
-
 ## jobs.SubscribeEvents
 
 - 级别：约束
@@ -5576,44 +5411,6 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 - 幂等：GET只读重复安全
 - 依赖：无
 - 其他依赖说明：site-config.readRuntimeState（site-config本域自身读取）
-
-## jobs.mountModuleUI
-
-- 级别：约束
-- 文件：`modules/jobs/web/src/main.ts`
-- 作用：本域Vue3应用/岛的唯一UI构建入口
-
-```ts
-function mountModuleUI(rootElement: HTMLElement, bootstrap: ModuleUIBootstrap): void
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `rootElement` | `HTMLElement` | 已经存在的模块挂载节点 | DOM标准库；为空或不属于当前document拒绝 |
-| `bootstrap` | `ModuleUIBootstrap` | 已由portal/Go输出的安全启动元数据 | module固定本域，不含service凭证/secret |
-
-**输出**
-
-无
-
-**步骤**
-
-1. 校验rootElement、bootstrap.module/capabilities/apiClient；同DOM同buildRevision复用实例，否则先卸载旧实例并配置当前同源API端口
-2. 只挂载本域QueuePanel与ScheduleEditor；不增加通用任务创建、跨域选择器或任意ObjectRef输入表单
-3. unmount停止AbortController、进度SSE和listeners，不清理服务端记录
-
-**错误**
-
-- `VALIDATION` / HTTP 400：bootstrap不匹配本域或DOM无效（不可重试）
-
-- 副作用：挂载本域Vue组件和浏览器事件；不新建业务记录
-- 授权：permission：anonymous；rule：只挂载UI；业务mutation仍按各本域OpenAPI权限，不能以能力字段绕过权限
-- 并发：同DOM一个Vue实例，AbortController取消旧请求
-- 幂等：同DOM/buildRevision重复挂载复用实例
-- 依赖：`jobs.ConfigureProgressAPI`、`jobs.RequestJobCancellation`、`jobs.SaveSchedule`、`jobs.ReconnectProgress`
-- 其他依赖说明：本域已登记UI页面函数
 
 ## jobs.ListJobs
 
@@ -6521,3 +6318,36 @@ func NewOwnerRecoveryChecker(config platform.ServiceConfig,key platform.SigningK
 - 并发：沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定
 - 幂等：显式延迟属于去重材料，原成功不重新分配时刻
 - 依赖：`knowledge:readJobRecovery`、`site-config:readSiteConfig`、`platform.NewPayloadValidator`
+
+## jobs.JobsPage
+
+- 级别：约束
+- 文件：`modules/jobs/web/src/index.tsx`
+- 作用：任务队列：任务列表与详情（进度流断线重连）、死信投递重放、定时调度编辑
+
+```ts
+export default function JobsPage(): React.JSX.Element
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按状态与所属服务筛选任务
+2. 取消只记录意图，由任务所属服务确认安全终态
+
+**错误**
+
+- 无
+
+- 副作用：浏览器内调用同源版本化接口
+- 授权：页面可见性只是少展示；每个接口仍由服务端按当前授权校验
+- 并发：单页面实例；切换页面时取消未完成的读取
+- 幂等：写操作带 Idempotency-Key 与版本前提
+- 依赖：无

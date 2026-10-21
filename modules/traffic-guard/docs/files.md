@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 57 个：手写 36、UI 4、生成 5、配置 10、迁移 2。函数 97 个：约束 33，参考 64。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 49 个：手写 36、UI 1、生成 4、配置 6、迁移 2。函数 94 个：约束 33，参考 61。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -29,9 +29,6 @@
 | `modules/traffic-guard/internal/barrier.go` | 手写 | 停止准入并等安全点；同文件职责限本域以下登记函数 | `traffic-guard.EnterBarrier`、`traffic-guard.ReleaseBarrier` |
 | `modules/traffic-guard/internal/snapshot.go` | 手写 | 导出风控一致快照；同文件职责限本域以下登记函数 | `traffic-guard.CreateSnapshot` |
 | `modules/traffic-guard/internal/import.go` | 手写 | 校验恢复输入；同文件职责限本域以下登记函数 | `traffic-guard.StageSnapshot`、`traffic-guard.DiscardSnapshot` |
-| `modules/traffic-guard/web/src/PolicyEditor.vue` | UI | Vue3模块交互：SaveGuardPolicy；同文件职责限本域以下登记函数 | `traffic-guard.SaveGuardPolicy`（参考） |
-| `modules/traffic-guard/web/src/BanList.vue` | UI | Vue3模块交互：SubmitBan；同文件职责限本域以下登记函数 | `traffic-guard.SubmitBan`（参考） |
-| `modules/traffic-guard/web/src/client.ts` | UI | Vue3模块交互：RunPoWChallenge；同文件职责限本域以下登记函数 | `traffic-guard.RunPoWChallenge`（参考） |
 | `modules/traffic-guard/internal/question_signals.go` | 手写 | 接收qa已有检测信号；同文件职责限本域以下登记函数 | `traffic-guard.ReportQuestionSignals` |
 | `modules/traffic-guard/internal/session_queue.go` | 手写 | 每会话1并发其余排队；同文件职责限本域以下登记函数 | `traffic-guard.QueueSessionAdmission` |
 | `modules/traffic-guard/internal/admission_consumption.go` | 手写 | QA绑定准入使用权；同文件职责限本域以下登记函数 | `traffic-guard.ConsumeAdmission` |
@@ -47,12 +44,6 @@
 | `modules/traffic-guard/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/traffic-guard；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
 | `modules/traffic-guard/Makefile` | 配置 | generate校验并生成合同绑定；build执行go build ./cmd/traffic-guard与本域UI build；run传配置；verify核编译和合同引用。无共享业务启动器，不创建测试样例 | 无 |
 | `modules/traffic-guard/deploy/manifest.json` | 配置 | 唯一服务slug/image/command/http端口/本域data卷/外部secret refs/所需dependency endpoints/healthz-readyz探针；不塞真实主机凭证 | 无 |
-| `modules/traffic-guard/web/package.json` | 配置 | 该实际UI根独立pnpm scripts build/dev/typecheck；Vue3+TypeScript6.0.x+Vite及已登记组件依赖，不复制其他模块业务 | 无 |
-| `modules/traffic-guard/web/pnpm-lock.yaml` | 生成 | 由本UI package.json和pnpm解析生成的精确依赖锁；CI frozen-lockfile，不用浮动latest | 无 |
-| `modules/traffic-guard/web/vite.config.ts` | 配置 | 该UI根src入口与dist/hash资源输出，模块别名只到本域源码和公共UI资源；API经portal同源入口，不能嵌service token | 无 |
-| `modules/traffic-guard/web/tsconfig.json` | 配置 | 严格TypeScript6.0.x/Vue3 DOM配置，include现有src和vite配置，构建失败不发镜像 | 无 |
-| `modules/traffic-guard/web/index.html` | 配置 | 该UI独立dev/build入口，生产模块由portal或公开Go页面挂载，加载本域src/main.ts，无业务数据或secret | 无 |
-| `modules/traffic-guard/web/src/main.ts` | UI | 本实际UI根唯一Vue入口；仅装配已登记UI函数，不新增产品业务 | `traffic-guard.mountModuleUI` |
 | `modules/traffic-guard/internal/gen/openapi.gen.go` | 生成 | make gen由oapi-codegen从本域contracts/openapi.json（含types.json与公共schema引用）生成DTO与严格服务端接口；不手改 | 无 |
 | `modules/traffic-guard/internal/gen/clients.gen.go` | 生成 | make gen由oapi-codegen按本域dependencies中的生产方operation生成调用客户端，自动附platform服务断言；不手改 | 无 |
 | `modules/traffic-guard/internal/gen/oapi-codegen.yaml` | 配置 | oapi-codegen配置：输出包gen、strict-server、只生成本域与所需生产方operation | 无 |
@@ -63,3 +54,4 @@
 | `modules/traffic-guard/migrations/0003_guard_runtime.sql` | 手写 | 只追加匿名作用域、桶、租约、挑战、禁令与安全回执；不持久token/原IP/正文 | 无 |
 | `modules/traffic-guard/internal/http_management.go` | 手写 | 只供统一服务边界绑定已完成管理/匿名信号API；内部marker复用该次即时授权 | `traffic-guard.NewGuardHandlers`（参考） |
 | `modules/traffic-guard/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `traffic-guard.ReadSnapshotArchive` |
+| `modules/traffic-guard/web/src/index.tsx` | UI | 防滥用：访客提问准入策略、禁令、可疑事件与一键封禁 | `traffic-guard.GuardPage` |

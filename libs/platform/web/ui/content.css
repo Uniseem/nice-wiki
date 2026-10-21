@@ -1,0 +1,75 @@
+/* 文档正文排版：后台编辑器与公开页共用，颜色全部取 HeroUI 主题变量，明暗自动适配。 */
+
+@layer components {
+  .nw-prose {
+    @apply text-[15.5px] leading-7 text-foreground;
+    overflow-wrap: anywhere;
+  }
+
+  .nw-prose > :first-child { margin-top: 0; }
+  .nw-prose > :last-child { margin-bottom: 0; }
+
+  .nw-prose h1 { @apply mt-10 mb-4 text-3xl font-semibold tracking-tight; }
+  .nw-prose h2 { @apply mt-12 mb-4 border-b border-separator pb-2 text-2xl font-semibold tracking-tight; }
+  .nw-prose h3 { @apply mt-9 mb-3 text-xl font-semibold tracking-tight; }
+  .nw-prose h4 { @apply mt-7 mb-2 text-lg font-semibold; }
+  .nw-prose :is(h1, h2, h3, h4) { scroll-margin-top: 5.5rem; }
+  .nw-prose p { @apply my-4; }
+  .nw-prose a { @apply font-medium text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:decoration-accent; }
+  .nw-prose strong { @apply font-semibold; }
+  .nw-prose mark { @apply rounded-sm bg-warning-soft px-0.5 text-foreground; }
+  .nw-prose :not(pre) > code { @apply rounded-md bg-default px-1.5 py-0.5 font-mono text-[0.86em]; }
+  .nw-prose pre { @apply my-5 overflow-x-auto rounded-xl border border-border bg-surface-secondary p-4 font-mono text-[13.5px] leading-6; }
+  .nw-prose pre code { @apply bg-transparent p-0; }
+  .nw-prose blockquote { @apply my-5 border-s-4 border-border ps-4 text-muted; }
+  .nw-prose ul { @apply my-4 list-disc ps-6; }
+  .nw-prose ol { @apply my-4 list-decimal ps-6; }
+  .nw-prose li { @apply my-1.5 ps-1; }
+  .nw-prose li > p { @apply my-1; }
+  .nw-prose li::marker { @apply text-muted; }
+  .nw-prose :is(ul.task-list, ul[data-type="taskList"]) { @apply list-none ps-1; }
+  .nw-prose :is(ul.task-list, ul[data-type="taskList"]) > li { @apply flex items-start gap-2 ps-0; }
+  .nw-prose :is(ul.task-list, ul[data-type="taskList"]) > li > :is(label, input) { @apply mt-1.5 shrink-0; }
+  .nw-prose :is(ul.task-list, ul[data-type="taskList"]) > li > :is(div, p) { @apply my-0 min-w-0 flex-1; }
+  .nw-prose input[type="checkbox"] { @apply size-4 accent-[var(--accent)]; }
+  .nw-prose hr { @apply my-10 border-separator; }
+  .nw-prose :is(img, video) { @apply h-auto max-w-full rounded-xl; }
+  .nw-prose figure { @apply my-6; }
+  .nw-prose figcaption { @apply mt-2 text-center text-sm text-muted; }
+  .nw-prose .table-wrap { @apply my-5 overflow-x-auto rounded-xl border border-border; }
+  .nw-prose table { @apply w-full border-collapse text-sm; }
+  .nw-prose :not(.table-wrap) > table { @apply my-5; }
+  .nw-prose :is(th, td) { @apply border-b border-e border-border px-3 py-2 text-start align-top; }
+  .nw-prose :is(th, td):last-child { @apply border-e-0; }
+  .nw-prose tr:last-child > :is(th, td) { @apply border-b-0; }
+  .nw-prose th { @apply bg-surface-secondary font-semibold; }
+  .nw-prose :is(th, td) > p { @apply my-0; }
+
+  .nw-prose .callout { @apply my-5 rounded-xl border border-accent/25 bg-accent-soft px-4 py-3; }
+  .nw-prose .callout > :first-child { @apply mt-0; }
+  .nw-prose .callout > :last-child { @apply mb-0; }
+  .nw-prose .callout.warning { @apply border-warning/30 bg-warning-soft; }
+  .nw-prose .callout.danger { @apply border-danger/30 bg-danger-soft; }
+  .nw-prose .callout.tip { @apply border-success/30 bg-success-soft; }
+
+  .nw-prose .columns { @apply my-5 grid gap-6; }
+  .nw-prose .column > :first-child { @apply mt-0; }
+  .nw-prose .column > :last-child { @apply mb-0; }
+
+  .nw-prose .code-block { @apply relative my-5; }
+  .nw-prose .code-block pre { @apply my-0; }
+  .nw-prose :is(.math-source, .math-block) { @apply my-5 overflow-x-auto py-1 text-center; }
+  .nw-prose span.math-source { @apply my-0 inline py-0; }
+  .nw-prose .attachment { @apply inline-flex max-w-full items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-sm font-medium text-foreground no-underline shadow-surface transition-colors hover:bg-surface-secondary; }
+  .nw-prose .media-unavailable { @apply my-5 flex items-center justify-center rounded-xl border border-dashed border-border bg-surface-secondary p-6 text-sm text-muted; }
+  .nw-prose .link-unavailable { @apply text-muted line-through; }
+  .nw-prose .platform-video { @apply my-6 overflow-hidden rounded-xl border border-border bg-surface; }
+  .nw-prose .platform-video :is(iframe) { @apply aspect-video h-auto w-full; }
+
+  /* 画板：浅色与深色两张 SVG，跟随页面主题而不是系统主题。 */
+  .nw-prose .drawing-dark { @apply hidden; }
+  .dark .nw-prose .drawing-dark { @apply block; }
+  .dark .nw-prose .drawing-light { @apply hidden; }
+  .nw-prose .drawing { @apply rounded-xl border border-border bg-white; }
+  .dark .nw-prose .drawing-dark.drawing { @apply bg-[#121212]; }
+}
