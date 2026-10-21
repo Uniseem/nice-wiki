@@ -154,10 +154,13 @@ function languageHint(config: Config) {
     const bar = document.createElement('div');
     bar.setAttribute('role', 'note');
     bar.className = 'flex items-center justify-center gap-3 border-b border-separator bg-surface-secondary px-4 py-2 text-sm';
+    // 用目标语言自己的写法显示语言名，偏好该语言的访客一眼能认出来。
     const link = document.createElement('a');
     link.href = hit.href;
-    link.className = 'link';
-    link.textContent = `🌐 ${name}`;
+    link.lang = hit.tag;
+    link.className = 'inline-flex items-center gap-1.5 font-medium text-accent hover:underline';
+    link.innerHTML = '<svg aria-hidden="true" class="size-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>';
+    link.append(`${name} →`);
     const close = document.createElement('button');
     close.type = 'button';
     close.className = 'button button--ghost button--sm button--icon-only';

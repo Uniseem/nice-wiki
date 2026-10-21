@@ -2,7 +2,7 @@ import { Brush, File as FileIcon, Link as LinkIcon, Picture, TrashBin, Video } f
 import { Button, Checkbox, Chip, Drawer, Table, Tabs } from '@heroui/react';
 import type { Selection } from '@heroui/react';
 import { api, assetURL, confirmAction, Details, EmptyBlock, ErrorBlock, fmtBytes, fmtDateTime, LoadingBlock, Mono, navigate, notify, Notice, PageHeader, Panel, SelectInput, useAction } from '@ui';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 
 type AssetRef = { assetId: string; version: number; sha256: string; mediaType: string; byteSize: number };
 type Asset = { ref: AssetRef; kind: string; originalName: string; createdAt: string; state: string };
@@ -181,18 +181,15 @@ export default function LibraryPage() {
               <Drawer.CloseTrigger />
               <Drawer.Header><Drawer.Heading className="truncate">“{refs.asset.originalName}”的引用</Drawer.Heading></Drawer.Header>
               <Drawer.Body className="flex flex-col gap-5">
-                <Details items={[['当前引用', `${refs.snapshot.currentReferences.length} 处`], ['历史版本引用', `${refs.snapshot.historyReferences.length} 处`]]} />
                 {[['当前引用', refs.snapshot.currentReferences], ['历史版本引用', refs.snapshot.historyReferences]].map(([label, list]) => (
                   <div key={label as string} className="flex flex-col gap-2">
                     <span className="text-sm font-medium text-foreground">{label as string}</span>
                     {!(list as Reference[]).length ? <span className="text-sm text-muted">无</span> : (
                       <ul className="flex flex-col gap-1.5">
-                        {(list as Reference[]).map((ref) => (
-                          <li key={ref.sourceRevisionId + (ref.documentId ?? ref.sourceObjectId)} className="flex items-center justify-between gap-2 rounded-lg bg-surface-secondary px-3 py-2 text-sm">
-                            {ref.documentId && refs.titles.has(ref.documentId)
-                              ? <a className="truncate text-accent hover:underline" href={`/admin/content?doc=${ref.documentId}`} onClick={(event) => { event.preventDefault(); navigate(`/admin/content?doc=${ref.documentId}`); }}>{refs.titles.get(ref.documentId)}</a>
-                              : <span className="truncate">{ref.documentId ? '文档' : '对象'} <Mono>{ref.documentId ?? ref.sourceObjectId}</Mono></span>}
-                            <Chip size="sm" variant="soft">{sources[ref.sourceService] ?? ref.sourceService}</Chip>
+                        {bySource(list as Reference[]).map(({ ref, count }) => (
+                          <li key={ref.sourceService + (ref.documentId ?? ref.sourceObjectId)} className="flex items-center justify-between gap-2 rounded-lg bg-surface-secondary px-3 py-2 text-sm">
+                            <SourceLink reference={ref} titles={refs.titles} />
+                            {count > 1 && <span className="shrink-0 text-xs text-muted">{count} 个版本</span>}
                           </li>
                         ))}
                       </ul>
@@ -206,4 +203,29 @@ export default function LibraryPage() {
       )}
     </div>
   );
+}
+
+// 同一来源（文档或站点设置对象）的多个版本合并成一行。
+function bySource(list: Reference[]) {
+  const groups = new Map<string, { ref: Reference; count: number }>();
+  for (const ref of list) {
+    const key = ref.sourceService + (ref.documentId ?? ref.sourceObjectId);
+    const group = groups.get(key);
+    if (group) group.count++;
+    else groups.set(key, { ref, count: 1 });
+  }
+  return [...groups.values()];
+}
+
+function SourceLink({ reference, titles }: { reference: Reference; titles: Map<string, string> }) {
+  const go = (path: string) => (event: MouseEvent) => { event.preventDefault(); navigate(path); };
+  if (reference.documentId) {
+    const path = `/admin/content?doc=${reference.documentId}`;
+    const title = titles.get(reference.documentId);
+    return title
+      ? <a className="truncate text-accent hover:underline" href={path} onClick={go(path)}>{title}</a>
+      : <span className="truncate">文档 <Mono>{reference.documentId}</Mono></span>;
+  }
+  if (reference.sourceService === 'site-config') return <a className="truncate text-accent hover:underline" href="/admin/site" onClick={go('/admin/site')}>站点设置（品牌图片、首页或页脚）</a>;
+  return <span className="truncate">{sources[reference.sourceService] ?? reference.sourceService} <Mono>{reference.sourceObjectId}</Mono></span>;
 }

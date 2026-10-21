@@ -162,6 +162,8 @@ func ReadTranslation(ctx context.Context, op OperationContext, input ReadTransla
 				if chosen.SourceHash != candidate.SourceHash {
 					chosen.Status = "review"
 				}
+				// 沿用旧发布修订的译文时按本次请求的发布交付：新译文生成前继续显示旧译文。
+				chosen.Document = input.Document
 				result.Units = append(result.Units, chosen)
 				result.Translation.Completed++
 				continue

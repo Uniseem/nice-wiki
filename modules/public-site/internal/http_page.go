@@ -343,6 +343,7 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		Previous:      previous,
 		Next:          next,
 		Languages:     languages,
+		Untranslated:  len(bundle.UntranslatedBlockIDs) > 0,
 		AIEnabled:     qaAvailable(ctx, op),
 		AskURL:        "/" + locale + "/ask",
 		UIStrings:     loadUIStrings(ctx, locale),
