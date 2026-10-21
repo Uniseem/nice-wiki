@@ -2,13 +2,13 @@ import type { ModuleAPIClient } from '../../../../libs/platform/web/module-api';
 
 export interface StatisticRow { periodStart: string; documentId: string; locale: string; views: number; visits: number }
 export interface PageStatistics { rows: StatisticRow[]; watermark: number; dropCount: number; granularity: string; fromUTC: string; toUTC: string }
-export interface UsageStatistics { amountMicros: number; entries: { ledgerEntryId: string; ledgerRevision: number; operationId: string; costClass: string; amount: { currency: string; micros: number }; state: string; occurredAt: string }[]; watermark: number; lastReconciledAt: string }
 export interface AuditResult { auditJSON: { auditId: string; action: string; actorId: string; resourceId: string; resultCode: string; occurredAt: string; hash: string; previousHash: string; [key: string]: unknown }; chainValid: boolean }
 export interface LoadStatisticsInput { from: string; to: string }
-export interface LoadStatisticsResult { rows: StatisticRow[]; watermark: number; dropCount: number; fromUTC: string; toUTC: string; usage?: UsageStatistics; usageProblem?: string }
+export interface LoadStatisticsResult { rows: StatisticRow[]; watermark: number; dropCount: number; fromUTC: string; toUTC: string }
 export interface LoadAuditPageInput { cursor: string; limit: number; action?: string; from?: string; to?: string }
 export interface LoadAuditPageResult { auditIds: string[]; nextCursor: string }
-export type ExportKind = 'pages' | 'usage' | 'audits';
+// 计费暂停期间不导出费用。
+export type ExportKind = 'pages' | 'audits';
 export interface ExportResult { exportId: string; kind: ExportKind; expiresAt: string; watermark: number; objectRef: { byteSize: number; sha256: string } }
 export interface DownloadAuthorizedExportInput { exportId: string; kind?: ExportKind }
 export interface DownloadAuthorizedExportResult { downloaded: boolean }
@@ -23,7 +23,6 @@ export interface AnalyticsClient {
 export function problemCode(error: unknown): string { const candidate = error as { code?: unknown; problem?: { code?: unknown } }; const code = candidate?.code ?? candidate?.problem?.code; return typeof code === 'string' && /^[A-Z_]{1,64}$/.test(code) ? code : 'DEPENDENCY_UNAVAILABLE'; }
 export function isAccessFailure(error: unknown): boolean { const code = problemCode(error); return code === 'UNAUTHENTICATED' || code === 'FORBIDDEN'; }
 export function problemText(error: unknown): string { switch (problemCode(error)) { case 'UNAUTHENTICATED': return '登录已失效，请重新登录。'; case 'FORBIDDEN': return '当前权限不足，已清空已加载内容。'; case 'STALE_RESULT': case 'VERSION_MISMATCH': return '数据或权限版本已变化，请重新载入。'; case 'GONE': return '导出已过期，请重新创建。'; case 'VALIDATION': return '请检查类型、日期与完整时间边界。'; case 'BUDGET_EXCEEDED': return '结果超过预算，请缩小日期范围。'; case 'INTEGRITY_ERROR': return '完整性校验未通过，未提供下载。'; default: return '当前能力暂不可用，请稍后重试。'; } }
-export function moneyText(micros: number): string { const value = BigInt(micros); return `${value / 1000000n}.${(value % 1000000n).toString().padStart(6, '0')} USD`; }
 export function utcInput(value: string): string { const date = new Date(`${value}Z`); if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 16) !== value) throw { code: 'VALIDATION' }; return date.toISOString(); }
 
 // 每个挂载实例持有自己的同源端口与真实导出kind；不保存凭据或猜测缺失kind。
@@ -31,11 +30,10 @@ export function createAnalyticsClient(api: ModuleAPIClient): AnalyticsClient {
   const exportKinds = new Map<string, ExportKind>();
   async function LoadStatistics(input: LoadStatisticsInput, signal: AbortSignal): Promise<LoadStatisticsResult> {
     const query = new URLSearchParams({ from: input.from, to: input.to, granularity: 'hour' });
-    const [pages, usage] = await Promise.allSettled([api.request<PageStatistics>(`/v1/statistics/pages?${query}`, { signal }), api.request<UsageStatistics>(`/v1/statistics/usage?${new URLSearchParams({ from: input.from, to: input.to })}`, { signal })]);
+    // 计费暂停：只读访问统计，不再读模型费用投影。
+    const pages = await api.request<PageStatistics>(`/v1/statistics/pages?${query}`, { signal });
     if (signal.aborted) throw new DOMException('已取消', 'AbortError');
-    if (pages.status === 'rejected') throw pages.reason;
-    if (usage.status === 'rejected' && isAccessFailure(usage.reason)) throw usage.reason;
-    return { rows: pages.value.rows, watermark: pages.value.watermark, dropCount: pages.value.dropCount, fromUTC: pages.value.fromUTC, toUTC: pages.value.toUTC, ...(usage.status === 'fulfilled' ? { usage: usage.value } : { usageProblem: problemCode(usage.reason) }) };
+    return { rows: pages.rows, watermark: pages.watermark, dropCount: pages.dropCount, fromUTC: pages.fromUTC, toUTC: pages.toUTC };
   }
   async function LoadAuditPage(input: LoadAuditPageInput, signal: AbortSignal): Promise<LoadAuditPageResult> {
     const query = new URLSearchParams({ limit: String(input.limit) }); if (input.cursor) query.set('cursor', input.cursor); if (input.action) query.set('action', input.action); if (input.from) query.set('from', input.from); if (input.to) query.set('to', input.to);

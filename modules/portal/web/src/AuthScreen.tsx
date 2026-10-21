@@ -70,7 +70,7 @@ export function AuthScreen({ onSignedIn }: { onSignedIn: (account: Account) => P
     loading: ['', ''],
     register: ['创建管理员账号', '这是站点的第一个账号，将成为唯一的超级管理员。'],
     login: ['登录后台', '使用管理员分配的账号和口令登录。'],
-    site: ['初始化站点', '给站点起个名字，并选择文档的基准语言。初始化不调用模型，不产生费用。'],
+    site: ['初始化站点', '给站点起个名字，并选择文档的基准语言。初始化不调用模型。'],
   };
 
   return (

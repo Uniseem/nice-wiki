@@ -79,6 +79,9 @@ func ReadReservation(tx *gatewayruntime.ExecutionTransaction, id string) (gen.Re
 
 // CheckFeeBudgets 必须在调用方短写事务内执行，所有held含旧日未知继续占同scope。
 func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, additional *gen.Money, now time.Time) error {
+	if !platform.BillingEnabled {
+		return nil
+	}
 	profile := record.Profile
 	if profile.MaximumCost.Micros > 0 {
 		if additional == nil {

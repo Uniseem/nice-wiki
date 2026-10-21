@@ -50,6 +50,10 @@ const (
 	CostClassAdminProbe = "admin-probe"
 )
 
+// BillingEnabled 全站计费开关。目前暂停计费：模型网关不按价目和费用上限拦截调用，
+// 知识库不再以“原调用费用已终局”为前提阻止重做；账本仍照常记录，恢复时改回 true。
+const BillingEnabled = false
+
 // ErrorCode 与 contracts/errors.json 登记的错误码一致。
 const (
 	CodeValidation            = "VALIDATION"

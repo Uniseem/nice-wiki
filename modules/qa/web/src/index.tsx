@@ -1,7 +1,7 @@
 import { Comments, PaperPlane, Star } from '@gravity-ui/icons';
 import { Button, Chip, Form, Modal, Spinner, Table, Tabs } from '@heroui/react';
 import {
-  api, confirmAction, EmptyBlock, ErrorBlock, errorText, fmtDateTime, fmtRelative, FormGrid, LoadingBlock, newKey, Notice, NumberInput, PageHeader, Panel, SwitchInput, TextAreaInput, TextInput,
+  api, confirmAction, EmptyBlock, ErrorBlock, errorText, fmtDateTime, fmtRelative, FormGrid, LoadingBlock, newKey, Notice, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, TextAreaInput, TextInput,
   useAction, useHasGrant, useLoad,
 } from '@ui';
 import { useEffect, useState } from 'react';
@@ -25,6 +25,20 @@ const numbers: Record<string, string> = {
   semanticThreshold: '语义相似阈值（0–1）',
 };
 const texts: Record<string, string> = { profileId: '答案模型档位', semanticMode: '语义判定方式' };
+const semanticModes = [{ value: 'ai_equivalence', label: '由 AI 判断是否同一问题' }, { value: 'threshold', label: '按语义相似阈值' }];
+type ProfileOption = { profileId: string; costClass: string; tier: string };
+const chatTiers: Record<string, string> = { fast: '快速', accurate: '准确' };
+// 模型目录需要“模型接入”权限；读不到时档位退回手填。
+const useProfiles = () => useLoad((signal) => api<{ profiles: ProfileOption[] }>('/v1/admin/catalog', { signal }).then((result) => result.profiles).catch(() => null), []);
+
+function ProfileField({ label, description, costClass, profiles, value, onChange }: {
+  label: string; description?: string; costClass: string; profiles: ProfileOption[] | null | undefined; value: string; onChange: (value: string) => void;
+}) {
+  const options = (profiles ?? []).filter((profile) => profile.costClass === costClass && chatTiers[profile.tier]).map((profile) => ({ value: profile.profileId, label: `${profile.profileId}（${chatTiers[profile.tier]}）` }));
+  if (!options.length) return <TextInput isRequired description={description} label={label} value={value} onChange={onChange} />;
+  if (value && !options.some((option) => option.value === value)) options.unshift({ value, label: `${value}（模型接入里没有这个档位）` });
+  return <SelectInput description={description} label={label} options={options} value={value} onChange={onChange} />;
+}
 const hidden = new Set(['version', 'retrievalSpace']);
 const answerKinds: Record<string, string> = { answered: '已回答', refused: '拒答', cached: '缓存命中', no_evidence: '无依据', failed: '失败', cancelled: '已取消' };
 
@@ -34,7 +48,7 @@ export default function QaPage() {
   const [tab, setTab] = useState(canManage ? 'policy' : 'debug');
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="问答" description="访客问答的开关、额度与缓存。每次回答都会调用模型并产生费用；开启前请先配好“模型接入”“知识索引”和“防滥用”。" />
+      <PageHeader title="问答" description="访客问答的开关、额度与缓存。每次回答都会调用模型；开启前请先配好“模型接入”“知识索引”和“防滥用”。" />
       <Tabs selectedKey={tab} onSelectionChange={(key) => setTab(String(key))}>
         <Tabs.ListContainer className="mb-4 overflow-x-auto">
           <Tabs.List aria-label="问答管理">
@@ -57,6 +71,7 @@ function PolicyTab() {
   const current = useLoad((signal) => api<{ policy: Policy; version: number }>('/v1/admin/policy', { signal }), []);
   // 知识索引当前的向量空间：换了向量模型后，问答要跟着用新的空间检索（没有知识库权限时读不到，就不提示）。
   const indexSpace = useLoad((signal) => api<{ config: { space: unknown } }>('/v1/index-config', { signal }).then((result) => result.config.space).catch(() => null), []);
+  const profiles = useProfiles();
   const [policy, setPolicy] = useState<Policy | null>(null);
   const { busy, run } = useAction();
   useEffect(() => { if (current.data) setPolicy(current.data.policy); }, [current.data]);
@@ -82,11 +97,13 @@ function PolicyTab() {
           ))}
         </div>
       </Panel>
-      <Panel title="模型与额度" description="数值越大回答越充分，但单次费用也越高。">
+      <Panel title="模型与额度" description="数值越大回答越充分，但每次调用的词元也越多。">
         <FormGrid columns={3}>
-          {keys.filter((key) => typeof policy[key] === 'string').map((key) => (
-            <TextInput key={key} label={texts[key] ?? key} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />
-          ))}
+          {keys.filter((key) => typeof policy[key] === 'string').map((key) => key === 'profileId'
+            ? <ProfileField key={key} costClass="qa" description="只列出“访客问答”用途的对话档位。" label={texts[key]} profiles={profiles.data} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />
+            : key === 'semanticMode'
+              ? <SelectInput key={key} label={texts[key]} options={semanticModes} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />
+              : <TextInput key={key} label={texts[key] ?? key} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />)}
           {keys.filter((key) => typeof policy[key] === 'number').map((key) => (
             <NumberInput key={key} formatOptions={key === 'semanticThreshold' ? { maximumFractionDigits: 3 } : undefined} label={numbers[key] ?? key} minValue={0} step={key === 'semanticThreshold' ? 0.01 : 1} value={policy[key] as number} onChange={(value) => set(key, value)} />
           ))}
@@ -229,10 +246,11 @@ function CacheTab() {
   );
 }
 
-// 调试台：管理员直接试问，结果只存在隔离的诊断记录里（7 天），不影响访客对话和缓存；费用按“后台任务”类别计。
+// 调试台：管理员直接试问，结果只存在隔离的诊断记录里（7 天），不影响访客对话和缓存；使用“后台任务”用途的档位。
 function DebugTab() {
   const [question, setQuestion] = useState('');
   const [profileId, setProfileId] = useState('background-accurate');
+  const profiles = useProfiles();
   const [state, setState] = useState<{ running: boolean; answer: string; citations: Citation[]; status: '' | 'running' | 'done' | 'failed'; error: string }>({ running: false, answer: '', citations: [], status: '', error: '' });
 
   async function ask() {
@@ -249,7 +267,7 @@ function DebugTab() {
         const last = read.events[read.events.length - 1];
         if (last?.event === 'completed') { setState({ running: false, answer, citations, status: 'done', error: '' }); return; }
         if (last?.event === 'failed') {
-          setState({ running: false, answer, citations, status: 'failed', error: `失败原因：${last.code ?? '未知'}。常见原因：诊断档位不存在或不属于“后台任务”类别、知识库没有索引、模型没有配置。` });
+          setState({ running: false, answer, citations, status: 'failed', error: `失败原因：${last.code ?? '未知'}。常见原因：诊断档位不存在或不属于“后台任务”用途、知识库没有索引、模型没有配置。` });
           return;
         }
         setState((current) => ({ ...current, answer, citations }));
@@ -262,10 +280,10 @@ function DebugTab() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-5">
-      <Panel className="xl:col-span-2" title="试问" description="检索知识库并调用模型回答，会产生费用（按“后台任务”类别计）。">
+      <Panel className="xl:col-span-2" title="试问" description="检索知识库并调用模型回答，结果不影响访客对话和缓存。">
         <Form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void ask(); }}>
           <TextAreaInput isRequired label="问题" maxLength={500} placeholder="例如：如何安装？" rows={4} value={question} onChange={setQuestion} />
-          <TextInput isRequired description="后台任务类别的档位，例如 background-accurate。" label="诊断档位" value={profileId} onChange={setProfileId} />
+          <ProfileField costClass="background" description="只列出“后台任务”用途的对话档位。" label="诊断档位" profiles={profiles.data} value={profileId} onChange={setProfileId} />
           <div className="flex justify-end"><Button isPending={state.running} type="submit"><PaperPlane />{state.running ? '诊断中…' : '试问'}</Button></div>
         </Form>
       </Panel>

@@ -69,7 +69,7 @@ export default function KnowledgePage() {
   const build = async (docs: DocOption[]) => {
     const ok = await confirmAction({
       title: docs.length === 1 ? `为“${docs[0].title}”建立索引？` : `为全部 ${docs.length} 篇文档建立索引？`,
-      body: '会调用嵌入模型（向量）处理正文，产生费用。已经是最新的文档会直接复用。', confirmLabel: '开始', tone: 'warning',
+      body: '会调用嵌入模型（向量）处理正文。已经是最新的文档会直接复用。', confirmLabel: '开始', tone: 'warning',
     });
     if (!ok) return;
     await run(async () => {
@@ -96,13 +96,13 @@ export default function KnowledgePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="知识索引" description="把已发布的文档切块并生成向量，供 AI 问答检索。建立索引会调用嵌入模型，产生费用。" />
+      <PageHeader title="知识索引" description="把已发布的文档切块并生成向量，供 AI 问答检索。建立索引会调用嵌入模型。" />
       {!o ? <LoadingBlock lines={5} /> : (
         <>
           {o.modelsState !== 'ready' && <Notice status="warning" title="模型目录暂不可用">无法配置索引（{o.modelErrorCode ?? o.modelsState}）。请先检查“模型接入”。</Notice>}
           {o.modelsState === 'ready' && !embeddingProfiles.length && <Notice status="warning" title="还没有向量档位">先在“模型接入”里添加带“向量”能力的模型，并生成档位。</Notice>}
           <div className="grid gap-6 xl:grid-cols-5">
-            <Panel className="xl:col-span-2" title="入库配置" description="切块越小检索越精细，但数量更多、费用更高。">
+            <Panel className="xl:col-span-2" title="入库配置" description="切块越小检索越精细，但块数更多、调用次数更多。">
               <Form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void saveConfig(); }}>
                 <SelectInput
                   isRequired

@@ -151,7 +151,7 @@ function JobDrawer({ job, onClose, onChanged }: { job: Job; onClose: () => void;
   useEffect(() => { list.current?.lastElementChild?.scrollIntoView({ block: 'nearest' }); }, [events]);
 
   const cancel = async () => {
-    if (!(await confirmAction({ title: '请求取消这个任务？', body: '取消请求会交给任务所属服务，在安全的检查点停止；已经发生的费用无法撤销。', confirmLabel: '请求取消', tone: 'warning' }))) return;
+    if (!(await confirmAction({ title: '请求取消这个任务？', body: '取消请求会交给任务所属服务，在安全的检查点停止；已经发出的模型调用无法撤回。', confirmLabel: '请求取消', tone: 'warning' }))) return;
     const result = await run(() => api<{ state: string }>(`/v1/jobs/${encodeURIComponent(job.jobId)}:cancel`, { method: 'POST', body: {}, idempotencyKey: newKey() }));
     if (result) { notify.success('已记录取消请求', `当前状态：${states[result.state]?.label ?? result.state}`); detail.reload(); onChanged(); }
   };

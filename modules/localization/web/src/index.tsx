@@ -30,7 +30,7 @@ export default function LanguagesPage() {
   }, enabled ? `${nameOf(language.tag)}已启用` : `${nameOf(language.tag)}已停用`);
 
   const setAuto = async (language: Language, on: boolean) => {
-    if (on && !(await confirmAction({ title: '开启自动翻译？', body: '开启后，每篇文档发布新版本时都会自动调用模型翻译到该语言，会产生费用。', confirmLabel: '开启', tone: 'warning' }))) return;
+    if (on && !(await confirmAction({ title: '开启自动翻译？', body: '开启后，每篇文档发布新版本时都会自动调用模型翻译到该语言。', confirmLabel: '开启', tone: 'warning' }))) return;
     await run(async () => {
       const idempotencyKey = newKey();
       await api(`/v1/languages/${encodeURIComponent(language.tag)}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: language.version, idempotencyKey, language: { ...language, version: language.version + 1, automaticTranslation: on } } });
@@ -39,7 +39,7 @@ export default function LanguagesPage() {
   };
 
   const translateUI = async (language: Language) => {
-    const ok = await confirmAction({ title: `把界面文字翻译成${nameOf(language.tag)}？`, body: '公开页上的固定文字（如“本页目录”“上一篇”）会调用一次模型翻译，产生少量费用。约一分钟后生效，没翻译的部分仍显示英文。', confirmLabel: '开始翻译', tone: 'warning' });
+    const ok = await confirmAction({ title: `把界面文字翻译成${nameOf(language.tag)}？`, body: '公开页上的固定文字（如“本页目录”“上一篇”）会调用一次模型翻译。约一分钟后生效，没翻译的部分仍显示英文。', confirmLabel: '开始翻译', tone: 'warning' });
     if (!ok) return;
     await run(async () => {
       const idempotencyKey = newKey();
@@ -54,7 +54,7 @@ export default function LanguagesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="多语言"
-        description="基准语言的页面直接来自文档正文；其他语言通过翻译生成。翻译会调用模型并产生费用，需要先在“模型接入”里配好模型。"
+        description="基准语言的页面直接来自文档正文；其他语言通过翻译生成。翻译会调用模型，需要先在“模型接入”里配好模型。"
         actions={canLanguages ? <Button onPress={() => setAdding(true)}><Plus />添加语言</Button> : undefined}
       />
       {!languages.data ? <LoadingBlock lines={4} /> : (
@@ -77,7 +77,7 @@ export default function LanguagesPage() {
               ) : (
                 <div className="flex flex-col gap-3">
                   <SwitchInput description="启用后访客才能切换到这个语言。" isDisabled={busy || !canLanguages} isSelected={language.enabled} label="对访客启用" onChange={(value) => void setEnabled(language, value)} />
-                  <SwitchInput description="文档发布新版本时自动翻译（产生费用）。" isDisabled={busy || !language.enabled || !canLanguages} isSelected={language.automaticTranslation} label="发布时自动翻译" onChange={(value) => void setAuto(language, value)} />
+                  <SwitchInput description="文档发布新版本时自动调用模型翻译。" isDisabled={busy || !language.enabled || !canLanguages} isSelected={language.automaticTranslation} label="发布时自动翻译" onChange={(value) => void setAuto(language, value)} />
                 </div>
               )}
               {!language.isDefault && language.enabled && canTranslate && (
@@ -111,7 +111,7 @@ function Translations({ base, languages }: { base: string; languages: Language[]
   }, [progress.data, progress.reload]);
 
   const translate = async (node: NavNode) => {
-    const ok = await confirmAction({ title: `把“${node.title ?? node.documentId}”翻译成${nameOf(target)}？`, body: '按块调用模型翻译，会产生费用。完成后访客就能看到该语言的页面。', confirmLabel: '开始翻译', tone: 'warning' });
+    const ok = await confirmAction({ title: `把“${node.title ?? node.documentId}”翻译成${nameOf(target)}？`, body: '按块调用模型翻译。完成后访客就能看到该语言的页面。', confirmLabel: '开始翻译', tone: 'warning' });
     if (!ok) return;
     await run(async () => {
       const idempotencyKey = newKey();
@@ -121,7 +121,7 @@ function Translations({ base, languages }: { base: string; languages: Language[]
   };
 
   const cancel = async (item: Active) => {
-    const ok = await confirmAction({ title: '取消这次翻译？', body: '取消后不再继续调用模型；已经发出的那一批调用的费用无法撤销。', confirmLabel: '取消翻译', tone: 'danger', cancelLabel: '继续翻译' });
+    const ok = await confirmAction({ title: '取消这次翻译？', body: '取消后不再继续调用模型；已经发出的那一批调用无法撤回。', confirmLabel: '取消翻译', tone: 'danger', cancelLabel: '继续翻译' });
     if (!ok) return;
     await run(async () => {
       const idempotencyKey = newKey();

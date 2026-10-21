@@ -3,7 +3,7 @@ import { Button, Chip, Drawer, Form, Table, Tabs, ToggleButton, ToggleButtonGrou
 import type { Key } from '@heroui/react';
 import { api, apiClient, Details, EmptyBlock, ErrorBlock, fmtDateTime, fmtNumber, LoadingBlock, MiniStat, Mono, notify, PageHeader, Panel, SelectInput, TextInput, useHasGrant } from '@ui';
 import { useEffect, useMemo, useState } from 'react';
-import { createAnalyticsClient, moneyText, problemText, type AuditResult, type ExportKind, type LoadStatisticsResult } from './client';
+import { createAnalyticsClient, problemText, type AuditResult, type ExportKind, type LoadStatisticsResult } from './client';
 
 const client = createAnalyticsClient(apiClient);
 
@@ -22,12 +22,12 @@ export default function AnalyticsPage() {
   const [tab, setTab] = useState(canStats ? 'stats' : 'audit');
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="访问统计" description="已保存的访问统计、模型费用投影和管理审计。费用只是已观测账项的派生统计，不是实时余额。" />
+      <PageHeader title="访问统计" description="公开页面的访问统计和后台的管理审计。" />
       {!canStats && !canAudit ? <EmptyBlock icon={<ChartColumn />} title="当前账号没有统计或审计的读取权限" /> : (
         <Tabs selectedKey={tab} onSelectionChange={(key) => setTab(String(key))}>
           <Tabs.ListContainer className="mb-4">
             <Tabs.List aria-label="统计">
-              {canStats ? <Tabs.Tab id="stats">访问与费用<Tabs.Indicator /></Tabs.Tab> : null}
+              {canStats ? <Tabs.Tab id="stats">访问<Tabs.Indicator /></Tabs.Tab> : null}
               {canAudit ? <Tabs.Tab id="audit">管理审计<Tabs.Indicator /></Tabs.Tab> : null}
             </Tabs.List>
           </Tabs.ListContainer>
@@ -93,22 +93,17 @@ function StatsTab() {
             <ToggleButton key={key} id={key}>{index > 0 && <ToggleButtonGroup.Separator />}{label}</ToggleButton>
           ))}
         </ToggleButtonGroup>
-        <div className="flex gap-2">
-          <Button isDisabled={!result} size="sm" variant="secondary" onPress={() => void download('pages', result!.fromUTC, result!.toUTC)}><ArrowDownToLine />访问 CSV</Button>
-          <Button isDisabled={!result?.usage} size="sm" variant="secondary" onPress={() => void download('usage', result!.fromUTC, result!.toUTC)}><ArrowDownToLine />费用 CSV</Button>
-        </div>
+        <Button isDisabled={!result} size="sm" variant="secondary" onPress={() => void download('pages', result!.fromUTC, result!.toUTC)}><ArrowDownToLine />访问 CSV</Button>
       </div>
       {error ? <ErrorBlock error={error} /> : !result || loading ? <LoadingBlock lines={5} /> : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             <MiniStat label="浏览量（PV）" value={fmtNumber(totals.views)} />
             <MiniStat label="访次" value={fmtNumber(totals.visits)} />
-            <MiniStat label="模型费用" tone="accent" value={result.usage ? moneyText(result.usage.amountMicros) : '暂不可用'} />
             <MiniStat label="有访问的文档" value={fmtNumber(byDoc.length)} />
           </div>
           <p className="text-xs text-muted">
             访次在每个小时内去重，跨小时相加不代表独立访客。访问水位 {result.watermark} · 漏数 {result.dropCount}
-            {result.usage && ` · 费用水位 ${result.usage.watermark} · 最后完整对账：${result.usage.lastReconciledAt ? fmtDateTime(result.usage.lastReconciledAt) : '尚未完成'}`}
           </p>
           <Panel
             title={view === 'docs' ? '热门文档' : '按小时明细'}

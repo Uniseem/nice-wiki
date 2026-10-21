@@ -146,7 +146,7 @@ const codeText: Record<string, string> = {
   UNSUPPORTED_SCHEMA: '内容格式暂不支持',
   UNSUPPORTED_CAPABILITY: '这项能力尚未配置或暂不支持',
   RATE_LIMITED: '操作太频繁，请稍后再试',
-  BUDGET_EXCEEDED: '超出费用或数量上限',
+  BUDGET_EXCEEDED: '超出数量或大小上限',
   CANCELLED: '操作已取消',
   DEADLINE_EXCEEDED: '服务响应超时，请稍后再试',
   DEPENDENCY_UNAVAILABLE: '依赖的服务暂不可用，请稍后再试',

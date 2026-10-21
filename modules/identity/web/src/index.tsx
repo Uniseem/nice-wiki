@@ -17,7 +17,7 @@ const groups = [
   { value: 'manage_ai', label: 'AI 与防滥用', description: '知识库索引、调试台、防滥用策略' },
   { value: 'manage_memory', label: '长期记忆', description: '维护给 AI 的长期背景' },
   { value: 'manage_site', label: '站点设置', description: '站名、首页、横幅和页脚' },
-  { value: 'view_stats', label: '查看统计', description: '访问统计与费用投影' },
+  { value: 'view_stats', label: '查看统计', description: '访问统计与管理审计' },
 ] as const;
 const labelOf = (key: string) => groups.find((group) => group.value === key)?.label ?? key;
 const statusText: Record<string, { label: string; tone: 'success' | 'default' | 'danger' }> = { active: { label: '正常', tone: 'success' }, disabled: { label: '已停用', tone: 'default' }, deleted: { label: '已删除', tone: 'danger' } };

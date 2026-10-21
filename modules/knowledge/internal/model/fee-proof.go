@@ -10,6 +10,9 @@ import (
 
 // RootFeesFinal 只消费MG完整原root收费事实；缺字段/缺价/旧epoch/超预算均不推零费。
 func RootFeesFinal(ctx context.Context, op OperationContext, rootID string) (bool, error) {
+	if !platform.BillingEnabled {
+		return true, nil
+	}
 	runtime, ok := ctx.Value(modelRuntimeKey{}).(ModelRuntime)
 	if !ok || runtime.Raw == nil || runtime.ValidateUsage == nil {
 		return false, platform.NewError(platform.CodeDependencyUnavailable, false, "原根收费权威只读未装配")
@@ -58,6 +61,9 @@ func RootFeesFinal(ctx context.Context, op OperationContext, rootID string) (boo
 // OwnerFeesFinal 仅原任务及尚未完成孩子的接受调用需要费用终局；跨根已完成付费缓存免费复用不新授费。
 // 同本任务原root的已完成孩子仍由完整RootFeesFinal涵盖，paidRefs始终另完整保留。
 func OwnerFeesFinal(ctx context.Context, op OperationContext, objectID, rootID string) (bool, error) {
+	if !platform.BillingEnabled {
+		return true, nil
+	}
 	runtime, ok := ctx.Value(modelRuntimeKey{}).(ModelRuntime)
 	if !ok || runtime.DB == nil {
 		return false, platform.NewError(platform.CodeDependencyUnavailable, false, "owner费用来源未装配")

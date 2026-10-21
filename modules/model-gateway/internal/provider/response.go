@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math/big"
 	"net"
@@ -11,6 +12,7 @@ import (
 	"net/http/httptrace"
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/model-gateway/internal/gen"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -274,6 +276,10 @@ func ConsumeProviderFrame(raw []byte, adapter, capability, expectedModel, curren
 		if outcome.HTTPStatus >= 400 && outcome.HTTPStatus < 500 && slices.Contains([]string{"invalid_api_key", "authentication_error", "permission_error", "invalid_request_error", "model_not_found", "rate_limit_exceeded", "rate_limit_error", "INVALID_ARGUMENT", "UNAUTHENTICATED", "PERMISSION_DENIED", "NOT_FOUND", "RESOURCE_EXHAUSTED"}, code) {
 			outcome.AcceptanceProof = "not_accepted"
 		}
+		if os.Getenv("NW_DEBUG") != "" {
+			// 只记 HTTP 状态和供应方错误码，不记请求正文或密钥。
+			fmt.Fprintf(os.Stderr, "供应方返回错误 status=%d code=%v\n", outcome.HTTPStatus, code)
+		}
 		outcome.Code = platform.CodeDependencyUnavailable
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "供应方明确返回错误，原费用证据保留")
 	}
@@ -493,6 +499,9 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 		}
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		if os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "供应方HTTP状态 status=%d\n", response.StatusCode)
+		}
 		return outcome, platform.NewError(platform.CodeDependencyUnavailable, false, "供应方HTTP状态不表示成功")
 	}
 	outcome.AcceptanceProof = "accepted"

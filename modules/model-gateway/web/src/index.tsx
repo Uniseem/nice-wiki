@@ -13,7 +13,8 @@ type Assignment = { taskId: string; tier: string; version: number; overrideModel
 type Catalog = { providers: Provider[]; models: Model[]; profiles: Profile[]; taskAssignments: Assignment[] };
 
 const tiers: Record<string, string> = { fast: '快速', accurate: '准确', vision: '视觉', embedding: '向量', rerank: '重排' };
-const costClasses: Record<string, string> = { qa: '问答', background: '后台任务', 'admin-probe': '管理员探测' };
+// 计费暂停：费用类别在界面上只当“用途”展示，不再有价格和费用上限。
+const costClasses: Record<string, string> = { qa: '访客问答', background: '后台任务', 'admin-probe': '连接测试' };
 const adapters: Record<string, string> = {
   openai_chat: 'OpenAI 兼容对话', anthropic_messages: 'Anthropic 消息', gemini: 'Gemini 对话',
   openai_embeddings: 'OpenAI 兼容向量', gemini_embeddings: 'Gemini 向量', rerank: '重排序',
@@ -44,8 +45,6 @@ const tasks: [string, string, string][] = [
   ['content.slug', 'fast', '首次发布路径名'], ['content.seo', 'fast', '首次发布 SEO 描述'],
 ];
 const tierCapability: Record<string, string> = { fast: 'chat', accurate: 'chat', vision: 'vision', embedding: 'embedding', rerank: 'rerank' };
-const usd = (micros: number) => micros ? `$${(micros / 1e6).toFixed(micros % 10000 ? 4 : 2)}` : '不限';
-const toMicros = (value: number) => Math.round(value * 1_000_000);
 const idPattern = '[A-Za-z0-9._:-]+';
 
 export default function ModelsPage() {
@@ -110,7 +109,7 @@ export default function ModelsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="模型接入"
-        description="配置供应方、密钥、模型、档位和任务分配。这里只做配置，不调用模型；真正调用（索引、问答、翻译）才会产生费用。"
+        description="配置供应方、密钥、模型、档位和任务分配。这里只做配置，不调用模型。"
         actions={c && <Button isDisabled={!c.models.length} isPending={busy} onPress={() => void autoSetup()}><Thunderbolt />一键生成档位和任务分配</Button>}
       />
       {!c ? <LoadingBlock lines={6} /> : (
@@ -155,14 +154,13 @@ export default function ModelsPage() {
               </Section>
             </Tabs.Panel>
             <Tabs.Panel id="profiles">
-              <Section action={<Button isDisabled={!c.models.length} variant="secondary" onPress={() => setDialog('profile')}><Plus />新建档位</Button>} hint="档位把模型按“快速/准确/视觉/向量/重排”分级并绑定费用类别；同一档位里排第一的模型为主，其余是备用。">
-                <DataTable label="档位" columns={['档位', '类别', '级别', '模型（按顺序）', '单次 / 每日上限', '']} empty="还没有档位。可以点右上角一键生成。" rows={c.profiles.map((profile) => [
+              <Section action={<Button isDisabled={!c.models.length} variant="secondary" onPress={() => setDialog('profile')}><Plus />新建档位</Button>} hint="档位把模型按“快速/准确/视觉/向量/重排”分级并区分用途（访客问答或后台任务）；同一档位里排第一的模型为主，其余是备用。">
+                <DataTable label="档位" columns={['档位', '用途', '级别', '模型（按顺序）', '']} empty="还没有档位。可以点右上角一键生成。" rows={c.profiles.map((profile) => [
                   profile.profileId,
                   <Mono>{profile.profileId}</Mono>,
                   costClasses[profile.costClass] ?? profile.costClass,
                   <Chip size="sm" variant="soft">{tiers[profile.tier] ?? profile.tier}</Chip>,
                   <span className="text-sm">{profile.orderedModelIds.map(modelName).join(' → ')}</span>,
-                  <span className="tabular-nums">{usd(profile.maximumCost.micros)} / {usd(profile.dailyLimitCost.micros)}</span>,
                   <Button size="sm" variant="tertiary" onPress={() => setDialog(profile)}>编辑</Button>,
                 ])} />
               </Section>
@@ -294,16 +292,14 @@ function ProviderDialog({ onClose, onSaved }: { onClose: () => void; onSaved: ()
 }
 
 function ModelDialog({ providers, onClose, onSaved }: { providers: Provider[]; onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ modelId: '', providerId: providers[0]?.providerId ?? '', providerModelVersion: '', capabilities: ['chat'] as string[], dimension: 0, tokenizer: tokenizers[0].value, maxInputTokens: 128000, maxOutputTokens: 4096, inputUsd: 0, outputUsd: 0 });
+  const [form, setForm] = useState({ modelId: '', providerId: providers[0]?.providerId ?? '', providerModelVersion: '', capabilities: ['chat'] as string[], dimension: 0, tokenizer: tokenizers[0].value, maxInputTokens: 128000, maxOutputTokens: 4096 });
   const { busy, run } = useAction();
   const submit = async () => {
     const done = await run(async () => {
       const idempotencyKey = newKey();
-      const priced = form.inputUsd > 0 || form.outputUsd > 0;
       await api(`/v1/admin/models/${form.modelId}`, {
         method: 'PUT', idempotencyKey, body: {
           expectedVersion: 0, idempotencyKey,
-          ...(priced ? { manualPrice: { inputPerMillionCost: { currency: 'USD', micros: toMicros(form.inputUsd) }, outputPerMillionCost: { currency: 'USD', micros: toMicros(form.outputUsd) }, fixedCost: { currency: 'USD', micros: 0 } } } : {}),
           model: {
             modelId: form.modelId, version: 1, providerId: form.providerId, providerModelVersion: form.providerModelVersion, capabilities: form.capabilities, dimension: form.dimension,
             preprocessorVersion: form.capabilities.includes('embedding') ? form.tokenizer : 'none', maxInputTokens: form.maxInputTokens, maxOutputTokens: form.maxOutputTokens, catalogOrigin: 'manual', manualOverride: true, enabled: true,
@@ -332,10 +328,6 @@ function ModelDialog({ providers, onClose, onSaved }: { providers: Provider[]; o
           <SelectInput description="知识库用它估算分块的词元数。" label="分词器" options={tokenizers} value={form.tokenizer} onChange={(tokenizer) => setForm({ ...form, tokenizer })} />
         </FormGrid>
       )}
-      <FormGrid>
-        <NumberInput description="美元 / 百万词元，0 表示未知。" formatOptions={{ maximumFractionDigits: 4 }} label="输入单价" minValue={0} value={form.inputUsd} onChange={(inputUsd) => setForm({ ...form, inputUsd })} />
-        <NumberInput description="美元 / 百万词元，0 表示未知。" formatOptions={{ maximumFractionDigits: 4 }} label="输出单价" minValue={0} value={form.outputUsd} onChange={(outputUsd) => setForm({ ...form, outputUsd })} />
-      </FormGrid>
     </Dialog>
   );
 }
@@ -343,7 +335,7 @@ function ModelDialog({ providers, onClose, onSaved }: { providers: Provider[]; o
 function ProfileDialog({ models, profile, onClose, onSaved }: { models: Model[]; profile: Profile | null; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
     profileId: profile?.profileId ?? '', costClass: profile?.costClass ?? 'background', tier: profile?.tier ?? 'fast', modelIds: profile?.orderedModelIds ?? [] as string[],
-    maximumUsd: (profile?.maximumCost.micros ?? 0) / 1e6, dailyUsd: (profile?.dailyLimitCost.micros ?? 0) / 1e6, concurrency: profile?.concurrency ?? 4,
+    concurrency: profile?.concurrency ?? 4,
   });
   const { busy, run } = useAction();
   const move = (index: number, delta: number) => setForm((current) => {
@@ -361,7 +353,8 @@ function ProfileDialog({ models, profile, onClose, onSaved }: { models: Model[];
         method: 'PUT', idempotencyKey, body: {
           expectedVersion: profile?.version ?? 0, idempotencyKey, profile: {
             profileId: form.profileId, version: (profile?.version ?? 0) + 1, costClass: form.costClass, tier: form.tier, orderedModelIds: form.modelIds,
-            maximumCost: { currency: 'USD', micros: toMicros(form.maximumUsd) }, concurrency: form.concurrency, dailyLimitCost: { currency: 'USD', micros: toMicros(form.dailyUsd) },
+            // 费用上限不再展示：沿用已有值（计费暂停期间不生效），新档位为不限。
+            maximumCost: profile?.maximumCost ?? { currency: 'USD', micros: 0 }, concurrency: form.concurrency, dailyLimitCost: profile?.dailyLimitCost ?? { currency: 'USD', micros: 0 },
           },
         },
       });
@@ -375,7 +368,7 @@ function ProfileDialog({ models, profile, onClose, onSaved }: { models: Model[];
     <Dialog busy={busy} submitLabel="保存" title={profile ? `编辑档位 ${profile.profileId}` : '新建档位'} onClose={onClose} onSubmit={() => void submit()}>
       <FormGrid columns={3}>
         <TextInput isReadOnly={!!profile} isRequired label="档位 ID" pattern={idPattern} placeholder="background-fast" value={form.profileId} onChange={(profileId) => setForm({ ...form, profileId })} />
-        <SelectInput label="费用类别" options={Object.entries(costClasses).map(([value, label]) => ({ value, label }))} value={form.costClass} onChange={(costClass) => setForm({ ...form, costClass })} />
+        <SelectInput label="用途" options={Object.entries(costClasses).map(([value, label]) => ({ value, label }))} value={form.costClass} onChange={(costClass) => setForm({ ...form, costClass })} />
         <SelectInput label="级别" options={Object.entries(tiers).map(([value, label]) => ({ value, label }))} value={form.tier} onChange={(tier) => setForm({ ...form, tier })} />
       </FormGrid>
       <div className="flex flex-col gap-2">
@@ -398,11 +391,7 @@ function ProfileDialog({ models, profile, onClose, onSaved }: { models: Model[];
           </div>
         )}
       </div>
-      <FormGrid columns={3}>
-        <NumberInput description="0 为不限" formatOptions={{ maximumFractionDigits: 4 }} label="单次上限（美元）" minValue={0} step={0.01} value={form.maximumUsd} onChange={(maximumUsd) => setForm({ ...form, maximumUsd })} />
-        <NumberInput description="0 为不限" formatOptions={{ maximumFractionDigits: 2 }} label="每日上限（美元）" minValue={0} step={1} value={form.dailyUsd} onChange={(dailyUsd) => setForm({ ...form, dailyUsd })} />
-        <NumberInput label="并发" minValue={0} value={form.concurrency} onChange={(concurrency) => setForm({ ...form, concurrency })} />
-      </FormGrid>
+      <NumberInput className="max-w-48" description="同时进行的调用数。" label="并发" minValue={0} value={form.concurrency} onChange={(concurrency) => setForm({ ...form, concurrency })} />
     </Dialog>
   );
 }
