@@ -41,6 +41,9 @@ const tasks: [string, string, string][] = [
   ['memory.overview', 'fast', '项目概述维护'], ['memory.assistant', 'accurate', '记忆助手'],
   ['content.slug', 'fast', '首次发布路径名'], ['content.seo', 'fast', '首次发布 SEO 描述'],
 ];
+// 调度类判断任务默认交给 OpenRouter 的 Jev Router（接入了这个模型才生效）：它按请求自动挑底层模型和推理强度；失败时按档位顺序换下一个模型。
+const jevModel = 'typesafe/jev-router';
+const jevTasks = new Set(['localization.suggest']);
 const tierCapability: Record<string, string> = { fast: 'chat', accurate: 'chat', vision: 'vision', embedding: 'embedding', rerank: 'rerank' };
 const idPattern = '[A-Za-z0-9._:-]+';
 
@@ -67,17 +70,22 @@ export default function ModelsPage() {
           profiles++;
         }
       }
+      const jev = usable.find((model) => model.providerModelVersion === jevModel && model.capabilities.includes('chat'));
       for (const [taskId, tier] of tasks) {
+        const existing = c.taskAssignments.find((assignment) => assignment.taskId === taskId);
+        const override = jev && jevTasks.has(taskId) ? { overrideModelId: jev.modelId } : {};
+        // 已有分配不覆盖，只给还没单独指定模型的调度类任务补上 Jev。
+        if (existing && (existing.overrideModelId || !('overrideModelId' in override))) continue;
         // 即使该级别暂时没有模型也要分配：检索等流程会解析每个任务的分配，缺了会整轮失败；没有档位时按“该能力不可用”降级。
-        if (c.taskAssignments.some((assignment) => assignment.taskId === taskId)) continue;
         const idempotencyKey = newKey();
-        await api(`/v1/task-assignments/${taskId}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: 0, idempotencyKey, assignment: { taskId, tier, version: 1 } } });
+        const expectedVersion = existing?.version ?? 0;
+        await api(`/v1/task-assignments/${taskId}`, { method: 'PUT', idempotencyKey, body: { expectedVersion, idempotencyKey, assignment: { taskId, tier: existing?.tier ?? tier, version: expectedVersion + 1, ...override } } });
         assignments++;
       }
       catalog.reload();
       return `已生成 ${profiles} 个档位、${assignments} 个任务分配`;
     });
-    if (message) notify.success(message, '已有的档位和分配不会被覆盖。');
+    if (message) notify.success(message, '已有的档位和分配不会被覆盖；接入了 Jev Router 时，调度类任务会补上它。');
   };
 
   const saveSecret = async (provider: Provider) => {
