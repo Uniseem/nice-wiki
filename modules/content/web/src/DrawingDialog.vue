@@ -17,6 +17,8 @@ onMounted(async () => {
   try {
     let scene: any = null;
     if (props.initial) scene = await (await fetch(`/v1/assets/${props.initial.scene.assetId}/bytes?sha=${props.initial.scene.sha256}`)).json();
+    // Excalidraw 在加载时读取字体路径，必须先设；字体随 content 界面一起发布，不走外网
+    (window as any).EXCALIDRAW_ASSET_PATH = '/_admin/modules/content/excalidraw/';
     const { mountBoard } = await import('./drawing-board');
     if (host.value) board = mountBoard(host.value, scene);
   } catch (problem) { error.value = `画板加载失败：${messageOf(problem)}`; }

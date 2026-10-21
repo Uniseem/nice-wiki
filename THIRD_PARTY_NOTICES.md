@@ -38,4 +38,4 @@ ADR0005已批准的版本镜像依赖，固定github.com/go-git/go-git/v5 v5.16.
 
 ## Excalidraw 与 React（后台编辑器画板）
 
-后台内容编辑器的画板块使用 @excalidraw/excalidraw 0.18.1（MIT，Copyright (c) 2020 Excalidraw）及其对等依赖 react / react-dom 18.3.1（MIT，Copyright (c) Meta Platforms, Inc. and affiliates）。来源 https://github.com/excalidraw/excalidraw/tree/v0.18.1 、https://github.com/facebook/react/tree/v18.3.1 ；仅作为 npm 依赖打包进 `modules/content/web`，由 pnpm-lock.yaml 固定，不复制其源码；画板代码只在用户打开画板时懒加载。
+后台内容编辑器的画板块使用 @excalidraw/excalidraw 0.18.1（MIT，Copyright (c) 2020 Excalidraw）及其对等依赖 react / react-dom 18.3.1（MIT，Copyright (c) Meta Platforms, Inc. and affiliates）。来源 https://github.com/excalidraw/excalidraw/tree/v0.18.1 、https://github.com/facebook/react/tree/v18.3.1 ；仅作为 npm 依赖打包进 `modules/content/web`，由 pnpm-lock.yaml 固定，不复制其源码；画板代码只在用户打开画板时懒加载。画板用到的字体（Excalifont、Virgil、Cascadia Code、Comic Shanns、Liberation Sans、Lilita One、Nunito、小赖字体等，均随 @excalidraw/excalidraw 包分发，各自按 SIL OFL 或同类宽松许可发布）在构建时原样复制到 content 界面目录，不改动、不单独再分发。
