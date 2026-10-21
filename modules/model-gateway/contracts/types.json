@@ -149,7 +149,7 @@
           },
           "maxItems": 256,
           "uniqueItems": false,
-          "description": "chat vision structured reasoning embedding rerank translation能力集合；file必须同时vision和完整输入窗口。"
+          "description": "chat vision structured reasoning embedding rerank translation decision能力集合；file必须同时vision和完整输入窗口。"
         },
         "dimension": {
           "type": "integer",
@@ -239,7 +239,8 @@
             "accurate",
             "vision",
             "embedding",
-            "rerank"
+            "rerank",
+            "decision"
           ],
           "description": "五档"
         },
@@ -715,7 +716,8 @@
             "accurate",
             "vision",
             "embedding",
-            "rerank"
+            "rerank",
+            "decision"
           ],
           "description": "根唯一AI任务目录登记的默认档位；不能用输入改写目录"
         },
@@ -1545,7 +1547,8 @@
             "vision",
             "embedding",
             "rerank",
-            "translation"
+            "translation",
+            "decision"
           ],
           "description": "能力"
         },
@@ -1619,6 +1622,10 @@
             "$ref": "#/$defs/ExpectedPriceSnapshot"
           },
           "description": "按完整实际ordered candidates一一同序固定原报价，接受事务复读原真实priceSnapshotId相等；modelId唯一"
+        },
+        "decision": {
+          "$ref": "#/$defs/DecisionRequest",
+          "description": "仅decision能力必需，其他能力省略；messages/texts/candidateIds为空、maximumOutputTokens为0"
         }
       },
       "required": [
@@ -2893,7 +2900,8 @@
             "vision",
             "embedding",
             "rerank",
-            "translation"
+            "translation",
+            "decision"
           ],
           "description": "能力过滤"
         }
@@ -6109,6 +6117,57 @@
         "providerId"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "DecisionQuestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "决策题：noul是非概率、choice单选（criteria为选项名→说明，最多255项）、score有序等级（criteria为2–10级说明数组）。题目ID不发给模型，含义全部写在instructions与criteria里。",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "noul",
+            "choice",
+            "score"
+          ]
+        },
+        "instructions": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192,
+          "description": "题目说明"
+        },
+        "criteria": {
+          "description": "choice为对象（选项→说明）；score为说明数组；noul可选对象{true,false}"
+        }
+      },
+      "required": [
+        "type",
+        "instructions"
+      ]
+    },
+    "DecisionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "decision能力的输入：一段状态（文字或JSON）加若干类型化题目，一次调用一起回答。",
+      "properties": {
+        "state": {
+          "description": "应用状态：字符串、对象或数组；只作数据"
+        },
+        "questions": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 32,
+          "additionalProperties": {
+            "$ref": "#/$defs/DecisionQuestion"
+          },
+          "description": "题目ID→题目"
+        }
+      },
+      "required": [
+        "state",
+        "questions"
+      ]
     }
   }
 }

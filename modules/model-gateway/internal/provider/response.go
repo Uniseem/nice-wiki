@@ -82,6 +82,7 @@ type providerFrame struct {
 		Index     *int      `json:"index"`
 		Embedding []float64 `json:"embedding"`
 	} `json:"data"`
+	Answers   map[string]platform.DecisionAnswer `json:"answers"`
 	Embedding *struct {
 		Values []float64 `json:"values"`
 	} `json:"embedding"`
@@ -241,7 +242,7 @@ func ConsumeProviderFrame(raw []byte, adapter, capability, expectedModel, curren
 			return err
 		}
 	}
-	if err := MergeProviderUsage(outcome, frame.Usage, capability == "embedding" || capability == "rerank", currency); err != nil {
+	if err := MergeProviderUsage(outcome, frame.Usage, capability == "embedding" || capability == "rerank" || capability == "decision", currency); err != nil {
 		return err
 	}
 	if frame.UsageMetadata != nil {
@@ -309,6 +310,19 @@ func ConsumeProviderFrame(raw []byte, adapter, capability, expectedModel, curren
 		return nil
 	}
 	if capability == "rerank" {
+		outcome.Completed = true
+		return nil
+	}
+	if capability == "decision" && outcome.HTTPStatus < 400 {
+		if len(frame.Answers) == 0 || len(frame.Answers) > 32 {
+			return platform.NewError(platform.CodeUnsupportedSchema, false, "决策响应缺少答案或答案过多")
+		}
+		for _, answer := range frame.Answers {
+			if answer.Type != "noul" && answer.Type != "choice" && answer.Type != "score" {
+				return platform.NewError(platform.CodeUnsupportedSchema, false, "决策响应含未知题型")
+			}
+		}
+		outcome.Output = &platform.ModelOutput{Capability: "decision", Decision: frame.Answers}
 		outcome.Completed = true
 		return nil
 	}

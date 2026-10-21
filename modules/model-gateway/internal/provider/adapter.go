@@ -59,9 +59,13 @@ type BuildProviderRequestResult struct {
 // BuildProviderRequest只使用accepted固定的模型/渠道/密文引用，不追随新active配置。
 // EffectiveAdapter 让一个供应方同时承载对话和向量模型（参照 opencode 一个供应方挂多种模型）：
 // OpenAI 兼容供应方的向量模型走 /embeddings；Gemini 的向量请求本来就在 gemini 分支里按能力区分。
+// OpenRouter 上的决策模型（TypeSafe Jev）走同一供应方的 Decisions 接口（/api/alpha/decisions）。
 func EffectiveAdapter(adapter, capability string) string {
 	if adapter == "openai_chat" && capability == "embedding" {
 		return "openai_embeddings"
+	}
+	if adapter == "openai_chat" && capability == "decision" {
+		return "openrouter_decisions"
 	}
 	return adapter
 }
@@ -153,6 +157,16 @@ func BuildProviderRequest(ctx context.Context, op OperationContext, input BuildP
 		raw, _ := json.Marshal(map[string]any{"model": attempt.Model.ProviderModelVersion, "query": *request.Query, "documents": request.Texts, "top_n": len(request.CandidateIds), "return_documents": false})
 		body = string(raw)
 		path = "/rerank"
+		headers.Set("Authorization", "Bearer "+string(key))
+	case "openrouter_decisions":
+		if request.Decision == nil {
+			return BuildProviderRequestResult{}, platform.NewError(platform.CodeValidation, false, "决策请求缺少题目")
+		}
+		raw, _ := json.Marshal(map[string]any{"model": attempt.Model.ProviderModelVersion, "state": request.Decision.State, "questions": request.Decision.Questions})
+		body = string(raw)
+		// 供应方地址按对话接口配置（…/api/v1），决策接口在同级的 /api/alpha/decisions。
+		base = strings.TrimSuffix(base, "/v1")
+		path = "/alpha/decisions"
 		headers.Set("Authorization", "Bearer "+string(key))
 	case "openai_chat":
 		messages := make([]map[string]any, 0, len(request.Messages))

@@ -1334,15 +1334,19 @@ export interface components {
             /** @description 取消状态 */
             invocation: components["schemas"]["Invocation"];
         };
-        /** @description 模型完整结果：embedding/rerank结构结果或chat/vision/translation完整UTF8文本；completed事件或严格当前快照承载，不以delta片段冒充完整。 */
+        /** @description 模型完整结果：embedding/rerank/decision结构结果或chat/vision/translation完整UTF8文本；completed事件或严格当前快照承载，不以delta片段冒充完整。 */
         ModelOutput: {
             /** @enum {string} */
-            capability: "embedding" | "rerank" | "chat" | "vision" | "translation";
+            capability: "embedding" | "rerank" | "chat" | "vision" | "translation" | "decision";
             embeddingSpace?: components["schemas"]["EmbeddingSpace"];
             vectors?: number[][];
             candidateIds?: components["schemas"]["Identifier"][];
             /** @description 真实完整文本；生产方UTF8字节总数另限64KiB。显式空串是已证明空输出，字段缺失不是空结果。 */
             text?: string;
+            /** @description decision能力的类型化答案：题目ID→该题答案（noul概率、choice选项与各选项概率、score加权分）；不含文本。 */
+            decision?: {
+                [key: string]: Record<string, never>;
+            };
         } & ({
             /** @constant */
             capability?: "embedding";
@@ -1352,6 +1356,9 @@ export interface components {
         } | {
             /** @enum {unknown} */
             capability?: "chat" | "vision" | "translation";
+        } | {
+            /** @constant */
+            capability?: "decision";
         });
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         types_StreamEvent: {
@@ -1450,7 +1457,7 @@ export interface components {
              * @description 五档
              * @enum {string}
              */
-            tier: "fast" | "accurate" | "vision" | "embedding" | "rerank";
+            tier: "fast" | "accurate" | "vision" | "embedding" | "rerank" | "decision";
             /** @description 第一为主其余有序备用 */
             orderedModelIds: components["schemas"]["Identifier"][];
             /** @description 本请求最大费用，0表示不限；不能释放或覆盖旧unknown held */
@@ -2333,7 +2340,7 @@ export interface components {
              * @description 根唯一AI任务目录登记的默认档位；不能用输入改写目录
              * @enum {string}
              */
-            tier: "fast" | "accurate" | "vision" | "embedding" | "rerank";
+            tier: "fast" | "accurate" | "vision" | "embedding" | "rerank" | "decision";
             /** @description 单任务覆盖模型 */
             overrideModelId?: components["schemas"]["Identifier"];
             /** @description CAS版本 */
@@ -2515,7 +2522,7 @@ export interface components {
             providerId: components["schemas"]["Identifier"];
             /** @description 不可变供应方模型版本 */
             providerModelVersion: string;
-            /** @description chat vision structured reasoning embedding rerank translation能力集合；file必须同时vision和完整输入窗口。 */
+            /** @description chat vision structured reasoning embedding rerank translation decision能力集合；file必须同时vision和完整输入窗口。 */
             capabilities: string[];
             /** @description 嵌入维度chat为0 */
             dimension: number;

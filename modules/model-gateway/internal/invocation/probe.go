@@ -122,6 +122,12 @@ func CreateProbeInvocation(ctx context.Context, op OperationContext, input gen.C
 		request.CandidateIds = []string{"probe"}
 	default:
 		request.Capability = "chat"
+		if !slices.Contains(model.Capabilities, "chat") && slices.Contains(model.Capabilities, "decision") {
+			// 决策模型不生成文本：用一道是非题探测连接。
+			request.Capability = "decision"
+			request.Decision = &gen.DecisionRequest{State: "OK", Questions: map[string]gen.DecisionQuestion{"ok": {Type: "noul", Instructions: "Does the state say OK?"}}}
+			break
+		}
 		if !slices.Contains(model.Capabilities, "chat") && slices.Contains(model.Capabilities, "translation") {
 			request.Capability = "translation"
 		}
@@ -149,7 +155,8 @@ func CreateProbeInvocation(ctx context.Context, op OperationContext, input gen.C
 		Candidates          []string             `json:"candidateIds"`
 		Query               *string              `json:"query,omitempty"`
 		MaximumOutputTokens int                  `json:"maximumOutputTokens"`
-	}{input.IdempotencyKey, string(request.Capability), request.Messages, request.Texts, request.CandidateIds, request.Query, request.MaximumOutputTokens})
+		Decision            *gen.DecisionRequest `json:"decision,omitempty"`
+	}{input.IdempotencyKey, string(request.Capability), request.Messages, request.Texts, request.CandidateIds, request.Query, request.MaximumOutputTokens, request.Decision})
 	policy := gatewayruntime.ProbePolicy{Kind: "admin-probe", SchemaVersion: 1, ApprovedBy: op.Actor.SubjectID, PermissionRevision: int64(op.Actor.PermissionRevision)}
 	policyRaw, _ := platform.CanonicalJSON(policy)
 	id := platform.NewIdentifier()

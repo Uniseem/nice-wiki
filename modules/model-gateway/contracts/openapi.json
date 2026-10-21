@@ -2109,7 +2109,8 @@
                 "vision",
                 "embedding",
                 "rerank",
-                "translation"
+                "translation",
+                "decision"
               ],
               "description": "能力过滤"
             },

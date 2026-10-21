@@ -13,7 +13,7 @@ type Profile = { profileId: string; version: number; costClass: string; tier: st
 type Assignment = { taskId: string; tier: string; version: number; overrideModelId?: string };
 type Catalog = { providers: Provider[]; models: Model[]; profiles: Profile[]; taskAssignments: Assignment[] };
 
-const tiers: Record<string, string> = { fast: '快速', accurate: '准确', vision: '视觉', embedding: '向量', rerank: '重排' };
+const tiers: Record<string, string> = { fast: '快速', accurate: '准确', vision: '视觉', embedding: '向量', rerank: '重排', decision: '决策' };
 // 计费暂停：费用类别在界面上只当“用途”展示，不再有价格和费用上限。
 const costClasses: Record<string, string> = { qa: '访客问答', background: '后台任务', 'admin-probe': '连接测试' };
 const capabilities = [
@@ -21,6 +21,7 @@ const capabilities = [
   { value: 'vision', label: '视觉', description: '读图、描述画板和封面' },
   { value: 'embedding', label: '向量', description: '知识库检索用的嵌入' },
   { value: 'rerank', label: '重排', description: '检索结果重排序' },
+  { value: 'decision', label: '决策', description: '只返回带概率的选择结果，不生成文字（如 OpenRouter 上的 typesafe/jev-1.14）' },
 ];
 // 目录里可能出现、但添加时不需要手选的能力，只用于显示。
 const extraCapabilityLabels: Record<string, string> = { structured: '结构化输出', reasoning: '推理', translation: '翻译', file: '文件' };
@@ -37,11 +38,11 @@ const tasks: [string, string, string][] = [
   ['knowledge.describe-visual', 'vision', '图片、画板、视频封面视觉描述'], ['knowledge.extract-attachment', 'vision', '非文本附件内容提取'],
   ['knowledge.embed', 'embedding', '生成向量'], ['knowledge.rerank', 'rerank', '召回重排'],
   ['localization.document', 'accurate', '块级文档翻译'], ['localization.ui', 'accurate', '站点/界面文字翻译'], ['localization.terms', 'accurate', '首次文档术语抽取'],
-  ['localization.review', 'accurate', '可选反思润色'], ['localization.suggest', 'fast', '语言切换建议'],
+  ['localization.review', 'accurate', '可选反思润色'], ['localization.suggest', 'decision', '语言切换建议'],
   ['memory.overview', 'fast', '项目概述维护'], ['memory.assistant', 'accurate', '记忆助手'],
   ['content.slug', 'fast', '首次发布路径名'], ['content.seo', 'fast', '首次发布 SEO 描述'],
 ];
-const tierCapability: Record<string, string> = { fast: 'chat', accurate: 'chat', vision: 'vision', embedding: 'embedding', rerank: 'rerank' };
+const tierCapability: Record<string, string> = { fast: 'chat', accurate: 'chat', vision: 'vision', embedding: 'embedding', rerank: 'rerank', decision: 'decision' };
 const idPattern = '[A-Za-z0-9._:-]+';
 
 export default function ModelsPage() {
@@ -56,7 +57,7 @@ export default function ModelsPage() {
       const c = catalog.data!;
       const usable = c.models.filter((model) => model.enabled);
       const byCap = (cap: string) => usable.filter((model) => model.capabilities.includes(cap)).map((model) => model.modelId);
-      const tierModels: Record<string, string[]> = { fast: byCap('chat'), accurate: byCap('chat'), vision: byCap('vision'), embedding: byCap('embedding'), rerank: byCap('rerank') };
+      const tierModels: Record<string, string[]> = { fast: byCap('chat'), accurate: byCap('chat'), vision: byCap('vision'), embedding: byCap('embedding'), rerank: byCap('rerank'), decision: byCap('decision') };
       let profiles = 0, assignments = 0;
       for (const costClass of ['qa', 'background']) {
         for (const [tier, ids] of Object.entries(tierModels)) {

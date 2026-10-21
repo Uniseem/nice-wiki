@@ -272,7 +272,7 @@ func validCatalogOrigin(origin gen.ModelCatalogOrigin) bool {
 
 func validCapability(capability string) bool {
 	switch capability {
-	case "chat", "vision", "file", "structured", "reasoning", "embedding", "rerank", "translation":
+	case "chat", "vision", "file", "structured", "reasoning", "embedding", "rerank", "translation", "decision":
 		return true
 	default:
 		return false

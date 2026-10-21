@@ -358,7 +358,7 @@ func readAvailabilityTask(ctx context.Context, snapshot *availabilitySnapshot, t
 		return TaskAvailability{}, platform.NewError(platform.CodeVersionMismatch, false, "任务分配代次已变化")
 	}
 	switch tier {
-	case "fast", "accurate", "vision", "embedding", "rerank":
+	case "fast", "accurate", "vision", "embedding", "rerank", "decision":
 	default:
 		return TaskAvailability{}, platform.NewError(platform.CodeIntegrityError, false, "任务分配档位损坏")
 	}

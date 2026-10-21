@@ -360,6 +360,9 @@ func ValidateInvocationPayload(input CreateInvocationInput) error {
 	if input.ExpectedEmbeddingSpace != nil && input.Capability != "embedding" {
 		return platform.NewError(platform.CodeValidation, false, "只有embedding调用可声明固定向量空间")
 	}
+	if input.Decision != nil && input.Capability != "decision" {
+		return platform.NewError(platform.CodeValidation, false, "只有decision调用可携带决策题目")
+	}
 	switch string(input.Capability) {
 	case "embedding":
 		if len(input.Texts) == 0 || len(input.Texts) > 64 || len(input.Messages) != 0 || len(input.CandidateIds) != 0 || input.MaximumOutputTokens != 0 || input.Query != nil {
@@ -368,6 +371,15 @@ func ValidateInvocationPayload(input CreateInvocationInput) error {
 	case "rerank":
 		if input.Query == nil || *input.Query == "" || len(input.Texts) == 0 || len(input.Texts) != len(input.CandidateIds) || len(input.Messages) != 0 {
 			return platform.NewError(platform.CodeValidation, false, "原生重排必须明确query与等长候选文本/ID")
+		}
+	case "decision":
+		if input.Decision == nil || len(input.Decision.Questions) == 0 || len(input.Messages) != 0 || len(input.Texts) != 0 || len(input.CandidateIds) != 0 || input.Query != nil || input.MaximumOutputTokens != 0 {
+			return platform.NewError(platform.CodeValidation, false, "决策调用只接受状态与题目及0输出预算")
+		}
+		for _, question := range input.Decision.Questions {
+			if (question.Type == "choice" || question.Type == "score") && question.Criteria == nil {
+				return platform.NewError(platform.CodeValidation, false, "单选和打分题必须给出选项或等级")
+			}
 		}
 	case "chat", "vision", "translation":
 		if len(input.Messages) == 0 || len(input.Texts) != 0 || len(input.CandidateIds) != 0 || input.Query != nil || input.MaximumOutputTokens < 1 {

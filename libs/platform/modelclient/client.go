@@ -177,6 +177,10 @@ func validateModelOutput(output *platform.ModelOutput) error {
 			if output.Text != nil || output.EmbeddingSpace != nil || len(output.Vectors) > 0 {
 				return platform.NewError(platform.CodeIntegrityError, false, "重排结果包含向量数据")
 			}
+		case "decision":
+			if len(output.Decision) == 0 || output.Text != nil || output.EmbeddingSpace != nil || len(output.Vectors) > 0 || len(output.CandidateIDs) > 0 {
+				return platform.NewError(platform.CodeIntegrityError, false, "决策结果缺失或混入其他结果")
+			}
 		default:
 			return platform.NewError(platform.CodeUnsupportedSchema, false, "结构化结果能力未知")
 		}

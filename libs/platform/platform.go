@@ -482,6 +482,7 @@ const (
 	CapabilityFile        = "file"
 	CapabilityEmbedding   = "embedding"
 	CapabilityRerank      = "rerank"
+	CapabilityDecision    = "decision"
 	CapabilityTranslation = "translation"
 )
 
@@ -537,6 +538,31 @@ type CreateInvocationInput struct {
 	IDempotencyKey               string                  `json:"idempotencyKey"`
 	AdmissionPermit              *AdmissionPermit        `json:"admissionPermit,omitempty"`
 	ExpectedEmbeddingSpace       *EmbeddingSpace         `json:"expectedEmbeddingSpace,omitempty"`
+	Decision                     *DecisionRequest        `json:"decision,omitempty"`
+}
+
+// DecisionRequest 是 decision 能力（如 TypeSafe 的 Jev 决策模型）的输入：一段状态加若干类型化题目，一次调用一起回答。
+type DecisionRequest struct {
+	State     any                         `json:"state"`
+	Questions map[string]DecisionQuestion `json:"questions"`
+}
+
+// DecisionQuestion 是一道决策题：noul 返回“是”的概率，choice 在 criteria 的选项里单选并给出各选项概率，score 在有序等级里打分。
+// 题目 ID 不发给模型，含义全部写在 Instructions 和 Criteria 里。
+type DecisionQuestion struct {
+	Type         string `json:"type"`
+	Instructions string `json:"instructions"`
+	Criteria     any    `json:"criteria,omitempty"`
+}
+
+// DecisionAnswer 是一道决策题的答案；按题型只有对应字段有值。
+type DecisionAnswer struct {
+	Type          string             `json:"type"`
+	Noul          *float64           `json:"noul,omitempty"`
+	Choice        string             `json:"choice,omitempty"`
+	Score         *float64           `json:"score,omitempty"`
+	Confidence    *float64           `json:"confidence,omitempty"`
+	Probabilities map[string]float64 `json:"probabilities,omitempty"`
 }
 
 // ModelAttempt 一次独立计费的供应方尝试。
@@ -593,11 +619,12 @@ type EmbeddingSpace struct {
 }
 
 type ModelOutput struct {
-	Text           *string         `json:"text,omitempty"`
-	Capability     string          `json:"capability"`
-	EmbeddingSpace *EmbeddingSpace `json:"embeddingSpace,omitempty"`
-	Vectors        [][]float64     `json:"vectors,omitempty"`
-	CandidateIDs   []Identifier    `json:"candidateIds,omitempty"`
+	Text           *string                   `json:"text,omitempty"`
+	Capability     string                    `json:"capability"`
+	EmbeddingSpace *EmbeddingSpace           `json:"embeddingSpace,omitempty"`
+	Vectors        [][]float64               `json:"vectors,omitempty"`
+	CandidateIDs   []Identifier              `json:"candidateIds,omitempty"`
+	Decision       map[string]DecisionAnswer `json:"decision,omitempty"`
 }
 
 type StreamEvent struct {

@@ -379,6 +379,9 @@ var AITierCapabilities = map[string][]string{
 	"accurate": []string{
 		"chat",
 	},
+	"decision": []string{
+		"decision",
+	},
 	"embedding": []string{
 		"embedding",
 	},
@@ -431,8 +434,8 @@ var AITaskCatalog = map[string]AITaskEntry{
 	"localization.review": {Owner: "localization", DefaultTier: "accurate", RequiredCapabilities: []string{
 		"chat",
 	}},
-	"localization.suggest": {Owner: "localization", DefaultTier: "fast", RequiredCapabilities: []string{
-		"chat",
+	"localization.suggest": {Owner: "localization", DefaultTier: "decision", RequiredCapabilities: []string{
+		"decision",
 	}},
 	"localization.terms": {Owner: "localization", DefaultTier: "accurate", RequiredCapabilities: []string{
 		"chat",

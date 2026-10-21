@@ -5,7 +5,8 @@
     "accurate",
     "vision",
     "embedding",
-    "rerank"
+    "rerank",
+    "decision"
   ],
   "singleSource": true,
   "tasks": [
@@ -230,9 +231,9 @@
       "id": "localization.suggest",
       "name": "语言切换建议",
       "owner": "localization",
-      "defaultTier": "fast",
+      "defaultTier": "decision",
       "defaultMemoryRoles": [],
-      "defaultMaxOutputTokens": 500,
+      "defaultMaxOutputTokens": 0,
       "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
       "targetLanguageRole": "translation-target按目标语言选择",
       "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
@@ -321,6 +322,9 @@
     ],
     "rerank": [
       "rerank"
+    ],
+    "decision": [
+      "decision"
     ]
   }
 }
