@@ -41,10 +41,8 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 		"resolvePublishedLink": publishedLinkHandler(directory),
 		"handleRootRedirect": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
-			in := publicsite.HandleRootRedirectInput{AcceptLanguage: r.Header.Get("Accept-Language"), DataEpoch: string(op.DataEpoch)}
-			if cookie, err := r.Cookie("lang"); err == nil {
-				in.LanguageCookie = cookie.Value
-			}
+			// 入口不转发 Cookie，访客的 lang cookie 由入口校验后放在专用头里。
+			in := publicsite.HandleRootRedirectInput{LanguageCookie: r.Header.Get(platform.HeaderLanguagePreference), AcceptLanguage: r.Header.Get("Accept-Language"), DataEpoch: string(op.DataEpoch)}
 			result, err := publicsite.HandleRootRedirect(publicsite.WithLinkDirectory(r.Context(), directory), op, in)
 			if err != nil {
 				writeProblem(w, err)

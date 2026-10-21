@@ -2,6 +2,8 @@ package internal
 
 import (
 	"context"
+	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -104,11 +106,34 @@ func NormalizeForwardHeaders(input NormalizeForwardHeadersInput) (NormalizeForwa
 		}
 		result.Entries = append(result.Entries, HeaderEntry{Name: canonicalHeader(name), Values: values})
 	}
+	if preference := languagePreference(input.Headers); preference != "" {
+		result.Entries = append(result.Entries, HeaderEntry{Name: platform.HeaderLanguagePreference, Values: []string{preference}})
+	}
 	result.Entries = append(result.Entries,
 		HeaderEntry{Name: platform.HeaderRequestID, Values: []string{input.Envelope.RequestID}},
 		HeaderEntry{Name: platform.HeaderOperationID, Values: []string{input.Envelope.OperationID}},
 	)
 	return NormalizeForwardHeadersResult{Headers: result}, nil
+}
+
+var languageTag = regexp.MustCompile(`^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8}){0,4}$`)
+
+// languagePreference 从 Cookie 里只取访客在语言切换器里选的 lang；Cookie 本身不转发，值不像语言标签就丢弃。
+func languagePreference(headers HeaderMap) string {
+	for _, entry := range headers.Entries {
+		if !strings.EqualFold(strings.TrimSpace(entry.Name), "Cookie") {
+			continue
+		}
+		for _, value := range entry.Values {
+			cookies, _ := http.ParseCookie(value)
+			for _, cookie := range cookies {
+				if cookie.Name == "lang" && languageTag.MatchString(cookie.Value) {
+					return cookie.Value
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func headerBytes(headers HeaderMap) int64 {

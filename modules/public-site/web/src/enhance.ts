@@ -138,6 +138,11 @@ function beacon() {
   fetch('/v1/beacons', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', 'Idempotency-Key': payload.beaconId }, body: JSON.stringify(payload) }).catch(() => {});
 }
 
+// 访客自己选的语言记在 lang cookie（一年）：之后打开根路径按它跳转，不再按浏览器语言。
+export function rememberLanguage(tag: string) {
+  document.cookie = `lang=${encodeURIComponent(tag)}; path=/; max-age=31536000; samesite=lax`;
+}
+
 // 语言建议（规则兜底）：浏览器偏好语言与本页不同、且本站启用了它时，页首给一个可关闭的提示，绝不自动跳转。
 function languageHint(config: Config) {
   const languages = config.languages ?? [];
@@ -158,6 +163,7 @@ function languageHint(config: Config) {
     const link = document.createElement('a');
     link.href = hit.href;
     link.lang = hit.tag;
+    link.addEventListener('click', () => rememberLanguage(hit.tag));
     link.className = 'inline-flex items-center gap-1.5 font-medium text-accent hover:underline';
     link.innerHTML = '<svg aria-hidden="true" class="size-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>';
     link.append(`${name} →`);

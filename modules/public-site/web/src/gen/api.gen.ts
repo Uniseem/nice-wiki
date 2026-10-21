@@ -1572,6 +1572,8 @@ export interface operations {
             header?: {
                 /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
                 "X-Request-Id"?: components["schemas"]["Identifier"];
+                /** @description 入口从访客 lang cookie 取出并校验的语言选择；优先于 Accept-Language，不是启用语言时忽略 */
+                "X-Language-Preference"?: string;
             };
             path?: never;
             cookie?: never;

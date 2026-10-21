@@ -1,6 +1,7 @@
 import { Display, Globe, Moon, Sparkles, Sun } from '@gravity-ui/icons';
 import { Button, Dropdown, Label, useTheme } from '@heroui/react';
 import type { Key } from '@heroui/react';
+import { rememberLanguage } from './enhance';
 
 export type Language = { tag: string; href: string; label: string; current: boolean };
 export type Config = { kind: string; locale: string; documentId: string; aiEnabled: boolean; askUrl: string; languages: Language[] | null; ui: Record<string, string> };
@@ -32,7 +33,12 @@ export function HeaderActions({ config, t, onAsk, onAskIntent }: { config: Confi
             <Dropdown.Menu
               selectedKeys={current ? [current.tag] : []}
               selectionMode="single"
-              onAction={(key: Key) => { const target = languages.find((language) => language.tag === key); if (target && !target.current) location.href = target.href; }}
+              onAction={(key: Key) => {
+                const target = languages.find((language) => language.tag === key);
+                if (!target) return;
+                rememberLanguage(target.tag);
+                if (!target.current) location.href = target.href;
+              }}
             >
               {languages.map((language) => (
                 <Dropdown.Item key={language.tag} id={language.tag} textValue={nativeName(language)}>

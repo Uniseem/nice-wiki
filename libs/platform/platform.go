@@ -926,6 +926,8 @@ const (
 	HeaderDataEpoch       = "X-Data-Epoch"
 	HeaderPortalProof     = "X-Portal-Proof"
 	HeaderAuthorization   = "Authorization"
+	// HeaderLanguagePreference 是入口从访客 lang cookie 取出、校验后转给拥有服务的语言选择；浏览器直接发的同名头不转发。
+	HeaderLanguagePreference = "X-Language-Preference"
 )
 
 // AssertionScheme 服务断言的Authorization方案前缀。
