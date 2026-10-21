@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -18,8 +19,16 @@ import (
 
 var errTranslationCancelled = errors.New("翻译已被取消")
 
+// executing 记着本进程里正在翻的译文，同一份不会被翻两次。
+var executing sync.Map
+
 // ExecuteTranslation 把一份 queued 译文翻译完成：按批调用模型、逐条校验、写出权威译文对象并置 ready；失败置 failed。
+// 进程重启后接着翻 running 的译文也走这里：已完成的批次按幂等键由模型网关复用，不重复花钱。
 func ExecuteTranslation(ctx context.Context, op OperationContext, translationID string) {
+	if _, busy := executing.LoadOrStore(translationID, true); busy {
+		return
+	}
+	defer executing.Delete(translationID)
 	work, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
 	if err := runTranslation(work, op, translationID); err != nil && errors.Is(err, errTranslationCancelled) {
@@ -67,6 +76,27 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		return err
 	}
 	memory := platform.MemoryContext{TaskID: "localization.document", Language: target, VersionHash: platform.HashBytes(nil)}
+	// 这篇文档上一份完成的译文里，原文没变的单元直接沿用（人工改过的也保留），只把新增或改过的单元交给模型。
+	previous := map[string]gen.TranslationUnit{}
+	err = language.ReadData(ctx, op, func(tx *sql.Tx) error {
+		prior, found, err := LatestManifest(ctx, tx, op, document.DocumentId, target, true)
+		if err != nil || !found || prior.ID == translationID {
+			return err
+		}
+		object, err := ReadObject(ctx, tx, op, prior.ID)
+		if err != nil {
+			return err
+		}
+		for _, unit := range object.Units {
+			if unit.Status != "fallback" {
+				previous[unit.UnitId] = unit
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 	translated := make([]gen.TranslationUnit, 0, len(split.Units))
 	var batch []gen.TranslationUnit
 	size := 0
@@ -77,7 +107,7 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		if translationCancelled(ctx, op, translationID) {
 			return errTranslationCancelled
 		}
-		done, err := translateBatch(ctx, op, translationID, route, memory, source, batch, len(translated))
+		done, err := translateBatch(ctx, op, translationID, route, memory, source, batch)
 		if err != nil {
 			return err
 		}
@@ -87,6 +117,11 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 	}
 	for _, unit := range split.Units {
 		text := *unit.SourceText
+		if prior, ok := previous[unit.UnitId]; ok && prior.SourceHash == unit.SourceHash {
+			prior.Document, prior.TargetLanguage, prior.SourceText, prior.PreviousTargetText = document, unit.TargetLanguage, unit.SourceText, nil
+			translated = append(translated, prior)
+			continue
+		}
 		if VisibleCharacterCount(text) == 0 && strings.TrimSpace(inlineTokenPattern.ReplaceAllString(text, "")) == "" {
 			// 没有可见文字（只有编号标签或空白）的单元不必翻译，沿用原文。
 			unit.TargetText = text
@@ -111,7 +146,7 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 	if strings.TrimSpace(source.Title) != "" {
 		sourceTitle := source.Title
 		titleUnit := gen.TranslationUnit{UnitId: "title." + platform.HashBytes([]byte(sourceTitle))[:16], SourceText: &sourceTitle, SourceHash: platform.HashBytes([]byte(sourceTitle))}
-		if done, titleErr := translateBatch(ctx, op, translationID+".title", route, memory, source, []gen.TranslationUnit{titleUnit}, 0); titleErr == nil && len(done) == 1 {
+		if done, titleErr := translateBatch(ctx, op, translationID, route, memory, source, []gen.TranslationUnit{titleUnit}); titleErr == nil && len(done) == 1 {
 			title = strings.TrimSpace(done[0].TargetText)
 		}
 	}
@@ -129,12 +164,17 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 }
 
 // translateBatch 翻译一批单元并校验：模型必须完整返回本批 unitId，编号标签不得改变。
-func translateBatch(ctx context.Context, op OperationContext, translationID string, route localizationruntime.PlanTaskRoute, memory platform.MemoryContext, source localizationruntime.PublishedSnapshot, batch []gen.TranslationUnit, index int) ([]gen.TranslationUnit, error) {
+func translateBatch(ctx context.Context, op OperationContext, translationID string, route localizationruntime.PlanTaskRoute, memory platform.MemoryContext, source localizationruntime.PublishedSnapshot, batch []gen.TranslationUnit) ([]gen.TranslationUnit, error) {
 	prompt, err := BuildTranslationPrompt(ctx, op, BuildTranslationPromptInput{SourceUnits: batch, DocumentText: "", SectionTitle: source.Title, Memory: memory})
 	if err != nil {
 		return nil, err
 	}
-	key := "translate." + platform.HashBytes([]byte(translationID+fmt.Sprint(index)))
+	// 幂等键按译文和本批单元定：进程重启后接着翻，同一批复用网关已有的结果。
+	ids := make([]string, len(batch))
+	for i, unit := range batch {
+		ids[i] = unit.UnitId
+	}
+	key := "translate." + platform.HashBytes([]byte(translationID+":"+strings.Join(ids, ",")))
 	outcome, err := localizationruntime.InvokeModel(ctx, op, platform.InvokeModelRequest{IDempotencyKey: key, Request: platform.CreateInvocationInput{TaskID: "localization.document", ProfileID: route.ProfileID, ExpectedRouteVersion: route.RouteVersion, Capability: platform.CapabilityChat, Messages: prompt.Messages, MaximumOutputTokens: 4000, IDempotencyKey: key}})
 	if err != nil {
 		return nil, err

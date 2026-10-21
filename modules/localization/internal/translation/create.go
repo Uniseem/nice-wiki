@@ -65,10 +65,17 @@ func createTranslation(ctx context.Context, op OperationContext, input CreateTra
 	if err != nil {
 		return CreateTranslationResult{}, err
 	}
+	go ExecuteTranslation(context.Background(), executionOperation(op, result.Translation.TranslationId), result.Translation.TranslationId)
+	return result, nil
+}
+
+// executionOperation 是后台翻译用的操作上下文：按后台费用类别，给足 15 分钟。
+// 根操作固定为译文 ID：模型网关按“根操作 + 幂等键”认同一次调用，进程重启后接着翻才能复用已完成的批次。
+func executionOperation(op OperationContext, translationID string) OperationContext {
 	execution := op
+	execution.RootOperationID = translationID
 	execution.CostClass = platform.CostClassBackground
 	execution.Deadline = time.Now().UTC().Add(15 * time.Minute).Format(time.RFC3339Nano)
 	execution.Actor.ExpiresAt = execution.Deadline
-	go ExecuteTranslation(context.Background(), execution, result.Translation.TranslationId)
-	return result, nil
+	return execution
 }
