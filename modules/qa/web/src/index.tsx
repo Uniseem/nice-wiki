@@ -15,7 +15,7 @@ type Citation = { citationId?: string; title?: string; href?: string };
 const switches: Record<string, [string, string]> = {
   enabled: ['公开问答', '打开后访客可以在文档页右下角和独立问答页提问。'],
   cacheEnabled: ['答案缓存', '完整、可共享的问题会先查缓存，命中就不再调用回答模型。'],
-  compactionEnabled: ['长对话压缩', '对话过长时压缩早期内容，节省上下文。'],
+  compactionEnabled: ['长对话压缩', '对话快占满回答模型的上下文窗口时，把早期内容压缩成摘要；关闭则只带得下的最近消息。'],
 };
 const numbers: Record<string, string> = {
   maximumOutputTokens: '回答最大输出词元', maximumHistoryTokens: '历史最大词元', maximumContextTokens: '上下文最大词元',
@@ -39,7 +39,8 @@ function ProfileField({ label, description, costClass, profiles, value, onChange
   if (value && !options.some((option) => option.value === value)) options.unshift({ value, label: `${value}（模型接入里没有这个档位）` });
   return <SelectInput description={description} label={label} options={options} value={value} onChange={onChange} />;
 }
-const hidden = new Set(['version', 'retrievalSpace']);
+// 历史预算跟随回答模型的上下文窗口，不再单独设上限。
+const hidden = new Set(['version', 'retrievalSpace', 'maximumHistoryTokens']);
 const answerKinds: Record<string, string> = { answered: '已回答', refused: '拒答', cached: '缓存命中', no_evidence: '无依据', failed: '失败', cancelled: '已取消' };
 
 export default function QaPage() {

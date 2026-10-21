@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"regexp"
 	"time"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/qa/internal/answer"
 	"nice-wiki/modules/qa/internal/gen"
+	"nice-wiki/modules/qa/internal/history"
 	"nice-wiki/modules/qa/internal/normalize"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"nice-wiki/modules/qa/internal/stream"
@@ -74,16 +74,16 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 	if err != nil {
 		return err
 	}
-	history, err := recentHistory(ctx, op, record.Turn.ConversationId, turnID)
+	conversation, err := history.LoadConversation(ctx, op, record.Turn.ConversationId, turnID)
 	if err != nil {
 		return err
 	}
-	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, history)
+	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, conversation.Summary, conversation.Recent(6))
 	if err != nil {
 		return err
 	}
 	if planned != nil && planned.cacheable && resolved.Policy.CacheEnabled {
-		if hit, err := answerFromCache(ctx, op, turnID, lease, record, resolved, planned, len(history) == 0); err != nil || hit {
+		if hit, err := answerFromCache(ctx, op, turnID, lease, record, resolved, planned, conversation.Summary == "" && len(conversation.Messages) == 0); err != nil || hit {
 			return err
 		}
 	}
@@ -105,7 +105,7 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 	if _, err := takeState(ctx, op, turnID, lease, "generating"); err != nil {
 		return err
 	}
-	prompt, err := answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, EvidenceText: evidence.EvidenceText, History: history})
+	prompt, err := answerPrompt(ctx, op, record, resolved, evidence.EvidenceText, conversation)
 	if err != nil {
 		return err
 	}
@@ -195,31 +195,49 @@ func takeState(ctx context.Context, op OperationContext, turnID, lease, state st
 	return record, tx.Commit()
 }
 
-// citationMarker 匹配回答里各种写法的引用标识；历史回答去掉它们，免得模型把旧轮次的引用抄进新回答。
-var citationMarker = regexp.MustCompile(`</?sup>|\[\[?[^\]\n]*\]?\]\(citation\.[0-9a-f]+\)|\[\[?citation\.[0-9a-f]+\]?\]|[(（]citation\.[0-9a-f]+[)）]|citation\.[0-9a-f]{8,64}`)
+// summaryRoom 是给压缩后新摘要留的估算空间（摘要最多 1500 输出 token，按网关口径约 4000）。
+const summaryRoom = 4000
 
-// recentHistory 取本会话此前已完成的最近几条消息作为上下文。
-func recentHistory(ctx context.Context, op OperationContext, conversationID, turnID string) ([]gen.Message, error) {
-	tx, err := qaruntime.BeginRead(ctx, op)
-	if err != nil {
-		return nil, err
+// answerPrompt 组装回答提示词。超过回答模型窗口（扣掉预留比例和输出额度）时，像 ADE 一样先把早期对话压缩进摘要再组装；
+// 后台关闭压缩时改为丢掉最早的消息。估算和网关核对窗口用同一口径。
+func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, evidenceText string, conversation history.Conversation) (answer.BuildAnswerPromptResult, error) {
+	build := func() (answer.BuildAnswerPromptResult, error) {
+		return answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, EvidenceText: evidenceText, Summary: conversation.Summary, History: conversation.Messages})
 	}
-	defer tx.Close()
-	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT message_id,ordinal,role,text,turn_id,revision FROM (SELECT * FROM messages WHERE conversation_id=? AND turn_id<>? ORDER BY ordinal DESC LIMIT 6) ORDER BY ordinal`, conversationID, turnID)
+	prompt, err := build()
 	if err != nil {
-		return nil, qaruntime.StorageError(err)
+		return prompt, err
 	}
-	defer rows.Close()
-	var history []gen.Message
-	for rows.Next() {
-		var message gen.Message
-		if err := rows.Scan(&message.MessageId, &message.Ordinal, &message.Role, &message.Text, &message.TurnId, &message.Revision); err != nil {
-			return nil, qaruntime.StorageError(err)
+	window, err := qaruntime.ResolveTaskWindow(ctx, op, "qa.answer")
+	if err != nil || window == 0 {
+		return prompt, err
+	}
+	policy := resolved.Policy
+	budget := window*(100-policy.ContextReservePercent)/100 - min(prompt.MaximumOutputTokens, policy.MaximumOutputTokens)
+	if os.Getenv("NW_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "回答上下文 turn=%s window=%d budget=%d estimate=%d messages=%d\n", record.Turn.TurnId, window, budget, platform.EstimateMessageTokens(prompt.Messages), len(conversation.Messages))
+	}
+	if platform.EstimateMessageTokens(prompt.Messages) <= budget {
+		return prompt, nil
+	}
+	if !policy.CompactionEnabled {
+		for len(conversation.Messages) > 0 && platform.EstimateMessageTokens(prompt.Messages) > budget {
+			conversation.Messages = conversation.Messages[1:]
+			if prompt, err = build(); err != nil {
+				return prompt, err
+			}
 		}
-		message.Text = citationMarker.ReplaceAllString(message.Text, "")
-		history = append(history, message)
+		return prompt, nil
 	}
-	return history, rows.Err()
+	fixed := platform.EstimateMessageTokens([]platform.GatewayMessage{prompt.Messages[0], prompt.Messages[len(prompt.Messages)-1]})
+	keep := max(0, min(policy.RetainedRecentTokens, budget-fixed-summaryRoom))
+	if os.Getenv("NW_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "压缩对话 turn=%s keep=%d\n", record.Turn.TurnId, keep)
+	}
+	if conversation, err = history.Compact(ctx, op, history.CompactInput{Conversation: conversation, Language: record.Language, KeepTokens: keep}); err != nil {
+		return prompt, err
+	}
+	return build()
 }
 
 // failTurn 把未终止的轮次落成 failed，并尽量释放准入占位。

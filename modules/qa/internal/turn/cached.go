@@ -23,7 +23,7 @@ type questionPlan struct {
 
 // planQuestion 每轮都运行前置（fast 档位）：把问题改写成基准语言的独立问题、上报风险，并判断能否共享缓存。
 // 风险准入类错误（封禁/限流/需验证）照常终止本轮；其他失败（未分配档位、模型不可用、结构不合格）只是没有改写结果。
-func planQuestion(ctx context.Context, op OperationContext, turnID string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, history []gen.Message) (*questionPlan, context.Context, error) {
+func planQuestion(ctx context.Context, op OperationContext, turnID string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, summary string, history []gen.Message) (*questionPlan, context.Context, error) {
 	runtime, err := qaruntime.FromContext(ctx)
 	if err != nil {
 		return nil, ctx, err
@@ -35,7 +35,7 @@ func planQuestion(ctx context.Context, op OperationContext, turnID string, recor
 	runtime.FastProfileID = profile
 	runtime.AnswerMemoryHash = resolved.Memory.VersionHash // 缓存条目要与当前回答记忆版本一致才能复用
 	ctx = qaruntime.WithRuntime(ctx, runtime)
-	planned, err := questioncontext.PlanQuestion(ctx, op, questioncontext.PlanQuestionInput{Question: record.Question, VisitorLanguage: record.Language, History: history, GuardSignals: []string{}})
+	planned, err := questioncontext.PlanQuestion(ctx, op, questioncontext.PlanQuestionInput{Question: record.Question, VisitorLanguage: record.Language, History: history, PreviousSummary: summary, GuardSignals: []string{}})
 	if err != nil {
 		if failure, ok := err.(*platform.Error); ok && (failure.Code == platform.CodeForbidden || failure.Code == platform.CodeRateLimited || failure.Code == platform.CodeChallengeRequired) {
 			return nil, ctx, err
@@ -45,7 +45,7 @@ func planQuestion(ctx context.Context, op OperationContext, turnID string, recor
 	if err := savePlan(ctx, op, turnID, planned.Plan, resolved.Memory.VersionHash); err != nil {
 		return nil, ctx, nil
 	}
-	eligibility, _ := cache.EvaluateCacheEligibility(ctx, op, cache.EvaluateCacheEligibilityInput{Plan: planned.Plan, FirstTurn: len(history) == 0, CurrentPageDependent: planned.CurrentPageDependent, PrivateContextDependent: planned.PrivateContextDependent})
+	eligibility, _ := cache.EvaluateCacheEligibility(ctx, op, cache.EvaluateCacheEligibilityInput{Plan: planned.Plan, FirstTurn: summary == "" && len(history) == 0, CurrentPageDependent: planned.CurrentPageDependent, PrivateContextDependent: planned.PrivateContextDependent})
 	return &questionPlan{plan: planned.Plan, cacheable: eligibility.Eligible}, ctx, nil
 }
 

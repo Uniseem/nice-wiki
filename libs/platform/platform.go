@@ -500,6 +500,22 @@ type GatewayMessage struct {
 	Parts   []GatewayPart `json:"parts,omitempty"`
 }
 
+// EstimateInputTokens 是模型网关核对输入窗口用的保守文本预算：UTF-8 字节数的一半加每条消息 32，再乘 1.2。
+// 业务域判断上下文是否快满时用同一口径，免得自己算着没满、网关却按窗口拒绝。
+func EstimateInputTokens(bytes, messages int) int {
+	base := (bytes+1)/2 + messages*32
+	return (base*6 + 4) / 5
+}
+
+// EstimateMessageTokens 按 EstimateInputTokens 估算一组纯文本消息。
+func EstimateMessageTokens(messages []GatewayMessage) int {
+	size := 0
+	for _, message := range messages {
+		size += len(message.Content)
+	}
+	return EstimateInputTokens(size, len(messages))
+}
+
 type ExpectedPriceSnapshot struct {
 	ModelID         Identifier `json:"modelId"`
 	PriceSnapshotID Identifier `json:"priceSnapshotId"`

@@ -60,8 +60,7 @@ func EstimateTokens(ctx context.Context, op OperationContext, input EstimateToke
 		}
 		return EstimateTokensResult{InputTokens: model.MaxInputTokens, EstimatorVersion: "fixed-model-input-window-v1"}, nil
 	}
-	base := (size+1)/2 + len(input.Messages)*32
-	return EstimateTokensResult{InputTokens: (base*6 + 4) / 5, EstimatorVersion: "utf8-half-message32-six-fifths-v1"}, nil
+	return EstimateTokensResult{InputTokens: platform.EstimateInputTokens(size, len(input.Messages)), EstimatorVersion: "utf8-half-message32-six-fifths-v1"}, nil
 }
 
 // NewTokenHandlers 只绑定localization免费文本估算，严格结构与服务身份由公共入口建立。
