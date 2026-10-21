@@ -29,7 +29,7 @@ python3 scripts/dev.py up
 2. M2 余项：media 消费 content 事件；翻译的自动触发现在是轮询，不是事件。
 3. M3 补完：前置分类/检索核查/语义缓存、approve-plan 批量翻译执行器、界面文案翻译、语言建议。
 4. M4：各域屏障与快照导出、恢复换目录、恢复/镜像（简易备份已有，见上）。
-5. M5：在服务器上部署（需要你当次同意）；15 个镜像都在本机 docker 里用新入口构建通过，整套 compose 在本机起过（含 portal 路由表路径修复）：通过 Caddy 的 HTTPS 注册超管、初始化站点、新建并发布文档、公开页读取都走通（`NW_PORTAL=https://localhost python3 scripts/smoke.py new`）。这一轮顺带修了：媒体镜像入口被 alpine 自带的 /media 目录挡住、model-gateway 与 data-protection 的主密钥文件要求 0600 而容器普通用户读不到（这两个服务改以 root 运行）、init-secrets 写错目录、构建上下文带宿主机 node_modules。没确认的：全新空卷第一次启动时，站点初始化之前依赖站点身份的服务（analytics/model-gateway/knowledge 等）原地等待、初始化后恢复这一段，docker 里没单独演练（本地验证过）；本机磁盘紧张，镜像构建要逐个构建并清理中间层。
+5. M5：在服务器上部署（需要你当次同意）；15 个镜像都在本机 docker 里用新入口构建通过，整套 compose 在本机起过（含 portal 路由表路径修复）：通过 Caddy 的 HTTPS 注册超管、初始化站点、新建并发布文档、公开页读取都走通（`NW_PORTAL=https://localhost python3 scripts/smoke.py new`）。这一轮顺带修了：媒体镜像入口被 alpine 自带的 /media 目录挡住、model-gateway 与 data-protection 的主密钥文件要求 0600 而容器普通用户读不到（这两个服务改以 root 运行）、init-secrets 写错目录、构建上下文带宿主机 node_modules。已在 docker 里演练：全新空卷启动，站点初始化之前 16 个容器都稳定运行（依赖站点身份的服务原地等待），注册超管 → 初始化 → 发布一路走通，初始化后各服务就绪；子账号（无备份权限）创建/列出备份都是 403。构建镜像要逐个构建并清理中间层（本机磁盘曾几次写满）。
 
 ## 已知缺口
 
