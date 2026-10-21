@@ -4,6 +4,8 @@ export * from './feedback';
 export * from './fields';
 export * from './format';
 export * from './hooks';
+export * from './i18n';
+export * from './languages';
 export * from './layout';
 export * from './router';
 export * from './theme';

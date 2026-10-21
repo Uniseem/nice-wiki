@@ -1,7 +1,7 @@
 import { ArrowRightFromSquare, ArrowUpRightFromSquare, Bars, Person } from '@gravity-ui/icons';
 import { Button, buttonVariants, cn, Drawer, Dropdown, Label, ScrollShadow, Separator } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { CenteredSpinner, ErrorBlock, navigate, Notice, ThemeMenu, useGrants, usePath } from '@ui';
+import { CenteredSpinner, ErrorBlock, LanguageMenu, navigate, Notice, ThemeMenu, useGrants, usePath } from '@ui';
 import { Component, createContext, Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Account } from './App';
 import { canOpen, legacyPath, pageFor, pages, sections, type Page } from './routes';
@@ -61,6 +61,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
                 <ArrowUpRightFromSquare />
                 <span className="hidden sm:inline">查看站点</span>
               </a>
+              <LanguageMenu />
               <ThemeMenu />
             </div>
           </header>

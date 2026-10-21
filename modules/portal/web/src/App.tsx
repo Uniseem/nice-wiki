@@ -1,5 +1,5 @@
 import { I18nProvider, RouterProvider, Toast } from '@heroui/react';
-import { api, ApiError, CenteredSpinner, currentGrants, currentSessionId, DialogHost, navigate, newKey, onUnauthorized, refresh, storeSession } from '@ui';
+import { adminLanguage, api, ApiError, CenteredSpinner, currentGrants, currentSessionId, DialogHost, findSiteLanguage, navigate, newKey, onUnauthorized, refresh, storeSession } from '@ui';
 import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
 import { AuthScreen } from './AuthScreen';
@@ -16,6 +16,9 @@ export type Account = {
 
 type Phase = { kind: 'loading' } | { kind: 'auth' } | { kind: 'app'; account: Account };
 
+// React Aria 自带文字（日期选择等）按地区写法认语言。
+const ariaLocale: Record<string, string> = { 'zh-Hans': 'zh-CN', 'zh-Hant': 'zh-TW', pt: 'pt-BR' };
+
 // 站点初始化只写了站点配置；基准语言要在本地化域登记成默认语言，公开页才能渲染。已登录时补一次，幂等。
 export async function ensureBaseLanguage(baseLanguage?: string): Promise<void> {
   try {
@@ -26,7 +29,7 @@ export async function ensureBaseLanguage(baseLanguage?: string): Promise<void> {
     await api(`/v1/languages/${encodeURIComponent(tag)}`, {
       method: 'PUT', idempotencyKey, body: {
         expectedVersion: 0, idempotencyKey,
-        language: { tag, version: 1, enabled: true, isDefault: true, automaticTranslation: false, direction: 'ltr', reflectionEnabled: false, batchOutputTokens: 1000, translationMemoryMinimumCharacters: 20 },
+        language: { tag, version: 1, enabled: true, isDefault: true, automaticTranslation: false, direction: findSiteLanguage(tag)?.direction ?? 'ltr', reflectionEnabled: false, batchOutputTokens: 1000, translationMemoryMinimumCharacters: 20 },
       },
     });
   } catch (error) { console.warn('基准语言登记失败', error); }
@@ -69,7 +72,7 @@ export function App() {
 
   return (
     <RouterProvider navigate={(path) => navigate(path)}>
-      <I18nProvider locale="zh-CN">
+      <I18nProvider locale={ariaLocale[adminLanguage()] ?? adminLanguage()}>
         <Toast.Provider placement="top" />
         <DialogHost />
         {phase.kind === 'loading' && <div className="flex min-h-dvh items-center justify-center"><CenteredSpinner /></div>}

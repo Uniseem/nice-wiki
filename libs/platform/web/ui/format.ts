@@ -1,8 +1,13 @@
-// 展示用格式化：时间按浏览器本地时区，大小按 1024 进位，费用按百万分之一（micros）存储。
+import { adminLanguage } from './i18n';
 
-const dateTime = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-const dateOnly = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
-const timeOnly = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+// 展示用格式化：按后台界面语言和浏览器本地时区，大小按 1024 进位，费用按百万分之一（micros）存储。
+// 后台在载入界面语言之后才加载本文件（见 portal 的 main.tsx），所以这里的格式器用的是当前语言。
+
+const locale = adminLanguage();
+const dateTime = new Intl.DateTimeFormat(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+const dateOnly = new Intl.DateTimeFormat(locale, { year: 'numeric', month: '2-digit', day: '2-digit' });
+const timeOnly = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
 
 function parse(value: string | number | Date | null | undefined): Date | null {
   if (value === null || value === undefined || value === '') return null;
@@ -29,13 +34,14 @@ export function fmtTime(value: string | number | Date | null | undefined): strin
 export function fmtRelative(value: string | number | Date | null | undefined): string {
   const date = parse(value);
   if (!date) return '—';
-  const seconds = Math.round((Date.now() - date.getTime()) / 1000);
-  const future = seconds < 0;
+  const seconds = Math.round((date.getTime() - Date.now()) / 1000);
   const abs = Math.abs(seconds);
-  const unit = abs < 60 ? `${abs} 秒` : abs < 3600 ? `${Math.round(abs / 60)} 分钟` : abs < 86400 ? `${Math.round(abs / 3600)} 小时` : abs < 7 * 86400 ? `${Math.round(abs / 86400)} 天` : '';
-  if (!unit) return dateTime.format(date);
-  if (abs < 10) return '刚刚';
-  return future ? `${unit}后` : `${unit}前`;
+  if (abs < 10) return relative.format(0, 'second');
+  if (abs < 60) return relative.format(seconds, 'second');
+  if (abs < 3600) return relative.format(Math.round(seconds / 60), 'minute');
+  if (abs < 86400) return relative.format(Math.round(seconds / 3600), 'hour');
+  if (abs < 7 * 86400) return relative.format(Math.round(seconds / 86400), 'day');
+  return dateTime.format(date);
 }
 
 export function fmtBytes(bytes: number | null | undefined): string {
@@ -49,7 +55,7 @@ export function fmtBytes(bytes: number | null | undefined): string {
 }
 
 export function fmtNumber(value: number | null | undefined): string {
-  return value === null || value === undefined || !Number.isFinite(value) ? '—' : value.toLocaleString('zh-CN');
+  return value === null || value === undefined || !Number.isFinite(value) ? '—' : value.toLocaleString(locale);
 }
 
 // 费用：micros 是百万分之一个货币单位，显示到小数点后最多 6 位（去掉末尾 0）。
