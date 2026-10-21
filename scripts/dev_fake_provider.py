@@ -48,7 +48,7 @@ def reply_text(messages, last):
     return "（假回答）" + last[:200]
 
 def decide(body):
-    """假决策：单选题选在状态里出现次数最多的选项（都没出现就选第一个）；是非题默认 0.9，状态里带 fake-no 时 0.1；打分题取第一级。"""
+    """假决策：单选题选在状态里出现次数最多的选项（都没出现就选保守选项或第一个）；是非题默认 0.9，状态里带 fake-no 时 0.1；打分题取第一级。"""
     state = json.dumps(body.get("state"), ensure_ascii=False).lower()
     answers = {}
     for qid, q in body.get("questions", {}).items():
@@ -56,7 +56,9 @@ def decide(body):
             answers[qid] = {"type": "noul", "noul": 0.1 if "fake-no" in state else 0.9}
         elif q["type"] == "choice":
             options = list(q["criteria"].keys())
-            pick = max(options, key=lambda o: (state.count(o.lower()), -options.index(o)))
+            # 选项都没在状态里出现时，优先选“正常 / 文档问题 / 复杂”这类保守选项，测试时在问题里写选项名就能选中它。
+            safe = [o for o in ("normal", "docs", "complex") if o in options]
+            pick = max(options, key=lambda o: (state.count(o.lower()), o in safe, -options.index(o)))
             answers[qid] = {"type": "choice", "choice": pick, "confidence": 0.8, "probabilities": {o: (0.9 if o == pick else round(0.1 / max(1, len(options) - 1), 4)) for o in options}}
         else:
             levels = q["criteria"]

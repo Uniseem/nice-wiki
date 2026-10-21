@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/qa/internal/cache"
@@ -21,12 +22,16 @@ type questionPlan struct {
 	cacheable bool
 }
 
-// planQuestion 每轮都运行前置（fast 档位）：把问题改写成基准语言的独立问题、上报风险，并判断能否共享缓存。
+// planQuestion 得到本轮的独立问题并判断能否共享缓存。每轮决策判定“不看上文也能懂”且访客用基准语言时，
+// 直接用规范化后的原话，不调文本模型；否则运行前置改写（fast 档位）把问题改写成基准语言的独立问题。
 // 风险准入类错误（封禁/限流/需验证）照常终止本轮；其他失败（未分配档位、模型不可用、结构不合格）只是没有改写结果。
-func planQuestion(ctx context.Context, op OperationContext, turnID string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, summary string, history []gen.Message) (*questionPlan, context.Context, error) {
+func planQuestion(ctx context.Context, op OperationContext, turnID string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, decision *turnDecision, summary string, history []gen.Message) (*questionPlan, context.Context, error) {
 	runtime, err := qaruntime.FromContext(ctx)
 	if err != nil {
 		return nil, ctx, err
+	}
+	if decision != nil && decision.standalone && strings.EqualFold(record.Language, runtime.BaseLanguage) {
+		return directPlan(ctx, op, turnID, record, resolved, decision)
 	}
 	profile, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.preflight")
 	if err != nil {
@@ -35,7 +40,7 @@ func planQuestion(ctx context.Context, op OperationContext, turnID string, recor
 	runtime.FastProfileID = profile
 	runtime.AnswerMemoryHash = resolved.Memory.VersionHash // 缓存条目要与当前回答记忆版本一致才能复用
 	ctx = qaruntime.WithRuntime(ctx, runtime)
-	planned, err := questioncontext.PlanQuestion(ctx, op, questioncontext.PlanQuestionInput{Question: record.Question, VisitorLanguage: record.Language, History: history, PreviousSummary: summary, GuardSignals: []string{}})
+	planned, err := questioncontext.PlanQuestion(ctx, op, questioncontext.PlanQuestionInput{Question: record.Question, VisitorLanguage: record.Language, History: history, PreviousSummary: summary, GuardSignals: []string{}, SkipRiskReport: decision != nil})
 	if err != nil {
 		if failure, ok := err.(*platform.Error); ok && (failure.Code == platform.CodeForbidden || failure.Code == platform.CodeRateLimited || failure.Code == platform.CodeChallengeRequired) {
 			return nil, ctx, err
@@ -47,6 +52,33 @@ func planQuestion(ctx context.Context, op OperationContext, turnID string, recor
 	}
 	eligibility, _ := cache.EvaluateCacheEligibility(ctx, op, cache.EvaluateCacheEligibilityInput{Plan: planned.Plan, FirstTurn: summary == "" && len(history) == 0, CurrentPageDependent: planned.CurrentPageDependent, PrivateContextDependent: planned.PrivateContextDependent})
 	return &questionPlan{plan: planned.Plan, cacheable: eligibility.Eligible}, ctx, nil
+}
+
+// directPlan 用每轮决策的结果直接组成前置计划：问题不依赖上文、访客用基准语言，规范化后的原话就是独立问题。
+func directPlan(ctx context.Context, op OperationContext, turnID string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, decision *turnDecision) (*questionPlan, context.Context, error) {
+	runtime, err := qaruntime.FromContext(ctx)
+	if err != nil {
+		return nil, ctx, err
+	}
+	normalized, err := normalize.NormalizeQuestion(ctx, op, normalize.NormalizeQuestionInput{Question: record.Question, Language: runtime.BaseLanguage})
+	if err != nil {
+		return nil, ctx, nil
+	}
+	runtime.AnswerMemoryHash = resolved.Memory.VersionHash // 缓存条目要与当前回答记忆版本一致才能复用
+	ctx = qaruntime.WithRuntime(ctx, runtime)
+	classification := "complex"
+	if decision.simple {
+		classification = "simple"
+	}
+	if decision.intent == "unclear" {
+		classification = "needs_clarification"
+	}
+	plan := cache.QuestionPlan{OriginalQuestion: record.Question, CanonicalQuestion: normalized.Normalized, VisitorLanguage: record.Language, Complete: decision.intent == "docs", CacheEligible: decision.intent == "docs", ResolvedReferences: true, Subqueries: []string{}, Classification: classification, Risk: decision.risk, ContextFingerprint: platform.HashBytes([]byte("decide:" + normalized.QuestionHash + ":" + resolved.Memory.VersionHash))}
+	if err := savePlan(ctx, op, turnID, plan, resolved.Memory.VersionHash); err != nil {
+		return nil, ctx, nil
+	}
+	eligibility, _ := cache.EvaluateCacheEligibility(ctx, op, cache.EvaluateCacheEligibilityInput{Plan: plan})
+	return &questionPlan{plan: plan, cacheable: eligibility.Eligible}, ctx, nil
 }
 
 func savePlan(ctx context.Context, op OperationContext, turnID string, plan cache.QuestionPlan, memoryHash string) error {

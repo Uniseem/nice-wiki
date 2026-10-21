@@ -452,6 +452,9 @@ var AITaskCatalog = map[string]AITaskEntry{
 	"qa.answer": {Owner: "qa", DefaultTier: "accurate", RequiredCapabilities: []string{
 		"chat",
 	}},
+	"qa.answer-fast": {Owner: "qa", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
 	"qa.cache-match": {Owner: "qa", DefaultTier: "fast", RequiredCapabilities: []string{
 		"chat",
 	}},
@@ -460,6 +463,9 @@ var AITaskCatalog = map[string]AITaskEntry{
 	}},
 	"qa.compact": {Owner: "qa", DefaultTier: "fast", RequiredCapabilities: []string{
 		"chat",
+	}},
+	"qa.decide": {Owner: "qa", DefaultTier: "decision", RequiredCapabilities: []string{
+		"decision",
 	}},
 	"qa.inspect": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{
 		"chat",

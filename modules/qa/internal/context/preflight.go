@@ -24,6 +24,8 @@ type PlanQuestionInput struct {
 	PreviousSummary string               `json:"previousSummary,omitempty"`
 	VerifiedPage    *VerifiedPageContext `json:"verifiedPage,omitempty"`
 	GuardSignals    []string             `json:"guardSignals"`
+	// SkipRiskReport 为真时不上报风险：本轮已由每轮决策上报过。
+	SkipRiskReport bool `json:"-"`
 }
 type PlanQuestionResult struct {
 	Plan                    cache.QuestionPlan `json:"plan"`
@@ -105,8 +107,24 @@ func PlanQuestion(ctx context.Context, op OperationContext, input PlanQuestionIn
 	if decision.CurrentPageDependent || decision.PrivateContextDependent {
 		decision.CacheEligible = false
 	}
-	questionHash := platform.HashBytes([]byte(decision.CanonicalQuestion))
-	verdict := decision.Risk
+	if !input.SkipRiskReport {
+		if err := ReportRisk(ctx, op, platform.HashBytes([]byte(decision.CanonicalQuestion)), decision.Risk); err != nil {
+			return PlanQuestionResult{}, err
+		}
+	}
+	return PlanQuestionResult{Plan: cache.QuestionPlan{OriginalQuestion: input.Question, CanonicalQuestion: decision.CanonicalQuestion, VisitorLanguage: input.VisitorLanguage, Complete: decision.Complete, CacheEligible: decision.CacheEligible, ResolvedReferences: decision.ResolvedReferences, Subqueries: decision.Subqueries, Classification: decision.Classification, Risk: decision.Risk, ContextFingerprint: fingerprint}, CurrentPageDependent: decision.CurrentPageDependent, PrivateContextDependent: decision.PrivateContextDependent}, nil
+}
+
+// ReportRisk 把模型对本轮提问的风险判定（normal/suspicious/abusive）交给风控，按风控的决定放行、限流或要求人机验证。
+func ReportRisk(ctx context.Context, op OperationContext, questionHash, risk string) error {
+	runtime, err := qaruntime.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+	if runtime.Guard == nil || runtime.AdmissionPermit == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, false, "前置风险准入链尚未装配")
+	}
+	verdict := risk
 	if verdict == "abusive" {
 		verdict = "abuse"
 	}
@@ -117,26 +135,26 @@ func PlanQuestion(ctx context.Context, op OperationContext, input PlanQuestionIn
 		Verdict      string `json:"modelVerdict"`
 	}{runtime.AdmissionPermit.SessionBudgetScope, runtime.AdmissionPermit.NetworkBudgetScope, questionHash, verdict}, "qa.risk."+platform.HashBytes([]byte(op.RootOperationID+":"+questionHash)))
 	if err != nil {
-		return PlanQuestionResult{}, err
+		return err
 	}
-	var risk struct {
+	var result struct {
 		Decision     string `json:"decision"`
 		BanExpiresAt string `json:"banExpiresAt"`
 	}
-	if err := qaruntime.DecodeResponse(runtime, "GuardReportQuestionSignalsResult", raw, &risk); err != nil {
-		return PlanQuestionResult{}, err
+	if err := qaruntime.DecodeResponse(runtime, "GuardReportQuestionSignalsResult", raw, &result); err != nil {
+		return err
 	}
-	switch risk.Decision {
+	switch result.Decision {
 	case "allow":
+		return nil
 	case "deny":
-		if risk.BanExpiresAt != "" {
-			return PlanQuestionResult{}, platform.NewError(platform.CodeForbidden, false, "当前问答准入被封禁")
+		if result.BanExpiresAt != "" {
+			return platform.NewError(platform.CodeForbidden, false, "当前问答准入被封禁")
 		}
-		return PlanQuestionResult{}, platform.NewError(platform.CodeRateLimited, false, "当前问答准入被拒绝")
+		return platform.NewError(platform.CodeRateLimited, false, "当前问答准入被拒绝")
 	case "challenge":
-		return PlanQuestionResult{}, platform.NewError(platform.CodeChallengeRequired, false, "请通过既有人机验证流程重新准入")
+		return platform.NewError(platform.CodeChallengeRequired, false, "请通过既有人机验证流程重新准入")
 	default:
-		return PlanQuestionResult{}, platform.NewError(platform.CodeIntegrityError, false, "风险权威返回未知决定")
+		return platform.NewError(platform.CodeIntegrityError, false, "风险权威返回未知决定")
 	}
-	return PlanQuestionResult{Plan: cache.QuestionPlan{OriginalQuestion: input.Question, CanonicalQuestion: decision.CanonicalQuestion, VisitorLanguage: input.VisitorLanguage, Complete: decision.Complete, CacheEligible: decision.CacheEligible, ResolvedReferences: decision.ResolvedReferences, Subqueries: decision.Subqueries, Classification: decision.Classification, Risk: decision.Risk, ContextFingerprint: fingerprint}, CurrentPageDependent: decision.CurrentPageDependent, PrivateContextDependent: decision.PrivateContextDependent}, nil
 }

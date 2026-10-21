@@ -52,6 +52,32 @@
       "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
     },
     {
+      "id": "qa.answer-fast",
+      "name": "简单问题的快速回答",
+      "owner": "qa",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [
+        "project-overview",
+        "brand-tone",
+        "qa-policy"
+      ],
+      "defaultMaxOutputTokens": 1500,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "2026-10-21 每轮决策判定为简单的问题改用快速档回答，记忆沿用 qa.answer"
+    },
+    {
+      "id": "qa.decide",
+      "name": "每轮问答决策（意图、风险、是否独立、难度）",
+      "owner": "qa",
+      "defaultTier": "decision",
+      "defaultMemoryRoles": [],
+      "defaultMaxOutputTokens": 0,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "2026-10-21 用户要求把 Jev 决策模型融入问答链路：每轮先做一次类型化判断，离题直接拒答、简单问题走快速档"
+    },
+    {
       "id": "qa.cache-match",
       "name": "缓存同义复用判断",
       "owner": "qa",

@@ -498,6 +498,34 @@ func PublicationFingerprint(ctx context.Context, op OperationContext) (string, e
 	return platform.HashBytes(encoded), nil
 }
 
+// PublishedTitles 读取已发布文档的标题（按文档树顺序，最多 200 篇），给每轮决策判断问题是否属于本站。
+func PublishedTitles(ctx context.Context, op OperationContext) ([]string, error) {
+	runtime, err := FromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if runtime.Content == nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "发布集合权威未装配")
+	}
+	raw, err := runtime.Content.ReadPublicTree(ServiceReadContext(ctx, op))
+	if err != nil {
+		return nil, err
+	}
+	var result struct {
+		Nodes []struct {
+			Title string `json:"title"`
+		} `json:"nodes"`
+	}
+	if err := DecodeResponse(runtime, "ContentReadPublicTreeResult", raw, &result); err != nil {
+		return nil, err
+	}
+	titles := make([]string, 0, min(len(result.Nodes), 200))
+	for _, node := range result.Nodes[:min(len(result.Nodes), 200)] {
+		titles = append(titles, node.Title)
+	}
+	return titles, nil
+}
+
 // MemoryContext 是单一task/语言已渲染注入文本；字节数不包含JSON元数据。
 type MemoryContext struct {
 	TaskID          string `json:"taskId"`

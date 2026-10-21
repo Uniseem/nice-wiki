@@ -8,6 +8,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/qa/internal/answer"
+	questioncontext "nice-wiki/modules/qa/internal/context"
 	"nice-wiki/modules/qa/internal/gen"
 	"nice-wiki/modules/qa/internal/history"
 	"nice-wiki/modules/qa/internal/normalize"
@@ -78,7 +79,17 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 	if err != nil {
 		return err
 	}
-	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, conversation.Summary, conversation.Recent(6))
+	// 每轮先让决策模型判断：滥用交风控，离题和闲聊直接用固定回答结束，不检索也不调回答模型。
+	decision := decideTurn(ctx, op, record, conversation)
+	if decision != nil {
+		if err := questioncontext.ReportRisk(ctx, op, platform.HashBytes([]byte(record.Question)), decision.risk); err != nil {
+			return err
+		}
+		if decision.intent == "smalltalk" || decision.intent == "off_topic" {
+			return replyWithoutRetrieval(ctx, op, turnID, lease, record, decision.intent)
+		}
+	}
+	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, decision, conversation.Summary, conversation.Recent(6))
 	if err != nil {
 		return err
 	}
@@ -105,11 +116,18 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 	if _, err := takeState(ctx, op, turnID, lease, "generating"); err != nil {
 		return err
 	}
-	prompt, err := answerPrompt(ctx, op, record, resolved, evidence.EvidenceText, conversation)
+	// 简单问题改用快速档回答（任务 qa.answer-fast 没分配时仍用回答档位）。
+	task, profile := "qa.answer", string(resolved.Policy.ProfileId)
+	if decision != nil && decision.simple {
+		if fast, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer-fast"); err == nil {
+			task, profile = "qa.answer-fast", fast
+		}
+	}
+	prompt, err := answerPrompt(ctx, op, record, resolved, evidence.EvidenceText, conversation, task)
 	if err != nil {
 		return err
 	}
-	outcome, err := qaruntime.InvokeModel(ctx, op, qaruntime.InvokeModelInput{Stream: true, Request: platform.CreateInvocationInput{TaskID: "qa.answer", ProfileID: resolved.Policy.ProfileId, Capability: platform.CapabilityChat, Messages: prompt.Messages, MaximumOutputTokens: int64(min(prompt.MaximumOutputTokens, resolved.Policy.MaximumOutputTokens)), IDempotencyKey: "answer"}})
+	outcome, err := qaruntime.InvokeModel(ctx, op, qaruntime.InvokeModelInput{Stream: true, Request: platform.CreateInvocationInput{TaskID: task, ProfileID: profile, Capability: platform.CapabilityChat, Messages: prompt.Messages, MaximumOutputTokens: int64(min(prompt.MaximumOutputTokens, resolved.Policy.MaximumOutputTokens)), IDempotencyKey: "answer"}})
 	if err != nil {
 		return err
 	}
@@ -200,7 +218,7 @@ const summaryRoom = 4000
 
 // answerPrompt 组装回答提示词。超过回答模型窗口（扣掉预留比例和输出额度）时，像 ADE 一样先把早期对话压缩进摘要再组装；
 // 后台关闭压缩时改为丢掉最早的消息。估算和网关核对窗口用同一口径。
-func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, evidenceText string, conversation history.Conversation) (answer.BuildAnswerPromptResult, error) {
+func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, evidenceText string, conversation history.Conversation, task string) (answer.BuildAnswerPromptResult, error) {
 	build := func() (answer.BuildAnswerPromptResult, error) {
 		return answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, EvidenceText: evidenceText, Summary: conversation.Summary, History: conversation.Messages})
 	}
@@ -208,7 +226,7 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 	if err != nil {
 		return prompt, err
 	}
-	window, err := qaruntime.ResolveTaskWindow(ctx, op, "qa.answer")
+	window, err := qaruntime.ResolveTaskWindow(ctx, op, task)
 	if err != nil || window == 0 {
 		return prompt, err
 	}

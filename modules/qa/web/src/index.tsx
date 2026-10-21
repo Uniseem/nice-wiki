@@ -41,7 +41,7 @@ function ProfileField({ label, description, costClass, profiles, value, onChange
 }
 // 历史预算跟随回答模型的上下文窗口，不再单独设上限。
 const hidden = new Set(['version', 'retrievalSpace', 'maximumHistoryTokens']);
-const answerKinds: Record<string, string> = { answered: '已回答', refused: '拒答', cached: '缓存命中', no_evidence: '无依据', failed: '失败', cancelled: '已取消' };
+const answerKinds: Record<string, string> = { answered: '已回答', refused: '拒答', cached: '缓存命中', no_evidence: '无依据', out_of_scope: '离题/闲聊', clarification: '需澄清', failed: '失败', cancelled: '已取消' };
 
 export default function QaPage() {
   const canManage = useHasGrant('qa.manage');
