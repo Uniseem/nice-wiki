@@ -24,7 +24,7 @@
 - 触发：HandlePublication、CreateBuild、RecoverBuildLeases创建
 
 1. 精确原job/ref/root/worker/fence读已批准完整BuildJobInput；已完成只返回原持久结果；付费前与最终写前使用平台CheckLease
-2. FetchPublishedSource核完整固定源；整篇超过固定context预算失败关闭，不截断、不降级；真实提取独立任务只等待同原ID
+2. FetchPublishedSource核完整固定源；背景短句按章节分批（全文目录+所在章节原文，按背景模型窗口定批大小），长文档不因整篇长度失败；真实提取独立任务只等待同原ID
 3. 完整raw chunks、首次真实task memory、增强chunks与固定单块embedding batches各阶段只冻结一次；背景语义用原整组ID，配置漂移不能绕原unknown
 4. 原文字/offsets不改，机器context单独保存；同完整retrieval text/space真实向量复用，未命中按固定原单块批次付费
 5. 完整词项/向量/hash/一秒content权威证明后ActivateBuild，active/outbox/最终原JobExecutionResult同事务；jobs回执未知后只重交原真实结果

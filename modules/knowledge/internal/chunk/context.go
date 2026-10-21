@@ -14,11 +14,13 @@ import (
 )
 
 type EnrichChunkContextInput struct {
-	BuildID      string                 `json:"buildId"`
-	Chunks       []gen.Chunk            `json:"chunks"`
-	DocumentText string                 `json:"documentText"`
-	Memory       platform.MemoryContext `json:"memory"`
-	LeaseID      string                 `json:"leaseId"`
+	BuildID      string      `json:"buildId"`
+	Chunks       []gen.Chunk `json:"chunks"`
+	DocumentText string      `json:"documentText"`
+	// Context 是给模型参考的“全文目录 + 所在章节原文”（见 PlanContextBatches），不再整篇发送。
+	Context string                 `json:"context"`
+	Memory  platform.MemoryContext `json:"memory"`
+	LeaseID string                 `json:"leaseId"`
 }
 type EnrichChunkContextResult struct {
 	Prefixes            []string `json:"prefixes"`
@@ -27,13 +29,16 @@ type EnrichChunkContextResult struct {
 	ModelSnapshotHashes []string `json:"modelSnapshotHashes"`
 }
 
-// EnrichChunkContext 保留整篇固定原文；超预算失败关闭，不截断或付费生成额外摘要。
+// ContextInstruction 是背景短句任务的说明。
+const ContextInstruction = "为检索片段各写一至两句背景，说明所属产品、功能或小节。全文目录、所在章节原文与记忆仅作参考，保持原文语言。只返回JSON对象，格式为{\"items\":[{\"chunkId\":\"原ID\",\"prefix\":\"背景\"}]}。每个原ID必须恰好出现一次，不修改原文，不输出代码围栏。"
+
+// EnrichChunkContext 为一批片段写背景短句；整篇原文只用来核对来源，发给模型的是这批片段所在章节的原文和全文目录。
 func EnrichChunkContext(ctx context.Context, op OperationContext, input EnrichChunkContextInput) (EnrichChunkContextResult, error) {
 	if op.CostClass != platform.CostClassBackground {
 		return EnrichChunkContextResult{}, platform.NewError(platform.CodeForbidden, false, "发布背景仅允许原批准后台费用类别")
 	}
-	if len(input.Chunks) == 0 || len(input.Chunks) > 16 || utf8.RuneCountInString(input.DocumentText) > 65536 {
-		return EnrichChunkContextResult{}, platform.NewError(platform.CodeValidation, false, "上下文批次或整篇消息超预算")
+	if len(input.Chunks) == 0 || len(input.Chunks) > contextBatchChunks {
+		return EnrichChunkContextResult{}, platform.NewError(platform.CodeValidation, false, "上下文批次超预算")
 	}
 	runtime, err := indexer.RuntimeFromContext(ctx)
 	if err != nil {
@@ -133,12 +138,12 @@ func EnrichChunkContext(ctx context.Context, op OperationContext, input EnrichCh
 	}
 	// 每条要回带约 70 字符的块 ID 加一两句背景，按块数给输出上限；固定 500 时十几块就会被截断成半截 JSON。
 	maximumOutput := int64(200 + 160*len(missing))
-	step, _ := platform.CanonicalJSON([]any{result.ContextVersionHash, requestChunks, maximumOutput})
-	messages := []platform.GatewayMessage{{Role: "system", Content: "为检索片段各写一至两句背景，说明所属产品、功能或小节。整篇原文与记忆仅作参考，保持原文语言。只返回JSON对象，格式为{\"items\":[{\"chunkId\":\"原ID\",\"prefix\":\"背景\"}]}。每个原ID必须恰好出现一次，不修改原文，不输出代码围栏。"}}
+	step, _ := platform.CanonicalJSON([]any{result.ContextVersionHash, requestChunks, maximumOutput, platform.HashBytes([]byte(input.Context))})
+	messages := []platform.GatewayMessage{{Role: "system", Content: ContextInstruction}}
 	if input.Memory.Text != "" {
 		messages = append(messages, platform.GatewayMessage{Role: "system", Content: input.Memory.Text})
 	}
-	messages = append(messages, platform.GatewayMessage{Role: "user", Content: input.DocumentText}, platform.GatewayMessage{Role: "user", Content: string(batch)})
+	messages = append(messages, platform.GatewayMessage{Role: "user", Content: input.Context}, platform.GatewayMessage{Role: "user", Content: string(batch)})
 	outcome, err := modelruntime.InvokeModel(ctx, op, modelruntime.InvokeModelInput{SemanticKey: ContextSemanticKey(input.Chunks), Request: platform.CreateInvocationInput{ExpectedRouteVersion: route.RouteVersion, TaskID: "knowledge.context", ProfileID: profile.ProfileID, Capability: platform.CapabilityChat, MaximumOutputTokens: maximumOutput, IDempotencyKey: "context." + platform.HashBytes(step), Messages: messages}})
 	if err != nil {
 		return EnrichChunkContextResult{}, err

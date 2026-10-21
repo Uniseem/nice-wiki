@@ -15,7 +15,6 @@ import (
 	"nice-wiki/modules/knowledge/internal/source"
 	"os"
 	"time"
-	"unicode/utf8"
 )
 
 type JobExecutionInput = platform.JobExecutionInput
@@ -81,9 +80,6 @@ func ExecuteBuild(ctx context.Context, op OperationContext, input JobExecutionIn
 	if err != nil {
 		return JobExecutionResult{}, err
 	}
-	if utf8.RuneCountInString(content.Source) > 65536 {
-		return JobExecutionResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "完整发布上下文超过固定消息预算，保留旧索引及原结果")
-	}
 	runtime, err := indexer.RuntimeFromContext(ctx)
 	if err != nil {
 		return JobExecutionResult{}, err
@@ -146,12 +142,25 @@ func ExecuteBuild(ctx context.Context, op OperationContext, input JobExecutionIn
 		if err != nil {
 			return JobExecutionResult{}, err
 		}
-		for start := 0; start < len(rawChunks); start += 16 {
+		// 背景短句按章节分批：每批只带全文目录和这批片段所在章节的原文，大小按背景模型窗口算，长文档也能建索引。
+		route, err := indexer.ReadTaskRoute(ctx, op, runtime, "knowledge.context")
+		if err != nil {
+			return JobExecutionResult{}, err
+		}
+		window := 0
+		for _, candidate := range route.Models {
+			if window == 0 || candidate.MaximumInputTokens < window {
+				window = candidate.MaximumInputTokens
+			}
+		}
+		fixed := []string{chunk.ContextInstruction, memory.Text}
+		batches := chunk.PlanContextBatches(content.Source, rawChunks, func(batch []gen.Chunk) int { return chunk.ContextRoom(window, fixed, batch) })
+		for _, planned := range batches {
 			if err = input.CheckLease(ctx); err != nil {
 				return JobExecutionResult{}, err
 			}
-			group := rawChunks[start:min(start+16, len(rawChunks))]
-			contextResult, err := chunk.EnrichChunkContext(ctx, op, chunk.EnrichChunkContextInput{BuildID: payload.BuildID, Chunks: group, DocumentText: content.Source, Memory: memory, LeaseID: leaseID})
+			group := planned.Chunks
+			contextResult, err := chunk.EnrichChunkContext(ctx, op, chunk.EnrichChunkContextInput{BuildID: payload.BuildID, Chunks: group, DocumentText: content.Source, Context: planned.Context, Memory: memory, LeaseID: leaseID})
 			if err != nil {
 				return JobExecutionResult{}, err
 			}
