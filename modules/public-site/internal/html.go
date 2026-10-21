@@ -5,6 +5,7 @@ import (
 	"html"
 	"net/url"
 	"nice-wiki/libs/platform"
+	"strconv"
 	"strings"
 )
 
@@ -33,11 +34,17 @@ type ComposeHTMLResult struct{ HTML string }
 
 // ComposeHTML 正文、导航及目录由 Go 完整输出，脚本只增强交互。
 func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHTMLInput) (ComposeHTMLResult, error) {
+	// 站长写的文字（标题、导航、公告、页脚等）不能被界面文字替换表误改：先换成占位符，界面本地化之后再还原。
+	var kept []string
+	keep := func(text string) string {
+		kept = append(kept, text)
+		return "\x01" + strconv.Itoa(len(kept)-1) + "\x02"
+	}
 	var output strings.Builder
 	output.WriteString("<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">")
-	output.WriteString(in.Metadata)
+	output.WriteString(keep(in.Metadata))
 	output.WriteString(`<style>` + announcementCSS + `:root{color-scheme:light dark;font:16px/1.65 system-ui}*{box-sizing:border-box}body{margin:0}a{color:inherit}header{padding:1rem 2rem;border-bottom:1px solid #8885;display:flex;gap:1rem;align-items:center}header>a:first-child{margin-right:auto}.layout{display:grid;grid-template-columns:minmax(12rem,18rem) minmax(0,1fr) minmax(10rem,16rem);max-width:1600px;margin:auto;min-height:75vh}.tree,.toc{padding:1.5rem;overflow-wrap:anywhere}.tree ul{padding-left:1rem}.current{font-weight:bold}main{min-width:0;max-width:900px;padding:2rem}main img,main video,main svg{max-width:100%;height:auto}table{border-collapse:collapse;display:block;overflow:auto}td,th{border:1px solid #8885;padding:.5rem}pre{padding:1rem;overflow:auto}.columns{display:grid;gap:1rem}.callout{border-left:4px solid #2563eb;padding:1rem}.warning{border-color:#d97706}.danger{border-color:#dc2626}.neighbors{display:flex;justify-content:space-between;gap:2rem;margin-top:3rem}footer{padding:2rem;text-align:center;border-top:1px solid #8885}.toc a{display:block}.mobile-menu{display:none}button{font:inherit}body[data-theme=dark]{color-scheme:dark}body[data-theme=light]{color-scheme:light}@media(max-width:900px){.layout{display:block}.tree,.toc{display:none}.tree[data-open],.toc[data-open]{display:block}.mobile-menu{display:inline-block}main{padding:1rem}.columns{display:block}header{padding:1rem;flex-wrap:wrap}}@media print{header,.tree,.toc,.ai-island{display:none}.layout{display:block}}</style></head><body data-doc="` + html.EscapeString(in.DocumentID) + `" data-locale="` + html.EscapeString(in.Locale) + `">`)
-	output.WriteString(in.Announcement)
+	output.WriteString(keep(in.Announcement))
 	output.WriteString("<header><a href=\"./\">文档</a><button class=\"mobile-menu\" type=\"button\" data-toggle=\"tree\" aria-label=\"打开文档树\">文档树</button><button class=\"mobile-menu\" type=\"button\" data-toggle=\"toc\" aria-label=\"打开本页目录\">本页目录</button>")
 	if in.AIEnabled {
 		output.WriteString("<a href=\"#ask\" data-ask>AI 问答</a>")
@@ -103,7 +110,7 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 			if node.DocumentID == in.DocumentID {
 				class = " class=\"current\" aria-current=\"page\""
 			}
-			output.WriteString("<a" + class + " href=\"" + html.EscapeString(node.CanonicalPath) + "\">" + html.EscapeString(node.Title) + "</a>")
+			output.WriteString("<a" + class + " href=\"" + html.EscapeString(node.CanonicalPath) + "\">" + keep(html.EscapeString(node.Title)) + "</a>")
 			if hasChildren {
 				output.WriteString("</summary>")
 				tree(node.DocumentID)
@@ -119,9 +126,13 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 		if i > 0 {
 			output.WriteString(" / ")
 		}
-		output.WriteString("<a href=\"" + html.EscapeString(crumb.URL) + "\">" + html.EscapeString(crumb.Label) + "</a>")
+		label := html.EscapeString(crumb.Label)
+		if i > 0 { // 第一项是固定的“首页”，其余是站长写的标题
+			label = keep(label)
+		}
+		output.WriteString("<a href=\"" + html.EscapeString(crumb.URL) + "\">" + label + "</a>")
 	}
-	output.WriteString("</nav><h1>" + html.EscapeString(in.Title) + "</h1>")
+	output.WriteString("</nav><h1>" + keep(html.EscapeString(in.Title)) + "</h1>")
 	if in.Untranslated {
 		output.WriteString("<aside role=\"status\">当前语言的译文尚未完成，部分内容显示旧译文或原文。</aside>")
 	}
@@ -132,7 +143,7 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 		items []Breadcrumb
 	}{{"上一篇", in.Previous}, {"下一篇", in.Next}} {
 		for _, item := range group.items {
-			output.WriteString("<a href=\"" + html.EscapeString(item.URL) + "\">" + group.label + "：" + html.EscapeString(item.Label) + "</a>")
+			output.WriteString("<a href=\"" + html.EscapeString(item.URL) + "\">" + group.label + "：" + keep(html.EscapeString(item.Label)) + "</a>")
 		}
 	}
 	output.WriteString("</nav>")
@@ -141,9 +152,9 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 	}
 	output.WriteString("</main><nav class=\"toc\" aria-label=\"本页目录\">")
 	for _, item := range in.TOC {
-		output.WriteString("<a href=\"#" + html.EscapeString(url.PathEscape(item.Anchor)) + "\" data-level=\"" + strings.Repeat("·", item.Level-1) + "\">" + html.EscapeString(item.Label) + "</a>")
+		output.WriteString("<a href=\"#" + html.EscapeString(url.PathEscape(item.Anchor)) + "\" data-level=\"" + strings.Repeat("·", item.Level-1) + "\">" + keep(html.EscapeString(item.Label)) + "</a>")
 	}
-	output.WriteString("</nav></div><footer>" + in.Footer + " <a href=\"https://github.com/Uniseem/nice-wiki\">源代码</a></footer>")
+	output.WriteString("</nav></div><footer>" + keep(in.Footer) + " <a href=\"https://github.com/Uniseem/nice-wiki\">源代码</a></footer>")
 	if in.AIEnabled {
 		output.WriteString("<div class=\"ai-island\" data-qa-session=\"shared\" data-document-id=\"" + html.EscapeString(in.DocumentID) + "\"></div><script>" + qaIslandScript + "</script>")
 	}
@@ -156,5 +167,9 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 		output.WriteString(`<script>(function(){var s=document.querySelector('select[onchange]');if(!s||sessionStorage.getItem('nw-lang-hint'))return;var cur=document.body.dataset.locale||'';var prefs=(navigator.languages||[navigator.language||'']).map(function(x){return x.toLowerCase()});var opts=[].slice.call(s.options);for(var i=0;i<prefs.length;i++){var p=prefs[i],base=p.split('-')[0];if(cur.toLowerCase()===p||cur.toLowerCase().split('-')[0]===base)return;var hit=opts.filter(function(o){var t=o.text.toLowerCase();return t===p||t.split('-')[0]===base})[0];if(hit){var bar=document.createElement('aside');bar.setAttribute('role','note');bar.style.cssText='padding:.4rem 1rem;text-align:center;background:#8881;font-size:.9rem';var a=document.createElement('a');a.href=hit.value;a.textContent='🌐 '+hit.text;var x=document.createElement('button');x.type='button';x.textContent='×';x.setAttribute('aria-label','Close');x.style.cssText='margin-left:.75rem;border:0;background:none;cursor:pointer';x.onclick=function(){sessionStorage.setItem('nw-lang-hint','1');bar.remove()};bar.append(a,x);document.body.prepend(bar);return}}})()</script>`)
 	}
 	output.WriteString(`<script>document.querySelectorAll('[data-toggle]').forEach(function(b){b.onclick=function(){document.querySelector('.'+b.dataset.toggle).toggleAttribute('data-open')}});document.querySelector('[data-theme-toggle]').onclick=function(){document.body.dataset.theme=document.body.dataset.theme==='dark'?'light':'dark'};var copy=document.querySelector('[data-copy-markdown]');if(copy)copy.onclick=async function(){var a=document.querySelector('[data-markdown]');try{var r=await fetch(a.href,{cache:'no-store'});if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());copy.textContent='已复制'}catch(e){copy.textContent='复制失败，请打开 Markdown 版本'}};document.querySelectorAll('[data-embed]').forEach(function(b){b.onclick=function(){var f=document.createElement('iframe');f.src=b.dataset.embed;f.title=b.dataset.title||'视频播放器';f.allowFullscreen=true;f.referrerPolicy='no-referrer';f.setAttribute('sandbox','allow-scripts allow-same-origin allow-presentation');b.replaceWith(f)}});(function(){var d=document.body.dataset.doc;if(!d||!window.fetch)return;var r='';try{r=new URL(document.referrer).hostname}catch(e){}if(/^[0-9.]+$/.test(r)||r.indexOf(':')>=0)r='';var p={beaconId:crypto.randomUUID().split('-').join(''),documentId:d,locale:document.body.dataset.locale,eventType:'page-view',status:200,elapsedMs:Math.min(60000,Math.round(performance.now())),referrerDomain:r,userAgent:navigator.userAgent.slice(0,1000)};fetch('/v1/beacons',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json','Idempotency-Key':p.beaconId},body:JSON.stringify(p)}).catch(function(){})})();</script></body></html>`)
-	return ComposeHTMLResult{strings.Replace(localizeUI(in.Locale, output.String(), in.UIStrings), "\x00BODY\x00", in.SafeHTML, 1)}, nil
+	localized := localizeUI(in.Locale, output.String(), in.UIStrings)
+	for i := len(kept) - 1; i >= 0; i-- {
+		localized = strings.Replace(localized, "\x01"+strconv.Itoa(i)+"\x02", kept[i], 1)
+	}
+	return ComposeHTMLResult{strings.Replace(localized, "\x00BODY\x00", in.SafeHTML, 1)}, nil
 }
