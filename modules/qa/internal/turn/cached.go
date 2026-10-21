@@ -15,14 +15,15 @@ import (
 	"nice-wiki/modules/qa/internal/stream"
 )
 
-// cachePlan 是一轮问答里缓存相关的前置结果；nil 表示本轮不用缓存。
-type cachePlan struct {
-	plan cache.QuestionPlan
+// questionPlan 是本轮前置改写的结果；nil 表示前置不可用，本轮按访客原话检索、不用缓存。
+type questionPlan struct {
+	plan      cache.QuestionPlan
+	cacheable bool
 }
 
-// planForCache 仅在后台打开缓存时运行：前置分类（fast 档位）判断问题是否完整、可共享。
-// 风险准入类错误（封禁/限流/需验证）照常终止本轮；其他失败（模型不可用、结构不合格）只是不用缓存。
-func planForCache(ctx context.Context, op OperationContext, turnID string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, history []gen.Message) (*cachePlan, context.Context, error) {
+// planQuestion 每轮都运行前置（fast 档位）：把问题改写成基准语言的独立问题、上报风险，并判断能否共享缓存。
+// 风险准入类错误（封禁/限流/需验证）照常终止本轮；其他失败（未分配档位、模型不可用、结构不合格）只是没有改写结果。
+func planQuestion(ctx context.Context, op OperationContext, turnID string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, history []gen.Message) (*questionPlan, context.Context, error) {
 	runtime, err := qaruntime.FromContext(ctx)
 	if err != nil {
 		return nil, ctx, err
@@ -45,10 +46,7 @@ func planForCache(ctx context.Context, op OperationContext, turnID string, recor
 		return nil, ctx, nil
 	}
 	eligibility, _ := cache.EvaluateCacheEligibility(ctx, op, cache.EvaluateCacheEligibilityInput{Plan: planned.Plan, FirstTurn: len(history) == 0, CurrentPageDependent: planned.CurrentPageDependent, PrivateContextDependent: planned.PrivateContextDependent})
-	if !eligibility.Eligible {
-		return nil, ctx, nil
-	}
-	return &cachePlan{plan: planned.Plan}, ctx, nil
+	return &questionPlan{plan: planned.Plan, cacheable: eligibility.Eligible}, ctx, nil
 }
 
 func savePlan(ctx context.Context, op OperationContext, turnID string, plan cache.QuestionPlan, memoryHash string) error {
@@ -69,7 +67,7 @@ func savePlan(ctx context.Context, op OperationContext, turnID string, plan cach
 
 // answerFromCache 命中精确缓存就直接用缓存答案完成本轮（不调用回答模型）。
 // 只复用与访客同语言的条目；引用在 ValidateCachedAnswer 里已按当前发布状态重新核验。
-func answerFromCache(ctx context.Context, op OperationContext, turnID, lease string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, cp *cachePlan, firstTurn bool) (bool, error) {
+func answerFromCache(ctx context.Context, op OperationContext, turnID, lease string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, cp *questionPlan, firstTurn bool) (bool, error) {
 	runtime, err := qaruntime.FromContext(ctx)
 	if err != nil {
 		return false, err
@@ -104,7 +102,7 @@ func answerFromCache(ctx context.Context, op OperationContext, turnID, lease str
 }
 
 // writeCache 在一轮正常回答完成后把可共享的答案写入自动缓存；失败不影响本轮结果。
-func writeCache(ctx context.Context, op OperationContext, turnID string, cp *cachePlan, answer string, memoryHash string) {
+func writeCache(ctx context.Context, op OperationContext, turnID string, cp *questionPlan, answer string, memoryHash string) {
 	read, err := qaruntime.BeginRead(ctx, op)
 	if err != nil {
 		return

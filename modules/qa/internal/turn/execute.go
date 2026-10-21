@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -73,26 +74,31 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 	if err != nil {
 		return err
 	}
-	canonical, err := normalize.NormalizeQuestion(ctx, op, normalize.NormalizeQuestionInput{Question: record.Question, Language: record.Language})
-	if err != nil {
-		return err
-	}
 	history, err := recentHistory(ctx, op, record.Turn.ConversationId, turnID)
 	if err != nil {
 		return err
 	}
-	var cp *cachePlan
-	if resolved.Policy.CacheEnabled {
-		if cp, ctx, err = planForCache(ctx, op, turnID, record, resolved, history); err != nil {
+	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, history)
+	if err != nil {
+		return err
+	}
+	if planned != nil && planned.cacheable && resolved.Policy.CacheEnabled {
+		if hit, err := answerFromCache(ctx, op, turnID, lease, record, resolved, planned, len(history) == 0); err != nil || hit {
 			return err
 		}
-		if cp != nil {
-			if hit, err := answerFromCache(ctx, op, turnID, lease, record, resolved, cp, len(history) == 0); err != nil || hit {
-				return err
-			}
-		}
 	}
-	evidence, err := answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: canonical.Normalized, Policy: resolved.Policy, Language: record.Language})
+	// 检索用前置改写后的独立问题，追问才能检索准；前置不可用时退回访客原话。
+	var query string
+	if planned != nil {
+		query = planned.plan.CanonicalQuestion
+	} else {
+		canonical, err := normalize.NormalizeQuestion(ctx, op, normalize.NormalizeQuestionInput{Question: record.Question, Language: record.Language})
+		if err != nil {
+			return err
+		}
+		query = canonical.Normalized
+	}
+	evidence, err := answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language})
 	if err != nil {
 		return err
 	}
@@ -124,8 +130,8 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 	if _, err = CompleteTurn(ctx, op, CompleteTurnInput{TurnID: turnID, Answer: text, Citations: evidence.Citations, LeaseID: lease, AnswerKind: kind, TokenCount: len(text)/4 + 1}); err != nil {
 		return err
 	}
-	if cp != nil && kind == "answered" {
-		writeCache(ctx, op, turnID, cp, text, resolved.Memory.VersionHash)
+	if planned != nil && planned.cacheable && resolved.Policy.CacheEnabled && kind == "answered" {
+		writeCache(ctx, op, turnID, planned, text, resolved.Memory.VersionHash)
 	}
 	return nil
 }
@@ -189,6 +195,9 @@ func takeState(ctx context.Context, op OperationContext, turnID, lease, state st
 	return record, tx.Commit()
 }
 
+// citationMarker 匹配回答里各种写法的引用标识；历史回答去掉它们，免得模型把旧轮次的引用抄进新回答。
+var citationMarker = regexp.MustCompile(`</?sup>|\[\[?[^\]\n]*\]?\]\(citation\.[0-9a-f]+\)|\[\[?citation\.[0-9a-f]+\]?\]|[(（]citation\.[0-9a-f]+[)）]|citation\.[0-9a-f]{8,64}`)
+
 // recentHistory 取本会话此前已完成的最近几条消息作为上下文。
 func recentHistory(ctx context.Context, op OperationContext, conversationID, turnID string) ([]gen.Message, error) {
 	tx, err := qaruntime.BeginRead(ctx, op)
@@ -207,6 +216,7 @@ func recentHistory(ctx context.Context, op OperationContext, conversationID, tur
 		if err := rows.Scan(&message.MessageId, &message.Ordinal, &message.Role, &message.Text, &message.TurnId, &message.Revision); err != nil {
 			return nil, qaruntime.StorageError(err)
 		}
+		message.Text = citationMarker.ReplaceAllString(message.Text, "")
 		history = append(history, message)
 	}
 	return history, rows.Err()
