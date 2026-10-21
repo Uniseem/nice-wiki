@@ -9,17 +9,34 @@ const busy = ref(false);
 
 const provider = ref({ providerId: '', adapter: 'openai_chat', baseUrl: 'https://', displayName: '' });
 const secretFor = ref<Record<string, string>>({});
-const model = ref({ modelId: '', providerId: '', providerModelVersion: '', capabilities: 'chat', dimension: 0, maxInputTokens: 128000, maxOutputTokens: 4096 });
+const model = ref({ modelId: '', providerId: '', providerModelVersion: '', capabilities: 'chat', dimension: 0, maxInputTokens: 128000, maxOutputTokens: 4096, inputUsd: 0, outputUsd: 0 });
 
 const profile = ref({ profileId: '', costClass: 'background', tier: 'embedding', modelIds: [] as string[], maximumUsd: 0, concurrency: 4, dailyUsd: 0 });
 const tiers: Record<string, string> = { fast: '快速', accurate: '准确', vision: '视觉', embedding: '向量', rerank: '重排' };
 const costClasses: Record<string, string> = { qa: '问答', background: '后台任务', 'admin-probe': '管理员探测' };
-// 任务目录来自 contracts/ai-tasks.json；这里只列要手动指定档位的常用任务。
+// 任务目录与 contracts/ai-tasks.json 一致（21 项）；新增任务时这里要同步。
 const tasks = [
-  ['qa.preflight', 'fast', '问答：前置分类'], ['qa.inspect', 'fast', '问答：检索核查'], ['qa.answer', 'accurate', '问答：最终回答'], ['qa.cache-match', 'fast', '问答：缓存判断'],
-  ['qa.cache-translate', 'fast', '问答：缓存翻译'], ['qa.compact', 'fast', '问答：对话压缩'], ['knowledge.embed', 'embedding', '知识库：生成向量'], ['knowledge.rerank', 'rerank', '知识库：重排'],
-  ['knowledge.context', 'fast', '知识库：检索上下文'], ['localization.document', 'accurate', '翻译：文档'], ['localization.ui', 'accurate', '翻译：界面文字'],
-  ['localization.suggest', 'fast', '翻译：语言建议'], ['memory.overview', 'fast', '记忆：项目概述'], ['memory.assistant', 'accurate', '记忆：助手'], ['content.slug', 'fast', '发布：路径名'], ['content.seo', 'fast', '发布：SEO 描述'],
+  ['qa.preflight', 'fast', '前置分类、改写、完整性与风险'],
+  ['qa.inspect', 'fast', '检索核查'],
+  ['qa.answer', 'accurate', '最终回答'],
+  ['qa.cache-match', 'fast', '缓存同义复用判断'],
+  ['qa.cache-translate', 'fast', '缓存回答翻译'],
+  ['qa.compact', 'fast', '对话增量压缩'],
+  ['knowledge.context', 'fast', '检索单元背景上下文'],
+  ['knowledge.describe', 'fast', '文字附件/视频公开元信息描述'],
+  ['knowledge.describe-visual', 'vision', '图片、画板、视频封面视觉描述'],
+  ['knowledge.extract-attachment', 'vision', '非文本附件内容提取'],
+  ['knowledge.embed', 'embedding', '生成向量'],
+  ['knowledge.rerank', 'rerank', '召回重排'],
+  ['localization.document', 'accurate', '块级文档翻译'],
+  ['localization.ui', 'accurate', '站点/UI文字翻译'],
+  ['localization.terms', 'accurate', '首次文档术语抽取'],
+  ['localization.review', 'accurate', '可选反思润色'],
+  ['localization.suggest', 'fast', '语言切换建议'],
+  ['memory.overview', 'fast', '项目概述维护'],
+  ['memory.assistant', 'accurate', '记忆助手'],
+  ['content.slug', 'fast', '首次发布路径名'],
+  ['content.seo', 'fast', '首次发布SEO描述'],
 ];
 const overrides = ref<Record<string, string>>({});
 
@@ -56,7 +73,7 @@ const saveSecret = (p: any) => run(async () => {
 const addModel = () => run(async () => {
   const idempotencyKey = key();
   const m = model.value;
-  await api(`/v1/admin/models/${m.modelId}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: 0, idempotencyKey, model: {
+  await api(`/v1/admin/models/${m.modelId}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: 0, idempotencyKey, ...(Number(m.inputUsd) > 0 || Number(m.outputUsd) > 0 ? { manualPrice: { inputPerMillionCost: { currency: 'USD', micros: Math.round(Number(m.inputUsd) * 1_000_000) }, outputPerMillionCost: { currency: 'USD', micros: Math.round(Number(m.outputUsd) * 1_000_000) }, fixedCost: { currency: 'USD', micros: 0 } } } : {}), model: {
     modelId: m.modelId, version: 1, providerId: m.providerId, providerModelVersion: m.providerModelVersion,
     capabilities: m.capabilities.split(',').map((c) => c.trim()).filter(Boolean), dimension: m.dimension, preprocessorVersion: 'none',
     maxInputTokens: m.maxInputTokens, maxOutputTokens: m.maxOutputTokens, catalogOrigin: 'manual', manualOverride: true, enabled: true } } });
@@ -80,6 +97,32 @@ const assignTask = (task: string[]) => run(async () => {
   await api(`/v1/task-assignments/${taskId}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: existing?.version ?? 0, idempotencyKey, assignment: {
     taskId, tier, version: (existing?.version ?? 0) + 1, ...(model ? { overrideModelId: model } : {}) } } });
 }, '任务分配已保存。');
+// 一键配置：按已启用模型的能力生成“问答/后台任务 × 快速/准确/视觉/向量/重排”档位（模型按添加顺序，第一个为主），
+// 再把全部 21 个 AI 任务按默认级别分配。已存在的档位和分配不会被覆盖。
+const autoSetup = () => run(async () => {
+  const usable = catalog.value.models.filter((m: any) => m.enabled);
+  const byCap = (cap: string) => usable.filter((m: any) => m.capabilities.includes(cap)).map((m: any) => m.modelId);
+  const tierModels: Record<string, string[]> = { fast: byCap('chat'), accurate: byCap('chat'), vision: byCap('vision'), embedding: byCap('embedding'), rerank: byCap('rerank') };
+  let profiles = 0, assignments = 0;
+  for (const costClass of ['qa', 'background']) {
+    for (const [tier, ids] of Object.entries(tierModels)) {
+      const profileId = `${costClass}-${tier}`;
+      if (!ids.length || catalog.value.profiles.some((x: any) => x.costClass === costClass && x.tier === tier)) continue;
+      const idempotencyKey = key();
+      await api(`/v1/admin/profiles/${profileId}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: 0, idempotencyKey, profile: {
+        profileId, version: 1, costClass, tier, orderedModelIds: ids, maximumCost: { currency: 'USD', micros: 0 }, concurrency: 4, dailyLimitCost: { currency: 'USD', micros: 0 } } } });
+      profiles++;
+    }
+  }
+  for (const [taskId, tier] of tasks) {
+    // 即使该级别暂时没有模型也要分配：检索等流程会解析每个任务的分配，缺了会整轮失败；没有档位时它们按“该能力不可用”降级。
+    if (catalog.value.taskAssignments.some((x: any) => x.taskId === taskId)) continue;
+    const idempotencyKey = key();
+    await api(`/v1/task-assignments/${taskId}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: 0, idempotencyKey, assignment: { taskId, tier, version: 1 } } });
+    assignments++;
+  }
+  notice.value = `已生成 ${profiles} 个档位、${assignments} 个任务分配。`;
+});
 const assigned = (taskId: string) => catalog.value.taskAssignments.find((x: any) => x.taskId === taskId)?.overrideModelId ?? '';
 
 onMounted(() => run(async () => {}));
@@ -136,12 +179,15 @@ onMounted(() => run(async () => {}));
         <select v-model="model.providerId" required style="width:auto"><option value="" disabled>选择供应方</option><option v-for="p in catalog.providers" :key="p.providerId" :value="p.providerId">{{ p.displayName }}</option></select>
         <input type="text" v-model="model.providerModelVersion" placeholder="供应方模型名" required style="max-width:12rem">
         <input type="text" v-model="model.capabilities" placeholder="能力，逗号分隔：chat,vision,embedding…" style="max-width:16rem">
+        <input type="number" min="0" step="0.01" v-model="model.inputUsd" placeholder="输入单价 $/百万token" title="输入单价（美元/百万 token，0=未知）" style="max-width:9rem">
+        <input type="number" min="0" step="0.01" v-model="model.outputUsd" placeholder="输出单价 $/百万token" title="输出单价（美元/百万 token，0=未知）" style="max-width:9rem">
         <button class="primary" :disabled="busy">添加模型</button>
       </form>
     </fieldset>
 
     <fieldset>
       <legend>档位</legend>
+      <p class="hint"><button class="primary" :disabled="busy || !catalog.models.length" @click="autoSetup">一键生成档位和任务分配</button> 按已添加模型的能力自动建档位并把全部 AI 任务按默认级别分配；已有的不会被覆盖。</p>
       <p class="hint">档位把模型按“快速/准确/视觉/向量/重排”分级并绑定费用类别；同一级里排第一的模型为主，其余是备用。</p>
       <table v-if="catalog.profiles.length">
         <thead><tr><th>档位</th><th>类别</th><th>级别</th><th>模型（按顺序）</th><th>单次上限 / 日上限</th></tr></thead>
