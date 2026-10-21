@@ -15,7 +15,7 @@ func RunPageBackground(ctx context.Context, rt *Runtime) error {
 	work, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var group sync.WaitGroup
-	errors := make(chan error, 5)
+	errors := make(chan error, 6)
 	launchPageLoop := func(run func(context.Context) error) {
 		group.Add(1)
 		go func() {
@@ -68,6 +68,9 @@ func RunPageBackground(ctx context.Context, rt *Runtime) error {
 			_, err := PublishAggregateEvents(ctx, op, PublishAggregateEventsInput{BatchSize: 100, DataEpoch: rt.Epoch})
 			return err
 		})
+	})
+	launchPageLoop(func(ctx context.Context) error {
+		return runAnalyticsPeriodic(ctx, rt, 60000, "费用统计同步", func(ctx context.Context, op OperationContext) error { return SyncUsage(ctx, op, rt) })
 	})
 	launchPageLoop(func(ctx context.Context) error { return RunRetentionBackground(ctx, rt) })
 	err := runAnalyticsPeriodic(work, rt, 5000, "访问信标落库", func(ctx context.Context, op OperationContext) error {

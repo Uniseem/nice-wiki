@@ -131,7 +131,7 @@ func ReadUsageObservation(ctx context.Context, op OperationContext, tx *sql.Tx, 
 		if e != nil || created.UnixNano() != record.CreatedNS {
 			return UsageObservation{}, platform.NewError(platform.CodeIntegrityError, false, "原调用观察创建时间不同")
 		}
-		result.Invocation = &UsageInvocationFact{State: fact.State, CreatedAt: created.UTC().Format(ledgerTimeLayout), Terminal: fact.TerminalNS > 0, ActiveExecution: fact.LeaseID != "" || fact.LeaseUntilNS != 0, AttemptCount: *fact.AttemptCount, AllAttemptsFinal: fact.AllAttemptsFinal == 1}
+		result.Invocation = &UsageInvocationFact{State: fact.State, CreatedAt: created.UTC().Format(ledgerTimeLayout), Terminal: fact.TerminalNS > 0, ActiveExecution: fact.LeaseID != "" || fact.LeaseUntilNS != 0, AttemptCount: *fact.AttemptCount, AllAttemptsFinal: fact.AllAttemptsFinal == 1 && (*fact.AttemptCount > 0 || fact.TerminalNS > 0)} // 还没有任何尝试的未终止调用不能算“全部尝试已终结”（空真值）
 	case "attempt":
 		var fact struct {
 			AttemptID         string  `json:"attemptId"`

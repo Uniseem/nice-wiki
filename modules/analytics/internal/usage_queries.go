@@ -35,7 +35,7 @@ func QueryUsageStatistics(ctx context.Context, op OperationContext, in QueryUsag
 	if err = tx.QueryRowContext(ctx, `SELECT coalesce((SELECT revision FROM aggregation_watermarks WHERE source='usage'),0),coalesce((SELECT updated_at FROM aggregation_watermarks WHERE source='usage-reconciled'),'')`).Scan(&result.Watermark, &result.LastReconciledAt); err != nil {
 		return QueryUsageStatisticsResult{}, storageError(err)
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT ledger_entry_id,ledger_revision,operation_id,cost_class,amount_micros,currency,state,occurred_at FROM usage_projection WHERE occurred_at>=? AND occurred_at<? AND (?='' OR cost_class=?) AND data_epoch=? ORDER BY occurred_at,ledger_entry_id LIMIT 10001`, begin.Format(analyticsTimeLayout), end.Format(analyticsTimeLayout), in.CostClass, in.CostClass, rt.Epoch)
+	rows, err := tx.QueryContext(ctx, `SELECT ledger_entry_id,ledger_revision,operation_id,cost_class,amount_micros,currency,state,occurred_at FROM usage_projection_v2 WHERE occurred_at>=? AND occurred_at<? AND (?='' OR cost_class=?) AND data_epoch=? ORDER BY occurred_at,ledger_entry_id LIMIT 10001`, begin.Format(analyticsTimeLayout), end.Format(analyticsTimeLayout), in.CostClass, in.CostClass, rt.Epoch)
 	if err != nil {
 		return QueryUsageStatisticsResult{}, storageError(err)
 	}

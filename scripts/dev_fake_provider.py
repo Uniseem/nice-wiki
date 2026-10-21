@@ -12,7 +12,7 @@ def vec(text):
     n = sum(x * x for x in v) ** 0.5 or 1
     return [x / n for x in v]
 
-import re
+import re, uuid
 def tr(text):
     if re.search(r"<i\d+>", text):
         return re.sub(r"(<i\d+>)(.*?)(</i\d+>)", lambda m: m.group(1) + "(EN) " + m.group(2) + m.group(3), text)
@@ -77,9 +77,9 @@ class H(BaseHTTPRequestHandler):
             if body.get("stream"):
                 self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.end_headers()
                 for piece in [text[i:i + 8] for i in range(0, len(text), 8)]:
-                    self.wfile.write(("data: " + json.dumps({"id": "c1", "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"content": piece}}]}) + "\n\n").encode()); self.wfile.flush()
-                self.wfile.write(("data: " + json.dumps({"id": "c1", "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70}}) + "\n\ndata: [DONE]\n\n").encode()); return
-            return self.reply(200, {"id": "c1", "object": "chat.completion", "model": body.get("model", "fake"), "choices": [{"index": 0, "message": {"role": "assistant", "content": text}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70}})
+                    self.wfile.write(("data: " + json.dumps({"id": "fake-" + uuid.uuid4().hex, "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"content": piece}}]}) + "\n\n").encode()); self.wfile.flush()
+                self.wfile.write(("data: " + json.dumps({"id": "fake-" + uuid.uuid4().hex, "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70}}) + "\n\ndata: [DONE]\n\n").encode()); return
+            return self.reply(200, {"id": "fake-" + uuid.uuid4().hex, "object": "chat.completion", "model": body.get("model", "fake"), "choices": [{"index": 0, "message": {"role": "assistant", "content": text}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70}})
         if self.path.endswith("/rerank"):
             docs = body.get("documents", [])
             return self.reply(200, {"results": [{"index": i, "relevance_score": 1 - i / (len(docs) + 1)} for i in range(len(docs))]})

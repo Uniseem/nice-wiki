@@ -38,7 +38,7 @@ export function createAnalyticsClient(api: ModuleAPIClient): AnalyticsClient {
     return { rows: pages.value.rows, watermark: pages.value.watermark, dropCount: pages.value.dropCount, fromUTC: pages.value.fromUTC, toUTC: pages.value.toUTC, ...(usage.status === 'fulfilled' ? { usage: usage.value } : { usageProblem: problemCode(usage.reason) }) };
   }
   async function LoadAuditPage(input: LoadAuditPageInput, signal: AbortSignal): Promise<LoadAuditPageResult> {
-    const query = new URLSearchParams({ cursor: input.cursor, limit: String(input.limit) }); if (input.action) query.set('action', input.action); if (input.from) query.set('from', input.from); if (input.to) query.set('to', input.to);
+    const query = new URLSearchParams({ limit: String(input.limit) }); if (input.cursor) query.set('cursor', input.cursor); if (input.action) query.set('action', input.action); if (input.from) query.set('from', input.from); if (input.to) query.set('to', input.to);
     return api.request<LoadAuditPageResult>(`/v1/audits?${query}`, { signal });
   }
   async function FetchAuditRecord(id: string, signal: AbortSignal): Promise<AuditResult> { return api.request<AuditResult>(`/v1/audits/${encodeURIComponent(id)}`, { signal }); }

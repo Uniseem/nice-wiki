@@ -217,7 +217,7 @@ func streamExportRows(ctx context.Context, tx *sql.Tx, op OperationContext, kind
 	case "usage":
 		source = "usage"
 		columns = []string{"ledgerEntryId", "ledgerRevision", "operationId", "costClass", "amountMicros", "currency", "state", "occurredAt"}
-		query = `SELECT ledger_entry_id,ledger_revision,operation_id,cost_class,amount_micros,currency,state,occurred_at FROM usage_projection WHERE occurred_at>=? AND occurred_at<? AND data_epoch=? ORDER BY occurred_at,ledger_entry_id LIMIT 100001`
+		query = `SELECT ledger_entry_id,ledger_revision,operation_id,cost_class,amount_micros,currency,state,occurred_at FROM usage_projection_v2 WHERE occurred_at>=? AND occurred_at<? AND data_epoch=? ORDER BY occurred_at,ledger_entry_id LIMIT 100001`
 	}
 	var revision int64
 	if err := tx.QueryRowContext(ctx, `SELECT coalesce((SELECT revision FROM aggregation_watermarks WHERE source=?),0)`, source).Scan(&revision); err != nil {
