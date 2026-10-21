@@ -28,16 +28,16 @@ python3 scripts/dev.py up
 
 1. 用真实模型试一遍 AI 功能（需要你当次同意并提供供应方密钥）：后台“模型接入”配供应方/模型/档位/任务 → “知识库索引”配置并给文档建索引 → “防滥用”保存策略 → “问答管理”开启公开问答 → “语言”启用语言并翻译。本地不花钱联调：`python3 scripts/dev_fake_provider.py`（假的 OpenAI 兼容供应方）+ `python3 scripts/dev_ai_setup.py`（站点初始化后，一键配好模型/档位/任务/知识库索引；防滥用策略、问答策略仍在后台页面里设）。
 2. M2 余项：media 消费 content 事件；翻译的自动触发现在是轮询，不是事件。
-3. M3 补完：前置分类/检索核查/语义缓存、approve-plan 批量翻译执行器、语言建议。
+3. M3 补完：检索核查、语义缓存、approve-plan 批量翻译执行器、模型判断的语言建议。
 4. M4：各域屏障与快照导出、恢复换目录、恢复/镜像（简易备份已有，见上）。
 5. M5：在服务器上部署（需要你当次同意）；15 个镜像都在本机 docker 里用新入口构建通过，整套 compose 在本机起过（含 portal 路由表路径修复）：通过 Caddy 的 HTTPS 注册超管、初始化站点、新建并发布文档、公开页读取都走通（`NW_PORTAL=https://localhost python3 scripts/smoke.py new`）。这一轮顺带修了：媒体镜像入口被 alpine 自带的 /media 目录挡住、model-gateway 与 data-protection 的主密钥文件要求 0600 而容器普通用户读不到（这两个服务改以 root 运行）、init-secrets 写错目录、构建上下文带宿主机 node_modules。已在 docker 里演练：全新空卷启动，站点初始化之前 16 个容器都稳定运行（依赖站点身份的服务原地等待），注册超管 → 初始化 → 发布一路走通，初始化后各服务就绪；子账号（无备份权限）创建/列出备份都是 403。构建镜像要逐个构建并清理中间层（本机磁盘曾几次写满）。
 
 ## 已知缺口
 
 - portal 本地路由（bootstrap、events、preferences、屏障）未实现，只有 healthz/readyz；data-protection 的恢复/镜像业务未实现（readyz 已是 200，备份接口可用）。
-- 分片 sitemap 未挂。编辑器还没有“画板”块（服务端 schema 和公开页渲染已有，缺编辑界面）。
+- 分片 sitemap 未挂。
 - 各服务用 `lifecycle.SimpleAdmission` 代替快照屏障准入，M4 再换。
-- media 的 readVideoMetadata（平台视频链接）、localization 的语言建议/缓存回答翻译/approve-plan 执行器、qa 的调试台/缓存/前置分类、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
+- media 的 readVideoMetadata（平台视频链接）、localization 的语言建议/缓存回答翻译/approve-plan 执行器、qa 的调试台/语义缓存、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
 - 站点初始化之前，依赖站点身份的服务（model-gateway、knowledge、analytics 等）会原地每 3 秒重试，初始化一完成就就绪，不再退出重启。
 
 ## 未合并的旧工作
