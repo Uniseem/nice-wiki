@@ -93,7 +93,7 @@ func (m siteMeta) pageTitle(title string) string {
 }
 
 // headTags 输出主题色、图标、Open Graph 与 Twitter 卡片标签（值都已转义）。
-func (m siteMeta) headTags(pageTitle, description, canonicalURL string) string {
+func (m siteMeta) headTags(pageTitle, description, canonicalURL, baseURL string) string {
 	var out strings.Builder
 	if len(m.ThemeColor) == 7 && strings.HasPrefix(m.ThemeColor, "#") {
 		out.WriteString("<meta name=\"theme-color\" content=\"" + html.EscapeString(m.ThemeColor) + "\">")
@@ -112,6 +112,9 @@ func (m siteMeta) headTags(pageTitle, description, canonicalURL string) string {
 		out.WriteString("<meta property=\"og:url\" content=\"" + html.EscapeString(canonicalURL) + "\">")
 	}
 	if image := m.ShareImage.url(); image != "" {
+		if strings.HasPrefix(image, "/") {
+			image = strings.TrimRight(baseURL, "/") + image // Open Graph 要绝对地址
+		}
 		out.WriteString("<meta property=\"og:image\" content=\"" + html.EscapeString(image) + "\"><meta name=\"twitter:card\" content=\"summary_large_image\">")
 	} else {
 		out.WriteString("<meta name=\"twitter:card\" content=\"summary\">")

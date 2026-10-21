@@ -183,11 +183,12 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 		hero.HTML = strings.Replace(hero.HTML, "<main class=\"hero ", "<main style=\"background:"+html.EscapeString(home.Background.Color)+"\" class=\"hero ", 1)
 	}
 	siteMeta := loadSiteMeta(ctx)
+	homeBase, _ := siteForSEO(ctx)
 	homeHead := ""
 	if siteMeta.Description != "" {
 		homeHead = "<meta name=\"description\" content=\"" + html.EscapeString(siteMeta.Description) + "\">"
 	}
-	homeHead += strings.Replace(siteMeta.headTags(config.Config.Name, siteMeta.Description, ""), "og:type\" content=\"article\"", "og:type\" content=\"website\"", 1)
+	homeHead += strings.Replace(siteMeta.headTags(config.Config.Name, siteMeta.Description, "", homeBase), "og:type\" content=\"article\"", "og:type\" content=\"website\"", 1)
 	page := "<!doctype html><html lang=\"" + html.EscapeString(in.Locale) + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + html.EscapeString(config.Config.Name) + "</title>" + homeHead + "<style>body{margin:0;font:16px/1.6 system-ui}" + announcementCSS + ".hero a{display:inline-block;margin:.5rem;padding:.6rem 1.4rem;border:1px solid currentColor;border-radius:999px;color:inherit;text-decoration:none}</style></head><body>" + loadAnnouncement(ctx, op) + hero.HTML + "</body></html>"
 	return HandleHomeResult{Status: 200, HTML: page}, nil
 }
@@ -253,7 +254,7 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 	if site, siteErr := siteForSEO(ctx); siteErr == nil {
 		// 规范地址与各语言互链，帮搜索引擎把译文当作同一页的不同语言版本。
 		metadata += "<link rel=\"canonical\" href=\"" + html.EscapeString(site+node.CanonicalPath) + "\">"
-		metadata += meta.headTags(fullTitle, description, site+node.CanonicalPath)
+		metadata += meta.headTags(fullTitle, description, site+node.CanonicalPath, site)
 		for _, link := range languages {
 			metadata += "<link rel=\"alternate\" hreflang=\"" + html.EscapeString(link.Tag) + "\" href=\"" + html.EscapeString(site+link.Href) + "\">"
 		}

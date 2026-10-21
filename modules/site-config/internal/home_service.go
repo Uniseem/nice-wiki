@@ -275,18 +275,20 @@ func (s *ActiveStore) readHomeReferenceIntent(ctx context.Context, q ReadTransac
 }
 
 func validateHomePin(intent homeReferenceIntent, pin homeReferencePin) error {
-	if !platform.ValidIdentifier(pin.PinID) || pin.ExpiresAt.IsZero() || pin.Assets == nil || len(pin.Assets) != len(intent.References) {
+	// 同一张图可以被多个位置引用（比如站标和图标用同一个文件）；媒体对同一资源只返回一份，所以按唯一资源版本比对。
+	expected := map[gen.AssetVersionRef]bool{}
+	for _, reference := range intent.References {
+		expected[reference.Asset] = true
+	}
+	if !platform.ValidIdentifier(pin.PinID) || pin.ExpiresAt.IsZero() || pin.Assets == nil || len(pin.Assets) != len(expected) {
 		return platform.NewError(platform.CodeIntegrityError, false, "媒体pin不对应完整首页引用")
 	}
-	assets := map[gen.AssetVersionRef]int{}
-	for _, reference := range intent.References {
-		assets[reference.Asset]++
-	}
+	seen := map[gen.AssetVersionRef]bool{}
 	for _, asset := range pin.Assets {
-		if assets[asset] == 0 {
+		if !expected[asset] || seen[asset] {
 			return platform.NewError(platform.CodeIntegrityError, false, "媒体pin资源版本不一致")
 		}
-		assets[asset]--
+		seen[asset] = true
 	}
 	return nil
 }

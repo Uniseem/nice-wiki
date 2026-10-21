@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { api, messageOf } from './client';
+import { uploadImage } from './upload';
 
 const config = ref<any>(null);
 const error = ref('');
@@ -43,6 +44,20 @@ const saveBasic = () => save('站点设置', async () => {
   await api('/v1/config', { method: 'PUT', body: { publicBaseURL: fresh.publicBaseURL, titleTemplate: basic.value.titleTemplate, description: basic.value.description, indexingEnabled: basic.value.indexingEnabled, resourceLimits: fresh.resourceLimits, securityPolicy: fresh.securityPolicy, expectedRevision: fresh.revision } });
 });
 
+// 站标/图标/分享图：选图片即上传并保存（字段名对应站点配置里的 logo / favicon / defaultShareImage），“清除”置空。
+const brandingField = (field: 'logo' | 'favicon' | 'defaultShareImage', label: string, file: File | null) => save(label, async () => {
+  const c = config.value;
+  const ref = file ? await uploadImage(file) : null;
+  const body = { name: c.name, logo: c.logo, favicon: c.favicon, themeColor: c.themeColor, defaultShareImage: c.defaultShareImage, expectedRevision: c.revision, [field]: ref };
+  await api('/v1/branding', { method: 'PUT', body });
+});
+const pickImage = (field: 'logo' | 'favicon' | 'defaultShareImage', label: string, event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (file) return brandingField(field, label, file);
+};
+
 const saveFooter = () => save('页脚', async () => {
   const c = config.value;
   await api('/v1/footer', { method: 'PUT', body: { footer: { ...c.footer, copyright: footer.value.copyright, icpNumber: footer.value.icpNumber || null, icpLink: footer.value.icpLink || null, sourceCodeURL: footer.value.sourceCodeURL }, expectedRevision: c.revision } });
@@ -79,8 +94,14 @@ onMounted(async () => { try { await load(); } catch (e) { error.value = messageO
       <form @submit.prevent="saveBasic">
         <label>站点名称</label><input type="text" v-model="basic.name" required maxlength="120">
         <label>主题色</label><input type="text" v-model="basic.themeColor" placeholder="#2563EB" pattern="#[0-9A-Fa-f]{6}">
-        <label>标题模板</label><input type="text" v-model="basic.titleTemplate" placeholder="%s - 站点名">
+        <label>标题模板</label><input type="text" v-model="basic.titleTemplate" placeholder="{title} | {site}">
         <label>站点描述</label><input type="text" v-model="basic.description">
+        <label>站标（页头显示）</label>
+        <div class="row"><span class="hint">{{ config?.logo ? '已设置' : '未设置' }}</span><input type="file" accept="image/png,image/jpeg,image/webp" :disabled="busy" @change="pickImage('logo', '站标', $event)"><button v-if="config?.logo" type="button" :disabled="busy" @click="brandingField('logo', '站标', null)">清除</button></div>
+        <label>浏览器图标（favicon）</label>
+        <div class="row"><span class="hint">{{ config?.favicon ? '已设置' : '未设置' }}</span><input type="file" accept="image/png,image/jpeg,image/webp" :disabled="busy" @change="pickImage('favicon', '图标', $event)"><button v-if="config?.favicon" type="button" :disabled="busy" @click="brandingField('favicon', '图标', null)">清除</button></div>
+        <label>默认分享图（社交平台预览）</label>
+        <div class="row"><span class="hint">{{ config?.defaultShareImage ? '已设置' : '未设置' }}</span><input type="file" accept="image/png,image/jpeg,image/webp" :disabled="busy" @change="pickImage('defaultShareImage', '分享图', $event)"><button v-if="config?.defaultShareImage" type="button" :disabled="busy" @click="brandingField('defaultShareImage', '分享图', null)">清除</button></div>
         <label class="perm"><input type="checkbox" v-model="basic.indexingEnabled">允许搜索引擎收录（关闭后 robots.txt 与 sitemap 将禁止索引）</label>
         <div style="margin-top:.8rem"><button class="primary" :disabled="busy">保存</button></div>
       </form>
