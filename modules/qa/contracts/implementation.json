@@ -4302,7 +4302,8 @@
             "qa.ServiceReadContext",
             "qa.DecodeResponse",
             "qa.ReadPublishedDocument",
-            "qa.ValidateCitations"
+            "qa.ValidateCitations",
+            "knowledge:readDocumentIndex"
           ],
           "resources": [],
           "contract": "reference"

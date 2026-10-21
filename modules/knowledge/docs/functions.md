@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 210 个函数：约束 35 个，参考 175 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 211 个函数：约束 36 个，参考 175 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -8044,3 +8044,50 @@ export default function KnowledgePage(): React.JSX.Element
 - 并发：单页面实例；切换页面时取消未完成的读取
 - 幂等：写操作带 Idempotency-Key 与版本前提
 - 依赖：无
+
+## knowledge.ReadDocumentIndex
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/card/view.go`
+- 作用：读取文档索引视图
+
+```go
+func ReadDocumentIndex(ctx context.Context, op OperationContext, input ReadDocumentIndexInput) (ReadDocumentIndexResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `ReadDocumentIndexInput` | 封闭业务输入；逐字段见types $defs/ReadDocumentIndexInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadDocumentIndexResult` | 成功结果；逐字段见types $defs/ReadDocumentIndexResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 只接受qa纯服务
+2. 读content发布树与本域文档卡片
+3. 全部详细卡片起步，超预算按重要度降到摘要、再降到只剩主题
+4. 仍超预算或选项过多时从最深、文档最多的子树开始折叠成分区
+5. 返回路由视图与全量index.md；只读，不调模型
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+
+- 副作用：无
+- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`content:readPublicTree`
