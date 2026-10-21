@@ -124,19 +124,30 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 		}
 		selectEvidence = evidenceSelector(ctx, op, english)
 	}
-	evidence, err := answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language, DocumentIDs: documents, Select: selectEvidence})
-	if err != nil {
-		return err
-	}
-	if _, err := takeState(ctx, op, turnID, lease, "generating"); err != nil {
-		return err
-	}
 	// 简单问题改用快速档回答（任务 qa.answer-fast 没分配时仍用回答档位）。
 	task, profile := "qa.answer", string(resolved.Policy.ProfileId)
 	if decision != nil && decision.simple {
 		if fast, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer-fast"); err == nil {
 			task, profile = "qa.answer-fast", fast
 		}
+	}
+	// 决策模型选中了文档就把这些文章整篇交给回答模型；没选中、读不到或决策不可用时才走片段检索（全站检索加材料筛选）。
+	var evidence answer.RetrieveEvidenceResult
+	if len(documents) > 0 {
+		if evidence, err = answer.ReadDocuments(ctx, op, answer.ReadDocumentsInput{TurnID: turnID, DocumentIDs: documents, Language: record.Language, MaximumTokens: materialBudget(ctx, op, resolved.Policy, task)}); err != nil {
+			return err
+		}
+		if os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "整篇读取 turn=%s 文档=%d 引用=%d\n", turnID, len(documents), len(evidence.Citations))
+		}
+	}
+	if len(evidence.Citations) == 0 {
+		if evidence, err = answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language, Select: selectEvidence}); err != nil {
+			return err
+		}
+	}
+	if _, err := takeState(ctx, op, turnID, lease, "generating"); err != nil {
+		return err
 	}
 	prompt, err := answerPrompt(ctx, op, record, resolved, evidence.EvidenceText, conversation, task)
 	if err != nil {
@@ -271,6 +282,15 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 		return prompt, err
 	}
 	return build()
+}
+
+// materialBudget 是整篇读取时本轮材料的词元上限：策略里的“上下文最大词元”，且不超过回答模型可用窗口的三分之一，给记忆、摘要和历史留位置。
+func materialBudget(ctx context.Context, op OperationContext, policy gen.TypesQaPolicy, task string) int {
+	budget := policy.MaximumContextTokens
+	if window, err := qaruntime.ResolveTaskWindow(ctx, op, task); err == nil && window > 0 {
+		budget = min(budget, (window*(100-policy.ContextReservePercent)/100-policy.MaximumOutputTokens)/3)
+	}
+	return max(budget, 1)
 }
 
 // failTurn 把未终止的轮次落成 failed，并尽量释放准入占位。

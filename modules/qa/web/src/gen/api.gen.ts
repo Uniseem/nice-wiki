@@ -547,6 +547,7 @@ export interface components {
         LookupInvocationResult: components["schemas"]["types_LookupInvocationResult"];
         KnowledgeReadDocumentIndexResult: components["schemas"]["ReadDocumentIndexResult"];
         LocalizationReadTranslationResult: components["schemas"]["ReadTranslationResult"];
+        KnowledgeReadDocumentChunksResult: components["schemas"]["ReadDocumentChunksResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /**
@@ -814,8 +815,8 @@ export interface components {
             /** @description 模型较小窗口历史预算 */
             maximumHistoryTokens: number;
             /**
-             * @description 默认4096
-             * @default 4096
+             * @description 本轮材料的词元上限，默认16000：文档路由选中的文章整篇交给回答模型时按它截断；没选中文档、改走片段检索时最多取4096
+             * @default 16000
              */
             maximumContextTokens: number;
             /** @description 阈值模式可调默认0.94 */
@@ -2549,6 +2550,21 @@ export interface components {
             body?: components["schemas"]["DocumentBody"];
             /** @description canonical目标body SHA256，不等于source publication contentHash */
             bodyHash?: components["schemas"]["Hash"];
+        };
+        /** @description 一篇文档按文内顺序的分块 */
+        DocumentChunks: {
+            documentId: components["schemas"]["Identifier"];
+            /** @description 按文内顺序；超出预算的部分不含 */
+            chunks: components["schemas"]["Chunk"][];
+            /** @description 预算不够，后面的分块没有给出 */
+            truncated: boolean;
+        };
+        /** @description 按文档读取的分块 */
+        ReadDocumentChunksResult: {
+            /** @description 按请求顺序；没有索引或已撤回的文档不出现 */
+            documents: components["schemas"]["DocumentChunks"][];
+            /** @description 读取所用活动索引版本 */
+            indexVersionHash: components["schemas"]["Hash"];
         };
     };
     responses: never;

@@ -15,8 +15,6 @@ type RetrieveEvidenceInput struct {
 	Policy     gen.TypesQaPolicy         `json:"policy"`
 	Embedding  *qaruntime.QueryEmbedding `json:"embedding,omitempty"`
 	Language   string                    `json:"language"`
-	// DocumentIDs 是文档路由选出的文档：在它们里面另检索一次，和全站检索合并，防止路由选错时漏掉材料。
-	DocumentIDs []string `json:"documentIds,omitempty"`
 	// Select 是材料筛选：给出候选片段，返回要保留的片段 ID；nil 表示原样使用。
 	Select func([]EvidenceCandidate) []string `json:"-"`
 }
@@ -63,13 +61,10 @@ func RetrieveEvidence(ctx context.Context, op OperationContext, input RetrieveEv
 		}
 		embedding = &created.Embedding
 	}
-	search := func(documentIDs []string) ([]evidenceChunk, bool, string, error) {
+	search := func() ([]evidenceChunk, bool, string, error) {
 		request := map[string]any{"query": input.Normalized, "language": runtime.BaseLanguage, "space": input.Policy.RetrievalSpace, "maximumTokens": min(4096, input.Policy.MaximumContextTokens), "lexicalOnly": false, "embedding": embedding}
 		if runtime.AdmissionPermit != nil {
 			request["admissionPermit"] = runtime.AdmissionPermit
-		}
-		if len(documentIDs) > 0 {
-			request["documentIds"] = documentIDs
 		}
 		raw, err := runtime.Knowledge.SearchKnowledge(qaruntime.ServiceReadContext(ctx, op), request)
 		if err != nil {
@@ -97,21 +92,13 @@ func RetrieveEvidence(ctx context.Context, op OperationContext, input RetrieveEv
 		}
 		return chunks, response.Result.Truncated, response.Result.IndexVersionHash, nil
 	}
-	global, truncated, indexVersion, err := search(nil)
+	found, truncated, indexVersion, err := search()
 	if err != nil {
 		return RetrieveEvidenceResult{}, err
 	}
-	merged := global
-	if len(input.DocumentIDs) > 0 {
-		routed, _, _, err := search(input.DocumentIDs)
-		if err != nil {
-			return RetrieveEvidenceResult{}, err
-		}
-		merged = append(routed, global...)
-	}
 	original := make(map[string]evidenceChunk)
-	candidates := make([]evidenceChunk, 0, len(merged))
-	for _, chunk := range merged {
+	candidates := make([]evidenceChunk, 0, len(found))
+	for _, chunk := range found {
 		if _, exists := original[chunk.ChunkID]; !exists {
 			original[chunk.ChunkID] = chunk
 			candidates = append(candidates, chunk)
