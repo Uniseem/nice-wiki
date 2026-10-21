@@ -172,7 +172,7 @@ function BanDialog({ subjectRef, onClose, onSaved }: { subjectRef: string; onClo
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="md">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>新建禁令</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); if (valid) void submit(); }}>
             <Modal.Body className="flex flex-col gap-4">

@@ -145,7 +145,7 @@ function TurnsTab() {
         <Modal.Backdrop isOpen onOpenChange={(value) => { if (!value) setCurate(null); }}>
           <Modal.Container scroll="outside" size="lg">
             <Modal.Dialog>
-              <Modal.CloseTrigger />
+              <Modal.CloseTrigger aria-label="关闭" />
               <Modal.Header><Modal.Heading>设为精选答案</Modal.Heading></Modal.Header>
               <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
                 <Modal.Body className="flex flex-col gap-4">

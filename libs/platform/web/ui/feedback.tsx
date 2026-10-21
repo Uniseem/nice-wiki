@@ -109,7 +109,7 @@ export function DialogHost() {
     <Modal.Backdrop isOpen={open} onOpenChange={(next) => { if (!next) finish(null); }}>
       <Modal.Container size="sm">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header>
             <Modal.Heading>{head.title}</Modal.Heading>
           </Modal.Header>

@@ -20,7 +20,7 @@ export function MathDialog({ initial, onSave, onClose }: { initial: string | nul
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="md">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header>
             <Modal.Heading>{initial === null ? '插入公式' : '编辑公式'}</Modal.Heading>
           </Modal.Header>

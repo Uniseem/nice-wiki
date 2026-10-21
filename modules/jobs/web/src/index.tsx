@@ -161,7 +161,7 @@ function JobDrawer({ job, onClose, onChanged }: { job: Job; onClose: () => void;
     <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Drawer.Content placement="right">
         <Drawer.Dialog className="w-full max-w-lg">
-          <Drawer.CloseTrigger />
+          <Drawer.CloseTrigger aria-label="关闭" />
           <Drawer.Header><Drawer.Heading>{job.owner} · {job.type}</Drawer.Heading></Drawer.Header>
           <Drawer.Body className="flex flex-col gap-5">
             <Details items={[
@@ -282,7 +282,7 @@ function ScheduleDialog({ schedule, onClose, onSaved }: { schedule: Schedule; on
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="sm">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>编辑定时：{schedule.owner} · {schedule.type}</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
             <Modal.Body className="flex flex-col gap-4">

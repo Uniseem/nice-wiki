@@ -209,7 +209,7 @@ function AddLanguage({ existing, onClose, onAdded }: { existing: string[]; onClo
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="sm">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>添加语言</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); if (valid) void add(); }}>
             <Modal.Body className="flex flex-col gap-4">

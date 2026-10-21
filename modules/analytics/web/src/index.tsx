@@ -252,7 +252,7 @@ function AuditTab() {
         <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) setDetail(null); }}>
           <Drawer.Content placement="right">
             <Drawer.Dialog className="w-full max-w-lg">
-              <Drawer.CloseTrigger />
+              <Drawer.CloseTrigger aria-label="关闭" />
               <Drawer.Header><Drawer.Heading>审计详情</Drawer.Heading></Drawer.Header>
               <Drawer.Body className="flex flex-col gap-4">
                 {detail.chainValid ? <Chip color="success" variant="soft"><CircleCheck />本条内容与前驱链校验通过</Chip> : <Chip color="danger" variant="soft"><CircleExclamation />链完整性校验未通过，请核查</Chip>}

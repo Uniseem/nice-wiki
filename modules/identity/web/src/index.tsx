@@ -133,7 +133,7 @@ function AccountDialog({ account, onClose, onSaved }: { account: Account | null;
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="md">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>{account ? `编辑“${account.accountName}”的权限` : '新建子账号'}</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
             <Modal.Body className="flex flex-col gap-5">

@@ -240,7 +240,7 @@ function Dialog({ title, onClose, onSubmit, busy, submitLabel, children }: { tit
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container scroll="outside" size="lg">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>{title}</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
             <Modal.Body className="flex flex-col gap-4">{children}</Modal.Body>
@@ -315,13 +315,13 @@ function ModelDialog({ providers, onClose, onSaved }: { providers: Provider[]; o
       <TextInput isRequired description="调用时传给供应方的模型名。" label="供应方模型名" value={form.providerModelVersion} onChange={(providerModelVersion) => setForm({ ...form, providerModelVersion })} />
       <CheckGroupInput label="能力" options={capabilities} value={form.capabilities} onChange={(value) => setForm({ ...form, capabilities: value })} />
       <FormGrid>
-        <NumberInput label="上下文窗口（词元）" minValue={1} step={1000} value={form.maxInputTokens} onChange={(maxInputTokens) => setForm({ ...form, maxInputTokens })} />
-        <NumberInput label="最大输出（词元）" minValue={1} step={256} value={form.maxOutputTokens} onChange={(maxOutputTokens) => setForm({ ...form, maxOutputTokens })} />
+        <NumberInput label="上下文窗口（词元）" minValue={1} value={form.maxInputTokens} onChange={(maxInputTokens) => setForm({ ...form, maxInputTokens })} />
+        <NumberInput label="最大输出（词元）" minValue={1} value={form.maxOutputTokens} onChange={(maxOutputTokens) => setForm({ ...form, maxOutputTokens })} />
       </FormGrid>
       {form.capabilities.includes('embedding') && <NumberInput description="向量模型的输出维度。" label="向量维度" minValue={0} value={form.dimension} onChange={(dimension) => setForm({ ...form, dimension })} />}
       <FormGrid>
-        <NumberInput description="美元 / 百万词元，0 表示未知。" formatOptions={{ maximumFractionDigits: 4 }} label="输入单价" minValue={0} step={0.01} value={form.inputUsd} onChange={(inputUsd) => setForm({ ...form, inputUsd })} />
-        <NumberInput description="美元 / 百万词元，0 表示未知。" formatOptions={{ maximumFractionDigits: 4 }} label="输出单价" minValue={0} step={0.01} value={form.outputUsd} onChange={(outputUsd) => setForm({ ...form, outputUsd })} />
+        <NumberInput description="美元 / 百万词元，0 表示未知。" formatOptions={{ maximumFractionDigits: 4 }} label="输入单价" minValue={0} value={form.inputUsd} onChange={(inputUsd) => setForm({ ...form, inputUsd })} />
+        <NumberInput description="美元 / 百万词元，0 表示未知。" formatOptions={{ maximumFractionDigits: 4 }} label="输出单价" minValue={0} value={form.outputUsd} onChange={(outputUsd) => setForm({ ...form, outputUsd })} />
       </FormGrid>
     </Dialog>
   );

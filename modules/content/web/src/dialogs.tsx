@@ -16,7 +16,7 @@ export function PublishDialog({ meta, onPublish, onClose }: { meta: Meta; onPubl
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="md">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>发布“{meta.title}”</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={async (event) => { event.preventDefault(); if (invalid || !path) return; setBusy(true); await onPublish(path, seo.trim() || null); setBusy(false); }}>
             <Modal.Body className="flex flex-col gap-4">
@@ -56,7 +56,7 @@ export function SettingsDialog({ meta, onSaved, onClose }: { meta: Meta; onSaved
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="md">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>页面设置</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); if (!invalid) void save(); }}>
             <Modal.Body className="flex flex-col gap-4">
@@ -95,7 +95,7 @@ export function MoveDialog({ meta, docs, onMove, onClose }: { meta: Meta; docs: 
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="sm">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>移动“{meta.title}”</Modal.Heading></Modal.Header>
           <Modal.Body>
             <SelectInput description="子文档会跟着一起移动；已发布的页面地址会变化，旧地址自动跳转。" label="放到" options={options} value={target} onChange={setTarget} />
@@ -127,7 +127,7 @@ export function HistoryDrawer({ documentId, writable, onRollback, onClose }: { d
     <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Drawer.Content placement="right">
         <Drawer.Dialog className="w-full max-w-md">
-          <Drawer.CloseTrigger />
+          <Drawer.CloseTrigger aria-label="关闭" />
           <Drawer.Header><Drawer.Heading>发布历史</Drawer.Heading></Drawer.Header>
           <Drawer.Body>
             {history.error ? <ErrorBlock error={history.error} onRetry={history.reload} /> : history.loading ? <LoadingBlock /> : !history.data?.length ? (

@@ -135,7 +135,7 @@ function CreateDialog({ isSuperadmin, onClose, onCreated }: { isSuperadmin: bool
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="sm">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>创建完整备份</Modal.Heading></Modal.Header>
           <Modal.Body className="flex flex-col gap-4">
             <p className="text-sm leading-6 text-muted">把各服务的数据目录打成一个 tar.gz，SQLite 取一致快照。站点照常运行。</p>
@@ -184,7 +184,7 @@ function DownloadDialog({ backup, onClose }: { backup: Backup; onClose: () => vo
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="md">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
+          <Modal.CloseTrigger aria-label="关闭" />
           <Modal.Header><Modal.Heading>下载备份</Modal.Heading></Modal.Header>
           <Modal.Body className="flex flex-col gap-4">
             <Details items={[['创建时间', fmtDateTime(manifest.createdAt)], ['大小', fmtBytes(manifest.byteSize)], ['含密钥', required ? '是' : '否']]} />

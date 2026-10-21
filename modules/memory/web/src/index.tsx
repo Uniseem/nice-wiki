@@ -118,7 +118,7 @@ function EntryDrawer({ entry, onClose, onSaved }: { entry: Entry | null; onClose
     <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Drawer.Content placement="right">
         <Drawer.Dialog className="w-full max-w-xl">
-          <Drawer.CloseTrigger />
+          <Drawer.CloseTrigger aria-label="关闭" />
           <Drawer.Header><Drawer.Heading>{entry ? '编辑记忆' : '新建记忆'}</Drawer.Heading></Drawer.Header>
           <Form className="flex min-h-0 flex-1 flex-col" onSubmit={(event) => { event.preventDefault(); if (size <= maxBytes) void save(); }}>
             <Drawer.Body className="flex flex-col gap-4">

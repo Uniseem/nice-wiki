@@ -178,7 +178,7 @@ export default function LibraryPage() {
         <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) setRefs(null); }}>
           <Drawer.Content placement="right">
             <Drawer.Dialog className="w-full max-w-md">
-              <Drawer.CloseTrigger />
+              <Drawer.CloseTrigger aria-label="关闭" />
               <Drawer.Header><Drawer.Heading className="truncate">“{refs.asset.originalName}”的引用</Drawer.Heading></Drawer.Header>
               <Drawer.Body className="flex flex-col gap-5">
                 {[['当前引用', refs.snapshot.currentReferences], ['历史版本引用', refs.snapshot.historyReferences]].map(([label, list]) => (
