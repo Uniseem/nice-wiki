@@ -245,6 +245,23 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 			metadata += "<link rel=\"alternate\" hreflang=\"" + html.EscapeString(link.Tag) + "\" href=\"" + html.EscapeString(site+link.Href) + "\">"
 		}
 	}
+	crumbs := []Breadcrumb{}
+	if built, crumbErr := BuildBreadcrumbs(ctx, op, BuildBreadcrumbsInput{DocumentID: node.DocumentID, Tree: navigation.Tree, HomeURL: "/" + locale + "/"}); crumbErr == nil {
+		crumbs = built.Items
+	}
+	// 上一篇/下一篇按导航树顺序取相邻文档。
+	previous, next := []Breadcrumb{}, []Breadcrumb{}
+	for i, item := range navigation.Tree {
+		if item.DocumentID != node.DocumentID {
+			continue
+		}
+		if i > 0 {
+			previous = append(previous, Breadcrumb{navigation.Tree[i-1].Title, navigation.Tree[i-1].CanonicalPath})
+		}
+		if i+1 < len(navigation.Tree) {
+			next = append(next, Breadcrumb{navigation.Tree[i+1].Title, navigation.Tree[i+1].CanonicalPath})
+		}
+	}
 	composed, err := ComposeHTML(ctx, op, ComposeHTMLInput{
 		SafeHTML:     body.SafeHTML,
 		Title:        bundle.Title,
@@ -255,6 +272,9 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		DocumentID:   node.DocumentID,
 		MarkdownURL:  node.CanonicalPath + ".md",
 		Announcement: loadAnnouncement(ctx, op),
+		Breadcrumbs:  crumbs,
+		Previous:     previous,
+		Next:         next,
 		Languages:    languages,
 		AIEnabled:    qaAvailable(ctx, op),
 		AskURL:       "/" + locale + "/ask",
