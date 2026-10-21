@@ -286,21 +286,11 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 	return build()
 }
 
-// usedCitations 只留回答里真正引用到的材料；回答一处都没引用时每篇文档留第一条，免得整篇读取的几十上百个片段都成了“来源”。
+// usedCitations 只留回答里真正引用到的材料。一处都没引用的回答（通常是“文档未提及”）不列来源，记为无依据，也不进缓存。
 func usedCitations(text string, all []gen.Citation) []gen.Citation {
 	used := []gen.Citation{}
 	for _, citation := range all {
 		if strings.Contains(text, citation.CitationId) {
-			used = append(used, citation)
-		}
-	}
-	if len(used) > 0 {
-		return used
-	}
-	seen := map[string]bool{}
-	for _, citation := range all {
-		if !seen[citation.Document.DocumentId] {
-			seen[citation.Document.DocumentId] = true
 			used = append(used, citation)
 		}
 	}

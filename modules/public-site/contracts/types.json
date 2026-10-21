@@ -3919,6 +3919,12 @@
               "$ref": "#/$defs/LanguageTag",
               "description": "等于请求language；缺译不改变URL语言"
             },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "请求语言下的文档标题；只在该语言有对应本发布修订的标题译文时给出，否则调用方沿用原文标题"
+            },
             "reason": {
               "type": "string",
               "enum": [

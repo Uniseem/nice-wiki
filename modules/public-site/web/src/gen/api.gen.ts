@@ -851,6 +851,8 @@ export interface components {
             publication: components["schemas"]["PublishedRevisionRef"];
             /** @description 等于请求language；缺译不改变URL语言 */
             resolvedLanguage: components["schemas"]["LanguageTag"];
+            /** @description 请求语言下的文档标题；只在该语言有对应本发布修订的标题译文时给出，否则调用方沿用原文标题 */
+            title?: string;
             /** @enum {string} */
             reason: "available";
         } | {

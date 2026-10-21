@@ -125,7 +125,14 @@ func ResolvePublishedLink(ctx context.Context, op platform.OperationContext, inp
 	if reason != "" {
 		return hiddenResult(reason)
 	}
-	return visibleResult(href, input.Language, node.reference)
+	// 非基准语言：有对应本发布修订的标题译文就一并给出，问答来源里显示访客语言的标题。
+	title := ""
+	if input.Language != site.baseLanguage {
+		if translated, ok := loadTranslatedTitles(ctx, input.Language)[input.DocumentId]; ok && translated.revision == string(node.reference.PublishedRevisionId) {
+			title = translated.title
+		}
+	}
+	return visibleResult(href, input.Language, title, node.reference)
 }
 
 func authorizeLink(ctx context.Context, op platform.OperationContext) error {
@@ -622,15 +629,19 @@ func hiddenResult(reason gen.ResolvePublishedLinkResult1Reason) (gen.ResolvePubl
 	return result, nil
 }
 
-func visibleResult(href, language string, ref gen.PublishedRevisionRef) (gen.ResolvePublishedLinkResult, error) {
+func visibleResult(href, language, title string, ref gen.PublishedRevisionRef) (gen.ResolvePublishedLinkResult, error) {
 	var result gen.ResolvePublishedLinkResult
-	err := result.FromResolvePublishedLinkResult0(gen.ResolvePublishedLinkResult0{
+	visible := gen.ResolvePublishedLinkResult0{
 		Href:             href,
 		Publication:      ref,
 		ResolvedLanguage: language,
 		Reason:           "available",
 		Visible:          gen.True,
-	})
+	}
+	if title != "" {
+		visible.Title = &title
+	}
+	err := result.FromResolvePublishedLinkResult0(visible)
 	if err != nil {
 		return gen.ResolvePublishedLinkResult{}, platform.NewError(platform.CodeInternal, false, "公开链接结果无法编码")
 	}
