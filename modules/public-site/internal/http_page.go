@@ -262,23 +262,26 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 			next = append(next, Breadcrumb{navigation.Tree[i+1].Title, navigation.Tree[i+1].CanonicalPath})
 		}
 	}
+	footerHTML, sourceURL := loadFooter(ctx, op)
 	composed, err := ComposeHTML(ctx, op, ComposeHTMLInput{
-		SafeHTML:     body.SafeHTML,
-		Title:        bundle.Title,
-		TOC:          toc.Items,
-		Navigation:   navigation.Tree,
-		Metadata:     metadata,
-		Locale:       locale,
-		DocumentID:   node.DocumentID,
-		MarkdownURL:  node.CanonicalPath + ".md",
-		Announcement: loadAnnouncement(ctx, op),
-		Breadcrumbs:  crumbs,
-		Previous:     previous,
-		Next:         next,
-		Languages:    languages,
-		AIEnabled:    qaAvailable(ctx, op),
-		AskURL:       "/" + locale + "/ask",
-		UIStrings:    loadUIStrings(ctx, locale),
+		SafeHTML:      body.SafeHTML,
+		Title:         bundle.Title,
+		TOC:           toc.Items,
+		Navigation:    navigation.Tree,
+		Metadata:      metadata,
+		Locale:        locale,
+		DocumentID:    node.DocumentID,
+		MarkdownURL:   node.CanonicalPath + ".md",
+		Announcement:  loadAnnouncement(ctx, op),
+		Breadcrumbs:   crumbs,
+		Previous:      previous,
+		Next:          next,
+		Languages:     languages,
+		AIEnabled:     qaAvailable(ctx, op),
+		AskURL:        "/" + locale + "/ask",
+		UIStrings:     loadUIStrings(ctx, locale),
+		Footer:        footerHTML,
+		SourceCodeURL: sourceURL,
 	})
 	if err != nil {
 		return "", err

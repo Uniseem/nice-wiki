@@ -10,24 +10,25 @@ import (
 )
 
 type ComposeHTMLInput struct {
-	SafeHTML     string
-	Title        string
-	TOC          []TOCItem
-	Navigation   []NavigationNode
-	Metadata     string
-	Locale       string
-	DocumentID   string
-	Breadcrumbs  []Breadcrumb
-	Previous     []Breadcrumb
-	Next         []Breadcrumb
-	Announcement string
-	Languages    []LanguageLink
-	Footer       string
-	Untranslated bool
-	UIStrings    map[string]string // 界面字典译文（key 为中文原文），可为空
-	AIEnabled    bool
-	AskURL       string
-	MarkdownURL  string
+	SafeHTML      string
+	Title         string
+	TOC           []TOCItem
+	Navigation    []NavigationNode
+	Metadata      string
+	Locale        string
+	DocumentID    string
+	Breadcrumbs   []Breadcrumb
+	Previous      []Breadcrumb
+	Next          []Breadcrumb
+	Announcement  string
+	Languages     []LanguageLink
+	Footer        string // 站长写的页脚（版权、链接、ICP），已转义的 HTML
+	SourceCodeURL string // 页脚“源代码”链接，空则用默认
+	Untranslated  bool
+	UIStrings     map[string]string // 界面字典译文（key 为中文原文），可为空
+	AIEnabled     bool
+	AskURL        string
+	MarkdownURL   string
 }
 type LanguageLink struct{ Tag, Href string }
 type ComposeHTMLResult struct{ HTML string }
@@ -154,7 +155,11 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 	for _, item := range in.TOC {
 		output.WriteString("<a href=\"#" + html.EscapeString(url.PathEscape(item.Anchor)) + "\" data-level=\"" + strings.Repeat("·", item.Level-1) + "\">" + keep(html.EscapeString(item.Label)) + "</a>")
 	}
-	output.WriteString("</nav></div><footer>" + keep(in.Footer) + " <a href=\"https://github.com/Uniseem/nice-wiki\">源代码</a></footer>")
+	sourceURL := in.SourceCodeURL
+	if sourceURL == "" {
+		sourceURL = defaultSourceCodeURL
+	}
+	output.WriteString("</nav></div><footer>" + keep(in.Footer) + " <a href=\"" + html.EscapeString(sourceURL) + "\">源代码</a></footer>")
 	if in.AIEnabled {
 		output.WriteString("<div class=\"ai-island\" data-qa-session=\"shared\" data-document-id=\"" + html.EscapeString(in.DocumentID) + "\"></div><script>" + qaIslandScript + "</script>")
 	}
