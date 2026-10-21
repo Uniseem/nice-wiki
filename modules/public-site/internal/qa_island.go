@@ -32,7 +32,8 @@ return pump()}).then(function(ended){if(!ended)return run();showSources(box,sour
 return run()}
 function showSources(box,sources){if(!sources.length)return;var seen={},list=document.createElement('div');list.className='ai-src';sources.forEach(function(c){var k=(c.href||'').split('#')[0];if(!k||seen[k])return;seen[k]=1;var a=document.createElement('a');a.href=c.href;a.textContent='来源：'+(c.title||c.href);list.appendChild(a)});box.appendChild(list)}
 form.addEventListener('submit',function(e){e.preventDefault();var q=input.value.trim();if(!q)return;input.value='';send.disabled=true;add('ai-q',q);var box=add('ai-a','…');
-conversation().then(function(id){return api('POST','/v1/turns',{conversationId:id,question:q,idempotencyKey:key()})}).then(function(r){box.textContent='';return follow(r,box)}).catch(function(err){box.className='ai-msg ai-err';box.textContent=err.message}).then(function(){send.disabled=false;input.focus()})});
+function ask(retry){return conversation().then(function(id){return api('POST','/v1/turns',{conversationId:id,question:q,idempotencyKey:key()})}).catch(function(e){if(!retry&&e.code==='NOT_FOUND'){store.removeItem(convKey);return ask(true)}throw e})}
+ask(false).then(function(r){box.textContent='';return follow(r,box)}).catch(function(err){box.className='ai-msg ai-err';box.textContent=err.message}).then(function(){send.disabled=false;input.focus()})});
 root.querySelector('.ai-fab').onclick=function(){root.setAttribute('data-open','');input.focus()};
 document.querySelectorAll('[data-ask]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();root.setAttribute('data-open','');input.focus()})});
 root.querySelector('[data-close]').onclick=function(){root.removeAttribute('data-open')};
