@@ -1,6 +1,6 @@
 import { Database } from '@gravity-ui/icons';
 import { Button, Chip, Form, ProgressBar, Table } from '@heroui/react';
-import { api, confirmAction, EmptyBlock, ErrorBlock, fmtRelative, FormGrid, LoadingBlock, newKey, Notice, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, useAction, useLoad, t } from '@ui';
+import { api, codeMeaning, confirmAction, EmptyBlock, ErrorBlock, fmtRelative, FormGrid, LoadingBlock, newKey, Notice, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, useAction, useLoad, t } from '@ui';
 import { useEffect, useMemo, useState } from 'react';
 
 type ProfileOption = { profileId: string; label: string; tier: string; usable: boolean; space?: unknown };
@@ -141,7 +141,10 @@ export default function KnowledgePage() {
                           return (
                             <Table.Row key={doc.documentId} id={doc.documentId}>
                               <Table.Cell>{doc.title}</Table.Cell>
-                              <Table.Cell>{state ? <Chip color={state.tone} size="sm" variant="soft">{state.label}</Chip> : <span className="text-sm text-muted">{t('未建立')}</span>}</Table.Cell>
+                              <Table.Cell>
+                                {state ? <Chip color={state.tone} size="sm" variant="soft">{state.label}</Chip> : <span className="text-sm text-muted">{t('未建立')}</span>}
+                                {last?.failureCode && <span className="mt-1 block text-xs text-danger" title={last.failureCode}>{codeMeaning(last.failureCode)}</span>}
+                              </Table.Cell>
                               <Table.Cell className="text-end"><Button isDisabled={busy || !enabled} size="sm" variant="secondary" onPress={() => build([doc])}>{t('建立索引')}</Button></Table.Cell>
                             </Table.Row>
                           );
@@ -178,7 +181,7 @@ export default function KnowledgePage() {
                             </Table.Cell>
                             <Table.Cell>
                               <Chip color={state.tone} size="sm" variant="soft">{state.label}</Chip>
-                              {item.failureCode && <span className="ms-2 text-xs text-danger">{item.failureCode}</span>}
+                              {item.failureCode && <span className="mt-1 block text-xs text-danger" title={item.failureCode}>{codeMeaning(item.failureCode)}</span>}
                             </Table.Cell>
                             <Table.Cell>
                               <div className="flex min-w-40 items-center gap-2">

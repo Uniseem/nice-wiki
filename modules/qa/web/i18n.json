@@ -79,6 +79,22 @@
   "id": "Cadangan konteks (%)",
   "ar": "احتياطي السياق (%)"
  },
+ "交给回答模型的文章原文上限；实际还不超过回答模型窗口的三分之一。": {
+  "zh-Hant": "交給回答模型的文章原文上限；實際還不超過回答模型視窗的三分之一。",
+  "en": "Cap on article text sent to the answer model; it also never exceeds a third of the model's context window.",
+  "ja": "回答モデルに渡す記事本文の上限です。実際にはモデルのコンテキストウィンドウの 3 分の 1 も超えません。",
+  "ko": "답변 모델에 전달하는 문서 원문 상한입니다. 실제로는 모델 컨텍스트 창의 3분의 1도 넘지 않습니다.",
+  "fr": "Plafond du texte d'article envoyé au modèle de réponse ; il ne dépasse jamais non plus un tiers de la fenêtre de contexte du modèle.",
+  "de": "Obergrenze für Artikeltext, der an das Antwortmodell geht; zusätzlich nie mehr als ein Drittel des Kontextfensters des Modells.",
+  "es": "Límite del texto de artículos enviado al modelo de respuesta; además nunca supera un tercio de la ventana de contexto del modelo.",
+  "pt": "Limite do texto de artigos enviado ao modelo de resposta; além disso, nunca passa de um terço da janela de contexto do modelo.",
+  "ru": "Предел текста статей, передаваемого модели ответов; к тому же он не превышает трети контекстного окна модели.",
+  "it": "Limite del testo degli articoli inviato al modello di risposta; inoltre non supera mai un terzo della finestra di contesto del modello.",
+  "vi": "Giới hạn văn bản bài viết gửi cho mô hình trả lời; trên thực tế cũng không vượt quá một phần ba cửa sổ ngữ cảnh của mô hình.",
+  "th": "ขีดจำกัดเนื้อหาบทความที่ส่งให้โมเดลตอบคำถาม และจะไม่เกินหนึ่งในสามของหน้าต่างบริบทของโมเดล",
+  "id": "Batas teks artikel yang dikirim ke model jawaban; selain itu tidak pernah melebihi sepertiga jendela konteks model.",
+  "ar": "الحد الأقصى لنص المقالات المرسَل إلى نموذج الإجابة، ولا يتجاوز أيضًا ثلث نافذة سياق النموذج."
+ },
  "例如：如何安装？": {
   "zh-Hant": "例如：如何安裝？",
   "en": "e.g. How do I install it?",
@@ -703,54 +719,6 @@
   "id": "Waktu",
   "ar": "الوقت"
  },
- "最多子问题数": {
-  "zh-Hant": "最多子問題數",
-  "en": "Max sub-questions",
-  "ja": "最大サブ質問数",
-  "ko": "최대 하위 질문 수",
-  "fr": "Sous-questions max.",
-  "de": "Max. Teilfragen",
-  "es": "Máx. de subpreguntas",
-  "pt": "Máx. de subperguntas",
-  "ru": "Макс. подвопросов",
-  "it": "Max sotto-domande",
-  "vi": "Số câu hỏi con tối đa",
-  "th": "คำถามย่อยสูงสุด",
-  "id": "Sub-pertanyaan maks.",
-  "ar": "الحد الأقصى للأسئلة الفرعية"
- },
- "最多工具调用": {
-  "zh-Hant": "最多工具呼叫",
-  "en": "Max tool calls",
-  "ja": "最大ツール呼び出し数",
-  "ko": "최대 도구 호출",
-  "fr": "Appels d'outils max.",
-  "de": "Max. Tool-Aufrufe",
-  "es": "Máx. de llamadas a herramientas",
-  "pt": "Máx. de chamadas de ferramentas",
-  "ru": "Макс. вызовов инструментов",
-  "it": "Max chiamate a strumenti",
-  "vi": "Số lần gọi công cụ tối đa",
-  "th": "การเรียกเครื่องมือสูงสุด",
-  "id": "Panggilan alat maks.",
-  "ar": "الحد الأقصى لاستدعاءات الأدوات"
- },
- "最多检索轮数": {
-  "zh-Hant": "最多檢索輪數",
-  "en": "Max retrieval rounds",
-  "ja": "最大検索ラウンド数",
-  "ko": "최대 검색 횟수",
-  "fr": "Tours de recherche max.",
-  "de": "Max. Suchrunden",
-  "es": "Máx. de rondas de búsqueda",
-  "pt": "Máx. de rodadas de busca",
-  "ru": "Макс. раундов поиска",
-  "it": "Max cicli di ricerca",
-  "vi": "Số vòng truy xuất tối đa",
-  "th": "รอบการค้นคืนสูงสุด",
-  "id": "Putaran pencarian maks.",
-  "ar": "الحد الأقصى لجولات الاسترجاع"
- },
  "有帮助": {
   "zh-Hant": "有幫助",
   "en": "Helpful",
@@ -798,22 +766,6 @@
   "th": "ไม่ทราบ",
   "id": "Tidak diketahui",
   "ar": "غير معروف"
- },
- "核查输出词元": {
-  "zh-Hant": "核查輸出詞元",
-  "en": "Verification output tokens",
-  "ja": "検証の出力トークン",
-  "ko": "검증 출력 토큰",
-  "fr": "Jetons de sortie de vérification",
-  "de": "Ausgabe-Tokens der Prüfung",
-  "es": "Tokens de salida de verificación",
-  "pt": "Tokens de saída de verificação",
-  "ru": "Выходные токены проверки",
-  "it": "Token di output della verifica",
-  "vi": "Số token đầu ra kiểm tra",
-  "th": "โทเคนเอาต์พุตการตรวจสอบ",
-  "id": "Token keluaran verifikasi",
-  "ar": "رموز مخرجات التحقق"
  },
  "检索知识库并调用模型回答，结果不影响访客对话和缓存。": {
   "zh-Hant": "檢索知識庫並呼叫模型回答，結果不影響訪客對話和快取。",
@@ -1550,21 +1502,5 @@
   "th": "ต้องการคำชี้แจง",
   "id": "Perlu klarifikasi",
   "ar": "يحتاج إلى توضيح"
- },
- "预检输出词元": {
-  "zh-Hant": "預檢輸出詞元",
-  "en": "Preflight output tokens",
-  "ja": "事前チェックの出力トークン",
-  "ko": "사전 점검 출력 토큰",
-  "fr": "Jetons de sortie de pré-analyse",
-  "de": "Ausgabe-Tokens der Vorprüfung",
-  "es": "Tokens de salida del análisis previo",
-  "pt": "Tokens de saída da pré-análise",
-  "ru": "Выходные токены предпроверки",
-  "it": "Token di output della pre-analisi",
-  "vi": "Số token đầu ra kiểm tra trước",
-  "th": "โทเคนเอาต์พุตการตรวจล่วงหน้า",
-  "id": "Token keluaran prapemeriksaan",
-  "ar": "رموز مخرجات الفحص المسبق"
  }
 }

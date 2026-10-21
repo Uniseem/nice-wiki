@@ -1,7 +1,7 @@
 import { Picture, Plus, TrashBin } from '@gravity-ui/icons';
 import { Button, Card, Chip, Form, Tabs } from '@heroui/react';
 import {
-  api, assetURL, ColorInput, Details, ErrorBlock, FileButton, FormGrid, LoadingBlock, NumberInput, PageHeader, Panel, RadioInput, SelectInput, SwitchInput,
+  api, assetURL, ColorInput, Details, ErrorBlock, FileButton, findSiteLanguage, FormGrid, LoadingBlock, NumberInput, PageHeader, Panel, RadioInput, SelectInput, SwitchInput,
   TextInput, uploadImage, useAction, useHasGrant, useLoad, type AssetRef, t,
 } from '@ui';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -87,7 +87,7 @@ function BasicTab({ config, onSaved }: TabProps) {
       <Panel title={t('站点信息')}>
         <Details items={[
           [t('公开地址'), <a className="break-all text-accent hover:underline" href={config.publicBaseURL} rel="noopener" target="_blank">{config.publicBaseURL}</a>],
-          [t('基准语言'), config.baseLanguage],
+          [t('基准语言'), <span><span lang={config.baseLanguage}>{findSiteLanguage(config.baseLanguage)?.native ?? config.baseLanguage}</span> <span className="text-muted">{config.baseLanguage}</span></span>],
           [t('配置版本'), `#${config.revision}`],
         ]} />
       </Panel>

@@ -158,6 +158,11 @@ const codeText: Record<string, string> = {
   INVOCATION_NOT_ACCEPTED: t('调用未被受理'),
 };
 
+// 任务失败码这类只有错误码的场合：给出可读含义，认不出的码原样显示。
+export function codeMeaning(code: string): string {
+  return codeText[code] ?? code;
+}
+
 export function problemCode(error: unknown): string {
   if (error instanceof ApiError) return error.code;
   const code = (error as { code?: unknown } | null)?.code;

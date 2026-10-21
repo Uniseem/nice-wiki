@@ -17,12 +17,14 @@ const switches: Record<string, [string, string]> = {
   cacheEnabled: [t('答案缓存'), t('完整、可共享的问题会先查缓存，命中就不再调用回答模型。')],
   compactionEnabled: [t('长对话压缩'), t('对话快占满回答模型的上下文窗口时，把早期内容压缩成摘要；关闭则只带得下的最近消息。')],
 };
+// 表单按这里的先后排列：回答额度、对话压缩、缓存与保留期。
 const numbers: Record<string, string> = {
-  maximumOutputTokens: t('回答最大输出词元'), maximumHistoryTokens: t('历史最大词元'), maximumContextTokens: t('上下文最大词元'),
-  maximumQuestionCharacters: t('问题最大字符数'), preflightOutputTokens: t('预检输出词元'), inspectionOutputTokens: t('核查输出词元'),
-  maximumSubqueries: t('最多子问题数'), maximumRetrievalRounds: t('最多检索轮数'), maximumToolCalls: t('最多工具调用'), cacheTtlDays: t('缓存保留天数'),
-  recordRetentionDays: t('问答记录保留天数'), retainedRecentTokens: t('压缩时保留的近期词元'), contextReservePercent: t('上下文预留比例（%）'),
-  semanticThreshold: t('语义相似阈值（0–1）'),
+  maximumContextTokens: t('上下文最大词元'), maximumOutputTokens: t('回答最大输出词元'), maximumQuestionCharacters: t('问题最大字符数'),
+  contextReservePercent: t('上下文预留比例（%）'), retainedRecentTokens: t('压缩时保留的近期词元'), maximumHistoryTokens: t('历史最大词元'),
+  semanticThreshold: t('语义相似阈值（0–1）'), cacheTtlDays: t('缓存保留天数'), recordRetentionDays: t('问答记录保留天数'),
+};
+const numberHints: Record<string, string> = {
+  maximumContextTokens: t('交给回答模型的文章原文上限；实际还不超过回答模型窗口的三分之一。'),
 };
 const texts: Record<string, string> = { profileId: t('答案模型档位'), semanticMode: t('语义判定方式') };
 const semanticModes = [{ value: 'ai_equivalence', label: t('由 AI 判断是否同一问题') }, { value: 'threshold', label: t('按语义相似阈值') }];
@@ -39,8 +41,11 @@ function ProfileField({ label, description, costClass, profiles, value, onChange
   if (value && !options.some((option) => option.value === value)) options.unshift({ value, label: t('{0}（模型接入里没有这个档位）', value) });
   return <SelectInput description={description} label={label} options={options} value={value} onChange={onChange} />;
 }
-// 历史预算跟随回答模型的上下文窗口，不再单独设上限。
-const hidden = new Set(['version', 'retrievalSpace', 'maximumHistoryTokens']);
+// 历史预算跟随回答模型的上下文窗口，不再单独设上限；预检、核查、子问题、多轮检索和工具调用这几项当前回答流程不用。
+const hidden = new Set([
+  'version', 'retrievalSpace', 'maximumHistoryTokens',
+  'preflightOutputTokens', 'inspectionOutputTokens', 'maximumSubqueries', 'maximumRetrievalRounds', 'maximumToolCalls',
+]);
 const answerKinds: Record<string, string> = { answered: t('已回答'), refused: t('拒答'), cached: t('缓存命中'), no_evidence: t('无依据'), out_of_scope: t('离题/闲聊'), clarification: t('需澄清'), failed: t('失败'), cancelled: t('已取消') };
 
 export default function QaPage() {
@@ -79,7 +84,9 @@ function PolicyTab() {
   if (current.error && !current.data) return <ErrorBlock error={current.error} onRetry={current.reload} />;
   if (!policy || !current.data) return <LoadingBlock lines={6} />;
   const set = (key: string, value: unknown) => setPolicy({ ...policy, [key]: value });
-  const keys = Object.keys(policy).filter((key) => !hidden.has(key));
+  const order = [...Object.keys(switches), ...Object.keys(texts), ...Object.keys(numbers)];
+  const rank = (key: string) => (order.includes(key) ? order.indexOf(key) : order.length);
+  const keys = Object.keys(policy).filter((key) => !hidden.has(key)).sort((a, b) => rank(a) - rank(b));
   const staleSpace = indexSpace.data != null && JSON.stringify(indexSpace.data) !== JSON.stringify(policy.retrievalSpace);
   const save = () => run(async () => {
     const idempotencyKey = newKey();
@@ -106,7 +113,7 @@ function PolicyTab() {
               ? <SelectInput key={key} label={texts[key]} options={semanticModes} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />
               : <TextInput key={key} label={texts[key] ?? key} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />)}
           {keys.filter((key) => typeof policy[key] === 'number').map((key) => (
-            <NumberInput key={key} formatOptions={key === 'semanticThreshold' ? { maximumFractionDigits: 3 } : undefined} label={numbers[key] ?? key} minValue={0} step={key === 'semanticThreshold' ? 0.01 : 1} value={policy[key] as number} onChange={(value) => set(key, value)} />
+            <NumberInput key={key} description={numberHints[key]} formatOptions={key === 'semanticThreshold' ? { maximumFractionDigits: 3 } : undefined} label={numbers[key] ?? key} minValue={0} step={key === 'semanticThreshold' ? 0.01 : 1} value={policy[key] as number} onChange={(value) => set(key, value)} />
           ))}
         </FormGrid>
       </Panel>
