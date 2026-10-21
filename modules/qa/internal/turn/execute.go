@@ -284,7 +284,7 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 	return build()
 }
 
-// materialBudget 是整篇读取时本轮材料的词元上限：策略里的“上下文最大词元”，且不超过回答模型可用窗口的三分之一，给记忆、摘要和历史留位置。
+// materialBudget 是整篇读取时本轮材料的词元上限（网关估算口径）：策略里的“上下文最大词元”，且不超过回答模型可用窗口的三分之一，给记忆、摘要和历史留位置。
 func materialBudget(ctx context.Context, op OperationContext, policy gen.TypesQaPolicy, task string) int {
 	budget := policy.MaximumContextTokens
 	if window, err := qaruntime.ResolveTaskWindow(ctx, op, task); err == nil && window > 0 {

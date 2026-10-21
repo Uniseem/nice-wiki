@@ -9,7 +9,7 @@ import (
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 )
 
-// ReadDocumentsInput 描述整篇读取：文档路由选出的文档按优先顺序，材料合计不超过 MaximumTokens。
+// ReadDocumentsInput 描述整篇读取：文档路由选出的文档按优先顺序，材料（含每段的引用标识）按网关估算口径合计不超过 MaximumTokens。
 type ReadDocumentsInput struct {
 	TurnID        string
 	DocumentIDs   []string
@@ -52,7 +52,11 @@ func ReadDocuments(ctx context.Context, op OperationContext, input ReadDocuments
 	}
 	result := RetrieveEvidenceResult{Citations: []gen.Citation{}, EvidenceText: "[]", IndexVersionHash: response.IndexVersionHash}
 	articles := []article{}
+	used := 0 // 知识索引按分块正文的 tokenCount 预筛；这里再按网关口径算上引用标识和 JSON，片段很碎时也不会撑爆回答窗口
 	for _, document := range response.Documents {
+		if used >= input.MaximumTokens {
+			break
+		}
 		if len(document.Chunks) == 0 {
 			continue
 		}
@@ -73,10 +77,21 @@ func ReadDocuments(ctx context.Context, op OperationContext, input ReadDocuments
 		}
 		item := article{Title: published.Metadata.Title, Truncated: document.Truncated, Sections: make([]section, 0, len(checked))}
 		for i, citation := range checked {
+			cost := platform.EstimateInputTokens(len(document.Chunks[i].Text)+len(citation.CitationId)+32, 0)
+			if used+cost > input.MaximumTokens {
+				item.Truncated = true
+				break
+			}
+			used += cost
 			item.Sections = append(item.Sections, section{citation.CitationId, document.Chunks[i].Text})
+			result.Citations = append(result.Citations, citation)
 		}
-		result.Citations = append(result.Citations, checked...)
-		articles = append(articles, item)
+		if len(item.Sections) > 0 {
+			articles = append(articles, item)
+		}
+		if item.Truncated {
+			break
+		}
 	}
 	encoded, _ := json.Marshal(articles)
 	result.EvidenceText = string(encoded)

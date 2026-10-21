@@ -409,6 +409,7 @@ func ReadPublishedDocument(ctx context.Context, op OperationContext, ref gen.Pub
 // ValidateCitations 检查精确发布引用和规范块hash，不依赖事件是否已经抵达。
 func ValidateCitations(ctx context.Context, op OperationContext, citations []gen.Citation, language string) ([]gen.Citation, error) {
 	documents := make(map[string]PublishedDocument)
+	links := make(map[string]string) // 每篇文档的公开地址只解析一次；块是否存在已按已发布正文核对，锚点就是块 ID
 	result := make([]gen.Citation, 0, len(citations))
 	seen := make(map[string]bool)
 	for _, citation := range citations {
@@ -430,38 +431,51 @@ func ValidateCitations(ctx context.Context, op OperationContext, citations []gen
 		if hash, exists := document.Blocks[citation.Block.BlockId]; !exists || hash != citation.Block.BlockHash {
 			return nil, platform.NewError(platform.CodeStaleResult, false, "引用块已变化")
 		}
-		runtime, err := FromContext(ctx)
-		if err != nil {
-			return nil, err
+		href, exists := links[key]
+		if !exists {
+			var err error
+			if href, err = resolveDocumentLink(ctx, op, citation.Document, language); err != nil {
+				return nil, err
+			}
+			links[key] = href
 		}
-		if runtime.PublicSite == nil {
-			return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "公开链接权威未装配")
-		}
-		raw, err := runtime.PublicSite.ResolvePublishedLink(ServiceReadContext(ctx, op), struct {
-			DocumentID string  `json:"documentId"`
-			Language   string  `json:"language"`
-			BlockID    *string `json:"blockId"`
-		}{citation.Document.DocumentId, language, &citation.Block.BlockId})
-		if err != nil {
-			return nil, err
-		}
-		var resolved struct {
-			Visible          bool                      `json:"visible"`
-			Href             *string                   `json:"href"`
-			Publication      *gen.PublishedRevisionRef `json:"publication"`
-			ResolvedLanguage *string                   `json:"resolvedLanguage"`
-		}
-		if err := DecodeResponse(runtime, "PublicResolvePublishedLinkResult", raw, &resolved); err != nil {
-			return nil, err
-		}
-		if !resolved.Visible || resolved.Href == nil || resolved.Publication == nil || resolved.ResolvedLanguage == nil || *resolved.Publication != citation.Document || *resolved.ResolvedLanguage != language {
-			return nil, platform.NewError(platform.CodeStaleResult, false, "引用的公开语言路径或发布修订已变化")
-		}
-		citation.Href = *resolved.Href
+		citation.Href = href + "#" + url.PathEscape(citation.Block.BlockId)
 		citation.VisibilityRevision = document.VisibilityRevision
 		result = append(result, citation)
 	}
 	return result, nil
+}
+
+// resolveDocumentLink 向公开站解析一篇已发布文档在访客语言下的公开地址（不带块锚点），并核对发布修订和语言没变。
+func resolveDocumentLink(ctx context.Context, op OperationContext, document gen.PublishedRevisionRef, language string) (string, error) {
+	runtime, err := FromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+	if runtime.PublicSite == nil {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, false, "公开链接权威未装配")
+	}
+	raw, err := runtime.PublicSite.ResolvePublishedLink(ServiceReadContext(ctx, op), struct {
+		DocumentID string  `json:"documentId"`
+		Language   string  `json:"language"`
+		BlockID    *string `json:"blockId"`
+	}{document.DocumentId, language, nil})
+	if err != nil {
+		return "", err
+	}
+	var resolved struct {
+		Visible          bool                      `json:"visible"`
+		Href             *string                   `json:"href"`
+		Publication      *gen.PublishedRevisionRef `json:"publication"`
+		ResolvedLanguage *string                   `json:"resolvedLanguage"`
+	}
+	if err := DecodeResponse(runtime, "PublicResolvePublishedLinkResult", raw, &resolved); err != nil {
+		return "", err
+	}
+	if !resolved.Visible || resolved.Href == nil || resolved.Publication == nil || resolved.ResolvedLanguage == nil || *resolved.Publication != document || *resolved.ResolvedLanguage != language {
+		return "", platform.NewError(platform.CodeStaleResult, false, "引用的公开语言路径或发布修订已变化")
+	}
+	return *resolved.Href, nil
 }
 
 func PublicationFingerprint(ctx context.Context, op OperationContext) (string, error) {
