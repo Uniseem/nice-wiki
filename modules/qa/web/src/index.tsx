@@ -54,6 +54,8 @@ export default function QaPage() {
 
 function PolicyTab() {
   const current = useLoad((signal) => api<{ policy: Policy; version: number }>('/v1/admin/policy', { signal }), []);
+  // 知识索引当前的向量空间：换了向量模型后，问答要跟着用新的空间检索（没有知识库权限时读不到，就不提示）。
+  const indexSpace = useLoad((signal) => api<{ config: { space: unknown } }>('/v1/index-config', { signal }).then((result) => result.config.space).catch(() => null), []);
   const [policy, setPolicy] = useState<Policy | null>(null);
   const { busy, run } = useAction();
   useEffect(() => { if (current.data) setPolicy(current.data.policy); }, [current.data]);
@@ -61,14 +63,17 @@ function PolicyTab() {
   if (!policy || !current.data) return <LoadingBlock lines={6} />;
   const set = (key: string, value: unknown) => setPolicy({ ...policy, [key]: value });
   const keys = Object.keys(policy).filter((key) => !hidden.has(key));
+  const staleSpace = indexSpace.data != null && JSON.stringify(indexSpace.data) !== JSON.stringify(policy.retrievalSpace);
   const save = () => run(async () => {
     const idempotencyKey = newKey();
-    await api('/v1/admin/policy', { method: 'PUT', idempotencyKey, body: { policy, expectedVersion: current.data!.version, idempotencyKey } });
+    const next = staleSpace ? { ...policy, retrievalSpace: indexSpace.data } : policy;
+    await api('/v1/admin/policy', { method: 'PUT', idempotencyKey, body: { policy: next, expectedVersion: current.data!.version, idempotencyKey } });
     current.reload();
   }, '策略已保存');
   return (
     <Form className="flex flex-col gap-6" onSubmit={(event) => { event.preventDefault(); void save(); }}>
       {!policy.enabled && <Notice status="default" title="公开问答目前关闭">访客看不到问答入口。确认模型、索引和防滥用都已就绪后再打开。</Notice>}
+      {staleSpace && <Notice status="warning" title="知识索引换了向量模型">问答还在用旧的向量空间检索，访客提问会失败。保存一次策略即可切换到新的空间。</Notice>}
       <Panel title="开关" description={`策略版本 #${current.data.version}`}>
         <div className="grid gap-5 md:grid-cols-3">
           {keys.filter((key) => typeof policy[key] === 'boolean').map((key) => (

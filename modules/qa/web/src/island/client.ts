@@ -2,7 +2,7 @@ import { solveChallenge } from './pow';
 
 // 访客问答的同源接口：会话 ID 与准入令牌只放会话存储；需要人机验证时先做一次工作量证明再重试。
 
-export type Citation = { title?: string; href?: string };
+export type Citation = { citationId?: string; title?: string; href?: string };
 export type TurnInfo = { turnId: string; answerRevision?: number };
 export type StreamEvent =
   | { kind: 'delta'; text: string }

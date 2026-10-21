@@ -116,7 +116,7 @@ export function QaChat({ locale, t, autoFocus, className }: { locale: string; t:
                 <div className={cn('rounded-2xl rounded-es-md px-3.5 py-2.5 text-sm', message.status === 'error' ? 'bg-danger-soft text-danger-soft-foreground' : 'bg-surface-secondary text-foreground')}>
                   {message.status === 'streaming' && !message.text ? (
                     <span className="flex items-center gap-2 text-muted"><Spinner color="current" size="sm" />{t('思考中…')}</span>
-                  ) : message.status === 'error' ? message.text : <Markdown text={message.text} />}
+                  ) : message.status === 'error' ? message.text : <Markdown citations={message.citations} text={message.text} />}
                 </div>
                 {message.citations.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 ps-1">

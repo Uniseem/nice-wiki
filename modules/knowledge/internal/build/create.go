@@ -108,8 +108,9 @@ func QueueBuild(ctx context.Context, tx *sql.Tx, op OperationContext, config gen
 	documentRaw, _ := platform.CanonicalJSON(document)
 	spaceRaw, _ := platform.CanonicalJSON(config.Space)
 	if !force {
+		// 只复用排队、进行中或已生效的构建；失败、取消、被替换的没有可复用的成果，重新排队。
 		var id string
-		err := tx.QueryRowContext(ctx, `SELECT build_id FROM builds WHERE site_id=? AND data_epoch=? AND document_id=? AND space_id=? AND document_json=? ORDER BY generation DESC LIMIT 1`, op.Actor.SiteID, op.DataEpoch, document.DocumentId, config.Space.SpaceId, documentRaw).Scan(&id)
+		err := tx.QueryRowContext(ctx, `SELECT build_id FROM builds WHERE site_id=? AND data_epoch=? AND document_id=? AND space_id=? AND document_json=? AND state NOT IN ('failed','cancelled','superseded') ORDER BY generation DESC LIMIT 1`, op.Actor.SiteID, op.DataEpoch, document.DocumentId, config.Space.SpaceId, documentRaw).Scan(&id)
 		if err == nil {
 			record, err := indexer.ReadBuildRecord(ctx, tx, op, id)
 			if err != nil {

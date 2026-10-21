@@ -43,6 +43,7 @@ const tasks: [string, string, string][] = [
   ['memory.overview', 'fast', '项目概述维护'], ['memory.assistant', 'accurate', '记忆助手'],
   ['content.slug', 'fast', '首次发布路径名'], ['content.seo', 'fast', '首次发布 SEO 描述'],
 ];
+const tierCapability: Record<string, string> = { fast: 'chat', accurate: 'chat', vision: 'vision', embedding: 'embedding', rerank: 'rerank' };
 const usd = (micros: number) => micros ? `$${(micros / 1e6).toFixed(micros % 10000 ? 4 : 2)}` : '不限';
 const toMicros = (value: number) => Math.round(value * 1_000_000);
 const idPattern = '[A-Za-z0-9._:-]+';
@@ -368,7 +369,8 @@ function ProfileDialog({ models, profile, onClose, onSaved }: { models: Model[];
     }, '档位已保存');
     if (done) onSaved();
   };
-  const remaining = models.filter((model) => !form.modelIds.includes(model.modelId));
+  // 只列出具备该级别所需能力的模型（快速/准确要对话，视觉要视觉……）。
+  const remaining = models.filter((model) => !form.modelIds.includes(model.modelId) && model.capabilities.includes(tierCapability[form.tier] ?? 'chat'));
   return (
     <Dialog busy={busy} submitLabel="保存" title={profile ? `编辑档位 ${profile.profileId}` : '新建档位'} onClose={onClose} onSubmit={() => void submit()}>
       <FormGrid columns={3}>

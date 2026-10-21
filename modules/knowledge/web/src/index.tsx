@@ -7,12 +7,13 @@ type ProfileOption = { profileId: string; label: string; tier: string; usable: b
 type DocOption = { documentId: string; title: string; reference: unknown };
 type Options = { modelsState: string; modelErrorCode?: string; profiles: ProfileOption[]; documents: DocOption[]; baseLanguage: string };
 type Config = { configId: string; version: number; enabled: boolean; embeddingProfileId: string; space: unknown; chunkTokens: number; overlapTokens: number; language: string };
-type Build = { buildId: string; document: { documentId: string }; state: string; failureCode?: string | null; completedChunks: number; totalChunks: number; createdAt?: string };
+type Build = { buildId: string; document: { documentId: string; publishedRevisionId?: string }; space?: unknown; state: string; failureCode?: string | null; completedChunks: number; totalChunks: number; createdAt?: string };
 
 const terminal = new Set(['active', 'cancelled', 'failed', 'superseded']);
 const stateText: Record<string, { label: string; tone: 'success' | 'accent' | 'danger' | 'default' | 'warning' }> = {
-  active: { label: '生效中', tone: 'success' }, queued: { label: '排队中', tone: 'default' }, running: { label: '进行中', tone: 'accent' },
-  building: { label: '进行中', tone: 'accent' }, failed: { label: '失败', tone: 'danger' }, cancelled: { label: '已取消', tone: 'default' }, superseded: { label: '已被替换', tone: 'default' },
+  active: { label: '生效中', tone: 'success' }, queued: { label: '排队中', tone: 'default' }, fetching: { label: '读取正文', tone: 'accent' },
+  extracting: { label: '提取内容', tone: 'accent' }, chunking: { label: '切块中', tone: 'accent' }, embedding: { label: '生成向量', tone: 'accent' },
+  validating: { label: '校验中', tone: 'accent' }, failed: { label: '失败', tone: 'danger' }, cancelled: { label: '已取消', tone: 'default' }, superseded: { label: '已被替换', tone: 'default' },
 };
 
 export default function KnowledgePage() {
@@ -34,11 +35,20 @@ export default function KnowledgePage() {
     return () => clearInterval(timer);
   }, [running, builds.reload]);
 
+  // 每篇文档只看“当前发布版本 + 当前向量空间”的构建：旧版本或换模型前的索引不算数。
+  // 同一版本有多条时，生效的优先，其次进行中的，最后才是失败/取消的。
   const latest = useMemo(() => {
+    const current = new Map((options.data?.documents ?? []).map((doc) => [doc.documentId, (doc.reference as { publishedRevisionId?: string } | null)?.publishedRevisionId]));
+    const space = JSON.stringify(config.data?.space ?? null);
+    const rank = (state: string) => state === 'active' ? 3 : terminal.has(state) ? 1 : 2;
     const map = new Map<string, Build>();
-    for (const build of builds.data ?? []) if (!map.has(build.document.documentId)) map.set(build.document.documentId, build);
+    for (const build of builds.data ?? []) {
+      if (build.document.publishedRevisionId !== current.get(build.document.documentId) || JSON.stringify(build.space ?? null) !== space) continue;
+      const seen = map.get(build.document.documentId);
+      if (!seen || rank(build.state) > rank(seen.state)) map.set(build.document.documentId, build);
+    }
     return map;
-  }, [builds.data]);
+  }, [builds.data, options.data, config.data]);
 
   const saveConfig = () => run(async () => {
     const profile = options.data?.profiles.find((item) => item.profileId === form.profileId);
@@ -80,7 +90,8 @@ export default function KnowledgePage() {
   if (options.error && !options.data) return <ErrorBlock error={options.error} onRetry={options.reload} />;
   const o = options.data;
   const embeddingProfiles = o?.profiles.filter((profile) => profile.tier === 'embedding') ?? [];
-  const titleOf = (id: string) => o?.documents.find((doc) => doc.documentId === id)?.title ?? id;
+  // 任务里的文档可能已撤回或删除，不在已发布列表里。
+  const titleOf = (id: string) => o?.documents.find((doc) => doc.documentId === id)?.title ?? '已撤回或删除的文档';
   const enabled = !!config.data?.enabled;
 
   return (
@@ -120,7 +131,7 @@ export default function KnowledgePage() {
                     <Table.Content aria-label="已发布文档" className="min-w-[480px]">
                       <Table.Header>
                         <Table.Column isRowHeader>文档</Table.Column>
-                        <Table.Column>最近索引</Table.Column>
+                        <Table.Column>当前版本的索引</Table.Column>
                         <Table.Column className="text-end">操作</Table.Column>
                       </Table.Header>
                       <Table.Body>
