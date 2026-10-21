@@ -16,11 +16,12 @@ type Message = {
   feedback?: 'helpful' | 'unhelpful';
 };
 
-const logKey = 'nw-qa-log';
+// 对话记录和会话一样按语言分开保存。
+const logKey = (locale: string) => `nw-qa-log:${locale}`;
 
-function loadLog(): Message[] {
+function loadLog(locale: string): Message[] {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(logKey) ?? '[]') as Message[];
+    const saved = JSON.parse(sessionStorage.getItem(logKey(locale)) ?? '[]') as Message[];
     return saved.map((message) => message.status === 'streaming' ? { ...message, status: 'cancelled' } : message);
   } catch { return []; }
 }
@@ -35,18 +36,18 @@ function failure(t: Translate, problem: unknown): string {
   return (problem as Error)?.message || t('请求失败（');
 }
 
-// 同一浏览器标签里，文档页右下角的面板和独立问答页共用一个会话和对话记录。
+// 同一浏览器标签里，同一语言的文档页右下角面板和独立问答页共用一个会话和对话记录。
 export function QaChat({ locale, t, autoFocus, className }: { locale: string; t: Translate; autoFocus?: boolean; className?: string }) {
-  const [messages, setMessages] = useState<Message[]>(loadLog);
+  const [messages, setMessages] = useState<Message[]>(() => loadLog(locale));
   const [question, setQuestion] = useState('');
   const [running, setRunning] = useState<{ turnId?: string; controller: AbortController } | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    try { sessionStorage.setItem(logKey, JSON.stringify(messages.slice(-30))); } catch { /* 隐私模式 */ }
+    try { sessionStorage.setItem(logKey(locale), JSON.stringify(messages.slice(-30))); } catch { /* 隐私模式 */ }
     bottom.current?.scrollIntoView({ block: 'end' });
-  }, [messages]);
+  }, [messages, locale]);
 
   useEffect(() => { if (autoFocus) input.current?.focus(); }, [autoFocus]);
 
@@ -88,7 +89,7 @@ export function QaChat({ locale, t, autoFocus, className }: { locale: string; t:
 
   function restart() {
     running?.controller.abort();
-    resetConversation();
+    resetConversation(locale);
     setMessages([]);
     input.current?.focus();
   }

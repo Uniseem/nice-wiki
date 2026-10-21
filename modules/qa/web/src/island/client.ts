@@ -16,7 +16,9 @@ export class QaError extends Error {
 }
 
 const store = window.sessionStorage;
-const keys = { guard: 'nw-guard', conversation: 'nw-qa-conv' };
+const keys = { guard: 'nw-guard' };
+// 会话按语言分开保存：切换站点语言后用新语言的会话，回答语言和检索都跟着变。
+const conversationKey = (language: string) => `nw-qa-conv:${language}`;
 
 function key(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -61,28 +63,28 @@ async function call<T>(method: string, path: string, body?: Record<string, unkno
 
 async function conversation(language: string): Promise<string> {
   try {
-    const existing = store.getItem(keys.conversation);
+    const existing = store.getItem(conversationKey(language));
     if (existing) return existing;
   } catch { /* 隐私模式 */ }
   const created = await call<{ conversation: { conversationId: string } }>('POST', '/v1/conversations', { language, idempotencyKey: key() });
-  try { store.setItem(keys.conversation, created.conversation.conversationId); } catch { /* 隐私模式 */ }
+  try { store.setItem(conversationKey(language), created.conversation.conversationId); } catch { /* 隐私模式 */ }
   return created.conversation.conversationId;
 }
 
-export function resetConversation(): void {
-  try { store.removeItem(keys.conversation); } catch { /* 隐私模式 */ }
+export function resetConversation(language: string): void {
+  try { store.removeItem(conversationKey(language)); } catch { /* 隐私模式 */ }
 }
 
 export type StartedTurn = { turn: TurnInfo; streamPath: string };
 
-// 提问：会话过期（NOT_FOUND）时换一个新会话再试一次。
+// 提问：会话已过期（GONE）或已不存在（NOT_FOUND）时换一个新会话再试一次。
 export async function startTurn(question: string, language: string): Promise<StartedTurn> {
   for (let attempt = 0; ; attempt++) {
     const id = await conversation(language);
     try {
       return await call<StartedTurn>('POST', '/v1/turns', { conversationId: id, question, idempotencyKey: key() });
     } catch (problem) {
-      if (attempt === 0 && problem instanceof QaError && problem.code === 'NOT_FOUND') { resetConversation(); continue; }
+      if (attempt === 0 && problem instanceof QaError && (problem.code === 'GONE' || problem.code === 'NOT_FOUND')) { resetConversation(language); continue; }
       throw problem;
     }
   }
