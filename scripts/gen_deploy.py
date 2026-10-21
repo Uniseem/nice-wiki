@@ -227,9 +227,11 @@ archive="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 # 带 .enc 后缀的是设了下载口令的加密备份：先用 openssl 解密到临时文件（会提示输入口令）。
 case "$archive" in
 	*.enc)
-		plain="$(mktemp).tar.gz"
+		plain="$(mktemp "$PWD/.restore-plain.XXXXXX")"   # 放在 deploy 目录下，容器才能挂载到；脚本结束会删除
 		trap 'rm -f "$plain"' EXIT
-		openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -in "$archive" -out "$plain" || {{ echo "解密失败（口令不对或文件损坏），未做任何改动"; exit 1; }}
+		# 口令默认交互输入；脚本化时可设环境变量 NW_BACKUP_PASSPHRASE。
+		if [ -n "${{NW_BACKUP_PASSPHRASE:-}}" ]; then pass_arg="-pass env:NW_BACKUP_PASSPHRASE"; else pass_arg=""; fi
+		openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 $pass_arg -in "$archive" -out "$plain" || {{ echo "解密失败（口令不对或文件损坏），未做任何改动"; exit 1; }}
 		archive="$plain"
 		;;
 esac
