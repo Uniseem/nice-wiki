@@ -8439,8 +8439,8 @@
   ],
   "buildRules": {
     "go": "每域go.mod独立固定工具链；module nice-wiki/modules/<slug>；只HTTP跨服务，Docker按该go.mod构建",
-    "ui": "沿用各域已存在web/ui根；identity/site-config无独立UI合同时保留portal后台，不虚构页面；media使用最终登记实际UI根。",
-    "ts": "old D18固定TypeScript6.0.x、Vue3、pnpm/Vite；pnpm-lock精确锁版本",
+    "ui": "后台是portal/web单页应用，各域页面源码在modules/<域>/web/src（默认导出页面组件，由portal按路由懒加载）；公开页由public-site的Go模板输出，交互岛在public-site/web；下列各域UI根文件为早期蓝图，以docs/frontend.md为准",
+    "ts": "TypeScript6.0.x、React 19 + HeroUI v3 + Tailwind CSS v4、pnpm/Vite；仓库根唯一package.json与pnpm-lock精确锁版本，前端只在GitLab CI构建",
     "probe": "/healthz只进程；/readyz检查journal/epoch/关键依赖，维护control-ready不代表公开门禁解除",
     "toolchain": "选型和外部库按本域产品/技术合同，go.mod/package.json是唯一版本声明，go.sum/pnpm-lock锁结果；本阶段不联网安装或编译实现"
   },
