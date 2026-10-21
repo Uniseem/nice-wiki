@@ -44,6 +44,8 @@ python3 scripts/dev.py up
 - media 的 readVideoMetadata（平台视频链接）、localization 的语言建议/缓存回答翻译/approve-plan 执行器（后台“语言”页的“进行中的翻译”列表可取消，取消后不再调用模型，已发出那一批的费用无法撤销）、qa 的语义缓存、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
 - 站点初始化之前，依赖站点身份的服务（model-gateway、knowledge、analytics 等）会原地每 3 秒重试，初始化一完成就就绪，不再退出重启。
 
+- 有意没做的：qa 的检索核查（inspectEvidence）每个访客问题要多调最多 3 轮付费模型，而检索现在已经只返回最多 8 个重排后的片段，先用真实模型跑一遍、确认回答里确实混进无关片段再决定做不做；在线恢复/镜像要先设计各服务的屏障和快照，眼下用 `deploy/restore-archive.sh` 恢复。本地能验证的已验证过：后台 14 个页面加载无报错、未登录与低权限子账号对全部接口无越权、CSRF/Origin 校验、单服务宕机后公开页降级与自动恢复、手机宽度和深色模式。
+
 ## 未合并的旧工作
 
 本地有约 68 个 `codex/*` 分支，带着 main 里没有的提交，另有约 90 个 worktree（大多在 /private/tmp 下）。做到相关模块时按需挑选，不要整体回放。
