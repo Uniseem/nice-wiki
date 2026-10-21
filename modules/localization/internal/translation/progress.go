@@ -17,8 +17,15 @@ type LanguageProgress struct {
 	QueuedUnits    int    `json:"queuedUnits"`
 	ReviewUnits    int    `json:"reviewUnits"`
 }
+type ActiveTranslation struct {
+	TranslationID string `json:"translationId"`
+	DocumentID    string `json:"documentId"`
+	Language      string `json:"language"`
+	State         string `json:"state"`
+}
 type ListTranslationProgressResult struct {
-	Languages []LanguageProgress `json:"languages"`
+	Languages []LanguageProgress  `json:"languages"`
+	Active    []ActiveTranslation `json:"active"`
 }
 
 func ListTranslationProgress(ctx context.Context, op OperationContext, input ListTranslationProgressInput) (ListTranslationProgressResult, error) {
@@ -33,7 +40,7 @@ func ListTranslationProgress(ctx context.Context, op OperationContext, input Lis
 		}
 		filter = parsed.Tag
 	}
-	result := ListTranslationProgressResult{Languages: []LanguageProgress{}}
+	result := ListTranslationProgressResult{Languages: []LanguageProgress{}, Active: []ActiveTranslation{}}
 	err := language.ReadData(ctx, op, func(tx *sql.Tx) error {
 		rows, err := tx.QueryContext(ctx, `SELECT language_tag FROM languages WHERE data_epoch=? ORDER BY language_tag`, op.DataEpoch)
 		if err != nil {
@@ -88,7 +95,21 @@ func ListTranslationProgress(ctx context.Context, op OperationContext, input Lis
 			}
 		}
 		sort.Slice(result.Languages, func(i, j int) bool { return result.Languages[i].Language < result.Languages[j].Language })
-		return nil
+		active, err := tx.QueryContext(ctx, `SELECT translation_id,json_extract(publication_ref,'$.documentId'),target_language,state FROM translation_manifests WHERE state IN('queued','running') AND data_epoch=? ORDER BY updated_at DESC,translation_id DESC LIMIT 50`, op.DataEpoch)
+		if err != nil {
+			return language.StorageError(err)
+		}
+		defer active.Close()
+		for active.Next() {
+			var item ActiveTranslation
+			if err = active.Scan(&item.TranslationID, &item.DocumentID, &item.Language, &item.State); err != nil {
+				return language.StorageError(err)
+			}
+			if filter == "" || item.Language == filter {
+				result.Active = append(result.Active, item)
+			}
+		}
+		return language.StorageError(active.Err())
 	})
 	return result, err
 }

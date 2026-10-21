@@ -2021,6 +2021,20 @@ export interface components {
                 /** @description 待复核人工译文 */
                 reviewUnits: number;
             }[];
+            /** @description 排队或进行中的译文（最多 50 条，最近的在前），可用于取消 */
+            active?: {
+                /** @description 译文 */
+                translationId: components["schemas"]["Identifier"];
+                /** @description 文档 */
+                documentId: components["schemas"]["Identifier"];
+                /** @description 目标语言 */
+                language: string;
+                /**
+                 * @description 状态
+                 * @enum {string}
+                 */
+                state: "queued" | "running";
+            }[];
         };
         /** @description 分页结果状态；没有下一页时nextCursor省略 */
         PageInfo: {

@@ -11,6 +11,7 @@ const busy = ref(false);
 const tag = ref('');
 const nodes = ref<any[]>([]);
 const progress = ref<any[]>([]);
+const active = ref<any[]>([]);
 const target = ref('');
 const rtlPrefixes = ['ar', 'he', 'fa', 'ur'];
 
@@ -20,7 +21,7 @@ async function load() {
   if (!targets.some((l) => l.tag === target.value)) target.value = targets[0]?.tag ?? '';
   const base = languages.value.find((l) => l.isDefault)?.tag;
   try { nodes.value = base ? await (await fetch(`/${base}/navigation`)).json() : []; } catch { nodes.value = []; }
-  try { progress.value = (await api<{ languages: any[] }>('/v1/translations/progress')).languages; } catch { progress.value = []; }
+  try { const p = await api<{ languages: any[]; active?: any[] }>('/v1/translations/progress'); progress.value = p.languages; active.value = p.active ?? []; } catch { progress.value = []; active.value = []; }
 }
 async function run(action: () => Promise<void>, done = '') {
   busy.value = true; error.value = ''; notice.value = '';
@@ -57,6 +58,15 @@ const translateUI = (language: Language) => {
     await api(`/v1/interface-strings/${encodeURIComponent(language.tag)}:translate`, { method: 'POST', idempotencyKey, body: { language: language.tag } });
   }, '已开始翻译界面文字，约一分钟后访客页面会使用译文（没翻译的部分仍显示英文）。');
 };
+
+const cancelTranslation = (item: any) => {
+  if (!confirm('取消后不再继续调用模型翻译这一篇；已经发出的那一批调用的费用无法撤销。确认取消？')) return;
+  return run(async () => {
+    const idempotencyKey = key();
+    await api(`/v1/translations/${item.translationId}/cancel`, { method: 'POST', idempotencyKey, body: { translationId: item.translationId, reason: '管理员在后台取消', idempotencyKey } });
+  }, '已取消该翻译。');
+};
+const titleOf = (documentId: string) => nodes.value.find((n: any) => n.documentId === documentId)?.title ?? documentId;
 
 const setAuto = (language: Language, on: boolean) => {
   if (on && !confirm('开启后，每篇文档发布新版本时都会自动调用模型翻译到该语言，可能产生费用。确认开启？')) return;
@@ -99,6 +109,10 @@ onMounted(() => run(async () => {}));
         <label>目标语言</label>
         <select v-model="target" style="width:auto"><option v-for="l in languages.filter((x) => x.enabled && !x.isDefault)" :key="l.tag" :value="l.tag">{{ l.tag }}</option></select>
         <span v-for="p in progress.filter((x) => x.language === target)" :key="p.language" class="hint">已完成 {{ p.completedUnits }} 块，进行中 {{ p.queuedUnits }}，待复核 {{ p.reviewUnits }}</span>
+      </div>
+      <div v-if="active.length" style="margin:.6rem 0">
+        <strong>进行中的翻译</strong>
+        <ul><li v-for="a in active" :key="a.translationId">{{ titleOf(a.documentId) }} → {{ a.language }}（{{ a.state === 'running' ? '进行中' : '排队中' }}） <button :disabled="busy" @click="cancelTranslation(a)">取消</button></li></ul>
       </div>
       <table>
         <thead><tr><th>已发布文档</th><th></th></tr></thead>

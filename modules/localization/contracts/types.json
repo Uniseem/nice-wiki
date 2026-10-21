@@ -4221,6 +4221,45 @@
               "reviewUnits"
             ]
           }
+        },
+        "active": {
+          "type": "array",
+          "maxItems": 50,
+          "description": "排队或进行中的译文（最多 50 条，最近的在前），可用于取消",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "进行中的译文",
+            "properties": {
+              "translationId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "译文"
+              },
+              "documentId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "文档"
+              },
+              "language": {
+                "type": "string",
+                "maxLength": 35,
+                "description": "目标语言"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "queued",
+                  "running"
+                ],
+                "description": "状态"
+              }
+            },
+            "required": [
+              "translationId",
+              "documentId",
+              "language",
+              "state"
+            ]
+          }
         }
       },
       "required": [
