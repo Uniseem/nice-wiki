@@ -71,6 +71,17 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			w.Header().Set("Cache-Control", "no-cache")
 			_, _ = w.Write([]byte(result.HTML))
 		}),
+		"handleAskShell": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			page, err := publicsite.HandleAskShell(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandleAskShellInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
+			if err != nil {
+				writePageProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Content-Type", htmlType)
+			w.Header().Set("Cache-Control", "no-cache")
+			_, _ = w.Write([]byte(page))
+		}),
 		"handlePage": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			// 分片 sitemap 的路径 /sitemap/<语言>/<序号>.xml 带段内后缀，OpenAPI 路径模板挂不上，在这里按页面通配路由认出来。
