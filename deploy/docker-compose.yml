@@ -290,6 +290,8 @@ services:
       SITE_DOMAIN: ${SITE_DOMAIN}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/conf.d:/etc/caddy/conf.d:ro
+      - ./secrets/tls:/run/tls:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on: [portal]

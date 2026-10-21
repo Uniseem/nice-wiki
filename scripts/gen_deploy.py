@@ -107,7 +107,7 @@ def compose():
         lines.append("")
     lines += ["  caddy:", "    image: caddy:2-alpine", "    restart: unless-stopped", "    networks: [internal]",
               "    ports: [\"${NW_BIND:-0.0.0.0}:80:80\", \"${NW_BIND:-0.0.0.0}:443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
-              "    volumes:", "      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "      - caddy-data:/data", "      - caddy-config:/config",
+              "    volumes:", "      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "      - ./caddy/conf.d:/etc/caddy/conf.d:ro", "      - ./secrets/tls:/run/tls:ro", "      - caddy-data:/data", "      - caddy-config:/config",
               "    depends_on: [portal]", "", "volumes:"]
     lines += [f"  {slug}-data:" for slug in SERVICES] + ["  backups:", "  caddy-data:", "  caddy-config:", ""]
     return "\n".join(lines)
@@ -119,7 +119,13 @@ def main():
         write(f"deploy/config/{slug}.json", json.dumps(service_config(slug, port), indent=2, ensure_ascii=False) + "\n")
     write("deploy/docker-compose.yml", compose())
     write("deploy/caddy/Caddyfile", """# 只有 portal 对外：访客页面、后台和接口都经它代理到各服务。
+# 部署相关的定制（例如放在 Cloudflare 后面：源站证书、只放行 Cloudflare 回源、取真实访客 IP）
+# 写成 conf.d 下的 global-*.caddy / site-*.caddy，本地文件不进 git，见 deploy/README.md。
+{
+	import /etc/caddy/conf.d/global-*.caddy
+}
 {$SITE_DOMAIN} {
+	import /etc/caddy/conf.d/site-*.caddy
 	encode zstd gzip
 	header {
 		Strict-Transport-Security "max-age=31536000"
