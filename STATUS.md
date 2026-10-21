@@ -34,7 +34,7 @@ python3 scripts/dev.py up
 ## 已知缺口
 
 - portal 本地路由（bootstrap、events、preferences、屏障）未实现，只有 healthz/readyz；data-protection 的恢复/镜像业务未实现（readyz 已是 200，备份接口可用）。
-- 分片 sitemap 未挂。
+- 分片 sitemap 未挂。编辑器还没有“画板”块（服务端 schema 和公开页渲染已有，缺编辑界面）。
 - 各服务用 `lifecycle.SimpleAdmission` 代替快照屏障准入，M4 再换。
 - media 的 readVideoMetadata（平台视频链接）、localization 的界面文案翻译/语言建议/缓存回答翻译/approve-plan 执行器、qa 的调试台/缓存/前置分类、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
 - 站点初始化之前，依赖站点身份的服务（model-gateway、knowledge、analytics 等）会原地每 3 秒重试，初始化一完成就就绪，不再退出重启。
