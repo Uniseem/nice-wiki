@@ -59,11 +59,12 @@
   .nw-tree-caret {
     @apply flex size-5 shrink-0 items-center justify-center text-muted transition-transform;
   }
+  /* 从右到左的语言里收起时朝左，展开时朝下。 */
   .nw-tree-caret svg {
-    @apply size-3.5;
+    @apply size-3.5 rtl:-scale-x-100;
   }
   details[open] > summary .nw-tree-caret {
-    @apply rotate-90;
+    @apply rotate-90 rtl:-rotate-90;
   }
 
   /* 本页目录：当前小节高亮（由脚本按滚动位置切换 data-active）。 */

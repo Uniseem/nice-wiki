@@ -133,10 +133,7 @@ func newShell(in ComposeHTMLInput, kind string) shell {
 	if hexColor.MatchString(in.ThemeColor) {
 		s.Accent = template.CSS(in.ThemeColor)
 	}
-	switch strings.SplitN(in.Locale, "-", 2)[0] {
-	case "ar", "he", "fa", "ur":
-		s.Dir = "rtl"
-	}
+	s.Dir = textDirection(in.Locale)
 	for _, link := range in.Languages {
 		label := languageNames[link.Tag]
 		if label == "" {
@@ -264,8 +261,17 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 }
 
 type statusPage struct {
-	Locale, Title, Hint, Home, Back string
-	Code                            int
+	Locale, Dir, Title, Hint, Home, Back string
+	Code                                 int
+}
+
+// textDirection 是语言的书写方向：阿拉伯文等从右到左的语言返回 rtl，其余留空（默认从左到右）。
+func textDirection(locale string) string {
+	switch strings.SplitN(locale, "-", 2)[0] {
+	case "ar", "he", "fa", "ur":
+		return "rtl"
+	}
+	return ""
 }
 
 // RenderStatusPage 404/410/暂时不可用等说明页，沿用公开站样式。
@@ -273,7 +279,7 @@ func RenderStatusPage(locale string, code int, title, hint string) string {
 	if locale == "" {
 		locale = "zh-Hans"
 	}
-	page := statusPage{Locale: locale, Code: code, Title: uiText(locale, nil, title), Hint: uiText(locale, nil, hint), Home: "/", Back: uiText(locale, nil, "回到首页")}
+	page := statusPage{Locale: locale, Dir: textDirection(locale), Code: code, Title: uiText(locale, nil, title), Hint: uiText(locale, nil, hint), Home: "/", Back: uiText(locale, nil, "回到首页")}
 	html, err := render("status", page)
 	if err != nil {
 		return "<!doctype html><title>" + template.HTMLEscapeString(page.Title) + "</title><h1>" + template.HTMLEscapeString(page.Title) + "</h1>"

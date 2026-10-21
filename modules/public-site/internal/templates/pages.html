@@ -73,8 +73,8 @@
         <button class="button button--ghost button--sm" type="button" data-copy-markdown>{{template "icon-copy"}}<span>{{.T "复制为 Markdown"}}</span></button>
       </div>{{end}}
       {{if or .Previous .Next}}<nav class="mt-8 grid gap-4 sm:grid-cols-2" aria-label="{{.T "相邻文档"}}">
-        {{with .Previous}}<a class="card card--default group/nb gap-1 p-4 transition-colors hover:bg-surface-secondary" href="{{.URL}}"><span class="text-xs text-muted">← {{$.T "上一篇"}}</span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{else}}<span class="hidden sm:block"></span>{{end}}
-        {{with .Next}}<a class="card card--default group/nb items-end gap-1 p-4 text-end transition-colors hover:bg-surface-secondary" href="{{.URL}}"><span class="text-xs text-muted">{{$.T "下一篇"}} →</span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{end}}
+        {{with .Previous}}<a class="card card--default group/nb gap-1 p-4 transition-colors hover:bg-surface-secondary" href="{{.URL}}"><span class="text-xs text-muted"><span class="inline-block rtl:-scale-x-100" aria-hidden="true">←</span> {{$.T "上一篇"}}</span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{else}}<span class="hidden sm:block"></span>{{end}}
+        {{with .Next}}<a class="card card--default group/nb items-end gap-1 p-4 text-end transition-colors hover:bg-surface-secondary" href="{{.URL}}"><span class="text-xs text-muted">{{$.T "下一篇"}} <span class="inline-block rtl:-scale-x-100" aria-hidden="true">→</span></span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{end}}
       </nav>{{end}}
     </article>
   </main>
@@ -116,7 +116,7 @@
     <h2 class="text-2xl font-semibold tracking-tight text-foreground">{{.T "文档"}}</h2>
     <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{{range .Sections}}
       <a class="card card--default group/card gap-2 p-5 transition-shadow hover:shadow-overlay" href="{{.URL}}">
-        <span class="flex items-center justify-between gap-3"><span class="text-base font-semibold text-foreground group-hover/card:text-accent">{{.Title}}</span><span class="text-muted transition-transform group-hover/card:translate-x-0.5" aria-hidden="true">→</span></span>
+        <span class="flex items-center justify-between gap-3"><span class="text-base font-semibold text-foreground group-hover/card:text-accent">{{.Title}}</span><span class="text-muted transition-transform group-hover/card:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover/card:-translate-x-0.5" aria-hidden="true">→</span></span>
         {{if .Children}}<span class="flex flex-col gap-1 text-sm text-muted">{{range .Children}}<span class="truncate">{{.}}</span>{{end}}</span>{{end}}
       </a>{{end}}
     </div>
@@ -125,7 +125,7 @@
 {{template "foot" .}}{{end}}
 
 {{define "status"}}<!doctype html>
-<html lang="{{.Locale}}">
+<html lang="{{.Locale}}" dir="{{.Dir}}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>{{.Title}}</title>
 <script>(function(){try{var t=localStorage.getItem('heroui-theme')||'system';if(t==='system')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.add(t)}catch(e){}})()</script>
 <link rel="stylesheet" href="/_site/site.css"></head>
