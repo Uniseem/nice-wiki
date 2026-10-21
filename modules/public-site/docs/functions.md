@@ -477,7 +477,7 @@ func BuildNavigation(ctx context.Context, op OperationContext, in BuildNavigatio
 - 授权：permission：site.read；rule：public-site.read-public
 - 并发：投影修订 CAS，不覆盖新修订
 - 幂等：以 epoch/locale/sourceRevision 去重
-- 依赖：`content:readPublicTree`、`content:validatePublications`、`site-config:readSiteConfig`、`localization:listLanguages`
+- 依赖：`content:readPublicTree`、`content:validatePublications`、`site-config:readSiteConfig`、`localization:listLanguages`、`localization:readInterfaceCatalog`、`localization:listTranslationTitles`
 
 ## public-site.navigationOrder
 

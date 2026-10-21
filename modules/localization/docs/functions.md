@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 163 个函数：约束 48 个，参考 115 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 164 个函数：约束 49 个，参考 115 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -6176,6 +6176,46 @@ func FetchTranslationSource(ctx context.Context,op OperationContext,input FetchT
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数10000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：`content:readPublishedRevision`、`localization.ReadData`、`localization.StorageError`、`localization.FetchPublishedSnapshot`
+
+## localization.ListTranslationTitles
+
+- 级别：约束
+- 文件：`modules/localization/internal/translation/titles.go`
+- 作用：列出某语言各文档已完成译文的标题，供公开站点在导航与面包屑里显示译文标题
+
+```go
+func ListTranslationTitles(ctx context.Context, op OperationContext, input ListTranslationTitlesInput) (ListTranslationTitlesResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
+| `input` | `ListTranslationTitlesInput` | 输入 | 必须通过对应schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ListTranslationTitlesResult` | 结果 | 无error时有效 |
+| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
+
+**步骤**
+
+1. 仅公开站点服务可读
+2. 按文档取该语言最新就绪译文对象的标题
+
+**错误**
+
+- `FORBIDDEN`：调用方不是公开站点服务（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅 public-site 服务身份
+- 并发：只读快照或CAS
+- 幂等：读取幂等；写入按operationId
+- 依赖：`localization.ReadData`、`localization.StorageError`
 
 ## localization.ListTranslationProgress
 

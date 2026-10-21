@@ -5080,6 +5080,22 @@
         "titles"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "ListTranslationTitlesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "targetLanguage": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 35,
+          "description": "目标语言"
+        }
+      },
+      "required": [
+        "targetLanguage"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     }
   }
 }

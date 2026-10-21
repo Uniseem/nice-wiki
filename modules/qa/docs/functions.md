@@ -5198,7 +5198,7 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 - 授权：permission：service；rule：以本服务身份调用网关，费用类别继承可信op
 - 并发：每次调用独立；同一根操作的子调用共享网关费用作用域
 - 幂等：幂等键固定，重试返回原invocation
-- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`、`qa.FromContext`、`model-gateway:lookupInference`、`model-gateway:readInference`
+- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`、`qa.FromContext`、`model-gateway:lookupInference`、`model-gateway:readInference`、`model-gateway:resolveTaskRoute`
 
 ## qa.ModelText
 
