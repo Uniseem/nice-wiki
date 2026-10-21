@@ -219,7 +219,7 @@ readReferenceDecision仅media纯服务读取引用源最小决定，COMMITTED优
 
 ## 第五轮正文文件核心
 
-硬上限统一16MiB，替换未有writer历史数据的旧64MiB常量；新写另服受信当前站点maxDocumentBytes，历史读只服硬上限，不等价资源上传配额。规范JSON复用platform.CanonicalJSON，marks按类型英文名升序，Unicode/代码/latex及正文数组顺序不改。所有block/item/row/cell/column ID全树唯一且合计≤10000，深度≤32；历史retired ID由提交事务ledger+head CAS拒复用，不由previousBody猜历史，合法历史读取不会拒绝已退役ID。
+硬上限统一16MiB，替换未有writer历史数据的旧64MiB常量；新写另服受信当前站点maxDocumentBytes，历史读只服硬上限，不等价资源上传配额。规范JSON复用platform.CanonicalJSON，marks按类型英文名升序，Unicode/代码/latex及正文数组顺序不改。所有block/item/row/cell/column ID全树唯一且合计≤10000，深度≤32；本文档已退役ID再次出现（撤销、历史回滚）视为恢复同一节点，由提交事务ledger+head CAS重新启用；复制节点由编辑器生成新ID，合法历史读取不会拒绝已退役ID。
 
 WriteRevisionFile参考输入新增expectedHead(nullable)/expectedDraftVersion，来自SaveDraft/Create已核CAS快照；author仅可信op，ObjectRef固定content/revisionId/version1、application/json与完整hash/长度。既有WithDraftCommitStore注入扩展RevisionFileStore，准备持久保存caller/actor/site/epoch/op、完整规范摘要及首次Draft/Journal结果；私有preparing→prepared→committed/aborted/quarantined与原8字段JSONL格式分开，不声明跨FS/DB原子，也不推进head/ledger。
 
@@ -272,7 +272,7 @@ cell分配前先查真实文档存在，NOT_FOUND不进入map或后台扫描；�
 
 只追加0004迁移，不改变DocumentBody schemaVersion=1或原8字段JSONL格式。站点树版本由content_tree_state统一持久，document_metadata保存完整元数据；已有documents行没有元数据/树版本时失败关闭，不猜补历史行。当前已实现的0002/0003没有文档生产者或旧业务数据，创建生产者从真实空库建立一致状态。迁移不修改既有迁移、不造假文档、正文或COMMITTED资格。
 
-Create/Save在draft_operation_intents先固定动作、caller/actor/site/epoch/op、请求摘要、doc/revision ID、CAS、稳定ID及精确引用集合；该表不存正文。创建固定基准语言和fractional order，站点treeRevision与doc不存在谓词在短SQL复核；保存只能更新真实存在文档并使用当前内存租约。document_id_ledger永久保留retired ID，全部节点ID退役与head/version CAS同事务。draft_resource_references区分当前草稿与不可变历史，原引用JSON保留完整资产hash/长度/MIME。
+Create/Save在draft_operation_intents先固定动作、caller/actor/site/epoch/op、请求摘要、doc/revision ID、CAS、稳定ID及精确引用集合；该表不存正文。创建固定基准语言和fractional order，站点treeRevision与doc不存在谓词在短SQL复核；保存只能更新真实存在文档并使用当前内存租约。document_id_ledger记录本文档用过的全部ID，退役与重新启用都与head/version CAS同事务。draft_resource_references区分当前草稿与不可变历史，原引用JSON保留完整资产hash/长度/MIME。
 
 真实DraftCommitStore延迟打开SQL：先查询COMMITTED原回执，命中释放对象；文件hash/fsync与当前平台窗口读取均在doc guard和SQL之前。保存取真实SaveFenceGuard后才开短SQL，同事务重查文档/deleteFence/隔离、准备材料、旧head/version并提交ledger、COMMITTED资格、引用、原草稿回执、完整Create/Save原结果与平台outbox。创建使用专用受信意图和站点树CAS，绝不以缺文档返回恒成功保存fence。SQL中的COMMITTED资格已权威；JSONL仍允许prepared，启动恢复只根据真实资格补committed，不持SQL跨JSONL写入。
 

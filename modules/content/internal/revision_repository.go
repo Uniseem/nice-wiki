@@ -41,7 +41,7 @@ type DraftCommitRequest struct {
 
 // DraftCommitStore 是本域私有存储的装配边界。
 // BeginDraftCommit必须打开同一个私有事务；事务实现负责数据库行CAS、稳定ID台账、
-// COMMITTED journal、引用、receipt和outbox的原子提交；同head CAS拒绝历史retired ID复用。
+// COMMITTED journal、引用、receipt和outbox的原子提交；同head CAS登记稳定ID，本文档退役过的ID再次出现时重新启用。
 type DraftCommitStore interface {
 	RevisionRoot() string
 	RevisionSiteID() Identifier

@@ -464,8 +464,11 @@ func (t *draftCommitTransaction) commitStableIDs(ctx context.Context, op Operati
 	current := make(map[Identifier]bool, len(plan.BlockIDs))
 	for _, id := range plan.BlockIDs {
 		current[id] = true
+		// 本文档退役过的ID再次出现，是撤销或历史回滚恢复了同一节点，重新启用；复制节点由编辑器生成新ID。
 		if previous[id] == "retired" {
-			return platform.NewError(platform.CodeIntegrityError, false, "正文复用了历史退役稳定ID")
+			if _, err = t.tx.ExecContext(ctx, `UPDATE document_id_ledger SET state='active',retired_revision_id=NULL WHERE site_id=? AND document_id=? AND stable_id=? AND state='retired'`, op.Actor.SiteID, plan.DocumentID, id); err != nil {
+				return contentStorageError()
+			}
 		}
 		if _, found := previous[id]; !found {
 			if _, err = t.tx.ExecContext(ctx, `INSERT INTO document_id_ledger(site_id,document_id,stable_id,state,introduced_revision_id) VALUES(?,?,?,'active',?)`, op.Actor.SiteID, plan.DocumentID, id, plan.RevisionID); err != nil {

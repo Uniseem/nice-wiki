@@ -2707,7 +2707,7 @@
           "steps": [
             "正文结构/未知节点属性marks由请求入口或持久文件边界生成schema一次校验；本函数信任该结构，不重复schema验证",
             "全树block/item/cell/row/column ID唯一，合计≤10000、结构深度≤32；列表首项paragraph，语义调用Inline/TableGrid/Columns，不改变ID/内容",
-            "删除ID历史禁止复用由CommitDraftTransaction.Commit的稳定ID ledger与head CAS同事务落实；previousBody不能代替全部历史，历史读取不做current retired判断"
+            "本文档已退役ID再次出现视为恢复同一节点（撤销、历史回滚），由CommitDraftTransaction.Commit的稳定ID ledger与head CAS同事务重新启用；复制节点由编辑器生成新ID"
           ],
           "errors": [
             {
@@ -10352,9 +10352,9 @@
           "signature": "func (t *draftCommitTransaction) commitStableIDs(ctx context.Context,op OperationContext,plan draftOperationPlan) error",
           "inputs": [],
           "outputs": [],
-          "purpose": "同head CAS事务拒绝全部历史retired ID复用并追加退役记录",
+          "purpose": "同head CAS事务登记新ID、追加退役记录，本文档已退役ID再次出现时重新启用",
           "steps": [
-            "同head CAS事务拒绝全部历史retired ID复用并追加退役记录"
+            "同head CAS事务登记新ID、追加退役记录，本文档已退役ID再次出现时重新启用"
           ],
           "errors": [],
           "sideEffects": [],
