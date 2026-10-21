@@ -238,7 +238,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
     const ok = await confirmAction({ title: '强制解除编辑锁？', body: `${holder} 尚未保存的修改可能会丢失。只在对方确实已经离开时使用。`, confirmLabel: '强制解锁', tone: 'danger' });
     if (!ok) return;
     await act(async () => {
-      await api(`/v1/documents/${documentId}/lock:force-release`, { method: 'POST', body: { documentId, expectedLeaseId: lease.leaseId } });
+      await api(`/v1/documents/${documentId}/lock:force-release`, { method: 'POST', body: { expectedLeaseId: lease.leaseId } });
       notify.success('已解除编辑锁');
       onReopen();
     });

@@ -69,7 +69,7 @@ export default function LibraryPage() {
     });
     if (!ok) return;
     await run(async () => {
-      await api(`/v1/cleanup-plans/${plan.planId}:confirm`, { method: 'POST', body: { planId: plan.planId, confirmationHash: plan.confirmationHash, acknowledgeHistoryLoss: risky, expectedRevision: plan.revision } });
+      await api(`/v1/cleanup-plans/${plan.planId}:confirm`, { method: 'POST', body: { confirmationHash: plan.confirmationHash, acknowledgeHistoryLoss: risky, expectedRevision: plan.revision } });
       setPlan(null);
       setSelected(new Set());
       await load(false, null);

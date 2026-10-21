@@ -35,14 +35,14 @@ export default function AccountsPage() {
         : { title: `停用账号“${account.accountName}”？`, body: '停用后该账号所有设备立即退出，之后可以恢复。', confirmLabel: '停用', tone: 'warning' });
       if (!ok) return;
     }
-    await run(() => api(`/v1/accounts/${account.accountId}/status`, { method: 'PUT', body: { accountId: account.accountId, status, expectedRevision: account.revision } }), status === 'active' ? '已恢复' : status === 'disabled' ? '已停用' : '已删除');
+    await run(() => api(`/v1/accounts/${account.accountId}/status`, { method: 'PUT', body: { status, expectedRevision: account.revision } }), status === 'active' ? '已恢复' : status === 'disabled' ? '已停用' : '已删除');
     accounts.reload();
   };
 
   const resetPassword = async (account: Account) => {
     const value = await askText({ title: `重置“${account.accountName}”的口令`, label: '新的初始口令', type: 'password', description: '对方下次登录必须先修改口令。', confirmLabel: '重置', validate: passwordRule });
     if (!value) return;
-    await run(() => api(`/v1/accounts/${account.accountId}/password:reset`, { method: 'POST', body: { accountId: account.accountId, initialPassword: value, expectedRevision: account.revision } }), '口令已重置，对方下次登录需要修改');
+    await run(() => api(`/v1/accounts/${account.accountId}/password:reset`, { method: 'POST', body: { initialPassword: value, expectedRevision: account.revision } }), '口令已重置，对方下次登录需要修改');
     accounts.reload();
   };
 
@@ -123,7 +123,7 @@ function AccountDialog({ account, onClose, onSaved }: { account: Account | null;
   const { busy, run } = useAction();
   const submit = async () => {
     const done = await run(async () => {
-      if (account) await api(`/v1/accounts/${account.accountId}/permissions`, { method: 'PUT', body: { accountId: account.accountId, permissions: chosen, expectedRevision: account.revision } });
+      if (account) await api(`/v1/accounts/${account.accountId}/permissions`, { method: 'PUT', body: { permissions: chosen, expectedRevision: account.revision } });
       else await api('/v1/accounts', { method: 'POST', body: { accountName: name, initialPassword: password, permissions: chosen } });
       return true;
     }, account ? '权限已更新' : '子账号已创建，对方首次登录需要修改口令');
