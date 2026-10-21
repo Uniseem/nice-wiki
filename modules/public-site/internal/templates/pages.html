@@ -45,9 +45,9 @@
 
 {{define "tree"}}<ul class="flex flex-col gap-0.5">{{range .}}
   <li>{{if .Children}}<details class="nw-tree-group group/tree"{{if .Open}} open{{end}}>
-    <summary class="nw-tree-item {{.Indent}}{{if .Current}} nw-current{{end}}"><a href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a><span class="nw-tree-caret" aria-hidden="true">{{template "icon-chevron"}}</span></summary>
+    <summary class="nw-tree-item{{if .Current}} nw-current{{end}}"><a href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a><span class="nw-tree-caret" aria-hidden="true">{{template "icon-chevron"}}</span></summary>
     {{template "tree" .Children}}
-  </details>{{else}}<a class="nw-tree-item {{.Indent}}{{if .Current}} nw-current{{end}}" href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a>{{end}}</li>{{end}}
+  </details>{{else}}<a class="nw-tree-item{{if .Current}} nw-current{{end}}" href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a>{{end}}</li>{{end}}
 </ul>{{end}}
 
 {{define "sidebar"}}{{if .Tree}}
