@@ -36,6 +36,9 @@ func PutLanguage(ctx context.Context, op OperationContext, input PutLanguageInpu
 	if input.Language.IsDefault && !input.Language.Enabled {
 		return PutLanguageResult{}, platform.NewError(platform.CodeValidation, false, "默认语言不能停用")
 	}
+	if err := requireEnglishKept(input.Language.Tag, input.Language.IsDefault, input.Language.Enabled, input.Language.AutomaticTranslation); err != nil {
+		return PutLanguageResult{}, err
+	}
 	if input.Language.Version != input.ExpectedVersion+1 {
 		return PutLanguageResult{}, platform.NewError(platform.CodeVersionMismatch, false, "语言版本必须为预期版本加一")
 	}
@@ -184,6 +187,9 @@ func SetLanguageEnabled(ctx context.Context, op OperationContext, input SetLangu
 	}
 	if !input.Enabled && existing.IsDefault {
 		return SetLanguageEnabledResult{}, platform.NewError(platform.CodeConflict, false, "默认语言不能停用")
+	}
+	if err := requireEnglishKept(existing.Tag, existing.IsDefault, input.Enabled, true); err != nil {
+		return SetLanguageEnabledResult{}, err
 	}
 	if input.Enabled && existing.AutomaticTranslation {
 		return SetLanguageEnabledResult{}, platform.NewError(platform.CodeConflict, false, "直接启停不能启用自动翻译")

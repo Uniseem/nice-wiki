@@ -15,6 +15,8 @@ const rtlPrefixes = ['ar', 'he', 'fa', 'ur'];
 const suggestions = ['en', 'ja', 'ko', 'zh-Hant', 'fr', 'de', 'es', 'ru', 'pt'];
 const names = new Intl.DisplayNames(['zh-Hans'], { type: 'language' });
 const nameOf = (tag: string) => { try { return names.of(tag) ?? tag; } catch { return tag; } };
+// 站点要求：基准语言之外的英文始终启用并在发布时自动翻译（AI 决策模型只读英文），不能关。
+const requiredEnglish = (language: Language) => !language.isDefault && /^en(-|$)/i.test(language.tag);
 
 export default function LanguagesPage() {
   const canLanguages = useHasGrant('localization.languages');
@@ -76,8 +78,9 @@ export default function LanguagesPage() {
                 <p className="text-sm leading-6 text-muted">访客默认看到这个语言。文档正文就是这个语言的内容，不需要翻译。</p>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <SwitchInput description="启用后访客才能切换到这个语言。" isDisabled={busy || !canLanguages} isSelected={language.enabled} label="对访客启用" onChange={(value) => void setEnabled(language, value)} />
-                  <SwitchInput description="文档发布新版本时自动调用模型翻译。" isDisabled={busy || !language.enabled || !canLanguages} isSelected={language.automaticTranslation} label="发布时自动翻译" onChange={(value) => void setAuto(language, value)} />
+                  <SwitchInput description="启用后访客才能切换到这个语言。" isDisabled={busy || !canLanguages || requiredEnglish(language)} isSelected={language.enabled} label="对访客启用" onChange={(value) => void setEnabled(language, value)} />
+                  <SwitchInput description="文档发布新版本时自动调用模型翻译。" isDisabled={busy || !language.enabled || !canLanguages || requiredEnglish(language)} isSelected={language.automaticTranslation} label="发布时自动翻译" onChange={(value) => void setAuto(language, value)} />
+                  {requiredEnglish(language) && <p className="text-xs leading-5 text-muted">英文是站点必需语言：始终启用，发布时自动翻译；AI 判断也只读英文。</p>}
                 </div>
               )}
               {!language.isDefault && language.enabled && canTranslate && (

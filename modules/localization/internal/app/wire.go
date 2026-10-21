@@ -211,7 +211,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 				return nil
 			}
 			op.Actor.SiteID = config.Config.SiteID
-			return translation.AutoTranslate(platform.WithOperationContext(platform.WithPortalProof(tick, ""), op), op)
+			work := platform.WithOperationContext(platform.WithPortalProof(tick, ""), op)
+			// 站点要求：基准语言之外，英文始终启用并自动翻译。
+			if err := language.EnsureEnglish(work, op); err != nil {
+				return err
+			}
+			return translation.AutoTranslate(work, op)
 		}})
 	}}})
 	retain = true
