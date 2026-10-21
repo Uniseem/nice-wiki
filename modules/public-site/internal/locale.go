@@ -2,10 +2,9 @@ package publicsite
 
 import (
 	"context"
-	"sort"
-	"strconv"
 	"strings"
 
+	"golang.org/x/text/language"
 	"nice-wiki/libs/platform"
 )
 
@@ -37,50 +36,18 @@ func SelectLocale(ctx context.Context, op platform.OperationContext, in SelectLo
 	if tag, ok := available[strings.ToLower(in.LanguageCookie)]; ok {
 		return SelectLocaleResult{Selected: tag, RequiresRedirect: true}, nil
 	}
-	type preference struct {
-		tag string
-		q   float64
-	}
-	choices := make([]preference, 0)
-	for _, entry := range strings.Split(in.AcceptLanguage, ",") {
-		parts := strings.Split(strings.TrimSpace(entry), ";")
-		q := 1.0
-		valid := true
-		for _, parameter := range parts[1:] {
-			name, value, found := strings.Cut(strings.TrimSpace(parameter), "=")
-			if name != "q" || !found {
-				valid = false
-				break
-			}
-			var err error
-			q, err = strconv.ParseFloat(value, 64)
-			if err != nil || q < 0 || q > 1 || q != q {
-				valid = false
-				break
-			}
-		}
-		if valid && q > 0 {
-			choices = append(choices, preference{strings.ToLower(parts[0]), q})
+	// Accept-Language 交给标准语言匹配：按权重顺序，zh-CN/zh-Hans-CN/zh→简体、zh-TW/zh-Hant-TW→繁体（站点没有繁体时退到简体）、en-GB→en。
+	tags := make([]language.Tag, 0, len(in.Available))
+	originals := make([]string, 0, len(in.Available))
+	for _, tag := range in.Available {
+		if parsed, err := language.Parse(tag); err == nil {
+			tags = append(tags, parsed)
+			originals = append(originals, tag)
 		}
 	}
-	sort.SliceStable(choices, func(i, j int) bool { return choices[i].q > choices[j].q })
-	for _, choice := range choices {
-		tag := choice.tag
-		switch tag {
-		case "zh-tw", "zh-hk", "zh-mo":
-			tag = "zh-hant"
-		case "zh-cn", "zh-sg":
-			tag = "zh-hans"
-		case "pt-br":
-			tag = "pt"
-		}
-		if selected, ok := available[tag]; ok {
-			return SelectLocaleResult{selected, true}, nil
-		}
-		if index := strings.IndexByte(tag, '-'); index > 0 {
-			if selected, ok := available[tag[:index]]; ok {
-				return SelectLocaleResult{selected, true}, nil
-			}
+	if wanted, _, err := language.ParseAcceptLanguage(in.AcceptLanguage); err == nil && len(wanted) > 0 && len(tags) > 0 {
+		if _, index, confidence := language.NewMatcher(tags).Match(wanted...); confidence != language.No {
+			return SelectLocaleResult{originals[index], true}, nil
 		}
 	}
 	if selected, ok := available[strings.ToLower(in.Fallback)]; ok {

@@ -6,6 +6,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.20.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/oapi-codegen/runtime v1.1.2
+	golang.org/x/text v0.41.0
 	nice-wiki/libs/platform v0.0.0
 )
 
@@ -24,7 +25,6 @@ require (
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
