@@ -1,9 +1,9 @@
 import { Display, Globe, Moon, Sparkles, Sun } from '@gravity-ui/icons';
-import { Button, Dropdown, Label, useTheme } from '@heroui/react';
+import { Button, Dropdown, Label, Modal, useTheme } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import { rememberLanguage } from './enhance';
 
-export type Language = { tag: string; href: string; label: string; current: boolean };
+export type Language = { tag: string; href: string; label: string; current: boolean; prompt?: Record<string, string> };
 export type Config = { kind: string; locale: string; documentId: string; aiEnabled: boolean; askUrl: string; languages: Language[] | null; ui: Record<string, string> };
 export type Translate = (key: string) => string;
 
@@ -52,6 +52,34 @@ export function HeaderActions({ config, t, onAsk, onAskIntent }: { config: Confi
       )}
       <ThemeSwitch t={t} />
     </>
+  );
+}
+
+// 决策模型给出的语言建议：居中弹窗，用建议语言和当前语言各写一遍，选“切换”或“保持”都会记住。
+export function LanguageSuggestion({ config, t, target, onClose }: { config: Config; t: Translate; target: Language; onClose: () => void }) {
+  const tt = (key: string) => target.prompt?.[key] ?? key;
+  const current = (config.languages ?? []).find((language) => language.current);
+  const stay = () => { if (current) rememberLanguage(current.tag); onClose(); };
+  const go = () => { rememberLanguage(target.tag); location.href = target.href; };
+  return (
+    <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) stay(); }}>
+      <Modal.Container size="sm">
+        <Modal.Dialog>
+          <Modal.Header className="flex flex-col items-center gap-2 text-center">
+            <Globe className="size-6 text-accent" />
+            <Modal.Heading lang={target.tag}>{nativeName(target)}</Modal.Heading>
+          </Modal.Header>
+          <Modal.Body className="flex flex-col gap-1 text-center">
+            <p className="text-base font-medium" lang={target.tag}>{tt('要切换到这种语言阅读吗？')}</p>
+            <p className="text-sm text-muted">{t('要切换到这种语言阅读吗？')}</p>
+          </Modal.Body>
+          <Modal.Footer className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Button variant="tertiary" onPress={stay}>{t('保持当前语言')} / <span lang={target.tag}>{tt('保持当前语言')}</span></Button>
+            <Button onPress={go}><span lang={target.tag}>{tt('切换')}</span> / {t('切换')}</Button>
+          </Modal.Footer>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
   );
 }
 

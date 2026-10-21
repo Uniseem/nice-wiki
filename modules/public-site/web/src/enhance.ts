@@ -1,4 +1,4 @@
-import type { Config, Translate } from './islands';
+import type { Config, Language, Translate } from './islands';
 
 // 不需要 React 的小增强：都作用在服务端已经输出的 HTML 上，脚本失败也不影响阅读。
 
@@ -143,43 +143,63 @@ export function rememberLanguage(tag: string) {
   document.cookie = `lang=${encodeURIComponent(tag)}; path=/; max-age=31536000; samesite=lax`;
 }
 
-// 语言建议（规则兜底）：浏览器偏好语言与本页不同、且本站启用了它时，页首给一个可关闭的提示，绝不自动跳转。
-function languageHint(config: Config) {
+type Suggestion = { language: Language; reason: string };
+
+// 问服务端要语言建议：访客选过语言（有 lang cookie）、本会话关过提示或站点只有一种语言时不问；结果在本会话内复用。
+export async function suggestLanguage(config: Config): Promise<Suggestion | null> {
   const languages = config.languages ?? [];
-  if (languages.length < 2) return;
-  try { if (sessionStorage.getItem('nw-lang-hint')) return; } catch { return; }
-  const current = config.locale.toLowerCase();
-  for (const preferred of (navigator.languages ?? [navigator.language]).map((item) => item.toLowerCase())) {
-    const base = preferred.split('-')[0];
-    if (current === preferred || current.split('-')[0] === base) return;
-    const hit = languages.find((language) => language.tag.toLowerCase() === preferred || language.tag.toLowerCase().split('-')[0] === base);
-    if (!hit) continue;
-    let name = hit.label;
-    try { name = new Intl.DisplayNames([hit.tag], { type: 'language' }).of(hit.tag) ?? name; } catch { /* 用服务端名字 */ }
-    const bar = document.createElement('div');
-    bar.setAttribute('role', 'note');
-    bar.className = 'flex items-center justify-center gap-3 border-b border-separator bg-surface-secondary px-4 py-2 text-sm';
-    // 用目标语言自己的写法显示语言名，偏好该语言的访客一眼能认出来。
-    const link = document.createElement('a');
-    link.href = hit.href;
-    link.lang = hit.tag;
-    link.addEventListener('click', () => rememberLanguage(hit.tag));
-    link.className = 'inline-flex items-center gap-1.5 font-medium text-accent hover:underline';
-    link.innerHTML = '<svg aria-hidden="true" class="size-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>';
-    link.append(`${name} →`);
-    const close = document.createElement('button');
-    close.type = 'button';
-    close.className = 'button button--ghost button--sm button--icon-only';
-    close.setAttribute('aria-label', 'Close');
-    close.textContent = '×';
-    close.addEventListener('click', () => { try { sessionStorage.setItem('nw-lang-hint', '1'); } catch { /* 隐私模式 */ } bar.remove(); });
-    bar.append(link, close);
-    document.body.prepend(bar);
-    return;
+  if (languages.length < 2 || /(?:^|;\s*)lang=/.test(document.cookie)) return null;
+  const key = `nw-lang-suggest:${config.locale}`;
+  let result: { suggestedLanguage?: string; reason: string } | null = null;
+  try {
+    if (sessionStorage.getItem('nw-lang-hint')) return null;
+    result = JSON.parse(sessionStorage.getItem(key) ?? 'null');
+  } catch { return null; }
+  if (!result) {
+    try {
+      const response = await fetch('/v1/language-suggestions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          browserLanguages: [...(navigator.languages ?? [navigator.language])].slice(0, 10),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', currentLanguage: config.locale, previouslyRejected: false,
+        }),
+      });
+      if (!response.ok) return null;
+      result = await response.json();
+      try { sessionStorage.setItem(key, JSON.stringify(result)); } catch { /* 隐私模式 */ }
+    } catch { return null; }
   }
+  const wanted = result?.suggestedLanguage?.toLowerCase();
+  const target = languages.find((language) => !language.current && language.tag.toLowerCase() === wanted);
+  return target && result ? { language: target, reason: result.reason } : null;
 }
 
-export function enhance(config: Config, t: Translate) {
+// 规则给出的建议：页首一条可关闭的提示，绝不自动跳转。
+export function languageHint(target: Language) {
+  let name = target.label;
+  try { name = new Intl.DisplayNames([target.tag], { type: 'language' }).of(target.tag) ?? name; } catch { /* 用服务端名字 */ }
+  const bar = document.createElement('div');
+  bar.setAttribute('role', 'note');
+  bar.className = 'flex items-center justify-center gap-3 border-b border-separator bg-surface-secondary px-4 py-2 text-sm';
+  // 用目标语言自己的写法显示语言名，偏好该语言的访客一眼能认出来。
+  const link = document.createElement('a');
+  link.href = target.href;
+  link.lang = target.tag;
+  link.addEventListener('click', () => rememberLanguage(target.tag));
+  link.className = 'inline-flex items-center gap-1.5 font-medium text-accent hover:underline';
+  link.innerHTML = '<svg aria-hidden="true" class="size-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>';
+  link.append(`${name} →`);
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'button button--ghost button--sm button--icon-only';
+  close.setAttribute('aria-label', 'Close');
+  close.textContent = '×';
+  close.addEventListener('click', () => { try { sessionStorage.setItem('nw-lang-hint', '1'); } catch { /* 隐私模式 */ } bar.remove(); });
+  bar.append(link, close);
+  document.body.prepend(bar);
+}
+
+export function enhance(t: Translate) {
   codeCopy(t);
   headingAnchors();
   tocSpy();
@@ -188,5 +208,4 @@ export function enhance(config: Config, t: Translate) {
   embeds(t);
   math();
   beacon();
-  languageHint(config);
 }

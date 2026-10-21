@@ -31,7 +31,8 @@ func SourceCatalog(ctx context.Context, tx *sql.Tx) (map[string]gen.InterfaceStr
 	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM interface_sources`).Scan(&installed); err != nil {
 		return nil, language.StorageError(err)
 	}
-	if installed == 0 {
+	// 新版本加了固定文字时，已有站点也要补进来（已存在的不动）。
+	if installed < len(builtinStrings) {
 		if err := installSource(ctx, tx); err != nil {
 			return nil, err
 		}

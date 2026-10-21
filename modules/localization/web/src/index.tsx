@@ -87,9 +87,37 @@ export default function LanguagesPage() {
           ))}
         </div>
       )}
+      {canTranslate && list.filter((language) => language.enabled).length > 1 && <SuggestionPanel />}
       {canTranslate && base && <Translations base={base.tag} languages={list.filter((language) => language.enabled && !language.isDefault)} />}
       {adding && <AddLanguage existing={list.map((language) => language.tag)} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); languages.reload(); }} />}
     </div>
+  );
+}
+
+// 访客语言建议：关闭时只按浏览器语言给页首提示条；开启后由“模型接入”里的决策模型判断，用居中双语弹窗问访客一次。
+function SuggestionPanel() {
+  const policy = useLoad((signal) => api<{ enabled: boolean; version: number }>('/v1/language-suggestion-policy', { signal }), []);
+  const { busy, run } = useAction();
+  const toggle = async (enabled: boolean) => {
+    if (enabled && !(await confirmAction({ title: '开启 AI 语言建议？', body: '访客打开页面时，会把浏览器语言、时区和 IP 所在国家（不含地址）交给决策模型判断一次，同样的组合只判断一次。需要先在“模型接入”里添加决策模型（如 OpenRouter 的 typesafe/jev-1.14）并生成决策档位。', confirmLabel: '开启', tone: 'warning' }))) return;
+    await run(async () => {
+      const idempotencyKey = newKey();
+      await api('/v1/language-suggestion-policy', { method: 'PUT', idempotencyKey, body: { enabled, expectedVersion: policy.data!.version, idempotencyKey } });
+      policy.reload();
+    }, enabled ? '已开启 AI 语言建议' : '已关闭 AI 语言建议');
+  };
+  return (
+    <Panel title="访客语言建议" description="访客没手动选过语言时，判断他更可能想读哪种语言并提示切换；访客选过一次就不再打扰。">
+      {policy.error ? <ErrorBlock error={policy.error} onRetry={policy.reload} /> : !policy.data ? <LoadingBlock lines={1} /> : (
+        <SwitchInput
+          description="关闭时只按浏览器语言在页首给提示条；开启后由决策模型判断，浏览器是简体中文时基本不看 IP 国家（常挂代理）。"
+          isDisabled={busy}
+          isSelected={policy.data.enabled}
+          label="AI 判断访客语言"
+          onChange={(value) => void toggle(value)}
+        />
+      )}
+    </Panel>
   );
 }
 

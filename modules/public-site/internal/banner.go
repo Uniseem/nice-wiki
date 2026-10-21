@@ -98,7 +98,15 @@ func languageLinks(ctx context.Context, canonicalPath, current string) []Languag
 	rest := strings.TrimPrefix(canonicalPath, "/"+current)
 	links := make([]LanguageLink, 0, len(tags))
 	for _, tag := range tags {
-		links = append(links, LanguageLink{Tag: tag, Href: "/" + tag + rest})
+		link := LanguageLink{Tag: tag, Href: "/" + tag + rest}
+		if tag != current {
+			catalog := loadUIStrings(ctx, tag)
+			link.Prompt = make(map[string]string, len(languagePromptKeys))
+			for _, key := range languagePromptKeys {
+				link.Prompt[key] = uiText(tag, catalog, key)
+			}
+		}
+		links = append(links, link)
 	}
 	return links
 }

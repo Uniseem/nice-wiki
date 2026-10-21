@@ -45,14 +45,19 @@ type ComposeHTMLInput struct {
 	AskURL        string
 	MarkdownURL   string
 }
-type LanguageLink struct{ Tag, Href string }
+type LanguageLink struct {
+	Tag, Href string
+	// Prompt 是语言建议弹窗在这种语言下的写法（key 为中文原文）；当前语言不带。
+	Prompt map[string]string
+}
 type ComposeHTMLResult struct{ HTML string }
 
 type languageItem struct {
-	Tag     string `json:"tag"`
-	Href    string `json:"href"`
-	Label   string `json:"label"`
-	Current bool   `json:"current"`
+	Tag     string            `json:"tag"`
+	Href    string            `json:"href"`
+	Label   string            `json:"label"`
+	Current bool              `json:"current"`
+	Prompt  map[string]string `json:"prompt,omitempty"`
 }
 
 // shell 是所有公开页共用的外壳数据；T 把中文界面文字换成当前语言。
@@ -105,7 +110,11 @@ var islandStrings = []string{
 	"AI 问答", "新对话", "发送", "关闭", "停止", "问问这个站点的文档…", "来源：", "这次没有回答成功（", "），请稍后再试。", "回答连接失败（", "请求失败（",
 	"人机验证没有完成", "人机验证无法在此浏览器运行", "思考中…", "有帮助", "没帮助", "感谢反馈", "回答由 AI 生成，可能有误，请以文档原文为准。",
 	"亮 / 暗", "浅色", "深色", "跟随系统", "语言", "文档树", "本页目录", "复制代码", "已复制", "复制失败，请打开 Markdown 版本", "复制为 Markdown", "视频播放器",
+	"要切换到这种语言阅读吗？", "切换", "保持当前语言",
 }
+
+// languagePromptKeys 是语言建议弹窗的文字：弹窗同时用当前语言和建议语言各写一遍。
+var languagePromptKeys = []string{"要切换到这种语言阅读吗？", "切换", "保持当前语言"}
 
 func newShell(in ComposeHTMLInput, kind string) shell {
 	s := shell{
@@ -133,7 +142,7 @@ func newShell(in ComposeHTMLInput, kind string) shell {
 		if label == "" {
 			label = link.Tag
 		}
-		s.Languages = append(s.Languages, languageItem{Tag: link.Tag, Href: link.Href, Label: label, Current: link.Tag == in.Locale})
+		s.Languages = append(s.Languages, languageItem{Tag: link.Tag, Href: link.Href, Label: label, Current: link.Tag == in.Locale, Prompt: link.Prompt})
 	}
 	ui := make(map[string]string, len(islandStrings))
 	for _, key := range islandStrings {

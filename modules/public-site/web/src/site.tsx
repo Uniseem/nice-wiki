@@ -3,8 +3,8 @@ import { preloadQa, QaFloating, QaInline } from '@modules/qa/web/src/island';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
-import { enhance } from './enhance';
-import { HeaderActions, type Config } from './islands';
+import { enhance, languageHint, suggestLanguage } from './enhance';
+import { HeaderActions, LanguageSuggestion, type Config, type Language } from './islands';
 import './site.css';
 
 // 公开页的交互岛：页面由 Go 完整输出，这里用一个 React 根，通过 portal 接管页头操作区与问答区，
@@ -22,7 +22,16 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
   const [askOpen, setAskOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [navUsed, setNavUsed] = useState(false);
+  const [suggested, setSuggested] = useState<Language | null>(null);
   if (navOpen && !navUsed) setNavUsed(true);
+
+  // 语言建议：决策模型判断的用居中弹窗，规则判断的用页首提示条。
+  useEffect(() => {
+    void suggestLanguage(config).then((result) => {
+      if (result?.reason === 'model') setSuggested(result.language);
+      else if (result) languageHint(result.language);
+    });
+  }, []);
 
   // 页头的“文档树”按钮由服务端输出；指针移上去或按下时就开始预取抽屉代码。
   useEffect(() => {
@@ -53,6 +62,7 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
       {navUsed && <Suspense fallback={null}><MobileNav open={navOpen} t={t} onOpenChange={setNavOpen} /></Suspense>}
       {config.aiEnabled && !ask && <QaFloating locale={config.locale} open={askOpen} t={t} onOpenChange={setAskOpen} />}
       {config.aiEnabled && ask && createPortal(<QaInline locale={config.locale} t={t} />, ask)}
+      {suggested && <LanguageSuggestion config={config} t={t} target={suggested} onClose={() => setSuggested(null)} />}
     </I18nProvider>
   );
 }
@@ -66,4 +76,4 @@ const host = document.createElement('div');
 host.id = 'nw-qa-root';
 document.body.append(host);
 createRoot(host).render(<Islands ask={ask} header={header} />);
-enhance(config, t);
+enhance(t);

@@ -12,6 +12,7 @@ import (
 // 页面自带的界面文字默认是中文；基准语言以外的语言（以及所有非中文页面）改用英文。
 // 只替换固定文案，正文和用户填写的内容不经过这里。整句在前、片段在后（替换按参数顺序匹配）。
 var englishUI = strings.NewReplacer(
+	"要切换到这种语言阅读吗？", "Switch to this language?", "保持当前语言", "Keep current language", "切换", "Switch",
 	"当前语言的译文尚未完成，部分内容显示旧译文或原文。", "This translation is still in progress; some content shows an older translation or the original.",
 	"回答由 AI 生成，可能有误，请以文档原文为准。", "Answers are AI-generated and may be wrong; check the docs for details.",
 	"向这个站点的文档提问，回答会附上来源。", "Ask questions about these docs; answers cite their sources.",

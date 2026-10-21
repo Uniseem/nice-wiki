@@ -21,10 +21,11 @@ var builtinStrings = []string{
 	"跳到正文", "复制代码", "停止", "有帮助", "没帮助", "感谢反馈", "思考中…", "回答由 AI 生成，可能有误，请以文档原文为准。",
 	"浅色", "深色", "跟随系统", "向这个站点的文档提问，回答会附上来源。", "公开问答暂未开放。", "需要启用 JavaScript 才能使用 AI 问答。", "开始阅读",
 	"页面不存在", "地址可能有误，或这篇文档还没有发布。", "页面已删除", "这篇文档已经被删除。", "页面暂时无法访问", "请稍后刷新重试。", "回到首页",
+	"要切换到这种语言阅读吗？", "切换", "保持当前语言",
 }
 
 // installSource 在给定事务里把固定界面源目录写入 interface_sources（已存在的不动）。
-// 目录为空时由 SourceCatalog 自动补装；站点没初始化时本域拿不到已核本站，所以不在启动时装。
+// 目录缺条目时由 SourceCatalog 自动补装；站点没初始化时本域拿不到已核本站，所以不在启动时装。
 func installSource(ctx context.Context, tx *sql.Tx) error {
 	for _, text := range builtinStrings {
 		if _, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO interface_sources(key,value_text,source_hash,placeholders) VALUES(?,?,?,'[]')`, text, text, platform.HashBytes([]byte(text))); err != nil {
