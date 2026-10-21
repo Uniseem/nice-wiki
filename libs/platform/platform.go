@@ -18,6 +18,7 @@ import (
 	"os"
 	"regexp"
 	"runtime/debug"
+	"strings"
 	"time"
 )
 
@@ -506,6 +507,12 @@ type GatewayMessage struct {
 func EstimateInputTokens(bytes, messages int) int {
 	base := (bytes+1)/2 + messages*32
 	return (base*6 + 4) / 5
+}
+
+// IsEnglishTag 判断语言标签是不是英文（en、en-US、en-GB 等）。决策模型的输入输出一律用英文，各域据此决定要不要先翻译。
+func IsEnglishTag(tag string) bool {
+	lower := strings.ToLower(tag)
+	return lower == "en" || strings.HasPrefix(lower, "en-")
 }
 
 // EstimateMessageTokens 按 EstimateInputTokens 估算一组纯文本消息。

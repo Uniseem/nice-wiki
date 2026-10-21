@@ -4,20 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strings"
 
 	"nice-wiki/libs/platform"
 )
 
-// IsEnglish 判断标签是不是英文（en、en-US、en-GB 等）。
-func IsEnglish(tag string) bool {
-	lower := strings.ToLower(tag)
-	return lower == "en" || strings.HasPrefix(lower, "en-")
-}
-
 // requireEnglishKept 是站点规则：基准语言之外的英文必须启用并打开“发布时自动翻译”。
 func requireEnglishKept(tag string, isDefault, enabled, automatic bool) error {
-	if IsEnglish(tag) && !isDefault && (!enabled || !automatic) {
+	if platform.IsEnglishTag(tag) && !isDefault && (!enabled || !automatic) {
 		return platform.NewError(platform.CodeConflict, false, "英文是站点必需语言，必须启用并自动翻译")
 	}
 	return nil
@@ -39,7 +32,7 @@ func EnsureEnglish(ctx context.Context, op OperationContext) error {
 	if err != nil {
 		return platform.NormalizeIOError(err, platform.CodeInternal, false, "基准语言不可读")
 	}
-	if IsEnglish(base) {
+	if platform.IsEnglishTag(base) {
 		return nil
 	}
 	rows, err := tx.QueryContext(ctx, `SELECT language_tag FROM languages WHERE data_epoch=?`, string(op.DataEpoch))
@@ -53,7 +46,7 @@ func EnsureEnglish(ctx context.Context, op OperationContext) error {
 			rows.Close()
 			return platform.NormalizeIOError(err, platform.CodeInternal, false, "语言列表不可读")
 		}
-		if IsEnglish(current) {
+		if platform.IsEnglishTag(current) {
 			tag = current
 		}
 	}
@@ -85,4 +78,26 @@ func EnsureEnglish(ctx context.Context, op OperationContext) error {
 		return err
 	}
 	return finishTx(tx)
+}
+
+// EnabledEnglish 返回站点启用的英文标签（en、en-US 等）；没有启用英文时返回 NOT_FOUND。
+func EnabledEnglish(ctx context.Context, tx *sql.Tx, op OperationContext) (string, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT language_tag FROM languages WHERE enabled=1 AND data_epoch=? ORDER BY language_tag`, string(op.DataEpoch))
+	if err != nil {
+		return "", StorageError(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var tag string
+		if err := rows.Scan(&tag); err != nil {
+			return "", StorageError(err)
+		}
+		if platform.IsEnglishTag(tag) {
+			return tag, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return "", StorageError(err)
+	}
+	return "", platform.NewError(platform.CodeNotFound, false, "站点没有启用英文")
 }

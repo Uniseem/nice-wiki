@@ -27,12 +27,14 @@ def reply_text(messages, last):
             return json.dumps({"items": [{"chunkId": i, "prefix": "（假背景）"} for i in ids]}, ensure_ascii=False)
         except Exception as e:
             return "{}"
-    if "概括卡片" in system:
+    if "summary card" in system:
         try:
-            title = json.loads(last)["title"] or "文档"
-            return json.dumps({"summary": "（假摘要）介绍" + title + "。", "topics": [title], "questions": ["怎么使用" + title + "？"]}, ensure_ascii=False)
+            title = json.loads(last)["title"] or "Document"
+            return json.dumps({"title": "(EN) " + title, "summary": "(fake summary) Covers " + title + ".", "topics": [title], "questions": ["How do I use " + title + "?"]}, ensure_ascii=False)
         except Exception:
             return "{}"
+    if "into English for an internal classifier" in system:
+        return "(EN) " + last
     if "分析资料边界内的问题" in system:
         try:
             q = json.loads(last)["question"]

@@ -78,6 +78,17 @@
       "source": "2026-10-21 用户要求把 Jev 决策模型融入问答链路：每轮先做一次类型化判断，离题直接拒答、简单问题走快速档"
     },
     {
+      "id": "qa.english",
+      "name": "访客问题译成英文（供决策模型判断）",
+      "owner": "qa",
+      "defaultTier": "fast",
+      "defaultMemoryRoles": [],
+      "defaultMaxOutputTokens": 300,
+      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
+      "targetLanguageRole": "translation-target按目标语言选择",
+      "source": "2026-10-21 用户要求决策模型的输入输出一律用英文：非英文提问先用快速档译成英文再交给决策模型"
+    },
+    {
       "id": "qa.cache-match",
       "name": "缓存同义复用判断",
       "owner": "qa",

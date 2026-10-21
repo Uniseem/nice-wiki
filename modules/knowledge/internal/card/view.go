@@ -77,15 +77,15 @@ func (e *entry) text() string {
 	if e.card == nil {
 		return e.node.Title
 	}
-	parts := []string{e.node.Title}
+	parts := []string{e.card.Title}
 	if e.level >= 1 {
-		parts = append(parts, "摘要："+e.card.Summary)
+		parts = append(parts, "Summary: "+e.card.Summary)
 	}
 	if e.level != 1 && len(e.card.Topics) > 0 {
-		parts = append(parts, "主题："+strings.Join(e.card.Topics, "、"))
+		parts = append(parts, "Topics: "+strings.Join(e.card.Topics, ", "))
 	}
 	if e.level == 2 && len(e.card.Questions) > 0 {
-		parts = append(parts, "能回答："+strings.Join(e.card.Questions, "；"))
+		parts = append(parts, "Answers: "+strings.Join(e.card.Questions, "; "))
 	}
 	return strings.Join(parts, "\n")
 }
@@ -139,15 +139,15 @@ func ReadDocumentIndex(ctx context.Context, op OperationContext, input ReadDocum
 	entries := []*entry{}
 	version := []string{}
 	markdown := strings.Builder{}
-	markdown.WriteString("# 文档索引\n\n")
+	markdown.WriteString("# Document index\n\n")
 	for order, node := range nodes {
 		card := cards[node.DocumentID]
-		summary := ""
+		title, summary := node.Title, ""
 		if card != nil {
-			summary = "：" + card.Summary
+			title, summary = card.Title, ": "+card.Summary
 		}
-		markdown.WriteString(strings.Repeat("  ", depth[node.DocumentID]) + "- [" + node.Title + "](" + node.CanonicalPath + ")" + summary + "\n")
-		version = append(version, node.DocumentID+"|"+node.Title+"|"+summary)
+		markdown.WriteString(strings.Repeat("  ", depth[node.DocumentID]) + "- [" + title + "](" + node.CanonicalPath + ")" + summary + "\n")
+		version = append(version, node.DocumentID+"|"+node.Title+"|"+title+summary)
 		if inScope(node.DocumentID) {
 			entries = append(entries, &entry{node: node, depth: depth[node.DocumentID], order: order, weight: weights[node.DocumentID], card: card, level: 2})
 		}
@@ -250,17 +250,23 @@ func foldDeepest(entries []*entry, parent map[string]string) []*entry {
 		folded[child] = true
 		root.children = append(root.children, child.node.DocumentID)
 		root.children = append(root.children, child.children...)
-		titles = append(titles, child.node.Title)
 		if child.card != nil {
+			titles = append(titles, child.card.Title)
 			topics = append(topics, child.card.Topics...)
+		} else {
+			titles = append(titles, child.node.Title)
 		}
 	}
-	text := "分区：" + root.node.Title + "\n包含：" + clip(strings.Join(titles, "、"), 300)
+	name := root.node.Title
 	if root.card != nil {
-		text += "\n摘要：" + root.card.Summary
+		name = root.card.Title
+	}
+	text := "Section: " + name + "\nContains: " + clip(strings.Join(titles, "; "), 400)
+	if root.card != nil {
+		text += "\nSummary: " + root.card.Summary
 	}
 	if len(topics) > 0 {
-		text += "\n主题：" + clip(strings.Join(topics, "、"), 200)
+		text += "\nTopics: " + clip(strings.Join(topics, ", "), 300)
 	}
 	root.section = text
 	root.level = -1
@@ -286,8 +292,9 @@ func readCards(ctx context.Context, op OperationContext, runtime indexer.Runtime
 		if err := rows.Scan(&id, &raw); err != nil {
 			return nil, platform.NormalizeIOError(err, platform.CodeInternal, false, "文档卡片不可读")
 		}
+		// 只用英文卡片（有英文标题）；改成英文之前写的旧卡片当作没有，下次建索引时重写。
 		var card Card
-		if json.Unmarshal([]byte(raw), &card) == nil {
+		if json.Unmarshal([]byte(raw), &card) == nil && card.Title != "" {
 			cards[id] = &card
 		}
 	}

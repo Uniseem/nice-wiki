@@ -12,6 +12,7 @@ import (
 	"os"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -51,7 +52,7 @@ type runtimeKey struct{}
 // NewRuntime 固定所有使用的生产方响应校验器；未知响应不当作成功。
 func NewRuntime(runtime Runtime) (Runtime, error) {
 	runtime.Validators = make(map[string]func(json.RawMessage) error)
-	for _, name := range []string{"QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "KnowledgeReadDocumentIndexResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
+	for _, name := range []string{"LocalizationReadTranslationResult", "QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "KnowledgeReadDocumentIndexResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
 		validator, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if err != nil {
 			return Runtime{}, err
@@ -498,32 +499,73 @@ func PublicationFingerprint(ctx context.Context, op OperationContext) (string, e
 	return platform.HashBytes(encoded), nil
 }
 
-// PublishedTitles 读取已发布文档的标题（按文档树顺序，最多 200 篇），给每轮决策判断问题是否属于本站。
-func PublishedTitles(ctx context.Context, op OperationContext) ([]string, error) {
+// EnglishBlocks 读一篇已发布文档当前的英文译文，按块 ID 返回还原后的纯文本（含子块文本）；给决策模型筛选材料用。
+// 还没译好、用原文顶替的块不返回。
+func EnglishBlocks(ctx context.Context, op OperationContext, document gen.PublishedRevisionRef) (map[string]string, error) {
 	runtime, err := FromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if runtime.Content == nil {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "发布集合权威未装配")
+	if runtime.Localization == nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "译文权威未装配")
 	}
-	raw, err := runtime.Content.ReadPublicTree(ServiceReadContext(ctx, op))
+	raw, err := runtime.Localization.ReadTranslation(ServiceReadContext(ctx, op), map[string]any{"document": document, "targetLanguage": "en"})
 	if err != nil {
 		return nil, err
 	}
 	var result struct {
-		Nodes []struct {
-			Title string `json:"title"`
-		} `json:"nodes"`
+		Units []struct {
+			UnitID        string `json:"unitId"`
+			ParentBlockID string `json:"parentBlockId"`
+			Status        string `json:"status"`
+		} `json:"units"`
+		Body textNode `json:"body"`
 	}
-	if err := DecodeResponse(runtime, "ContentReadPublicTreeResult", raw, &result); err != nil {
+	if err := DecodeResponse(runtime, "LocalizationReadTranslationResult", raw, &result); err != nil {
 		return nil, err
 	}
-	titles := make([]string, 0, min(len(result.Nodes), 200))
-	for _, node := range result.Nodes[:min(len(result.Nodes), 200)] {
-		titles = append(titles, node.Title)
+	fallback := map[string]bool{}
+	for _, unit := range result.Units {
+		if unit.Status == "fallback" {
+			fallback[unit.UnitID] = true
+			if unit.ParentBlockID != "" {
+				fallback[unit.ParentBlockID] = true
+			}
+		}
 	}
-	return titles, nil
+	blocks := map[string]string{}
+	result.Body.collect(blocks)
+	for id := range fallback {
+		delete(blocks, id)
+	}
+	return blocks, nil
+}
+
+// textNode 是正文树节点里取纯文本需要的部分。
+type textNode struct {
+	Type  string `json:"type"`
+	Attrs struct {
+		BlockID string `json:"blockId"`
+	} `json:"attrs"`
+	Text    string     `json:"text"`
+	Content []textNode `json:"content"`
+}
+
+// collect 返回节点的纯文本（行内文本直接相连，子块之间换行），并把每个带块 ID 的节点的文本记进 blocks。
+func (n textNode) collect(blocks map[string]string) string {
+	var text strings.Builder
+	text.WriteString(n.Text)
+	for _, child := range n.Content {
+		part := child.collect(blocks)
+		if child.Type != "text" && text.Len() > 0 && part != "" {
+			text.WriteString("\n")
+		}
+		text.WriteString(part)
+	}
+	if n.Attrs.BlockID != "" {
+		blocks[n.Attrs.BlockID] = text.String()
+	}
+	return text.String()
 }
 
 // DocumentIndexEntry 是文档索引视图的一个选项：一篇文档或一个折叠后的分区。

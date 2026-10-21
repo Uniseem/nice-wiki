@@ -21,10 +21,12 @@ type RetrieveEvidenceInput struct {
 	Select func([]EvidenceCandidate) []string `json:"-"`
 }
 
-// EvidenceCandidate 是交给材料筛选的一段候选材料。
+// EvidenceCandidate 是交给材料筛选的一段候选材料；Document 和 BlockID 用来找它的英文译文。
 type EvidenceCandidate struct {
-	ChunkID string
-	Text    string
+	ChunkID  string
+	Text     string
+	Document gen.PublishedRevisionRef
+	BlockID  string
 }
 type RetrieveEvidenceResult struct {
 	Citations        []gen.Citation `json:"citations"`
@@ -118,7 +120,7 @@ func RetrieveEvidence(ctx context.Context, op OperationContext, input RetrieveEv
 	if input.Select != nil && len(candidates) > 0 {
 		offered := make([]EvidenceCandidate, len(candidates))
 		for i, chunk := range candidates {
-			offered[i] = EvidenceCandidate{ChunkID: chunk.ChunkID, Text: chunk.Text}
+			offered[i] = EvidenceCandidate{ChunkID: chunk.ChunkID, Text: chunk.Text, Document: chunk.Document, BlockID: chunk.Block.BlockId}
 		}
 		keep := map[string]bool{}
 		for _, id := range input.Select(offered) {

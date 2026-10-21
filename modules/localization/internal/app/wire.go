@@ -166,7 +166,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"approveLanguagePlan":  {"portal"},
 			"listLanguages":        {"portal", "public-site"},
 			"putGlossaryTerm":      {"portal"}, "deleteGlossaryTerm": {"portal"}, "listGlossary": {"portal"}, "rollbackAutomaticGlossaryBatch": {"portal"}, "applyApprovedGlossaryProposal": {"memory"},
-			"saveLanguagePreference": {"public-site"}, "suggestLanguage": {"portal"}, "readTranslation": {"public-site"}, "listTranslationTitles": {"public-site"}, "listTranslationProgress": {"portal"}, "createTranslation": {"portal"}, "cancelTranslation": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "requestInterfaceTranslation": {"portal"}, "readCacheAnswerTranslation": {"qa"},
+			"saveLanguagePreference": {"public-site"}, "suggestLanguage": {"portal"}, "readTranslation": {"public-site", "qa"}, "listTranslationTitles": {"public-site"}, "listTranslationProgress": {"portal"}, "createTranslation": {"portal"}, "cancelTranslation": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "requestInterfaceTranslation": {"portal"}, "readCacheAnswerTranslation": {"qa"},
 		},
 	}, handlers)
 	if err != nil {

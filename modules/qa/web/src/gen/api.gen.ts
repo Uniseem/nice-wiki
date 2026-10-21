@@ -546,6 +546,7 @@ export interface components {
         GetInvocationResult: components["schemas"]["types_GetInvocationResult"];
         LookupInvocationResult: components["schemas"]["types_LookupInvocationResult"];
         KnowledgeReadDocumentIndexResult: components["schemas"]["ReadDocumentIndexResult"];
+        LocalizationReadTranslationResult: components["schemas"]["ReadTranslationResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /**
@@ -2468,6 +2469,86 @@ export interface components {
             entries: components["schemas"]["DocumentIndexEntry"][];
             /** @description 全量 index.md（每篇标题、路径和摘要，按文档树缩进） */
             markdown: string;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Translation: {
+            /** @description 译文ID */
+            translationId: components["schemas"]["Identifier"];
+            /** @description 权威源 */
+            document: components["schemas"]["PublishedRevisionRef"];
+            /** @description 语言 */
+            targetLanguage: string;
+            /** @description 目标代数 */
+            generation: number;
+            /** @description 术语版本 */
+            glossaryGeneration: number;
+            /** @description 注入版本 */
+            memoryVersionHash: components["schemas"]["Hash"];
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            state: "queued" | "running" | "review" | "ready" | "superseded" | "failed" | "cancelled" | "stale";
+            /** @description 完成单元 */
+            completed: number;
+            /** @description 总单元 */
+            total: number;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        TranslationUnit: {
+            /** @description 稳定源块标识 */
+            unitId: components["schemas"]["Identifier"];
+            /** @description 源修订 */
+            document: components["schemas"]["PublishedRevisionRef"];
+            /** @description 语言 */
+            targetLanguage: string;
+            /** @description 源片段hash */
+            sourceHash: components["schemas"]["Hash"];
+            /** @description 译文 */
+            targetText: string;
+            /** @description 译文hash */
+            targetHash: components["schemas"]["Hash"];
+            /**
+             * @description 来源
+             * @enum {string}
+             */
+            origin: "machine" | "human";
+            /** @description 人工保护 */
+            protected: boolean;
+            /** @description CAS版本 */
+            version: number;
+            /** @description 人工修改代数 */
+            humanGeneration: number;
+            /**
+             * @description 人工变源待复核或失败原文
+             * @enum {string}
+             */
+            status: "normal" | "review" | "fallback";
+            /** @description 在新译文完成前交付旧译文 */
+            previousTargetText?: string;
+            /** @description 可选真实持久单元权威引用；即时fallback/source-only或保护投影无独立权威unit时省略，不写null、不冒充旧父单元证明。公开交付以body/bodyHash及精确source/target generation绑定。 */
+            fileRef?: components["schemas"]["ObjectRef"];
+            /** @description 本源片段的受控模型文本，供对齐/插值/术语校验；服务始终写出，兼容旧消费者为可选 */
+            sourceText?: string;
+            /** @description 表格按真实rowId拆分时追溯原blockId；其他单元为本块ID，稳定原树ID不改 */
+            parentBlockId?: components["schemas"]["Identifier"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        ReadTranslationResult: {
+            /** @description 源版本信息 */
+            translation: components["schemas"]["Translation"];
+            /** @description 最多10000个真实源单元的可交付旧译文、保护投影或原文；与content全树节点限及SplitTranslationUnits一致 */
+            units: components["schemas"]["TranslationUnit"][];
+            /** @description 存在原文回退 */
+            partial: boolean;
+            /** @description 顶部分译提示key */
+            noticeKey?: string;
+            /** @description 目标语言的文档标题；缺失表示该译文没有标题译文，公开页沿用原文标题 */
+            title?: string;
+            /** @description 完整还原目标树，source publication/targetLanguage/generation在translation中；始终由服务新实现写出，兼容字段 */
+            body?: components["schemas"]["DocumentBody"];
+            /** @description canonical目标body SHA256，不等于source publication contentHash */
+            bodyHash?: components["schemas"]["Hash"];
         };
     };
     responses: never;

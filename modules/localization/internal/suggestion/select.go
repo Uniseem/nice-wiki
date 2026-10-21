@@ -25,8 +25,8 @@ type SuggestLanguageResult = gen.SuggestLanguageResult
 // minimumConfidence 是模型建议切换的最低置信度；不到就当作不建议。
 const minimumConfidence = 0.6
 
-// suggestNotes 写给决策模型的判断规则（状态里的数据说明，不是指令）。
-const suggestNotes = "浏览器语言最重要，时区其次，IP 国家只是弱信号。浏览器首选语言是简体中文（zh-CN、zh-Hans、zh-SG 或 zh）时，IP 国家多半因为代理不可信，基本忽略它，只在其他信号打平时参考。"
+// suggestNotes 写给决策模型的判断规则（状态里的数据说明，不是指令）。决策模型的输入一律用英文。
+const suggestNotes = "Browser languages matter most, then the time zone; the IP country is only a weak signal. When the browser's first language is Simplified Chinese (zh-CN, zh-Hans, zh-SG or zh), the IP country is usually unreliable because many such visitors use proxies or VPNs: mostly ignore it and use it only to break ties."
 
 var countryCode = regexp.MustCompile(`^[A-Z]{2}$`)
 
@@ -199,7 +199,7 @@ func decide(ctx context.Context, op OperationContext, s signals, enabled []strin
 	criteria := map[string]string{}
 	for _, tag := range enabled {
 		parsed := language.Make(tag)
-		criteria[tag] = display.English.Tags().Name(parsed) + " / " + display.Self.Name(parsed)
+		criteria[tag] = display.English.Tags().Name(parsed)
 	}
 	matched := map[string]string{}
 	tags := make([]language.Tag, len(enabled))
@@ -218,7 +218,7 @@ func decide(ctx context.Context, op OperationContext, s signals, enabled []strin
 		TaskID: "localization.suggest", ProfileID: route.ProfileID, ExpectedRouteVersion: route.RouteVersion, Capability: platform.CapabilityDecision,
 		Messages: []platform.GatewayMessage{}, Texts: []string{}, CandidateIDs: []platform.Identifier{}, IDempotencyKey: key, LanguageSuggestionApprovalID: approvalID,
 		Decision: &platform.DecisionRequest{State: state, Questions: map[string]platform.DecisionQuestion{"language": {
-			Type: "choice", Instructions: "这位文档站访客最可能希望用哪种语言阅读？只从选项里选。", Criteria: criteria,
+			Type: "choice", Instructions: "Which language would this documentation-site visitor most likely prefer to read? Choose only from the options.", Criteria: criteria,
 		}}},
 	}})
 	if err != nil {

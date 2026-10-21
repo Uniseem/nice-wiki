@@ -473,6 +473,9 @@ var AITaskCatalog = map[string]AITaskEntry{
 	"qa.decide": {Owner: "qa", DefaultTier: "decision", RequiredCapabilities: []string{
 		"decision",
 	}},
+	"qa.english": {Owner: "qa", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
+	}},
 	"qa.inspect": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{
 		"chat",
 	}},

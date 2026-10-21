@@ -21,6 +21,8 @@ type Conversation struct {
 	SummaryUntil int
 	Generation   int
 	Messages     []gen.Message
+	// EnglishQuestions 是此前最近几轮提问的英文译文（按时间顺序），只给决策模型看。
+	EnglishQuestions []string
 }
 
 // Recent 返回最近 n 条原样消息。
@@ -55,7 +57,22 @@ func LoadConversation(ctx context.Context, op OperationContext, conversationID, 
 		message.Text = citationMarker.ReplaceAllString(message.Text, "")
 		conversation.Messages = append(conversation.Messages, message)
 	}
-	return conversation, qaruntime.StorageError(rows.Err())
+	if err := rows.Err(); err != nil {
+		return Conversation{}, qaruntime.StorageError(err)
+	}
+	english, err := tx.Tx.QueryContext(tx.Context, `SELECT english_question FROM turns WHERE conversation_id=? AND turn_id<>? AND english_question<>'' ORDER BY created_ns DESC LIMIT 4`, conversationID, turnID)
+	if err != nil {
+		return Conversation{}, qaruntime.StorageError(err)
+	}
+	defer english.Close()
+	for english.Next() {
+		var question string
+		if err := english.Scan(&question); err != nil {
+			return Conversation{}, qaruntime.StorageError(err)
+		}
+		conversation.EnglishQuestions = append([]string{question}, conversation.EnglishQuestions...)
+	}
+	return conversation, qaruntime.StorageError(english.Err())
 }
 
 // CompactInput 描述一次压缩：最近 KeepTokens（模型网关估算口径）以内的消息原样保留，更早的并入摘要。

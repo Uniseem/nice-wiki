@@ -23,7 +23,7 @@ func RedactConversation(tx *Transaction, id, state string) error {
 		`DELETE FROM feedback WHERE turn_id IN (SELECT turn_id FROM turns WHERE conversation_id=?)`,
 		`DELETE FROM turn_events WHERE turn_id IN (SELECT turn_id FROM turns WHERE conversation_id=?)`,
 		`DELETE FROM compactions WHERE conversation_id=?`,
-		`UPDATE turns SET question='',canonical_question='',answer='',citations_json=X'5B5D',permit_json=X'7B7D',plan_json=NULL,current_page_json=NULL,redacted=1 WHERE conversation_id=?`,
+		`UPDATE turns SET question='',canonical_question='',english_question='',answer='',citations_json=X'5B5D',permit_json=X'7B7D',plan_json=NULL,current_page_json=NULL,redacted=1 WHERE conversation_id=?`,
 	}
 	for _, statement := range statements {
 		if _, err := tx.Tx.ExecContext(tx.Context, statement, id); err != nil {

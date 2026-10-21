@@ -2139,7 +2139,7 @@ func RetrieveEvidence(ctx context.Context, op OperationContext, input RetrieveEv
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`knowledge:searchKnowledge`、`knowledge:readSections`、`qa.FromContext`、`qa.AcquireQueryEmbedding`、`qa.ServiceReadContext`、`qa.DecodeResponse`、`qa.ReadPublishedDocument`、`qa.ValidateCitations`、`knowledge:readDocumentIndex`
+- 依赖：`knowledge:searchKnowledge`、`knowledge:readSections`、`qa.FromContext`、`qa.AcquireQueryEmbedding`、`qa.ServiceReadContext`、`qa.DecodeResponse`、`qa.ReadPublishedDocument`、`qa.ValidateCitations`、`knowledge:readDocumentIndex`、`localization:readTranslation`
 
 ## qa.BuildAnswerPrompt
 

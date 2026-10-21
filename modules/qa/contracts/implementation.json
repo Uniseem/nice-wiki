@@ -4303,7 +4303,8 @@
             "qa.DecodeResponse",
             "qa.ReadPublishedDocument",
             "qa.ValidateCitations",
-            "knowledge:readDocumentIndex"
+            "knowledge:readDocumentIndex",
+            "localization:readTranslation"
           ],
           "resources": [],
           "contract": "reference"

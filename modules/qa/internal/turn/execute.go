@@ -109,15 +109,20 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 		}
 		query = canonical.Normalized
 	}
-	// 文档路由和材料筛选：独立问题在每轮决策里已经选好文档；追问改写出独立问题后再单独路由一次。
+	// 文档路由和材料筛选（决策模型只读英文）：独立问题在每轮决策里已经选好文档；
+	// 追问把改写出的独立问题译成英文后再单独路由一次，译不出来就只做全站检索。
 	var documents []string
 	var selectEvidence func([]answer.EvidenceCandidate) []string
 	if decision != nil {
 		documents = decision.documents
+		english := decision.english
 		if !decision.standalone && planned != nil {
-			documents = routeDocuments(ctx, op, query, "", 0)
+			if translated, err := toEnglish(ctx, op, query, runtime.BaseLanguage, "english.canonical"); err == nil {
+				english = translated
+				documents = routeDocuments(ctx, op, english, "", 0)
+			}
 		}
-		selectEvidence = evidenceSelector(ctx, op, query)
+		selectEvidence = evidenceSelector(ctx, op, english)
 	}
 	evidence, err := answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language, DocumentIDs: documents, Select: selectEvidence})
 	if err != nil {

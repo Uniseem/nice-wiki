@@ -42,8 +42,9 @@ func LatestManifest(ctx context.Context, tx *sql.Tx, op OperationContext, docume
 	return m, err == nil, language.StorageError(err)
 }
 func ReadTranslation(ctx context.Context, op OperationContext, input ReadTranslationInput) (ReadTranslationResult, error) {
-	if op.CallerService != "public-site" || op.Actor.Kind != "service" || op.Actor.SubjectID != "public-site" {
-		return ReadTranslationResult{}, platform.NewError(platform.CodeForbidden, false, "公开译文只接受公开站点服务读取")
+	// 公开站点读访客要看的译文；问答只读英文译文，给决策模型筛选材料用。
+	if op.Actor.Kind != "service" || op.Actor.SubjectID != op.CallerService || (op.CallerService != "public-site" && op.CallerService != "qa") {
+		return ReadTranslationResult{}, platform.NewError(platform.CodeForbidden, false, "公开译文只接受公开站点和问答服务读取")
 	}
 	source, err := localizationruntime.FetchPublishedSnapshot(ctx, op, input.Document)
 	if err != nil {
@@ -61,6 +62,10 @@ func ReadTranslation(ctx context.Context, op OperationContext, input ReadTransla
 	err = language.ReadData(ctx, op, func(tx *sql.Tx) error {
 		var err error
 		target, err = interfacecatalog.EnabledLanguage(ctx, tx, input.TargetLanguage)
+		if err != nil && op.CallerService == "qa" && platform.IsEnglishTag(input.TargetLanguage) {
+			// 问答只说要英文，不知道站点用的是 en 还是 en-US。
+			target, err = language.EnabledEnglish(ctx, tx, op)
+		}
 		if err != nil {
 			return err
 		}
