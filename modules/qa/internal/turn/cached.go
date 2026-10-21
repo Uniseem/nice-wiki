@@ -66,7 +66,7 @@ func savePlan(ctx context.Context, op OperationContext, turnID string, plan cach
 }
 
 // answerFromCache 命中精确缓存就直接用缓存答案完成本轮（不调用回答模型）。
-// 只复用与访客同语言的条目；引用在 ValidateCachedAnswer 里已按当前发布状态重新核验。
+// 只复用与访客同语言的条目（LookupExactCache 按语言挑）；引用在 ValidateCachedAnswer 里已按当前发布状态重新核验。
 func answerFromCache(ctx context.Context, op OperationContext, turnID, lease string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, cp *questionPlan, firstTurn bool) (bool, error) {
 	runtime, err := qaruntime.FromContext(ctx)
 	if err != nil {
@@ -80,7 +80,7 @@ func answerFromCache(ctx context.Context, op OperationContext, turnID, lease str
 	if os.Getenv("NW_DEBUG") != "" {
 		fmt.Fprintf(os.Stderr, "精确缓存查询 turn=%s hit=%v err=%v scope=%s q=%s\n", turnID, hit.Hit, err, cache.ScopeHash(op, resolved.Policy, runtime.BaseLanguage)[:8], normalized.QuestionHash[:8])
 	}
-	if err != nil || !hit.Hit || hit.Entry == nil || hit.Entry.Language != record.Language {
+	if err != nil || !hit.Hit || hit.Entry == nil {
 		return false, nil
 	}
 	answer := hit.Entry.Answer

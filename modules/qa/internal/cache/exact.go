@@ -96,7 +96,7 @@ type LookupExactCacheResult struct {
 	Hit   bool            `json:"hit"`
 }
 
-// LookupExactCache 只用已完整问题键；精选优先，来源授权交统一有效性门禁。
+// LookupExactCache 只用已完整问题键，只挑访客语言的条目（同一问题各语言各存一条，不能互相挡住）；精选优先，来源授权交统一有效性门禁。
 func LookupExactCache(ctx context.Context, op OperationContext, input LookupExactCacheInput) (LookupExactCacheResult, error) {
 	if !input.Complete {
 		return LookupExactCacheResult{}, nil
@@ -137,7 +137,7 @@ func LookupExactCache(ctx context.Context, op OperationContext, input LookupExac
 		if err != nil {
 			return LookupExactCacheResult{}, err
 		}
-		if record.Entry.QuestionComplete {
+		if record.Entry.QuestionComplete && record.Entry.Language == input.Language {
 			records = append(records, record.Entry)
 		}
 	}
