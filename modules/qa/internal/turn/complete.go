@@ -19,6 +19,7 @@ type CompleteTurnInput struct {
 	LeaseID    string         `json:"leaseId"`
 	AnswerKind string         `json:"answerKind"`
 	TokenCount int            `json:"tokenCount"`
+	CacheHit   string         `json:"cacheHit,omitempty"`
 }
 type CompleteTurnResult struct {
 	Turn    gen.Turn    `json:"turn"`
@@ -85,6 +86,9 @@ func CompleteTurn(ctx context.Context, op OperationContext, input CompleteTurnIn
 	current.Answer = input.Answer
 	current.Citations = citations
 	current.AnswerKind = input.AnswerKind
+	if input.CacheHit != "" {
+		current.Turn.CacheHit = gen.TurnCacheHit(input.CacheHit)
+	}
 	hashInput := input
 	hashInput.LeaseID = ""
 	canonical, _ := platform.CanonicalJSON(hashInput)

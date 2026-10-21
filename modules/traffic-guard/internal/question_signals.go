@@ -79,7 +79,12 @@ func ReportQuestionSignals(ctx context.Context, op OperationContext, in ReportQu
 	if err != nil {
 		return ReportQuestionSignalsResult{}, err
 	}
-	risk, err := ComputeRisk(t.ctx, op, ComputeRiskInput{Denials10m: signals.Denials10m, ChallengePassed: signals.ChallengePassed, ActiveBan: signals.ActiveBan, ExactRepeatCount: signals.ExactRepeatCount, SimilarityScore: signals.SimilarityScore, RegularIntervalCount: signals.RegularIntervalCount, ModelVerdict: signals.ModelVerdict})
+	policy, _, err := readGuardPolicy(t)
+	if err != nil {
+		return ReportQuestionSignalsResult{}, err
+	}
+	// 站点没开挑战时没有可通过的挑战，视同已通过（与准入判定一致），否则每个问题都会被要求验证。
+	risk, err := ComputeRisk(t.ctx, op, ComputeRiskInput{Denials10m: signals.Denials10m, ChallengePassed: signals.ChallengePassed || !policy.ChallengeEnabled, ActiveBan: signals.ActiveBan, ExactRepeatCount: signals.ExactRepeatCount, SimilarityScore: signals.SimilarityScore, RegularIntervalCount: signals.RegularIntervalCount, ModelVerdict: signals.ModelVerdict})
 	if err != nil {
 		return ReportQuestionSignalsResult{}, err
 	}

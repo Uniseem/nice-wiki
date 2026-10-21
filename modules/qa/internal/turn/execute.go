@@ -77,15 +77,26 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 	if err != nil {
 		return err
 	}
+	history, err := recentHistory(ctx, op, record.Turn.ConversationId, turnID)
+	if err != nil {
+		return err
+	}
+	var cp *cachePlan
+	if resolved.Policy.CacheEnabled {
+		if cp, ctx, err = planForCache(ctx, op, turnID, record, resolved, history); err != nil {
+			return err
+		}
+		if cp != nil {
+			if hit, err := answerFromCache(ctx, op, turnID, lease, record, resolved, cp, len(history) == 0); err != nil || hit {
+				return err
+			}
+		}
+	}
 	evidence, err := answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: canonical.Normalized, Policy: resolved.Policy, Language: record.Language})
 	if err != nil {
 		return err
 	}
 	if _, err := takeState(ctx, op, turnID, lease, "generating"); err != nil {
-		return err
-	}
-	history, err := recentHistory(ctx, op, record.Turn.ConversationId, turnID)
-	if err != nil {
 		return err
 	}
 	prompt, err := answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, EvidenceText: evidence.EvidenceText, History: history})
@@ -110,8 +121,13 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 	if len(evidence.Citations) == 0 {
 		kind = "no_evidence"
 	}
-	_, err = CompleteTurn(ctx, op, CompleteTurnInput{TurnID: turnID, Answer: text, Citations: evidence.Citations, LeaseID: lease, AnswerKind: kind, TokenCount: len(text)/4 + 1})
-	return err
+	if _, err = CompleteTurn(ctx, op, CompleteTurnInput{TurnID: turnID, Answer: text, Citations: evidence.Citations, LeaseID: lease, AnswerKind: kind, TokenCount: len(text)/4 + 1}); err != nil {
+		return err
+	}
+	if cp != nil && kind == "answered" {
+		writeCache(ctx, op, turnID, cp, text, resolved.Memory.VersionHash)
+	}
+	return nil
 }
 
 // takeLease 取得执行租约并进入新状态；轮次已终止则放弃执行。

@@ -81,7 +81,7 @@ func EmitCacheChanged(tx *qaruntime.Transaction, op OperationContext, entry gen.
 		State          string `json:"state"`
 		DataEpoch      string `json:"dataEpoch"`
 	}{entry.CacheId, entry.Version, entry.AnswerRevision, entry.Curated, string(entry.State), op.DataEpoch})
-	return outbox.EnqueueEvent(tx.Tx, platform.EventEnvelope{EventID: "qa.cache." + entry.CacheId + ":" + platform.HashBytes(payload), EventType: "qa.cache.changed", EventVersion: 1, Producer: "qa", SubjectID: entry.CacheId, Revision: int64(entry.Version), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload})
+	return outbox.EnqueueEvent(tx.Tx, platform.EventEnvelope{EventID: "qa.cache." + platform.HashBytes(payload), EventType: "qa.cache.changed", EventVersion: 1, Producer: "qa", SubjectID: entry.CacheId, Revision: int64(entry.Version), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload})
 }
 
 type LookupExactCacheInput struct {

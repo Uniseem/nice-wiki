@@ -27,6 +27,12 @@ def reply_text(messages, last):
             return json.dumps({"items": [{"chunkId": i, "prefix": "（假背景）"} for i in ids]}, ensure_ascii=False)
         except Exception as e:
             return "{}"
+    if "分析资料边界内的问题" in system:
+        try:
+            q = json.loads(last)["question"]
+            return json.dumps({"canonicalQuestion": q, "complete": True, "cacheEligible": True, "resolvedReferences": True, "subqueries": [q], "classification": "simple", "risk": "normal", "currentPageDependent": False, "privateContextDependent": False}, ensure_ascii=False)
+        except Exception:
+            return "{}"
     if "界面用语" in system:
         try:
             payload = json.loads(last)
