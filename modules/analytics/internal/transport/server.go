@@ -11,6 +11,7 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	analytics "nice-wiki/modules/analytics/internal"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -66,7 +67,9 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	maintenance := map[string]bool{}
 	for _, path := range spec.Paths.Map() {
 		for _, operation := range path.Operations() {
-			id := operation.OperationID
+			// 内嵌规格的 operationId 是大写开头；先归一成小写开头，否则平台归一键时会和下面单独放开的条目
+			// 撞成同一个键，谁生效取决于 map 遍历顺序（重启后随机拒绝审计、恢复归档等服务调用）。
+			id := strings.ToLower(operation.OperationID[:1]) + operation.OperationID[1:]
 			handlers[id] = routed
 			if id != "health" && id != "ready" {
 				callers[id] = []string{"portal"}
