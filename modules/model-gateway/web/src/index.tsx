@@ -188,7 +188,7 @@ export default function ModelsPage() {
         </>
       )}
       {dialog === 'provider' && c && <ConnectProviderDialog existing={c.providers} onClose={() => setDialog(null)} onConnected={(providerId) => { catalog.reload(); setModelsProvider(providerId); setDialog('models'); }} />}
-      {dialog === 'models' && c && <AddModelsDialog initialProviderId={modelsProvider} models={c.models} providers={c.providers} onClose={() => setDialog(null)} onManual={() => setDialog('manual-model')} onSaved={() => { setDialog(null); catalog.reload(); setTab('models'); }} />}
+      {dialog === 'models' && c && <AddModelsDialog initialProviderId={modelsProvider} models={c.models} providers={c.providers} onChanged={catalog.reload} onClose={() => setDialog(null)} onManual={() => setDialog('manual-model')} onSaved={() => { setDialog(null); catalog.reload(); setTab('models'); }} />}
       {dialog === 'manual-model' && c && <ModelDialog providers={c.providers} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); catalog.reload(); setTab('models'); }} />}
       {(dialog === 'profile' || (dialog && typeof dialog === 'object')) && c && (
         <ProfileDialog models={c.models} profile={typeof dialog === 'object' ? dialog : null} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); catalog.reload(); }} />
@@ -355,6 +355,7 @@ function ProfileDialog({ models, profile, onClose, onSaved }: { models: Model[];
             <li key={id} className="flex items-center gap-2 rounded-xl border border-border bg-surface-secondary px-3 py-2 text-sm">
               <span className="flex size-5 items-center justify-center rounded-full bg-default text-xs font-semibold">{index + 1}</span>
               <span className="flex-1 truncate">{models.find((model) => model.modelId === id)?.providerModelVersion ?? id}</span>
+              {models.find((model) => model.modelId === id)?.enabled === false && <Chip color="warning" size="sm" variant="soft">已停用</Chip>}
               <Button isIconOnly aria-label="上移" isDisabled={index === 0} size="sm" variant="ghost" onPress={() => move(index, -1)}><ArrowUp /></Button>
               <Button isIconOnly aria-label="下移" isDisabled={index === form.modelIds.length - 1} size="sm" variant="ghost" onPress={() => move(index, 1)}><ArrowDown /></Button>
               <Button isIconOnly aria-label="移除" size="sm" variant="ghost" onPress={() => setForm({ ...form, modelIds: form.modelIds.filter((item) => item !== id) })}><Xmark /></Button>

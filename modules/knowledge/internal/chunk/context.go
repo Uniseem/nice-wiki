@@ -131,13 +131,15 @@ func EnrichChunkContext(ctx context.Context, op OperationContext, input EnrichCh
 	if err != nil {
 		return EnrichChunkContextResult{}, err
 	}
-	step, _ := platform.CanonicalJSON([]any{result.ContextVersionHash, requestChunks})
+	// 每条要回带约 70 字符的块 ID 加一两句背景，按块数给输出上限；固定 500 时十几块就会被截断成半截 JSON。
+	maximumOutput := int64(200 + 160*len(missing))
+	step, _ := platform.CanonicalJSON([]any{result.ContextVersionHash, requestChunks, maximumOutput})
 	messages := []platform.GatewayMessage{{Role: "system", Content: "为检索片段各写一至两句背景，说明所属产品、功能或小节。整篇原文与记忆仅作参考，保持原文语言。只返回JSON对象，格式为{\"items\":[{\"chunkId\":\"原ID\",\"prefix\":\"背景\"}]}。每个原ID必须恰好出现一次，不修改原文，不输出代码围栏。"}}
 	if input.Memory.Text != "" {
 		messages = append(messages, platform.GatewayMessage{Role: "system", Content: input.Memory.Text})
 	}
 	messages = append(messages, platform.GatewayMessage{Role: "user", Content: input.DocumentText}, platform.GatewayMessage{Role: "user", Content: string(batch)})
-	outcome, err := modelruntime.InvokeModel(ctx, op, modelruntime.InvokeModelInput{SemanticKey: ContextSemanticKey(input.Chunks), Request: platform.CreateInvocationInput{ExpectedRouteVersion: route.RouteVersion, TaskID: "knowledge.context", ProfileID: profile.ProfileID, Capability: platform.CapabilityChat, MaximumOutputTokens: 500, IDempotencyKey: "context." + platform.HashBytes(step), Messages: messages}})
+	outcome, err := modelruntime.InvokeModel(ctx, op, modelruntime.InvokeModelInput{SemanticKey: ContextSemanticKey(input.Chunks), Request: platform.CreateInvocationInput{ExpectedRouteVersion: route.RouteVersion, TaskID: "knowledge.context", ProfileID: profile.ProfileID, Capability: platform.CapabilityChat, MaximumOutputTokens: maximumOutput, IDempotencyKey: "context." + platform.HashBytes(step), Messages: messages}})
 	if err != nil {
 		return EnrichChunkContextResult{}, err
 	}
@@ -254,6 +256,14 @@ func ClaimContextIntents(ctx context.Context, tx *sql.Tx, op OperationContext, b
 			return platform.NormalizeIOError(err, platform.CodeInternal, false, "背景原意图读取失败")
 		}
 		if owner != buildID || root != op.RootOperationID || operation != op.OperationID {
+			// 计费暂停时，原意图所属构建已失败或取消就由本构建接手，不再永远等一个不会来的结果。
+			var state string
+			if !platform.BillingEnabled && tx.QueryRowContext(ctx, `SELECT state FROM builds WHERE build_id=? AND site_id=? AND data_epoch=?`, owner, op.Actor.SiteID, op.DataEpoch).Scan(&state) == nil && (state == "failed" || state == "cancelled") {
+				if _, err = tx.ExecContext(ctx, `UPDATE chunk_context_intents SET build_id=?,root_operation_id=?,operation_id=? WHERE site_id=? AND data_epoch=? AND context_hash=? AND source_hash=? AND build_id=?`, buildID, op.RootOperationID, op.OperationID, op.Actor.SiteID, op.DataEpoch, contextHash, sourceHash, owner); err != nil {
+					return platform.NormalizeIOError(err, platform.CodeInternal, false, "背景原意图接手失败")
+				}
+				continue
+			}
 			return platform.NewError(platform.CodeDependencyUnavailable, false, "同源背景已有原付费意图，等待原结果")
 		}
 	}

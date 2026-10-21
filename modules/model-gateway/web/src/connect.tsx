@@ -9,12 +9,18 @@ export type CatalogProvider = { catalogId: string; name: string; baseUrl: string
 type AvailableModel = { providerModelId: string; name: string; capabilities: string[]; contextWindow?: number; maxOutputTokens?: number; inCatalog: boolean; listedByProvider: boolean };
 type Discovery = { listed: boolean; listProblem?: string; catalogId?: string; models: AvailableModel[] };
 type ExistingProvider = { providerId: string; displayName: string; credentialConfigured: boolean };
-type ExistingModel = { modelId: string; providerId: string; providerModelVersion: string };
+type ExistingModel = { modelId: string; version: number; providerId: string; providerModelVersion: string; capabilities: string[]; maxInputTokens: number; maxOutputTokens: number } & Record<string, unknown>;
 
 export const protocolLabels: Record<string, string> = {
   openai_chat: 'OpenAI 兼容（对话与向量）', anthropic_messages: 'Anthropic', gemini: 'Gemini',
   openai_embeddings: 'OpenAI 兼容（仅向量，旧）', gemini_embeddings: 'Gemini 向量（旧）', rerank: '重排序接口',
 };
+// 目录里是英文名；国内常用的几家给中文名，也让“百炼”“硅基流动”这类搜索能命中。
+const chineseNames: Record<string, string> = {
+  'alibaba-cn': '阿里云百炼', alibaba: '阿里云百炼（国际）', 'moonshotai-cn': '月之暗面 Kimi', moonshotai: '月之暗面 Kimi（国际）', zhipuai: '智谱 AI', zai: '智谱 Z.AI（国际）',
+  'siliconflow-cn': '硅基流动', siliconflow: '硅基流动（国际）', volcengine: '火山方舟（豆包）', deepseek: 'DeepSeek 深度求索',
+};
+const displayName = (item: CatalogProvider) => chineseNames[item.catalogId] ?? item.name;
 const capabilityLabels: Record<string, string> = { chat: '对话', vision: '视觉', embedding: '向量', rerank: '重排', reasoning: '推理' };
 const tokenizers = [
   { value: 'none;tiktoken-go@v0.7.0;cl100k_base', label: 'cl100k_base' },
@@ -43,10 +49,10 @@ function Shell({ title, onClose, children, footer, onSubmit }: { title: string; 
 
 function SearchField({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
   return (
-    <label className="relative block">
-      <Magnifier className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+    <div className="relative">
       <Input aria-label={placeholder} className="w-full ps-9" placeholder={placeholder} value={value} variant="secondary" onChange={(event) => onChange(event.target.value)} />
-    </label>
+      <Magnifier className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-muted" />
+    </div>
   );
 }
 
@@ -65,13 +71,13 @@ export function ConnectProviderDialog({ existing, onClose, onConnected }: { exis
     const base = item.catalogId.replace(idChars, '-');
     let providerId = base;
     for (let n = 2; existing.some((provider) => provider.providerId === providerId); n++) providerId = `${base}-${n}`;
-    setForm({ providerId, displayName: item.name, adapter: item.adapter, baseUrl: item.baseUrl, secret: '' });
+    setForm({ providerId, displayName: displayName(item), adapter: item.adapter, baseUrl: item.baseUrl, secret: '' });
   };
 
   const list = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     const all = directory.data ?? [];
-    const matched = keyword ? all.filter((item) => `${item.name} ${item.catalogId} ${item.baseUrl}`.toLowerCase().includes(keyword)) : all;
+    const matched = keyword ? all.filter((item) => `${displayName(item)} ${item.name} ${item.catalogId} ${item.baseUrl}`.toLowerCase().includes(keyword)) : all;
     return { popular: keyword ? [] : matched.filter((item) => item.popular > 0), rest: keyword ? matched : matched.filter((item) => item.popular === 0) };
   }, [directory.data, query]);
 
@@ -115,7 +121,7 @@ export function ConnectProviderDialog({ existing, onClose, onConnected }: { exis
   return (
     <Shell
       footer={<><Button variant="tertiary" onPress={() => setPicked(null)}><ArrowLeft />重新选择</Button><Button isPending={busy} type="submit">接入</Button></>}
-      title={picked === 'custom' ? '自定义供应方' : `接入 ${picked.name}`}
+      title={picked === 'custom' ? '自定义供应方' : `接入 ${displayName(picked)}`}
       onClose={onClose}
       onSubmit={() => void submit()}
     >
@@ -140,7 +146,7 @@ function Group({ label, items, onPick }: { label: string; items: CatalogProvider
           <li key={item.catalogId}>
             <button className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-start hover:bg-default" type="button" onClick={() => onPick(item)}>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-medium text-foreground">{item.name}</span>
+                <span className="block truncate text-sm font-medium text-foreground">{displayName(item)}{chineseNames[item.catalogId] && <span className="ms-2 text-xs font-normal text-muted">{item.name}</span>}</span>
                 <span className="block truncate text-xs text-muted">{hostOf(item.baseUrl)}</span>
               </span>
               <span className="shrink-0 text-xs text-muted">{item.modelCount} 个模型</span>
@@ -155,8 +161,8 @@ function Group({ label, items, onPick }: { label: string; items: CatalogProvider
 type Choice = { capabilities: string[]; dimension: number; tokenizer: string };
 
 // 拉取供应方账号里可用的模型，勾选后批量添加；向量模型需要填维度。
-export function AddModelsDialog({ providers, models, initialProviderId, onClose, onSaved, onManual }: {
-  providers: ExistingProvider[]; models: ExistingModel[]; initialProviderId?: string; onClose: () => void; onSaved: () => void; onManual: () => void;
+export function AddModelsDialog({ providers, models, initialProviderId, onClose, onSaved, onChanged, onManual }: {
+  providers: ExistingProvider[]; models: ExistingModel[]; initialProviderId?: string; onClose: () => void; onSaved: () => void; onChanged: () => void; onManual: () => void;
 }) {
   const usable = providers.filter((provider) => provider.credentialConfigured);
   const [providerId, setProviderId] = useState(initialProviderId ?? usable[0]?.providerId ?? '');
@@ -172,6 +178,20 @@ export function AddModelsDialog({ providers, models, initialProviderId, onClose,
   const keyword = query.trim().toLowerCase();
   const visible = all.filter((model) => (showUnlisted || !discovery.data?.listed || model.listedByProvider) && (!keyword || `${model.name} ${model.providerModelId}`.toLowerCase().includes(keyword)));
   const picked = Object.keys(chosen);
+  // 上下文长度跟随供应方/目录给出的最大值：已添加的模型对不上时提示一键更新（向量模型的输出上限不动）。
+  const outdated = models.filter((model) => model.providerId === providerId).flatMap((model) => {
+    const found = all.find((item) => item.providerModelId === model.providerModelVersion);
+    if (!found?.contextWindow) return [];
+    const output = model.capabilities.includes('embedding') ? model.maxOutputTokens : found.maxOutputTokens ?? model.maxOutputTokens;
+    return found.contextWindow !== model.maxInputTokens || output !== model.maxOutputTokens ? [{ model, input: found.contextWindow, output }] : [];
+  });
+  const syncLimits = () => run(async () => {
+    for (const item of outdated) {
+      const key = newKey();
+      await api(`/v1/admin/models/${encodeURIComponent(item.model.modelId)}`, { method: 'PUT', idempotencyKey: key, body: { expectedVersion: item.model.version, idempotencyKey: key, model: { ...item.model, version: item.model.version + 1, maxInputTokens: item.input, maxOutputTokens: item.output } } });
+    }
+    onChanged();
+  }, `已更新 ${outdated.length} 个模型的上下文长度`);
 
   const toggle = (model: AvailableModel, on: boolean) => setChosen((current) => {
     const next = { ...current };
@@ -217,10 +237,16 @@ export function AddModelsDialog({ providers, models, initialProviderId, onClose,
     >
       {!usable.length ? <Notice status="warning">先接入一个供应方并设置密钥。</Notice> : (
         <>
-          <FormGrid>
-            <SelectInput label="供应方" options={usable.map((provider) => ({ value: provider.providerId, label: provider.displayName }))} value={providerId} onChange={(value) => { setProviderId(value); setChosen({}); }} />
-            <SearchField placeholder="搜索模型" value={query} onChange={setQuery} />
-          </FormGrid>
+          <SelectInput label="供应方" options={usable.map((provider) => ({ value: provider.providerId, label: provider.displayName }))} value={providerId} onChange={(value) => { setProviderId(value); setChosen({}); }} />
+          {outdated.length > 0 && (
+            <Notice status="accent" title={`${outdated.length} 个已添加模型的上下文长度和最新数据不一致`}>
+              <span className="flex flex-wrap items-center gap-2">
+                {outdated.map((item) => `${item.model.providerModelVersion}：${fmtTokens(item.model.maxInputTokens)} → ${fmtTokens(item.input)}`).join('；')}
+                <Button isPending={busy} size="sm" variant="secondary" onPress={() => void syncLimits()}>全部更新</Button>
+              </span>
+            </Notice>
+          )}
+          <SearchField placeholder="搜索模型" value={query} onChange={setQuery} />
           {discovery.error ? <ErrorBlock error={discovery.error} onRetry={discovery.reload} /> : !discovery.data ? <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted"><Spinner size="sm" />正在向供应方查询可用模型…</div> : (
             <>
               {discovery.data.listed

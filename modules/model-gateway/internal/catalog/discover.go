@@ -346,8 +346,12 @@ func listProviderModels(ctx context.Context, op OperationContext, providerID, ad
 	}
 	var body struct {
 		Data []struct {
-			ID          string `json:"id"`
-			DisplayName string `json:"display_name"`
+			ID            string `json:"id"`
+			DisplayName   string `json:"display_name"`
+			ContextLength int    `json:"context_length"`
+			TopProvider   struct {
+				MaxCompletionTokens int `json:"max_completion_tokens"`
+			} `json:"top_provider"`
 		} `json:"data"`
 		Models []struct {
 			Name        string   `json:"name"`
@@ -362,7 +366,8 @@ func listProviderModels(ctx context.Context, op OperationContext, providerID, ad
 	}
 	models := make([]listedModel, 0, len(body.Data)+len(body.Models))
 	for _, item := range body.Data {
-		models = append(models, listedModel{id: item.ID, name: item.DisplayName})
+		// OpenRouter、SiliconFlow 等会在列表里直接给上下文长度，优先于目录。
+		models = append(models, listedModel{id: item.ID, name: item.DisplayName, context: max(item.ContextLength, 0), output: max(item.TopProvider.MaxCompletionTokens, 0)})
 	}
 	for _, item := range body.Models {
 		models = append(models, listedModel{id: strings.TrimPrefix(item.Name, "models/"), name: item.DisplayName, context: item.Input, output: item.Output, methods: item.Methods})
