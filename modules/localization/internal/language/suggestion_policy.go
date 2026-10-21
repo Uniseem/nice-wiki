@@ -51,6 +51,11 @@ func readSuggestionPolicy(ctx context.Context, tx *sql.Tx, op OperationContext) 
 	return result, nil
 }
 
+// CurrentSuggestionPolicy 在调用方事务里读当前语言建议开关（无配置即关闭）。
+func CurrentSuggestionPolicy(ctx context.Context, tx *sql.Tx, op OperationContext) (LanguageSuggestionPolicy, error) {
+	return readSuggestionPolicy(ctx, tx, op)
+}
+
 func ReadLanguageSuggestionPolicy(ctx context.Context, op OperationContext, input ReadLanguageSuggestionPolicyInput) (LanguageSuggestionPolicy, error) {
 	if err := RequireAdministrator(op); err != nil {
 		return LanguageSuggestionPolicy{}, err

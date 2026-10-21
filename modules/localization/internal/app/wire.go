@@ -142,7 +142,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
 	handlers := language.NewLanguageHandlers()
-	for _, additional := range []map[string]http.Handler{language.NewSuggestionPolicyHandlers(), glossary.NewGlossaryHandlers(), translation.NewTranslationHandlers(), interfacecatalog.NewInterfaceHandlers(), cacheanswer.NewCacheTranslationHandlers(), suggestion.NewPreferenceHandlers()} {
+	for _, additional := range []map[string]http.Handler{language.NewSuggestionPolicyHandlers(), glossary.NewGlossaryHandlers(), translation.NewTranslationHandlers(), interfacecatalog.NewInterfaceHandlers(), cacheanswer.NewCacheTranslationHandlers(), suggestion.NewPreferenceHandlers(), suggestion.NewSuggestionHandlers()} {
 		for id, handler := range additional {
 			handlers[id] = handler
 		}
@@ -166,7 +166,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"approveLanguagePlan":  {"portal"},
 			"listLanguages":        {"portal", "public-site"},
 			"putGlossaryTerm":      {"portal"}, "deleteGlossaryTerm": {"portal"}, "listGlossary": {"portal"}, "rollbackAutomaticGlossaryBatch": {"portal"}, "applyApprovedGlossaryProposal": {"memory"},
-			"saveLanguagePreference": {"public-site"}, "readTranslation": {"public-site"}, "listTranslationTitles": {"public-site"}, "listTranslationProgress": {"portal"}, "createTranslation": {"portal"}, "cancelTranslation": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "requestInterfaceTranslation": {"portal"}, "readCacheAnswerTranslation": {"qa"},
+			"saveLanguagePreference": {"public-site"}, "suggestLanguage": {"portal"}, "readTranslation": {"public-site"}, "listTranslationTitles": {"public-site"}, "listTranslationProgress": {"portal"}, "createTranslation": {"portal"}, "cancelTranslation": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "requestInterfaceTranslation": {"portal"}, "readCacheAnswerTranslation": {"qa"},
 		},
 	}, handlers)
 	if err != nil {
