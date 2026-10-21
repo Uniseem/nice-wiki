@@ -1,6 +1,6 @@
 import { ArrowRight, Globe, Lock, Person } from '@gravity-ui/icons';
 import { Button, Card, Form, Spinner } from '@heroui/react';
-import { adminLanguage, api, chosenAdminLanguage, errorText, findSiteLanguage, Notice, setAdminLanguage, siteLanguages, storeSession, TextInput, ThemeMenu, t } from '@ui';
+import { adminLanguage, api, chosenAdminLanguage, errorText, findSiteLanguage, LanguageMenu, Notice, setAdminLanguage, siteLanguages, storeSession, TextInput, ThemeMenu, t } from '@ui';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ensureBaseLanguage, type Account } from './App';
 import { SiteMark, useSiteBrand } from './brand';
@@ -84,7 +84,8 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
 
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-10">
-      <div className="absolute end-4 top-4"><ThemeMenu /></div>
+      {/* 登录页可以切换界面语言；初始化流程里语言就是站点基准语言，在选语言页和站点页换。 */}
+      <div className="absolute end-4 top-4 flex items-center gap-1">{step === 'login' && <LanguageMenu />}<ThemeMenu /></div>
       <div className="mb-8 flex items-center gap-3">
         <SiteMark brand={brand} className="size-10 shrink-0 rounded-xl text-lg" />
         <div>
@@ -133,13 +134,13 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
               <Button fullWidth isPending={busy} size="lg" type="submit">
                 {busy ? <Spinner color="current" size="sm" /> : step === 'site' ? <Globe /> : null}
                 {step === 'register' ? t('创建并继续') : step === 'login' ? t('登录') : t('完成初始化')}
-                {!busy && step !== 'site' && <ArrowRight />}
+                {!busy && step !== 'site' && <ArrowRight className="rtl:-scale-x-100" />}
               </Button>
             </Form>
           </>
         )}
       </Card>
-      <p className="mt-6 text-xs text-muted">{t('忘记口令请联系超级管理员重置。')}</p>
+      {step === 'login' && <p className="mt-6 text-xs text-muted">{t('忘记口令请联系超级管理员重置。')}</p>}
     </div>
   );
 }
@@ -156,7 +157,7 @@ function LanguagePicker() {
       </Card.Header>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {siteLanguages.map((language) => (
-          <Button key={language.tag} className="justify-start" variant="tertiary" onPress={() => setAdminLanguage(language.tag)}>
+          <Button key={language.tag} fullWidth className="justify-start" variant="tertiary" onPress={() => setAdminLanguage(language.tag)}>
             <span dir={language.direction} lang={language.tag}>{language.native}</span>
           </Button>
         ))}

@@ -104,7 +104,7 @@ export function TreePanel({ docs, treeRevision, selected, onSelect, onCreate, on
                       type="button"
                       onClick={() => toggle(doc.documentId)}
                     >
-                      {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                      {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5 rtl:-scale-x-100" />}
                     </button>
                     <button className="flex min-w-0 flex-1 items-center gap-2 py-1 text-start" type="button" onClick={() => onSelect(doc.documentId)}>
                       <span className={cn('size-1.5 shrink-0 rounded-full', doc.state === 'published' ? 'bg-success' : 'bg-border')} title={doc.state === 'published' ? t('已发布') : t('草稿')} />
@@ -180,7 +180,7 @@ function TrashList({ treeRevision, onBack, onChanged }: { treeRevision: number; 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-2 px-3 pb-2 pt-4">
-        <Button isIconOnly aria-label={t('返回文档')} size="sm" variant="ghost" onPress={onBack}><ArrowLeft /></Button>
+        <Button isIconOnly aria-label={t('返回文档')} size="sm" variant="ghost" onPress={onBack}><ArrowLeft className="rtl:-scale-x-100" /></Button>
         <h2 className="text-sm font-semibold text-foreground">{t('回收站')}</h2>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">

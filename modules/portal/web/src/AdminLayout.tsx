@@ -151,7 +151,7 @@ function AccountBox({ account, onSignOut }: { account: Account; onSignOut: () =>
               <Label>{t('个人设置')}</Label>
             </Dropdown.Item>
             <Dropdown.Item id="logout" textValue={t('退出登录')} variant="danger">
-              <ArrowRightFromSquare className="size-4" />
+              <ArrowRightFromSquare className="size-4 rtl:-scale-x-100" />
               <Label>{t('退出登录')}</Label>
             </Dropdown.Item>
           </Dropdown.Menu>

@@ -103,12 +103,12 @@ export function StatusChip({ tone = 'default', children }: { tone?: Tone; childr
 
 export function Stat({ label, value, hint, icon }: { label: ReactNode; value: ReactNode; hint?: ReactNode; icon?: ReactNode }) {
   return (
-    <Card className="gap-2 p-5">
+    <Card className="gap-2 p-4 sm:p-5">
       <div className="flex items-center justify-between gap-2 text-sm text-muted">
-        <span>{label}</span>
+        <span className="min-w-0 truncate">{label}</span>
         {icon && <span className="text-muted [&>svg]:size-4">{icon}</span>}
       </div>
-      <div className="text-3xl font-semibold tracking-tight text-foreground tabular-nums">{value}</div>
+      <div className="text-2xl font-semibold tracking-tight text-foreground tabular-nums sm:text-3xl">{value}</div>
       {hint && <div className="text-xs text-muted">{hint}</div>}
     </Card>
   );

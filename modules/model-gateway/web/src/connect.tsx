@@ -120,7 +120,7 @@ export function ConnectProviderDialog({ existing, onClose, onConnected }: { exis
   const keyHint = picked !== 'custom' && picked.keyNames.length ? t('通常叫 {0}。', picked.keyNames.join(' / ')) : '';
   return (
     <Shell
-      footer={<><Button variant="tertiary" onPress={() => setPicked(null)}><ArrowLeft />{t('重新选择')}</Button><Button isPending={busy} type="submit">{t('接入')}</Button></>}
+      footer={<><Button variant="tertiary" onPress={() => setPicked(null)}><ArrowLeft className="rtl:-scale-x-100" />{t('重新选择')}</Button><Button isPending={busy} type="submit">{t('接入')}</Button></>}
       title={picked === 'custom' ? t('自定义供应方') : t('接入 {0}', displayName(picked))}
       onClose={onClose}
       onSubmit={() => void submit()}

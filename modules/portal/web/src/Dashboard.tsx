@@ -78,7 +78,7 @@ export default function Dashboard() {
         ) : undefined}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {tiles.total !== undefined && <Stat icon={<FileText />} label={t('文档')} value={fmtNumber(tiles.total)} hint={t('{0} 篇已发布 · {1} 篇草稿', tiles.published ?? 0, tiles.drafts ?? 0)} />}
         {tiles.trash !== undefined && <Stat icon={<TrashBin />} label={t('回收站')} value={fmtNumber(tiles.trash)} hint={t('可以恢复或彻底删除')} />}
         {tiles.visits !== undefined && <Stat icon={<ChartColumn />} label={t('近 7 天访问')} value={fmtNumber(tiles.visits)} hint={t('按小时去重的访次之和')} />}
@@ -104,7 +104,7 @@ export default function Dashboard() {
                       <span className={cn('block text-sm font-medium', step.done ? 'text-muted line-through' : 'text-foreground')}>{step.title}</span>
                       <span className="block text-sm text-muted">{step.description}</span>
                     </span>
-                    <ArrowRight className="mt-0.5 size-4 shrink-0 text-muted" />
+                    <ArrowRight className="mt-0.5 size-4 shrink-0 text-muted rtl:-scale-x-100" />
                   </LinkRow>
                 </li>
               ))}
