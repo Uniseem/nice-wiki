@@ -48,6 +48,6 @@ ENV NW_WEB_DIR=/web
 USER 10000:10000
 EXPOSE 8080
 VOLUME ["/data/portal"]
-WORKDIR /config
+WORKDIR /
 ENTRYPOINT ["/usr/local/bin/portal"]
 CMD ["--config", "/config/portal.json"]

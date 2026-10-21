@@ -20,7 +20,7 @@ python3 scripts/dev.py up
 - 问答（M3 第一版）：访客在文档页右下角提问 → 准入（traffic-guard）→ 检索知识库 → 模型流式回答 → 引用来源。需要先在后台配好模型接入（供应方/模型/档位/任务）、知识库索引、防滥用策略和问答策略；用本机假供应方联调通过，没有用真实模型。简化项：没有前置分类/检索核查/语义缓存/压缩，轮次在 qa 进程内执行（不走 jobs）；人机验证用浏览器里的 PoW（Turnstile 没做）。
 - 文档翻译（M3）：后台“语言”页给每篇已发布文档一个“翻译”按钮 → 按块调模型翻译（保留行内格式）→ 访客在 /<语言>/… 看到译文。用假供应方联调通过。简化项：没有术语表/翻译记忆/反思润色，翻译在 localization 进程内执行；语言开了“自动翻译”后，localization 每 10 秒扫一遍公开树，给还没有译文的当前发布修订补译（每轮最多 3 篇，失败的不自动重试）；“启用语言时按估价批量翻译”（approve-plan）批准后会把该语言的自动翻译打开，实际翻译由上面的自动补译完成，它建的 jobs 任务没有执行器、会一直排队（无害）；界面文案翻译、语言建议、缓存回答翻译未接。
 - 后台页面：文档、站点设置（含首页主视觉、公告横幅）、资源库、账号与权限、语言、模型接入（供应方/模型/档位/任务）、知识库索引、长期记忆、问答管理、防滥用、任务队列、统计与审计、备份与恢复（界面壳在 portal/web，各域 module.js 由壳挂载）。
-- 备份（简易版）：后台“备份与恢复”页可创建/列出/下载完整备份。data-protection 同步把配置里 `backupSources` 列出的各服务数据目录打成一个 zip（SQLite 用 VACUUM INTO 取一致快照，默认不含密钥；超管勾选“包含密钥和敏感配置”才会把 `backupSecretsDir` 下的全部密钥打进 zip，本地已验证），下载用 2 分钟一次性令牌；备份页可开“每日自动备份”（每天 03:00 按浏览器时区、保留 N 份，设置存在 simple-backups/schedule.json，已本地验证到点自动创建并清理）；本地 dev 和 compose 配置都已带 `backupSources`。简化项：没有跨域屏障/水位、没有加密包（含密钥的 zip 就是明文，请妥善保管）、在线恢复和镜像仍是 DEPENDENCY_UNAVAILABLE；恢复暂用 `deploy/restore.sh` 一类的手工方式（zip 里是各服务数据目录原样结构）。docker 里没跑过。
+- 备份（简易版）：后台“备份与恢复”页可创建/列出/下载完整备份。data-protection 同步把配置里 `backupSources` 列出的各服务数据目录打成一个 tar.gz（SQLite 用 VACUUM INTO 取一致快照，默认不含密钥；超管勾选“包含密钥和敏感配置”才会把 `backupSecretsDir` 下的全部密钥打进 tar.gz，本地已验证），下载用 2 分钟一次性令牌；备份页可开“每日自动备份”（每天 03:00 按浏览器时区、保留 N 份，设置存在 simple-backups/schedule.json，已本地验证到点自动创建并清理）；本地 dev 和 compose 配置都已带 `backupSources`。简化项：没有跨域屏障/水位、没有加密包（含密钥的归档就是明文，请妥善保管）、在线恢复和镜像仍是 DEPENDENCY_UNAVAILABLE。恢复用 `deploy/restore-archive.sh <tar.gz绝对路径>`（先校验归档、停服务、逐卷先解压再替换、目录收紧为仅属主、启动；含密钥时解到 deploy/secrets-restored）。本地和 docker compose 里都演练过：备份 → 多发一篇文档 → 恢复 → 文档数回到备份时，账号可登录、可发布。
 - 部署文件（未部署过）：各域 Dockerfile、`deploy/docker-compose.yml`、Caddyfile、`deploy/init-secrets.sh`，由 `scripts/gen_deploy.py` 生成。
 
 ## 下一步（按顺序）
@@ -29,7 +29,7 @@ python3 scripts/dev.py up
 2. M2 余项：media 消费 content 事件；翻译的自动触发现在是轮询，不是事件。
 3. M3 补完：前置分类/检索核查/语义缓存、approve-plan 批量翻译执行器、界面文案翻译、语言建议。
 4. M4：各域屏障与快照导出、恢复换目录、恢复/镜像（简易备份已有，见上）。
-5. M5：在服务器上部署（需要你当次同意）；15 个镜像都在本机 docker 里构建通过，整套 compose 也在本机起过：通过 Caddy 的 HTTPS 注册超管、初始化站点、新建并发布文档、公开页读取都走通（`NW_PORTAL=https://localhost python3 scripts/smoke.py new`）。这一轮顺带修了：媒体镜像入口被 alpine 自带的 /media 目录挡住、model-gateway 与 data-protection 的主密钥文件要求 0600 而容器普通用户读不到（这两个服务改以 root 运行）、init-secrets 写错目录、构建上下文带宿主机 node_modules。没确认的：初始化之前退出的 analytics/model-gateway/knowledge 在 docker 里多久能自动恢复（我检查时还在重启退避中）；改过入口路径的新 Dockerfile 只有 media 用新方式验证过。
+5. M5：在服务器上部署（需要你当次同意）；15 个镜像都在本机 docker 里用新入口构建通过，整套 compose 在本机起过（含 portal 路由表路径修复）：通过 Caddy 的 HTTPS 注册超管、初始化站点、新建并发布文档、公开页读取都走通（`NW_PORTAL=https://localhost python3 scripts/smoke.py new`）。这一轮顺带修了：媒体镜像入口被 alpine 自带的 /media 目录挡住、model-gateway 与 data-protection 的主密钥文件要求 0600 而容器普通用户读不到（这两个服务改以 root 运行）、init-secrets 写错目录、构建上下文带宿主机 node_modules。没确认的：全新空卷第一次启动时，站点初始化之前依赖站点身份的服务（analytics/model-gateway/knowledge 等）原地等待、初始化后恢复这一段，docker 里没单独演练（本地验证过）；本机磁盘紧张，镜像构建要逐个构建并清理中间层。
 
 ## 已知缺口
 

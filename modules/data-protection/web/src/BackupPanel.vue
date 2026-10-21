@@ -75,7 +75,7 @@ async function downloadBackup(backup: Backup): Promise<void> {
   downloading.value = true; error.value = '';
   let output: WritableStream<Uint8Array> | undefined;
   try {
-    const handle = await picker.call(window, { suggestedName: `backup-${backup.backupId}.zip` });
+    const handle = await picker.call(window, { suggestedName: `backup-${backup.backupId}.tar.gz` });
     if (signal.aborted) return;
     const authorization = await props.bootstrap.apiClient.request<components['schemas']['AuthorizeBackupDownloadResult']>(`/v1/backups/${encodeURIComponent(backup.backupId)}:download`, { method: 'POST', body: {}, signal, idempotencyKey: crypto.randomUUID() });
     const response = await props.bootstrap.apiClient.request<Response>(`/v1/backups/${encodeURIComponent(backup.backupId)}/download`, { responseType: 'stream', backupDownloadToken: authorization.downloadToken, signal });

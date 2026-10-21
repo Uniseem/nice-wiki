@@ -1,7 +1,8 @@
 package transport
 
 import (
-	"archive/zip"
+	"archive/tar"
+	"compress/gzip"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -23,7 +24,7 @@ import (
 	"nice-wiki/modules/data-protection/internal/gen"
 )
 
-// 简易在线备份：把配置里列出的各服务数据目录打成一个 zip。
+// 简易在线备份：把配置里列出的各服务数据目录打成一个 tar.gz。
 // SQLite 库用 VACUUM INTO 取一致快照，其余文件原样复制；不含密钥目录。
 // 创建同步完成，下载用一次性短期令牌。
 
@@ -93,14 +94,14 @@ func (s *server) createBackup(ctx context.Context, includeSecrets bool) (string,
 	if includeSecrets {
 		secretsDir = s.app.config.BackupSecretsDir
 	}
-	manifest, err := writeBackupArchive(ctx, filepath.Join(dir, "backup.zip"), sources, secretsDir)
+	manifest, err := writeBackupArchive(ctx, filepath.Join(dir, "backup.tar.gz"), sources, secretsDir)
 	if err != nil {
 		_ = os.RemoveAll(dir)
 		return "", err
 	}
 	manifest.BackupID = id
 	manifest.CreatedAt = time.Now().UTC().Format(time.RFC3339)
-	manifest.Format = "nice-wiki-simple-zip/1"
+	manifest.Format = "nice-wiki-simple-tar/1"
 	manifest.IncludeSecrets = includeSecrets
 	raw, _ := json.Marshal(manifest)
 	if err := os.WriteFile(filepath.Join(dir, "manifest.json"), raw, 0o600); err != nil {
@@ -117,7 +118,8 @@ func writeBackupArchive(ctx context.Context, target string, sources map[string]s
 	}
 	defer out.Close()
 	hash := sha256.New()
-	zw := zip.NewWriter(io.MultiWriter(out, hash))
+	gz := gzip.NewWriter(io.MultiWriter(out, hash))
+	tw := tar.NewWriter(gz)
 	scratch, err := os.MkdirTemp(filepath.Dir(target), "snap-")
 	if err != nil {
 		return backupManifest{}, platform.NewError(platform.CodeInternal, true, "无法创建临时目录")
@@ -152,7 +154,7 @@ func writeBackupArchive(ctx context.Context, target string, sources map[string]s
 				source = snap
 				defer os.Remove(snap)
 			}
-			size, err := addZipFile(zw, slug+"/"+filepath.ToSlash(rel), source)
+			size, err := addTarFile(tw, slug+"/"+filepath.ToSlash(rel), source)
 			if err != nil {
 				return err
 			}
@@ -172,7 +174,7 @@ func writeBackupArchive(ctx context.Context, target string, sources map[string]s
 				return walkErr
 			}
 			rel, _ := filepath.Rel(secretsDir, path)
-			size, err := addZipFile(zw, "secrets/"+filepath.ToSlash(rel), path)
+			size, err := addTarFile(tw, "secrets/"+filepath.ToSlash(rel), path)
 			domain.Files++
 			domain.Bytes += size
 			return err
@@ -182,7 +184,10 @@ func writeBackupArchive(ctx context.Context, target string, sources map[string]s
 		}
 		manifest.Domains = append(manifest.Domains, domain)
 	}
-	if err := zw.Close(); err != nil {
+	if err := tw.Close(); err != nil {
+		return backupManifest{}, platform.NewError(platform.CodeInternal, true, "备份归档收尾失败")
+	}
+	if err := gz.Close(); err != nil {
 		return backupManifest{}, platform.NewError(platform.CodeInternal, true, "备份压缩收尾失败")
 	}
 	info, err := out.Stat()
@@ -204,17 +209,20 @@ func vacuumInto(ctx context.Context, path, target string) error {
 	return err
 }
 
-func addZipFile(zw *zip.Writer, name, source string) (int64, error) {
+func addTarFile(tw *tar.Writer, name, source string) (int64, error) {
 	in, err := os.Open(source)
 	if err != nil {
 		return 0, err
 	}
 	defer in.Close()
-	w, err := zw.Create(name)
+	info, err := in.Stat()
 	if err != nil {
 		return 0, err
 	}
-	return io.Copy(w, in)
+	if err := tw.WriteHeader(&tar.Header{Name: name, Mode: 0o600, Size: info.Size(), ModTime: info.ModTime(), Typeflag: tar.TypeReg}); err != nil {
+		return 0, err
+	}
+	return io.Copy(tw, in)
 }
 
 func randomBytes(n int) []byte {
@@ -305,13 +313,13 @@ func (s *server) simpleStreamBackup(w http.ResponseWriter, r *http.Request, id s
 	if err != nil {
 		return err
 	}
-	f, err := os.Open(filepath.Join(dir, "backup.zip"))
+	f, err := os.Open(filepath.Join(dir, "backup.tar.gz"))
 	if err != nil {
 		return platform.NewError(platform.CodeNotFound, false, "备份文件不存在")
 	}
 	defer f.Close()
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", `attachment; filename="backup-`+id+`.zip"`)
+	w.Header().Set("Content-Type", "application/gzip")
+	w.Header().Set("Content-Disposition", `attachment; filename="backup-`+id+`.tar.gz"`)
 	w.Header().Set("Cache-Control", "no-store")
 	_, _ = io.Copy(w, f)
 	return nil
