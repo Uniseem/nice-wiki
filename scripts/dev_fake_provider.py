@@ -27,6 +27,12 @@ def reply_text(messages, last):
             return json.dumps({"items": [{"chunkId": i, "prefix": "（假背景）"} for i in ids]}, ensure_ascii=False)
         except Exception as e:
             return "{}"
+    if "界面用语" in system:
+        try:
+            payload = json.loads(last)
+            return json.dumps({"items": [{"key": i["key"], "value": "[UI] " + i["value"]} for i in payload["items"]]}, ensure_ascii=False)
+        except Exception:
+            return "{}"
     if "targetText" in system:
         try:
             payload = json.loads(last)

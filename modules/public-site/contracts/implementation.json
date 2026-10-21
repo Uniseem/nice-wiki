@@ -1031,7 +1031,8 @@
             "content:readPublicTree",
             "content:validatePublications",
             "site-config:readSiteConfig",
-            "localization:listLanguages"
+            "localization:listLanguages",
+            "localization:readInterfaceCatalog"
           ],
           "resources": [],
           "contract": "reference"

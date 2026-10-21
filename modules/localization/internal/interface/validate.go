@@ -27,6 +27,15 @@ var placeholderPattern = regexp.MustCompile(`\{([A-Za-z][A-Za-z0-9_.]*)\}`)
 var htmlPattern = regexp.MustCompile(`(?i)<[/!A-Za-z][^>]*>`)
 
 func SourceCatalog(ctx context.Context, tx *sql.Tx) (map[string]gen.InterfaceString, error) {
+	var installed int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM interface_sources`).Scan(&installed); err != nil {
+		return nil, language.StorageError(err)
+	}
+	if installed == 0 {
+		if err := installSource(ctx, tx); err != nil {
+			return nil, err
+		}
+	}
 	rows, err := tx.QueryContext(ctx, `SELECT key,value_text,source_hash,placeholders FROM interface_sources ORDER BY key`)
 	if err != nil {
 		return nil, language.StorageError(err)

@@ -23,6 +23,7 @@ type ComposeHTMLInput struct {
 	Languages    []LanguageLink
 	Footer       string
 	Untranslated bool
+	UIStrings    map[string]string // 界面字典译文（key 为中文原文），可为空
 	AIEnabled    bool
 	AskURL       string
 	MarkdownURL  string
@@ -151,5 +152,5 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 		output.WriteString(`<link rel="stylesheet" href="/_admin/katex/katex.min.css"><script src="/_admin/katex/katex.min.js"></script><script>document.querySelectorAll('.math-source').forEach(function(e){try{katex.render(e.textContent,e,{displayMode:e.tagName==='DIV',throwOnError:false})}catch(x){}})</script>`)
 	}
 	output.WriteString(`<script>document.querySelectorAll('[data-toggle]').forEach(function(b){b.onclick=function(){document.querySelector('.'+b.dataset.toggle).toggleAttribute('data-open')}});document.querySelector('[data-theme-toggle]').onclick=function(){document.body.dataset.theme=document.body.dataset.theme==='dark'?'light':'dark'};var copy=document.querySelector('[data-copy-markdown]');if(copy)copy.onclick=async function(){var a=document.querySelector('[data-markdown]');try{var r=await fetch(a.href,{cache:'no-store'});if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());copy.textContent='已复制'}catch(e){copy.textContent='复制失败，请打开 Markdown 版本'}};document.querySelectorAll('[data-embed]').forEach(function(b){b.onclick=function(){var f=document.createElement('iframe');f.src=b.dataset.embed;f.title=b.dataset.title||'视频播放器';f.allowFullscreen=true;f.referrerPolicy='no-referrer';f.setAttribute('sandbox','allow-scripts allow-same-origin allow-presentation');b.replaceWith(f)}});(function(){var d=document.body.dataset.doc;if(!d||!window.fetch)return;var r='';try{r=new URL(document.referrer).hostname}catch(e){}if(/^[0-9.]+$/.test(r)||r.indexOf(':')>=0)r='';var p={beaconId:crypto.randomUUID().split('-').join(''),documentId:d,locale:document.body.dataset.locale,eventType:'page-view',status:200,elapsedMs:Math.min(60000,Math.round(performance.now())),referrerDomain:r,userAgent:navigator.userAgent.slice(0,1000)};fetch('/v1/beacons',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json','Idempotency-Key':p.beaconId},body:JSON.stringify(p)}).catch(function(){})})();</script></body></html>`)
-	return ComposeHTMLResult{strings.Replace(localizeUI(in.Locale, output.String()), "\x00BODY\x00", in.SafeHTML, 1)}, nil
+	return ComposeHTMLResult{strings.Replace(localizeUI(in.Locale, output.String(), in.UIStrings), "\x00BODY\x00", in.SafeHTML, 1)}, nil
 }

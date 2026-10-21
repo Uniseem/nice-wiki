@@ -15,6 +15,12 @@ func NewInterfaceHandlers() map[string]http.Handler {
 			}
 			return nil
 		}),
+		"requestInterfaceTranslation": language.JSONHandler(RequestInterfaceTranslation, func(i *RequestInterfaceTranslationInput, r *http.Request) error {
+			if i.Language != r.PathValue("language") {
+				return platform.NewError(platform.CodeValidation, false, "界面翻译路径与正文不一致")
+			}
+			return nil
+		}),
 		"readInterfaceCatalog": language.JSONHandler(ReadInterfaceCatalog, func(i *ReadInterfaceCatalogInput, r *http.Request) error {
 			i.Language = r.PathValue("language")
 			if r.URL.Query().Has("knownGeneration") {

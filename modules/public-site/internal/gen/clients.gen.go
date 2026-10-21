@@ -488,6 +488,22 @@ func (c *LocalizationClient) ListLanguages(ctx context.Context, queries ...url.V
 	return c.do(ctx, http.MethodGet, requestPath, nil, "")
 }
 
+// ReadInterfaceCatalog GET /v1/interface-strings/{language}（localization:readInterfaceCatalog）。
+// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
+func (c *LocalizationClient) ReadInterfaceCatalog(ctx context.Context, language string, queries ...url.Values) (json.RawMessage, error) {
+	requestPath := "/v1/interface-strings/" + url.PathEscape(language) + ""
+	query := url.Values{}
+	for _, values := range queries {
+		for key, entries := range values {
+			query[key] = append(query[key], entries...)
+		}
+	}
+	if encoded := query.Encode(); encoded != "" {
+		requestPath += "?" + encoded
+	}
+	return c.do(ctx, http.MethodGet, requestPath, nil, "")
+}
+
 // ReadTranslation POST /v1/translations:read（localization:readTranslation）。
 func (c *LocalizationClient) ReadTranslation(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/translations:read", body, "")

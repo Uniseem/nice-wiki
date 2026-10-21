@@ -258,6 +258,7 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 		Languages:    languages,
 		AIEnabled:    qaAvailable(ctx, op),
 		AskURL:       "/" + locale + "/ask",
+		UIStrings:    loadUIStrings(ctx, locale),
 	})
 	if err != nil {
 		return "", err

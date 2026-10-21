@@ -50,6 +50,14 @@ const translate = (node: any) => {
   }, '已开始翻译，完成后访客就能看到该语言的页面；稍后刷新查看进度。');
 };
 
+const translateUI = (language: Language) => {
+  if (!confirm(`把页面上的界面文字（如“本页目录”“上一篇”）翻译成 ${language.tag} 会调用一次模型，可能产生少量费用。继续？`)) return;
+  return run(async () => {
+    const idempotencyKey = key();
+    await api(`/v1/interface-strings/${encodeURIComponent(language.tag)}:translate`, { method: 'POST', idempotencyKey, body: { language: language.tag } });
+  }, '已开始翻译界面文字，约一分钟后访客页面会使用译文（没翻译的部分仍显示英文）。');
+};
+
 const setAuto = (language: Language, on: boolean) => {
   if (on && !confirm('开启后，每篇文档发布新版本时都会自动调用模型翻译到该语言，可能产生费用。确认开启？')) return;
   return run(async () => {
@@ -79,6 +87,7 @@ onMounted(() => run(async () => {}));
           <td>
             <button v-if="!l.isDefault && !l.enabled" :disabled="busy" @click="setEnabled(l, true)">启用</button>
             <button v-else-if="!l.isDefault" :disabled="busy" @click="setEnabled(l, false)">停用</button>
+            <button v-if="!l.isDefault && l.enabled" :disabled="busy" @click="translateUI(l)">翻译界面文字</button>
           </td>
         </tr>
       </tbody>
