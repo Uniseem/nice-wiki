@@ -138,6 +138,10 @@ func ResolvePublicPath(ctx context.Context, op OperationContext, input ResolvePu
 	if epoch != op.DataEpoch {
 		return result, platform.NewError(platform.CodeVersionMismatch, false, "旧路径决定不是当前代次")
 	}
+	// 删除时记下的“已删除”：文档后来恢复并重新发布到了别的路径，旧地址就跳过去，不再报已删除。
+	if node, ok := current[documentID]; ok && state == "gone" && node.CanonicalPath != input.Path {
+		state = "redirect"
+	}
 	if state == "gone" {
 		result.State = "gone"
 		return result, nil
