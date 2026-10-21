@@ -38,7 +38,7 @@ python3 scripts/dev.py up
 - portal 本地路由（bootstrap、events、preferences、屏障）未实现，只有 healthz/readyz；data-protection 的恢复/镜像业务未实现（readyz 已是 200，备份接口可用）。
 - 文档标题翻译：翻译文档时会多一次小调用翻译标题，页面 h1、`<title>`、Markdown 标题和导航树用译文（localization 的 `listTranslationTitles` 给公开站按语言批量取，缓存一分钟，发布修订对不上就沿用原文）；已有译文要重新翻译一次才带标题。
 - 各服务用 `lifecycle.SimpleAdmission` 代替快照屏障准入，M4 再换。
-- media 的 readVideoMetadata（平台视频链接）、localization 的语言建议/缓存回答翻译/approve-plan 执行器、qa 的调试台/语义缓存、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
+- media 的 readVideoMetadata（平台视频链接）、localization 的语言建议/缓存回答翻译/approve-plan 执行器（取消翻译只有接口 `POST /v1/translations/{id}/cancel`，后台界面还没有按钮）、qa 的调试台/语义缓存、knowledge 的 inspectEvidence 还没接；它们都依赖模型或后续里程碑。
 - 站点初始化之前，依赖站点身份的服务（model-gateway、knowledge、analytics 等）会原地每 3 秒重试，初始化一完成就就绪，不再退出重启。
 
 ## 未合并的旧工作

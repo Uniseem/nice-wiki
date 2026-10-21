@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -15,11 +16,15 @@ import (
 	localizationruntime "nice-wiki/modules/localization/internal/runtime"
 )
 
+var errTranslationCancelled = errors.New("翻译已被取消")
+
 // ExecuteTranslation 把一份 queued 译文翻译完成：按批调用模型、逐条校验、写出权威译文对象并置 ready；失败置 failed。
 func ExecuteTranslation(ctx context.Context, op OperationContext, translationID string) {
 	work, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
-	if err := runTranslation(work, op, translationID); err != nil {
+	if err := runTranslation(work, op, translationID); err != nil && errors.Is(err, errTranslationCancelled) {
+		return
+	} else if err != nil {
 		if os.Getenv("NW_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "翻译失败 translation=%s err=%v\n", translationID, err)
 		}
@@ -43,7 +48,7 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		if json.Unmarshal([]byte(ref), &document) != nil {
 			return platform.NewError(platform.CodeIntegrityError, false, "译文来源引用损坏")
 		}
-		_, err := tx.ExecContext(ctx, `UPDATE translation_manifests SET state='running',updated_at=? WHERE translation_id=?`, platform.Now(), translationID)
+		_, err := tx.ExecContext(ctx, `UPDATE translation_manifests SET state='running',updated_at=? WHERE translation_id=? AND state='queued'`, platform.Now(), translationID)
 		return language.StorageError(err)
 	})
 	if err != nil {
@@ -68,6 +73,9 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 	flush := func() error {
 		if len(batch) == 0 {
 			return nil
+		}
+		if translationCancelled(ctx, op, translationID) {
+			return errTranslationCancelled
 		}
 		done, err := translateBatch(ctx, op, translationID, route, memory, source, batch, len(translated))
 		if err != nil {
@@ -115,7 +123,7 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		if _, err := WriteObject(ctx, tx, op, object, 0); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `UPDATE translation_manifests SET state='ready',updated_at=? WHERE translation_id=?`, platform.Now(), translationID)
+		_, err := tx.ExecContext(ctx, `UPDATE translation_manifests SET state='ready',updated_at=? WHERE translation_id=? AND state='running'`, platform.Now(), translationID)
 		return language.StorageError(err)
 	})
 }

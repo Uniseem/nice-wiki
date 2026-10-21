@@ -15,6 +15,12 @@ func NewTranslationHandlers() map[string]http.Handler {
 			return nil
 		}),
 		"createTranslation": language.JSONHandler(CreateTranslation),
+		"cancelTranslation": language.JSONHandler(CancelTranslation, func(i *CancelTranslationInput, r *http.Request) error {
+			if i.TranslationId != r.PathValue("translationId") {
+				return platform.NewError(platform.CodeValidation, false, "取消路径与正文译文不一致")
+			}
+			return nil
+		}),
 		"estimateLanguagePlan": language.JSONHandler(EstimateLanguagePlan, func(i *EstimateLanguagePlanInput, r *http.Request) error {
 			if i.Language != r.PathValue("tag") {
 				return platform.NewError(platform.CodeValidation, false, "语言估价路径与正文语言不一致")
