@@ -73,6 +73,22 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 		}),
 		"handlePage": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
+			// 分片 sitemap 的路径 /sitemap/<语言>/<序号>.xml 带段内后缀，OpenAPI 路径模板挂不上，在这里按页面通配路由认出来。
+			if r.PathValue("locale") == "sitemap" {
+				if language, file, ok := strings.Cut(r.PathValue("slug"), "/"); ok && strings.HasSuffix(file, ".xml") {
+					if shard, convErr := strconv.Atoi(strings.TrimSuffix(file, ".xml")); convErr == nil {
+						result, sitemapErr := publicsite.HandleSitemapShard(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandleSitemapShardInput{Locale: language, Shard: shard, DataEpoch: string(op.DataEpoch)})
+						if sitemapErr != nil {
+							writeProblem(w, sitemapErr)
+							return
+						}
+						w.Header().Set("Content-Type", "application/xml")
+						w.WriteHeader(result.Status)
+						_, _ = w.Write([]byte(result.Xml))
+						return
+					}
+				}
+			}
 			result, err := publicsite.HandlePage(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandlePageInput{Locale: r.PathValue("locale"), Slug: r.PathValue("slug"), DataEpoch: string(op.DataEpoch)})
 			if err != nil {
 				writePageProblem(w, r, err)
