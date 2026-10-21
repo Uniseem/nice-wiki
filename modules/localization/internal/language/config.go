@@ -33,6 +33,9 @@ func PutLanguage(ctx context.Context, op OperationContext, input PutLanguageInpu
 	if err := acceptStoredTag(input.Language.Tag, input.Language.Direction); err != nil {
 		return PutLanguageResult{}, err
 	}
+	if _, ok := platform.FindSiteLanguage(input.Language.Tag); !ok {
+		return PutLanguageResult{}, platform.NewError(platform.CodeValidation, false, "只能添加预设的站点语言")
+	}
 	if input.Language.IsDefault && !input.Language.Enabled {
 		return PutLanguageResult{}, platform.NewError(platform.CodeValidation, false, "默认语言不能停用")
 	}

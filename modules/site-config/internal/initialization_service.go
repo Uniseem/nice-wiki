@@ -69,6 +69,9 @@ func InitializeSite(ctx context.Context, op platform.OperationContext, input gen
 	if err != nil {
 		return gen.InitializeSiteResult{}, err
 	}
+	if _, ok := platform.FindSiteLanguage(language.Canonical); !ok {
+		return gen.InitializeSiteResult{}, platform.NewError(platform.CodeValidation, false, "基准语言只能从预设的站点语言里选")
+	}
 	requestHash, err := initializationRequestHash(input.Name, language.Canonical)
 	if err != nil {
 		return gen.InitializeSiteResult{}, err
