@@ -1061,7 +1061,7 @@ func PutQaPolicy(ctx context.Context, op OperationContext, input PutQaPolicyInpu
 1. 限制各token预算
 2. embedding space与MG/knowledge匹配
 3. semantic阈值≥0.94
-4. CAS更新并失效scope
+4. CAS更新并失效scope；recordRetentionDays变化时进行中会话的过期时间按差值同步缩短或顺延
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 **错误**
@@ -1110,7 +1110,7 @@ func CreateConversation(ctx context.Context, op OperationContext, input CreateCo
 
 1. 仅portal委托的原伪名访客创建；免费qa.conversation元数据绑定原RootOperationID、subject、site/epoch且token为空
 2. 首次创建由ValidateAdmission消费并verify已消费的免费元数据；免费消费后仍无模型token，不调用模型
-3. 事务生成会话ID及30天过期与同visitor/key原回执，不保存IP
+3. 事务生成会话ID、按当前问答策略recordRetentionDays计算的过期时间与同visitor/key原回执，不保存IP
 4. 本地提交或原回执读取结束后，按原root/owner/site/epoch调用guard releaseAdmission空RequestBody释放占位；重放幂等补释放，不占首问并发位
 5. 释放未知或Released=false返回依赖失败但保留原会话和回执；同输入重试不再次消费或创建
 

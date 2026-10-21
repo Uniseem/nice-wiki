@@ -6,6 +6,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
+	"strconv"
 )
 
 type OperationContext = platform.OperationContext
@@ -120,6 +121,12 @@ func PutQaPolicy(ctx context.Context, op OperationContext, input PutQaPolicyInpu
 	}
 	if _, err = tx.Tx.ExecContext(tx.Context, `UPDATE qa_policy SET version=?,policy_json=? WHERE singleton=1 AND version=?`, next.Version, raw, current.Version); err != nil {
 		return PutQaPolicyResult{}, qaruntime.StorageError(err)
+	}
+	// 保留天数改了，进行中的会话也按“创建时间 + 新天数”到期：缩短立刻生效，延长也一并顺延。
+	if delta := next.RecordRetentionDays - current.RecordRetentionDays; delta != 0 {
+		if _, err = tx.Tx.ExecContext(tx.Context, `UPDATE conversations SET expires_at=strftime('%Y-%m-%dT%H:%M:%fZ',expires_at,?) WHERE state='active'`, strconv.Itoa(delta)+" days"); err != nil {
+			return PutQaPolicyResult{}, qaruntime.StorageError(err)
+		}
 	}
 	result := PutQaPolicyResult{Policy: next}
 	if err = qaruntime.SaveReceipt(tx, op, "qa.PutQaPolicy", input.IdempotencyKey, input, result); err != nil {

@@ -306,6 +306,40 @@ func materialBudget(ctx context.Context, op OperationContext, policy gen.TypesQa
 	return max(budget, 1)
 }
 
+// FailInterruptedTurns 收尾上次进程留下的未终止轮次：执行它们的协程已随进程退出，落 failed 并释放准入，同会话才能继续提问。
+// 只收尾、不重新执行，不会用新的幂等键再花一次钱。
+func FailInterruptedTurns(ctx context.Context, op OperationContext, startedNS int64) error {
+	read, err := qaruntime.BeginRead(ctx, op)
+	if err != nil {
+		return err
+	}
+	rows, err := read.Tx.QueryContext(read.Context, `SELECT turn_id FROM turns WHERE site_id=? AND data_epoch=? AND state NOT IN ('completed','cancelled','failed','invalidated') AND created_ns<?`, op.Actor.SiteID, op.DataEpoch, startedNS)
+	if err != nil {
+		read.Close()
+		return qaruntime.StorageError(err)
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			break
+		}
+		ids = append(ids, id)
+	}
+	if err == nil {
+		err = rows.Err()
+	}
+	rows.Close()
+	read.Close()
+	if err != nil {
+		return qaruntime.StorageError(err)
+	}
+	for _, id := range ids {
+		failTurn(ctx, op, id, platform.NewError(platform.CodeDependencyUnavailable, true, "服务重启，回答已中断"))
+	}
+	return nil
+}
+
 // failTurn 把未终止的轮次落成 failed，并尽量释放准入占位。
 func failTurn(ctx context.Context, op OperationContext, turnID string, cause error) {
 	code := platform.CodeInternal

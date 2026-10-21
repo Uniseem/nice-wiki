@@ -23,6 +23,7 @@ import (
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"nice-wiki/modules/qa/internal/transport"
+	"nice-wiki/modules/qa/internal/turn"
 	"nice-wiki/modules/qa/migrations"
 )
 
@@ -132,17 +133,43 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 		}
 	}
 	application := NewApplication(config, anchors, runtimeAuthority, view.DataEpoch)
+	// serviceOp 后台任务以本服务身份操作本站数据；还没有任何请求建立站点身份时返回 false。
+	serviceOp := func(tick context.Context) (context.Context, platform.OperationContext, bool) {
+		var site string
+		if err := db.QueryRowContext(tick, `SELECT site_id FROM qa_identity WHERE singleton=1`).Scan(&site); err != nil {
+			return nil, platform.OperationContext{}, false
+		}
+		deadline := time.Now().UTC().Add(30 * time.Second)
+		id := platform.NewIdentifier()
+		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline.Format(time.RFC3339Nano), DataEpoch: view.DataEpoch,
+			Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: site, ExpiresAt: deadline.Format(time.RFC3339Nano), Grants: []string{}}}
+		return qaruntime.WithRuntime(platform.WithOperationContext(tick, op), runtime), op, true
+	}
+	started := time.Now().UnixNano()
+	interruptedHandled := false
 	application.SetBackgroundTasks([]platform.BackgroundTask{{Name: "qa.outbox", Run: func(work context.Context) error {
 		return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(tick context.Context) error {
-			var site string
-			if err := db.QueryRowContext(tick, `SELECT site_id FROM qa_identity WHERE singleton=1`).Scan(&site); err != nil {
-				return nil // 还没有任何请求建立站点身份，没有事件可转发
+			ctx, op, ok := serviceOp(tick)
+			if !ok {
+				return nil
 			}
-			deadline := time.Now().UTC().Add(30 * time.Second)
-			id := platform.NewIdentifier()
-			op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline.Format(time.RFC3339Nano), DataEpoch: view.DataEpoch,
-				Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: site, ExpiresAt: deadline.Format(time.RFC3339Nano), Grants: []string{}}}
-			_, err := events.PublishOutbox(qaruntime.WithRuntime(platform.WithOperationContext(tick, op), runtime), op, events.PublishOutboxInput{Limit: 100})
+			_, err := events.PublishOutbox(ctx, op, events.PublishOutboxInput{Limit: 100})
+			return err
+		}})
+	}}, {Name: "qa.housekeeping", Run: func(work context.Context) error {
+		// 启动后先收尾上次进程中断的轮次，之后每分钟按保留期清理过期会话、诊断记录和已终止轮次的事件。
+		return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 60000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(tick context.Context) error {
+			ctx, op, ok := serviceOp(tick)
+			if !ok {
+				return nil
+			}
+			if !interruptedHandled {
+				if err := turn.FailInterruptedTurns(ctx, op, started); err != nil {
+					return err
+				}
+				interruptedHandled = true
+			}
+			_, err := qaruntime.PruneExpiredRecords(ctx, op, qaruntime.PruneExpiredRecordsInput{Now: time.Now(), Limit: 200})
 			return err
 		}})
 	}}})

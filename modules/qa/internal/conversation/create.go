@@ -80,7 +80,12 @@ func CreateConversation(ctx context.Context, op OperationContext, input CreateCo
 		tx.Close()
 		return finish()
 	}
-	result.Conversation = gen.Conversation{ConversationId: platform.NewIdentifier(), VisitorSubject: op.Actor.SubjectID, Language: tag.String(), State: gen.ConversationState("active"), Version: 1, HistoryGeneration: 0, ExpiresAt: time.Now().Add(30 * 24 * time.Hour).UTC()}
+	policy, err := qaruntime.ReadPolicy(tx)
+	if err != nil {
+		return CreateConversationResult{}, err
+	}
+	retention := time.Duration(policy.RecordRetentionDays) * 24 * time.Hour
+	result.Conversation = gen.Conversation{ConversationId: platform.NewIdentifier(), VisitorSubject: op.Actor.SubjectID, Language: tag.String(), State: gen.ConversationState("active"), Version: 1, HistoryGeneration: 0, ExpiresAt: time.Now().Add(retention).UTC()}
 	_, err = tx.Tx.ExecContext(tx.Context, `INSERT INTO conversations(conversation_id,site_id,data_epoch,visitor_subject,language,state,version,history_generation,expires_at) VALUES(?,?,?,?,?,'active',1,0,?)`, result.Conversation.ConversationId, op.Actor.SiteID, op.DataEpoch, op.Actor.SubjectID, result.Conversation.Language, result.Conversation.ExpiresAt.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return CreateConversationResult{}, qaruntime.StorageError(err)
