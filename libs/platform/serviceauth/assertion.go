@@ -388,6 +388,11 @@ func (t *signingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 // privateNetworkPeer 是唯一的可信代理链解析，原地址只在内存使用。
+// ClientAddress 按受信代理链取出访客的真实地址；只给入口做离线国家查询等不落地的用途。
+func ClientAddress(remoteAddr, forwardedFor string, trustedProxyCIDRs []string) (netip.Addr, error) {
+	return privateNetworkPeer(remoteAddr, forwardedFor, trustedProxyCIDRs)
+}
+
 func privateNetworkPeer(remoteAddr, forwardedFor string, trustedProxyCIDRs []string) (netip.Addr, error) {
 	invalid := func() (netip.Addr, error) {
 		return netip.Addr{}, platform.NewError(platform.CodeValidation, false, "网络来源或代理链不合法")

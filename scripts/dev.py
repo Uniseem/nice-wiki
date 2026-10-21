@@ -17,6 +17,30 @@ def path(*parts):
     return os.path.join(DEV, *parts)
 
 
+def geoip():
+    """离线 IP 国家库（DB-IP Lite Country，CC BY 4.0，“IP Geolocation by DB-IP”，按月更新）：没有就下载当月版本，下载失败时不提供国家信号。"""
+    target = path("geoip", "dbip-country-lite.mmdb")
+    if os.path.exists(target):
+        return target
+    os.makedirs(path("geoip"), exist_ok=True)
+    import datetime, gzip, urllib.request
+    today = datetime.date.today()
+    for month in (today, today.replace(day=1) - datetime.timedelta(days=1)):
+        try:
+            # 下载站拒绝 Python 默认的 User-Agent，需带一个明确的。
+            request = urllib.request.Request(f"https://download.db-ip.com/free/dbip-country-lite-{month:%Y-%m}.mmdb.gz", headers={"User-Agent": "nice-wiki-dev/1"})
+            with urllib.request.urlopen(request, timeout=120) as response:
+                data = gzip.decompress(response.read())
+        except Exception:
+            continue
+        with open(target + ".part", "wb") as f:
+            f.write(data)
+        os.replace(target + ".part", target)
+        return target
+    print("离线 IP 国家库下载失败，语言建议不带国家信号")
+    return None
+
+
 def setup():
     os.makedirs(path("bin"), exist_ok=True)
     os.makedirs(path("logs"), exist_ok=True)
@@ -62,6 +86,9 @@ def setup():
             json.dump({"keyId": did, "privateKeyRef": dele}, open(os.path.join(sec, "delegation-key.json"), "w"))
             cfg["delegationKeyRef"] = os.path.join(sec, "delegation-key.json")
             cfg["trustedProxyCIDRs"] = []
+            countries = geoip()
+            if countries:
+                cfg["geoipCountryDBRef"] = countries
         os.makedirs(cfg["dataRoot"], exist_ok=True, mode=0o700)
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
 

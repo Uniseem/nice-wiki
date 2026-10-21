@@ -670,6 +670,8 @@ type ServiceConfig struct {
 	PublicBaseURL     string            `json:"publicBaseURL,omitempty"`
 	AllowLocalHTTP    bool              `json:"allowLocalHTTP,omitempty"`
 	TrustedProxyCIDRs []string          `json:"trustedProxyCIDRs,omitempty"`
+	// GeoIPCountryDBRef 仅 portal 使用：离线 IP 国家库（MaxMind 格式，如 DB-IP Lite Country）的路径；缺省时不提供国家信号。
+	GeoIPCountryDBRef string `json:"geoipCountryDBRef,omitempty"`
 	// BackupSources 仅 data-protection 使用：服务 slug → 该服务数据目录（只读挂载），简易备份据此打包。
 	BackupSources map[string]string `json:"backupSources,omitempty"`
 	// BackupSecretsDir 仅 data-protection 使用：各服务密钥所在目录；超管勾选“包含密钥”时才会打进备份。
@@ -955,6 +957,8 @@ const (
 	HeaderAuthorization   = "Authorization"
 	// HeaderLanguagePreference 是入口从访客 lang cookie 取出、校验后转给拥有服务的语言选择；浏览器直接发的同名头不转发。
 	HeaderLanguagePreference = "X-Language-Preference"
+	// HeaderVisitorCountry 是入口用离线库查出的访客国家代码（不含地址），只转给需要它的接口；浏览器直接发的同名头不转发。
+	HeaderVisitorCountry = "X-Visitor-Country"
 )
 
 // AssertionScheme 服务断言的Authorization方案前缀。

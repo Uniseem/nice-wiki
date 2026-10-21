@@ -2318,7 +2318,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 65536,
-          "description": "guard离线GeoIP国家非IP"
+          "description": "入口离线GeoIP国家（不是IP）；以入口注入的X-Visitor-Country为准，浏览器提交的值忽略"
         },
         "currentLanguage": {
           "type": "string",

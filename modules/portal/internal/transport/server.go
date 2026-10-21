@@ -16,6 +16,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
+	"nice-wiki/libs/platform/geoip"
 	"nice-wiki/libs/platform/problem"
 	portal "nice-wiki/modules/portal/internal"
 	"nice-wiki/modules/portal/internal/gen"
@@ -37,6 +38,7 @@ type Application struct {
 	siteMu             sync.Mutex
 	siteID             platform.Identifier
 	budgetKey          platform.SigningKey
+	countries          *geoip.Countries
 	loadSite           func(context.Context) (platform.Identifier, error)
 	webDir             string
 	validateBeaconBody func(json.RawMessage) error
@@ -82,6 +84,9 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 
 // SetBudgetKey 装配匿名预算密钥（与 traffic-guard 共用），没有时匿名风控路由不可用。
 func (a *Application) SetBudgetKey(key platform.SigningKey) { a.budgetKey = key }
+
+// SetCountries 装配可选的离线 IP 国家库。
+func (a *Application) SetCountries(countries *geoip.Countries) { a.countries = countries }
 
 func (a *Application) Serve(ctx context.Context) error { return Serve(ctx, a) }
 
@@ -208,7 +213,7 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		SiteID: a.currentSite(r.Context()), ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
 		Writer: w, Runtime: a.runtime, Identity: a.identity, Gate: a.gate,
-		ConfiguredOrigins: origins, TrustedProxyCIDRs: a.config.TrustedProxyCIDRs,
+		ConfiguredOrigins: origins, TrustedProxyCIDRs: a.config.TrustedProxyCIDRs, Countries: a.countries,
 	}
 	runtime.Anchors = a.anchors
 	if a.budgetKey.KeyID != "" {

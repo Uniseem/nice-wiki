@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/geoip"
 )
 
 var (
@@ -527,7 +528,9 @@ type ProxyRuntime struct {
 	Gate              *Gate
 	ConfiguredOrigins []string
 	TrustedProxyCIDRs []string
-	ResponseStarted   bool
+	// Countries 是可选的离线 IP 国家库；只给语言建议请求注入国家代码。
+	Countries       *geoip.Countries
+	ResponseStarted bool
 }
 
 func WithProxyRuntime(ctx context.Context, runtime *ProxyRuntime) context.Context {

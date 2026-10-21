@@ -1912,7 +1912,7 @@
         "x-handler": "localization.SuggestLanguage",
         "x-permission": "anonymous",
         "x-timeout-ms": 5000,
-        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+        "description": "匿名访客读取语言建议：不走风控准入（访客没做人机验证也要能用），模型调用只在管理员开启且按信号组合缓存后发生，费用记后台。可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -1932,6 +1932,16 @@
               "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
             },
             "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          },
+          {
+            "name": "X-Visitor-Country",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            },
+            "description": "入口用离线IP国家库查出的两位国家代码（不含地址）；浏览器直接提交的同名头不转发"
           }
         ],
         "responses": {
@@ -2019,8 +2029,7 @@
         "security": [
           {
             "serviceAssertion": [],
-            "visitorSession": [],
-            "admissionPermit": []
+            "visitorSession": []
           }
         ],
         "requestBody": {
@@ -2032,8 +2041,7 @@
               }
             }
           }
-        },
-        "x-admission": "localization.suggest"
+        }
       }
     },
     "/v1/cache-answer-translations": {

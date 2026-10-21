@@ -30,7 +30,11 @@ OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设�
 
 本仓保留新批准依赖的固定原许可全文：[tokenizer MIT](docs/licenses/tiktoken-go-tokenizer-v0.7.0.LICENSE)、[PDF BSD三条款](docs/licenses/ledongthuc-pdf-6c8c28e0e8a0.LICENSE)。随二进制分发本声明和这些原许可，不以链接替代应保留文本。
 
-- github.com/oschwald/maxminddb-golang v1.13.1（ISC，ADR0005/D51已确认）：analytics只读取可信部署提供的本地MaxMind数据库，不下载数据库、不发送原始地址；固定来源 https://github.com/oschwald/maxminddb-golang/tree/v1.13.1 ，许可原文 https://github.com/oschwald/maxminddb-golang/blob/v1.13.1/LICENSE 。仅Go模块依赖，不复制源码；数据库内容不属于该库许可，仍由部署方自行提供合法数据。go.sum由GitLab Go工具生成。
+- github.com/oschwald/maxminddb-golang v1.13.1（ISC，ADR0005/D51已确认）：analytics只读取可信部署提供的本地MaxMind数据库，不下载数据库、不发送原始地址；libs/platform/geoip 用同一版本给 portal 查访客国家（语言建议的信号），只转国家代码，地址不出入口；固定来源 https://github.com/oschwald/maxminddb-golang/tree/v1.13.1 ，许可原文 https://github.com/oschwald/maxminddb-golang/blob/v1.13.1/LICENSE 。仅Go模块依赖，不复制源码；数据库内容不属于该库许可，仍由部署方自行提供合法数据。go.sum由GitLab Go工具生成。
+
+## DB-IP Lite Country（IP 国家数据）
+
+经用户 2026-10-21 确认，语言建议的 IP 国家信号使用 DB-IP 的免费 IP to Country Lite 数据库（MMDB 格式，按月更新），许可 CC BY 4.0（https://creativecommons.org/licenses/by/4.0/），署名要求为 “IP Geolocation by DB-IP”（https://db-ip.com）。数据文件不进仓库：本地由 `scripts/dev.py` 从 https://download.db-ip.com/free/ 下载当月版本，部署时由运维放置并在 portal 配置 `geoipCountryDBRef` 指向它；只在入口内存里查询国家代码，不保存地址。
 
 ## opencode（设计参考，未复制代码）
 

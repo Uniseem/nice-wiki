@@ -192,6 +192,14 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		return ProxyRequestResult{}, err
 	}
 	runtime.Headers = normalized.Headers
+	// 语言建议需要访客所在国家：入口用离线库查出国家代码转过去，地址本身不出入口。
+	if route.Definition.Owner == "localization" && route.Definition.UpstreamOperationID == "suggestLanguage" && runtime.Countries != nil {
+		if addr, err := serviceauth.ClientAddress(runtime.Request.RemoteAddr, strings.Join(runtime.Request.Header.Values("X-Forwarded-For"), ","), runtime.TrustedProxyCIDRs); err == nil {
+			if country := runtime.Countries.Country(addr); country != "" {
+				runtime.Headers.Entries = append(runtime.Headers.Entries, HeaderEntry{Name: platform.HeaderVisitorCountry, Values: []string{country}})
+			}
+		}
+	}
 	forwarded, err := ForwardRequest(WithProxyRuntime(ctx, runtime), op, ForwardRequestInput{Route: route, Request: validated.Envelope, Proof: proof})
 	if err != nil {
 		return ProxyRequestResult{}, err

@@ -279,7 +279,7 @@ export interface paths {
         put?: never;
         /**
          * 给访客语言建议
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 匿名访客读取语言建议：不走风控准入（访客没做人机验证也要能用），模型调用只在管理员开启且按信号组合缓存后发生，费用记后台。可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
          */
         post: operations["suggestLanguage"];
         delete?: never;
@@ -1596,7 +1596,7 @@ export interface components {
             browserLanguages: string[];
             /** @description IANA时区 */
             timeZone: string;
-            /** @description guard离线GeoIP国家非IP */
+            /** @description 入口离线GeoIP国家（不是IP）；以入口注入的X-Visitor-Country为准，浏览器提交的值忽略 */
             country?: string;
             /** @description URL语言 */
             currentLanguage: string;
@@ -3754,6 +3754,8 @@ export interface operations {
                 "Idempotency-Key"?: string;
                 /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
                 "X-Request-Id": components["schemas"]["Identifier"];
+                /** @description 入口用离线IP国家库查出的两位国家代码（不含地址）；浏览器直接提交的同名头不转发 */
+                "X-Visitor-Country"?: string;
             };
             path?: never;
             cookie?: never;

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/geoip"
 	"nice-wiki/libs/platform/lifecycle"
 	portal "nice-wiki/modules/portal/internal"
 	"nice-wiki/modules/portal/internal/gen"
@@ -88,6 +89,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	application.SetBudgetKey(budgetKey)
+	if config.GeoIPCountryDBRef != "" {
+		countries, err := geoip.Open(config.GeoIPCountryDBRef)
+		if err != nil {
+			return nil, err
+		}
+		application.SetCountries(countries)
+	}
 	application.MountWeb(webDirectory())
 	return application, nil
 }
