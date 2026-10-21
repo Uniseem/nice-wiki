@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 57 个：手写 45、UI 1、生成 3、配置 6、迁移 2。函数 185 个：约束 38，参考 147。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 58 个：手写 45、UI 1、生成 3、配置 6、迁移 3。函数 185 个：约束 38，参考 147。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -62,4 +62,5 @@
 | `modules/media/migrations/0008_asset_listing.sql` | 手写 | 只追加独立int64资产列表水位与稳定排序索引，资产/对象变更在原事务推进；不是引用源水位或删除许可 | 无 |
 | `modules/media/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `media.ReadSnapshotArchive` |
 | `modules/media/migrations/0009_upload_expiration.sql` | 迁移 | 仅已过期未完成上传删除意图与续清，不触碰ready资产 | 无 |
+| `modules/media/migrations/0010_public_assets.sql` | 迁移 | 原图→变体依赖、已公开资源版本登记、含变体的当前引用视图 | 无 |
 | `modules/media/web/src/index.tsx` | UI | 资源库：全部/未被引用资源、引用详情、清理计划与确认 | `media.LibraryPage` |

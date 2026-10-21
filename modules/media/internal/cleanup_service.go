@@ -235,7 +235,7 @@ func ProposeManualCleanup(ctx context.Context, op OperationContext, input Propos
 			return ProposeManualCleanupResult{}, platform.NewError(platform.CodeVersionMismatch, false, "人工计划扫描后资源水位变化")
 		}
 		var protections, marks int
-		if err := tx.QueryRowContext(work, `SELECT (SELECT COUNT(*) FROM reference_entries WHERE asset_id=? AND kind='current')+(SELECT COUNT(*) FROM reference_pin_assets p JOIN reference_sources s ON s.pin_id=p.pin_id WHERE p.asset_id=? AND s.state='pending')`, scan.Asset.AssetId, scan.Asset.AssetId).Scan(&protections); err != nil {
+		if err := tx.QueryRowContext(work, `SELECT (SELECT COUNT(*) FROM asset_current_references WHERE asset_id=?)+(SELECT COUNT(*) FROM reference_pin_assets p JOIN reference_sources s ON s.pin_id=p.pin_id WHERE p.asset_id=? AND s.state='pending')`, scan.Asset.AssetId, scan.Asset.AssetId).Scan(&protections); err != nil {
 			return ProposeManualCleanupResult{}, mapMediaDBError(err, "核对计划引用保护失败")
 		}
 		if err := tx.QueryRowContext(work, `SELECT COUNT(*) FROM manual_cleanup_marks WHERE asset_id=?`, scan.Asset.AssetId).Scan(&marks); err != nil {
@@ -971,7 +971,7 @@ func (s *localBlobStore) approveCleanupPlan(ctx context.Context, op OperationCon
 			return cleanupApprovalRecord{}, platform.NewError(platform.CodeVersionMismatch, false, "批准前精确资产或引用水位已变化")
 		}
 		var protections int
-		if err := tx.QueryRowContext(work, `SELECT (SELECT COUNT(*) FROM reference_entries WHERE asset_id=? AND kind='current')+(SELECT COUNT(*) FROM reference_pin_assets p JOIN reference_sources s ON s.pin_id=p.pin_id WHERE p.asset_id=? AND s.state='pending')+(SELECT COUNT(*) FROM manual_cleanup_marks WHERE asset_id=?)+(SELECT COUNT(*) FROM blob_journal WHERE asset_id=? AND event='DELETING')`, scan.Asset.AssetId, scan.Asset.AssetId, scan.Asset.AssetId, scan.Asset.AssetId).Scan(&protections); err != nil {
+		if err := tx.QueryRowContext(work, `SELECT (SELECT COUNT(*) FROM asset_current_references WHERE asset_id=?)+(SELECT COUNT(*) FROM reference_pin_assets p JOIN reference_sources s ON s.pin_id=p.pin_id WHERE p.asset_id=? AND s.state='pending')+(SELECT COUNT(*) FROM manual_cleanup_marks WHERE asset_id=?)+(SELECT COUNT(*) FROM blob_journal WHERE asset_id=? AND event='DELETING')`, scan.Asset.AssetId, scan.Asset.AssetId, scan.Asset.AssetId, scan.Asset.AssetId).Scan(&protections); err != nil {
 			return cleanupApprovalRecord{}, mapMediaDBError(err, "核对批准前引用及删除保护失败")
 		}
 		if protections != 0 {
@@ -1049,7 +1049,7 @@ func (s *localBlobStore) checkCleanupApprovalPending(ctx context.Context, q sqlE
 			return err
 		}
 		var ownMarks, decisions, protections int
-		if err := q.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM manual_cleanup_marks WHERE asset_id=? AND plan_id=? AND deletion_fence=? AND reference_generation=?),(SELECT COUNT(*) FROM blob_journal WHERE asset_id=? AND event='DELETING'),(SELECT COUNT(*) FROM reference_entries WHERE asset_id=? AND kind='current')+(SELECT COUNT(*) FROM reference_pin_assets p JOIN reference_sources s ON s.pin_id=p.pin_id WHERE p.asset_id=? AND s.state='pending')`, mark.AssetId, plan.PlanId, mark.DeletionFence, mark.ReferenceGeneration, mark.AssetId, mark.AssetId, mark.AssetId).Scan(&ownMarks, &decisions, &protections); err != nil {
+		if err := q.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM manual_cleanup_marks WHERE asset_id=? AND plan_id=? AND deletion_fence=? AND reference_generation=?),(SELECT COUNT(*) FROM blob_journal WHERE asset_id=? AND event='DELETING'),(SELECT COUNT(*) FROM asset_current_references WHERE asset_id=?)+(SELECT COUNT(*) FROM reference_pin_assets p JOIN reference_sources s ON s.pin_id=p.pin_id WHERE p.asset_id=? AND s.state='pending')`, mark.AssetId, plan.PlanId, mark.DeletionFence, mark.ReferenceGeneration, mark.AssetId, mark.AssetId, mark.AssetId).Scan(&ownMarks, &decisions, &protections); err != nil {
 			return mapMediaDBError(err, "核对人工批准精确标记失败")
 		}
 		if asset.Ref != plan.Assets[i] || string(asset.State) != "delete_pending" || fence != mark.DeletionFence || generation != mark.ReferenceGeneration || ownMarks != 1 || decisions != 0 || protections != 0 {

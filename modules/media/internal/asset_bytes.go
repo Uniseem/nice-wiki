@@ -1,6 +1,7 @@
 package media
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -15,7 +16,8 @@ import (
 )
 
 // openAssetBytes 按下载规则打开不可变原文件：
-// 管理员（media.read / superadmin）可读本站任一就绪资源；其余调用方必须带正确的 sha，且资源已被正文或站点配置引用。
+// 管理员（media.read / superadmin）可读本站任一就绪资源；知识库/模型网关按版本读已确认引用的资源；
+// 其余调用方必须带正确的 sha，且这个版本出现过在已发布页面上，或正被站点配置使用。草稿引用不算公开。
 // shared 表示按公开规则放行、可以进共享缓存；管理员读到的可能是还没发布的草稿资源，只能私有缓存。
 func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*os.File, gen.AssetVersionRef, bool, error) {
 	s, ok := currentBlobStore().(*localBlobStore)
@@ -45,11 +47,16 @@ func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*
 		} else if r.URL.Query().Get("sha") != sha {
 			return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
 		}
-		var referenced int
-		if err = s.db.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM reference_pin_assets p JOIN reference_sources rs ON rs.pin_id=p.pin_id WHERE p.asset_id=? AND rs.state='confirmed'`, assetID).Scan(&referenced); err != nil {
+		var allowed bool
+		if service {
+			err = s.db.QueryRowContext(r.Context(), `SELECT EXISTS(SELECT 1 FROM reference_pin_assets p JOIN reference_sources rs ON rs.pin_id=p.pin_id WHERE p.asset_id=? AND rs.state='confirmed')`, assetID).Scan(&allowed)
+		} else {
+			err = s.db.QueryRowContext(r.Context(), `SELECT EXISTS(SELECT 1 FROM public_assets WHERE asset_id=? AND sha256=?) OR EXISTS(SELECT 1 FROM reference_pin_assets p JOIN reference_sources rs ON rs.pin_id=p.pin_id WHERE p.asset_id=? AND rs.state='confirmed' AND rs.source_service='site-config')`, assetID, sha, assetID).Scan(&allowed)
+		}
+		if err != nil {
 			return nil, gen.AssetVersionRef{}, false, mapMediaDBError(err, "核对资源引用失败")
 		}
-		if referenced == 0 {
+		if !allowed {
 			return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
 		}
 	}
@@ -154,5 +161,38 @@ func BuildDeliveryManifest(r *http.Request, op OperationContext, input BuildDeli
 		}
 		items = append(items, item)
 	}
+	// 公开站为已发布页面要的清单：登记这些版本（连同变体）已经公开，匿名读取才放行。
+	if input.PublishedReference != nil && input.PreviewId == nil && op.Actor.Kind == "service" && op.CallerService == "public-site" {
+		if err := s.markPublic(r.Context(), items); err != nil {
+			return BuildDeliveryManifestResult{}, err
+		}
+	}
 	return BuildDeliveryManifestResult{Manifest: gen.DeliveryManifest{Items: items, PublishedReference: input.PublishedReference, PreviewId: input.PreviewId, ExpiresAt: time.Now().UTC().Add(10 * time.Minute)}}, nil
+}
+
+func (s *localBlobStore) markPublic(ctx context.Context, items []gen.DeliveryItem) error {
+	if len(items) == 0 {
+		return nil
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return mapMediaDBError(err, "开始登记公开资源失败")
+	}
+	defer tx.Rollback()
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	for _, item := range items {
+		refs := []gen.AssetVersionRef{item.Asset}
+		for _, variant := range item.Variants {
+			refs = append(refs, variant.Asset)
+		}
+		for _, ref := range refs {
+			if _, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO public_assets(asset_id,sha256,first_public_at) VALUES(?,?,?)`, ref.AssetId, ref.Sha256, now); err != nil {
+				return mapMediaDBError(err, "登记公开资源失败")
+			}
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return mapMediaDBError(err, "提交公开资源失败")
+	}
+	return nil
 }

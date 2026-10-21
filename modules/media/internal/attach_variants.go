@@ -75,6 +75,14 @@ func AttachImageVariants(ctx context.Context, op OperationContext, input AttachI
 	if _, err := tx.ExecContext(work, `UPDATE assets SET asset_json=?,updated_at=? WHERE asset_id=? AND site_id=?`, string(raw), time.Now().UTC().Format(time.RFC3339Nano), asset.Ref.AssetId, op.Actor.SiteID); err != nil {
 		return AttachImageVariantsResult{}, mapMediaDBError(err, "写入变体失败")
 	}
+	if _, err := tx.ExecContext(work, `DELETE FROM asset_variants WHERE parent_asset_id=?`, asset.Ref.AssetId); err != nil {
+		return AttachImageVariantsResult{}, mapMediaDBError(err, "写入变体失败")
+	}
+	for _, variant := range variants {
+		if _, err := tx.ExecContext(work, `INSERT OR IGNORE INTO asset_variants(parent_asset_id,variant_asset_id) VALUES(?,?)`, asset.Ref.AssetId, variant.Asset.AssetId); err != nil {
+			return AttachImageVariantsResult{}, mapMediaDBError(err, "写入变体失败")
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return AttachImageVariantsResult{}, mapMediaDBError(err, "提交变体失败")
 	}

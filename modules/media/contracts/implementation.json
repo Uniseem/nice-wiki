@@ -8425,6 +8425,12 @@
       "functions": []
     },
     {
+      "path": "modules/media/migrations/0010_public_assets.sql",
+      "kind": "migration",
+      "purpose": "原图→变体依赖、已公开资源版本登记、含变体的当前引用视图",
+      "functions": []
+    },
+    {
       "path": "modules/media/web/src/index.tsx",
       "kind": "ui",
       "purpose": "资源库：全部/未被引用资源、引用详情、清理计划与确认",
