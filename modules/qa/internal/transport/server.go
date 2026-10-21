@@ -54,7 +54,7 @@ func NewOperationHandlers(bind func(context.Context) context.Context) map[string
 				writeResult(w, op, 0, nil, err)
 				return
 			}
-			result, err := conversation.DeleteConversation(ctx, op, conversation.DeleteConversationInput{ConversationId: r.PathValue("conversationId"), IdempotencyKey: r.Header.Get("idempotencyKey")})
+			result, err := conversation.DeleteConversation(ctx, op, conversation.DeleteConversationInput{ConversationId: r.PathValue("conversationId"), IdempotencyKey: r.Header.Get("Idempotency-Key")})
 			writeResult(w, op, 200, result, err)
 		}),
 		"createConversation": jsonOperation(bind, http.StatusCreated, conversation.CreateConversation, nil),

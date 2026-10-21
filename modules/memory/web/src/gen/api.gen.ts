@@ -2221,7 +2221,7 @@ export interface operations {
             };
             header: {
                 /** @description 幂等键 */
-                idempotencyKey: string;
+                "Idempotency-Key": string;
                 /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
                 "X-Request-Id": components["schemas"]["Identifier"];
             };
@@ -3503,7 +3503,7 @@ export interface operations {
             query?: never;
             header: {
                 /** @description 键 */
-                idempotencyKey: string;
+                "Idempotency-Key": string;
                 /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
                 "X-Request-Id": components["schemas"]["Identifier"];
             };

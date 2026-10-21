@@ -33,7 +33,7 @@ func (a *Application) operationHandlers() map[string]http.Handler {
 		}),
 		"deleteAssistantConversation": jsonOperation(assistant.DeleteAssistantConversation, http.StatusOK, func(i *assistant.DeleteAssistantConversationInput, r *http.Request) error {
 			i.ConversationId = r.PathValue("conversationId")
-			i.IdempotencyKey = r.Header.Get("idempotencyKey")
+			i.IdempotencyKey = r.Header.Get("Idempotency-Key")
 			return nil
 		}),
 		"createEntry": jsonOperation(entry.CreateEntry, http.StatusCreated),
@@ -70,7 +70,7 @@ func (a *Application) operationHandlers() map[string]http.Handler {
 		"removeMapping": jsonOperation(mapping.RemoveMapping, http.StatusOK, func(i *mapping.RemoveMappingInput, r *http.Request) error {
 			i.MappingId = r.PathValue("mappingId")
 			i.ExpectedRevision, _ = strconv.Atoi(r.URL.Query().Get("expectedRevision"))
-			i.IdempotencyKey = r.Header.Get("idempotencyKey")
+			i.IdempotencyKey = r.Header.Get("Idempotency-Key")
 			return nil
 		}),
 		"listMappings": jsonOperation(mapping.ListMappings, http.StatusOK, func(i *mapping.ListMappingsInput, r *http.Request) error {

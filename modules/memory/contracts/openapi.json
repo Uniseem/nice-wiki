@@ -1025,7 +1025,7 @@
             "description": "版本"
           },
           {
-            "name": "idempotencyKey",
+            "name": "Idempotency-Key",
             "in": "header",
             "required": true,
             "schema": {
@@ -2864,7 +2864,7 @@
             "description": "必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。"
           },
           {
-            "name": "idempotencyKey",
+            "name": "Idempotency-Key",
             "in": "header",
             "required": true,
             "schema": {

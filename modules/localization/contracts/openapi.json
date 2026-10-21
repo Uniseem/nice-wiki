@@ -1240,7 +1240,7 @@
             "description": "版本"
           },
           {
-            "name": "idempotencyKey",
+            "name": "Idempotency-Key",
             "in": "header",
             "required": true,
             "schema": {

@@ -21,7 +21,7 @@ func NewGlossaryHandlers() map[string]http.Handler {
 		"deleteGlossaryTerm": glossaryJSON(DeleteGlossaryTerm, http.StatusOK, func(i *DeleteGlossaryTermInput, r *http.Request) error {
 			i.TermId = r.PathValue("termId")
 			i.ExpectedVersion, _ = strconv.Atoi(r.URL.Query().Get("expectedVersion"))
-			i.IdempotencyKey = r.Header.Get("idempotencyKey")
+			i.IdempotencyKey = r.Header.Get("Idempotency-Key")
 			return nil
 		}),
 		"listGlossary": glossaryJSON(ListGlossary, http.StatusOK, func(i *ListGlossaryInput, r *http.Request) error {
