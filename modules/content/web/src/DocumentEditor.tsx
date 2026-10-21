@@ -1,7 +1,7 @@
 import { ArrowUpRightFromSquare, CircleCheck, CircleExclamation, ClockArrowRotateLeft, Ellipsis, Eye, FolderArrowRight, Gear, Lock, PaperPlane, TrashBin, ArrowUturnCcwLeft as Withdraw } from '@gravity-ui/icons';
 import { Button, Chip, Dropdown, Label, Spinner } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { api, confirmAction, errorText, fmtTime, newKey, notify, Notice, useHasGrant, t } from '@ui';
+import { api, confirmAction, errorText, fmtTime, newKey, notify, Notice, setNavigationGuard, useHasGrant, t } from '@ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fromBody, toBody, type JSONNode } from './convert';
 import { HistoryDrawer, MoveDialog, PublishDialog, SettingsDialog } from './dialogs';
@@ -138,8 +138,19 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
     })();
     const beforeUnload = (event: BeforeUnloadEvent) => { if (live.current.dirty) event.preventDefault(); };
     addEventListener('beforeunload', beforeUnload);
+    // 切换文档或离开页面前先把草稿存好；存不上就留在原文档，除非用户明确放弃这些修改。
+    const unguard = setNavigationGuard(async () => {
+      if (await flush()) return true;
+      const discard = await confirmAction({
+        title: t('最近的修改没能保存'), body: t('离开会丢掉这些修改。可以留在这里复制内容，或稍后再试一次。'),
+        confirmLabel: t('放弃修改并离开'), cancelLabel: t('留在这里'), tone: 'danger',
+      });
+      if (discard) state.dirty = false;
+      return discard;
+    });
     return () => {
       cancelled = true;
+      unguard();
       removeEventListener('beforeunload', beforeUnload);
       void flush().then(releaseLock);
     };

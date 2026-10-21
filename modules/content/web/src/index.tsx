@@ -1,6 +1,6 @@
 import { Bars, FileText, Plus } from '@gravity-ui/icons';
 import { Button, Drawer } from '@heroui/react';
-import { api, askText, EmptyBlock, ErrorBlock, errorText, notify, useHasGrant, useSearch, t } from '@ui';
+import { api, askText, confirmLeave, EmptyBlock, ErrorBlock, errorText, notify, useHasGrant, useSearch, t } from '@ui';
 import { useCallback, useEffect, useState } from 'react';
 import { DocumentEditor } from './DocumentEditor';
 import { TreePanel } from './TreePanel';
@@ -23,11 +23,17 @@ export default function ContentPage() {
 
   useEffect(() => { loadTree().catch(setError); }, [loadTree]);
 
-  const select = useCallback((id: string | null) => {
+  const show = useCallback((id: string | null) => {
     setSelected(id);
     setListOpen(false);
     history.replaceState(null, '', id ? `/admin/content?doc=${id}` : '/admin/content');
   }, []);
+
+  // 换文档前先让当前编辑器保存，保存失败且用户不放弃时留在原文档。
+  const select = useCallback(async (id: string | null) => {
+    if (id === selected) setListOpen(false);
+    else if (await confirmLeave()) show(id);
+  }, [selected, show]);
 
   const create = async (parentId: string | null) => {
     const parent = parentId ? tree?.documents.find((doc) => doc.documentId === parentId) : null;
@@ -36,7 +42,7 @@ export default function ContentPage() {
     try {
       const created = await api<{ metadata: Meta }>('/v1/documents', { method: 'POST', body: { title: title.trim(), parentId, beforeDocumentId: null } });
       await loadTree();
-      select(created.metadata.documentId);
+      await select(created.metadata.documentId);
     } catch (problem) { notify.error(t('新建失败'), errorText(problem)); }
   };
 
@@ -80,7 +86,7 @@ export default function ContentPage() {
             documentId={selected!}
             publicPath={publicPath}
             treeRevision={tree!.treeRevision}
-            onClosed={() => select(null)}
+            onClosed={() => show(null)}
             onReopen={() => setSession((value) => value + 1)}
             onTreeChanged={loadTree}
           />

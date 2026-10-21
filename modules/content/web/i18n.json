@@ -2063,6 +2063,22 @@
   "id": "Letakkan di",
   "ar": "وضع في"
  },
+ "放弃修改并离开": {
+  "zh-Hant": "放棄修改並離開",
+  "en": "Discard changes and leave",
+  "ja": "変更を破棄して移動",
+  "ko": "변경 사항 버리고 나가기",
+  "fr": "Abandonner et quitter",
+  "de": "Änderungen verwerfen und verlassen",
+  "es": "Descartar cambios y salir",
+  "pt": "Descartar alterações e sair",
+  "ru": "Отменить изменения и уйти",
+  "it": "Scarta le modifiche ed esci",
+  "vi": "Bỏ thay đổi và rời đi",
+  "th": "ทิ้งการเปลี่ยนแปลงแล้วออก",
+  "id": "Buang perubahan dan keluar",
+  "ar": "تجاهل التغييرات والمغادرة"
+ },
  "文本": {
   "zh-Hant": "文字",
   "en": "Text",
@@ -2414,6 +2430,22 @@
   "th": "เล็กลงหนึ่งระดับ",
   "id": "Satu tingkat lebih kecil",
   "ar": "أصغر بمستوى"
+ },
+ "最近的修改没能保存": {
+  "zh-Hant": "最近的修改沒能儲存",
+  "en": "Recent changes couldn't be saved",
+  "ja": "最近の変更を保存できませんでした",
+  "ko": "최근 변경 사항을 저장하지 못했습니다",
+  "fr": "Les dernières modifications n'ont pas pu être enregistrées",
+  "de": "Die letzten Änderungen konnten nicht gespeichert werden",
+  "es": "No se pudieron guardar los cambios recientes",
+  "pt": "Não foi possível salvar as alterações recentes",
+  "ru": "Не удалось сохранить последние изменения",
+  "it": "Impossibile salvare le modifiche recenti",
+  "vi": "Không lưu được các thay đổi gần đây",
+  "th": "บันทึกการเปลี่ยนแปลงล่าสุดไม่สำเร็จ",
+  "id": "Perubahan terbaru tidak dapat disimpan",
+  "ar": "تعذّر حفظ التغييرات الأخيرة"
  },
  "有序列表": {
   "zh-Hant": "有序清單",
@@ -2767,6 +2799,22 @@
   "id": "Gagal memuat papan gambar: {0}",
   "ar": "تعذّر تحميل الرسم: {0}"
  },
+ "留在这里": {
+  "zh-Hant": "留在這裡",
+  "en": "Stay here",
+  "ja": "このページに残る",
+  "ko": "여기 머물기",
+  "fr": "Rester ici",
+  "de": "Hier bleiben",
+  "es": "Quedarse aquí",
+  "pt": "Ficar aqui",
+  "ru": "Остаться",
+  "it": "Resta qui",
+  "vi": "Ở lại đây",
+  "th": "อยู่ที่นี่ต่อ",
+  "id": "Tetap di sini",
+  "ar": "البقاء هنا"
+ },
  "确定": {
   "zh-Hant": "確定",
   "en": "OK",
@@ -2782,6 +2830,22 @@
   "th": "ตกลง",
   "id": "OK",
   "ar": "موافق"
+ },
+ "离开会丢掉这些修改。可以留在这里复制内容，或稍后再试一次。": {
+  "zh-Hant": "離開會丟掉這些修改。可以留在這裡複製內容，或稍後再試一次。",
+  "en": "Leaving will discard these changes. Stay here to copy the content, or try again later.",
+  "ja": "移動するとこれらの変更は失われます。このページに残って内容をコピーするか、後でもう一度お試しください。",
+  "ko": "나가면 이 변경 사항이 사라집니다. 여기 머물러 내용을 복사하거나 잠시 후 다시 시도하세요.",
+  "fr": "Quitter supprimera ces modifications. Restez ici pour copier le contenu, ou réessayez plus tard.",
+  "de": "Beim Verlassen gehen diese Änderungen verloren. Bleiben Sie hier, um den Inhalt zu kopieren, oder versuchen Sie es später erneut.",
+  "es": "Si sales, se perderán estos cambios. Quédate aquí para copiar el contenido o vuelve a intentarlo más tarde.",
+  "pt": "Ao sair, essas alterações serão descartadas. Fique aqui para copiar o conteúdo ou tente novamente mais tarde.",
+  "ru": "Если уйти, эти изменения будут потеряны. Останьтесь, чтобы скопировать содержимое, или повторите попытку позже.",
+  "it": "Uscendo queste modifiche andranno perse. Resta qui per copiare il contenuto o riprova più tardi.",
+  "vi": "Rời đi sẽ mất các thay đổi này. Hãy ở lại để sao chép nội dung, hoặc thử lại sau.",
+  "th": "หากออกไป การเปลี่ยนแปลงเหล่านี้จะหายไป อยู่ที่นี่เพื่อคัดลอกเนื้อหา หรือลองอีกครั้งภายหลัง",
+  "id": "Jika keluar, perubahan ini akan hilang. Tetap di sini untuk menyalin konten, atau coba lagi nanti.",
+  "ar": "سيؤدي المغادرة إلى فقدان هذه التغييرات. ابقَ هنا لنسخ المحتوى، أو أعد المحاولة لاحقًا."
  },
  "移入回收站": {
   "zh-Hant": "移至資源回收筒",
