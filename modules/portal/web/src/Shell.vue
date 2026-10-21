@@ -52,6 +52,7 @@ async function mountCurrent() {
       link.rel = 'stylesheet';
       link.href = `/_admin/modules/${current.value.id}/${current.value.id}-ui.css`;
       link.dataset.module = current.value.id;
+      link.onerror = () => link.remove(); // 没有独立样式的模块没有这个文件
       document.head.append(link);
     }
     const mod = await import(/* @vite-ignore */ `/_admin/modules/${current.value.id}/module.js?v=${Date.now()}`);
