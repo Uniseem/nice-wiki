@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -161,6 +162,7 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 	if err != nil {
 		return err
 	}
+	evidence.Citations = usedCitations(text, evidence.Citations)
 	for _, citation := range evidence.Citations {
 		c := citation
 		if _, err := stream.AppendAnswerEvent(ctx, op, stream.AppendAnswerEventInput{TurnID: turnID, LeaseID: lease, Event: gen.AnswerEvent{Event: gen.AnswerEventEvent("citation"), Citation: &c}}); err != nil {
@@ -282,6 +284,27 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 		return prompt, err
 	}
 	return build()
+}
+
+// usedCitations 只留回答里真正引用到的材料；回答一处都没引用时每篇文档留第一条，免得整篇读取的几十上百个片段都成了“来源”。
+func usedCitations(text string, all []gen.Citation) []gen.Citation {
+	used := []gen.Citation{}
+	for _, citation := range all {
+		if strings.Contains(text, citation.CitationId) {
+			used = append(used, citation)
+		}
+	}
+	if len(used) > 0 {
+		return used
+	}
+	seen := map[string]bool{}
+	for _, citation := range all {
+		if !seen[citation.Document.DocumentId] {
+			seen[citation.Document.DocumentId] = true
+			used = append(used, citation)
+		}
+	}
+	return used
 }
 
 // materialBudget 是整篇读取时本轮材料的词元上限（网关估算口径）：策略里的“上下文最大词元”，且不超过回答模型可用窗口的三分之一，给记忆、摘要和历史留位置。

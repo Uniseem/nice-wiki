@@ -148,18 +148,41 @@ func clip(text string, limit int) string {
 	return string([]rune(text)[:limit]) + "…"
 }
 
-// offTopicReplies 是离题或闲聊时的固定回答：中文访客用中文，其他语言用英文；不检索、不调用回答模型。
-var offTopicReplies = map[string][2]string{
-	"smalltalk": {"你好！有什么关于本站文档的问题，尽管问我。", "Hi! Ask me anything about these docs."},
-	"off_topic": {"这个问题和本站文档无关，我只能回答文档里的内容。", "That question isn't covered by these docs. I can only answer questions about this site's documentation."},
+// offTopicReplies 是闲聊和离题时的固定回答（按访客语言，覆盖全部预设站点语言，没有的用英文）；不检索、不调用回答模型。
+var offTopicReplies = map[string]map[string]string{
+	"smalltalk": {
+		"zh-Hans": "你好！有什么关于本站文档的问题，尽管问我。", "zh-Hant": "你好！有任何關於本站文件的問題，儘管問我。",
+		"en": "Hi! Ask me anything about these docs.", "ja": "こんにちは！このサイトのドキュメントについて、何でも聞いてください。",
+		"ko": "안녕하세요! 이 사이트 문서에 대해 무엇이든 물어보세요.", "fr": "Bonjour ! Posez-moi vos questions sur cette documentation.",
+		"de": "Hallo! Fragen Sie mich alles zu dieser Dokumentation.", "es": "¡Hola! Pregúntame lo que quieras sobre esta documentación.",
+		"pt": "Olá! Pergunte o que quiser sobre esta documentação.", "ru": "Здравствуйте! Задайте любой вопрос по документации этого сайта.",
+		"it": "Ciao! Chiedimi qualsiasi cosa su questa documentazione.", "vi": "Xin chào! Hãy hỏi tôi bất cứ điều gì về tài liệu của trang này.",
+		"th": "สวัสดี! ถามอะไรเกี่ยวกับเอกสารของเว็บไซต์นี้ได้เลย", "id": "Halo! Tanyakan apa saja tentang dokumentasi ini.",
+		"ar": "مرحبًا! اسألني أي شيء عن وثائق هذا الموقع.",
+	},
+	"off_topic": {
+		"zh-Hans": "这个问题和本站文档无关，我只能回答文档里的内容。", "zh-Hant": "這個問題與本站文件無關，我只能回答文件中的內容。",
+		"en": "That question isn't covered by these docs. I can only answer questions about this site's documentation.",
+		"ja": "その質問はこのサイトのドキュメントの範囲外です。ドキュメントの内容についてのみお答えできます。",
+		"ko": "이 질문은 사이트 문서와 관련이 없습니다. 문서 내용에 대해서만 답변할 수 있습니다.",
+		"fr": "Cette question ne relève pas de cette documentation. Je ne peux répondre qu'aux questions qui la concernent.",
+		"de": "Diese Frage betrifft nicht diese Dokumentation. Ich kann nur Fragen zu ihrem Inhalt beantworten.",
+		"es": "Esa pregunta no está cubierta por esta documentación. Solo puedo responder sobre su contenido.",
+		"pt": "Essa pergunta não está coberta por esta documentação. Só posso responder sobre o conteúdo dela.",
+		"ru": "Этот вопрос не относится к документации сайта. Я могу отвечать только на вопросы по ней.",
+		"it": "Questa domanda non riguarda questa documentazione. Posso rispondere solo sui suoi contenuti.",
+		"vi": "Câu hỏi này không liên quan đến tài liệu của trang. Tôi chỉ có thể trả lời về nội dung tài liệu.",
+		"th": "คำถามนี้ไม่เกี่ยวกับเอกสารของเว็บไซต์ ฉันตอบได้เฉพาะเนื้อหาในเอกสารเท่านั้น",
+		"id": "Pertanyaan itu tidak tercakup dalam dokumentasi ini. Saya hanya bisa menjawab tentang isinya.",
+		"ar": "هذا السؤال لا يتعلق بوثائق هذا الموقع، ولا يمكنني الإجابة إلا عن محتواها.",
+	},
 }
 
 // replyWithoutRetrieval 用固定回答直接完成本轮，答案类型记为 out_of_scope。
 func replyWithoutRetrieval(ctx context.Context, op OperationContext, turnID, lease string, record qaruntime.TurnRecord, intent string) error {
-	replies := offTopicReplies[intent]
-	text := replies[1]
-	if record.Language == "zh" || len(record.Language) > 3 && record.Language[:3] == "zh-" {
-		text = replies[0]
+	text, ok := offTopicReplies[intent][record.Language]
+	if !ok {
+		text = offTopicReplies[intent]["en"]
 	}
 	if _, err := stream.AppendAnswerEvent(ctx, op, stream.AppendAnswerEventInput{TurnID: turnID, LeaseID: lease, Event: gen.AnswerEvent{Event: gen.AnswerEventEvent("delta"), Delta: &text}}); err != nil {
 		return err
