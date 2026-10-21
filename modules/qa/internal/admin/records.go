@@ -63,18 +63,19 @@ func ListTurnRecords(ctx context.Context, op OperationContext, input ListTurnRec
 		Epoch, Filter, Language string
 		Limit                   int
 	}{qaruntime.CursorActor(op), op.DataEpoch, input.Filter, input.Language, input.Page.Limit})
-	scope := "qa.records.v1:" + platform.HashBytes(binding)
-	after := ""
+	// 最新的在前：按创建时间、轮次编号倒序做键集分页，游标记录上一页最后一条的位置。
+	scope := "qa.records.v2:" + platform.HashBytes(binding)
+	var after struct{ CreatedAt, TurnID string }
 	if input.Page.Cursor != "" {
 		raw, err := serviceauth.VerifyCursor(tx.Runtime.SigningKey, scope, input.Page.Cursor)
 		if err != nil {
 			return ListTurnRecordsResult{}, err
 		}
-		if json.Unmarshal(raw, &after) != nil || !platform.ValidIdentifier(after) {
+		if json.Unmarshal(raw, &after) != nil || after.CreatedAt == "" || !platform.ValidIdentifier(after.TurnID) {
 			return ListTurnRecordsResult{}, platform.NewError(platform.CodeValidation, false, "记录分页游标不合法")
 		}
 	}
-	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT t.turn_id,t.question,t.answer_kind,COALESCE(f.value,''),t.created_at FROM turns t LEFT JOIN feedback f ON f.turn_id=t.turn_id AND f.visitor_subject=t.visitor_subject WHERE t.site_id=? AND t.data_epoch=? AND t.redacted=0 AND t.turn_id>? AND (?='' OR t.language=?) AND (?='all' OR (?='no_evidence' AND t.answer_kind='no_evidence') OR (?='unhelpful' AND f.value='unhelpful') OR (?='failed' AND t.state='failed') OR (?='cached' AND t.answer_kind='cached')) ORDER BY t.turn_id LIMIT ?`, op.Actor.SiteID, op.DataEpoch, after, input.Language, input.Language, input.Filter, input.Filter, input.Filter, input.Filter, input.Filter, input.Page.Limit+1)
+	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT t.turn_id,t.question,t.answer_kind,COALESCE(f.value,''),t.created_at FROM turns t LEFT JOIN feedback f ON f.turn_id=t.turn_id AND f.visitor_subject=t.visitor_subject WHERE t.site_id=? AND t.data_epoch=? AND t.redacted=0 AND (?='' OR t.created_at<? OR (t.created_at=? AND t.turn_id<?)) AND (?='' OR t.language=?) AND (?='all' OR (?='no_evidence' AND t.answer_kind='no_evidence') OR (?='unhelpful' AND f.value='unhelpful') OR (?='failed' AND t.state='failed') OR (?='cached' AND t.answer_kind='cached')) ORDER BY t.created_at DESC, t.turn_id DESC LIMIT ?`, op.Actor.SiteID, op.DataEpoch, after.CreatedAt, after.CreatedAt, after.CreatedAt, after.TurnID, input.Language, input.Language, input.Filter, input.Filter, input.Filter, input.Filter, input.Filter, input.Page.Limit+1)
 	if err != nil {
 		return ListTurnRecordsResult{}, qaruntime.StorageError(err)
 	}
@@ -95,7 +96,8 @@ func ListTurnRecords(ctx context.Context, op OperationContext, input ListTurnRec
 	}
 	result := ListTurnRecordsResult{Items: items[:min(len(items), input.Page.Limit)], PageInfo: gen.PageInfo{HasMore: len(items) > input.Page.Limit}}
 	if result.PageInfo.HasMore {
-		raw, _ := json.Marshal(items[input.Page.Limit-1].TurnID)
+		last := items[input.Page.Limit-1]
+		raw, _ := json.Marshal(struct{ CreatedAt, TurnID string }{last.CreatedAt, last.TurnID})
 		cursor, err := serviceauth.SignCursor(tx.Runtime.SigningKey, scope, raw)
 		if err != nil {
 			return ListTurnRecordsResult{}, err

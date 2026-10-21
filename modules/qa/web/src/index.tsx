@@ -5,11 +5,12 @@ import {
   useAction, useHasGrant, useLoad,
 } from '@ui';
 import { useEffect, useState } from 'react';
+import { Markdown } from './island/markdown';
 
 type Policy = Record<string, unknown>;
 type Turn = { turnId: string; createdAt: string; questionPreview: string; answerKind?: string; feedback?: string };
 type CacheEntry = { cacheId: string; version: number; question: string; answer?: string; language: string; curated?: boolean; expiresAt?: string | null; state: string };
-type Citation = { title?: string; href?: string };
+type Citation = { citationId?: string; title?: string; href?: string };
 
 const switches: Record<string, [string, string]> = {
   enabled: ['公开问答', '打开后访客可以在文档页右下角和独立问答页提问。'],
@@ -25,7 +26,7 @@ const numbers: Record<string, string> = {
 };
 const texts: Record<string, string> = { profileId: '答案模型档位', semanticMode: '语义判定方式' };
 const hidden = new Set(['version', 'retrievalSpace']);
-const answerKinds: Record<string, string> = { answered: '已回答', refused: '拒答', cached: '缓存命中', failed: '失败', cancelled: '已取消' };
+const answerKinds: Record<string, string> = { answered: '已回答', refused: '拒答', cached: '缓存命中', no_evidence: '无依据', failed: '失败', cancelled: '已取消' };
 
 export default function QaPage() {
   const canManage = useHasGrant('qa.manage');
@@ -133,8 +134,8 @@ function TurnsTab() {
                     <Table.Cell><span className="line-clamp-2">{turn.questionPreview}</span></Table.Cell>
                     <Table.Cell>
                       <span className="flex flex-wrap gap-1">
-                        <Chip color={turn.answerKind === 'answered' ? 'success' : turn.answerKind === 'failed' ? 'danger' : 'default'} size="sm" variant="soft">{answerKinds[turn.answerKind ?? ''] ?? turn.answerKind ?? '未完成'}</Chip>
-                        {turn.feedback && <Chip color={turn.feedback === 'up' ? 'success' : 'warning'} size="sm" variant="soft">反馈：{turn.feedback}</Chip>}
+                        <Chip color={turn.answerKind === 'answered' ? 'success' : turn.answerKind === 'failed' ? 'danger' : 'default'} size="sm" variant="soft">{(turn.answerKind && answerKinds[turn.answerKind]) || turn.answerKind || '未完成'}</Chip>
+                        {turn.feedback && <Chip color={turn.feedback === 'helpful' ? 'success' : 'warning'} size="sm" variant="soft">{turn.feedback === 'helpful' ? '有帮助' : '没帮助'}</Chip>}
                       </span>
                     </Table.Cell>
                     <Table.Cell><span title={fmtDateTime(turn.createdAt)}>{fmtRelative(turn.createdAt)}</span></Table.Cell>
@@ -271,7 +272,8 @@ function DebugTab() {
       <Panel className="xl:col-span-3" title="结果">
         {!state.status && <p className="text-sm text-muted">回答、引用和失败原因会显示在这里。</p>}
         {state.status === 'running' && !state.answer && <div className="flex items-center gap-2 text-sm text-muted"><Spinner size="sm" />正在检索并生成回答…</div>}
-        {state.answer && <div className="whitespace-pre-wrap rounded-xl bg-surface-secondary p-4 text-sm leading-7 text-foreground">{state.answer}</div>}
+        {/* 与访客看到的一样渲染：Markdown 与上标引用编号。 */}
+        {state.answer && <div className="rounded-xl bg-surface-secondary p-4 text-foreground"><Markdown citations={state.citations} text={state.answer} /></div>}
         {state.citations.length > 0 && (
           <div className="flex flex-col gap-1.5">
             <span className="text-xs font-medium text-muted">引用来源</span>

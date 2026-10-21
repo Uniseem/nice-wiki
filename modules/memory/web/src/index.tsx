@@ -123,7 +123,7 @@ function EntryDrawer({ entry, onClose, onSaved }: { entry: Entry | null; onClose
           <Form className="flex min-h-0 flex-1 flex-col" onSubmit={(event) => { event.preventDefault(); if (size <= maxBytes) void save(); }}>
             <Drawer.Body className="flex flex-col gap-4">
               <TextInput isRequired label="标题" maxLength={200} value={form.title} onChange={(title) => setForm({ ...form, title })} />
-              <TextInput description="一句话说明它什么时候有用。" label="说明" value={form.description} onChange={(description) => setForm({ ...form, description })} />
+              <TextInput isRequired description="一句话说明它什么时候有用，例如“所有回答”“涉及价格时”。" label="说明" maxLength={300} value={form.description} onChange={(description) => setForm({ ...form, description })} />
               <TextAreaInput
                 isRequired
                 description={`${size} / ${maxBytes} 字节，支持 Markdown。`}

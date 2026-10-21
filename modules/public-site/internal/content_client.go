@@ -65,6 +65,7 @@ func LoadPublishedBundle(ctx context.Context, op platform.OperationContext, in L
 		result.Description = *envelope.Metadata.SEODescription
 	}
 	if in.Locale != result.SourceLanguage {
+		translatedTree := false
 		translated, readErr := directory.Localization.ReadTranslation(ctx, map[string]any{"document": in.Publication, "targetLanguage": in.Locale})
 		units := make(map[string]string)
 		if readErr == nil {
@@ -112,7 +113,7 @@ func LoadPublishedBundle(ctx context.Context, op platform.OperationContext, in L
 			if len(translatedBody) > 0 {
 				if tree, treeErr := ParseTiptapDocument(ctx, op, ParseTiptapDocumentInput{translatedBody, publishedBodyLimit}); treeErr == nil {
 					result.Document = tree.Document
-					units = map[string]string{}
+					translatedTree = true
 				}
 			}
 		}
@@ -138,8 +139,11 @@ func LoadPublishedBundle(ctx context.Context, op platform.OperationContext, in L
 				apply(&node.Content[i])
 			}
 		}
-		for i := range result.Document.Content {
-			apply(&result.Document.Content[i])
+		// 用了完整译文树时，缺译的块已按 fallback 单元记下，不再逐块比对（否则所有块都会被当成未翻译）。
+		if !translatedTree {
+			for i := range result.Document.Content {
+				apply(&result.Document.Content[i])
+			}
 		}
 	}
 	revision := in.Publication.Revision

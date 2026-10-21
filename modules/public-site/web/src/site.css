@@ -111,17 +111,6 @@
     @apply border border-current bg-transparent text-current hover:bg-white/10;
   }
 
-  /* 问答回答里的排版比正文紧凑一些。 */
-  .nw-answer {
-    @apply text-sm leading-6;
-  }
-  .nw-answer :is(p, ul, ol, pre) {
-    @apply my-2;
-  }
-  .nw-answer pre {
-    @apply p-3 text-xs;
-  }
-
   /* 平台视频的“点击播放”入口。 */
   .platform-video img {
     @apply m-0 w-full rounded-none;

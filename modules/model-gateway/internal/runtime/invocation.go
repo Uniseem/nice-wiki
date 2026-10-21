@@ -205,7 +205,7 @@ func beginExecution(ctx context.Context, op OperationContext, write, finalizing 
 func (t *ExecutionTransaction) Close()        { _ = t.Tx.Rollback(); t.cancel() }
 func (t *ExecutionTransaction) Commit() error { return ExecutionStorageError(t.Tx.Commit()) }
 func ExecutionStorageError(err error) error {
-	if os.Getenv("NW_DEBUG") != "" {
+	if err != nil && os.Getenv("NW_DEBUG") != "" {
 		fmt.Fprintf(os.Stderr, "模型执行持久记录失败 原因=%v\n", err)
 	}
 	return platform.NormalizeIOError(err, platform.CodeDependencyUnavailable, true, "模型执行持久记录操作失败")
