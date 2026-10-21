@@ -277,7 +277,7 @@ func ForwardRequest(ctx context.Context, op OperationContext, input ForwardReque
 var adminCostClasses = map[string]string{
 	"knowledge:createBuild": platform.CostClassBackground, "knowledge:approveRebuildPlan": platform.CostClassBackground,
 	"localization:createTranslation": platform.CostClassBackground, "localization:requestInterfaceTranslation": platform.CostClassBackground,
-	"model-gateway:createConnectionProbe": platform.CostClassAdminProbe,
+	"model-gateway:createConnectionProbe": platform.CostClassAdminProbe, "qa:createDebugTurn": platform.CostClassBackground,
 }
 
 func StreamResponse(ctx context.Context, op OperationContext, input StreamResponseInput) (StreamResponseResult, error) {

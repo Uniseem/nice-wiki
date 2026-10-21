@@ -16,6 +16,26 @@ const policy = ref<Record<string, any> | null>(null);
 const version = ref(0);
 const turns = ref<any[]>([]);
 const cacheEntries = ref<any[]>([]);
+// 调试台：不经访客准入直接试问一个问题，看回答、引用和失败原因；费用按后台任务类别计。
+const dbg = ref({ question: '', profileId: 'background-accurate', running: false, answer: '', citations: [] as any[], status: '', error: '' });
+async function runDebug() {
+  if (!dbg.value.question.trim() || dbg.value.running) return;
+  Object.assign(dbg.value, { running: true, answer: '', citations: [], status: '正在提问…', error: '' });
+  try {
+    const idempotencyKey = crypto.randomUUID().replaceAll('-', '');
+    const created = await api<{ debug: { debugId: string } }>('/v1/admin/debug-turns', { method: 'POST', idempotencyKey, body: { question: dbg.value.question, profileId: dbg.value.profileId, language: 'zh-Hans', idempotencyKey } });
+    for (let i = 0; i < 90; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const read = await api<{ debug: any; events: any[] }>(`/v1/admin/debug-turns/${created.debug.debugId}?afterSequence=0`);
+      dbg.value.answer = read.events.filter((e) => e.event === 'delta').map((e) => e.delta).join('');
+      dbg.value.citations = read.events.filter((e) => e.event === 'citation').map((e) => e.citation);
+      const last = read.events[read.events.length - 1];
+      if (last?.event === 'completed') { dbg.value.status = '完成'; break; }
+      if (last?.event === 'failed') { dbg.value.status = '失败'; dbg.value.error = `失败原因：${last.code ?? '未知'}（常见原因：诊断档位不存在或不属于“后台任务”类别、知识库没有索引、模型没有配置）`; break; }
+    }
+  } catch (e) { dbg.value.status = '失败'; dbg.value.error = messageOf(e); }
+  finally { dbg.value.running = false; }
+}
 const error = ref('');
 const notice = ref('');
 const busy = ref(false);
@@ -69,6 +89,19 @@ onMounted(() => run(async () => {}));
       <p v-if="!turns.length" class="hint">还没有问答记录。</p>
       <table v-else><thead><tr><th>时间</th><th>问题</th><th>状态</th></tr></thead>
         <tbody><tr v-for="t in turns" :key="t.turnId"><td>{{ t.createdAt }}</td><td>{{ t.questionPreview }}</td><td>{{ t.answerKind || '未完成' }}{{ t.feedback ? '（反馈：' + t.feedback + '）' : '' }}</td></tr></tbody></table>
+    </fieldset>
+    <fieldset>
+      <legend>调试台</legend>
+      <p class="hint">管理员直接试问一个问题：检索知识库并调用模型回答，结果只保存在隔离的诊断记录里（7 天），不影响访客对话和缓存。会产生模型费用，按“后台任务”类别计。</p>
+      <form class="row" @submit.prevent="runDebug">
+        <input type="text" v-model="dbg.question" placeholder="要试问的问题" maxlength="500" style="min-width:18rem" required>
+        <input type="text" v-model="dbg.profileId" placeholder="诊断档位 ID（后台任务类别）" style="max-width:14rem" required>
+        <button class="primary" :disabled="dbg.running">{{ dbg.running ? '诊断中…' : '试问' }}</button>
+      </form>
+      <p v-if="dbg.status" class="hint">{{ dbg.status }}</p>
+      <p v-if="dbg.error" class="err">{{ dbg.error }}</p>
+      <div v-if="dbg.answer"><strong>回答</strong><pre style="white-space:pre-wrap">{{ dbg.answer }}</pre></div>
+      <ul v-if="dbg.citations.length"><li v-for="(c, i) in dbg.citations" :key="i">来源：{{ c.title || c.href }} <span class="hint">{{ c.href }}</span></li></ul>
     </fieldset>
     <fieldset>
       <legend>答案缓存条目</legend>

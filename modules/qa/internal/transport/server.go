@@ -53,6 +53,7 @@ func NewOperationHandlers(bind func(context.Context) context.Context) map[string
 		}),
 		"createConversation": jsonOperation(bind, http.StatusCreated, conversation.CreateConversation, nil),
 		"startTurn":          jsonOperation(bind, http.StatusAccepted, turn.StartTurn, nil),
+		"createDebugTurn":    jsonOperation(bind, http.StatusAccepted, qadebug.CreateDebugTurn, nil),
 		"recordFeedback": jsonOperation(bind, http.StatusOK, feedback.RecordFeedback, func(r *http.Request, input *gen.RecordFeedbackInput) error {
 			if input.TurnId != r.PathValue("turnId") {
 				return platform.NewError(platform.CodeValidation, false, "路径与反馈轮次不一致")
