@@ -10,8 +10,21 @@
 @import "@heroui/styles/variants";
 @import "../../../../libs/platform/web/ui/content.css";
 
+/* 逐个列出各域页面源码目录（目录通配不会被扫描）。 */
 @source "./";
-@source "../../../*/web/src";
+@source "../../../content/web/src";
+@source "../../../site-config/web/src";
+@source "../../../media/web/src";
+@source "../../../identity/web/src";
+@source "../../../localization/web/src";
+@source "../../../model-gateway/web/src";
+@source "../../../knowledge/web/src";
+@source "../../../memory/web/src";
+@source "../../../qa/web/src";
+@source "../../../traffic-guard/web/src";
+@source "../../../jobs/web/src";
+@source "../../../analytics/web/src";
+@source "../../../data-protection/web/src";
 @source "../../../../libs/platform/web/ui";
 
 @theme {
