@@ -98,8 +98,17 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 	if err := flush(); err != nil {
 		return err
 	}
+	// 标题单独走一个单元的翻译批次；失败只是没有标题译文，不影响正文译文交付。
+	title := ""
+	if strings.TrimSpace(source.Title) != "" {
+		sourceTitle := source.Title
+		titleUnit := gen.TranslationUnit{UnitId: "title." + platform.HashBytes([]byte(sourceTitle))[:16], SourceText: &sourceTitle, SourceHash: platform.HashBytes([]byte(sourceTitle))}
+		if done, titleErr := translateBatch(ctx, op, translationID+".title", route, memory, source, []gen.TranslationUnit{titleUnit}, 0); titleErr == nil && len(done) == 1 {
+			title = strings.TrimSpace(done[0].TargetText)
+		}
+	}
 	return language.WriteData(ctx, op, func(tx *sql.Tx) error {
-		object := TranslationObject{
+		object := TranslationObject{Title: title,
 			Translation: gen.Translation{TranslationId: translationID, Document: document, TargetLanguage: target, State: gen.TranslationState("ready"), Total: len(translated), Completed: len(translated), MemoryVersionHash: memory.VersionHash},
 			SourceTree:  split.SourceTree, Units: translated,
 		}

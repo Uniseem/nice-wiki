@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/public-site/internal/gen"
+	"strings"
 	"time"
 )
 
@@ -72,6 +73,7 @@ func LoadPublishedBundle(ctx context.Context, op platform.OperationContext, in L
 					Document       gen.PublishedRevisionRef `json:"document"`
 					TargetLanguage string                   `json:"targetLanguage"`
 				} `json:"translation"`
+				Title *string         `json:"title"`
 				Body  json.RawMessage `json:"body"`
 				Units []struct {
 					UnitID             string                   `json:"unitId"`
@@ -85,6 +87,9 @@ func LoadPublishedBundle(ctx context.Context, op platform.OperationContext, in L
 			}
 			if json.Unmarshal(translated, &payload) != nil || payload.Translation == nil || !samePublication(payload.Translation.Document, in.Publication) || payload.Translation.TargetLanguage != in.Locale {
 				return LoadPublishedBundleResult{}, dependency("译文来源无法核验")
+			}
+			if payload.Title != nil && strings.TrimSpace(*payload.Title) != "" {
+				result.Title = *payload.Title // 译文带标题就用译文标题，否则沿用原文标题
 			}
 			translatedBody := payload.Body
 			for _, unit := range payload.Units {

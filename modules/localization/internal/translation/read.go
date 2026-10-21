@@ -18,6 +18,7 @@ type ReadTranslationResult struct {
 	Units       []gen.TranslationUnit `json:"units"`
 	Partial     bool                  `json:"partial"`
 	NoticeKey   *string               `json:"noticeKey,omitempty"`
+	Title       *string               `json:"title,omitempty"`
 	Body        json.RawMessage       `json:"body"`
 	BodyHash    string                `json:"bodyHash"`
 }
@@ -125,6 +126,10 @@ func ReadTranslation(ctx context.Context, op OperationContext, input ReadTransla
 	result := ReadTranslationResult{Translation: current.Translation, Units: []gen.TranslationUnit{}, Partial: len(split.FallbackBlockIds) > 0}
 	result.Translation.Document = input.Document
 	result.Translation.TargetLanguage = target
+	if current.Title != "" {
+		title := current.Title
+		result.Title = &title
+	}
 	result.Translation.Total = len(split.Units) + len(split.FallbackBlockIds)
 	result.Translation.Completed = 0
 	for i, candidate := range split.Units {

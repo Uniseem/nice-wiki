@@ -1353,6 +1353,8 @@ export interface components {
             partial: boolean;
             /** @description 顶部分译提示key */
             noticeKey?: string;
+            /** @description 目标语言的文档标题；缺失表示该译文没有标题译文，公开页沿用原文标题 */
+            title?: string;
             /** @description 完整还原目标树，source publication/targetLanguage/generation在translation中；始终由服务新实现写出，兼容字段 */
             body?: components["schemas"]["DocumentBody"];
             /** @description canonical目标body SHA256，不等于source publication contentHash */

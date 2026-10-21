@@ -1647,6 +1647,12 @@
           "maxLength": 65536,
           "description": "顶部分译提示key"
         },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "目标语言的文档标题；缺失表示该译文没有标题译文，公开页沿用原文标题"
+        },
         "body": {
           "$ref": "../../content/contracts/types.json#/$defs/DocumentBody",
           "description": "完整还原目标树，source publication/targetLanguage/generation在translation中；始终由服务新实现写出，兼容字段"

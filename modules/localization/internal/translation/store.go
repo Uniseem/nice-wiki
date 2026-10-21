@@ -24,6 +24,7 @@ type TranslationObject struct {
 	Body             json.RawMessage       `json:"body"`
 	BodyHash         string                `json:"bodyHash"`
 	FallbackBlockIds []string              `json:"fallbackBlockIds"`
+	Title            string                `json:"title,omitempty"` // 目标语言的文档标题（没有则公开页沿用原文）
 	Units            []gen.TranslationUnit `json:"units"`
 }
 
