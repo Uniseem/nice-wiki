@@ -642,4 +642,5 @@ func prepareTrustedBeacon(ctx context.Context, op OperationContext, runtime *Pro
 }
 
 // optionalAdminOperations 是匿名路由里允许对已登录管理员附带委托证明的操作。
-var optionalAdminOperations = map[string]bool{"localization:listLanguages": true}
+// 资源字节：编辑器里刚上传、草稿还没保存（引用未确认）的图片也要能预览，媒体服务按管理员规则放行。
+var optionalAdminOperations = map[string]bool{"localization:listLanguages": true, "media:readAssetBytes": true, "media:headAssetBytes": true}

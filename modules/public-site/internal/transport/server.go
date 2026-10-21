@@ -303,5 +303,8 @@ func writePageProblem(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)
 	locale, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
+	if locale == "v1" {
+		locale = "zh-Hans" // 草稿预览等从后台打开的页面，用后台的界面语言
+	}
 	_, _ = w.Write([]byte(publicsite.RenderStatusPage(locale, status, title, hint)))
 }

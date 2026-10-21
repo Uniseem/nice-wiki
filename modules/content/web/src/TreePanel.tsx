@@ -33,6 +33,18 @@ export function TreePanel({ docs, treeRevision, selected, onSelect, onCreate, on
     });
   }, [docs, query, collapsed]);
 
+  // 同级第一篇不能上移、最后一篇不能下移：菜单里对应项置灰。
+  const edgeKeys = useMemo(() => {
+    const groups = new Map<string | null, Meta[]>();
+    for (const doc of liveDocs(docs)) groups.set(doc.parentId ?? null, [...(groups.get(doc.parentId ?? null) ?? []), doc]);
+    const keys = new Map<string, string[]>();
+    for (const group of groups.values()) {
+      const sorted = [...group].sort(byOrder);
+      sorted.forEach((doc, index) => keys.set(doc.documentId, [...(index === 0 ? ['up'] : []), ...(index === sorted.length - 1 ? ['down'] : [])]));
+    }
+    return keys;
+  }, [docs]);
+
   const toggle = (id: string) => setCollapsed((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
   const reorder = async (doc: Meta, delta: number) => {
@@ -104,7 +116,7 @@ export function TreePanel({ docs, treeRevision, selected, onSelect, onCreate, on
                         <Dropdown>
                           <Button isIconOnly aria-label="更多" className="size-7 min-w-7" size="sm" variant="ghost"><Ellipsis className="size-3.5" /></Button>
                           <Dropdown.Popover placement="bottom end">
-                            <Dropdown.Menu onAction={(key: Key) => { if (key === 'up') void reorder(doc, -1); if (key === 'down') void reorder(doc, 1); if (key === 'child') onCreate(doc.documentId); }}>
+                            <Dropdown.Menu disabledKeys={edgeKeys.get(doc.documentId)} onAction={(key: Key) => { if (key === 'up') void reorder(doc, -1); if (key === 'down') void reorder(doc, 1); if (key === 'child') onCreate(doc.documentId); }}>
                               <Dropdown.Item id="child" textValue="新建子文档"><Plus className="size-4 text-muted" /><Label>新建子文档</Label></Dropdown.Item>
                               <Dropdown.Item id="up" textValue="上移"><ArrowUp className="size-4 text-muted" /><Label>上移</Label></Dropdown.Item>
                               <Dropdown.Item id="down" textValue="下移"><ArrowDown className="size-4 text-muted" /><Label>下移</Label></Dropdown.Item>

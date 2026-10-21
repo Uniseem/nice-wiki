@@ -53,11 +53,6 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
   const attachInput = useRef<HTMLInputElement>(null);
   const editorRef = useRef<TiptapEditor | null>(null);
 
-  const emitChange = useCallback(() => {
-    const current = editorRef.current;
-    if (current) onChangeRef.current(current.getJSON() as JSONNode);
-  }, []);
-
   const insertFile = useCallback(async (file: File, kind: 'image' | 'attachment' | 'video') => {
     const current = editorRef.current;
     if (!current) return;
@@ -71,12 +66,11 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
         : kind === 'video' ? { type: 'video', attrs: { source: { kind: 'uploaded', asset }, title: file.name.replace(/\.[^.]+$/, '').slice(0, 500), description: '', poster, widthPercent: null } }
         : { type: 'attachment', attrs: { asset, displayName: file.name.slice(0, 255) } };
       current.chain().focus().insertContent(content).run();
-      emitChange();
       toast.update(id, `${label}已插入`, { description: file.name, isLoading: false, timeout: 2500, variant: 'success' });
     } catch (problem) {
       toast.update(id, `${label}上传失败`, { description: errorText(problem), isLoading: false, timeout: 8000, variant: 'danger' });
     }
-  }, [emitChange]);
+  }, []);
 
   const handleFiles = useCallback((files: FileList | null | undefined): boolean => {
     const images = Array.from(files ?? []).filter((file) => file.type.startsWith('image/'));
@@ -158,13 +152,14 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
         return false;
       },
     },
-    // 只有用户在编辑器里操作（获得焦点）才算修改，加载时补稳定 ID 不触发保存。
-    onUpdate: ({ editor: current }) => { if (current.isFocused) onChangeRef.current(current.getJSON() as JSONNode); },
+    // 文档有变化就通知保存（工具栏按钮、链接/公式对话框、上传完成时编辑器往往不在焦点上，不能以焦点判断）。
+    onUpdate: ({ editor: current }) => onChangeRef.current(current.getJSON() as JSONNode),
     onTransaction: ({ editor: current }) => refreshSlash(current),
   });
   editorRef.current = editor;
 
-  useEffect(() => { editor?.setEditable(editable); }, [editor, editable]);
+  // 切换只读不是修改：不发 update 事件，避免打开文档就触发一次保存。
+  useEffect(() => { editor?.setEditable(editable, false); }, [editor, editable]);
 
   const pick = (kind: 'image' | 'attachment' | 'video') => (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -218,7 +213,6 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
             if (math.pos !== null) editor.chain().focus().setNodeSelection(math.pos).updateAttributes('mathBlock', { latex }).run();
             else editor.chain().focus().insertContent({ type: 'mathBlock', attrs: { latex } }).run();
             setMath(null);
-            emitChange();
           }}
         />
       )}
@@ -230,7 +224,6 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
             if (drawing.pos !== null) editor.chain().focus().setNodeSelection(drawing.pos).updateAttributes('drawing', attrs).run();
             else editor.chain().focus().insertContent({ type: 'drawing', attrs }).run();
             setDrawing(null);
-            emitChange(); // 插入时编辑器可能还没拿到焦点，主动通知保存
           }}
         />
       )}

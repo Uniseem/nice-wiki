@@ -145,7 +145,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			op, _ := platform.OperationContextFrom(r.Context())
 			result, err := publicsite.HandlePreview(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandlePreviewInput{PreviewID: r.URL.Query().Get("previewId"), Token: r.PathValue("token")})
 			if err != nil {
-				writeProblem(w, err)
+				writePageProblem(w, r, err)
 				return
 			}
 			for _, header := range result.Headers {

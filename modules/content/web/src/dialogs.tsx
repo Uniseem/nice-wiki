@@ -142,9 +142,10 @@ export function HistoryDrawer({ documentId, writable, onRollback, onClose }: { d
                       <span className="text-sm text-foreground">{entry.authorAccountName}</span>
                       <span className="text-xs text-muted" title={fmtDateTime(entry.createdAt)}>{fmtRelative(entry.createdAt)}</span>
                     </div>
-                    {entry.operation !== 'withdraw' && (
+                    {/* 最新一条（没被撤回时）就是线上版本，不必回滚到它。 */}
+                    {entry.operation !== 'withdraw' && (index === 0 ? <p className="mt-2 text-xs text-muted">当前线上版本</p> : (
                       <Button className="mt-2" isDisabled={!writable} size="sm" variant="secondary" onPress={() => rollback(entry)}>回滚到此版本</Button>
-                    )}
+                    ))}
                   </li>
                 ))}
               </ol>

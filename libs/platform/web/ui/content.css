@@ -34,6 +34,7 @@
   .nw-prose input[type="checkbox"] { @apply size-4 accent-[var(--accent)]; }
   .nw-prose hr { @apply my-10 border-separator; }
   .nw-prose :is(img, video) { @apply h-auto max-w-full rounded-xl; }
+  .nw-prose video { @apply w-full bg-black; }
   .nw-prose figure { @apply my-6; }
   .nw-prose figcaption { @apply mt-2 text-center text-sm text-muted; }
   .nw-prose :is(.table-wrap, .tableWrapper) { @apply my-5 overflow-x-auto rounded-xl border border-border; }

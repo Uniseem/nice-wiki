@@ -3,8 +3,12 @@ package publicsite
 import (
 	"context"
 	"encoding/json"
+	"html"
 	"nice-wiki/libs/platform"
 )
+
+// previewNotice 预览页顶部的提示条：提醒这是草稿，访客看不到。
+const previewNotice = `<aside class="border-b border-warning/30 bg-warning-soft px-4 py-2 text-center text-sm text-foreground">草稿预览：访客看不到这个页面，发布后才会公开。</aside>`
 
 type RenderPreviewInput struct {
 	PreviewID    string
@@ -73,7 +77,14 @@ func RenderPreview(ctx context.Context, op platform.OperationContext, in RenderP
 	if err != nil {
 		return RenderPreviewResult{}, err
 	}
-	page, err := ComposeHTML(ctx, op, ComposeHTMLInput{SafeHTML: rendered.SafeHTML, Title: in.Snapshot.Metadata.Title, TOC: toc.Items, Navigation: []NavigationNode{}, Metadata: "<meta name=\"robots\" content=\"noindex,nofollow\">", Locale: in.Snapshot.Metadata.SourceLanguage, DocumentID: in.Snapshot.Metadata.DocumentID})
+	// 页头的站名、站标和主题色与公开页一致，预览看到的就是发布后的样子。
+	meta := loadSiteMeta(ctx)
+	page, err := ComposeHTML(ctx, op, ComposeHTMLInput{
+		SafeHTML: rendered.SafeHTML, Title: in.Snapshot.Metadata.Title, TOC: toc.Items, Navigation: []NavigationNode{},
+		Metadata: "<title>" + html.EscapeString(meta.pageTitle(in.Snapshot.Metadata.Title)) + "</title><meta name=\"robots\" content=\"noindex,nofollow\">",
+		Locale:   in.Snapshot.Metadata.SourceLanguage, DocumentID: in.Snapshot.Metadata.DocumentID, Announcement: previewNotice,
+		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor,
+	})
 	if err != nil {
 		return RenderPreviewResult{}, err
 	}

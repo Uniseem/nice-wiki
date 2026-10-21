@@ -1,4 +1,5 @@
 import { Brush, CircleCheck, CircleExclamation, CircleInfo, Code, Function as FunctionIcon, Heading2, Heading3, Heading4, LayoutColumns, LayoutColumns3, LayoutHeaderCells, ListCheck, ListOl, ListUl, Minus, Paperclip, Picture, QuoteOpen, TextAlignLeft, TriangleExclamation, Video } from '@gravity-ui/icons';
+import { TextSelection } from '@tiptap/pm/state';
 import type { Editor } from '@tiptap/react';
 import type { ComponentType } from 'react';
 
@@ -25,7 +26,17 @@ export type BlockCommand = {
 export function insertColumns(editor: Editor, count: number): void {
   if (editor.isActive('column')) return; // 分栏不能嵌套
   const column = () => ({ type: 'column', content: [{ type: 'paragraph' }] });
-  editor.chain().focus().insertContent({ type: 'columns', content: Array.from({ length: count }, column) }).run();
+  // 插入后光标默认落在最后一栏，挪到第一栏开头，接着输入的内容从左边开始。
+  editor.chain().focus().insertContent({ type: 'columns', content: Array.from({ length: count }, column) }).command(({ tr }) => {
+    const { $from } = tr.selection;
+    for (let depth = $from.depth; depth > 0; depth--) {
+      if ($from.node(depth).type.name === 'columns') {
+        tr.setSelection(TextSelection.create(tr.doc, $from.before(depth) + 3));
+        break;
+      }
+    }
+    return true;
+  }).run();
 }
 
 export function toggleCallout(editor: Editor, kind: string): void {

@@ -16,22 +16,23 @@ import (
 
 // openAssetBytes 按下载规则打开不可变原文件：
 // 管理员（media.read / superadmin）可读本站任一就绪资源；其余调用方必须带正确的 sha，且资源已被正文或站点配置引用。
-func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*os.File, gen.AssetVersionRef, string, error) {
+// shared 表示按公开规则放行、可以进共享缓存；管理员读到的可能是还没发布的草稿资源，只能私有缓存。
+func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*os.File, gen.AssetVersionRef, bool, error) {
 	s, ok := currentBlobStore().(*localBlobStore)
 	if !ok {
-		return nil, gen.AssetVersionRef{}, "", platform.NewError(platform.CodeDependencyUnavailable, true, "媒体存储未装配")
+		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体存储未装配")
 	}
 	if op.DataEpoch != s.openedEpoch {
-		return nil, gen.AssetVersionRef{}, "", platform.NewError(platform.CodeVersionMismatch, false, "资源不属于已打开数据代次")
+		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeVersionMismatch, false, "资源不属于已打开数据代次")
 	}
-	var site, sha, mediaType, state, name string
+	var site, sha, mediaType, state string
 	var size, version int
-	err := s.db.QueryRowContext(r.Context(), `SELECT site_id,sha256,byte_size,media_type,state,json_extract(asset_json,'$.originalName'),json_extract(asset_json,'$.ref.version') FROM assets WHERE asset_id=?`, assetID).Scan(&site, &sha, &size, &mediaType, &state, &name, &version)
+	err := s.db.QueryRowContext(r.Context(), `SELECT site_id,sha256,byte_size,media_type,state,json_extract(asset_json,'$.ref.version') FROM assets WHERE asset_id=?`, assetID).Scan(&site, &sha, &size, &mediaType, &state, &version)
 	if errors.Is(err, sql.ErrNoRows) || (err == nil && (site != op.Actor.SiteID || state != "ready")) {
-		return nil, gen.AssetVersionRef{}, "", platform.NewError(platform.CodeNotFound, false, "资源不存在")
+		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
 	}
 	if err != nil {
-		return nil, gen.AssetVersionRef{}, "", mapMediaDBError(err, "读取资源失败")
+		return nil, gen.AssetVersionRef{}, false, mapMediaDBError(err, "读取资源失败")
 	}
 	admin := op.Actor.Kind == "admin" && op.Actor.SessionID != "" && (hasGrant(op.Actor.Grants, "media.read") || hasGrant(op.Actor.Grants, "superadmin"))
 	// 知识库与模型网关以服务身份读取已发布资源：按版本核对，不需要公开地址里的 sha。
@@ -39,29 +40,29 @@ func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*
 	if !admin {
 		if service {
 			if wanted := r.URL.Query().Get("version"); wanted != "" && wanted != strconv.Itoa(version) {
-				return nil, gen.AssetVersionRef{}, "", platform.NewError(platform.CodeNotFound, false, "资源不存在")
+				return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
 			}
 		} else if r.URL.Query().Get("sha") != sha {
-			return nil, gen.AssetVersionRef{}, "", platform.NewError(platform.CodeNotFound, false, "资源不存在")
+			return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
 		}
 		var referenced int
 		if err = s.db.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM reference_pin_assets p JOIN reference_sources rs ON rs.pin_id=p.pin_id WHERE p.asset_id=? AND rs.state='confirmed'`, assetID).Scan(&referenced); err != nil {
-			return nil, gen.AssetVersionRef{}, "", mapMediaDBError(err, "核对资源引用失败")
+			return nil, gen.AssetVersionRef{}, false, mapMediaDBError(err, "核对资源引用失败")
 		}
 		if referenced == 0 {
-			return nil, gen.AssetVersionRef{}, "", platform.NewError(platform.CodeNotFound, false, "资源不存在")
+			return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
 		}
 	}
 	file, err := os.Open(s.blobPath(site, sha))
 	if err != nil {
-		return nil, gen.AssetVersionRef{}, "", platform.NewError(platform.CodeIntegrityError, false, "资源文件缺失")
+		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeIntegrityError, false, "资源文件缺失")
 	}
-	return file, gen.AssetVersionRef{AssetId: assetID, Version: version, Sha256: sha, MediaType: mediaType, ByteSize: size}, name, nil
+	return file, gen.AssetVersionRef{AssetId: assetID, Version: version, Sha256: sha, MediaType: mediaType, ByteSize: size}, !admin, nil
 }
 
 // ServeAssetBytes 输出不可变资源字节，支持单个 Range；head 为 true 时只写响应头。
 func ServeAssetBytes(w http.ResponseWriter, r *http.Request, op OperationContext, assetID Identifier, head bool) error {
-	file, ref, _, err := openAssetBytes(r, op, assetID)
+	file, ref, shared, err := openAssetBytes(r, op, assetID)
 	if err != nil {
 		return err
 	}
@@ -87,10 +88,13 @@ func ServeAssetBytes(w http.ResponseWriter, r *http.Request, op OperationContext
 	headers.Set("Accept-Ranges", "bytes")
 	headers.Set("X-Content-Type-Options", "nosniff")
 	headers.Set("Content-Security-Policy", "default-src 'none'; sandbox")
-	if r.URL.Query().Get("sha") != "" {
-		headers.Set("Cache-Control", "public, max-age=31536000, immutable")
-	} else {
+	switch {
+	case r.URL.Query().Get("sha") == "":
 		headers.Set("Cache-Control", "private, no-store")
+	case shared:
+		headers.Set("Cache-Control", "public, max-age=31536000, immutable")
+	default:
+		headers.Set("Cache-Control", "private, max-age=31536000, immutable")
 	}
 	if r.Header.Get("If-None-Match") == etag && !byteRange.Partial {
 		w.WriteHeader(http.StatusNotModified)
@@ -125,6 +129,11 @@ func BuildDeliveryManifest(r *http.Request, op OperationContext, input BuildDeli
 	if !ok {
 		return BuildDeliveryManifestResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体存储未装配")
 	}
+	// 草稿预览的资源不进任何缓存（合同：带 hash 的发布资源永久缓存，草稿 preview no-store）。
+	policy := gen.ImmutablePublic
+	if input.PreviewId != nil {
+		policy = gen.PrivateNoStore
+	}
 	items := make([]gen.DeliveryItem, 0, len(input.Assets))
 	for _, ref := range input.Assets {
 		var site, sha, state, assetJSON string
@@ -135,7 +144,7 @@ func BuildDeliveryManifest(r *http.Request, op OperationContext, input BuildDeli
 		if err != nil {
 			return BuildDeliveryManifestResult{}, mapMediaDBError(err, "读取资源失败")
 		}
-		item := gen.DeliveryItem{Asset: ref, Url: "/v1/assets/" + ref.AssetId + "/bytes?sha=" + sha, CachePolicy: gen.DeliveryItemCachePolicy("immutable_public"), ContentDisposition: gen.DeliveryItemContentDisposition("inline"), Variants: []gen.ImageVariant{}}
+		item := gen.DeliveryItem{Asset: ref, Url: "/v1/assets/" + ref.AssetId + "/bytes?sha=" + sha, CachePolicy: policy, ContentDisposition: gen.DeliveryItemContentDisposition("inline"), Variants: []gen.ImageVariant{}}
 		var asset gen.Asset
 		if json.Unmarshal([]byte(assetJSON), &asset) == nil && !asset.Animated {
 			item.Width, item.Height = asset.Width, asset.Height
