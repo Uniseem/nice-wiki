@@ -4,6 +4,7 @@ PYTHON ?= python3
 
 check:
 	$(PYTHON) scripts/check_docs.py
+	$(PYTHON) scripts/check_i18n.py
 
 privacy:
 	$(PYTHON) scripts/check_docs.py --privacy-only

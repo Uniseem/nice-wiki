@@ -102,7 +102,7 @@ var hexColor = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 
 var languageNames = map[string]string{
 	"zh-Hans": "简体中文", "zh-Hant": "繁體中文", "zh": "中文", "en": "English", "ja": "日本語", "ko": "한국어", "fr": "Français", "de": "Deutsch",
-	"es": "Español", "ru": "Русский", "pt": "Português", "it": "Italiano", "ar": "العربية", "he": "עברית", "fa": "فارسی", "vi": "Tiếng Việt", "th": "ไทย",
+	"es": "Español", "ru": "Русский", "pt": "Português", "it": "Italiano", "ar": "العربية", "he": "עברית", "fa": "فارسی", "vi": "Tiếng Việt", "th": "ไทย", "id": "Bahasa Indonesia",
 }
 
 // 岛（React）用到的界面文字：在服务端按页面语言取好，随页面下发。

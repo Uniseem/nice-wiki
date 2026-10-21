@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// 页面自带的界面文字默认是中文；基准语言以外的语言（以及所有非中文页面）改用英文。
+// 页面自带的界面文字以简体中文为原文；其他语言先用 builtinUI 的内置译文，没有的退回英文。
 // 只替换固定文案，正文和用户填写的内容不经过这里。整句在前、片段在后（替换按参数顺序匹配）。
 var englishUI = strings.NewReplacer(
 	"要切换到这种语言阅读吗？", "Switch to this language?", "保持当前语言", "Keep current language", "切换", "Switch",
@@ -36,12 +36,20 @@ var englishUI = strings.NewReplacer(
 	"人机验证无法在此浏览器运行", "Verification is not supported in this browser", "错误", "error", "：", ": ", "）", ")", "（", " (",
 )
 
-// uiText：中文页面原样返回；其他语言先查界面字典里已翻译的条目，没翻译的退回英文。
+// simplifiedChinese 判断页面语言是不是界面原文所用的简体中文。
+func simplifiedChinese(locale string) bool {
+	return locale == "zh" || locale == "zh-Hans" || locale == "zh-CN" || locale == "zh-SG"
+}
+
+// uiText：简体中文页面原样返回；其他语言依次查后台翻译过的界面字典、内置译文，都没有就退回英文。
 func uiText(locale string, catalog map[string]string, key string) string {
-	if locale == "zh" || strings.HasPrefix(locale, "zh-") {
+	if simplifiedChinese(locale) {
 		return key
 	}
 	if value, ok := catalog[key]; ok && value != "" {
+		return value
+	}
+	if value, ok := builtinUI[locale][key]; ok {
 		return value
 	}
 	return englishUI.Replace(key)
@@ -59,7 +67,7 @@ type uiCacheEntry struct {
 
 // loadUIStrings 读取某语言已翻译的界面字典（key=中文原文，value=译文，只含确实翻译过的条目），缓存一分钟；读不到就当没有。
 func loadUIStrings(ctx context.Context, locale string) map[string]string {
-	if locale == "zh" || strings.HasPrefix(locale, "zh-") {
+	if simplifiedChinese(locale) {
 		return nil
 	}
 	uiCache.Lock()
