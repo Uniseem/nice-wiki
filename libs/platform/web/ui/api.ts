@@ -1,11 +1,12 @@
 import type { ModuleAPIClient, ModuleAPIRequest } from '../module-api';
+import { t } from './i18n';
 
 // 浏览器端的同源 API 客户端：CSRF 令牌、会话 ID 和授权项只存会话存储，HttpOnly 的会话 cookie 由浏览器自带。
 // 各域页面只用它请求本站版本化路径，不接触凭据，也不拼接其他来源的地址。
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, public detail: string, public body: unknown) {
-    super(detail || `请求失败（${status}）`);
+    super(detail || t('请求失败（{0}）', status));
   }
 }
 
@@ -135,26 +136,26 @@ export const api = request;
 export const apiClient: ModuleAPIClient = { request };
 
 const codeText: Record<string, string> = {
-  VALIDATION: '提交的内容不符合要求',
-  UNAUTHENTICATED: '登录已失效，请重新登录',
-  FORBIDDEN: '当前账号没有这项操作的权限',
-  NOT_FOUND: '对象不存在或已被删除',
-  GONE: '对象已过期或已被删除',
-  CONFLICT: '数据已被其他操作修改，请刷新后重试',
-  VERSION_MISMATCH: '数据已被其他人修改，请刷新后重试',
-  LOCKED: '对象正被占用，请稍后再试',
-  UNSUPPORTED_SCHEMA: '内容格式暂不支持',
-  UNSUPPORTED_CAPABILITY: '这项能力尚未配置或暂不支持',
-  RATE_LIMITED: '操作太频繁，请稍后再试',
-  BUDGET_EXCEEDED: '超出数量或大小上限',
-  CANCELLED: '操作已取消',
-  DEADLINE_EXCEEDED: '服务响应超时，请稍后再试',
-  DEPENDENCY_UNAVAILABLE: '依赖的服务暂不可用，请稍后再试',
-  STALE_RESULT: '数据已更新，请刷新后重试',
-  INTEGRITY_ERROR: '完整性校验未通过',
-  INTERNAL: '服务内部错误',
-  CHALLENGE_REQUIRED: '需要先完成人机验证',
-  INVOCATION_NOT_ACCEPTED: '调用未被受理',
+  VALIDATION: t('提交的内容不符合要求'),
+  UNAUTHENTICATED: t('登录已失效，请重新登录'),
+  FORBIDDEN: t('当前账号没有这项操作的权限'),
+  NOT_FOUND: t('对象不存在或已被删除'),
+  GONE: t('对象已过期或已被删除'),
+  CONFLICT: t('数据已被其他操作修改，请刷新后重试'),
+  VERSION_MISMATCH: t('数据已被其他人修改，请刷新后重试'),
+  LOCKED: t('对象正被占用，请稍后再试'),
+  UNSUPPORTED_SCHEMA: t('内容格式暂不支持'),
+  UNSUPPORTED_CAPABILITY: t('这项能力尚未配置或暂不支持'),
+  RATE_LIMITED: t('操作太频繁，请稍后再试'),
+  BUDGET_EXCEEDED: t('超出数量或大小上限'),
+  CANCELLED: t('操作已取消'),
+  DEADLINE_EXCEEDED: t('服务响应超时，请稍后再试'),
+  DEPENDENCY_UNAVAILABLE: t('依赖的服务暂不可用，请稍后再试'),
+  STALE_RESULT: t('数据已更新，请刷新后重试'),
+  INTEGRITY_ERROR: t('完整性校验未通过'),
+  INTERNAL: t('服务内部错误'),
+  CHALLENGE_REQUIRED: t('需要先完成人机验证'),
+  INVOCATION_NOT_ACCEPTED: t('调用未被受理'),
 };
 
 export function problemCode(error: unknown): string {
@@ -166,11 +167,11 @@ export function problemCode(error: unknown): string {
 // 给用户看的错误说明：先给出可操作的中文含义，服务端的细节放在括号里。
 export function errorText(error: unknown): string {
   if (error instanceof ApiError) {
-    const base = codeText[error.code] ?? `请求失败（${error.status}）`;
-    return error.detail && error.detail !== base ? `${base}（${error.detail}）` : base;
+    const base = codeText[error.code] ?? t('请求失败（{0}）', error.status);
+    return error.detail && error.detail !== base ? t('{0}（{1}）', base, error.detail) : base;
   }
-  if (error instanceof DOMException && error.name === 'AbortError') return '操作已取消';
+  if (error instanceof DOMException && error.name === 'AbortError') return t('操作已取消');
   if (error instanceof Error) return error.message;
   const code = problemCode(error);
-  return codeText[code] ?? '操作失败';
+  return codeText[code] ?? t('操作失败');
 }

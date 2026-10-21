@@ -2,7 +2,7 @@
 // 先从 models.dev 目录里选供应方、只填密钥；再从供应方拉取账号可用的模型勾选添加。未复制其源码。
 import { ArrowLeft, Magnifier } from '@gravity-ui/icons';
 import { Button, Checkbox, Chip, Form, Input, Modal, ScrollShadow, Spinner } from '@heroui/react';
-import { api, ErrorBlock, FormGrid, newKey, Notice, NumberInput, SelectInput, TextInput, useAction, useLoad } from '@ui';
+import { api, ErrorBlock, FormGrid, newKey, Notice, NumberInput, SelectInput, TextInput, useAction, useLoad, t } from '@ui';
 import { useMemo, useState, type ReactNode } from 'react';
 
 export type CatalogProvider = { catalogId: string; name: string; baseUrl: string; adapter: string; keyNames: string[]; modelCount: number; popular: number };
@@ -12,16 +12,16 @@ type ExistingProvider = { providerId: string; displayName: string; credentialCon
 type ExistingModel = { modelId: string; version: number; providerId: string; providerModelVersion: string; capabilities: string[]; maxInputTokens: number; maxOutputTokens: number } & Record<string, unknown>;
 
 export const protocolLabels: Record<string, string> = {
-  openai_chat: 'OpenAI 兼容（对话与向量）', anthropic_messages: 'Anthropic', gemini: 'Gemini',
-  openai_embeddings: 'OpenAI 兼容（仅向量，旧）', gemini_embeddings: 'Gemini 向量（旧）', rerank: '重排序接口',
+  openai_chat: t('OpenAI 兼容（对话与向量）'), anthropic_messages: 'Anthropic', gemini: 'Gemini',
+  openai_embeddings: t('OpenAI 兼容（仅向量，旧）'), gemini_embeddings: t('Gemini 向量（旧）'), rerank: t('重排序接口'),
 };
 // 目录里是英文名；国内常用的几家给中文名，也让“百炼”“硅基流动”这类搜索能命中。
 const chineseNames: Record<string, string> = {
-  'alibaba-cn': '阿里云百炼', alibaba: '阿里云百炼（国际）', 'moonshotai-cn': '月之暗面 Kimi', moonshotai: '月之暗面 Kimi（国际）', zhipuai: '智谱 AI', zai: '智谱 Z.AI（国际）',
-  'siliconflow-cn': '硅基流动', siliconflow: '硅基流动（国际）', volcengine: '火山方舟（豆包）', deepseek: 'DeepSeek 深度求索',
+  'alibaba-cn': t('阿里云百炼'), alibaba: t('阿里云百炼（国际）'), 'moonshotai-cn': t('月之暗面 Kimi'), moonshotai: t('月之暗面 Kimi（国际）'), zhipuai: t('智谱 AI'), zai: t('智谱 Z.AI（国际）'),
+  'siliconflow-cn': t('硅基流动'), siliconflow: t('硅基流动（国际）'), volcengine: t('火山方舟（豆包）'), deepseek: t('DeepSeek 深度求索'),
 };
 const displayName = (item: CatalogProvider) => chineseNames[item.catalogId] ?? item.name;
-const capabilityLabels: Record<string, string> = { chat: '对话', vision: '视觉', embedding: '向量', rerank: '重排', reasoning: '推理' };
+const capabilityLabels: Record<string, string> = { chat: t('对话'), vision: t('视觉'), embedding: t('向量'), rerank: t('重排'), reasoning: t('推理') };
 const tokenizers = [
   { value: 'none;tiktoken-go@v0.7.0;cl100k_base', label: 'cl100k_base' },
   { value: 'none;tiktoken-go@v0.7.0;o200k_base', label: 'o200k_base' },
@@ -35,7 +35,7 @@ function Shell({ title, onClose, children, footer, onSubmit }: { title: string; 
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container scroll="inside" size="lg">
         <Modal.Dialog className="max-h-[85dvh]">
-          <Modal.CloseTrigger aria-label="关闭" />
+          <Modal.CloseTrigger aria-label={t('关闭')} />
           <Modal.Header><Modal.Heading>{title}</Modal.Heading></Modal.Header>
           <Form className="flex min-h-0 flex-1 flex-col" onSubmit={(event) => { event.preventDefault(); onSubmit?.(); }}>
             <Modal.Body className="flex min-h-0 flex-col gap-4">{children}</Modal.Body>
@@ -95,21 +95,21 @@ export function ConnectProviderDialog({ existing, onClose, onConnected }: { exis
       key = newKey();
       await api(`/v1/admin/providers/${form.providerId}/credentials`, { method: 'POST', idempotencyKey: key, body: { providerId: form.providerId, secret: form.secret, expectedVersion: 0, idempotencyKey: key } });
       return true;
-    }, '供应方已接入，接着选要用的模型');
+    }, t('供应方已接入，接着选要用的模型'));
     if (done) onConnected(form.providerId);
   };
 
   if (!picked) {
     return (
-      <Shell footer={<Button variant="tertiary" onPress={onClose}>取消</Button>} title="接入供应方" onClose={onClose}>
-        <SearchField placeholder="搜索供应方，如 百炼、DeepSeek、OpenRouter" value={query} onChange={setQuery} />
+      <Shell footer={<Button variant="tertiary" onPress={onClose}>{t('取消')}</Button>} title={t('接入供应方')} onClose={onClose}>
+        <SearchField placeholder={t('搜索供应方，如 百炼、DeepSeek、OpenRouter')} value={query} onChange={setQuery} />
         {directory.error ? <ErrorBlock error={directory.error} onRetry={directory.reload} /> : !directory.data ? <div className="flex justify-center py-10"><Spinner /></div> : (
           <ScrollShadow className="-mx-1 max-h-[55dvh] px-1">
-            {list.popular.length > 0 && <Group items={list.popular} label="常用" onPick={choose} />}
-            <Group items={list.rest} label={query ? `找到 ${list.rest.length} 个` : '全部'} onPick={choose} />
+            {list.popular.length > 0 && <Group items={list.popular} label={t('常用')} onPick={choose} />}
+            <Group items={list.rest} label={query ? t('找到 {0} 个', list.rest.length) : t('全部')} onPick={choose} />
             <button className="mt-2 w-full rounded-xl border border-dashed border-border px-4 py-3 text-start text-sm hover:bg-default" type="button" onClick={() => choose('custom')}>
-              <span className="block font-medium text-foreground">自定义供应方</span>
-              <span className="block text-xs text-muted">目录里没有的 OpenAI 兼容接口、自建网关或私有部署</span>
+              <span className="block font-medium text-foreground">{t('自定义供应方')}</span>
+              <span className="block text-xs text-muted">{t('目录里没有的 OpenAI 兼容接口、自建网关或私有部署')}</span>
             </button>
           </ScrollShadow>
         )}
@@ -117,21 +117,21 @@ export function ConnectProviderDialog({ existing, onClose, onConnected }: { exis
     );
   }
 
-  const keyHint = picked !== 'custom' && picked.keyNames.length ? `通常叫 ${picked.keyNames.join(' / ')}。` : '';
+  const keyHint = picked !== 'custom' && picked.keyNames.length ? t('通常叫 {0}。', picked.keyNames.join(' / ')) : '';
   return (
     <Shell
-      footer={<><Button variant="tertiary" onPress={() => setPicked(null)}><ArrowLeft />重新选择</Button><Button isPending={busy} type="submit">接入</Button></>}
-      title={picked === 'custom' ? '自定义供应方' : `接入 ${displayName(picked)}`}
+      footer={<><Button variant="tertiary" onPress={() => setPicked(null)}><ArrowLeft />{t('重新选择')}</Button><Button isPending={busy} type="submit">{t('接入')}</Button></>}
+      title={picked === 'custom' ? t('自定义供应方') : t('接入 {0}', displayName(picked))}
       onClose={onClose}
       onSubmit={() => void submit()}
     >
       <FormGrid>
-        <TextInput isRequired description="字母、数字和 . _ : -，之后不能改。" label="供应方 ID" pattern="[A-Za-z0-9._:-]+" value={form.providerId} onChange={(providerId) => setForm({ ...form, providerId })} />
-        <TextInput label="显示名" value={form.displayName} onChange={(displayName) => setForm({ ...form, displayName })} />
+        <TextInput isRequired description={t('字母、数字和 . _ : -，之后不能改。')} label={t('供应方 ID')} pattern="[A-Za-z0-9._:-]+" value={form.providerId} onChange={(providerId) => setForm({ ...form, providerId })} />
+        <TextInput label={t('显示名')} value={form.displayName} onChange={(displayName) => setForm({ ...form, displayName })} />
       </FormGrid>
-      <SelectInput label="协议" options={['openai_chat', 'anthropic_messages', 'gemini'].map((value) => ({ value, label: protocolLabels[value] }))} value={form.adapter} onChange={(adapter) => setForm({ ...form, adapter })} />
-      <TextInput isRequired description="接口根地址；从目录选的一般不用改。" label="地址" pattern="https://.+" type="url" value={form.baseUrl} onChange={(baseUrl) => setForm({ ...form, baseUrl })} />
-      <TextInput isRequired autoComplete="off" description={`${keyHint}只在提交时传输一次，保存后加密存放，界面不会再显示。`} label="API 密钥" type="password" value={form.secret} onChange={(secret) => setForm({ ...form, secret })} />
+      <SelectInput label={t('协议')} options={['openai_chat', 'anthropic_messages', 'gemini'].map((value) => ({ value, label: protocolLabels[value] }))} value={form.adapter} onChange={(adapter) => setForm({ ...form, adapter })} />
+      <TextInput isRequired description={t('接口根地址；从目录选的一般不用改。')} label={t('地址')} pattern="https://.+" type="url" value={form.baseUrl} onChange={(baseUrl) => setForm({ ...form, baseUrl })} />
+      <TextInput isRequired autoComplete="off" description={t('{0}只在提交时传输一次，保存后加密存放，界面不会再显示。', keyHint)} label={t('API 密钥')} type="password" value={form.secret} onChange={(secret) => setForm({ ...form, secret })} />
     </Shell>
   );
 }
@@ -149,7 +149,7 @@ function Group({ label, items, onPick }: { label: string; items: CatalogProvider
                 <span className="block truncate text-sm font-medium text-foreground">{displayName(item)}{chineseNames[item.catalogId] && <span className="ms-2 text-xs font-normal text-muted">{item.name}</span>}</span>
                 <span className="block truncate text-xs text-muted">{hostOf(item.baseUrl)}</span>
               </span>
-              <span className="shrink-0 text-xs text-muted">{item.modelCount} 个模型</span>
+              <span className="shrink-0 text-xs text-muted">{t('{0} 个模型', item.modelCount)}</span>
             </button>
           </li>
         ))}
@@ -191,7 +191,7 @@ export function AddModelsDialog({ providers, models, initialProviderId, onClose,
       await api(`/v1/admin/models/${encodeURIComponent(item.model.modelId)}`, { method: 'PUT', idempotencyKey: key, body: { expectedVersion: item.model.version, idempotencyKey: key, model: { ...item.model, version: item.model.version + 1, maxInputTokens: item.input, maxOutputTokens: item.output } } });
     }
     onChanged();
-  }, `已更新 ${outdated.length} 个模型的上下文长度`);
+  }, t('已更新 {0} 个模型的上下文长度', outdated.length));
 
   const toggle = (model: AvailableModel, on: boolean) => setChosen((current) => {
     const next = { ...current };
@@ -224,36 +224,36 @@ export function AddModelsDialog({ providers, models, initialProviderId, onClose,
         });
       }
       return true;
-    }, `已添加 ${picked.length} 个模型`);
+    }, t('已添加 {0} 个模型', picked.length));
     if (done) onSaved();
   };
 
   return (
     <Shell
-      footer={<><Button variant="tertiary" onPress={onManual}>手动添加</Button><Button isDisabled={!picked.length} isPending={busy} type="submit">{picked.length ? `添加 ${picked.length} 个模型` : '添加'}</Button></>}
-      title="添加模型"
+      footer={<><Button variant="tertiary" onPress={onManual}>{t('手动添加')}</Button><Button isDisabled={!picked.length} isPending={busy} type="submit">{picked.length ? t('添加 {0} 个模型', picked.length) : t('添加')}</Button></>}
+      title={t('添加模型')}
       onClose={onClose}
       onSubmit={() => void submit()}
     >
-      {!usable.length ? <Notice status="warning">先接入一个供应方并设置密钥。</Notice> : (
+      {!usable.length ? <Notice status="warning">{t('先接入一个供应方并设置密钥。')}</Notice> : (
         <>
-          <SelectInput label="供应方" options={usable.map((provider) => ({ value: provider.providerId, label: provider.displayName }))} value={providerId} onChange={(value) => { setProviderId(value); setChosen({}); }} />
+          <SelectInput label={t('供应方')} options={usable.map((provider) => ({ value: provider.providerId, label: provider.displayName }))} value={providerId} onChange={(value) => { setProviderId(value); setChosen({}); }} />
           {outdated.length > 0 && (
-            <Notice status="accent" title={`${outdated.length} 个已添加模型的上下文长度和最新数据不一致`}>
+            <Notice status="accent" title={t('{0} 个已添加模型的上下文长度和最新数据不一致', outdated.length)}>
               <span className="flex flex-wrap items-center gap-2">
-                {outdated.map((item) => `${item.model.providerModelVersion}：${fmtTokens(item.model.maxInputTokens)} → ${fmtTokens(item.input)}`).join('；')}
-                <Button isPending={busy} size="sm" variant="secondary" onPress={() => void syncLimits()}>全部更新</Button>
+                {outdated.map((item) => t('{0}：{1} → {2}', item.model.providerModelVersion, fmtTokens(item.model.maxInputTokens), fmtTokens(item.input))).join(t('；'))}
+                <Button isPending={busy} size="sm" variant="secondary" onPress={() => void syncLimits()}>{t('全部更新')}</Button>
               </span>
             </Notice>
           )}
-          <SearchField placeholder="搜索模型" value={query} onChange={setQuery} />
-          {discovery.error ? <ErrorBlock error={discovery.error} onRetry={discovery.reload} /> : !discovery.data ? <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted"><Spinner size="sm" />正在向供应方查询可用模型…</div> : (
+          <SearchField placeholder={t('搜索模型')} value={query} onChange={setQuery} />
+          {discovery.error ? <ErrorBlock error={discovery.error} onRetry={discovery.reload} /> : !discovery.data ? <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted"><Spinner size="sm" />{t('正在向供应方查询可用模型…')}</div> : (
             <>
               {discovery.data.listed
-                ? <p className="text-xs text-muted">以下是这个账号当前能用的模型{discovery.data.catalogId ? '，名称、上下文和能力来自 models.dev 目录' : ''}。{unlistedCount > 0 && <button className="ms-1 text-accent underline-offset-2 hover:underline" type="button" onClick={() => setShowUnlisted(!showUnlisted)}>{showUnlisted ? '只看账号可用的' : `还有 ${unlistedCount} 个目录里有、账号列表里没有的`}</button>}</p>
-                : <Notice status="warning" title="没拿到供应方的模型列表">{discovery.data.listProblem ?? '供应方没有返回列表'}。下面是目录里这家供应方的模型，账号不一定都能用；也可以手动添加。</Notice>}
+                ? <p className="text-xs text-muted">{t('以下是这个账号当前能用的模型{0}。', discovery.data.catalogId ? t('，名称、上下文和能力来自 models.dev 目录') : '')}{unlistedCount > 0 && <button className="ms-1 text-accent underline-offset-2 hover:underline" type="button" onClick={() => setShowUnlisted(!showUnlisted)}>{showUnlisted ? t('只看账号可用的') : t('还有 {0} 个目录里有、账号列表里没有的', unlistedCount)}</button>}</p>
+                : <Notice status="warning" title={t('没拿到供应方的模型列表')}>{t('{0}。下面是目录里这家供应方的模型，账号不一定都能用；也可以手动添加。', discovery.data.listProblem ?? t('供应方没有返回列表'))}</Notice>}
               <ScrollShadow className="-mx-1 max-h-[45dvh] px-1">
-                {!visible.length ? <p className="py-8 text-center text-sm text-muted">没有匹配的模型。</p> : (
+                {!visible.length ? <p className="py-8 text-center text-sm text-muted">{t('没有匹配的模型。')}</p> : (
                   <ul className="flex flex-col gap-1">
                     {visible.map((model) => {
                       const exists = added.has(model.providerModelId);
@@ -270,17 +270,17 @@ export function AddModelsDialog({ providers, models, initialProviderId, onClose,
                                 </span>
                                 <span className="mt-1 flex flex-wrap items-center gap-1">
                                   {model.capabilities.map((cap) => <Chip key={cap} size="sm" variant="soft">{capabilityLabels[cap] ?? cap}</Chip>)}
-                                  {model.contextWindow ? <span className="text-xs text-muted">上下文 {fmtTokens(model.contextWindow)}</span> : null}
-                                  {exists && <Chip color="success" size="sm" variant="soft">已添加</Chip>}
-                                  {discovery.data!.listed && !model.listedByProvider && <Chip color="warning" size="sm" variant="soft">账号列表里没有</Chip>}
+                                  {model.contextWindow ? <span className="text-xs text-muted">{t('上下文 {0}', fmtTokens(model.contextWindow))}</span> : null}
+                                  {exists && <Chip color="success" size="sm" variant="soft">{t('已添加')}</Chip>}
+                                  {discovery.data!.listed && !model.listedByProvider && <Chip color="warning" size="sm" variant="soft">{t('账号列表里没有')}</Chip>}
                                 </span>
                               </span>
                             </Checkbox.Content>
                           </Checkbox>
                           {choice?.capabilities.includes('embedding') && (
                             <FormGrid className="mt-2 ps-8">
-                              <NumberInput description="向量维度，见供应方文档。" label="维度" minValue={1} value={choice.dimension} onChange={(dimension) => setChosen({ ...chosen, [model.providerModelId]: { ...choice, dimension } })} />
-                              <SelectInput description="知识库用它估算分块词元数。" label="分词器" options={tokenizers} value={choice.tokenizer} onChange={(tokenizer) => setChosen({ ...chosen, [model.providerModelId]: { ...choice, tokenizer } })} />
+                              <NumberInput description={t('向量维度，见供应方文档。')} label={t('维度')} minValue={1} value={choice.dimension} onChange={(dimension) => setChosen({ ...chosen, [model.providerModelId]: { ...choice, dimension } })} />
+                              <SelectInput description={t('知识库用它估算分块词元数。')} label={t('分词器')} options={tokenizers} value={choice.tokenizer} onChange={(tokenizer) => setChosen({ ...chosen, [model.providerModelId]: { ...choice, tokenizer } })} />
                             </FormGrid>
                           )}
                         </li>

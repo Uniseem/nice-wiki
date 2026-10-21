@@ -2,6 +2,7 @@ import { CircleExclamation } from '@gravity-ui/icons';
 import { Alert, Button, Card, Chip, cn, EmptyState, Skeleton, Spinner } from '@heroui/react';
 import type { ReactNode } from 'react';
 import { errorText } from './api';
+import { t } from './i18n';
 
 // 各后台页面共用的版式：页头、分区卡片、空状态、加载与错误。
 
@@ -53,7 +54,7 @@ export function EmptyBlock({ icon, title, description, action, className }: { ic
 
 export function LoadingBlock({ lines = 4, className }: { lines?: number; className?: string }) {
   return (
-    <div className={cn('flex flex-col gap-3', className)} aria-busy="true" aria-label="加载中">
+    <div className={cn('flex flex-col gap-3', className)} aria-busy="true" aria-label={t('加载中')}>
       {Array.from({ length: lines }, (_, index) => (
         <Skeleton key={index} className={cn('h-4 rounded-md', index === 0 ? 'w-1/3' : index % 3 === 2 ? 'w-2/3' : 'w-full')} />
       ))}
@@ -61,7 +62,7 @@ export function LoadingBlock({ lines = 4, className }: { lines?: number; classNa
   );
 }
 
-export function CenteredSpinner({ label = '加载中…' }: { label?: string }) {
+export function CenteredSpinner({ label = t('加载中…') }: { label?: string }) {
   return (
     <div className="flex min-h-40 flex-col items-center justify-center gap-3 text-sm text-muted">
       <Spinner />
@@ -70,14 +71,14 @@ export function CenteredSpinner({ label = '加载中…' }: { label?: string }) 
   );
 }
 
-export function ErrorBlock({ error, title = '加载失败', onRetry }: { error: unknown; title?: string; onRetry?: () => void }) {
+export function ErrorBlock({ error, title = t('加载失败'), onRetry }: { error: unknown; title?: string; onRetry?: () => void }) {
   return (
     <Alert status="danger">
       <Alert.Indicator><CircleExclamation /></Alert.Indicator>
       <Alert.Content>
         <Alert.Title>{title}</Alert.Title>
         <Alert.Description>{errorText(error)}</Alert.Description>
-        {onRetry && <Button className="mt-2" size="sm" variant="secondary" onPress={onRetry}>重试</Button>}
+        {onRetry && <Button className="mt-2" size="sm" variant="secondary" onPress={onRetry}>{t('重试')}</Button>}
       </Alert.Content>
     </Alert>
   );

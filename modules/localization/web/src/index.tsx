@@ -2,7 +2,7 @@ import { Globe, Plus } from '@gravity-ui/icons';
 import { Button, Card, Chip, Form, Modal, Table } from '@heroui/react';
 import {
   adminLanguage, api, confirmAction, EmptyBlock, ErrorBlock, findSiteLanguage, LoadingBlock, newKey, Notice, PageHeader, Panel, MiniStat, SelectInput, siteLanguages, SwitchInput,
-  useAction, useHasGrant, useLoad,
+  useAction, useHasGrant, useLoad, t,
 } from '@ui';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -27,24 +27,24 @@ export default function LanguagesPage() {
     const idempotencyKey = newKey();
     await api(`/v1/languages/${encodeURIComponent(language.tag)}/enabled`, { method: 'POST', idempotencyKey, body: { tag: language.tag, enabled, expectedVersion: language.version, idempotencyKey } });
     languages.reload();
-  }, enabled ? `${nameOf(language.tag)}已启用` : `${nameOf(language.tag)}已停用`);
+  }, enabled ? t('{0}已启用', nameOf(language.tag)) : t('{0}已停用', nameOf(language.tag)));
 
   const setAuto = async (language: Language, on: boolean) => {
-    if (on && !(await confirmAction({ title: '开启自动翻译？', body: '开启后，每篇文档发布新版本时都会自动调用模型翻译到该语言。', confirmLabel: '开启', tone: 'warning' }))) return;
+    if (on && !(await confirmAction({ title: t('开启自动翻译？'), body: t('开启后，每篇文档发布新版本时都会自动调用模型翻译到该语言。'), confirmLabel: t('开启'), tone: 'warning' }))) return;
     await run(async () => {
       const idempotencyKey = newKey();
       await api(`/v1/languages/${encodeURIComponent(language.tag)}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: language.version, idempotencyKey, language: { ...language, version: language.version + 1, automaticTranslation: on } } });
       languages.reload();
-    }, on ? '已开启自动翻译' : '已关闭自动翻译');
+    }, on ? t('已开启自动翻译') : t('已关闭自动翻译'));
   };
 
   const translateUI = async (language: Language) => {
-    const ok = await confirmAction({ title: `把界面文字翻译成${nameOf(language.tag)}？`, body: '公开页上的固定文字（如“本页目录”“上一篇”）会调用一次模型翻译。约一分钟后生效，没翻译的部分仍显示英文。', confirmLabel: '开始翻译', tone: 'warning' });
+    const ok = await confirmAction({ title: t('把界面文字翻译成{0}？', nameOf(language.tag)), body: t('公开页上的固定文字（如“本页目录”“上一篇”）会调用一次模型翻译。约一分钟后生效，没翻译的部分仍显示英文。'), confirmLabel: t('开始翻译'), tone: 'warning' });
     if (!ok) return;
     await run(async () => {
       const idempotencyKey = newKey();
       await api(`/v1/interface-strings/${encodeURIComponent(language.tag)}:translate`, { method: 'POST', idempotencyKey, body: { language: language.tag } });
-    }, '已开始翻译界面文字');
+    }, t('已开始翻译界面文字'));
   };
 
   if (languages.error && !languages.data) return <ErrorBlock error={languages.error} onRetry={languages.reload} />;
@@ -53,9 +53,9 @@ export default function LanguagesPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="多语言"
-        description="基准语言的页面直接来自文档正文；其他语言通过翻译生成。翻译会调用模型，需要先在“模型接入”里配好模型。"
-        actions={canLanguages ? <Button onPress={() => setAdding(true)}><Plus />添加语言</Button> : undefined}
+        title={t('多语言')}
+        description={t('基准语言的页面直接来自文档正文；其他语言通过翻译生成。翻译会调用模型，需要先在“模型接入”里配好模型。')}
+        actions={canLanguages ? <Button onPress={() => setAdding(true)}><Plus />{t('添加语言')}</Button> : undefined}
       />
       {!languages.data ? <LoadingBlock lines={4} /> : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -67,22 +67,22 @@ export default function LanguagesPage() {
                   <Card.Description className="font-mono text-xs">{language.tag}</Card.Description>
                 </Card.Header>
                 <div className="flex flex-wrap justify-end gap-1">
-                  {language.isDefault && <Chip color="accent" size="sm" variant="soft">基准语言</Chip>}
-                  {!language.isDefault && <Chip color={language.enabled ? 'success' : 'default'} size="sm" variant="soft">{language.enabled ? '已启用' : '未启用'}</Chip>}
-                  {language.direction === 'rtl' && <Chip size="sm" variant="soft">从右到左</Chip>}
+                  {language.isDefault && <Chip color="accent" size="sm" variant="soft">{t('基准语言')}</Chip>}
+                  {!language.isDefault && <Chip color={language.enabled ? 'success' : 'default'} size="sm" variant="soft">{language.enabled ? t('已启用') : t('未启用')}</Chip>}
+                  {language.direction === 'rtl' && <Chip size="sm" variant="soft">{t('从右到左')}</Chip>}
                 </div>
               </div>
               {language.isDefault ? (
-                <p className="text-sm leading-6 text-muted">访客默认看到这个语言。文档正文就是这个语言的内容，不需要翻译。</p>
+                <p className="text-sm leading-6 text-muted">{t('访客默认看到这个语言。文档正文就是这个语言的内容，不需要翻译。')}</p>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <SwitchInput description="启用后访客才能切换到这个语言。" isDisabled={busy || !canLanguages || requiredEnglish(language)} isSelected={language.enabled} label="对访客启用" onChange={(value) => void setEnabled(language, value)} />
-                  <SwitchInput description="文档发布新版本时自动调用模型翻译。" isDisabled={busy || !language.enabled || !canLanguages || requiredEnglish(language)} isSelected={language.automaticTranslation} label="发布时自动翻译" onChange={(value) => void setAuto(language, value)} />
-                  {requiredEnglish(language) && <p className="text-xs leading-5 text-muted">英文是站点必需语言：始终启用，发布时自动翻译；AI 判断也只读英文。</p>}
+                  <SwitchInput description={t('启用后访客才能切换到这个语言。')} isDisabled={busy || !canLanguages || requiredEnglish(language)} isSelected={language.enabled} label={t('对访客启用')} onChange={(value) => void setEnabled(language, value)} />
+                  <SwitchInput description={t('文档发布新版本时自动调用模型翻译。')} isDisabled={busy || !language.enabled || !canLanguages || requiredEnglish(language)} isSelected={language.automaticTranslation} label={t('发布时自动翻译')} onChange={(value) => void setAuto(language, value)} />
+                  {requiredEnglish(language) && <p className="text-xs leading-5 text-muted">{t('英文是站点必需语言：始终启用，发布时自动翻译；AI 判断也只读英文。')}</p>}
                 </div>
               )}
               {!language.isDefault && language.enabled && canTranslate && (
-                <Card.Footer><Button isDisabled={busy} size="sm" variant="secondary" onPress={() => translateUI(language)}><Globe />翻译界面文字</Button></Card.Footer>
+                <Card.Footer><Button isDisabled={busy} size="sm" variant="secondary" onPress={() => translateUI(language)}><Globe />{t('翻译界面文字')}</Button></Card.Footer>
               )}
             </Card>
           ))}
@@ -100,21 +100,21 @@ function SuggestionPanel() {
   const policy = useLoad((signal) => api<{ enabled: boolean; version: number }>('/v1/language-suggestion-policy', { signal }), []);
   const { busy, run } = useAction();
   const toggle = async (enabled: boolean) => {
-    if (enabled && !(await confirmAction({ title: '开启 AI 语言建议？', body: '访客打开页面时，会把浏览器语言、时区和 IP 所在国家（不含地址）交给决策模型判断一次，同样的组合只判断一次。需要先在“模型接入”里添加决策模型（如 OpenRouter 的 typesafe/jev-1.14）并生成决策档位。', confirmLabel: '开启', tone: 'warning' }))) return;
+    if (enabled && !(await confirmAction({ title: t('开启 AI 语言建议？'), body: t('访客打开页面时，会把浏览器语言、时区和 IP 所在国家（不含地址）交给决策模型判断一次，同样的组合只判断一次。需要先在“模型接入”里添加决策模型（如 OpenRouter 的 typesafe/jev-1.14）并生成决策档位。'), confirmLabel: t('开启'), tone: 'warning' }))) return;
     await run(async () => {
       const idempotencyKey = newKey();
       await api('/v1/language-suggestion-policy', { method: 'PUT', idempotencyKey, body: { enabled, expectedVersion: policy.data!.version, idempotencyKey } });
       policy.reload();
-    }, enabled ? '已开启 AI 语言建议' : '已关闭 AI 语言建议');
+    }, enabled ? t('已开启 AI 语言建议') : t('已关闭 AI 语言建议'));
   };
   return (
-    <Panel title="访客语言建议" description="访客没手动选过语言时，判断他更可能想读哪种语言并提示切换；访客选过一次就不再打扰。">
+    <Panel title={t('访客语言建议')} description={t('访客没手动选过语言时，判断他更可能想读哪种语言并提示切换；访客选过一次就不再打扰。')}>
       {policy.error ? <ErrorBlock error={policy.error} onRetry={policy.reload} /> : !policy.data ? <LoadingBlock lines={1} /> : (
         <SwitchInput
-          description="关闭时只按浏览器语言在页首给提示条；开启后由决策模型判断，浏览器是简体中文时基本不看 IP 国家（常挂代理）。"
+          description={t('关闭时只按浏览器语言在页首给提示条；开启后由决策模型判断，浏览器是简体中文时基本不看 IP 国家（常挂代理）。')}
           isDisabled={busy}
           isSelected={policy.data.enabled}
-          label="AI 判断访客语言"
+          label={t('AI 判断访客语言')}
           onChange={(value) => void toggle(value)}
         />
       )}
@@ -140,51 +140,51 @@ function Translations({ base, languages }: { base: string; languages: Language[]
   }, [progress.data, progress.reload]);
 
   const translate = async (node: NavNode) => {
-    const ok = await confirmAction({ title: `把“${node.title ?? node.documentId}”翻译成${nameOf(target)}？`, body: '按块调用模型翻译。完成后访客就能看到该语言的页面。', confirmLabel: '开始翻译', tone: 'warning' });
+    const ok = await confirmAction({ title: t('把“{0}”翻译成{1}？', node.title ?? node.documentId, nameOf(target)), body: t('按块调用模型翻译。完成后访客就能看到该语言的页面。'), confirmLabel: t('开始翻译'), tone: 'warning' });
     if (!ok) return;
     await run(async () => {
       const idempotencyKey = newKey();
       await api('/v1/translations', { method: 'POST', idempotencyKey, body: { document: node.publication, targetLanguage: target, idempotencyKey } });
       progress.reload();
-    }, '已开始翻译，稍后刷新查看进度');
+    }, t('已开始翻译，稍后刷新查看进度'));
   };
 
   const cancel = async (item: Active) => {
-    const ok = await confirmAction({ title: '取消这次翻译？', body: '取消后不再继续调用模型；已经发出的那一批调用无法撤回。', confirmLabel: '取消翻译', tone: 'danger', cancelLabel: '继续翻译' });
+    const ok = await confirmAction({ title: t('取消这次翻译？'), body: t('取消后不再继续调用模型；已经发出的那一批调用无法撤回。'), confirmLabel: t('取消翻译'), tone: 'danger', cancelLabel: t('继续翻译') });
     if (!ok) return;
     await run(async () => {
       const idempotencyKey = newKey();
-      await api(`/v1/translations/${item.translationId}/cancel`, { method: 'POST', idempotencyKey, body: { translationId: item.translationId, reason: '管理员在后台取消', idempotencyKey } });
+      await api(`/v1/translations/${item.translationId}/cancel`, { method: 'POST', idempotencyKey, body: { translationId: item.translationId, reason: t('管理员在后台取消'), idempotencyKey } });
       progress.reload();
-    }, '已取消该翻译');
+    }, t('已取消该翻译'));
   };
 
   if (!languages.length) {
-    return <Panel title="文档译文"><EmptyBlock icon={<Globe />} title="还没有启用的其他语言" description="先在上面启用一个非基准语言，才能翻译文档。" /></Panel>;
+    return <Panel title={t('文档译文')}><EmptyBlock icon={<Globe />} title={t('还没有启用的其他语言')} description={t('先在上面启用一个非基准语言，才能翻译文档。')} /></Panel>;
   }
   const stats = progress.data?.languages.find((item) => item.language === target);
   const active = (progress.data?.active ?? []).filter((item) => item.language === target);
   return (
     <Panel
-      title="文档译文"
-      description="选择目标语言，为已发布的文档发起翻译。"
-      actions={<SelectInput aria-label="目标语言" className="w-48" options={languages.map((language) => ({ value: language.tag, label: `${nameOf(language.tag)}（${language.tag}）` }))} value={target} onChange={setTarget} variant="primary" />}
+      title={t('文档译文')}
+      description={t('选择目标语言，为已发布的文档发起翻译。')}
+      actions={<SelectInput aria-label={t('目标语言')} className="w-48" options={languages.map((language) => ({ value: language.tag, label: t('{0}（{1}）', nameOf(language.tag), language.tag) }))} value={target} onChange={setTarget} variant="primary" />}
     >
       {stats && (
         <div className="grid gap-3 sm:grid-cols-3">
-          <MiniStat label="已完成" value={stats.completedUnits} tone="success" />
-          <MiniStat label="进行中" value={stats.queuedUnits} tone="accent" />
-          <MiniStat label="待复核" value={stats.reviewUnits} tone="warning" />
+          <MiniStat label={t('已完成')} value={stats.completedUnits} tone="success" />
+          <MiniStat label={t('进行中')} value={stats.queuedUnits} tone="accent" />
+          <MiniStat label={t('待复核')} value={stats.reviewUnits} tone="warning" />
         </div>
       )}
       {active.length > 0 && (
-        <Notice status="accent" title={`有 ${active.length} 篇正在翻译`}>
+        <Notice status="accent" title={t('有 {0} 篇正在翻译', active.length)}>
           <ul className="mt-1 flex flex-col gap-1">
             {active.map((item) => (
               <li key={item.translationId} className="flex flex-wrap items-center gap-2">
                 <span>{titles.get(item.documentId) ?? item.documentId}</span>
-                <Chip size="sm" variant="soft">{item.state === 'running' ? '进行中' : '排队中'}</Chip>
-                <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => cancel(item)}>取消</Button>
+                <Chip size="sm" variant="soft">{item.state === 'running' ? t('进行中') : t('排队中')}</Chip>
+                <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => cancel(item)}>{t('取消')}</Button>
               </li>
             ))}
           </ul>
@@ -193,16 +193,16 @@ function Translations({ base, languages }: { base: string; languages: Language[]
       {nodes.loading && !nodes.data ? <LoadingBlock lines={3} /> : (
         <Table variant="secondary">
           <Table.ScrollContainer>
-            <Table.Content aria-label="已发布文档" className="min-w-[480px]">
+            <Table.Content aria-label={t('已发布文档')} className="min-w-[480px]">
               <Table.Header>
-                <Table.Column isRowHeader>已发布文档</Table.Column>
-                <Table.Column className="w-32 text-end">操作</Table.Column>
+                <Table.Column isRowHeader>{t('已发布文档')}</Table.Column>
+                <Table.Column className="w-32 text-end">{t('操作')}</Table.Column>
               </Table.Header>
-              <Table.Body renderEmptyState={() => <p className="py-6 text-center text-sm text-muted">还没有已发布文档。</p>}>
+              <Table.Body renderEmptyState={() => <p className="py-6 text-center text-sm text-muted">{t('还没有已发布文档。')}</p>}>
                 {(nodes.data ?? []).map((node) => (
                   <Table.Row key={node.documentId} id={node.documentId}>
                     <Table.Cell>{node.title ?? node.documentId}</Table.Cell>
-                    <Table.Cell className="text-end"><Button isDisabled={busy} size="sm" variant="secondary" onPress={() => translate(node)}>翻译</Button></Table.Cell>
+                    <Table.Cell className="text-end"><Button isDisabled={busy} size="sm" variant="secondary" onPress={() => translate(node)}>{t('翻译')}</Button></Table.Cell>
                   </Table.Row>
                 ))}
               </Table.Body>
@@ -231,15 +231,15 @@ function AddLanguage({ existing, onClose, onAdded }: { existing: string[]; onClo
         },
       });
       return true;
-    }, '语言已添加（默认未启用）');
+    }, t('语言已添加（默认未启用）'));
     if (done) onAdded();
   };
   return (
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="sm">
         <Modal.Dialog>
-          <Modal.CloseTrigger aria-label="关闭" />
-          <Modal.Header><Modal.Heading>添加语言</Modal.Heading></Modal.Header>
+          <Modal.CloseTrigger aria-label={t('关闭')} />
+          <Modal.Header><Modal.Heading>{t('添加语言')}</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); if (tag) void add(); }}>
             <Modal.Body className="flex flex-col gap-4">
               {available.length ? (
@@ -250,12 +250,12 @@ function AddLanguage({ existing, onClose, onAdded }: { existing: string[]; onClo
                     </Button>
                   ))}
                 </div>
-              ) : <p className="text-sm text-muted">预设的语言都已添加。</p>}
-              {tag && <p className="text-sm text-muted">将添加：{nameOf(tag)}</p>}
+              ) : <p className="text-sm text-muted">{t('预设的语言都已添加。')}</p>}
+              {tag && <p className="text-sm text-muted">{t('将添加：{0}', nameOf(tag))}</p>}
             </Modal.Body>
             <Modal.Footer>
-              <Button variant="tertiary" onPress={onClose}>取消</Button>
-              <Button isDisabled={!tag} isPending={busy} type="submit">添加</Button>
+              <Button variant="tertiary" onPress={onClose}>{t('取消')}</Button>
+              <Button isDisabled={!tag} isPending={busy} type="submit">{t('添加')}</Button>
             </Modal.Footer>
           </Form>
         </Modal.Dialog>

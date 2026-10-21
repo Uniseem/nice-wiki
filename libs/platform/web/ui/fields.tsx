@@ -1,6 +1,7 @@
 import { Button, Checkbox, CheckboxGroup, cn, Description, FieldError, Input, Label, ListBox, NumberField, Radio, RadioGroup, Select, Switch, TextArea, TextField } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import { useEffect, useRef, type ReactNode } from 'react';
+import { t } from './i18n';
 
 // 表单控件：统一 HeroUI 的 标签 + 输入 + 说明 + 校验错误 组合。卡片里默认用 secondary（无阴影的填充样式）。
 
@@ -118,7 +119,7 @@ export function NumberInput({ label, description, error, isRequired, isDisabled,
 
 export type Option<V extends string = string> = { value: V; label: ReactNode; text?: string; description?: ReactNode; disabled?: boolean };
 
-export function SelectInput<V extends string>({ label, description, error, isRequired, isDisabled, className, variant = 'secondary', value, onChange, options, placeholder = '请选择', ...rest }: Common & {
+export function SelectInput<V extends string>({ label, description, error, isRequired, isDisabled, className, variant = 'secondary', value, onChange, options, placeholder = t('请选择'), ...rest }: Common & {
   value: V | '' | null; onChange: (value: V) => void; options: Option<V>[]; placeholder?: string;
 }) {
   return (
@@ -271,13 +272,13 @@ export function ColorInput({ label, description, value, onChange, placeholder = 
     <div className={cn('flex flex-col gap-1', className)}>
       <Label>{label}</Label>
       <div className="flex items-start gap-2">
-        <label className="relative size-9 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-border shadow-field" style={{ background: valid ? value : 'transparent' }} title="选择颜色">
-          <input aria-label={`${label}：选择颜色`} className="absolute inset-0 cursor-pointer opacity-0" disabled={isDisabled} type="color" value={valid ? value : '#000000'} onChange={(event) => onChange(event.target.value.toUpperCase())} />
+        <label className="relative size-9 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-border shadow-field" style={{ background: valid ? value : 'transparent' }} title={t('选择颜色')}>
+          <input aria-label={t('{0}：选择颜色', label)} className="absolute inset-0 cursor-pointer opacity-0" disabled={isDisabled} type="color" value={valid ? value : '#000000'} onChange={(event) => onChange(event.target.value.toUpperCase())} />
         </label>
         <TextInput
           aria-label={label}
           className="min-w-0 flex-1"
-          error={value && !valid ? '请输入 #RRGGBB 格式，例如 #2563EB' : null}
+          error={value && !valid ? t('请输入 #RRGGBB 格式，例如 #2563EB') : null}
           isDisabled={isDisabled}
           isRequired={isRequired}
           placeholder={placeholder}

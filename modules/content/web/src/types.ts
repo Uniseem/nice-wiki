@@ -1,3 +1,4 @@
+import { t } from '@ui';
 // content 域接口返回的文档元数据、草稿与编辑锁（只列界面用到的字段）。
 
 export type DocState = 'draft' | 'published' | 'trash' | 'purged';
@@ -33,7 +34,7 @@ export type Tree = { documents: Meta[]; treeRevision: number };
 
 export type HistoryEntry = { historyId: string; createdAt: string; authorAccountName: string; operation: 'publish' | 'withdraw' | 'rollback' | string };
 
-export const operationLabel: Record<string, string> = { publish: '发布', withdraw: '撤回', rollback: '回滚' };
+export const operationLabel: Record<string, string> = { publish: t('发布'), withdraw: t('撤回'), rollback: t('回滚') };
 
 export function liveDocs(docs: Meta[]): Meta[] {
   return docs.filter((doc) => doc.state === 'draft' || doc.state === 'published');

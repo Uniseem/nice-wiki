@@ -1,6 +1,6 @@
 import { ArrowRight, Globe, Lock, Person } from '@gravity-ui/icons';
 import { Button, Card, Form, Spinner } from '@heroui/react';
-import { adminLanguage, api, chosenAdminLanguage, errorText, findSiteLanguage, Notice, setAdminLanguage, siteLanguages, storeSession, TextInput, ThemeMenu } from '@ui';
+import { adminLanguage, api, chosenAdminLanguage, errorText, findSiteLanguage, Notice, setAdminLanguage, siteLanguages, storeSession, TextInput, ThemeMenu, t } from '@ui';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ensureBaseLanguage, type Account } from './App';
 import { SiteMark, useSiteBrand } from './brand';
@@ -13,7 +13,7 @@ type SessionReply = { session: { csrfToken: string; sessionId: string; auth?: { 
 // 登录设备列表里显示的说明，如“Chrome · macOS”；只取浏览器和系统名，不带版本号。
 function deviceLabel(): string {
   const agent = navigator.userAgent;
-  const browser = /Edg\//.test(agent) ? 'Edge' : /OPR\//.test(agent) ? 'Opera' : /Firefox\//.test(agent) ? 'Firefox' : /Chrome\//.test(agent) ? 'Chrome' : /Safari\//.test(agent) ? 'Safari' : '浏览器';
+  const browser = /Edg\//.test(agent) ? 'Edge' : /OPR\//.test(agent) ? 'Opera' : /Firefox\//.test(agent) ? 'Firefox' : /Chrome\//.test(agent) ? 'Chrome' : /Safari\//.test(agent) ? 'Safari' : t('浏览器');
   const system = /iPhone|iPad/.test(agent) ? 'iOS' : /Android/.test(agent) ? 'Android' : /Mac OS X/.test(agent) ? 'macOS' : /Windows/.test(agent) ? 'Windows' : /Linux/.test(agent) ? 'Linux' : '';
   return system ? `${browser} · ${system}` : browser;
 }
@@ -63,7 +63,7 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
 
   const submit = () => run(async () => {
     if (step === 'register') {
-      if (password !== confirmation) throw new Error('两次输入的口令不一致');
+      if (password !== confirmation) throw new Error(t('两次输入的口令不一致'));
       await afterLogin(await api<SessionReply>('/v1/registration', { method: 'POST', body: { accountName, password, passwordConfirmation: confirmation } }));
     } else if (step === 'login') {
       await afterLogin(await api<SessionReply>('/v1/sessions', { method: 'POST', body: { accountName, password, deviceLabel: deviceLabel() } }));
@@ -77,9 +77,9 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
   const heading: Record<Step, [string, string]> = {
     loading: ['', ''],
     language: ['', ''],
-    register: ['创建管理员账号', '这是站点的第一个账号，将成为唯一的超级管理员。'],
-    login: ['登录后台', '使用管理员分配的账号和口令登录。'],
-    site: ['初始化站点', '给站点起个名字。初始化不调用模型。'],
+    register: [t('创建管理员账号'), t('这是站点的第一个账号，将成为唯一的超级管理员。')],
+    login: [t('登录后台'), t('使用管理员分配的账号和口令登录。')],
+    site: [t('初始化站点'), t('给站点起个名字。初始化不调用模型。')],
   };
 
   return (
@@ -89,7 +89,7 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
         <SiteMark brand={brand} className="size-10 shrink-0 rounded-xl text-lg" />
         <div>
           <div className="text-lg font-semibold text-foreground">{brand.name || 'nice-wiki'}</div>
-          <div className="text-xs text-muted">文档站后台</div>
+          <div className="text-xs text-muted">{t('文档站后台')}</div>
         </div>
       </div>
       <Card className={step === 'language' ? 'w-full max-w-lg gap-6 p-6 sm:p-8' : 'w-full max-w-sm gap-6 p-6 sm:p-8'}>
@@ -106,40 +106,40 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
             <Form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
               {step === 'site' ? (
                 <>
-                  <TextInput autoFocus isRequired label="站点名称" maxLength={120} placeholder="例如：产品文档" value={siteName} onChange={setSiteName} />
+                  <TextInput autoFocus isRequired label={t('站点名称')} maxLength={120} placeholder={t('例如：产品文档')} value={siteName} onChange={setSiteName} />
                   <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-secondary px-3 py-2.5">
                     <div className="min-w-0">
-                      <div className="text-xs text-muted">基准语言</div>
+                      <div className="text-xs text-muted">{t('基准语言')}</div>
                       <div className="text-sm font-medium text-foreground">{findSiteLanguage(adminLanguage())?.native}</div>
                     </div>
-                    <Button size="sm" variant="ghost" onPress={() => setAdminLanguage('')}>更换</Button>
+                    <Button size="sm" variant="ghost" onPress={() => setAdminLanguage('')}>{t('更换')}</Button>
                   </div>
-                  <p className="text-xs leading-5 text-muted">文档按这个语言写作，其他语言通过翻译生成；初始化后不能更改。后台界面也用这个语言。</p>
+                  <p className="text-xs leading-5 text-muted">{t('文档按这个语言写作，其他语言通过翻译生成；初始化后不能更改。后台界面也用这个语言。')}</p>
                 </>
               ) : (
                 <>
                   <IconField icon={<Person />}>
-                    <TextInput isRequired autoComplete="username" label="账号名" value={accountName} onChange={setAccountName} />
+                    <TextInput isRequired autoComplete="username" label={t('账号名')} value={accountName} onChange={setAccountName} />
                   </IconField>
                   <IconField icon={<Lock />}>
-                    <TextInput isRequired autoComplete={step === 'register' ? 'new-password' : 'current-password'} label="口令" minLength={step === 'register' ? 8 : undefined} type="password" value={password} onChange={setPassword} description={step === 'register' ? '至少 8 位，建议使用密码管理器生成。' : undefined} />
+                    <TextInput isRequired autoComplete={step === 'register' ? 'new-password' : 'current-password'} label={t('口令')} minLength={step === 'register' ? 8 : undefined} type="password" value={password} onChange={setPassword} description={step === 'register' ? t('至少 8 位，建议使用密码管理器生成。') : undefined} />
                   </IconField>
                   {step === 'register' && (
-                    <TextInput isRequired autoComplete="new-password" label="确认口令" type="password" value={confirmation} onChange={setConfirmation} error={confirmation && confirmation !== password ? '两次输入的口令不一致' : null} />
+                    <TextInput isRequired autoComplete="new-password" label={t('确认口令')} type="password" value={confirmation} onChange={setConfirmation} error={confirmation && confirmation !== password ? t('两次输入的口令不一致') : null} />
                   )}
                 </>
               )}
               {error && <Notice status="danger">{error}</Notice>}
               <Button fullWidth isPending={busy} size="lg" type="submit">
                 {busy ? <Spinner color="current" size="sm" /> : step === 'site' ? <Globe /> : null}
-                {step === 'register' ? '创建并继续' : step === 'login' ? '登录' : '完成初始化'}
+                {step === 'register' ? t('创建并继续') : step === 'login' ? t('登录') : t('完成初始化')}
                 {!busy && step !== 'site' && <ArrowRight />}
               </Button>
             </Form>
           </>
         )}
       </Card>
-      <p className="mt-6 text-xs text-muted">忘记口令请联系超级管理员重置。</p>
+      <p className="mt-6 text-xs text-muted">{t('忘记口令请联系超级管理员重置。')}</p>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Bars, FileText, Plus } from '@gravity-ui/icons';
 import { Button, Drawer } from '@heroui/react';
-import { api, askText, EmptyBlock, ErrorBlock, errorText, notify, useHasGrant, useSearch } from '@ui';
+import { api, askText, EmptyBlock, ErrorBlock, errorText, notify, useHasGrant, useSearch, t } from '@ui';
 import { useCallback, useEffect, useState } from 'react';
 import { DocumentEditor } from './DocumentEditor';
 import { TreePanel } from './TreePanel';
@@ -31,13 +31,13 @@ export default function ContentPage() {
 
   const create = async (parentId: string | null) => {
     const parent = parentId ? tree?.documents.find((doc) => doc.documentId === parentId) : null;
-    const title = await askText({ title: parent ? `在“${parent.title}”下新建` : '新建文档', label: '标题', placeholder: '例如：快速开始', confirmLabel: '创建', description: '标题随时可以改；页面路径在首次发布时确定。' });
+    const title = await askText({ title: parent ? t('在“{0}”下新建', parent.title) : t('新建文档'), label: t('标题'), placeholder: t('例如：快速开始'), confirmLabel: t('创建'), description: t('标题随时可以改；页面路径在首次发布时确定。') });
     if (!title?.trim()) return;
     try {
       const created = await api<{ metadata: Meta }>('/v1/documents', { method: 'POST', body: { title: title.trim(), parentId, beforeDocumentId: null } });
       await loadTree();
       select(created.metadata.documentId);
-    } catch (problem) { notify.error('新建失败', errorText(problem)); }
+    } catch (problem) { notify.error(t('新建失败'), errorText(problem)); }
   };
 
   // 已发布文档的公开地址：/<语言>/<祖先路径段…>/<路径段>，任一祖先未发布时不给链接。
@@ -66,12 +66,12 @@ export default function ContentPage() {
       <aside className="hidden w-72 shrink-0 flex-col border-e border-separator bg-surface md:flex">{panel}</aside>
       <Drawer.Backdrop isOpen={listOpen} onOpenChange={setListOpen}>
         <Drawer.Content placement="left">
-          <Drawer.Dialog aria-label="文档列表" className="h-full w-80 max-w-[90vw] p-0">{panel}</Drawer.Dialog>
+          <Drawer.Dialog aria-label={t('文档列表')} className="h-full w-80 max-w-[90vw] p-0">{panel}</Drawer.Dialog>
         </Drawer.Content>
       </Drawer.Backdrop>
       <section className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2 border-b border-separator px-3 py-2 md:hidden">
-          <Button size="sm" variant="secondary" onPress={() => setListOpen(true)}><Bars />文档列表</Button>
+          <Button size="sm" variant="secondary" onPress={() => setListOpen(true)}><Bars />{t('文档列表')}</Button>
         </div>
         {exists ? (
           <DocumentEditor
@@ -89,9 +89,9 @@ export default function ContentPage() {
             <EmptyBlock
               className="w-full max-w-md"
               icon={<FileText />}
-              title={tree ? '选择一篇文档开始编辑' : '正在加载文档…'}
-              description="从左侧文档树里选择，或者新建一篇。编辑会自动保存为草稿，点“发布”后访客才能看到。"
-              action={canEdit && tree ? <Button onPress={() => create(null)}><Plus />新建文档</Button> : undefined}
+              title={tree ? t('选择一篇文档开始编辑') : t('正在加载文档…')}
+              description={t('从左侧文档树里选择，或者新建一篇。编辑会自动保存为草稿，点“发布”后访客才能看到。')}
+              action={canEdit && tree ? <Button onPress={() => create(null)}><Plus />{t('新建文档')}</Button> : undefined}
             />
           </div>
         )}

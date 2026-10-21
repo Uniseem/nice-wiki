@@ -2,6 +2,7 @@ import { Brush, CircleCheck, CircleExclamation, CircleInfo, Code, Function as Fu
 import { TextSelection } from '@tiptap/pm/state';
 import type { Editor } from '@tiptap/react';
 import type { ComponentType } from 'react';
+import { t } from '@ui';
 
 // 编辑器里所有“插入/转换块”的命令：斜杠菜单、工具栏插入菜单共用一份。
 
@@ -18,7 +19,7 @@ export type BlockCommand = {
   label: string;
   hint: string;
   keywords: string;
-  group: '文本' | '列表' | '结构' | '媒体';
+  group: string;
   icon: ComponentType<{ className?: string }>;
   run: (editor: Editor, actions: EditorActions) => void;
 };
@@ -46,35 +47,35 @@ export function toggleCallout(editor: Editor, kind: string): void {
 }
 
 export const calloutKinds = [
-  { kind: 'info', label: '信息', icon: CircleInfo },
-  { kind: 'tip', label: '技巧', icon: CircleCheck },
-  { kind: 'warning', label: '警告', icon: TriangleExclamation },
-  { kind: 'danger', label: '危险', icon: CircleExclamation },
+  { kind: 'info', label: t('信息'), icon: CircleInfo },
+  { kind: 'tip', label: t('技巧'), icon: CircleCheck },
+  { kind: 'warning', label: t('警告'), icon: TriangleExclamation },
+  { kind: 'danger', label: t('危险'), icon: CircleExclamation },
 ] as const;
 
 export const blockCommands: BlockCommand[] = [
-  { id: 'paragraph', label: '正文', hint: '普通段落', keywords: 'text paragraph zhengwen', group: '文本', icon: TextAlignLeft, run: (e) => { e.chain().focus().setParagraph().run(); } },
-  { id: 'h2', label: '标题 2', hint: '章节标题', keywords: 'h2 heading biaoti', group: '文本', icon: Heading2, run: (e) => { e.chain().focus().setHeading({ level: 2 }).run(); } },
-  { id: 'h3', label: '标题 3', hint: '小节标题', keywords: 'h3 heading biaoti', group: '文本', icon: Heading3, run: (e) => { e.chain().focus().setHeading({ level: 3 }).run(); } },
-  { id: 'h4', label: '标题 4', hint: '更小一级', keywords: 'h4 heading biaoti', group: '文本', icon: Heading4, run: (e) => { e.chain().focus().setHeading({ level: 4 }).run(); } },
-  { id: 'quote', label: '引用', hint: '引用一段话', keywords: 'quote blockquote yinyong', group: '文本', icon: QuoteOpen, run: (e) => { e.chain().focus().toggleBlockquote().run(); } },
-  { id: 'code', label: '代码块', hint: '带语法高亮', keywords: 'code pre daima', group: '文本', icon: Code, run: (e) => { e.chain().focus().toggleCodeBlock().run(); } },
-  { id: 'bullet', label: '无序列表', hint: '圆点列表', keywords: 'ul list bullet liebiao', group: '列表', icon: ListUl, run: (e) => { e.chain().focus().toggleBulletList().run(); } },
-  { id: 'ordered', label: '有序列表', hint: '编号列表', keywords: 'ol list ordered liebiao', group: '列表', icon: ListOl, run: (e) => { e.chain().focus().toggleOrderedList().run(); } },
-  { id: 'task', label: '任务列表', hint: '可勾选的待办', keywords: 'todo task checkbox renwu', group: '列表', icon: ListCheck, run: (e) => { e.chain().focus().toggleTaskList().run(); } },
+  { id: 'paragraph', label: t('正文'), hint: t('普通段落'), keywords: 'text paragraph zhengwen', group: t('文本'), icon: TextAlignLeft, run: (e) => { e.chain().focus().setParagraph().run(); } },
+  { id: 'h2', label: t('标题 2'), hint: t('章节标题'), keywords: 'h2 heading biaoti', group: t('文本'), icon: Heading2, run: (e) => { e.chain().focus().setHeading({ level: 2 }).run(); } },
+  { id: 'h3', label: t('标题 3'), hint: t('小节标题'), keywords: 'h3 heading biaoti', group: t('文本'), icon: Heading3, run: (e) => { e.chain().focus().setHeading({ level: 3 }).run(); } },
+  { id: 'h4', label: t('标题 4'), hint: t('更小一级'), keywords: 'h4 heading biaoti', group: t('文本'), icon: Heading4, run: (e) => { e.chain().focus().setHeading({ level: 4 }).run(); } },
+  { id: 'quote', label: t('引用'), hint: t('引用一段话'), keywords: 'quote blockquote yinyong', group: t('文本'), icon: QuoteOpen, run: (e) => { e.chain().focus().toggleBlockquote().run(); } },
+  { id: 'code', label: t('代码块'), hint: t('带语法高亮'), keywords: 'code pre daima', group: t('文本'), icon: Code, run: (e) => { e.chain().focus().toggleCodeBlock().run(); } },
+  { id: 'bullet', label: t('无序列表'), hint: t('圆点列表'), keywords: 'ul list bullet liebiao', group: t('列表'), icon: ListUl, run: (e) => { e.chain().focus().toggleBulletList().run(); } },
+  { id: 'ordered', label: t('有序列表'), hint: t('编号列表'), keywords: 'ol list ordered liebiao', group: t('列表'), icon: ListOl, run: (e) => { e.chain().focus().toggleOrderedList().run(); } },
+  { id: 'task', label: t('任务列表'), hint: t('可勾选的待办'), keywords: 'todo task checkbox renwu', group: t('列表'), icon: ListCheck, run: (e) => { e.chain().focus().toggleTaskList().run(); } },
   ...calloutKinds.map((item): BlockCommand => ({
-    id: `callout-${item.kind}`, label: `${item.label}提示框`, hint: '醒目的提示块', keywords: `callout ${item.kind} tishi`, group: '结构', icon: item.icon,
+    id: `callout-${item.kind}`, label: t('{0}提示框', item.label), hint: t('醒目的提示块'), keywords: `callout ${item.kind} tishi`, group: t('结构'), icon: item.icon,
     run: (e) => toggleCallout(e, item.kind),
   })),
-  { id: 'table', label: '表格', hint: '3 × 3，带表头', keywords: 'table biaoge', group: '结构', icon: LayoutHeaderCells, run: (e) => { e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); } },
-  { id: 'columns2', label: '两栏', hint: '并排两栏', keywords: 'columns fenlan', group: '结构', icon: LayoutColumns, run: (e) => insertColumns(e, 2) },
-  { id: 'columns3', label: '三栏', hint: '并排三栏', keywords: 'columns fenlan', group: '结构', icon: LayoutColumns3, run: (e) => insertColumns(e, 3) },
-  { id: 'math', label: '公式', hint: 'LaTeX 数学公式', keywords: 'math latex formula gongshi', group: '结构', icon: FunctionIcon, run: (_, a) => a.openMath() },
-  { id: 'divider', label: '分割线', hint: '水平分隔', keywords: 'hr divider line fenge', group: '结构', icon: Minus, run: (e) => { e.chain().focus().setHorizontalRule().run(); } },
-  { id: 'image', label: '图片', hint: '上传 PNG、JPG、WebP、GIF', keywords: 'image picture img tupian', group: '媒体', icon: Picture, run: (_, a) => a.pickImage() },
-  { id: 'video', label: '视频', hint: '上传 MP4 或 WebM', keywords: 'video mp4 webm shipin', group: '媒体', icon: Video, run: (_, a) => a.pickVideo() },
-  { id: 'attachment', label: '附件', hint: '任意文件，供下载', keywords: 'file attachment fujian', group: '媒体', icon: Paperclip, run: (_, a) => a.pickAttachment() },
-  { id: 'drawing', label: '画板', hint: '手绘图示（Excalidraw）', keywords: 'drawing board excalidraw huaban', group: '媒体', icon: Brush, run: (_, a) => a.openDrawing() },
+  { id: 'table', label: t('表格'), hint: t('3 × 3，带表头'), keywords: 'table biaoge', group: t('结构'), icon: LayoutHeaderCells, run: (e) => { e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); } },
+  { id: 'columns2', label: t('两栏'), hint: t('并排两栏'), keywords: 'columns fenlan', group: t('结构'), icon: LayoutColumns, run: (e) => insertColumns(e, 2) },
+  { id: 'columns3', label: t('三栏'), hint: t('并排三栏'), keywords: 'columns fenlan', group: t('结构'), icon: LayoutColumns3, run: (e) => insertColumns(e, 3) },
+  { id: 'math', label: t('公式'), hint: t('LaTeX 数学公式'), keywords: 'math latex formula gongshi', group: t('结构'), icon: FunctionIcon, run: (_, a) => a.openMath() },
+  { id: 'divider', label: t('分割线'), hint: t('水平分隔'), keywords: 'hr divider line fenge', group: t('结构'), icon: Minus, run: (e) => { e.chain().focus().setHorizontalRule().run(); } },
+  { id: 'image', label: t('图片'), hint: t('上传 PNG、JPG、WebP、GIF'), keywords: 'image picture img tupian', group: t('媒体'), icon: Picture, run: (_, a) => a.pickImage() },
+  { id: 'video', label: t('视频'), hint: t('上传 MP4 或 WebM'), keywords: 'video mp4 webm shipin', group: t('媒体'), icon: Video, run: (_, a) => a.pickVideo() },
+  { id: 'attachment', label: t('附件'), hint: t('任意文件，供下载'), keywords: 'file attachment fujian', group: t('媒体'), icon: Paperclip, run: (_, a) => a.pickAttachment() },
+  { id: 'drawing', label: t('画板'), hint: t('手绘图示（Excalidraw）'), keywords: 'drawing board excalidraw huaban', group: t('媒体'), icon: Brush, run: (_, a) => a.openDrawing() },
 ];
 
 export function filterCommands(query: string): BlockCommand[] {

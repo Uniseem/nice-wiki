@@ -1,6 +1,6 @@
 import { ArrowRight, ChartColumn, CircleCheck, Circle, FileText, Globe, Plus, TrashBin } from '@gravity-ui/icons';
 import { buttonVariants, Card, Chip, cn } from '@heroui/react';
-import { api, fmtNumber, navigate, PageHeader, Stat, useGrants } from '@ui';
+import { api, fmtNumber, navigate, PageHeader, Stat, useGrants, t } from '@ui';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useAccount } from './AdminLayout';
 
@@ -29,7 +29,7 @@ export default function Dashboard() {
         next.drafts = live.length - next.published;
         next.trash = tree.documents.filter((doc) => doc.state === 'trash').length;
         setRecent(live.slice(-6).reverse());
-        checklist.push({ key: 'doc', title: '写第一篇文档并发布', description: '在“文档”里新建、编辑并发布，访客就能在公开站看到。', done: next.published > 0, href: '/admin/content' });
+        checklist.push({ key: 'doc', title: t('写第一篇文档并发布'), description: t('在“文档”里新建、编辑并发布，访客就能在公开站看到。'), done: next.published > 0, href: '/admin/content' });
       }).catch(() => {}));
     }
     if (grants.includes('stats.read')) {
@@ -41,17 +41,17 @@ export default function Dashboard() {
     tasks.push(api<{ languages: { enabled: boolean; isDefault: boolean }[] }>('/v1/languages?includeDisabled=true', { signal }).then((result) => {
       next.languages = result.languages.filter((language) => language.enabled).length;
       if (grants.includes('localization.languages')) {
-        checklist.push({ key: 'lang', title: '按需启用其他语言', description: '在“多语言”里添加并启用语言，文档可以翻译成多种语言。', done: result.languages.some((language) => language.enabled && !language.isDefault), href: '/admin/localization' });
+        checklist.push({ key: 'lang', title: t('按需启用其他语言'), description: t('在“多语言”里添加并启用语言，文档可以翻译成多种语言。'), done: result.languages.some((language) => language.enabled && !language.isDefault), href: '/admin/localization' });
       }
     }).catch(() => {}));
     if (grants.includes('model.manage')) {
       tasks.push(api<{ models: unknown[]; taskAssignments: unknown[] }>('/v1/admin/catalog', { signal }).then((catalog) => {
-        checklist.push({ key: 'model', title: '接入模型', description: '配置供应方、密钥和模型，再一键生成档位和任务分配。AI 问答和翻译都依赖它。', done: catalog.models.length > 0 && catalog.taskAssignments.length > 0, href: '/admin/models' });
+        checklist.push({ key: 'model', title: t('接入模型'), description: t('配置供应方、密钥和模型，再一键生成档位和任务分配。AI 问答和翻译都依赖它。'), done: catalog.models.length > 0 && catalog.taskAssignments.length > 0, href: '/admin/models' });
       }).catch(() => {}));
     }
     if (grants.includes('qa.manage')) {
       tasks.push(api<{ policy: { enabled?: boolean } }>('/v1/admin/policy', { signal }).then((result) => {
-        checklist.push({ key: 'qa', title: '开启公开问答', description: '在“问答”里打开公开问答，访客就能向文档提问。', done: !!result.policy.enabled, href: '/admin/qa' });
+        checklist.push({ key: 'qa', title: t('开启公开问答'), description: t('在“问答”里打开公开问答，访客就能向文档提问。'), done: !!result.policy.enabled, href: '/admin/qa' });
       }).catch(() => {}));
     }
     void Promise.all(tasks).then(() => {
@@ -63,26 +63,26 @@ export default function Dashboard() {
     return () => controller.abort();
   }, [grants]);
 
-  const greeting = new Date().getHours() < 12 ? '上午好' : new Date().getHours() < 18 ? '下午好' : '晚上好';
+  const greeting = new Date().getHours() < 12 ? t('上午好') : new Date().getHours() < 18 ? t('下午好') : t('晚上好');
   const done = steps.filter((step) => step.done).length;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={`${greeting}，${account.accountName}`}
-        description="这里汇总站点的整体情况。从左侧进入各个功能页面。"
+        title={t('{0}，{1}', greeting, account.accountName)}
+        description={t('这里汇总站点的整体情况。从左侧进入各个功能页面。')}
         actions={grants.includes('content.edit') ? (
           <a className={buttonVariants({ variant: 'primary' })} href="/admin/content" onClick={(event) => { event.preventDefault(); navigate('/admin/content'); }}>
-            <Plus />写文档
+            <Plus />{t('写文档')}
           </a>
         ) : undefined}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {tiles.total !== undefined && <Stat icon={<FileText />} label="文档" value={fmtNumber(tiles.total)} hint={`${tiles.published} 篇已发布 · ${tiles.drafts} 篇草稿`} />}
-        {tiles.trash !== undefined && <Stat icon={<TrashBin />} label="回收站" value={fmtNumber(tiles.trash)} hint="可以恢复或彻底删除" />}
-        {tiles.visits !== undefined && <Stat icon={<ChartColumn />} label="近 7 天访问" value={fmtNumber(tiles.visits)} hint="按小时去重的访次之和" />}
-        {tiles.languages !== undefined && <Stat icon={<Globe />} label="启用的语言" value={fmtNumber(tiles.languages)} hint="含基准语言" />}
+        {tiles.total !== undefined && <Stat icon={<FileText />} label={t('文档')} value={fmtNumber(tiles.total)} hint={t('{0} 篇已发布 · {1} 篇草稿', tiles.published ?? 0, tiles.drafts ?? 0)} />}
+        {tiles.trash !== undefined && <Stat icon={<TrashBin />} label={t('回收站')} value={fmtNumber(tiles.trash)} hint={t('可以恢复或彻底删除')} />}
+        {tiles.visits !== undefined && <Stat icon={<ChartColumn />} label={t('近 7 天访问')} value={fmtNumber(tiles.visits)} hint={t('按小时去重的访次之和')} />}
+        {tiles.languages !== undefined && <Stat icon={<Globe />} label={t('启用的语言')} value={fmtNumber(tiles.languages)} hint={t('含基准语言')} />}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
@@ -90,8 +90,8 @@ export default function Dashboard() {
           <Card className="gap-4 p-5 lg:col-span-3">
             <div className="flex items-center justify-between gap-3">
               <Card.Header className="gap-1">
-                <Card.Title className="text-base font-semibold">上手清单</Card.Title>
-                <Card.Description>按顺序完成，站点就能完整运转。</Card.Description>
+                <Card.Title className="text-base font-semibold">{t('上手清单')}</Card.Title>
+                <Card.Description>{t('按顺序完成，站点就能完整运转。')}</Card.Description>
               </Card.Header>
               <Chip color={done === steps.length ? 'success' : 'default'} size="sm" variant="soft">{done} / {steps.length}</Chip>
             </div>
@@ -114,8 +114,8 @@ export default function Dashboard() {
         {recent.length > 0 && (
           <Card className={cn('gap-3 p-5', steps.length ? 'lg:col-span-2' : 'lg:col-span-5')}>
             <Card.Header className="gap-1">
-              <Card.Title className="text-base font-semibold">最近的文档</Card.Title>
-              <Card.Description>点开继续编辑。</Card.Description>
+              <Card.Title className="text-base font-semibold">{t('最近的文档')}</Card.Title>
+              <Card.Description>{t('点开继续编辑。')}</Card.Description>
             </Card.Header>
             <ul className="flex flex-col">
               {recent.map((doc) => (
@@ -123,7 +123,7 @@ export default function Dashboard() {
                   <LinkRow href={`/admin/content?doc=${doc.documentId}`}>
                     <FileText className="mt-0.5 size-4 shrink-0 text-muted" />
                     <span className="min-w-0 flex-1 truncate text-sm text-foreground">{doc.title}</span>
-                    <Chip color={doc.state === 'published' ? 'success' : 'default'} size="sm" variant="soft">{doc.state === 'published' ? '已发布' : '草稿'}</Chip>
+                    <Chip color={doc.state === 'published' ? 'success' : 'default'} size="sm" variant="soft">{doc.state === 'published' ? t('已发布') : t('草稿')}</Chip>
                   </LinkRow>
                 </li>
               ))}

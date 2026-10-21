@@ -1,7 +1,7 @@
 import { ArrowRightFromSquare, ArrowUpRightFromSquare, Bars, Person } from '@gravity-ui/icons';
 import { Button, buttonVariants, cn, Drawer, Dropdown, Label, ScrollShadow, Separator } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { CenteredSpinner, ErrorBlock, LanguageMenu, navigate, Notice, ThemeMenu, useGrants, usePath } from '@ui';
+import { CenteredSpinner, ErrorBlock, LanguageMenu, navigate, Notice, ThemeMenu, useGrants, usePath, t } from '@ui';
 import { Component, createContext, Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Account } from './App';
 import { canOpen, legacyPath, pageFor, pages, sections, type Page } from './routes';
@@ -40,7 +40,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
 
         <Drawer.Backdrop isOpen={navOpen} onOpenChange={setNavOpen}>
           <Drawer.Content placement="left">
-            <Drawer.Dialog aria-label="后台导航" className="flex h-full w-72 max-w-[85vw] flex-col p-0">
+            <Drawer.Dialog aria-label={t('后台导航')} className="flex h-full w-72 max-w-[85vw] flex-col p-0">
               <Brand brand={brand} />
               <div className="flex-1 overflow-y-auto px-3 pb-4">{nav}</div>
               <AccountBox account={account} onSignOut={onSignOut} />
@@ -50,7 +50,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-separator bg-background/85 px-3 backdrop-blur-md sm:px-4 lg:px-8">
-            <Button isIconOnly aria-label="打开导航" className="lg:hidden" size="sm" variant="ghost" onPress={() => setNavOpen(true)}><Bars /></Button>
+            <Button isIconOnly aria-label={t('打开导航')} className="lg:hidden" size="sm" variant="ghost" onPress={() => setNavOpen(true)}><Bars /></Button>
             <div className="flex min-w-0 items-center gap-2 text-sm">
               {page?.section && <span className="hidden text-muted sm:inline">{page.section}</span>}
               {page?.section && <span className="hidden text-muted sm:inline">/</span>}
@@ -59,14 +59,14 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
             <div className="ms-auto flex items-center gap-1">
               <a className={buttonVariants({ size: 'sm', variant: 'ghost' })} href="/" rel="noopener" target="_blank">
                 <ArrowUpRightFromSquare />
-                <span className="hidden sm:inline">查看站点</span>
+                <span className="hidden sm:inline">{t('查看站点')}</span>
               </a>
               <LanguageMenu />
               <ThemeMenu />
             </div>
           </header>
           <main className={page?.bleed ? 'flex min-h-0 flex-1 flex-col' : 'mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8'}>
-            {account.mustChangePassword && page?.key !== 'me' && <Notice status="warning">请先在个人设置里修改初始口令。</Notice>}
+            {account.mustChangePassword && page?.key !== 'me' && <Notice status="warning">{t('请先在个人设置里修改初始口令。')}</Notice>}
             {page && (
               <PageBoundary key={page.key}>
                 <Suspense fallback={<CenteredSpinner />}>
@@ -87,7 +87,7 @@ function Brand({ brand }: { brand: ReturnType<typeof useSiteBrand> }) {
       <SiteMark brand={brand} className="size-8 shrink-0 rounded-lg text-sm" />
       <span className="min-w-0">
         <span className="block truncate text-sm font-semibold text-foreground">{brand.name || 'nice-wiki'}</span>
-        <span className="block text-xs text-muted">后台管理</span>
+        <span className="block text-xs text-muted">{t('后台管理')}</span>
       </span>
     </a>
   );
@@ -98,7 +98,7 @@ function Navigation({ pages: items, current, onNavigate }: { pages: Page[]; curr
   // 侧栏较长时，让当前页面的条目保持在可见范围内。
   useEffect(() => { nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' }); }, [current?.key]);
   return (
-    <nav ref={nav} aria-label="后台页面" className="flex flex-col gap-4 pt-2">
+    <nav ref={nav} aria-label={t('后台页面')} className="flex flex-col gap-4 pt-2">
       {sections.map((section) => {
         const group = items.filter((page) => page.navigation && page.section === section);
         if (!group.length) return null;
@@ -141,18 +141,18 @@ function AccountBox({ account, onSignOut }: { account: Account; onSignOut: () =>
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-default text-sm font-semibold text-foreground">{account.accountName.slice(0, 1).toUpperCase()}</span>
           <span className="min-w-0 text-start">
             <span className="block truncate text-sm font-medium text-foreground">{account.accountName}</span>
-            <span className="block text-xs font-normal text-muted">{account.isSuperadmin ? '超级管理员' : '子账号'}</span>
+            <span className="block text-xs font-normal text-muted">{account.isSuperadmin ? t('超级管理员') : t('子账号')}</span>
           </span>
         </Button>
         <Dropdown.Popover className="min-w-52" placement="top start">
           <Dropdown.Menu onAction={(key: Key) => { if (key === 'me') navigate('/admin/me'); if (key === 'logout') onSignOut(); }}>
-            <Dropdown.Item id="me" textValue="个人设置">
+            <Dropdown.Item id="me" textValue={t('个人设置')}>
               <Person className="size-4 text-muted" />
-              <Label>个人设置</Label>
+              <Label>{t('个人设置')}</Label>
             </Dropdown.Item>
-            <Dropdown.Item id="logout" textValue="退出登录" variant="danger">
+            <Dropdown.Item id="logout" textValue={t('退出登录')} variant="danger">
               <ArrowRightFromSquare className="size-4" />
-              <Label>退出登录</Label>
+              <Label>{t('退出登录')}</Label>
             </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown.Popover>
@@ -169,9 +169,9 @@ class PageBoundary extends Component<{ children: ReactNode }, { error: unknown }
     if (this.state.error) {
       return (
         <div className="p-6">
-          <ErrorBlock error={this.state.error} title="页面出错了" onRetry={() => this.setState({ error: null })} />
+          <ErrorBlock error={this.state.error} title={t('页面出错了')} onRetry={() => this.setState({ error: null })} />
           <Separator className="my-4" />
-          <p className="text-sm text-muted">如果反复出现，请刷新浏览器；仍无法使用时把错误信息发给管理员。</p>
+          <p className="text-sm text-muted">{t('如果反复出现，请刷新浏览器；仍无法使用时把错误信息发给管理员。')}</p>
         </div>
       );
     }

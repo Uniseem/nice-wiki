@@ -1,4 +1,5 @@
 import { Node } from '@tiptap/core';
+import { t } from '@ui';
 
 // 提示框：info / tip / warning / danger，内容是普通块。
 export const Callout = Node.create({
@@ -32,7 +33,7 @@ export const Attachment = Node.create({
   atom: true,
   draggable: true,
   addAttributes() {
-    return { blockId: { default: null, rendered: false }, asset: { default: null, rendered: false }, displayName: { default: '附件', rendered: false } };
+    return { blockId: { default: null, rendered: false }, asset: { default: null, rendered: false }, displayName: { default: t('附件'), rendered: false } };
   },
   parseHTML() { return [{ tag: 'div[data-attachment]' }]; },
   renderHTML({ node }) { return ['div', { 'data-attachment': '', class: 'attachment' }, `📎 ${node.attrs.displayName}`]; },

@@ -1,5 +1,6 @@
 import { AlertDialog, Button, Description, FieldError, Form, Input, Label, Modal, TextArea, TextField, toast } from '@heroui/react';
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { t } from './i18n';
 
 // 统一的操作反馈：轻提示用 HeroUI toast，确认和输入用对话框，替代浏览器自带的 alert/confirm/prompt。
 
@@ -97,8 +98,8 @@ export function DialogHost() {
             </AlertDialog.Header>
             {head.body && <AlertDialog.Body><div className="text-sm leading-6 text-muted">{head.body}</div></AlertDialog.Body>}
             <AlertDialog.Footer>
-              <Button variant="tertiary" onPress={() => finish(false)}>{head.cancelLabel ?? '取消'}</Button>
-              <Button variant={tone === 'danger' ? 'danger' : 'primary'} onPress={() => finish(true)}>{head.confirmLabel ?? '确认'}</Button>
+              <Button variant="tertiary" onPress={() => finish(false)}>{head.cancelLabel ?? t('取消')}</Button>
+              <Button variant={tone === 'danger' ? 'danger' : 'primary'} onPress={() => finish(true)}>{head.confirmLabel ?? t('确认')}</Button>
             </AlertDialog.Footer>
           </AlertDialog.Dialog>
         </AlertDialog.Container>
@@ -109,7 +110,7 @@ export function DialogHost() {
     <Modal.Backdrop isOpen={open} onOpenChange={(next) => { if (!next) finish(null); }}>
       <Modal.Container size="sm">
         <Modal.Dialog>
-          <Modal.CloseTrigger aria-label="关闭" />
+          <Modal.CloseTrigger aria-label={t('关闭')} />
           <Modal.Header>
             <Modal.Heading>{head.title}</Modal.Heading>
           </Modal.Header>
@@ -138,8 +139,8 @@ export function DialogHost() {
               </TextField>
             </Modal.Body>
             <Modal.Footer>
-              <Button variant="tertiary" onPress={() => finish(null)}>取消</Button>
-              <Button type="submit">{head.confirmLabel ?? '确定'}</Button>
+              <Button variant="tertiary" onPress={() => finish(null)}>{t('取消')}</Button>
+              <Button type="submit">{head.confirmLabel ?? t('确定')}</Button>
             </Modal.Footer>
           </Form>
         </Modal.Dialog>

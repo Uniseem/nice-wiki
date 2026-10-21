@@ -1,3 +1,4 @@
+import { t } from '@ui';
 // 编辑器 JSON 与 content 域块 schema 的互转。
 // 服务端 schema 对 attrs 是封闭集合（多一个字段都会被拒绝），所以这里逐类型显式列出。
 
@@ -63,36 +64,36 @@ function block(node: JSONNode, inColumn = false): any {
     }
     case 'callout': return { type: 'callout', attrs: { blockId, kind: node.attrs?.kind ?? 'info' }, content: blocks(node.content, inColumn) };
     case 'columns': {
-      if (inColumn) throw new Error('分栏不能嵌套分栏');
+      if (inColumn) throw new Error(t('分栏不能嵌套分栏'));
       const cols = node.content ?? [];
       return { type: 'columns', attrs: { blockId, widthRatios: equalRatios(cols.length) }, content: cols.map((c) => ({ type: 'column', attrs: { columnId: c.attrs?.columnId ?? newId() }, content: blocks(c.content, true) })) };
     }
     case 'mathBlock': return { type: 'mathBlock', attrs: { blockId, latex: node.attrs?.latex || ' ' } };
     case 'attachment': {
       const a = node.attrs?.asset;
-      if (!a) throw new Error('附件缺少资源引用');
-      return { type: 'attachment', attrs: { blockId, asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize }, displayName: node.attrs?.displayName || '附件' } };
+      if (!a) throw new Error(t('附件缺少资源引用'));
+      return { type: 'attachment', attrs: { blockId, asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize }, displayName: node.attrs?.displayName || t('附件') } };
     }
     case 'drawing': {
       const { scene, lightSVG, darkSVG } = node.attrs ?? {};
-      if (!scene || !lightSVG || !darkSVG) throw new Error('画板缺少资源引用');
+      if (!scene || !lightSVG || !darkSVG) throw new Error(t('画板缺少资源引用'));
       const ref = (a: any) => ({ assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize });
       return { type: 'drawing', attrs: { blockId, scene: ref(scene), lightSVG: ref(lightSVG), darkSVG: ref(darkSVG), widthPercent: node.attrs?.widthPercent ?? null, caption: [] } };
     }
     case 'table': return { type: 'table', attrs: { blockId }, content: (node.content ?? []).map(tableRow) };
     case 'video': {
       const a = node.attrs?.source?.asset;
-      if (!a) throw new Error('视频缺少资源引用');
+      if (!a) throw new Error(t('视频缺少资源引用'));
       const poster = node.attrs?.poster;
       return { type: 'video', attrs: { blockId, source: { kind: 'uploaded', asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize } }, title: node.attrs?.title ?? '', description: node.attrs?.description ?? '', poster: poster ? { assetId: poster.assetId, version: poster.version, sha256: poster.sha256, mediaType: poster.mediaType, byteSize: poster.byteSize } : null, widthPercent: node.attrs?.widthPercent ?? null } };
     }
     case 'image': {
       const alt = typeof node.attrs?.alt === 'string' && node.attrs.alt !== '' ? node.attrs.alt : null;
       const a = node.attrs?.asset;
-      if (!a) throw new Error('图片缺少资源引用');
+      if (!a) throw new Error(t('图片缺少资源引用'));
       return { type: 'image', attrs: { blockId, asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize }, alt, altSource: alt ? 'manual' : 'auto', caption: [], widthPercent: node.attrs?.widthPercent ?? null } };
     }
-    default: throw new Error(`编辑器含暂不支持保存的块：${node.type}`);
+    default: throw new Error(t('编辑器含暂不支持保存的块：{0}', node.type));
   }
 }
 

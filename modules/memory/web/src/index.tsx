@@ -1,6 +1,6 @@
 import { BookOpen, Pencil, Plus } from '@gravity-ui/icons';
 import { Button, Card, Chip, Drawer, Form, Tabs } from '@heroui/react';
-import { api, CheckGroupInput, EmptyBlock, ErrorBlock, errorText, fmtRelative, FormGrid, LoadingBlock, newKey, NumberInput, PageHeader, TextAreaInput, TextInput, useAction, useLoad } from '@ui';
+import { adminLanguage, api, CheckGroupInput, EmptyBlock, ErrorBlock, errorText, fmtRelative, FormGrid, LoadingBlock, newKey, NumberInput, PageHeader, TextAreaInput, TextInput, useAction, useLoad, t } from '@ui';
 import { useState } from 'react';
 
 type Entry = {
@@ -12,8 +12,8 @@ type Mapping = { mappingId: string; taskId: string; entryId: string; language: s
 
 // 记忆用在哪些 AI 任务：后台只给几个大类，保存时展开成按任务的映射。翻译目前不读记忆，所以不列出。
 const scopes = [
-  { id: 'qa', label: '问答回答', description: '访客提问时放在回答模型系统提示的最前面。', tasks: ['qa.answer'] },
-  { id: 'knowledge', label: '知识索引', description: '建索引时生成背景短句和图片描述用；改动后下次建索引会重新生成（会调用模型）。', tasks: ['knowledge.context', 'knowledge.describe', 'knowledge.describe-visual'] },
+  { id: 'qa', label: t('问答回答'), description: t('访客提问时放在回答模型系统提示的最前面。'), tasks: ['qa.answer'] },
+  { id: 'knowledge', label: t('知识索引'), description: t('建索引时生成背景短句和图片描述用；改动后下次建索引会重新生成（会调用模型）。'), tasks: ['knowledge.context', 'knowledge.describe', 'knowledge.describe-visual'] },
 ];
 const scopeTasks = scopes.flatMap((scope) => scope.tasks);
 
@@ -64,29 +64,29 @@ export default function MemoryPage() {
     const idempotencyKey = newKey();
     await api(`/v1/entries/${entry.entryId}/${entry.state === 'active' ? 'archive' : 'restore'}`, { method: 'POST', idempotencyKey, body: { entryId: entry.entryId, expectedVersion: entry.version, idempotencyKey } });
     entries.reload();
-  }, entry.state === 'active' ? '已归档' : '已恢复');
+  }, entry.state === 'active' ? t('已归档') : t('已恢复'));
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="长期记忆"
-        description="写给 AI 的长期背景：术语、语气、禁忌、产品事实等。按优先级放进所选 AI 任务的系统提示最前面；修改不会调用模型。"
-        actions={<Button onPress={() => setEditing('new')}><Plus />新建记忆</Button>}
+        title={t('长期记忆')}
+        description={t('写给 AI 的长期背景：术语、语气、禁忌、产品事实等。按优先级放进所选 AI 任务的系统提示最前面；修改不会调用模型。')}
+        actions={<Button onPress={() => setEditing('new')}><Plus />{t('新建记忆')}</Button>}
       />
       <Tabs selectedKey={state} onSelectionChange={(key) => setState(key as 'active' | 'archived')}>
         <Tabs.ListContainer>
-          <Tabs.List aria-label="记忆状态">
-            <Tabs.Tab id="active">使用中<Tabs.Indicator /></Tabs.Tab>
-            <Tabs.Tab id="archived">已归档<Tabs.Indicator /></Tabs.Tab>
+          <Tabs.List aria-label={t('记忆状态')}>
+            <Tabs.Tab id="active">{t('使用中')}<Tabs.Indicator /></Tabs.Tab>
+            <Tabs.Tab id="archived">{t('已归档')}<Tabs.Indicator /></Tabs.Tab>
           </Tabs.List>
         </Tabs.ListContainer>
         <Tabs.Panel className="pt-4" id={state}>
           {entries.error ? <ErrorBlock error={entries.error} onRetry={entries.reload} /> : !entries.data ? <LoadingBlock lines={4} /> : !entries.data.length ? (
             <EmptyBlock
               icon={<BookOpen />}
-              title={state === 'active' ? '还没有记忆' : '没有归档的记忆'}
-              description={state === 'active' ? '比如“产品名统一写作 Nice Wiki”“回答保持简洁、先给结论”。' : undefined}
-              action={state === 'active' ? <Button size="sm" onPress={() => setEditing('new')}><Plus />新建记忆</Button> : undefined}
+              title={state === 'active' ? t('还没有记忆') : t('没有归档的记忆')}
+              description={state === 'active' ? t('比如“产品名统一写作 Nice Wiki”“回答保持简洁、先给结论”。') : undefined}
+              action={state === 'active' ? <Button size="sm" onPress={() => setEditing('new')}><Plus />{t('新建记忆')}</Button> : undefined}
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
@@ -97,24 +97,24 @@ export default function MemoryPage() {
                       <Card.Title className="truncate text-base font-semibold">{entry.title}</Card.Title>
                       {entry.description && <Card.Description className="line-clamp-2">{entry.description}</Card.Description>}
                     </Card.Header>
-                    <Chip color={entry.priority >= 80 ? 'accent' : 'default'} size="sm" variant="soft">优先级 {entry.priority}</Chip>
+                    <Chip color={entry.priority >= 80 ? 'accent' : 'default'} size="sm" variant="soft">{t('优先级 {0}', entry.priority)}</Chip>
                   </div>
                   <p className="line-clamp-4 whitespace-pre-wrap rounded-xl bg-surface-secondary px-3 py-2 font-mono text-xs leading-5 text-muted">{entry.body}</p>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Chip size="sm" variant="soft">{entry.language}</Chip>
                     {entry.tags.map((tag) => <Chip key={tag} size="sm" variant="tertiary">#{tag}</Chip>)}
-                    {entry.readonly && <Chip color="warning" size="sm" variant="soft">只读</Chip>}
+                    {entry.readonly && <Chip color="warning" size="sm" variant="soft">{t('只读')}</Chip>}
                     {mappings.data && (() => {
                       const used = scopesOf(mappings.data.get(entry.entryId) ?? []);
                       return used.length
                         ? scopes.filter((scope) => used.includes(scope.id)).map((scope) => <Chip key={scope.id} color="accent" size="sm" variant="soft">{scope.label}</Chip>)
-                        : <Chip color="warning" size="sm" variant="soft">未用于任何任务</Chip>;
+                        : <Chip color="warning" size="sm" variant="soft">{t('未用于任何任务')}</Chip>;
                     })()}
-                    <span className="ms-auto text-xs text-muted">更新于 {fmtRelative(entry.updatedAt)}</span>
+                    <span className="ms-auto text-xs text-muted">{t('更新于 {0}', fmtRelative(entry.updatedAt))}</span>
                   </div>
                   <Card.Footer className="gap-2">
-                    {!entry.readonly && entry.state === 'active' && <Button size="sm" variant="secondary" onPress={() => setEditing(entry)}><Pencil />编辑</Button>}
-                    <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => toggleArchive(entry)}>{entry.state === 'active' ? '归档' : '恢复'}</Button>
+                    {!entry.readonly && entry.state === 'active' && <Button size="sm" variant="secondary" onPress={() => setEditing(entry)}><Pencil />{t('编辑')}</Button>}
+                    <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => toggleArchive(entry)}>{entry.state === 'active' ? t('归档') : t('恢复')}</Button>
                   </Card.Footer>
                 </Card>
               ))}
@@ -137,7 +137,7 @@ export default function MemoryPage() {
 // existing 是该条目现有的任务映射；还没读到时为 undefined，先不让保存，免得重复添加。
 function EntryDrawer({ entry, existing, onClose, onSaved }: { entry: Entry | null; existing: Mapping[] | undefined; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
-    title: entry?.title ?? '', description: entry?.description ?? '', body: entry?.body ?? '', language: entry?.language ?? 'zh-Hans', priority: entry?.priority ?? 50, tags: entry?.tags.join(', ') ?? '',
+    title: entry?.title ?? '', description: entry?.description ?? '', body: entry?.body ?? '', language: entry?.language ?? adminLanguage(), priority: entry?.priority ?? 50, tags: entry?.tags.join(', ') ?? '',
   });
   const [chosen, setChosen] = useState<string[] | null>(entry ? null : ['qa']);
   const used = chosen ?? (existing ? scopesOf(existing) : []);
@@ -172,9 +172,9 @@ function EntryDrawer({ entry, existing, onClose, onSaved }: { entry: Entry | nul
       try {
         await syncMappings(entryId, form.language, used, existing ?? []);
       } catch (problem) {
-        throw new Error(`记忆已保存，但“用于”没有更新：${errorText(problem)}`);
+        throw new Error(t('记忆已保存，但“用于”没有更新：{0}', errorText(problem)));
       }
-    }, '已保存');
+    }, t('已保存'));
     onSaved();
   };
 
@@ -182,39 +182,39 @@ function EntryDrawer({ entry, existing, onClose, onSaved }: { entry: Entry | nul
     <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Drawer.Content placement="right">
         <Drawer.Dialog className="w-full max-w-xl">
-          <Drawer.CloseTrigger aria-label="关闭" />
-          <Drawer.Header><Drawer.Heading>{entry ? '编辑记忆' : '新建记忆'}</Drawer.Heading></Drawer.Header>
+          <Drawer.CloseTrigger aria-label={t('关闭')} />
+          <Drawer.Header><Drawer.Heading>{entry ? t('编辑记忆') : t('新建记忆')}</Drawer.Heading></Drawer.Header>
           <Form className="flex min-h-0 flex-1 flex-col" onSubmit={(event) => { event.preventDefault(); if (size <= maxBytes && existing) void save(); }}>
             <Drawer.Body className="flex flex-col gap-4">
-              <TextInput isRequired label="标题" maxLength={200} value={form.title} onChange={(title) => setForm({ ...form, title })} />
-              <TextInput isRequired description="一句话说明它什么时候有用，例如“所有回答”“涉及价格时”。" label="说明" maxLength={300} value={form.description} onChange={(description) => setForm({ ...form, description })} />
+              <TextInput isRequired label={t('标题')} maxLength={200} value={form.title} onChange={(title) => setForm({ ...form, title })} />
+              <TextInput isRequired description={t('一句话说明它什么时候有用，例如“所有回答”“涉及价格时”。')} label={t('说明')} maxLength={300} value={form.description} onChange={(description) => setForm({ ...form, description })} />
               <TextAreaInput
                 isRequired
-                description={`${size} / ${maxBytes} 字节，支持 Markdown。`}
-                error={size > maxBytes ? `超出 ${size - maxBytes} 字节，请精简` : null}
-                label="正文"
+                description={t('{0} / {1} 字节，支持 Markdown。', size, maxBytes)}
+                error={size > maxBytes ? t('超出 {0} 字节，请精简', size - maxBytes) : null}
+                label={t('正文')}
                 rows={10}
                 value={form.body}
                 onChange={(body) => setForm({ ...form, body })}
               />
               <FormGrid columns={3}>
-                <TextInput description="und 表示所有语言。" label="语言" value={form.language} onChange={(language) => setForm({ ...form, language })} />
-                <NumberInput description="越大越优先。" label="优先级" maxValue={100} minValue={1} value={form.priority} onChange={(priority) => setForm({ ...form, priority })} />
-                <TextInput description="逗号分隔。" label="标签" value={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
+                <TextInput description={t('und 表示所有语言。')} label={t('语言')} value={form.language} onChange={(language) => setForm({ ...form, language })} />
+                <NumberInput description={t('越大越优先。')} label={t('优先级')} maxValue={100} minValue={1} value={form.priority} onChange={(priority) => setForm({ ...form, priority })} />
+                <TextInput description={t('逗号分隔。')} label={t('标签')} value={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
               </FormGrid>
               <CheckGroupInput
                 columns={1}
-                description={used.length ? undefined : '不勾选时这条记忆不会进入任何 AI 任务。'}
+                description={used.length ? undefined : t('不勾选时这条记忆不会进入任何 AI 任务。')}
                 isDisabled={!existing}
-                label="用于"
+                label={t('用于')}
                 options={scopes.map((scope) => ({ value: scope.id, label: scope.label, description: scope.description }))}
                 value={used}
                 onChange={setChosen}
               />
             </Drawer.Body>
             <Drawer.Footer>
-              <Button variant="tertiary" onPress={onClose}>取消</Button>
-              <Button isDisabled={size > maxBytes || !existing} isPending={busy} type="submit">保存</Button>
+              <Button variant="tertiary" onPress={onClose}>{t('取消')}</Button>
+              <Button isDisabled={size > maxBytes || !existing} isPending={busy} type="submit">{t('保存')}</Button>
             </Drawer.Footer>
           </Form>
         </Drawer.Dialog>

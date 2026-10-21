@@ -1,4 +1,5 @@
 import { api } from './api';
+import { t } from './i18n';
 
 // media 的内容寻址上传：声明 sha256 → 顺序分块（每块带自己的 sha256）→ 完成后得到不可变资源引用。
 // 文档编辑器（图片、视频、附件、画板）和站点设置（站标、图标、分享图）共用。
@@ -70,7 +71,7 @@ export async function captureVideoPoster(file: File): Promise<AssetRef | null> {
     video.muted = true;
     video.preload = 'auto';
     video.src = url;
-    await new Promise<void>((resolve, reject) => { video.onloadeddata = () => resolve(); video.onerror = () => reject(new Error('无法读取视频')); });
+    await new Promise<void>((resolve, reject) => { video.onloadeddata = () => resolve(); video.onerror = () => reject(new Error(t('无法读取视频'))); });
     video.currentTime = Math.min(1, (video.duration || 1) / 10);
     await new Promise<void>((resolve) => { video.onseeked = () => resolve(); });
     const scale = Math.min(1, 1280 / video.videoWidth);

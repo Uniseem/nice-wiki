@@ -1,5 +1,5 @@
 import { Node } from '@tiptap/core';
-import type { AssetRef } from '@ui';
+import { t, type AssetRef } from '@ui';
 
 // 画板块：保存场景 JSON 与浅/深色 SVG 三个不可变资源引用；编辑器里显示浅色 SVG，双击打开画板。
 export const Drawing = Node.create({
@@ -20,7 +20,7 @@ export const Drawing = Node.create({
   parseHTML() { return [{ tag: 'img[data-drawing]' }]; },
   renderHTML({ node }) {
     const light = node.attrs.lightSVG as AssetRef | null;
-    return ['img', { 'data-drawing': '', class: 'drawing', src: (node.attrs.previewURL as string | null) ?? (light ? `/v1/assets/${light.assetId}/bytes?sha=${light.sha256}` : ''), alt: '画板' }];
+    return ['img', { 'data-drawing': '', class: 'drawing', src: (node.attrs.previewURL as string | null) ?? (light ? `/v1/assets/${light.assetId}/bytes?sha=${light.sha256}` : ''), alt: t('画板') }];
   },
 });
 

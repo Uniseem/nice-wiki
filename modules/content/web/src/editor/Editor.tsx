@@ -8,7 +8,7 @@ import { Placeholder } from '@tiptap/extensions';
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type Editor as TiptapEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { cn, ScrollShadow, toast } from '@heroui/react';
-import { captureVideoPoster, errorText, uploadAsset, uploadImage } from '@ui';
+import { captureVideoPoster, errorText, uploadAsset, uploadImage, t } from '@ui';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import type { JSONNode } from '../convert';
 import { Attachment, Callout, Column, Columns, MathBlock } from './blocks';
@@ -22,14 +22,14 @@ import { EditorToolbar, editLink } from './Toolbar';
 import { VideoBlock } from './video';
 
 const videoLimit = 500 << 20;
-const kindLabel = { image: '图片', attachment: '附件', video: '视频' } as const;
+const kindLabel = { image: t('图片'), attachment: t('附件'), video: t('视频') } as const;
 
 // 编辑器里的公式直接用 KaTeX 渲染成预览，双击打开公式对话框。
 function MathView({ node, selected }: NodeViewProps) {
   const { html, error } = renderMath(String(node.attrs.latex ?? ''));
   return (
     <NodeViewWrapper className={cn('math-block', selected && 'ProseMirror-selectednode')} data-math="">
-      {error ? <span className="text-danger">公式有误：{error}</span> : <span dangerouslySetInnerHTML={{ __html: html }} />}
+      {error ? <span className="text-danger">{t('公式有误：{0}', error)}</span> : <span dangerouslySetInnerHTML={{ __html: html }} />}
     </NodeViewWrapper>
   );
 }
@@ -57,8 +57,8 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
     const current = editorRef.current;
     if (!current) return;
     const label = kindLabel[kind];
-    if (kind === 'video' && file.size > videoLimit) { toast.danger('视频超过 500MB', { description: '请压缩后再上传。' }); return; }
-    const id = toast(`正在上传${label}`, { description: file.name, isLoading: true, timeout: 0 });
+    if (kind === 'video' && file.size > videoLimit) { toast.danger(t('视频超过 500MB'), { description: t('请压缩后再上传。') }); return; }
+    const id = toast(t('正在上传{0}', label), { description: file.name, isLoading: true, timeout: 0 });
     try {
       const asset = kind === 'image' ? await uploadImage(file) : await uploadAsset(file, kind);
       const poster = kind === 'video' ? await captureVideoPoster(file) : null;
@@ -66,9 +66,9 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
         : kind === 'video' ? { type: 'video', attrs: { source: { kind: 'uploaded', asset }, title: file.name.replace(/\.[^.]+$/, '').slice(0, 500), description: '', poster, widthPercent: null } }
         : { type: 'attachment', attrs: { asset, displayName: file.name.slice(0, 255) } };
       current.chain().focus().insertContent(content).run();
-      toast.update(id, `${label}已插入`, { description: file.name, isLoading: false, timeout: 2500, variant: 'success' });
+      toast.update(id, t('{0}已插入', label), { description: file.name, isLoading: false, timeout: 2500, variant: 'success' });
     } catch (problem) {
-      toast.update(id, `${label}上传失败`, { description: errorText(problem), isLoading: false, timeout: 8000, variant: 'danger' });
+      toast.update(id, t('{0}上传失败', label), { description: errorText(problem), isLoading: false, timeout: 8000, variant: 'danger' });
     }
   }, []);
 
@@ -127,10 +127,10 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
       Table.configure({ resizable: false }), TableRow, TableHeader, TableCell,
       TaskList, TaskItem.configure({ nested: true }), Highlight,
       ImageBlock, VideoBlock, Callout, MathBlockWithPreview, Attachment, Columns, Column, Drawing, StableIds,
-      Placeholder.configure({ placeholder: '输入正文，或输入 / 插入标题、列表、表格、图片…' }),
+      Placeholder.configure({ placeholder: t('输入正文，或输入 / 插入标题、列表、表格、图片…') }),
     ],
     editorProps: {
-      attributes: { class: 'nw-prose', 'aria-label': '文档正文' },
+      attributes: { class: 'nw-prose', 'aria-label': t('文档正文') },
       // 粘贴或拖入图片文件：直接上传并插入。
       handlePaste: (_view, event) => handleFiles(event.clipboardData?.files),
       handleDrop: (_view, event) => handleFiles((event as DragEvent).dataTransfer?.files),
@@ -178,7 +178,7 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
       <div ref={wrapper} className="relative mx-auto w-full max-w-3xl px-5 pb-32 pt-6 sm:px-8">
         <EditorContent editor={editor} />
         {slash && items.length > 0 && (
-          <div className="absolute z-30 w-72 overflow-hidden rounded-2xl border border-border bg-overlay p-1.5 shadow-overlay" role="listbox" aria-label="插入块" style={{ left: Math.max(0, Math.min(slash.left, (wrapper.current?.clientWidth ?? 600) - 296)), top: slash.top }}>
+          <div className="absolute z-30 w-72 overflow-hidden rounded-2xl border border-border bg-overlay p-1.5 shadow-overlay" role="listbox" aria-label={t('插入块')} style={{ left: Math.max(0, Math.min(slash.left, (wrapper.current?.clientWidth ?? 600) - 296)), top: slash.top }}>
             <ScrollShadow className="max-h-80">
               {items.map((command, index) => (
                 <button

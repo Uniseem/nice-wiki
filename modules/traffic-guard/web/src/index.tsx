@@ -1,7 +1,7 @@
 import { Ban as BanIcon, Shield } from '@gravity-ui/icons';
 import { Button, Chip, Form, Modal, Table, Tabs } from '@heroui/react';
 import {
-  api, ApiError, EmptyBlock, ErrorBlock, fmtDateTime, fmtRelative, FormGrid, LoadingBlock, Mono, NumberInput, PageHeader, Panel, SelectInput, shortId, SwitchInput, TextInput, useAction, useLoad,
+  api, ApiError, EmptyBlock, ErrorBlock, fmtDateTime, fmtRelative, FormGrid, LoadingBlock, Mono, NumberInput, PageHeader, Panel, SelectInput, shortId, SwitchInput, TextInput, useAction, useLoad, t,
 } from '@ui';
 import { useEffect, useState } from 'react';
 
@@ -10,13 +10,13 @@ type Ban = { banId: string; subjectRef: string; reasonCode: string; state: strin
 type RiskEvent = { eventId: string; occurredAt: string; action: string; decision: string; networkKey: string };
 
 const labels: Record<string, [string, string?]> = {
-  qaPerSubjectPerMinute: ['每位访客每分钟提问上限'], qaBurst: ['每位访客突发次数', '短时间内允许连续提问的次数'], qaPerSitePerMinute: ['全站每分钟提问上限'],
-  qaSubjectConcurrency: ['每位访客并发'], qaSiteConcurrency: ['全站并发'], qaPerNetworkPerMinute: ['每个网络每分钟上限', '同一网络（如同一公司出口）合计'],
-  challengeEnabled: ['工作量证明挑战', '可疑请求先在浏览器里完成一次计算验证，挡住脚本刷量。'], externalChallengeEnabled: ['外部挑战', '需要另行配置第三方验证的密钥。'],
+  qaPerSubjectPerMinute: [t('每位访客每分钟提问上限')], qaBurst: [t('每位访客突发次数'), t('短时间内允许连续提问的次数')], qaPerSitePerMinute: [t('全站每分钟提问上限')],
+  qaSubjectConcurrency: [t('每位访客并发')], qaSiteConcurrency: [t('全站并发')], qaPerNetworkPerMinute: [t('每个网络每分钟上限'), t('同一网络（如同一公司出口）合计')],
+  challengeEnabled: [t('工作量证明挑战'), t('可疑请求先在浏览器里完成一次计算验证，挡住脚本刷量。')], externalChallengeEnabled: [t('外部挑战'), t('需要另行配置第三方验证的密钥。')],
 };
 const defaults: Policy = { qaPerSubjectPerMinute: 30, qaBurst: 5, qaPerSitePerMinute: 600, qaSubjectConcurrency: 1, qaSiteConcurrency: 32, challengeEnabled: true, externalChallengeEnabled: false, qaPerNetworkPerMinute: 60 };
-const banState: Record<string, { label: string; tone: 'danger' | 'default' }> = { active: { label: '生效中', tone: 'danger' }, expired: { label: '已过期', tone: 'default' }, revoked: { label: '已撤销', tone: 'default' } };
-const durations = [{ value: '3600', label: '1 小时' }, { value: '86400', label: '1 天' }, { value: '604800', label: '7 天' }, { value: '2592000', label: '30 天' }];
+const banState: Record<string, { label: string; tone: 'danger' | 'default' }> = { active: { label: t('生效中'), tone: 'danger' }, expired: { label: t('已过期'), tone: 'default' }, revoked: { label: t('已撤销'), tone: 'default' } };
+const durations = [{ value: '3600', label: t('1 小时') }, { value: '86400', label: t('1 天') }, { value: '604800', label: t('7 天') }, { value: '2592000', label: t('30 天') }];
 
 export default function GuardPage() {
   const [tab, setTab] = useState('policy');
@@ -24,13 +24,13 @@ export default function GuardPage() {
   const bans = useLoad((signal) => api<{ items: Ban[] }>('/v1/bans?limit=50', { signal }).then((result) => result.items), []);
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="防滥用" description="限制访客提问的频率和并发，必要时封禁滥用的网络。只保存不可逆的网络引用，不记录原始访客 IP。" actions={<Button variant="secondary" onPress={() => setBanTarget('')}><BanIcon />新建禁令</Button>} />
+      <PageHeader title={t('防滥用')} description={t('限制访客提问的频率和并发，必要时封禁滥用的网络。只保存不可逆的网络引用，不记录原始访客 IP。')} actions={<Button variant="secondary" onPress={() => setBanTarget('')}><BanIcon />{t('新建禁令')}</Button>} />
       <Tabs selectedKey={tab} onSelectionChange={(key) => setTab(String(key))}>
         <Tabs.ListContainer className="mb-4">
-          <Tabs.List aria-label="防滥用">
-            <Tabs.Tab id="policy">准入策略<Tabs.Indicator /></Tabs.Tab>
-            <Tabs.Tab id="bans">禁令<Tabs.Indicator /></Tabs.Tab>
-            <Tabs.Tab id="events">可疑事件<Tabs.Indicator /></Tabs.Tab>
+          <Tabs.List aria-label={t('防滥用')}>
+            <Tabs.Tab id="policy">{t('准入策略')}<Tabs.Indicator /></Tabs.Tab>
+            <Tabs.Tab id="bans">{t('禁令')}<Tabs.Indicator /></Tabs.Tab>
+            <Tabs.Tab id="events">{t('可疑事件')}<Tabs.Indicator /></Tabs.Tab>
           </Tabs.List>
         </Tabs.ListContainer>
         <Tabs.Panel id="policy"><PolicyTab /></Tabs.Panel>
@@ -63,24 +63,24 @@ function PolicyTab() {
   const save = () => run(async () => {
     await api('/v1/policies', { method: 'PUT', body: { siteId: loaded.data!.siteId, expectedRevision: loaded.data!.revision, policyJSON: policy } });
     loaded.reload();
-  }, '策略已保存');
+  }, t('策略已保存'));
   return (
     <Form className="flex flex-col gap-6" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-      <Panel title="提问频率与并发" description={loaded.data.revision ? `策略版本 #${loaded.data.revision}` : '还没有保存过，下面是默认值。'}>
+      <Panel title={t('提问频率与并发')} description={loaded.data.revision ? t('策略版本 #{0}', loaded.data.revision) : t('还没有保存过，下面是默认值。')}>
         <FormGrid columns={3}>
           {keys.filter((key) => typeof policy[key] === 'number').map((key) => (
             <NumberInput key={key} description={labels[key]?.[1]} label={labels[key]?.[0] ?? key} minValue={1} value={policy[key] as number} onChange={(value) => setPolicy({ ...policy, [key]: value })} />
           ))}
         </FormGrid>
       </Panel>
-      <Panel title="人机验证">
+      <Panel title={t('人机验证')}>
         <div className="grid gap-5 md:grid-cols-2">
           {keys.filter((key) => typeof policy[key] === 'boolean').map((key) => (
             <SwitchInput key={key} description={labels[key]?.[1]} isSelected={policy[key] as boolean} label={labels[key]?.[0] ?? key} onChange={(value) => setPolicy({ ...policy, [key]: value })} />
           ))}
         </div>
       </Panel>
-      <div className="flex justify-end"><Button isPending={busy} type="submit">保存策略</Button></div>
+      <div className="flex justify-end"><Button isPending={busy} type="submit">{t('保存策略')}</Button></div>
     </Form>
   );
 }
@@ -90,29 +90,29 @@ function BansTab({ bans, error, reload }: { bans?: Ban[]; error: unknown; reload
   const revoke = (ban: Ban) => run(async () => {
     await api(`/v1/bans/${ban.banId}`, { method: 'DELETE', body: { expectedRevision: ban.revision } });
     reload();
-  }, '禁令已撤销');
+  }, t('禁令已撤销'));
   if (error && !bans) return <ErrorBlock error={error} onRetry={reload} />;
   if (!bans) return <LoadingBlock lines={4} />;
-  if (!bans.length) return <EmptyBlock icon={<Shield />} title="没有禁令" description="在“可疑事件”里可以直接封禁某个网络。" />;
+  if (!bans.length) return <EmptyBlock icon={<Shield />} title={t('没有禁令')} description={t('在“可疑事件”里可以直接封禁某个网络。')} />;
   return (
     <Table>
       <Table.ScrollContainer>
-        <Table.Content aria-label="禁令" className="min-w-[640px]">
+        <Table.Content aria-label={t('禁令')} className="min-w-[640px]">
           <Table.Header>
-            <Table.Column isRowHeader>网络引用</Table.Column>
-            <Table.Column>原因</Table.Column>
-            <Table.Column>状态</Table.Column>
-            <Table.Column>到期</Table.Column>
-            <Table.Column className="text-end">操作</Table.Column>
+            <Table.Column isRowHeader>{t('网络引用')}</Table.Column>
+            <Table.Column>{t('原因')}</Table.Column>
+            <Table.Column>{t('状态')}</Table.Column>
+            <Table.Column>{t('到期')}</Table.Column>
+            <Table.Column className="text-end">{t('操作')}</Table.Column>
           </Table.Header>
           <Table.Body>
             {bans.map((ban) => (
               <Table.Row key={ban.banId} id={ban.banId}>
                 <Table.Cell><Mono>{shortId(ban.subjectRef, 16)}</Mono></Table.Cell>
-                <Table.Cell>{ban.reasonCode === 'abuse' ? '滥用' : '人工'}</Table.Cell>
+                <Table.Cell>{ban.reasonCode === 'abuse' ? t('滥用') : t('人工')}</Table.Cell>
                 <Table.Cell><Chip color={banState[ban.state]?.tone ?? 'default'} size="sm" variant="soft">{banState[ban.state]?.label ?? ban.state}</Chip></Table.Cell>
                 <Table.Cell>{fmtDateTime(ban.expiresAt)}</Table.Cell>
-                <Table.Cell className="text-end">{ban.state === 'active' && <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => revoke(ban)}>撤销</Button>}</Table.Cell>
+                <Table.Cell className="text-end">{ban.state === 'active' && <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => revoke(ban)}>{t('撤销')}</Button>}</Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>
@@ -126,17 +126,17 @@ function EventsTab({ onBan }: { onBan: (subjectRef: string) => void }) {
   const events = useLoad((signal) => api<{ items: RiskEvent[] }>('/v1/risk-events?limit=50', { signal }).then((result) => result.items), []);
   if (events.error && !events.data) return <ErrorBlock error={events.error} onRetry={events.reload} />;
   if (!events.data) return <LoadingBlock lines={4} />;
-  if (!events.data.length) return <EmptyBlock icon={<Shield />} title="暂无可疑事件" description="被限流、要求验证或拒绝的请求会记在这里。" />;
+  if (!events.data.length) return <EmptyBlock icon={<Shield />} title={t('暂无可疑事件')} description={t('被限流、要求验证或拒绝的请求会记在这里。')} />;
   return (
     <Table>
       <Table.ScrollContainer>
-        <Table.Content aria-label="可疑事件" className="min-w-[640px]">
+        <Table.Content aria-label={t('可疑事件')} className="min-w-[640px]">
           <Table.Header>
-            <Table.Column isRowHeader>时间</Table.Column>
-            <Table.Column>动作</Table.Column>
-            <Table.Column>处置</Table.Column>
-            <Table.Column>网络标识</Table.Column>
-            <Table.Column className="text-end">操作</Table.Column>
+            <Table.Column isRowHeader>{t('时间')}</Table.Column>
+            <Table.Column>{t('动作')}</Table.Column>
+            <Table.Column>{t('处置')}</Table.Column>
+            <Table.Column>{t('网络标识')}</Table.Column>
+            <Table.Column className="text-end">{t('操作')}</Table.Column>
           </Table.Header>
           <Table.Body>
             {events.data.map((event) => (
@@ -145,7 +145,7 @@ function EventsTab({ onBan }: { onBan: (subjectRef: string) => void }) {
                 <Table.Cell>{event.action}</Table.Cell>
                 <Table.Cell><Chip color={event.decision === 'deny' ? 'danger' : 'warning'} size="sm" variant="soft">{event.decision}</Chip></Table.Cell>
                 <Table.Cell><Mono>{shortId(event.networkKey, 16)}</Mono></Table.Cell>
-                <Table.Cell className="text-end">{/^[0-9a-f]{64}$/.test(event.networkKey) && <Button size="sm" variant="tertiary" onPress={() => onBan(event.networkKey)}><BanIcon />封禁</Button>}</Table.Cell>
+                <Table.Cell className="text-end">{/^[0-9a-f]{64}$/.test(event.networkKey) && <Button size="sm" variant="tertiary" onPress={() => onBan(event.networkKey)}><BanIcon />{t('封禁')}</Button>}</Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>
@@ -165,27 +165,27 @@ function BanDialog({ subjectRef, onClose, onSaved }: { subjectRef: string; onClo
     const done = await run(async () => {
       await api('/v1/bans', { method: 'POST', body: { subjectRef: ref.trim(), scope: 'ai', ttlSeconds: Number(ttl), reasonCode: reason } });
       return true;
-    }, '禁令已建立');
+    }, t('禁令已建立'));
     if (done) onSaved();
   };
   return (
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="md">
         <Modal.Dialog>
-          <Modal.CloseTrigger aria-label="关闭" />
-          <Modal.Header><Modal.Heading>新建禁令</Modal.Heading></Modal.Header>
+          <Modal.CloseTrigger aria-label={t('关闭')} />
+          <Modal.Header><Modal.Heading>{t('新建禁令')}</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); if (valid) void submit(); }}>
             <Modal.Body className="flex flex-col gap-4">
-              <TextInput isRequired description="64 位十六进制的不可逆网络引用，来自“可疑事件”。" error={ref && !valid ? '格式不对：应为 64 位十六进制' : null} label="网络引用" value={ref} onChange={setRef} />
+              <TextInput isRequired description={t('64 位十六进制的不可逆网络引用，来自“可疑事件”。')} error={ref && !valid ? t('格式不对：应为 64 位十六进制') : null} label={t('网络引用')} value={ref} onChange={setRef} />
               <FormGrid>
-                <SelectInput label="时长" options={durations} value={ttl} onChange={setTtl} />
-                <SelectInput label="原因" options={[{ value: 'abuse', label: '滥用' }, { value: 'manual', label: '人工' }]} value={reason} onChange={setReason} />
+                <SelectInput label={t('时长')} options={durations} value={ttl} onChange={setTtl} />
+                <SelectInput label={t('原因')} options={[{ value: 'abuse', label: t('滥用') }, { value: 'manual', label: t('人工') }]} value={reason} onChange={setReason} />
               </FormGrid>
-              <p className="text-sm text-muted">禁令只限制 AI 问答，不影响阅读文档。</p>
+              <p className="text-sm text-muted">{t('禁令只限制 AI 问答，不影响阅读文档。')}</p>
             </Modal.Body>
             <Modal.Footer>
-              <Button variant="tertiary" onPress={onClose}>取消</Button>
-              <Button isDisabled={!valid} isPending={busy} type="submit" variant="danger">封禁</Button>
+              <Button variant="tertiary" onPress={onClose}>{t('取消')}</Button>
+              <Button isDisabled={!valid} isPending={busy} type="submit" variant="danger">{t('封禁')}</Button>
             </Modal.Footer>
           </Form>
         </Modal.Dialog>

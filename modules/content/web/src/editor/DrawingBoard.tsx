@@ -2,8 +2,15 @@
 import { Excalidraw, exportToSvg } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { useTheme } from '@heroui/react';
+import { adminLanguage } from '@ui';
 import { useEffect, useRef } from 'react';
 import { normalizeScene } from './drawing';
+
+// Excalidraw 自带界面文字按它自己的语言代码取。
+const excalidrawLanguages: Record<string, string> = {
+  'zh-Hans': 'zh-CN', 'zh-Hant': 'zh-TW', en: 'en', ja: 'ja-JP', ko: 'ko-KR', fr: 'fr-FR', de: 'de-DE', es: 'es-ES',
+  pt: 'pt-BR', ru: 'ru-RU', it: 'it-IT', vi: 'vi-VN', th: 'th-TH', id: 'id-ID', ar: 'ar-SA',
+};
 
 // media 对 SVG 只放行固定的一组元素，不含 filter/metadata 等；导出后清理掉。
 const allowed = new Set(['svg', 'g', 'defs', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'tspan', 'title', 'desc', 'clipPath', 'mask', 'linearGradient', 'radialGradient', 'stop', 'pattern', 'use', 'image', 'a', 'marker', 'symbol']);
@@ -58,7 +65,7 @@ export default function DrawingBoard({ initial, onReady }: { initial: Scene; onR
   const data = initial ? { elements: initial.elements ?? [], appState: { viewBackgroundColor: initial.appState?.viewBackgroundColor ?? '#ffffff' }, files: initial.files ?? {} } : undefined;
   return (
     <div className="h-full w-full">
-      <Excalidraw excalidrawAPI={(api: any) => { apiRef.current = api; }} initialData={data as any} langCode="zh-CN" theme={resolvedTheme === 'dark' ? 'dark' : 'light'} />
+      <Excalidraw excalidrawAPI={(api: any) => { apiRef.current = api; }} initialData={data as any} langCode={excalidrawLanguages[adminLanguage()] ?? 'en'} theme={resolvedTheme === 'dark' ? 'dark' : 'light'} />
     </div>
   );
 }

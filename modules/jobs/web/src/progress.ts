@@ -1,4 +1,5 @@
 import type { ModuleAPIClient } from '../../../../libs/platform/web/module-api';
+import { t } from '@ui';
 
 export interface ProgressEvent {
   jobId: string;
@@ -38,13 +39,13 @@ function problemCode(error: unknown): string {
 function delay(milliseconds: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
-      reject(new DOMException('已取消', 'AbortError'));
+      reject(new DOMException(t('已取消'), 'AbortError'));
       return;
     }
     let timer: ReturnType<typeof setTimeout>;
     const onAbort = () => {
       clearTimeout(timer);
-      reject(new DOMException('已取消', 'AbortError'));
+      reject(new DOMException(t('已取消'), 'AbortError'));
     };
     timer = setTimeout(() => {
       signal.removeEventListener('abort', onAbort);
@@ -85,7 +86,7 @@ async function readProgressResponse(
     for (;;) {
       const part = await reader.read();
       if (part.done) break;
-      if (signal.aborted) throw new DOMException('已取消', 'AbortError');
+      if (signal.aborted) throw new DOMException(t('已取消'), 'AbortError');
       buffer += decoder.decode(part.value, { stream: true }).replace(/\r\n/g, '\n');
       for (;;) {
         const end = buffer.indexOf('\n\n');
@@ -158,7 +159,7 @@ export async function ReconnectProgress(
         onEvent(event);
       });
     } catch (error) {
-      if (signal.aborted) throw new DOMException('已取消', 'AbortError');
+      if (signal.aborted) throw new DOMException(t('已取消'), 'AbortError');
       const code = problemCode(error);
       if (code === 'UNAUTHENTICATED' || code === 'FORBIDDEN') throw error;
       if (code === 'VALIDATION' || code === 'VERSION_MISMATCH' || code === 'INTEGRITY_ERROR' || code === 'BUDGET_EXCEEDED') throw error;

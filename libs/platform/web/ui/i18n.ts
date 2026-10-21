@@ -28,7 +28,7 @@ const loaders: Record<string, () => Promise<{ default: Record<string, string> }>
   ar: () => import('virtual:admin-messages/ar'),
 };
 
-export function t(source: string, ...values: unknown[]): string {
+export function t(source: string, ...values: (string | number)[]): string {
   const text = messages[source] ?? english[source] ?? source;
   if (!values.length) return text;
   return text.replace(/\{(\d+)\}/g, (match, index: string) => (Number(index) < values.length ? String(values[Number(index)]) : match));
