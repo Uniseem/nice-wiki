@@ -189,7 +189,7 @@ export default function LibraryPage() {
                         {bySource(list as Reference[]).map(({ ref, count }) => (
                           <li key={ref.sourceService + (ref.documentId ?? ref.sourceObjectId)} className="flex items-center justify-between gap-2 rounded-lg bg-surface-secondary px-3 py-2 text-sm">
                             <SourceLink reference={ref} titles={refs.titles} />
-                            {count > 1 && <span className="shrink-0 text-xs text-muted">{count} 个版本</span>}
+                            {count > 1 && <span className="shrink-0 text-xs text-muted">{count} 处</span>}
                           </li>
                         ))}
                       </ul>
@@ -205,7 +205,7 @@ export default function LibraryPage() {
   );
 }
 
-// 同一来源（文档或站点设置对象）的多个版本合并成一行。
+// 同一来源（文档或站点设置对象）的多处引用合并成一行。
 function bySource(list: Reference[]) {
   const groups = new Map<string, { ref: Reference; count: number }>();
   for (const ref of list) {
