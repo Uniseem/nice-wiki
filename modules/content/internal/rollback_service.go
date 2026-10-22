@@ -71,9 +71,17 @@ func RollbackPublishedRevision(ctx context.Context, op OperationContext, input R
 	if err != nil {
 		return RollbackPublishedRevisionResult{}, err
 	}
-	published, err := PublishDocument(ctx, op, PublishDocumentInput{DocumentId: input.DocumentId, DraftRevisionId: saved.Draft.RevisionId, ExpectedDraftVersion: saved.Draft.DraftVersion, ExpectedRevision: fresh.Revision})
+	published, err := PublishDocument(context.WithValue(ctx, historyOperationKey{}, gen.Rollback), op, PublishDocumentInput{DocumentId: input.DocumentId, DraftRevisionId: saved.Draft.RevisionId, ExpectedDraftVersion: saved.Draft.DraftVersion, ExpectedRevision: fresh.Revision})
 	if err != nil {
 		return RollbackPublishedRevisionResult{}, err
 	}
 	return RollbackPublishedRevisionResult{Reference: published.Reference, History: published.History, MissingAssets: []Identifier{}}, nil
+}
+
+// 回滚走的是普通发布流程；用上下文标记让发布历史记成“回滚”，而不是“发布”。
+type historyOperationKey struct{}
+
+func historyOperationFrom(ctx context.Context) gen.HistoryEntryOperation {
+	operation, _ := ctx.Value(historyOperationKey{}).(gen.HistoryEntryOperation)
+	return operation
 }

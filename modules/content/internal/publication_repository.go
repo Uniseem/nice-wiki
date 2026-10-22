@@ -278,7 +278,11 @@ func applyPublication(ctx context.Context, tx *sql.Tx, op OperationContext, inpu
 	if err = insertPublicationSnapshot(ctx, tx, op, reference, draft.RevisionId, metadata.VisibilityRevision); err != nil {
 		return PublishDocumentResult{}, err
 	}
-	history := gen.HistoryEntry{HistoryId: platform.NewIdentifier(), AuthorAccountId: op.Actor.SubjectID, AuthorAccountName: facts.accountName, CreatedAt: publishedAt, CommitMirrorState: gen.HistoryEntryCommitMirrorStatePending, Operation: gen.Publish, Reference: reference}
+	operation := gen.Publish
+	if historyOperationFrom(ctx) == gen.Rollback {
+		operation = gen.Rollback
+	}
+	history := gen.HistoryEntry{HistoryId: platform.NewIdentifier(), AuthorAccountId: op.Actor.SubjectID, AuthorAccountName: facts.accountName, CreatedAt: publishedAt, CommitMirrorState: gen.HistoryEntryCommitMirrorStatePending, Operation: operation, Reference: reference}
 	if err = insertPublicationHistory(ctx, tx, op, metadata.DocumentId, history); err != nil {
 		return PublishDocumentResult{}, err
 	}
