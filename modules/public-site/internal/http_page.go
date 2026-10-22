@@ -256,33 +256,46 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 
 // renderNode 用调用方已经建好的公开导航渲染一篇文档；批量渲染（llms-full）时导航只建一次。
 func renderNode(ctx context.Context, op platform.OperationContext, locale string, markdown bool, navigation BuildNavigationResult, node NavigationNode) (string, error) {
+	page, err := renderNodeDetail(ctx, op, locale, markdown, navigation, node)
+	return page.text, err
+}
+
+// renderedNode 除了渲染结果，还记下这篇是否含站内链接、是否用了译文，供 llms-full 判断缓存何时失效。
+type renderedNode struct {
+	text       string
+	linked     bool
+	translated bool
+}
+
+func renderNodeDetail(ctx context.Context, op platform.OperationContext, locale string, markdown bool, navigation BuildNavigationResult, node NavigationNode) (renderedNode, error) {
 	bundle, err := LoadPublishedBundle(ctx, op, LoadPublishedBundleInput{Publication: node.Publication, Locale: locale})
 	if err != nil {
-		return "", err
+		return renderedNode{}, err
 	}
 	media, err := ResolvePublicMedia(ctx, op, ResolvePublicMediaInput{MediaRefs: bundle.MediaRefs, Publication: node.Publication})
 	if err != nil {
-		return "", err
+		return renderedNode{}, err
 	}
 	// 站内链接按当前语言的公开路径改写；目标未发布、已撤回或锚点不在时由渲染器显示为“暂不可用”。
 	links := map[string]string{}
-	if targets := collectInternalLinks(bundle.Document); len(targets) > 0 {
+	targets := collectInternalLinks(bundle.Document)
+	if len(targets) > 0 {
 		resolved, linkErr := resolveInternalLinks(ctx, navigation, targets)
 		if linkErr != nil {
-			return "", linkErr
+			return renderedNode{}, linkErr
 		}
 		links = resolved.Rewritten
 	}
 	if markdown {
 		text, mdErr := RenderTiptapMarkdown(ctx, op, RenderTiptapMarkdownInput{Document: bundle.Document, Locale: locale, Assets: markdownAssets(media.Assets), Links: links})
 		if mdErr != nil {
-			return "", mdErr
+			return renderedNode{}, mdErr
 		}
-		return "# " + bundle.Title + "\n\n" + text.Markdown, nil
+		return renderedNode{"# " + bundle.Title + "\n\n" + text.Markdown, len(targets) > 0, locale != bundle.SourceLanguage}, nil
 	}
 	body, err := RenderTiptapHTML(ctx, op, RenderTiptapHTMLInput{Document: bundle.Document, Locale: locale, Assets: media.Assets, Links: links})
 	if err != nil {
-		return "", err
+		return renderedNode{}, err
 	}
 	var headings []Heading
 	var walk func([]TiptapNode)
@@ -301,7 +314,7 @@ func renderNode(ctx context.Context, op platform.OperationContext, locale string
 	walk(bundle.Document.Content)
 	toc, err := BuildTOC(ctx, op, BuildTOCInput{Headings: headings, MaxDepth: 4})
 	if err != nil {
-		return "", err
+		return renderedNode{}, err
 	}
 	meta := loadSiteMeta(ctx)
 	fullTitle := meta.pageTitle(bundle.Title)
@@ -368,9 +381,9 @@ func renderNode(ctx context.Context, op platform.OperationContext, locale string
 		SourceCodeURL: sourceURL,
 	})
 	if err != nil {
-		return "", err
+		return renderedNode{}, err
 	}
-	return composed.HTML, nil
+	return renderedNode{text: composed.HTML}, nil
 }
 
 func plainText(node TiptapNode) string {
