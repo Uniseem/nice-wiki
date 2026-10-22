@@ -1,11 +1,11 @@
 import { ArrowRight, ChartColumn, CircleCheck, Circle, FileText, Globe, Plus, TrashBin } from '@gravity-ui/icons';
 import { buttonVariants, Card, Chip, cn } from '@heroui/react';
-import { api, fmtNumber, navigate, PageHeader, Stat, useGrants, t } from '@ui';
+import { api, fmtNumber, fmtRelative, navigate, PageHeader, Stat, useGrants, t } from '@ui';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useAccount } from './AdminLayout';
 
-type Doc = { documentId: string; title: string; state: string; parentId: string | null };
-type Tiles = { total?: number; published?: number; drafts?: number; trash?: number; visits?: number; languages?: number };
+type Doc = { documentId: string; title: string; state: string; parentId: string | null; lastPublishedAt?: string | null };
+type Tiles = { total?: number; published?: number; drafts?: number; trash?: string; visits?: number; languages?: number };
 type Step = { key: string; title: string; description: string; done: boolean; href: string };
 
 export default function Dashboard() {
@@ -27,10 +27,13 @@ export default function Dashboard() {
         next.total = live.length;
         next.published = live.filter((doc) => doc.state === 'published').length;
         next.drafts = live.length - next.published;
-        next.trash = tree.documents.filter((doc) => doc.state === 'trash').length;
-        setRecent(live.slice(-6).reverse());
+        // 文档没有修改时间，只能按最后发布时间列“最近发布”。
+        setRecent(live.filter((doc) => doc.lastPublishedAt).sort((a, b) => (b.lastPublishedAt ?? '').localeCompare(a.lastPublishedAt ?? '')).slice(0, 6));
         checklist.push({ key: 'doc', title: t('写第一篇文档并发布'), description: t('在“文档”里新建、编辑并发布，访客就能在公开站看到。'), done: next.published > 0, href: '/admin/content' });
       }).catch(() => {}));
+      // 文档树不含回收站文档，回收站篇数单独查（超过一页显示“100+”）。
+      tasks.push(api<{ documents: unknown[]; pageInfo: { hasMore: boolean } }>('/v1/documents?state=trash&limit=100', { signal })
+        .then((trash) => { next.trash = fmtNumber(trash.documents.length) + (trash.pageInfo.hasMore ? '+' : ''); }).catch(() => {}));
     }
     if (grants.includes('stats.read')) {
       const now = new Date();
@@ -80,7 +83,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {tiles.total !== undefined && <Stat icon={<FileText />} label={t('文档')} value={fmtNumber(tiles.total)} hint={t('{0} 篇已发布 · {1} 篇草稿', tiles.published ?? 0, tiles.drafts ?? 0)} />}
-        {tiles.trash !== undefined && <Stat icon={<TrashBin />} label={t('回收站')} value={fmtNumber(tiles.trash)} hint={t('可以恢复或彻底删除')} />}
+        {tiles.trash !== undefined && <Stat icon={<TrashBin />} label={t('回收站')} value={tiles.trash} hint={t('可以恢复或彻底删除')} />}
         {tiles.visits !== undefined && <Stat icon={<ChartColumn />} label={t('近 7 天访问')} value={fmtNumber(tiles.visits)} hint={t('按小时去重的访次之和')} />}
         {tiles.languages !== undefined && <Stat icon={<Globe />} label={t('启用的语言')} value={fmtNumber(tiles.languages)} hint={t('含基准语言')} />}
       </div>
@@ -114,7 +117,7 @@ export default function Dashboard() {
         {recent.length > 0 && (
           <Card className={cn('gap-3 p-5', steps.length ? 'lg:col-span-2' : 'lg:col-span-5')}>
             <Card.Header className="gap-1">
-              <Card.Title className="text-base font-semibold">{t('最近的文档')}</Card.Title>
+              <Card.Title className="text-base font-semibold">{t('最近发布')}</Card.Title>
               <Card.Description>{t('点开继续编辑。')}</Card.Description>
             </Card.Header>
             <ul className="flex flex-col">
@@ -123,7 +126,7 @@ export default function Dashboard() {
                   <LinkRow href={`/admin/content?doc=${doc.documentId}`}>
                     <FileText className="mt-0.5 size-4 shrink-0 text-muted" />
                     <span className="min-w-0 flex-1 truncate text-sm text-foreground">{doc.title}</span>
-                    <Chip color={doc.state === 'published' ? 'success' : 'default'} size="sm" variant="soft">{doc.state === 'published' ? t('已发布') : t('草稿')}</Chip>
+                    <span className="shrink-0 text-xs text-muted">{fmtRelative(doc.lastPublishedAt)}</span>
                   </LinkRow>
                 </li>
               ))}

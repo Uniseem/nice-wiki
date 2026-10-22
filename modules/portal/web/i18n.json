@@ -799,22 +799,6 @@
   "id": "Perluas bilah samping",
   "ar": "توسيع الشريط الجانبي"
  },
- "已发布": {
-  "zh-Hant": "已發布",
-  "en": "Published",
-  "ja": "公開済み",
-  "ko": "게시됨",
-  "fr": "Publié",
-  "de": "Veröffentlicht",
-  "es": "Publicado",
-  "pt": "Publicado",
-  "ru": "Опубликовано",
-  "it": "Pubblicato",
-  "vi": "Đã xuất bản",
-  "th": "เผยแพร่แล้ว",
-  "id": "Terbit",
-  "ar": "منشور"
- },
  "已让该设备退出": {
   "zh-Hant": "已將該裝置登出",
   "en": "Device signed out",
@@ -1167,21 +1151,21 @@
   "id": "Ubah",
   "ar": "تغيير"
  },
- "最近的文档": {
-  "zh-Hant": "最近的文件",
-  "en": "Recent documents",
-  "ja": "最近のドキュメント",
-  "ko": "최근 문서",
-  "fr": "Documents récents",
-  "de": "Zuletzt bearbeitete Dokumente",
-  "es": "Documentos recientes",
-  "pt": "Documentos recentes",
-  "ru": "Недавние документы",
-  "it": "Documenti recenti",
-  "vi": "Tài liệu gần đây",
-  "th": "เอกสารล่าสุด",
-  "id": "Dokumen terbaru",
-  "ar": "المستندات الأخيرة"
+ "最近发布": {
+  "zh-Hant": "最近發布",
+  "en": "Recently published",
+  "ja": "最近の公開",
+  "ko": "최근 게시",
+  "fr": "Publiés récemment",
+  "de": "Zuletzt veröffentlicht",
+  "es": "Publicados recientemente",
+  "pt": "Publicados recentemente",
+  "ru": "Недавно опубликованные",
+  "it": "Pubblicati di recente",
+  "vi": "Xuất bản gần đây",
+  "th": "เผยแพร่ล่าสุด",
+  "id": "Baru diterbitkan",
+  "ar": "المنشورة مؤخرًا"
  },
  "有效期至": {
   "zh-Hant": "有效期限至",
@@ -1630,22 +1614,6 @@
   "th": "อย่างน้อย 8 ตัวอักษร แนะนำให้สร้างด้วยโปรแกรมจัดการรหัสผ่าน",
   "id": "Minimal 8 karakter. Sebaiknya buat dengan pengelola kata sandi.",
   "ar": "8 أحرف على الأقل، ويُنصح بإنشائها بمدير كلمات المرور."
- },
- "草稿": {
-  "zh-Hant": "草稿",
-  "en": "Drafts",
-  "ja": "下書き",
-  "ko": "초안",
-  "fr": "Brouillons",
-  "de": "Entwürfe",
-  "es": "Borradores",
-  "pt": "Rascunhos",
-  "ru": "Черновики",
-  "it": "Bozze",
-  "vi": "Bản nháp",
-  "th": "ฉบับร่าง",
-  "id": "Draf",
-  "ar": "المسودات"
  },
  "让其他 {0} 个设备全部退出？": {
   "zh-Hant": "讓其他 {0} 個裝置全部登出？",
