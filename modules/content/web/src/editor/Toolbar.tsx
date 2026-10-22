@@ -20,15 +20,17 @@ const blockTypes = [
 ];
 
 export async function editLink(editor: Editor): Promise<void> {
-  const current = (editor.getAttributes('link').href as string | undefined) ?? '';
+  const attrs = editor.getAttributes('link');
+  const internal = attrs.linkTarget?.kind === 'internal';
+  const current = internal ? '' : (attrs.href as string | undefined) ?? '';
   const href = await askText({
-    title: current ? t('编辑链接') : t('插入链接'), label: t('链接地址'), defaultValue: current, placeholder: 'https://example.com', required: false,
-    description: t('支持 http、https 和 mailto；留空并确定会移除链接。'), confirmLabel: t('确定'), type: 'url',
+    title: current || internal ? t('编辑链接') : t('插入链接'), label: t('链接地址'), defaultValue: current, placeholder: 'https://example.com', required: false,
+    description: internal ? t('这是站内链接。填写外部地址会替换它，留空并确定会移除链接。') : t('支持 http、https 和 mailto；留空并确定会移除链接。'), confirmLabel: t('确定'), type: 'url',
     validate: (value) => value === '' || /^(https?:|mailto:)/i.test(value.trim()) ? null : t('只支持 http、https 或 mailto 链接'),
   });
   if (href === null) return;
   if (href.trim() === '') editor.chain().focus().extendMarkRange('link').unsetLink().run();
-  else editor.chain().focus().extendMarkRange('link').setLink({ href: href.trim() }).run();
+  else editor.chain().focus().extendMarkRange('link').setLink({ href: href.trim(), linkTarget: null } as { href: string }).run();
 }
 
 export function EditorToolbar({ editor, editable, actions }: { editor: Editor; editable: boolean; actions: EditorActions }) {

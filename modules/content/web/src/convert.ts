@@ -16,6 +16,8 @@ export function newId(): string {
 }
 
 const simpleMarks = new Set(['bold', 'italic', 'underline', 'strike', 'code']);
+// 站内链接在编辑器里的占位地址：真正的目标在 linkTarget 属性里。
+const internalHref = '#nw-internal-link';
 
 function inlines(nodes: JSONNode[] | undefined): any[] {
   const out: any[] = [];
@@ -24,11 +26,16 @@ function inlines(nodes: JSONNode[] | undefined): any[] {
     else if (node.type === 'text' && node.text) {
       const marks = (node.marks ?? []).flatMap((mark) => {
         if (simpleMarks.has(mark.type)) return [{ type: mark.type }];
-        if (mark.type === 'link' && /^(https?:|mailto:)/i.test(mark.attrs?.href ?? '')) {
-          return [{ type: 'link', attrs: { target: { kind: 'external', href: mark.attrs!.href }, title: null } }];
+        if (mark.type === 'link') {
+          const href = mark.attrs?.href ?? '';
+          const title = mark.attrs?.linkTitle ?? null;
+          // 改成外部地址时以新地址为准；地址没动的站内链接按原目标保存。
+          if (/^(https?:|mailto:)/i.test(href)) return [{ type: 'link', attrs: { target: { kind: 'external', href }, title } }];
+          if (mark.attrs?.linkTarget?.kind === 'internal') return [{ type: 'link', attrs: { target: mark.attrs.linkTarget, title } }];
+          return [];
         }
         if (mark.type === 'highlight') return [{ type: 'highlight', attrs: { color: mark.attrs?.color ?? null } }];
-        return []; // 暂未支持的 mark（如链接）不写入，避免服务端拒绝整篇
+        return []; // 暂未支持的 mark 不写入，避免服务端拒绝整篇
       });
       out.push({ type: 'text', text: node.text, marks });
     }
@@ -66,7 +73,9 @@ function block(node: JSONNode, inColumn = false): any {
     case 'columns': {
       if (inColumn) throw new Error(t('分栏不能嵌套分栏'));
       const cols = node.content ?? [];
-      return { type: 'columns', attrs: { blockId, widthRatios: equalRatios(cols.length) }, content: cols.map((c) => ({ type: 'column', attrs: { columnId: c.attrs?.columnId ?? newId() }, content: blocks(c.content, true) })) };
+      const kept = node.attrs?.widthRatios;
+      const widthRatios = Array.isArray(kept) && kept.length === cols.length ? kept : equalRatios(cols.length);
+      return { type: 'columns', attrs: { blockId, widthRatios }, content: cols.map((c) => ({ type: 'column', attrs: { columnId: c.attrs?.columnId ?? newId() }, content: blocks(c.content, true) })) };
     }
     case 'mathBlock': return { type: 'mathBlock', attrs: { blockId, latex: node.attrs?.latex || ' ' } };
     case 'attachment': {
@@ -78,7 +87,7 @@ function block(node: JSONNode, inColumn = false): any {
       const { scene, lightSVG, darkSVG } = node.attrs ?? {};
       if (!scene || !lightSVG || !darkSVG) throw new Error(t('画板缺少资源引用'));
       const ref = (a: any) => ({ assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize });
-      return { type: 'drawing', attrs: { blockId, scene: ref(scene), lightSVG: ref(lightSVG), darkSVG: ref(darkSVG), widthPercent: node.attrs?.widthPercent ?? null, caption: [] } };
+      return { type: 'drawing', attrs: { blockId, scene: ref(scene), lightSVG: ref(lightSVG), darkSVG: ref(darkSVG), widthPercent: node.attrs?.widthPercent ?? null, caption: node.attrs?.caption ?? [] } };
     }
     case 'table': return { type: 'table', attrs: { blockId }, content: (node.content ?? []).map(tableRow) };
     case 'video': {
@@ -91,7 +100,8 @@ function block(node: JSONNode, inColumn = false): any {
       const alt = typeof node.attrs?.alt === 'string' && node.attrs.alt !== '' ? node.attrs.alt : null;
       const a = node.attrs?.asset;
       if (!a) throw new Error(t('图片缺少资源引用'));
-      return { type: 'image', attrs: { blockId, asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize }, alt, altSource: alt ? 'manual' : 'auto', caption: [], widthPercent: node.attrs?.widthPercent ?? null } };
+      const altSource = alt ? (node.attrs?.altSource ?? 'manual') : 'auto';
+      return { type: 'image', attrs: { blockId, asset: { assetId: a.assetId, version: a.version, sha256: a.sha256, mediaType: a.mediaType, byteSize: a.byteSize }, alt, altSource, caption: node.attrs?.caption ?? [], widthPercent: node.attrs?.widthPercent ?? null } };
     }
     default: throw new Error(t('编辑器含暂不支持保存的块：{0}', node.type));
   }
@@ -104,7 +114,7 @@ function tableRow(node: JSONNode): any {
 function tableCell(node: JSONNode): any {
   const colspan = node.attrs?.colspan ?? 1;
   const widths = Array.isArray(node.attrs?.colwidth) && node.attrs!.colwidth.length === colspan && node.attrs!.colwidth.every((w: number) => w >= 40 && w <= 1200) ? node.attrs!.colwidth : null;
-  return { type: node.type === 'tableHeader' ? 'tableHeader' : 'tableCell', attrs: { cellId: node.attrs?.cellId ?? newId(), colspan, rowspan: node.attrs?.rowspan ?? 1, colwidth: widths, backgroundColor: null }, content: blocks(node.content) };
+  return { type: node.type === 'tableHeader' ? 'tableHeader' : 'tableCell', attrs: { cellId: node.attrs?.cellId ?? newId(), colspan, rowspan: node.attrs?.rowspan ?? 1, colwidth: widths, backgroundColor: node.attrs?.backgroundColor ?? null }, content: blocks(node.content) };
 }
 
 function listItem(node: JSONNode): any {
@@ -131,7 +141,13 @@ export function fromBody(body: { content: JSONNode[] }): JSONNode {
     }
     if (node.text !== undefined) copy.text = node.text;
     if (node.marks) {
-      copy.marks = node.marks.map((m) => (m.type === 'link' ? { type: 'link', attrs: { href: m.attrs?.target?.href ?? '' } } : { ...m }));
+      copy.marks = node.marks.map((m) => {
+        if (m.type !== 'link') return { ...m };
+        const target = m.attrs?.target;
+        return target?.kind === 'internal'
+          ? { type: 'link', attrs: { href: internalHref, linkTarget: target, linkTitle: m.attrs?.title ?? null } }
+          : { type: 'link', attrs: { href: target?.href ?? '', linkTarget: null, linkTitle: m.attrs?.title ?? null } };
+      });
     }
     return copy;
   };

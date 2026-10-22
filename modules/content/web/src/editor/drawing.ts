@@ -1,5 +1,6 @@
-import { Node } from '@tiptap/core';
+import { mergeAttributes, Node } from '@tiptap/core';
 import { t, type AssetRef } from '@ui';
+import { jsonAttr } from './blocks';
 
 // 画板块：保存场景 JSON 与浅/深色 SVG 三个不可变资源引用；编辑器里显示浅色 SVG，双击打开画板。
 export const Drawing = Node.create({
@@ -10,17 +11,18 @@ export const Drawing = Node.create({
   addAttributes() {
     return {
       blockId: { default: null, rendered: false },
-      scene: { default: null, rendered: false },
-      lightSVG: { default: null, rendered: false },
-      darkSVG: { default: null, rendered: false },
-      widthPercent: { default: null, rendered: false },
+      scene: jsonAttr('scene'),
+      lightSVG: jsonAttr('lightSVG'),
+      darkSVG: jsonAttr('darkSVG'),
+      widthPercent: jsonAttr('widthPercent'),
+      caption: jsonAttr('caption', []),
       previewURL: { default: null, rendered: false }, // 刚画完、正文还没引用这些资源时用来预览，不保存
     };
   },
   parseHTML() { return [{ tag: 'img[data-drawing]' }]; },
-  renderHTML({ node }) {
+  renderHTML({ node, HTMLAttributes }) {
     const light = node.attrs.lightSVG as AssetRef | null;
-    return ['img', { 'data-drawing': '', class: 'drawing', src: (node.attrs.previewURL as string | null) ?? (light ? `/v1/assets/${light.assetId}/bytes?sha=${light.sha256}` : ''), alt: t('画板') }];
+    return ['img', mergeAttributes(HTMLAttributes, { 'data-drawing': '', class: 'drawing', src: (node.attrs.previewURL as string | null) ?? (light ? `/v1/assets/${light.assetId}/bytes?sha=${light.sha256}` : ''), alt: t('画板') })];
   },
 });
 

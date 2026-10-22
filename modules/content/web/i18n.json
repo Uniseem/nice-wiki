@@ -3055,6 +3055,22 @@
   "id": "Edit tautan",
   "ar": "تعديل الرابط"
  },
+ "编辑锁已失效，修改没能保存": {
+  "zh-Hant": "編輯鎖已失效，修改沒能儲存",
+  "en": "The edit lock is no longer valid, so your changes were not saved",
+  "ja": "編集ロックが無効になったため、変更を保存できませんでした",
+  "ko": "편집 잠금이 더 이상 유효하지 않아 변경 사항을 저장하지 못했습니다",
+  "fr": "Le verrou d’édition n’est plus valide : vos modifications n’ont pas été enregistrées",
+  "de": "Die Bearbeitungssperre ist nicht mehr gültig, die Änderungen wurden nicht gespeichert",
+  "es": "El bloqueo de edición ya no es válido; no se guardaron los cambios",
+  "pt": "O bloqueio de edição não é mais válido; as alterações não foram salvas",
+  "ru": "Блокировка редактирования больше не действует, изменения не сохранены",
+  "it": "Il blocco di modifica non è più valido: le modifiche non sono state salvate",
+  "vi": "Khóa chỉnh sửa không còn hiệu lực nên chưa lưu được thay đổi",
+  "th": "การล็อกแก้ไขใช้ไม่ได้แล้ว จึงบันทึกการเปลี่ยนแปลงไม่ได้",
+  "id": "Kunci edit sudah tidak berlaku, perubahan tidak tersimpan",
+  "ar": "لم يعد قفل التحرير صالحًا، لذلك لم تُحفظ التغييرات"
+ },
  "编辑锁续期失败": {
   "zh-Hant": "編輯鎖續期失敗",
   "en": "Couldn't renew the edit lock",
@@ -3358,6 +3374,22 @@
   "th": "ยังไม่มีเอกสาร",
   "id": "Belum ada dokumen",
   "ar": "لا توجد مستندات بعد"
+ },
+ "这是站内链接。填写外部地址会替换它，留空并确定会移除链接。": {
+  "zh-Hant": "這是站內連結。填寫外部網址會取代它，留空並確定會移除連結。",
+  "en": "This is an internal link. Entering an external address replaces it; leaving it empty and confirming removes the link.",
+  "ja": "これはサイト内リンクです。外部アドレスを入力すると置き換わり、空のまま確定するとリンクが削除されます。",
+  "ko": "사이트 내부 링크입니다. 외부 주소를 입력하면 대체되고, 비워 두고 확인하면 링크가 제거됩니다.",
+  "fr": "Il s’agit d’un lien interne. Saisir une adresse externe le remplace ; laisser vide et confirmer supprime le lien.",
+  "de": "Dies ist ein interner Link. Eine externe Adresse ersetzt ihn; leer lassen und bestätigen entfernt den Link.",
+  "es": "Es un enlace interno. Escribir una dirección externa lo reemplaza; dejarlo vacío y confirmar elimina el enlace.",
+  "pt": "Este é um link interno. Inserir um endereço externo o substitui; deixar vazio e confirmar remove o link.",
+  "ru": "Это внутренняя ссылка. Внешний адрес заменит её; если оставить поле пустым и подтвердить, ссылка будет удалена.",
+  "it": "Questo è un link interno. Inserire un indirizzo esterno lo sostituisce; lasciare vuoto e confermare rimuove il link.",
+  "vi": "Đây là liên kết nội bộ. Nhập địa chỉ bên ngoài sẽ thay thế nó; để trống và xác nhận sẽ xóa liên kết.",
+  "th": "นี่คือลิงก์ภายในเว็บไซต์ การกรอกที่อยู่ภายนอกจะแทนที่ลิงก์นี้ เว้นว่างแล้วยืนยันจะลบลิงก์",
+  "id": "Ini tautan internal. Mengisi alamat eksternal akan menggantinya; membiarkan kosong lalu mengonfirmasi akan menghapus tautan.",
+  "ar": "هذا رابط داخلي. إدخال عنوان خارجي يستبدله، وترك الحقل فارغًا ثم التأكيد يزيل الرابط."
  },
  "这篇文档含有子文档，会一起移入回收站。已发布的页面会立即失效，可以在回收站恢复。": {
   "zh-Hant": "這篇文件含有子文件，會一起移至資源回收筒。已發布的頁面會立即失效，可以在資源回收筒還原。",

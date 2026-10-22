@@ -11,7 +11,7 @@ import { cn, ScrollShadow, toast } from '@heroui/react';
 import { captureVideoPoster, errorText, uploadAsset, uploadImage, t } from '@ui';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import type { JSONNode } from '../convert';
-import { Attachment, Callout, Column, Columns, MathBlock } from './blocks';
+import { Attachment, Callout, Column, Columns, jsonAttr, MathBlock } from './blocks';
 import { filterCommands, type BlockCommand, type EditorActions } from './commands';
 import { Drawing } from './drawing';
 import { DrawingDialog, type DrawingAttrs } from './DrawingDialog';
@@ -34,6 +34,19 @@ function MathView({ node, selected }: NodeViewProps) {
   );
 }
 const MathBlockWithPreview = MathBlock.extend({ addNodeView() { return ReactNodeViewRenderer(MathView); } });
+
+// 站内链接没有外部地址：目标文档/块和链接标题放在 data 属性里原样保留，href 只是占位。
+const WikiLink = Link.extend({ addAttributes() { return { ...this.parent?.(), linkTarget: jsonAttr('linkTarget'), linkTitle: jsonAttr('linkTitle') }; } });
+// 单元格背景色暂不能在编辑器里改，原样保留并显示。
+const cellBackground = {
+  backgroundColor: {
+    default: null,
+    parseHTML: (element: HTMLElement) => element.getAttribute('data-background'),
+    renderHTML: (attrs: Record<string, unknown>) => (attrs.backgroundColor ? { 'data-background': attrs.backgroundColor, style: `background-color:${attrs.backgroundColor}` } : {}),
+  },
+};
+const WikiTableCell = TableCell.extend({ addAttributes() { return { ...this.parent?.(), ...cellBackground }; } });
+const WikiTableHeader = TableHeader.extend({ addAttributes() { return { ...this.parent?.(), ...cellBackground }; } });
 
 type Slash = { left: number; top: number; query: string };
 
@@ -123,9 +136,9 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
     extensions: [
       // 链接需要 LinkTarget 结构，单独配置；标题只允许 H2–H4。
       StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: false }),
-      Link.configure({ openOnClick: false, autolink: false, protocols: ['mailto'], HTMLAttributes: { rel: 'noopener noreferrer nofollow' } }),
-      Table.configure({ resizable: false }), TableRow, TableHeader, TableCell,
-      TaskList, TaskItem.configure({ nested: true }), Highlight,
+      WikiLink.configure({ openOnClick: false, autolink: false, protocols: ['mailto'], HTMLAttributes: { rel: 'noopener noreferrer nofollow' } }),
+      Table.configure({ resizable: false }), TableRow, WikiTableHeader, WikiTableCell,
+      TaskList, TaskItem.configure({ nested: true }), Highlight.configure({ multicolor: true }),
       ImageBlock, VideoBlock, Callout, MathBlockWithPreview, Attachment, Columns, Column, Drawing, StableIds,
       Placeholder.configure({ placeholder: t('输入正文，或输入 / 插入标题、列表、表格、图片…') }),
     ],

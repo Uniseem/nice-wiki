@@ -44,7 +44,12 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
     window.clearTimeout(timers.current.save);
     if (saving.current) await saving.current;
     const state = live.current;
-    if (!state.dirty || !state.pending || !state.lease || !state.writable || !state.draft) return true;
+    if (!state.dirty || !state.pending) return true;
+    // 有没存的修改却已没有编辑锁（锁已释放或从未拿到）：存不上，不能当作已保存。
+    if (!state.lease || !state.writable || !state.draft) {
+      setSave({ kind: 'error', message: t('编辑锁已失效，修改没能保存') });
+      return false;
+    }
     const sent = state.pending;
     setSave({ kind: 'saving' });
     saving.current = (async () => {
@@ -152,7 +157,8 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
       cancelled = true;
       unguard();
       removeEventListener('beforeunload', beforeUnload);
-      void flush().then(releaseLock);
+      // 守卫放行后才会卸载；万一仍没存上就不主动放锁，让锁自然过期。
+      void flush().then((saved) => { if (saved) void releaseLock(); });
     };
   }, [documentId, applyMeta, flush, releaseLock]);
 
@@ -234,9 +240,15 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
     });
     if (!ok) return;
     await act(async () => {
-      await flush();
+      if (!(await flush())) return;
       await releaseLock();
-      await api(`/v1/documents/${documentId}:trash`, { method: 'POST', body: { expectedRevision: meta.revision, expectedTreeRevision: treeRevision, includeSubtree: hasChildren, replacementDocumentId: null } });
+      try {
+        await api(`/v1/documents/${documentId}:trash`, { method: 'POST', body: { expectedRevision: meta.revision, expectedTreeRevision: treeRevision, includeSubtree: hasChildren, replacementDocumentId: null } });
+      } catch (problem) {
+        // 锁已经放了：重新打开文档，重新取锁后才能继续编辑和保存。正文刚存过，不会丢。
+        onReopen();
+        throw problem;
+      }
       notify.success(t('已移入回收站'));
       await onTreeChanged();
       onClosed();
@@ -348,8 +360,14 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
           onClose={() => setDialog(null)}
           onRollback={async (historyId) => {
             await act(async () => {
+              if (!(await flush())) return;
               await releaseLock();
-              await api(`/v1/documents/${documentId}/history:rollback`, { method: 'POST', body: { historyId, expectedRevision: live.current.meta!.revision, acknowledgeMissingAssets: false } });
+              try {
+                await api(`/v1/documents/${documentId}/history:rollback`, { method: 'POST', body: { historyId, expectedRevision: live.current.meta!.revision, acknowledgeMissingAssets: false } });
+              } catch (problem) {
+                onReopen();
+                throw problem;
+              }
               notify.success(t('已回滚并重新发布'));
               await onTreeChanged();
               onReopen();

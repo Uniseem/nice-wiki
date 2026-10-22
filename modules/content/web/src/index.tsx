@@ -26,7 +26,7 @@ export default function ContentPage() {
   const show = useCallback((id: string | null) => {
     setSelected(id);
     setListOpen(false);
-    history.replaceState(null, '', id ? `/admin/content?doc=${id}` : '/admin/content');
+    history.replaceState(history.state, '', id ? `/admin/content?doc=${id}` : '/admin/content');
   }, []);
 
   // 换文档前先让当前编辑器保存，保存失败且用户不放弃时留在原文档。
@@ -46,14 +46,14 @@ export default function ContentPage() {
     } catch (problem) { notify.error(t('新建失败'), errorText(problem)); }
   };
 
-  // 已发布文档的公开地址：/<语言>/<祖先路径段…>/<路径段>，任一祖先未发布时不给链接。
+  // 已发布文档的公开地址：/<语言>/<祖先路径段…>/<路径段>；祖先可以是草稿，但都要有路径段。
   const publicPath = useCallback((doc: Meta): string | null => {
     if (!tree) return null;
     const byId = new Map(tree.documents.map((item) => [item.documentId, item]));
     const segments: string[] = [];
     let current: Meta | undefined = byId.get(doc.documentId) ?? doc;
     for (let depth = 0; current && depth < 32; depth++) {
-      if (!current.pathSegment || current.state !== 'published') return null;
+      if (!current.pathSegment) return null;
       segments.unshift(current.pathSegment);
       current = current.parentId ? byId.get(current.parentId) : undefined;
     }
