@@ -139,6 +139,10 @@ func ReadTranslationUnits(ctx context.Context, op OperationContext, input ReadTr
 			if stored.Status != "fallback" {
 				view.Target = stored.TargetText
 			}
+			if stored.PreviousTargetText != nil {
+				// 人工旧译套不进新原文时，给管理员看旧译作为重新对齐的起点。
+				view.Target = *stored.PreviousTargetText
+			}
 		}
 		result.Units = append(result.Units, view)
 	}

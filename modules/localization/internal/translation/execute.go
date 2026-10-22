@@ -137,18 +137,37 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		}
 		prior, ok := previous[unit.UnitId]
 		if ok && protectedUnit(prior) {
-			// 原文变了：旧译文还套得进新原文的标签结构就沿用并标待复核；套不进先不写，读取时由受保护投影恢复。
-			if prior.SourceHash != unit.SourceHash {
-				if _, err := ParseSlotValues(split.Templates[i].Slots, prior.TargetText); err != nil {
-					continue
-				}
-				prior.SourceHash, prior.Status = unit.SourceHash, "review"
+			// previousTargetText 不为空表示上一轮起人工旧译就已套不进原文，还在等人重新对齐。
+			pending := prior.PreviousTargetText
+			fits := pending == nil
+			if fits && prior.SourceHash != unit.SourceHash {
+				_, parseErr := ParseSlotValues(split.Templates[i].Slots, prior.TargetText)
+				fits = parseErr == nil
 			}
-			prior.Document, prior.TargetLanguage, prior.SourceText, prior.PreviousTargetText = document, unit.TargetLanguage, unit.SourceText, nil
-			translated = append(translated, prior)
+			if fits {
+				// 原文变了但旧译文还套得进新原文的标签结构：沿用并标待复核。
+				if prior.SourceHash != unit.SourceHash {
+					prior.SourceHash, prior.Status = unit.SourceHash, "review"
+				}
+				prior.Document, prior.TargetLanguage, prior.SourceText, prior.PreviousTargetText = document, unit.TargetLanguage, unit.SourceText, nil
+				translated = append(translated, prior)
+				continue
+			}
+			// 套不进（如原文局部加粗后文本段数变了）：不交给模型，也不省略。
+			// 本单元先显示原文并标待复核、保持保护，人工旧译放进 previousTargetText 留待对齐。
+			if pending == nil {
+				old := prior.TargetText
+				pending = &old
+			}
+			unit.Origin, unit.Protected, unit.Status, unit.PreviousTargetText = prior.Origin, true, "review", pending
+			unit.Version, unit.HumanGeneration = prior.Version, prior.HumanGeneration
+			translated = append(translated, unit)
 			continue
 		}
 		if !ok && (wholeProtected[parent] || (unit.UnitId == parent && rowProtected[parent])) {
+			// 受保护整块下新出现的单元同样不交给模型：先显示原文，标保护和待复核。
+			unit.Protected, unit.Status = true, "review"
+			translated = append(translated, unit)
 			continue
 		}
 		if ok && prior.SourceHash == unit.SourceHash {
@@ -197,14 +216,21 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		if state != "running" {
 			return errTranslationCancelled
 		}
+		finished := "ready"
+		for _, unit := range translated {
+			if unit.Status == "review" {
+				finished = "review"
+				break
+			}
+		}
 		object := TranslationObject{Title: title,
-			Translation: gen.Translation{TranslationId: translationID, Document: document, TargetLanguage: target, State: gen.TranslationState("ready"), Total: len(translated), Completed: len(translated), MemoryVersionHash: memory.VersionHash},
+			Translation: gen.Translation{TranslationId: translationID, Document: document, TargetLanguage: target, State: gen.TranslationState(finished), Total: len(translated), Completed: len(translated), MemoryVersionHash: memory.VersionHash},
 			SourceTree:  split.SourceTree, Units: translated,
 		}
 		if _, err := WriteObject(ctx, tx, op, object, 0); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `UPDATE translation_manifests SET state='ready',updated_at=? WHERE translation_id=? AND state='running'`, platform.Now(), translationID)
+		_, err := tx.ExecContext(ctx, `UPDATE translation_manifests SET state=?,updated_at=? WHERE translation_id=? AND state='running'`, finished, platform.Now(), translationID)
 		return language.StorageError(err)
 	})
 }

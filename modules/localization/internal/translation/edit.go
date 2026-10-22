@@ -50,6 +50,7 @@ func EditTranslationUnit(ctx context.Context, op OperationContext, input EditTra
 		unit.Origin = "human"
 		unit.Protected = true
 		unit.Status = "normal"
+		unit.PreviousTargetText = nil
 		saved, err := WriteObject(ctx, tx, op, object, object.Translation.Generation)
 		if err != nil {
 			return err
