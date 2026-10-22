@@ -18,7 +18,7 @@ import (
 // openAssetBytes 按下载规则打开不可变原文件：
 // 管理员（media.read / superadmin）可读本站任一就绪资源；知识库/模型网关按版本读已确认引用的资源；
 // 其余调用方必须带正确的 sha，且这个版本出现过在已发布页面上，或正被站点配置使用。草稿引用不算公开。
-// shared 表示按公开规则放行、可以进共享缓存；管理员读到的可能是还没发布的草稿资源，只能私有缓存。
+// public 表示这个版本按公开规则可读、可以进共享缓存；管理员读到的若是还没发布的草稿资源则为 false，只能 no-store。
 func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*os.File, gen.AssetVersionRef, bool, error) {
 	s, ok := currentBlobStore().(*localBlobStore)
 	if !ok {
@@ -47,29 +47,30 @@ func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*
 		} else if r.URL.Query().Get("sha") != sha {
 			return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
 		}
-		var allowed bool
-		if service {
-			err = s.db.QueryRowContext(r.Context(), `SELECT EXISTS(SELECT 1 FROM reference_pin_assets p JOIN reference_sources rs ON rs.pin_id=p.pin_id WHERE p.asset_id=? AND rs.state='confirmed')`, assetID).Scan(&allowed)
-		} else {
-			err = s.db.QueryRowContext(r.Context(), `SELECT EXISTS(SELECT 1 FROM public_assets WHERE asset_id=? AND sha256=?) OR EXISTS(SELECT 1 FROM reference_pin_assets p JOIN reference_sources rs ON rs.pin_id=p.pin_id WHERE p.asset_id=? AND rs.state='confirmed' AND rs.source_service='site-config')`, assetID, sha, assetID).Scan(&allowed)
-		}
-		if err != nil {
-			return nil, gen.AssetVersionRef{}, false, mapMediaDBError(err, "核对资源引用失败")
-		}
-		if !allowed {
-			return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
-		}
+	}
+	var public bool
+	if service {
+		err = s.db.QueryRowContext(r.Context(), `SELECT EXISTS(SELECT 1 FROM reference_pin_assets p JOIN reference_sources rs ON rs.pin_id=p.pin_id WHERE p.asset_id=? AND rs.state='confirmed')`, assetID).Scan(&public)
+	} else {
+		// 管理员也按公开规则判定：真公开的版本才能进共享缓存，草稿资源只能 no-store，下次访问仍要过当前权限。
+		err = s.db.QueryRowContext(r.Context(), `SELECT EXISTS(SELECT 1 FROM public_assets WHERE asset_id=? AND sha256=?) OR EXISTS(SELECT 1 FROM reference_pin_assets p JOIN reference_sources rs ON rs.pin_id=p.pin_id WHERE p.asset_id=? AND rs.state='confirmed' AND rs.source_service='site-config')`, assetID, sha, assetID).Scan(&public)
+	}
+	if err != nil {
+		return nil, gen.AssetVersionRef{}, false, mapMediaDBError(err, "核对资源引用失败")
+	}
+	if !admin && !public {
+		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
 	}
 	file, err := os.Open(s.blobPath(site, sha))
 	if err != nil {
 		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeIntegrityError, false, "资源文件缺失")
 	}
-	return file, gen.AssetVersionRef{AssetId: assetID, Version: version, Sha256: sha, MediaType: mediaType, ByteSize: size}, !admin, nil
+	return file, gen.AssetVersionRef{AssetId: assetID, Version: version, Sha256: sha, MediaType: mediaType, ByteSize: size}, public, nil
 }
 
 // ServeAssetBytes 输出不可变资源字节，支持单个 Range；head 为 true 时只写响应头。
 func ServeAssetBytes(w http.ResponseWriter, r *http.Request, op OperationContext, assetID Identifier, head bool) error {
-	file, ref, shared, err := openAssetBytes(r, op, assetID)
+	file, ref, public, err := openAssetBytes(r, op, assetID)
 	if err != nil {
 		return err
 	}
@@ -98,10 +99,10 @@ func ServeAssetBytes(w http.ResponseWriter, r *http.Request, op OperationContext
 	switch {
 	case r.URL.Query().Get("sha") == "":
 		headers.Set("Cache-Control", "private, no-store")
-	case shared:
+	case public:
 		headers.Set("Cache-Control", "public, max-age=31536000, immutable")
 	default:
-		headers.Set("Cache-Control", "private, max-age=31536000, immutable")
+		headers.Set("Cache-Control", "private, no-store")
 	}
 	if r.Header.Get("If-None-Match") == etag && !byteRange.Partial {
 		w.WriteHeader(http.StatusNotModified)
