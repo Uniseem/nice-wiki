@@ -85,6 +85,13 @@
     content: attr(data-language);
     @apply absolute end-3 top-2 font-sans text-xs text-muted;
   }
+  /* 历史版本里这次发布新增（绿）与修改（黄）的块：用外扩阴影留白，不改变排版。 */
+  .ProseMirror .nw-diff-added {
+    @apply rounded-md bg-success-soft shadow-[0_0_0_6px_var(--color-success-soft)];
+  }
+  .ProseMirror .nw-diff-changed {
+    @apply rounded-md bg-warning-soft shadow-[0_0_0_6px_var(--color-warning-soft)];
+  }
   .ProseMirror-gapcursor::after {
     @apply border-t-foreground;
   }

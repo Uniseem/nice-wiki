@@ -2,6 +2,7 @@ import { ClockArrowRotateLeft } from '@gravity-ui/icons';
 import { Button, Chip, Drawer, Form, Modal } from '@heroui/react';
 import { api, ApiError, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, fmtRelative, LoadingBlock, notify, errorText, SelectInput, TextAreaInput, TextInput, useLoad, t } from '@ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { VersionDialog } from './VersionDialog';
 import { ancestors, flatten, operationLabel, pathPattern, subtree, suggestPath, type HistoryEntry, type Meta } from './types';
 
 const pathHint = t('只用小写字母、数字和连字符，例如 getting-started。发布后仍可在页面设置里修改，旧地址会自动跳转。');
@@ -183,12 +184,16 @@ export function MoveDialog({ meta, docs, onMove, onClose }: { meta: Meta; docs: 
 
 // 发布历史：每次发布、撤回、回滚各一条；可以把正文回滚到某次发布并重新发布。
 export function HistoryDrawer({ documentId, writable, published, onRollback, onClose }: { documentId: string; writable: boolean; published: boolean; onRollback: (historyId: string) => Promise<void>; onClose: () => void }) {
-  const history = useLoad((signal) => api<{ history: HistoryEntry[] }>(`/v1/documents/${documentId}/history?limit=50`, { signal }).then((result) => result.history), [documentId]);
+  const history = useLoad((signal) => api<{ history: HistoryEntry[]; pageInfo: { hasMore: boolean } }>(`/v1/documents/${documentId}/history?limit=50`, { signal }).then((result) => { more.current = result.pageInfo.hasMore; return result.history; }), [documentId]);
+  const [viewing, setViewing] = useState<number | null>(null);
+  // 只取了前 50 条：最后一条之前若还有更早的发布，它的“上一次”不在列表里，不能当成首次发布。
+  const more = useRef(false);
   const rollback = async (entry: HistoryEntry) => {
     const ok = await confirmAction({ title: t('回滚到这个版本？'), body: t('正文会回到 {0} 的发布内容，并作为新的发布上线；当前草稿会被覆盖。', fmtDateTime(entry.createdAt)), confirmLabel: t('回滚并发布'), tone: 'warning' });
     if (ok) await onRollback(entry.historyId);
   };
   return (
+    <>
     <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Drawer.Content placement="right">
         <Drawer.Dialog className="w-full max-w-md">
@@ -208,9 +213,12 @@ export function HistoryDrawer({ documentId, writable, published, onRollback, onC
                       <span className="text-xs text-muted" title={fmtDateTime(entry.createdAt)}>{fmtRelative(entry.createdAt)}</span>
                     </div>
                     {/* 文档仍在发布时最新一条就是线上版本，不必回滚到它；撤回后（历史里不单独记撤回）每条都能回滚重新发布。 */}
-                    {entry.operation !== 'withdraw' && (index === 0 && published ? <p className="mt-2 text-xs text-muted">{t('当前线上版本')}</p> : (
-                      <Button className="mt-2" isDisabled={!writable} size="sm" variant="secondary" onPress={() => rollback(entry)}>{t('回滚到此版本')}</Button>
-                    ))}
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button size="sm" variant="tertiary" onPress={() => setViewing(index)}>{t('查看')}</Button>
+                      {entry.operation !== 'withdraw' && (index === 0 && published ? <span className="text-xs text-muted">{t('当前线上版本')}</span> : (
+                        <Button isDisabled={!writable} size="sm" variant="secondary" onPress={() => rollback(entry)}>{t('回滚到此版本')}</Button>
+                      ))}
+                    </div>
                   </li>
                 ))}
               </ol>
@@ -219,5 +227,16 @@ export function HistoryDrawer({ documentId, writable, published, onRollback, onC
         </Drawer.Dialog>
       </Drawer.Content>
     </Drawer.Backdrop>
+    {viewing !== null && history.data?.[viewing] && (
+      <VersionDialog
+        documentId={documentId}
+        entry={history.data[viewing]}
+        first={viewing + 1 === history.data.length && !more.current}
+        previous={history.data[viewing + 1] ?? null}
+        onClose={() => setViewing(null)}
+        onRollback={writable && !(viewing === 0 && published) ? () => { const entry = history.data![viewing]; setViewing(null); void rollback(entry); } : null}
+      />
+    )}
+    </>
   );
 }

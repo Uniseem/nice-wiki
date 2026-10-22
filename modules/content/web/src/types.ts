@@ -33,7 +33,7 @@ export type DraftRead = { metadata: Meta; draft: Draft; body: { content: unknown
 
 export type Tree = { documents: Meta[]; treeRevision: number };
 
-export type HistoryEntry = { historyId: string; createdAt: string; authorAccountName: string; operation: 'publish' | 'withdraw' | 'rollback' | string };
+export type HistoryEntry = { historyId: string; createdAt: string; authorAccountName: string; operation: 'publish' | 'withdraw' | 'rollback' | string; reference: { publishedRevisionId: string } };
 
 export const operationLabel: Record<string, string> = { publish: t('发布'), withdraw: t('撤回'), rollback: t('回滚') };
 

@@ -1,4 +1,4 @@
-import type { NodeViewProps } from '@tiptap/core';
+import type { Extensions, NodeViewProps } from '@tiptap/core';
 import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
@@ -51,6 +51,18 @@ const cellBackground = {
 };
 const WikiTableCell = TableCell.extend({ addAttributes() { return { ...this.parent?.(), ...cellBackground }; } });
 const WikiTableHeader = TableHeader.extend({ addAttributes() { return { ...this.parent?.(), ...cellBackground }; } });
+
+// 正文用到的全部节点与标记：编辑器和只读的历史版本查看共用一份。
+export function documentExtensions(): Extensions {
+  return [
+    // 链接需要 LinkTarget 结构，单独配置；标题只允许 H2–H4。
+    StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: false }),
+    WikiLink.configure({ openOnClick: false, autolink: false, protocols: ['mailto'], HTMLAttributes: { rel: 'noopener noreferrer nofollow' } }),
+    Table.configure({ resizable: false }), TableRow, WikiTableHeader, WikiTableCell,
+    TaskList, TaskItem.configure({ nested: true }), Highlight.configure({ multicolor: true }),
+    ImageBlock, VideoBlock, Callout, MathBlockWithPreview, Attachment, Columns, Column, Drawing,
+  ];
+}
 
 type Slash = { left: number; top: number; query: string };
 
@@ -172,12 +184,7 @@ export function Editor({ doc, docs, documentId, editable, toolbar, header, edito
     content: doc,
     editable,
     extensions: [
-      // 链接需要 LinkTarget 结构，单独配置；标题只允许 H2–H4。
-      StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: false }),
-      WikiLink.configure({ openOnClick: false, autolink: false, protocols: ['mailto'], HTMLAttributes: { rel: 'noopener noreferrer nofollow' } }),
-      Table.configure({ resizable: false }), TableRow, WikiTableHeader, WikiTableCell,
-      TaskList, TaskItem.configure({ nested: true }), Highlight.configure({ multicolor: true }),
-      ImageBlock, VideoBlock, Callout, MathBlockWithPreview, Attachment, Columns, Column, Drawing, StableIds,
+      ...documentExtensions(), StableIds,
       Placeholder.configure({ placeholder: t('输入正文，或输入 / 插入标题、列表、表格、图片…') }),
     ],
     editorProps: {

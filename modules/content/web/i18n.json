@@ -95,6 +95,22 @@
   "id": "Gagal mengunggah {0}",
   "ar": "فشل رفع {0}"
  },
+ "{0}于 {1}": {
+  "zh-Hant": "{0}於 {1}",
+  "en": "{0} on {1}",
+  "ja": "{1} に{0}",
+  "ko": "{1}에 {0}",
+  "fr": "{0} le {1}",
+  "de": "{0} am {1}",
+  "es": "{0} el {1}",
+  "pt": "{0} em {1}",
+  "ru": "{0}: {1}",
+  "it": "{0} il {1}",
+  "vi": "{0} lúc {1}",
+  "th": "{0} เมื่อ {1}",
+  "id": "{0} pada {1}",
+  "ar": "{0} في {1}"
+ },
  "{0}已插入": {
   "zh-Hant": "{0}已插入",
   "en": "{0} inserted",
@@ -335,6 +351,22 @@
   "id": "Tidak perlu $$; tulis rumusnya saja.",
   "ar": "لا حاجة إلى $$، اكتب المعادلة مباشرة."
  },
+ "与上一次发布相比": {
+  "zh-Hant": "與上一次發布相比",
+  "en": "compared with the previous publish",
+  "ja": "前回の公開との比較",
+  "ko": "이전 게시와 비교",
+  "fr": "par rapport à la publication précédente",
+  "de": "im Vergleich zur vorherigen Veröffentlichung",
+  "es": "frente a la publicación anterior",
+  "pt": "em relação à publicação anterior",
+  "ru": "по сравнению с предыдущей публикацией",
+  "it": "rispetto alla pubblicazione precedente",
+  "vi": "so với lần xuất bản trước",
+  "th": "เทียบกับการเผยแพร่ครั้งก่อน",
+  "id": "dibandingkan terbitan sebelumnya",
+  "ar": "مقارنة بالنشر السابق"
+ },
  "两栏": {
   "zh-Hant": "兩欄",
   "en": "Two columns",
@@ -510,6 +542,22 @@
   "th": "ข้อมูล",
   "id": "Info",
   "ar": "معلومة"
+ },
+ "修改 {0} 块": {
+  "zh-Hant": "修改 {0} 塊",
+  "en": "{0} changed",
+  "ja": "変更 {0} ブロック",
+  "ko": "{0}개 블록 수정",
+  "fr": "{0} modifiés",
+  "de": "{0} geändert",
+  "es": "{0} modificados",
+  "pt": "{0} alterados",
+  "ru": "Изменено блоков: {0}",
+  "it": "{0} modificati",
+  "vi": "Sửa {0} khối",
+  "th": "แก้ไข {0} บล็อก",
+  "id": "{0} diubah",
+  "ar": "تعديل {0} كتلة"
  },
  "公式": {
   "zh-Hant": "公式",
@@ -719,6 +767,22 @@
   "id": "Hapus",
   "ar": "حذف"
  },
+ "删除 {0} 块": {
+  "zh-Hant": "刪除 {0} 塊",
+  "en": "{0} removed",
+  "ja": "削除 {0} ブロック",
+  "ko": "{0}개 블록 삭제",
+  "fr": "{0} supprimés",
+  "de": "{0} entfernt",
+  "es": "{0} eliminados",
+  "pt": "{0} removidos",
+  "ru": "Удалено блоков: {0}",
+  "it": "{0} rimossi",
+  "vi": "Xóa {0} khối",
+  "th": "ลบ {0} บล็อก",
+  "id": "{0} dihapus",
+  "ar": "حذف {0} كتلة"
+ },
  "删除“{0}”？": {
   "zh-Hant": "刪除「{0}」？",
   "en": "Delete \"{0}\"?",
@@ -926,6 +990,22 @@
   "th": "อันตราย",
   "id": "Bahaya",
   "ar": "خطر"
+ },
+ "历史版本正文": {
+  "zh-Hant": "歷史版本正文",
+  "en": "Historical version content",
+  "ja": "過去バージョンの本文",
+  "ko": "이전 버전 본문",
+  "fr": "Contenu de la version",
+  "de": "Inhalt der früheren Version",
+  "es": "Contenido de la versión",
+  "pt": "Conteúdo da versão",
+  "ru": "Текст прежней версии",
+  "it": "Contenuto della versione",
+  "vi": "Nội dung phiên bản cũ",
+  "th": "เนื้อหาเวอร์ชันเก่า",
+  "id": "Isi versi lama",
+  "ar": "محتوى النسخة السابقة"
  },
  "原位置：{0}": {
   "zh-Hant": "原位置：{0}",
@@ -2655,6 +2735,22 @@
   "id": "Miring",
   "ar": "مائل"
  },
+ "新增 {0} 块": {
+  "zh-Hant": "新增 {0} 塊",
+  "en": "{0} added",
+  "ja": "追加 {0} ブロック",
+  "ko": "{0}개 블록 추가",
+  "fr": "{0} ajoutés",
+  "de": "{0} hinzugefügt",
+  "es": "{0} añadidos",
+  "pt": "{0} adicionados",
+  "ru": "Добавлено блоков: {0}",
+  "it": "{0} aggiunti",
+  "vi": "Thêm {0} khối",
+  "th": "เพิ่ม {0} บล็อก",
+  "id": "{0} ditambahkan",
+  "ar": "إضافة {0} كتلة"
+ },
  "新建失败": {
   "zh-Hant": "新建失敗",
   "en": "Couldn't create",
@@ -3071,6 +3167,22 @@
   "id": "Belum disimpan",
   "ar": "غير محفوظ"
  },
+ "查看": {
+  "zh-Hant": "查看",
+  "en": "View",
+  "ja": "表示",
+  "ko": "보기",
+  "fr": "Voir",
+  "de": "Ansehen",
+  "es": "Ver",
+  "pt": "Ver",
+  "ru": "Открыть",
+  "it": "Visualizza",
+  "vi": "Xem",
+  "th": "ดู",
+  "id": "Lihat",
+  "ar": "عرض"
+ },
  "查看公开页": {
   "zh-Hant": "查看公開頁",
   "en": "View public page",
@@ -3358,6 +3470,22 @@
   "th": "ไม่มีฉบับร่างที่ยังไม่เผยแพร่",
   "id": "Tidak ada draf yang belum terbit.",
   "ar": "لا توجد مسودات غير منشورة."
+ },
+ "没能取到与上一次发布的对比。": {
+  "zh-Hant": "沒能取得與上一次發布的對比。",
+  "en": "Couldn’t load the comparison with the previous publish.",
+  "ja": "前回の公開との比較を取得できませんでした。",
+  "ko": "이전 게시와의 비교를 불러오지 못했습니다.",
+  "fr": "Impossible de charger la comparaison avec la publication précédente.",
+  "de": "Vergleich mit der vorherigen Veröffentlichung konnte nicht geladen werden.",
+  "es": "No se pudo cargar la comparación con la publicación anterior.",
+  "pt": "Não foi possível carregar a comparação com a publicação anterior.",
+  "ru": "Не удалось загрузить сравнение с предыдущей публикацией.",
+  "it": "Impossibile caricare il confronto con la pubblicazione precedente.",
+  "vi": "Không tải được so sánh với lần xuất bản trước.",
+  "th": "โหลดการเปรียบเทียบกับการเผยแพร่ครั้งก่อนไม่สำเร็จ",
+  "id": "Gagal memuat perbandingan dengan terbitan sebelumnya.",
+  "ar": "تعذر تحميل المقارنة مع النشر السابق."
  },
  "用于公开页语法高亮。": {
   "zh-Hant": "用於公開頁語法高亮。",
@@ -4526,6 +4654,22 @@
   "th": "ตั้งพาธหน้าเมื่อเผยแพร่ครั้งแรก",
   "id": "Jalur halaman ditetapkan saat pertama kali terbit",
   "ar": "يُحدَّد مسار الصفحة عند النشر الأول"
+ },
+ "首次发布，以下是全部内容。": {
+  "zh-Hant": "首次發布，以下是全部內容。",
+  "en": "First publish — this is the full content.",
+  "ja": "初回の公開です。以下が全内容です。",
+  "ko": "첫 게시입니다. 아래가 전체 내용입니다.",
+  "fr": "Première publication : voici tout le contenu.",
+  "de": "Erste Veröffentlichung – das ist der gesamte Inhalt.",
+  "es": "Primera publicación: este es todo el contenido.",
+  "pt": "Primeira publicação: este é todo o conteúdo.",
+  "ru": "Первая публикация — ниже весь текст.",
+  "it": "Prima pubblicazione: ecco tutto il contenuto.",
+  "vi": "Lần xuất bản đầu tiên, dưới đây là toàn bộ nội dung.",
+  "th": "เผยแพร่ครั้งแรก ด้านล่างคือเนื้อหาทั้งหมด",
+  "id": "Terbitan pertama — berikut seluruh isinya.",
+  "ar": "النشر الأول — هذا هو المحتوى كاملًا."
  },
  "高亮": {
   "zh-Hant": "醒目提示",
