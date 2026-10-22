@@ -975,6 +975,22 @@
   "id": "Berjalan",
   "ar": "قيد التشغيل"
  },
+ "这个服务的任务暂不支持人工重试：统计汇总会在下次定时运行时补上，资源清理可以在资源库重新确认清理计划。": {
+  "zh-Hant": "這個服務的任務暫不支援手動重試：統計彙總會在下次排程執行時補上，資源清理可以在資源庫重新確認清理計畫。",
+  "en": "Manual retry isn’t supported for this service yet: analytics rollups catch up on the next scheduled run, and asset cleanup can be re-confirmed from the media library.",
+  "ja": "このサービスのタスクはまだ手動で再試行できません。集計は次回の定期実行で補われ、リソースの削除はメディアライブラリで削除計画を確認し直せます。",
+  "ko": "이 서비스의 작업은 아직 수동 재시도를 지원하지 않습니다. 통계 집계는 다음 예약 실행 때 보충되고, 리소스 정리는 미디어 라이브러리에서 정리 계획을 다시 확인하면 됩니다.",
+  "fr": "La relance manuelle n’est pas encore prise en charge pour ce service : les agrégats statistiques se rattrapent à la prochaine exécution planifiée, et le nettoyage des ressources peut être reconfirmé depuis la médiathèque.",
+  "de": "Für diesen Dienst ist ein manueller Neuversuch noch nicht möglich: Statistik-Aggregationen holen beim nächsten geplanten Lauf auf, und die Bereinigung von Ressourcen lässt sich in der Mediathek erneut bestätigen.",
+  "es": "Este servicio aún no admite reintentos manuales: los agregados de estadísticas se completan en la próxima ejecución programada y la limpieza de recursos se puede volver a confirmar desde la biblioteca multimedia.",
+  "pt": "Este serviço ainda não permite nova tentativa manual: os agregados de estatísticas são recuperados na próxima execução agendada, e a limpeza de recursos pode ser reconfirmada na biblioteca de mídia.",
+  "ru": "Для этого сервиса ручной повтор пока не поддерживается: сводная статистика догонится при следующем плановом запуске, а очистку ресурсов можно заново подтвердить в медиатеке.",
+  "it": "Per questo servizio il nuovo tentativo manuale non è ancora supportato: gli aggregati statistici si recuperano alla prossima esecuzione pianificata e la pulizia delle risorse si può riconfermare dalla libreria multimediale.",
+  "vi": "Dịch vụ này chưa hỗ trợ thử lại thủ công: số liệu thống kê tổng hợp sẽ được bù ở lần chạy theo lịch tiếp theo, còn việc dọn dẹp tài nguyên có thể xác nhận lại kế hoạch trong thư viện tài nguyên.",
+  "th": "งานของบริการนี้ยังลองใหม่ด้วยตนเองไม่ได้ สถิติสรุปจะถูกเติมในการรันตามกำหนดครั้งถัดไป ส่วนการล้างทรัพยากรสามารถยืนยันแผนการล้างใหม่ได้ในคลังทรัพยากร",
+  "id": "Layanan ini belum mendukung coba ulang manual: ringkasan statistik akan menyusul pada jadwal berikutnya, dan pembersihan sumber daya dapat dikonfirmasi ulang dari pustaka media.",
+  "ar": "لا تدعم هذه الخدمة إعادة المحاولة اليدوية بعد: تُستكمل تجميعات الإحصاءات في التشغيل المجدول التالي، ويمكن إعادة تأكيد خطة تنظيف الموارد من مكتبة الوسائط."
+ },
  "进度": {
   "zh-Hant": "進度",
   "en": "Progress",

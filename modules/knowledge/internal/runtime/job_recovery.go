@@ -58,6 +58,10 @@ func ReadJobRecovery(ctx context.Context, op OperationContext, input ReadJobReco
 		}
 		return result, err
 	}
+	// 任务先进了死信、之后本域才取消（文档撤回、删除或有了新版本）时，jobs 不再给死信记取消；这不是数据损坏，只是不必重试。
+	if cancelled && !input.CancelRequested {
+		return result, platform.NewError(platform.CodeConflict, false, "这个任务已被取消（例如所属文档已撤回或有了新版本），不需要重试")
+	}
 	if site != op.Actor.SiteID || original.Operation.DataEpoch != input.DataEpoch || original.InputRef != input.InputRef || original.Operation.RootOperationID != input.RootOperationID || original.JobID != input.JobID || jobsOperation != original.Operation.OperationID || cancelled != input.CancelRequested {
 		return result, platform.NewError(platform.CodeIntegrityError, false, "恢复请求与本站原批准输入或取消事实不一致")
 	}

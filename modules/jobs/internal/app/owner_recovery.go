@@ -51,6 +51,8 @@ func NewOwnerRecoveryChecker(config platform.ServiceConfig, key platform.Signing
 		knowledge = gen.NewKnowledgeClient(config.Dependencies["knowledge"], ModuleSlug, key)
 	}
 	return func(ctx context.Context, original platform.OperationContext, input jobs.OwnerRecoveryRequest) (jobs.OwnerRecoveryResult, error) {
+		// 管理员人工重试时 ctx 带着其委托证明；恢复证明只以 jobs 服务身份读取。
+		ctx = platform.WithPortalProof(ctx, "")
 		result := jobs.OwnerRecoveryResult{Status: "unknown", PaidResultRefs: []string{}}
 		if knowledge == nil || input.Owner != "knowledge" {
 			return result, platform.NewError(platform.CodeDependencyUnavailable, true, "任务所属域恢复读取尚未装配")

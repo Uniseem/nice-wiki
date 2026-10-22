@@ -17,6 +17,8 @@ const states: Record<string, { label: string; tone: 'default' | 'accent' | 'succ
   'dead-letter': { label: t('死信'), tone: 'danger' }, 'cancel-requested': { label: t('取消中'), tone: 'warning' }, cancelled: { label: t('已取消'), tone: 'default' }, succeeded: { label: t('成功'), tone: 'success' }, orphan: { label: t('无主'), tone: 'warning' },
 };
 const terminal = new Set(['succeeded', 'cancelled', 'dead-letter']);
+// 人工重试要先由所属服务确认结果与费用安全，目前只有知识索引接了这一步。
+const retryOwners = new Set(['knowledge']);
 const stateChip = (state: string) => <Chip color={states[state]?.tone ?? 'default'} size="sm" variant="soft">{states[state]?.label ?? state}</Chip>;
 
 export default function JobsPage() {
@@ -111,7 +113,7 @@ function JobsTab() {
                       <Table.Cell className="tabular-nums">{job.attempt}</Table.Cell>
                       <Table.Cell className="text-end">
                         <span className="inline-flex gap-2">
-                          {job.state === 'dead-letter' && <Button isDisabled={busy} size="sm" variant="secondary" onPress={() => retry(job)}>{t('重试')}</Button>}
+                          {job.state === 'dead-letter' && retryOwners.has(job.owner) && <Button isDisabled={busy} size="sm" variant="secondary" onPress={() => retry(job)}>{t('重试')}</Button>}
                           <Button size="sm" variant="tertiary" onPress={() => setSelected(job)}>{t('详情')}</Button>
                         </span>
                       </Table.Cell>
@@ -173,6 +175,7 @@ function JobDrawer({ job, onClose, onChanged }: { job: Job; onClose: () => void;
               ...(detail.data?.resultRefs.length ? [[t('结果引用'), <span className="flex flex-col gap-1">{detail.data.resultRefs.map((ref) => <Mono key={ref}>{ref}</Mono>)}</span>] as [string, ReactNode]] : []),
             ]} />
             {!terminal.has(state) && <div><Button isPending={busy} variant="danger-soft" onPress={cancel}>{t('请求取消')}</Button></div>}
+            {state === 'dead-letter' && !retryOwners.has(job.owner) && <Notice status="default">{t('这个服务的任务暂不支持人工重试：统计汇总会在下次定时运行时补上，资源清理可以在资源库重新确认清理计划。')}</Notice>}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between"><span className="text-sm font-medium">{t('进度')}</span><span className="text-xs text-muted">{stream}</span></div>
               {!events.length ? <p className="text-sm text-muted">{t('尚无保留的进度检查点。')}</p> : (
