@@ -50,7 +50,7 @@ func PlanQuestion(ctx context.Context, op OperationContext, input PlanQuestionIn
 	if err != nil {
 		return PlanQuestionResult{}, err
 	}
-	if runtime.Guard == nil || runtime.AdmissionPermit == nil {
+	if runtime.Guard == nil || runtime.Permit() == nil {
 		return PlanQuestionResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "前置风险准入链尚未装配")
 	}
 	memory, err := qaruntime.ResolveTaskMemory(ctx, op, "qa.preflight", input.VisitorLanguage)
@@ -121,7 +121,7 @@ func ReportRisk(ctx context.Context, op OperationContext, questionHash, risk str
 	if err != nil {
 		return err
 	}
-	if runtime.Guard == nil || runtime.AdmissionPermit == nil {
+	if runtime.Guard == nil || runtime.Permit() == nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "前置风险准入链尚未装配")
 	}
 	verdict := risk
@@ -133,7 +133,7 @@ func ReportRisk(ctx context.Context, op OperationContext, questionHash, risk str
 		NetworkKey   string `json:"networkKey"`
 		QuestionHash string `json:"questionHash"`
 		Verdict      string `json:"modelVerdict"`
-	}{runtime.AdmissionPermit.SessionBudgetScope, runtime.AdmissionPermit.NetworkBudgetScope, questionHash, verdict}, "qa.risk."+platform.HashBytes([]byte(op.RootOperationID+":"+questionHash)))
+	}{runtime.Permit().SessionBudgetScope, runtime.Permit().NetworkBudgetScope, questionHash, verdict}, "qa.risk."+platform.HashBytes([]byte(op.RootOperationID+":"+questionHash)))
 	if err != nil {
 		return err
 	}

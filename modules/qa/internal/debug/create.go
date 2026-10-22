@@ -27,6 +27,9 @@ func CreateDebugTurn(ctx context.Context, op OperationContext, input CreateDebug
 	if err != nil {
 		return CreateDebugTurnResult{}, err
 	}
+	if runtime.BaseLanguage == "" {
+		return CreateDebugTurnResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "站点基准语言暂不可读，请稍后再试")
+	}
 	tx, err := qaruntime.BeginWrite(ctx, op)
 	if err != nil {
 		return CreateDebugTurnResult{}, err

@@ -48,6 +48,8 @@ func CancelTurn(ctx context.Context, op OperationContext, input CancelTurnInput)
 	}
 	tx.Close()
 	if record.State == "cancelled" {
+		// 本进程里还在跑的就直接打断：在途模型调用随上下文取消，后续步骤不再开始。
+		stopRunningTurn(record.Turn.TurnId, errTurnCancelled)
 		if err := cancelTurnDependencies(ctx, record); err != nil {
 			return CancelTurnResult{}, err
 		}
@@ -60,7 +62,10 @@ func cancelTurnDependencies(ctx context.Context, record qaruntime.TurnRecord) er
 	if err != nil {
 		return err
 	}
-	callCtx := qaruntime.ServiceReadContext(ctx, record.Operation)
+	// 取消常在原提问请求结束之后，原截止时间早已过去：控制请求沿用原调用、根操作和代次，只换新的短截止时间。
+	op := record.Operation
+	op.Deadline = time.Now().UTC().Add(15 * time.Second).Format(time.RFC3339Nano)
+	callCtx := qaruntime.ServiceReadContext(ctx, op)
 	if record.JobID != "" {
 		if runtime.Jobs == nil {
 			return platform.NewError(platform.CodeDependencyUnavailable, false, "取消任务客户端尚未装配")

@@ -13,6 +13,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -44,15 +45,34 @@ type Runtime struct {
 	AnswerContextTokens    int
 	PreflightContextTokens int
 	AnswerMemoryHash       string
-	AdmissionPermit        *platform.AdmissionPermit
-	OnModelEvent           func(platform.StreamEvent) error
+	// permit 是本轮在用的准入许可；续租后换成新签的那份，放在共享指针里，各步骤用 Permit() 读最新值。
+	permit          *atomic.Pointer[platform.AdmissionPermit]
+	OnModelEvent    func(platform.StreamEvent) error
+	OnModelAccepted func(platform.Identifier) error
 }
+
+// Permit 返回本轮当前有效的准入许可；没有轮次（如调试）时为 nil。
+func (r Runtime) Permit() *platform.AdmissionPermit {
+	if r.permit == nil {
+		return nil
+	}
+	return r.permit.Load()
+}
+
+// SetPermit 换上新许可；同一轮派生出的各份 Runtime 共享同一个指针，都能读到。
+func (r *Runtime) SetPermit(permit platform.AdmissionPermit) {
+	if r.permit == nil {
+		r.permit = &atomic.Pointer[platform.AdmissionPermit]{}
+	}
+	r.permit.Store(&permit)
+}
+
 type runtimeKey struct{}
 
 // NewRuntime 固定所有使用的生产方响应校验器；未知响应不当作成功。
 func NewRuntime(runtime Runtime) (Runtime, error) {
 	runtime.Validators = make(map[string]func(json.RawMessage) error)
-	for _, name := range []string{"KnowledgeReadDocumentChunksResult", "LocalizationReadTranslationResult", "QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "KnowledgeReadDocumentIndexResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
+	for _, name := range []string{"KnowledgeReadDocumentChunksResult", "LocalizationReadTranslationResult", "QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "GuardRenewPermitResult", "SiteConfigReadSiteConfigResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "KnowledgeReadDocumentIndexResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
 		validator, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if err != nil {
 			return Runtime{}, err

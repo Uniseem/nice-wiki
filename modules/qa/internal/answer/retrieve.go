@@ -63,8 +63,8 @@ func RetrieveEvidence(ctx context.Context, op OperationContext, input RetrieveEv
 	}
 	search := func() ([]evidenceChunk, bool, string, error) {
 		request := map[string]any{"query": input.Normalized, "language": runtime.BaseLanguage, "space": input.Policy.RetrievalSpace, "maximumTokens": min(4096, input.Policy.MaximumContextTokens), "lexicalOnly": false, "embedding": embedding}
-		if runtime.AdmissionPermit != nil {
-			request["admissionPermit"] = runtime.AdmissionPermit
+		if permit := runtime.Permit(); permit != nil {
+			request["admissionPermit"] = permit
 		}
 		raw, err := runtime.Knowledge.SearchKnowledge(qaruntime.ServiceReadContext(ctx, op), request)
 		if err != nil {

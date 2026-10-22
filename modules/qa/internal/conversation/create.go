@@ -46,11 +46,14 @@ func CreateConversation(ctx context.Context, op OperationContext, input CreateCo
 		}
 		return result, nil
 	}
+	// 业务幂等只看访客提交的内容：准入是入口每次按原根交来的短期凭据，已与根操作绑定，不算业务输入。
+	request := input
+	request.Admission = gen.AdmissionPermit{}
 	tx, err := qaruntime.BeginWrite(ctx, op)
 	if err != nil {
 		return CreateConversationResult{}, err
 	}
-	replay, err := qaruntime.ReplayReceipt(tx, op, "qa.CreateConversation", input.IdempotencyKey, input, &result)
+	replay, err := qaruntime.ReplayReceipt(tx, op, "qa.CreateConversation", input.IdempotencyKey, request, &result)
 	tx.Close()
 	if err != nil {
 		return result, err
@@ -58,21 +61,26 @@ func CreateConversation(ctx context.Context, op OperationContext, input CreateCo
 	if replay {
 		return finish()
 	}
+	// 入口为这次建会话领的准入没用上就被拒（语言不合法、准入校验不过）：释放占位，免得访客重试时被并发上限挡住。
+	reject := func(cause error) (CreateConversationResult, error) {
+		_, _ = finish()
+		return CreateConversationResult{}, cause
+	}
 	tag, err := language.Parse(input.Language)
 	if err != nil {
-		return result, platform.NewError(platform.CodeValidation, false, "对话语言不合法")
+		return reject(platform.NewError(platform.CodeValidation, false, "对话语言不合法"))
 	}
 	// 生成DTO与平台标量同义，显式转换保留所有签名许可字段。
 	permit := platform.AdmissionPermit{AdmissionID: input.Admission.AdmissionId, RequestID: input.Admission.RequestId, SubjectID: input.Admission.SubjectId, Action: input.Admission.Action, Token: input.Admission.Token, ExpiresAt: input.Admission.ExpiresAt.UTC().Format(time.RFC3339Nano), SessionBudgetScope: input.Admission.SessionBudgetScope, NetworkBudgetScope: input.Admission.NetworkBudgetScope, DataEpoch: input.Admission.DataEpoch, Audience: string(input.Admission.Audience)}
 	if _, err := admission.ValidateAdmission(ctx, op, admission.ValidateAdmissionInput{Admission: permit, Action: "qa.conversation"}); err != nil {
-		return result, err
+		return reject(err)
 	}
 	tx, err = qaruntime.BeginWrite(ctx, op)
 	if err != nil {
 		return result, err
 	}
 	defer tx.Close()
-	replay, err = qaruntime.ReplayReceipt(tx, op, "qa.CreateConversation", input.IdempotencyKey, input, &result)
+	replay, err = qaruntime.ReplayReceipt(tx, op, "qa.CreateConversation", input.IdempotencyKey, request, &result)
 	if err != nil {
 		return result, err
 	}
@@ -90,7 +98,7 @@ func CreateConversation(ctx context.Context, op OperationContext, input CreateCo
 	if err != nil {
 		return CreateConversationResult{}, qaruntime.StorageError(err)
 	}
-	if err := qaruntime.SaveReceipt(tx, op, "qa.CreateConversation", input.IdempotencyKey, input, result); err != nil {
+	if err := qaruntime.SaveReceipt(tx, op, "qa.CreateConversation", input.IdempotencyKey, request, result); err != nil {
 		return CreateConversationResult{}, err
 	}
 	if err := tx.Commit(); err != nil {

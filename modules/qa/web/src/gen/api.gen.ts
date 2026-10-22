@@ -514,6 +514,8 @@ export interface components {
         GuardValidatePermitResult: components["schemas"]["ValidatePermitResult"];
         GuardConsumeAdmissionResult: components["schemas"]["ConsumeAdmissionResult"];
         GuardReleasePermitResult: components["schemas"]["ReleasePermitResult"];
+        GuardRenewPermitResult: components["schemas"]["RenewPermitResult"];
+        SiteConfigReadSiteConfigResult: components["schemas"]["ReadSiteConfigResult"];
         ContentValidatePublicationsResult: components["schemas"]["ValidatePublicationsResult"];
         ContentReadPublishedRevisionResult: components["schemas"]["ReadPublishedRevisionResult"];
         ContentReadPublicTreeResult: components["schemas"]["ReadPublicTreeResult"];
@@ -1417,6 +1419,243 @@ export interface components {
             /** @description released 的明确真假结果，不可 null */
             released: boolean;
         };
+        /** @description 延长活跃并发租约成功结果；失败不返回半成功结果 */
+        RenewPermitResult: {
+            /** @description 公共 AdmissionPermit 合同，遵守其字段和空值规则 */
+            permit: components["schemas"]["AdmissionPermit"];
+        };
+        /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
+        "common.schema_AssetVersionRef": {
+            /** @description 逻辑资源ID */
+            assetId: components["schemas"]["Identifier"];
+            /** @description 不可变对象版本 */
+            version: components["schemas"]["Revision"];
+            /** @description Hash */
+            sha256: components["schemas"]["Hash"];
+            /** @description 嗅探确认MIME */
+            mediaType: string;
+            /** @description 字节数 */
+            byteSize: number;
+        };
+        /** @description 完整五字段不可变版本引用，唯一来源common；既有JSON不变。 */
+        AssetVersionRef: components["schemas"]["common.schema_AssetVersionRef"];
+        /** @description https 公共地址；本地开发 http 由部署能力显式允许；禁止 userinfo/query/fragment */
+        SafeURL: string;
+        /** @description 规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证 */
+        LanguageTag: string;
+        /** @description 站点链接判别联合体 */
+        LinkTarget: {
+            /** @constant */
+            kind: "document";
+            /** @description 站内ID */
+            documentId: components["schemas"]["Identifier"];
+            /** @description 无null */
+            blockId: components["schemas"]["Identifier"] | null;
+        } | {
+            /** @constant */
+            kind: "qa";
+        } | {
+            /** @constant */
+            kind: "external";
+            /** @description http/https/mailto安全链接 */
+            url: string;
+        };
+        /** @description 首页0–3按钮 */
+        HeroButton: {
+            /** @description 稳定按钮 */
+            buttonId: components["schemas"]["Identifier"];
+            /** @description 翻译字段 */
+            text: string;
+            /** @description LinkTarget */
+            target: components["schemas"]["LinkTarget"];
+            /**
+             * @description 按钮
+             * @enum {string}
+             */
+            style: "primary" | "secondary";
+        };
+        /** @description 首页背景完整联合体 */
+        HeroBackground: {
+            /** @constant */
+            kind: "color";
+            /** @description #RRGGBB */
+            color: string;
+        } | {
+            /**
+             * @description 图片/动图
+             * @enum {string}
+             */
+            kind: "image" | "animation";
+            asset: components["schemas"]["AssetVersionRef"];
+        } | {
+            /** @constant */
+            kind: "video";
+            asset: components["schemas"]["AssetVersionRef"];
+            poster: components["schemas"]["AssetVersionRef"];
+        };
+        /** @description 仅全屏一屏hero；下方无卡片/精选/其他内容 */
+        HomeConfig: {
+            /** @description 默认站点名，翻译 */
+            mainTitle: string;
+            /** @description 副标题，翻译 */
+            subtitle: string;
+            /** @description 默认Welcome To */
+            backgroundText: string;
+            /** @description 默认false，后台可开翻译 */
+            translateBackgroundText: boolean;
+            /** @description 0–3按钮 */
+            buttons: components["schemas"]["HeroButton"][];
+            /** @description HeroBackground */
+            background: components["schemas"]["HeroBackground"];
+            /** @description 遮罩0–100% */
+            overlayPercent: number;
+            /**
+             * @description 文字
+             * @enum {string}
+             */
+            textColor: "light" | "dark";
+            /** @description CAS */
+            revision: components["schemas"]["Revision"];
+        };
+        /** @description 页脚链接 */
+        FooterLink: {
+            /** @description 稳定ID */
+            linkId: components["schemas"]["Identifier"];
+            /** @description 翻译字段 */
+            text: string;
+            /** @description LinkTarget */
+            target: components["schemas"]["LinkTarget"];
+        };
+        /** @description 页脚版权、链接、ICP、源代码 */
+        FooterConfig: {
+            /** @description 版权文本，翻译 */
+            copyright: string;
+            /** @description 自定义链接 */
+            links: components["schemas"]["FooterLink"][];
+            /** @description 无null */
+            icpNumber: string | null;
+            /** @description 无null */
+            icpLink: string | null;
+            /**
+             * @description 默认显示源代码链接，AGPL网络用户可获得源码
+             * @default https://github.com/Uniseem/nice-wiki
+             */
+            sourceCodeURL: string;
+        };
+        /** @description 单条站点公告横幅；无富文公告列表产品 */
+        Announcement: {
+            /** @description 同条公告关闭标识；localStorage记录，不用cookie */
+            announcementId: components["schemas"]["Identifier"];
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description 不可变横幅文件 */
+            revisionId: components["schemas"]["Identifier"];
+            /** @description Hash */
+            bodyHash: components["schemas"]["Hash"];
+            /** @description 后台开关 */
+            enabled: boolean;
+            /** @description 立即null */
+            startsAt: components["schemas"]["Timestamp"] | null;
+            /** @description 永久null */
+            endsAt: components["schemas"]["Timestamp"] | null;
+            /** @description 设置CAS */
+            revision: components["schemas"]["Revision"];
+            /** @description 即时失效水位 */
+            visibilityRevision: components["schemas"]["Revision"];
+            /** @description 更新 */
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 可配置资源上限 */
+        ResourceLimits: {
+            /**
+             * @description 文档 UTF-8 规范 JSON 上限
+             * @default 16777216
+             */
+            maxDocumentBytes: number;
+            /**
+             * @description 单个资源上传上限
+             * @default 134217728
+             */
+            maxUploadBytes: number;
+            /**
+             * @description 站点存储逻辑配额
+             * @default 10737418240
+             */
+            siteStorageBytes: number;
+            /**
+             * @description 上传并发
+             * @default 4
+             */
+            maxUploadConcurrency: number;
+        };
+        /** @description 会话/预览非业务功能新增 */
+        SecurityPolicy: {
+            /**
+             * @description 管理员预览TTL
+             * @default 900
+             */
+            previewTTLSeconds: number;
+            /**
+             * @description 会话最长
+             * @default 604800
+             */
+            sessionAbsoluteTTLSeconds: number;
+        };
+        /** @description 版本化站点设置权威文件；既有功能不增添多内容首页 */
+        SiteConfig: {
+            /** @description 站点 */
+            siteId: components["schemas"]["Identifier"];
+            /** @description 站名，会翻译 */
+            name: string;
+            /** @description 无null */
+            logo: components["schemas"]["AssetVersionRef"] | null;
+            /** @description 无null */
+            favicon: components["schemas"]["AssetVersionRef"] | null;
+            /**
+             * @description #RRGGBB
+             * @default #2563EB
+             */
+            themeColor: string;
+            /** @description 无null */
+            defaultShareImage: components["schemas"]["AssetVersionRef"] | null;
+            /** @description SafeURL */
+            publicBaseURL: components["schemas"]["SafeURL"];
+            /** @description LanguageTag */
+            baseLanguage: components["schemas"]["LanguageTag"];
+            /**
+             * @description title/site模板
+             * @default {title} | {site}
+             */
+            titleTemplate: string;
+            /** @description SEO文本 */
+            description: string;
+            /**
+             * @description 搜索引擎
+             * @default true
+             */
+            indexingEnabled: boolean;
+            /** @description HomeConfig */
+            home: components["schemas"]["HomeConfig"];
+            /** @description FooterConfig */
+            footer: components["schemas"]["FooterConfig"];
+            /** @description 暂无公告null */
+            banner: components["schemas"]["Announcement"] | null;
+            /** @description ResourceLimits */
+            resourceLimits: components["schemas"]["ResourceLimits"];
+            /** @description SecurityPolicy */
+            securityPolicy: components["schemas"]["SecurityPolicy"];
+            /** @description CAS */
+            revision: components["schemas"]["Revision"];
+            /** @description 已登录唯一超管完成name/baseLanguage向导 */
+            initialized: boolean;
+            /** @description 修改 */
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /** @description 读取后台站点配置的结果 */
+        ReadSiteConfigResult: {
+            /** @description SiteConfig */
+            config: components["schemas"]["SiteConfig"];
+        };
         /** @description 权威可见性门禁结果；visible与matchesCurrent都成立才交付对应缓存 */
         PublicationValidation: {
             /** @description 需要权威校验的发布引用 */
@@ -1435,21 +1674,6 @@ export interface components {
             /** @description 输入顺序一一对应 */
             validations: components["schemas"]["PublicationValidation"][];
         };
-        /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
-        "common.schema_AssetVersionRef": {
-            /** @description 逻辑资源ID */
-            assetId: components["schemas"]["Identifier"];
-            /** @description 不可变对象版本 */
-            version: components["schemas"]["Revision"];
-            /** @description Hash */
-            sha256: components["schemas"]["Hash"];
-            /** @description 嗅探确认MIME */
-            mediaType: string;
-            /** @description 字节数 */
-            byteSize: number;
-        };
-        /** @description 完整五字段不可变版本引用，唯一来源common；既有JSON不变。 */
-        AssetVersionRef: components["schemas"]["common.schema_AssetVersionRef"];
         /** @description 树/元数据权威，与draft和published独立 */
         DocumentMetadata: {
             /** @description 文档 */
@@ -1494,7 +1718,7 @@ export interface components {
             lastPublishedAt: components["schemas"]["Timestamp"] | null;
         };
         /** @description 站内链接按当前语言和树路径渲染，移动/改名不失效 */
-        LinkTarget: {
+        types_LinkTarget: {
             /** @constant */
             kind: "internal";
             /** @description 文档ID；不存URL */
@@ -1528,7 +1752,7 @@ export interface components {
             /** @description 链接属性 */
             attrs: {
                 /** @description LinkTarget */
-                target: components["schemas"]["LinkTarget"];
+                target: components["schemas"]["types_LinkTarget"];
                 /** @description 无null */
                 title: string | null;
             };
@@ -2240,10 +2464,8 @@ export interface components {
         };
         /** @description 同源规范相对URL：恰好一个起始/，包含当前publicBaseURL的basePath、显式语言和content权威canonicalPath；可带已确认稳定blockId锚点，无query、外部origin、反斜杠或控制空白 */
         PublicRelativeLink: string;
-        /** @description 规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证 */
-        types_LanguageTag: string;
         /** @description 沿用站点配置规范语言tag；是否启用另核localization当前权威，不使用后台UILocale */
-        LanguageTag: components["schemas"]["types_LanguageTag"];
+        types_LanguageTag: components["schemas"]["LanguageTag"];
         /** @description 已知权威结果的封闭联合；依赖或版本未知返回Problem。false不含草稿、标题、元数据或旧路径；true引用须对应请求文档和当前epoch */
         ResolvePublishedLinkResult: {
             /** @enum {boolean} */
@@ -2251,7 +2473,7 @@ export interface components {
             href: components["schemas"]["PublicRelativeLink"];
             publication: components["schemas"]["PublishedRevisionRef"];
             /** @description 等于请求language；缺译不改变URL语言 */
-            resolvedLanguage: components["schemas"]["LanguageTag"];
+            resolvedLanguage: components["schemas"]["types_LanguageTag"];
             /** @description 请求语言下的文档标题；只在该语言有对应本发布修订的标题译文时给出，否则调用方沿用原文标题 */
             title?: string;
             /** @enum {string} */

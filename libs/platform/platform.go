@@ -650,6 +650,8 @@ type InvokeModelRequest struct {
 	Stream         bool                  `json:"stream"`
 	// OnEvent回调当前有效事件；历史终态待核当前权威，过时终态仅保留Events。不序列化。
 	OnEvent func(StreamEvent) error `json:"-"`
+	// OnAccepted在网关接受调用、拿到调用ID后回调，调用方据此登记以便主动取消；返回错误时立即取消该调用。不序列化。
+	OnAccepted func(Identifier) error `json:"-"`
 }
 
 // InvokeModelOutcome保留原接受事实；error非nil时已有ID/快照/事件仍为真实事实。

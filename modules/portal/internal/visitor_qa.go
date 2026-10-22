@@ -54,6 +54,16 @@ func prepareVisitorQA(ctx context.Context, op OperationContext, runtime *ProxyRu
 	} else {
 		token = ""
 	}
+	// 同一访客对同一接口用同一幂等键重试时根操作保持不变：风控按根复用原准入，问答按回执返回原结果，
+	// 不会每次重领准入、把新准入写进正文而被当成“同键异正文”。主体变了（如刚过人机验证）就是新的根。
+	if key := runtime.Request.Header.Get("Idempotency-Key"); platform.ValidIdentifier(key) {
+		payload, _ := platform.CanonicalJSON(map[string]string{"siteId": runtime.SiteID, "subject": subject, "route": route.Definition.Owner + ":" + route.Definition.UpstreamOperationID, "key": key})
+		root, err := serviceauth.PrivateOperationDigest(runtime.NetworkScopeKeys[0], "portal.visitor-qa.root.v1", payload)
+		if err != nil {
+			return nil, InternalProof{}, op, err
+		}
+		op.RootOperationID = root
+	}
 	if action := route.Definition.Admission; action != "" {
 		permit, err := createAdmission(ctx, op, runtime, action, token)
 		if err != nil {

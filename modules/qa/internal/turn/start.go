@@ -25,12 +25,18 @@ func StartTurn(ctx context.Context, op OperationContext, input StartTurnInput) (
 	if err != nil {
 		return StartTurnResult{}, err
 	}
+	if runtime.BaseLanguage == "" {
+		return StartTurnResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "站点基准语言暂不可读，请稍后再试")
+	}
 	var result StartTurnResult
+	// 业务幂等只看访客提交的内容：准入是入口每次按原根交来的短期凭据（续租还会改到期时间），不算业务输入。
+	request := input
+	request.Admission = gen.AdmissionPermit{}
 	tx, err := qaruntime.BeginWrite(ctx, op)
 	if err != nil {
 		return result, err
 	}
-	replay, err := qaruntime.ReplayReceipt(tx, op, "qa.StartTurn", input.IdempotencyKey, input, &result)
+	replay, err := qaruntime.ReplayReceipt(tx, op, "qa.StartTurn", input.IdempotencyKey, request, &result)
 	tx.Close()
 	if err != nil || replay {
 		return result, err
@@ -75,7 +81,7 @@ func StartTurn(ctx context.Context, op OperationContext, input StartTurnInput) (
 		return result, err
 	}
 	defer tx.Close()
-	replay, err = qaruntime.ReplayReceipt(tx, op, "qa.StartTurn", input.IdempotencyKey, input, &result)
+	replay, err = qaruntime.ReplayReceipt(tx, op, "qa.StartTurn", input.IdempotencyKey, request, &result)
 	if err != nil || replay {
 		return result, err
 	}
@@ -102,7 +108,7 @@ func StartTurn(ctx context.Context, op OperationContext, input StartTurnInput) (
 		return result, err
 	}
 	result = StartTurnResult{Turn: record.Turn, StreamPath: "/v1/turns/" + turn.TurnId + "/events"}
-	if err := qaruntime.SaveReceipt(tx, op, "qa.StartTurn", input.IdempotencyKey, input, result); err != nil {
+	if err := qaruntime.SaveReceipt(tx, op, "qa.StartTurn", input.IdempotencyKey, request, result); err != nil {
 		return StartTurnResult{}, err
 	}
 	if err := tx.Commit(); err != nil {

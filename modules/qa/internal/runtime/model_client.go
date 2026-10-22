@@ -22,14 +22,15 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 		return InvokeModelResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "问答模型网关尚未装配")
 	}
 	if op.CostClass == platform.CostClassQA {
-		if runtime.AdmissionPermit == nil {
+		permit := runtime.Permit()
+		if permit == nil {
 			return InvokeModelResult{}, platform.NewError(platform.CodeForbidden, false, "问答模型调用缺少已消费许可")
 		}
-		input.Request.AdmissionPermit = runtime.AdmissionPermit
+		input.Request.AdmissionPermit = permit
 	}
 	key := "qa." + platform.HashBytes([]byte(op.OperationID+":"+input.Request.IDempotencyKey))
 	input.Request.IDempotencyKey = key
-	return modelclient.InvokeModel(platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op), runtime.Gateway, op, platform.InvokeModelRequest{Request: input.Request, IDempotencyKey: key, Stream: input.Stream, OnEvent: runtime.OnModelEvent})
+	return modelclient.InvokeModel(platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op), runtime.Gateway, op, platform.InvokeModelRequest{Request: input.Request, IDempotencyKey: key, Stream: input.Stream, OnEvent: runtime.OnModelEvent, OnAccepted: runtime.OnModelAccepted})
 }
 
 // ModelText 只读取网关已持久化的完整winning文本；费用状态另行保留。

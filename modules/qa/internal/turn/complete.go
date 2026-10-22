@@ -9,7 +9,9 @@ import (
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"nice-wiki/modules/qa/internal/stream"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type CompleteTurnInput struct {
@@ -94,6 +96,9 @@ func CompleteTurn(ctx context.Context, op OperationContext, input CompleteTurnIn
 	canonical, _ := platform.CanonicalJSON(hashInput)
 	current.CompletionHash = platform.HashBytes(canonical)
 	current.TerminalNS = time.Now().UnixNano()
+	if err := alignDeliveredAnswer(tx, &current, input.Answer); err != nil {
+		return CompleteTurnResult{}, err
+	}
 	if err := stream.SaveEvent(tx, &current, gen.AnswerEvent{Event: gen.AnswerEventEvent("completed"), Turn: &current.Turn}, "", nil); err != nil {
 		return CompleteTurnResult{}, err
 	}
@@ -174,6 +179,59 @@ func releaseTurnPermit(ctx context.Context, record qaruntime.TurnRecord) error {
 	}
 	if !response.Released {
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "准入并发占位尚未释放")
+	}
+	return nil
+}
+
+// alignDeliveredAnswer 让访客最终看到的文字与权威答案一致：模型极快完成、或断流后读到完整快照时，
+// 已持久的 delta 可能为空或缺尾部。已送达的是答案前缀就补发剩下的部分；对不上就先发 invalidate 再整段重发。
+func alignDeliveredAnswer(tx *qaruntime.Transaction, record *qaruntime.TurnRecord, answer string) error {
+	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT event_json FROM turn_events WHERE turn_id=? ORDER BY sequence`, record.Turn.TurnId)
+	if err != nil {
+		return qaruntime.StorageError(err)
+	}
+	var delivered strings.Builder
+	for rows.Next() {
+		var raw []byte
+		var event gen.AnswerEvent
+		if err := rows.Scan(&raw); err != nil {
+			rows.Close()
+			return qaruntime.StorageError(err)
+		}
+		if json.Unmarshal(raw, &event) != nil {
+			rows.Close()
+			return platform.NewError(platform.CodeIntegrityError, false, "原流事件损坏")
+		}
+		switch event.Event {
+		case "delta":
+			if event.Delta != nil {
+				delivered.WriteString(*event.Delta)
+			}
+		case "invalidate":
+			delivered.Reset()
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return qaruntime.StorageError(err)
+	}
+	rows.Close()
+	missing := answer
+	if sent := delivered.String(); strings.HasPrefix(answer, sent) {
+		missing = answer[len(sent):]
+	} else if err := stream.SaveEvent(tx, record, gen.AnswerEvent{Event: gen.AnswerEventEvent("invalidate")}, "", nil); err != nil {
+		return err
+	}
+	for missing != "" {
+		cut := min(len(missing), 16384)
+		for cut < len(missing) && !utf8.RuneStart(missing[cut]) {
+			cut--
+		}
+		piece := missing[:cut]
+		if err := stream.SaveEvent(tx, record, gen.AnswerEvent{Event: gen.AnswerEventEvent("delta"), Delta: &piece}, "", nil); err != nil {
+			return err
+		}
+		missing = missing[cut:]
 	}
 	return nil
 }

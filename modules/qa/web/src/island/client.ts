@@ -6,6 +6,7 @@ export type Citation = { citationId?: string; title?: string; href?: string };
 export type TurnInfo = { turnId: string; answerRevision?: number };
 export type StreamEvent =
   | { kind: 'delta'; text: string }
+  | { kind: 'reset' }
   | { kind: 'citation'; citation: Citation }
   | { kind: 'done'; turn?: TurnInfo }
   | { kind: 'failed'; code: string }
@@ -119,6 +120,7 @@ export async function followTurn(started: StartedTurn, onEvent: (event: StreamEv
         let payload: { delta?: string; citation?: Citation; code?: string; turn?: TurnInfo };
         try { payload = JSON.parse(data); } catch { continue; }
         if (event === 'delta' && payload.delta) onEvent({ kind: 'delta', text: payload.delta });
+        else if (event === 'invalidate') onEvent({ kind: 'reset' });
         else if (event === 'citation' && payload.citation) onEvent({ kind: 'citation', citation: payload.citation });
         else if (event === 'failed') { onEvent({ kind: 'failed', code: payload.code ?? '' }); ended = true; }
         else if (event === 'cancelled') { onEvent({ kind: 'cancelled' }); ended = true; }

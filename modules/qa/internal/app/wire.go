@@ -6,10 +6,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -71,7 +73,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 			_ = db.Close()
 		}
 	}()
-	baseLanguage := "zh-Hans"
 	window := platform.WriteWindowConfig{
 		Runtime: func(work context.Context) (platform.RuntimeView, error) {
 			return lifecycle.ReadRuntime(work, runtimeAuthority)
@@ -90,18 +91,44 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 	dep := func(name string) string { return config.Dependencies[name] }
 	runtime, err := qaruntime.NewRuntime(qaruntime.Runtime{
 		DB: db, WriteWindow: window, SigningKey: key,
-		Guard:        gen.NewTrafficGuardClient(dep("traffic-guard"), ModuleSlug, key),
-		Content:      gen.NewContentClient(dep("content"), ModuleSlug, key),
-		PublicSite:   gen.NewPublicSiteClient(dep("public-site"), ModuleSlug, key),
-		Knowledge:    gen.NewKnowledgeClient(dep("knowledge"), ModuleSlug, key),
-		Memory:       gen.NewMemoryClient(dep("memory"), ModuleSlug, key),
-		Localization: gen.NewLocalizationClient(dep("localization"), ModuleSlug, key),
-		Models:       gen.NewModelGatewayClient(dep("model-gateway"), ModuleSlug, key),
-		Jobs:         gen.NewJobsClient(dep("jobs"), ModuleSlug, key),
-		BaseLanguage: baseLanguage, AnswerContextTokens: 4096, PreflightContextTokens: 2048,
+		Guard:               gen.NewTrafficGuardClient(dep("traffic-guard"), ModuleSlug, key),
+		Content:             gen.NewContentClient(dep("content"), ModuleSlug, key),
+		PublicSite:          gen.NewPublicSiteClient(dep("public-site"), ModuleSlug, key),
+		Knowledge:           gen.NewKnowledgeClient(dep("knowledge"), ModuleSlug, key),
+		Memory:              gen.NewMemoryClient(dep("memory"), ModuleSlug, key),
+		Localization:        gen.NewLocalizationClient(dep("localization"), ModuleSlug, key),
+		Models:              gen.NewModelGatewayClient(dep("model-gateway"), ModuleSlug, key),
+		Jobs:                gen.NewJobsClient(dep("jobs"), ModuleSlug, key),
+		AnswerContextTokens: 4096, PreflightContextTokens: 2048,
 	})
 	if err != nil {
 		return nil, err
+	}
+	// 站点基准语言以 site-config 为准：站点初始化前读不到就留空，用到它的问答接口报依赖暂不可用；读到后不再变化。
+	siteConfig := gen.NewSiteConfigClient(dep("site-config"), ModuleSlug, key)
+	var baseLanguage atomic.Value
+	withBaseLanguage := func(c context.Context, op platform.OperationContext) qaruntime.Runtime {
+		current := runtime
+		if cached, ok := baseLanguage.Load().(string); ok {
+			current.BaseLanguage = cached
+			return current
+		}
+		raw, readErr := siteConfig.ReadSiteConfig(qaruntime.ServiceReadContext(c, op))
+		var site struct {
+			Config struct {
+				BaseLanguage string `json:"baseLanguage"`
+			} `json:"config"`
+		}
+		if readErr == nil {
+			readErr = qaruntime.DecodeResponse(runtime, "SiteConfigReadSiteConfigResult", raw, &site)
+		}
+		if readErr == nil && site.Config.BaseLanguage != "" {
+			baseLanguage.Store(site.Config.BaseLanguage)
+			current.BaseLanguage = site.Config.BaseLanguage
+		} else if os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "站点基准语言暂不可读：%v\n", readErr)
+		}
+		return current
 	}
 	spec, err := gen.GetSwagger()
 	if err != nil {
@@ -118,10 +145,14 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 		MaintenanceOperations: map[string]bool{"getConversation": true, "readPublicCapability": true},
 	}, transport.NewOperationHandlers(func(c context.Context) context.Context {
 		// 本域私有存储的站点身份取自首个带真实站点的请求，之后不再变化。
-		if op, ok := platform.OperationContextFrom(c); ok && op.Actor.SiteID != "" && op.Actor.SiteID != "system" {
+		op, ok := platform.OperationContextFrom(c)
+		if ok && op.Actor.SiteID != "" && op.Actor.SiteID != "system" {
 			identityOnce.Do(func() { _ = ensureIdentity(c, db, op.Actor.SiteID, view.DataEpoch) })
 		}
-		return qaruntime.WithRuntime(c, runtime)
+		if !ok {
+			return qaruntime.WithRuntime(c, runtime)
+		}
+		return qaruntime.WithRuntime(c, withBaseLanguage(c, op))
 	}))
 	if err != nil {
 		return nil, err
@@ -143,7 +174,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 		id := platform.NewIdentifier()
 		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline.Format(time.RFC3339Nano), DataEpoch: view.DataEpoch,
 			Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: site, ExpiresAt: deadline.Format(time.RFC3339Nano), Grants: []string{}}}
-		return qaruntime.WithRuntime(platform.WithOperationContext(tick, op), runtime), op, true
+		ctx := platform.WithOperationContext(tick, op)
+		return qaruntime.WithRuntime(ctx, withBaseLanguage(ctx, op)), op, true
 	}
 	started := time.Now().UnixNano()
 	interruptedHandled := false

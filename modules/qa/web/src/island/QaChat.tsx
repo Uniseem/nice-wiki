@@ -67,6 +67,7 @@ export function QaChat({ locale, t, autoFocus, className }: { locale: string; t:
       patch(id, (message) => ({ ...message, turn: started.turn }));
       await followTurn(started, (event) => {
         if (event.kind === 'delta') patch(id, (message) => ({ ...message, text: message.text + event.text }));
+        else if (event.kind === 'reset') patch(id, (message) => ({ ...message, text: '' }));
         else if (event.kind === 'citation') patch(id, (message) => ({ ...message, citations: [...message.citations, event.citation] }));
         else if (event.kind === 'done') patch(id, (message) => ({ ...message, status: 'done', turn: event.turn?.turnId ? event.turn : message.turn }));
         else if (event.kind === 'cancelled') patch(id, (message) => ({ ...message, status: 'cancelled' }));

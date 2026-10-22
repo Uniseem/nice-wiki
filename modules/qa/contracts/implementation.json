@@ -10201,6 +10201,7 @@
           "idempotency": "启动重入按journal和epoch恢复，不新建paid operation",
           "dependencies": [
             "site-config:registerActivation",
+            "site-config:readSiteConfig",
             "qa.LoadRuntime",
             "qa.RecoverTurns",
             "qa.PruneExpiredRecords",

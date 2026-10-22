@@ -3199,6 +3199,12 @@
       "GuardReleasePermitResult": {
         "$ref": "../../traffic-guard/contracts/types.json#/$defs/ReleasePermitResult"
       },
+      "GuardRenewPermitResult": {
+        "$ref": "../../traffic-guard/contracts/types.json#/$defs/RenewPermitResult"
+      },
+      "SiteConfigReadSiteConfigResult": {
+        "$ref": "../../site-config/contracts/types.json#/$defs/ReadSiteConfigResult"
+      },
       "ContentValidatePublicationsResult": {
         "$ref": "../../content/contracts/types.json#/$defs/ValidatePublicationsResult"
       },
@@ -3311,6 +3317,8 @@
     "GuardValidatePermitResult",
     "GuardConsumeAdmissionResult",
     "GuardReleasePermitResult",
+    "GuardRenewPermitResult",
+    "SiteConfigReadSiteConfigResult",
     "ContentValidatePublicationsResult",
     "ContentReadPublishedRevisionResult",
     "ContentReadPublicTreeResult",

@@ -24,7 +24,7 @@ func AcquireQueryEmbedding(ctx context.Context, op OperationContext, input Acqui
 	if runtime.Knowledge == nil {
 		return AcquireQueryEmbeddingResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "知识查询嵌入权威未装配")
 	}
-	if op.CostClass == platform.CostClassQA && runtime.AdmissionPermit == nil {
+	if op.CostClass == platform.CostClassQA && runtime.Permit() == nil {
 		return AcquireQueryEmbeddingResult{}, platform.NewError(platform.CodeForbidden, false, "查询嵌入缺少已消费准入许可")
 	}
 	queryHash := platform.HashBytes([]byte(input.CanonicalQuestion))
@@ -34,7 +34,7 @@ func AcquireQueryEmbedding(ctx context.Context, op OperationContext, input Acqui
 		Space  gen.EmbeddingSpace        `json:"space"`
 		Key    string                    `json:"idempotencyKey"`
 		Permit *platform.AdmissionPermit `json:"admissionPermit,omitempty"`
-	}{input.CanonicalQuestion, input.Space, key, runtime.AdmissionPermit})
+	}{input.CanonicalQuestion, input.Space, key, runtime.Permit()})
 	if err != nil {
 		return AcquireQueryEmbeddingResult{}, err
 	}

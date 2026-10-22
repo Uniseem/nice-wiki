@@ -2,9 +2,13 @@ package turn
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -37,16 +41,42 @@ func mustDeadline(op OperationContext) time.Time {
 	return deadline
 }
 
-func runTurn(ctx context.Context, op OperationContext, turnID string) error {
-	runtime, err := qaruntime.FromContext(ctx)
+// running 记着本进程里正在执行的轮次，取消接口据此直接中断在途步骤和模型调用。
+var running sync.Map
+
+var errTurnCancelled = platform.NewError(platform.CodeCancelled, false, "问答轮次已取消")
+
+// stopRunningTurn 中断本进程里正在执行的轮次；没有在执行（已结束或在别处）时什么也不做。
+func stopRunningTurn(turnID string, cause error) {
+	if stop, ok := running.Load(turnID); ok {
+		stop.(context.CancelCauseFunc)(cause)
+	}
+}
+
+func runTurn(parent context.Context, op OperationContext, turnID string) (err error) {
+	runtime, err := qaruntime.FromContext(parent)
 	if err != nil {
 		return err
 	}
+	turnCtx, stop := context.WithCancelCause(parent)
+	running.Store(turnID, stop)
+	defer func() {
+		running.Delete(turnID)
+		// 被取消或续租被拒而中断的，报告真正的原因，而不是某一步看到的“上下文已取消”。
+		if err != nil && turnCtx.Err() != nil {
+			if cause := context.Cause(turnCtx); cause != nil {
+				err = cause
+			}
+		}
+		stop(nil)
+	}()
+	ctx := turnCtx
 	lease := platform.NewIdentifier()
 	record, err := takeLease(ctx, op, turnID, lease, "retrieving")
 	if err != nil {
 		return err
 	}
+	runtime.SetPermit(record.Permit)
 	stopRenew := make(chan struct{})
 	defer close(stopRenew)
 	go func() {
@@ -58,10 +88,16 @@ func runTurn(ctx context.Context, op OperationContext, turnID string) error {
 				return
 			case <-ticker.C:
 				_ = renewLease(ctx, op, turnID, lease)
+				if err := renewPermit(ctx, runtime, record); err != nil {
+					stop(err)
+					return
+				}
 			}
 		}
 	}()
-	runtime.AdmissionPermit = &record.Permit
+	runtime.OnModelAccepted = func(id platform.Identifier) error {
+		return recordInvocation(ctx, op, turnID, id)
+	}
 	runtime.OnModelEvent = func(event platform.StreamEvent) error {
 		if event.Event == platform.StreamDelta && event.Delta != "" {
 			delta := event.Delta
@@ -216,6 +252,56 @@ func renewLease(ctx context.Context, op OperationContext, turnID, lease string) 
 	defer tx.Close()
 	until := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)
 	if _, err := tx.Tx.ExecContext(tx.Context, `UPDATE turns SET lease_until=? WHERE turn_id=? AND lease_id=?`, until, turnID, lease); err != nil {
+		return qaruntime.StorageError(err)
+	}
+	return tx.Commit()
+}
+
+// renewPermit 在原根和风控允许的最长窗口内续租准入，换上新签的许可。
+// 风控明确拒绝（封禁、到期、已释放）时返回错误，本轮随即停止，不再发起新的付费步骤；连不上风控就等下一次再试。
+func renewPermit(ctx context.Context, runtime qaruntime.Runtime, record qaruntime.TurnRecord) error {
+	if runtime.Guard == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, false, "准入续租权威未装配")
+	}
+	op := record.Operation
+	op.Deadline = time.Now().UTC().Add(10 * time.Second).Format(time.RFC3339Nano)
+	raw, err := runtime.Guard.RenewAdmission(qaruntime.ServiceReadContext(ctx, op), record.Permit.AdmissionID, struct{}{}, "qa.renew."+platform.NewIdentifier())
+	if err != nil {
+		var problem *platform.Error
+		if errors.As(err, &problem) && !problem.Retryable {
+			return err
+		}
+		return nil
+	}
+	var response struct {
+		Permit platform.AdmissionPermit `json:"permit"`
+	}
+	if err := qaruntime.DecodeResponse(runtime, "GuardRenewPermitResult", raw, &response); err != nil {
+		return err
+	}
+	runtime.SetPermit(response.Permit)
+	return nil
+}
+
+// recordInvocation 把网关已接受的模型调用记进轮次，取消时逐个取消；轮次已取消就拒绝，平台随即取消这次调用。
+func recordInvocation(ctx context.Context, op OperationContext, turnID string, id platform.Identifier) error {
+	tx, err := qaruntime.BeginWrite(ctx, op)
+	if err != nil {
+		return err
+	}
+	defer tx.Close()
+	record, err := qaruntime.ReadTurn(tx, op, turnID, false)
+	if err != nil {
+		return err
+	}
+	if qaruntime.IsTerminal(record.State) || record.CancelRequested {
+		return errTurnCancelled
+	}
+	if slices.Contains(record.InvocationIDs, id) {
+		return nil
+	}
+	raw, _ := json.Marshal(append(record.InvocationIDs, id))
+	if _, err := tx.Tx.ExecContext(tx.Context, `UPDATE turns SET invocation_ids_json=? WHERE turn_id=?`, string(raw), turnID); err != nil {
 		return qaruntime.StorageError(err)
 	}
 	return tx.Commit()

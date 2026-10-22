@@ -72,6 +72,12 @@ func InvokeModel(ctx context.Context, client platform.GatewayClient, op platform
 			}
 		}
 	}
+	if input.OnAccepted != nil {
+		if err = input.OnAccepted(outcome.InvocationID); err != nil {
+			_ = cancelCall(original, client, outcome.InvocationID, input.IDempotencyKey)
+			return outcome, err
+		}
+	}
 	var lastSequence int64
 	for {
 		complete, err := finishKnownGatewaySnapshot(&outcome, lastSequence)
@@ -95,6 +101,14 @@ func InvokeModel(ctx context.Context, client platform.GatewayClient, op platform
 		// 历史终态和EOF都不足以覆盖后来对账或完整结果，必须读当前权威。
 		if err = readCurrentGatewaySnapshot(original, current, op, &outcome); err != nil {
 			return outcome, err
+		}
+		// 调用方取消或到截止时流读取先报错返回：先取消原调用，不留下继续生成、继续计费的模型调用。
+		if err = paid.Err(); err != nil {
+			if complete, _ := finishKnownGatewaySnapshot(&outcome, lastSequence); !complete {
+				_ = cancelCall(original, client, outcome.InvocationID, input.IDempotencyKey)
+				_ = readCurrentGatewaySnapshot(original, current, op, &outcome)
+			}
+			return outcome, platform.NormalizeIOError(err, platform.CodeCancelled, false, "模型原调用已取消或到达截止，保留已接受事实")
 		}
 		if terminal && streamErr == nil {
 			if err = notifyCurrentModelTerminal(input, outcome); err != nil {

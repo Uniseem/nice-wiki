@@ -380,7 +380,8 @@ func EvaluateAdmission(ctx context.Context, op OperationContext, in EvaluateAdmi
 			return EvaluateAdmissionResult{Decision: risk.Decision, ReasonCode: reason}, nil
 		}
 	}
-	// 成功分配只保留一份；已过期/终止的原根不借重放重新创建。
+	// 成功分配只保留一份；同根重放只交回原准入，已过期/终止的也不重新分配。
+	// 原准入已终止时照样交回：拥有服务按原回执返回结果，没有回执时它核验准入会拒绝，不会借此复活。
 	var existingID string
 	err = t.tx.QueryRowContext(t.ctx, `SELECT admission_id FROM guard_permits WHERE site_id=? AND data_epoch=? AND owner_caller=? AND request_id=?`, t.site, op.DataEpoch, classification.OwnerCaller, in.RequestID).Scan(&existingID)
 	if err == nil {
@@ -390,9 +391,6 @@ func EvaluateAdmission(ctx context.Context, op OperationContext, in EvaluateAdmi
 		}
 		if row.subject != in.SubjectKey || row.action != in.Action {
 			return EvaluateAdmissionResult{}, platform.NewError(platform.CodeConflict, false, "原根已绑定其他匿名主体或动作")
-		}
-		if row.state != "active" || row.expires <= t.now.UnixNano() {
-			return EvaluateAdmissionResult{}, platform.NewError(platform.CodeStaleResult, false, "原准入已终止，不能通过重放复活")
 		}
 		permit := permitMetadata(row, op.DataEpoch)
 		if err = t.commit(); err != nil {
