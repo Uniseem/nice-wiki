@@ -5358,6 +5358,7 @@ func PurgeDocuments(ctx context.Context, op OperationContext, input PurgeDocumen
 1. superadmin专属；核当前trash集合与confirmationHash，活动文档拒绝
 2. 先持久purge决定+墓碑，移除本域正文head/索引/引用并返回410
 3. 本域文件经决定日志删除；data git已提交历史由data-protection保留，不删别域目录/自动清媒体
+4. 同事务为每篇文档排队content.resources.changed v2空集合事件（来源版本+1、来源操作由彻底删除操作与文档派生），资源服务据此释放引用；引用列表不再计入已彻底删除文档
 
 **错误**
 

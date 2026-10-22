@@ -50,13 +50,13 @@
       "payloadSchema": {
         "$ref": "types.json#/$defs/ResourceReferencesChangedPayloadV2"
       },
-      "purpose": "仅已COMMITTED的SaveDraft以原持久来源操作和规范AssetReference全集排队；空集合仍保留全部来源身份；发布、撤回、pending及创建均不得成为新源",
+      "purpose": "已COMMITTED的SaveDraft以原持久来源操作和规范AssetReference全集排队；彻底删除在同一事务内为每篇文档以空集合、来源版本+1排队，释放其资源引用；空集合仍保留全部来源身份；发布、撤回、pending及创建均不得成为新源",
       "delivery": "at-least-once",
       "ordering": "同一siteId/sourceObjectId的sourceVersion单调；原sourceOperationId重放保持版本和摘要",
       "idempotency": "jobs信封eventId与持久sourceOperationId/sourceVersion去重；eventId不属于payload",
       "migration": {
         "read": "仅按v2完整schema解析，不能从v1推导缺失来源",
-        "produce": "仅SaveDraft的COMMITTED业务事务内写outbox；pending、发布、撤回和创建一律拒绝",
+        "produce": "仅SaveDraft的COMMITTED业务事务与彻底删除事务内写outbox；pending、发布、撤回和创建一律拒绝",
         "upgrade": "v1保留历史只读，不原地改写、不合成v2事件"
       },
       "integrationBlockers": [

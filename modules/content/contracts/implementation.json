@@ -6073,7 +6073,8 @@
           "steps": [
             "superadmin专属；核当前trash集合与confirmationHash，活动文档拒绝",
             "先持久purge决定+墓碑，移除本域正文head/索引/引用并返回410",
-            "本域文件经决定日志删除；data git已提交历史由data-protection保留，不删别域目录/自动清媒体"
+            "本域文件经决定日志删除；data git已提交历史由data-protection保留，不删别域目录/自动清媒体",
+            "同事务为每篇文档排队content.resources.changed v2空集合事件（来源版本+1、来源操作由彻底删除操作与文档派生），资源服务据此释放引用；引用列表不再计入已彻底删除文档"
           ],
           "errors": [
             {
@@ -10692,6 +10693,12 @@
       "path": "modules/content/migrations/0009_model_suggestions.sql",
       "kind": "handwritten",
       "purpose": "只追加首次发布模型建议的按哈希结果缓存",
+      "functions": []
+    },
+    {
+      "path": "modules/content/migrations/0010_purged_reference_releases.sql",
+      "kind": "handwritten",
+      "purpose": "记录已向资源服务发出空引用集合释放事件的彻底删除文档；引用列表只跳过这些文档，未释放的旧文档由事件转发循环补发",
       "functions": []
     },
     {

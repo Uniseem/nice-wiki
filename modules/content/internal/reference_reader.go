@@ -275,6 +275,15 @@ func readReferenceSources(ctx context.Context, tx *sql.Tx, op OperationContext, 
 	if len(sources) > referenceScanBudget {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "引用来源完整扫描超出登记预算")
 	}
+	// 彻底删除并已发出空集合释放事件的文档，它的草稿与发布引用不再占用资源；还没补发的旧文档照旧计入。
+	released, err := queryIdentifiers(ctx, tx, `SELECT document_id FROM purged_reference_releases WHERE site_id=?`, op.Actor.SiteID)
+	if err != nil {
+		return nil, err
+	}
+	purged := make(map[Identifier]bool, len(released))
+	for _, id := range released {
+		purged[id] = true
+	}
 	result := make([]gen.ResourceReference, 0)
 	seen := make(map[string]bool)
 	for _, source := range sources {
@@ -303,7 +312,7 @@ func readReferenceSources(ctx context.Context, tx *sql.Tx, op OperationContext, 
 		if err != nil {
 			return nil, err
 		}
-		if state == "aborted" || state == "rejected" {
+		if state == "aborted" || state == "rejected" || purged[plan.DocumentID] {
 			continue
 		}
 		for _, ref := range refs {
@@ -327,6 +336,9 @@ func readReferenceSources(ctx context.Context, tx *sql.Tx, op OperationContext, 
 		return nil, err
 	}
 	for _, ref := range published {
+		if purged[ref.DocumentId] {
+			continue
+		}
 		raw, err := json.Marshal(ref)
 		if err != nil || runtime.validateReference(raw) != nil {
 			return nil, platform.NewError(platform.CodeIntegrityError, false, "已发布引用来源条目不符合唯一schema")

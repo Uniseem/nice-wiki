@@ -39,6 +39,9 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 	if err := runtime.Store.checkRevisionScope(ctx, op); err != nil {
 		return RelayOutboxResult{}, err
 	}
+	if err := releasePurgedBacklog(ctx, op, runtime); err != nil {
+		return RelayOutboxResult{}, err
+	}
 	return outbox.RunRelayBatch(platform.WithOperationContext(ctx, op), outbox.NewStore(runtime.Store.db), outbox.NewEventPublisher(runtime.Jobs), platform.RelayConfig{BatchLimit: input.BatchLimit, PollMillis: 1000, Runtime: runtime.WriteWindow.Runtime, WriteWindow: runtime.WriteWindow.WriteWindow})
 }
 

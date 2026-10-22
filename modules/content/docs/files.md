@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 59 个：手写 48、UI 1、生成 4、配置 6。函数 255 个：约束 45，参考 210。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 60 个：手写 49、UI 1、生成 4、配置 6。函数 255 个：约束 45，参考 210。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -63,5 +63,6 @@
 | `modules/content/migrations/0007_metadata_operations.sql` | 手写 | 只追加完整同代metadata原回执：scope/caller/actor/request hash/result/hash，同真实CAS/outbox事务，不建资源影子来源 | 无 |
 | `modules/content/migrations/0008_publication_snapshots.sql` | 手写 | 只追加发布快照、署名历史、已发布引用和版本化重定向清单 | 无 |
 | `modules/content/migrations/0009_model_suggestions.sql` | 手写 | 只追加首次发布模型建议的按哈希结果缓存 | 无 |
+| `modules/content/migrations/0010_purged_reference_releases.sql` | 手写 | 记录已向资源服务发出空引用集合释放事件的彻底删除文档；引用列表只跳过这些文档，未释放的旧文档由事件转发循环补发 | 无 |
 | `modules/content/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `content.ReadSnapshotArchive` |
 | `modules/content/web/src/index.tsx` | UI | 文档管理：文档树、Tiptap 编辑器（稳定块 ID、斜杠菜单、画板、公式、上传）、编辑锁与自动保存、发布/撤回/历史/回收站 | `content.ContentPage` |

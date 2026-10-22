@@ -3,6 +3,7 @@ package content
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"slices"
 	"sort"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/content/internal/gen"
 )
 
@@ -329,6 +331,9 @@ func PurgeDocuments(ctx context.Context, op OperationContext, input PurgeDocumen
 		}
 		revision++
 	}
+	if err = releasePurgedReferences(work, tx, op, ids); err != nil {
+		return PurgeDocumentsResult{}, err
+	}
 	if err = enqueueTreeChanged(bindPublicationTx(work, tx), tx, op, revision, ids); err != nil {
 		return PurgeDocumentsResult{}, err
 	}
@@ -336,4 +341,99 @@ func PurgeDocuments(ctx context.Context, op OperationContext, input PurgeDocumen
 		return PurgeDocumentsResult{}, contentStorageError()
 	}
 	return PurgeDocumentsResult{PurgedIds: ids}, nil
+}
+
+// releasePurgedReferences 与彻底删除同事务：彻底删除的文档不再有任何版本可恢复，按保存草稿同样的引用事件
+// 以空集合推进资源服务里该文档的引用版本，资源服务据此把旧引用转为历史，资源可以进入清理计划。
+// 来源操作只由文档派生，补发同一文档时资源服务按同一来源去重。
+func releasePurgedReferences(ctx context.Context, tx *sql.Tx, op OperationContext, ids []Identifier) error {
+	empty, digest, err := draftMediaReferences(nil)
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		var version int
+		var revision Identifier
+		if err = tx.QueryRowContext(ctx, `SELECT d.reference_version,h.revision_id FROM documents d JOIN draft_heads h ON h.site_id=d.site_id AND h.document_id=d.document_id WHERE d.site_id=? AND d.document_id=?`, op.Actor.SiteID, id).Scan(&version, &revision); err != nil {
+			return contentStorageError()
+		}
+		payload, err := json.Marshal(struct {
+			SourceService     string                `json:"sourceService"`
+			SourceOperationID Identifier            `json:"sourceOperationId"`
+			SiteID            Identifier            `json:"siteId"`
+			SourceObjectID    Identifier            `json:"sourceObjectId"`
+			SourceRevisionID  Identifier            `json:"sourceRevisionId"`
+			SourceVersion     int                   `json:"sourceVersion"`
+			ReferenceDigest   Hash                  `json:"referenceDigest"`
+			References        []draftMediaReference `json:"references"`
+		}{"content", platform.HashBytes([]byte("purge:" + id)), op.Actor.SiteID, id, revision, version + 1, digest, empty})
+		if err != nil {
+			return platform.NewError(platform.CodeIntegrityError, false, "彻底删除的资源事件载荷无法编码")
+		}
+		if err = outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.resources.changed", EventVersion: 2, Producer: "content", SubjectID: id, Revision: int64(version + 1), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT OR IGNORE INTO purged_reference_releases(site_id,document_id) VALUES(?,?)`, op.Actor.SiteID, id); err != nil {
+			return contentStorageError()
+		}
+	}
+	// 引用列表随之变化，推进扫描水位，进行中的分页读取会从头再读。
+	if _, err = tx.ExecContext(ctx, `UPDATE reference_scan_state SET revision=revision+1 WHERE singleton=1`); err != nil {
+		return contentStorageError()
+	}
+	return nil
+}
+
+// releasePurgedBacklog 为本修复之前彻底删除、还没发过释放事件的文档补发；没有遗留时只是一次空查询。
+func releasePurgedBacklog(ctx context.Context, op OperationContext, runtime RelayRuntime) error {
+	const backlog = `SELECT d.document_id FROM documents d WHERE d.site_id=? AND d.state='purged' AND NOT EXISTS (SELECT 1 FROM purged_reference_releases r WHERE r.site_id=d.site_id AND r.document_id=d.document_id) ORDER BY d.document_id LIMIT 100`
+	ids, err := queryIdentifiers(ctx, runtime.Store.db, backlog, op.Actor.SiteID)
+	if err != nil || len(ids) == 0 {
+		return err
+	}
+	work, view, cancel, err := lifecycle.NewWriteContext(platform.WithOperationContext(ctx, op), runtime.WriteWindow)
+	if err != nil {
+		return err
+	}
+	defer cancel()
+	if view.DataEpoch != op.DataEpoch {
+		return nil
+	}
+	tx, err := runtime.Store.db.BeginTx(work, nil)
+	if err != nil {
+		return contentStorageError()
+	}
+	defer tx.Rollback()
+	if ids, err = queryIdentifiers(work, tx, backlog, op.Actor.SiteID); err != nil || len(ids) == 0 {
+		return err
+	}
+	if err = releasePurgedReferences(work, tx, op, ids); err != nil {
+		return err
+	}
+	if err = tx.Commit(); err != nil {
+		return contentStorageError()
+	}
+	return nil
+}
+
+func queryIdentifiers(ctx context.Context, q interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}, query string, args ...any) ([]Identifier, error) {
+	rows, err := q.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, contentStorageError()
+	}
+	defer rows.Close()
+	ids := []Identifier{}
+	for rows.Next() {
+		var id Identifier
+		if err = rows.Scan(&id); err != nil {
+			return nil, contentStorageError()
+		}
+		ids = append(ids, id)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, contentStorageError()
+	}
+	return ids, nil
 }
