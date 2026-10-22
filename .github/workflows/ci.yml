@@ -18,20 +18,22 @@ jobs:
     name: Go 编译、测试与合同检查
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: "1.25.x"
           cache-dependency-path: "**/go.sum"
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
       - name: 生成物与仓库一致
         run: |
           make gen
           make docs
-          git diff --stat --exit-code
+          # oapi-codegen 把接口规格 gzip 后以 base64 内嵌，压缩字节随 Go 版本不同；只忽略这些行，其余差异都算不一致。
+          drift="$(git diff -U0 | grep -E '^[+-]' | grep -vE '^(\+\+\+|---) ' | grep -vE '^[+-]\s*"[A-Za-z0-9+/=]+",$' || true)"
+          if test -n "$drift"; then git diff --stat; echo "$drift" | head -50; exit 1; fi
       - name: 编译、vet、gofmt
         run: make build
       - name: 测试
@@ -46,9 +48,9 @@ jobs:
     name: 前端类型检查与构建
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: pnpm
