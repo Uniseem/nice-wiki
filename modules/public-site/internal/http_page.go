@@ -259,14 +259,23 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 	if err != nil {
 		return "", err
 	}
+	// 站内链接按当前语言的公开路径改写；目标未发布、已撤回或锚点不在时由渲染器显示为“暂不可用”。
+	links := map[string]string{}
+	if targets := collectInternalLinks(bundle.Document); len(targets) > 0 {
+		resolved, linkErr := RewriteInternalLinks(ctx, op, RewriteInternalLinksInput{targets, locale, epoch})
+		if linkErr != nil {
+			return "", linkErr
+		}
+		links = resolved.Rewritten
+	}
 	if markdown {
-		text, mdErr := RenderTiptapMarkdown(ctx, op, RenderTiptapMarkdownInput{Document: bundle.Document, Locale: locale, Assets: markdownAssets(media.Assets)})
+		text, mdErr := RenderTiptapMarkdown(ctx, op, RenderTiptapMarkdownInput{Document: bundle.Document, Locale: locale, Assets: markdownAssets(media.Assets), Links: links})
 		if mdErr != nil {
 			return "", mdErr
 		}
 		return "# " + bundle.Title + "\n\n" + text.Markdown, nil
 	}
-	body, err := RenderTiptapHTML(ctx, op, RenderTiptapHTMLInput{Document: bundle.Document, Locale: locale, Assets: media.Assets})
+	body, err := RenderTiptapHTML(ctx, op, RenderTiptapHTMLInput{Document: bundle.Document, Locale: locale, Assets: media.Assets, Links: links})
 	if err != nil {
 		return "", err
 	}
