@@ -131,6 +131,44 @@ func validatePathSnapshot(input ValidatePathSegmentInput) (ValidatePathSegmentRe
 	return ValidatePathSegmentResult{Valid: true}, nil
 }
 
+// ensurePublishedAncestorPaths要求rootID子树里每篇已发布文档连同全部祖先都有英文路径：
+// 公开树靠完整规范路径列出所有文章，缺一段就整站读不出来，所以在写入前拒绝。
+func ensurePublishedAncestorPaths(documents []gen.DocumentMetadata, rootID Identifier) error {
+	index := make(map[Identifier]gen.DocumentMetadata, len(documents))
+	for _, document := range documents {
+		index[document.DocumentId] = document
+	}
+	for _, document := range documents {
+		if document.State != gen.DocumentMetadataStatePublished {
+			continue
+		}
+		inSubtree := false
+		var missing *gen.DocumentMetadata
+		current := document
+		for depth := 0; depth <= 32; depth++ {
+			if current.DocumentId == rootID {
+				inSubtree = true
+			}
+			if current.PathSegment == nil && missing == nil {
+				found := current
+				missing = &found
+			}
+			if current.ParentId == nil {
+				break
+			}
+			current = index[*current.ParentId]
+		}
+		if !inSubtree || missing == nil {
+			continue
+		}
+		if missing.DocumentId == document.DocumentId {
+			return platform.NewError(platform.CodeValidation, false, "已发布的「%s」不能没有英文路径", document.Title)
+		}
+		return platform.NewError(platform.CodeValidation, false, "「%s」已发布或正在发布，但它的上级「%s」还没有英文路径：请先在上级的页面设置里填写路径", document.Title, missing.Title)
+	}
+	return nil
+}
+
 // commitRedirectManifest把本轮旧路径并入新的完整清单版本。调用方必须已持有同一业务事务。
 func commitRedirectManifest(ctx context.Context, tx *sql.Tx, op OperationContext, redirects []gen.RouteTombstone, documents []gen.DocumentMetadata) ([]gen.RouteTombstone, error) {
 	if len(redirects) == 0 {

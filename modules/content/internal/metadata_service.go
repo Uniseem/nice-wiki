@@ -108,6 +108,15 @@ func UpdateDocumentMetadata(ctx context.Context, op OperationContext, input Upda
 		metadata.SeoDescriptionSource = "manual"
 	}
 	metadata.Revision++
+	next := slices.Clone(documents)
+	for i := range next {
+		if next[i].DocumentId == metadata.DocumentId {
+			next[i] = metadata
+		}
+	}
+	if err = ensurePublishedAncestorPaths(next, metadata.DocumentId); err != nil {
+		return UpdateDocumentMetadataResult{}, err
+	}
 	updated, err := tx.ExecContext(work, `UPDATE content_tree_state SET revision=revision+1 WHERE site_id=? AND revision=?`, op.Actor.SiteID, treeRevision)
 	if err != nil {
 		return UpdateDocumentMetadataResult{}, contentStorageError()
@@ -129,12 +138,6 @@ func UpdateDocumentMetadata(ctx context.Context, op OperationContext, input Upda
 		return UpdateDocumentMetadataResult{}, contentStorageError()
 	}
 	if len(redirects) > 0 {
-		next := slices.Clone(documents)
-		for i := range next {
-			if next[i].DocumentId == metadata.DocumentId {
-				next[i] = metadata
-			}
-		}
 		stored, manifestErr := commitRedirectManifest(work, tx, op, redirects, next)
 		if manifestErr != nil {
 			return UpdateDocumentMetadataResult{}, manifestErr

@@ -546,6 +546,9 @@ func planTreeMove(documents []gen.DocumentMetadata, input MoveDocumentInput, rev
 			return nil, nil, err
 		}
 	}
+	if err = ensurePublishedAncestorPaths(candidate, moving.DocumentId); err != nil {
+		return nil, nil, err
+	}
 	return []gen.DocumentMetadata{*moving}, redirects, nil
 }
 

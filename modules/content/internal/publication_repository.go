@@ -263,6 +263,15 @@ func applyPublication(ctx context.Context, tx *sql.Tx, op OperationContext, inpu
 	metadata.LastPublishedAt = &publishedAt
 	reference := gen.PublishedRevisionRef{DocumentId: metadata.DocumentId, PublishedRevisionId: platform.NewIdentifier(), Revision: metadata.Revision, ContentHash: draft.BodyHash, SchemaVersion: facts.schemaVersion, DataEpoch: op.DataEpoch}
 	metadata.PublishedReference = &reference
+	next := slices.Clone(documents)
+	for i := range next {
+		if next[i].DocumentId == metadata.DocumentId {
+			next[i] = metadata
+		}
+	}
+	if err = ensurePublishedAncestorPaths(next, metadata.DocumentId); err != nil {
+		return PublishDocumentResult{}, err
+	}
 	if err = casPublicationIdentity(ctx, tx, op, treeRevision, metadata, current.Revision, string(current.State)); err != nil {
 		return PublishDocumentResult{}, err
 	}
@@ -276,12 +285,6 @@ func applyPublication(ctx context.Context, tx *sql.Tx, op OperationContext, inpu
 	_, sourceVersion, err := copyPublishedReferences(ctx, tx, op, metadata.DocumentId, draft.RevisionId, reference.PublishedRevisionId, referenceVersion)
 	if err != nil {
 		return PublishDocumentResult{}, err
-	}
-	next := slices.Clone(documents)
-	for i := range next {
-		if next[i].DocumentId == metadata.DocumentId {
-			next[i] = metadata
-		}
 	}
 	if len(redirects) > 0 {
 		if _, err = commitRedirectManifest(ctx, tx, op, redirects, next); err != nil {
