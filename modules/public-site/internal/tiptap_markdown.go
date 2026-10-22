@@ -98,7 +98,7 @@ func RenderTiptapMarkdown(ctx context.Context, op platform.OperationContext, in 
 				label = attrString(node.Attrs, "alt")
 			case "drawing":
 				value = node.Attrs["lightSVG"]
-				label = "画板"
+				label = uiText(in.Locale, nil, "画板") // 内置译文即可，不为 Markdown 再读界面字典
 			case "video":
 				value = node.Attrs["poster"]
 				label = attrString(node.Attrs, "title")

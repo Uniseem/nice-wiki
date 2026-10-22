@@ -32,6 +32,9 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 		assets[asset.Asset.AssetID+":"+asset.Asset.SHA256] = asset
 	}
 	containsMath := false
+	// 正文里少量固定提示（目标不可用、播放入口等）按页面语言显示，和页面外壳用同一套界面文字。
+	catalog := loadUIStrings(ctx, in.Locale)
+	tr := func(key string) string { return uiText(in.Locale, catalog, key) }
 	var render func(TiptapNode) (string, error)
 	var children func(TiptapNode) (string, error)
 	children = func(node TiptapNode) (string, error) {
@@ -81,7 +84,7 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 					if href != "" {
 						text = "<a href=\"" + html.EscapeString(href) + "\">" + text + "</a>"
 					} else {
-						text = "<span class=\"link-unavailable\" title=\"目标暂不可用\">" + text + "</span>"
+						text = "<span class=\"link-unavailable\" title=\"" + html.EscapeString(tr("目标暂不可用")) + "\">" + text + "</span>"
 					}
 					continue
 				default:
@@ -124,7 +127,7 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 			label := attrString(node.Attrs, "alt")
 			if node.Type == "drawing" {
 				value = node.Attrs["lightSVG"]
-				label = "画板"
+				label = tr("画板")
 			}
 			if node.Type == "attachment" {
 				label = attrString(node.Attrs, "displayName")
@@ -147,17 +150,21 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 					href := attrString(snapshot, "canonicalURL")
 					link := ""
 					if safeLink(href) {
-						link = "<a href=\"" + html.EscapeString(href) + "\" rel=\"noopener noreferrer\">打开视频</a>"
+						link = "<a href=\"" + html.EscapeString(href) + "\" rel=\"noopener noreferrer\">" + html.EscapeString(tr("打开视频")) + "</a>"
 					}
 					embed := attrString(snapshot, "embedURL")
 					if safeLink(embed) && strings.HasPrefix(embed, "https://") {
-						link = "<button type=\"button\" data-embed=\"" + html.EscapeString(embed) + "\" data-title=\"" + html.EscapeString(label) + "\">点击播放</button>" + link
+						link = "<button type=\"button\" data-embed=\"" + html.EscapeString(embed) + "\" data-title=\"" + html.EscapeString(label) + "\">" + html.EscapeString(tr("点击播放")) + "</button>" + link
 					}
 					return "<figure" + idAttribute + " class=\"platform-video\">" + picture + "<figcaption>" + html.EscapeString(label) + "</figcaption>" + link + "</figure>", nil
 				}
 			}
 			if !ok {
-				return "<div" + idAttribute + " class=\"media-unavailable\" style=\"width:640px;max-width:100%;min-height:180px\">" + html.EscapeString(label) + "（资源暂不可用）</div>", nil
+				notice := tr("资源暂不可用")
+				if label != "" {
+					notice = label + " · " + notice
+				}
+				return "<div" + idAttribute + " class=\"media-unavailable\" style=\"width:640px;max-width:100%;min-height:180px\">" + html.EscapeString(notice) + "</div>", nil
 			}
 			if node.Type == "attachment" {
 				return "<p><a" + idAttribute + " class=\"attachment\" href=\"" + html.EscapeString(delivery.URL) + "\" download>" + attachmentIcon + html.EscapeString(label) + "</a></p>", nil
