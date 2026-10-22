@@ -28,22 +28,21 @@ mktar() {
 
 case "$step" in
 build)
+	# 32 个程序互不依赖：按 CPU 数并行编译（共用 Go 构建缓存），任一失败整步失败。
+	export ROOT="$PWD"
 	for arch in $arches; do
-		out="$PWD/release/linux-$arch"
-		mkdir -p "$out"
-		for cmd in modules/*/cmd/*; do
-			module="${cmd%/cmd/*}"
-			name="${cmd##*/}"
-			(cd "$module" && CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath -ldflags "-s -w" -o "$out/$name" "./cmd/$name")
+		mkdir -p "release/linux-$arch"
+		for cmd in modules/*/cmd/* libs/platform/cmd/nw-keys; do
+			echo "$arch $cmd"
 		done
-		(cd libs/platform && CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath -ldflags "-s -w" -o "$out/nw-keys" ./cmd/nw-keys)
-	done
+	done | xargs -P "$(getconf _NPROCESSORS_ONLN)" -n 2 sh -c 'cd "${1%/cmd/*}" && CGO_ENABLED=0 GOOS=linux GOARCH="$0" go build -trimpath -ldflags "-s -w" -o "$ROOT/release/linux-$0/${1##*/}" "./cmd/${1##*/}"'
 	;;
 images)
 	# 镜像 = alpine 基础层 + 程序文件层（root 所有）+ 数据目录层（服务 uid 所有）；规格见 deploy/release/images.tsv。
-	# 直接在镜像仓库里组装，不需要 docker 守护进程，也不用模拟 arm64。
+	# 直接在镜像仓库里组装，不需要 docker 守护进程，也不用模拟 arm64。各服务互不依赖、耗时在网络上，全部并行推送。
 	work=$(mktemp -d)
-	while IFS="$(printf '\t')" read -r slug uid port workdir; do
+	image() {
+		slug="$1" uid="$2" port="$3" workdir="$4"
 		for arch in $arches; do
 			files="$work/$slug-$arch/files"
 			data="$work/$slug-$arch/data"
@@ -67,8 +66,18 @@ images)
 		done
 		crane index append -m "$images-$slug:$tag-amd64" -m "$images-$slug:$tag-arm64" -t "$images-$slug:$tag"
 		crane tag "$images-$slug:$tag" latest
+	}
+	pids=""
+	while IFS="$(printf '\t')" read -r slug uid port workdir; do
+		image "$slug" "$uid" "$port" "$workdir" &
+		pids="$pids $!"
 	done <deploy/release/images.tsv
+	failed=0
+	for pid in $pids; do
+		wait "$pid" || failed=1
+	done
 	rm -rf "$work"
+	[ "$failed" = 0 ] || { echo "有镜像没推送成功" >&2; exit 1; }
 	;;
 package)
 	# 发布包解压即可部署：deploy/ 里是拉取上面镜像的编排、配置、Caddy 与脚本，bin/ 自带 nw-keys，服务器上不需要 Go。

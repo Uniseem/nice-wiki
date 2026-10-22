@@ -41,17 +41,21 @@ jobs:
         with:
           node-version: "22"
           cache: pnpm
-      - name: 前端产物
+      # 前端构建、Go 交叉编译和安装 crane 互不依赖，同时进行。
+      - name: 前端产物、编译全部服务、安装 crane
         run: |
           pnpm install --frozen-lockfile
-          pnpm build
+          pnpm build >"$RUNNER_TEMP/web.log" 2>&1 & web=$!
+          go install github.com/google/go-containerregistry/cmd/crane@v0.20.6 & crane=$!
+          scripts/release.sh build "$TAG"
+          wait "$crane"
+          wait "$web" || { cat "$RUNNER_TEMP/web.log"; exit 1; }
+          cat "$RUNNER_TEMP/web.log"
           test -f web-dist/index.html
-      - name: 安装 crane 并登录 ghcr.io
+      - name: 登录 ghcr.io
         run: |
-          go install github.com/google/go-containerregistry/cmd/crane@v0.20.6
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
           printf '%s' "$GITHUB_TOKEN" | "$(go env GOPATH)/bin/crane" auth login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-      - run: scripts/release.sh build "$TAG"
       - run: scripts/release.sh images "$TAG"
       - run: scripts/release.sh package "$TAG"
       - run: scripts/release.sh publish "$TAG"
