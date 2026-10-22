@@ -1599,6 +1599,22 @@
   "id": "Terbit",
   "ar": "منشور"
  },
+ "已发布文档的标题修改后会立即更新公开页": {
+  "zh-Hant": "已發布文件的標題修改後會立即更新公開頁",
+  "en": "Title changes on a published document update the public page right away",
+  "ja": "公開済みドキュメントのタイトルは変更するとすぐ公開ページに反映されます",
+  "ko": "게시된 문서의 제목은 바꾸는 즉시 공개 페이지에 반영됩니다",
+  "fr": "Sur un document publié, le titre modifié est mis à jour aussitôt sur la page publique",
+  "de": "Titeländerungen an veröffentlichten Dokumenten erscheinen sofort auf der öffentlichen Seite",
+  "es": "En un documento publicado, el cambio de título se refleja de inmediato en la página pública",
+  "pt": "Em documentos publicados, a mudança de título aparece na página pública na hora",
+  "ru": "У опубликованного документа новое название сразу появляется на публичной странице",
+  "it": "Nei documenti pubblicati la modifica del titolo appare subito nella pagina pubblica",
+  "vi": "Với tài liệu đã xuất bản, đổi tiêu đề sẽ cập nhật trang công khai ngay",
+  "th": "เอกสารที่เผยแพร่แล้ว เมื่อแก้ชื่อจะอัปเดตหน้าสาธารณะทันที",
+  "id": "Pada dokumen yang sudah terbit, perubahan judul langsung tampil di halaman publik",
+  "ar": "في المستند المنشور، يظهر تغيير العنوان فورًا في الصفحة العامة"
+ },
  "已回滚并重新发布": {
   "zh-Hant": "已回復並重新發布",
   "en": "Rolled back and republished",

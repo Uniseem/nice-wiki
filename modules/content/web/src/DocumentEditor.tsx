@@ -42,6 +42,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<'publish' | 'settings' | 'move' | 'history' | null>(null);
   const [publishDraft, setPublishDraft] = useState('');
+  const [titleFocus, setTitleFocus] = useState(false);
 
   // 计时器和最新状态放在 ref 里，供自动保存与卸载时使用。
   const live = useRef({ draft: null as Draft | null, lease: null as Lease | null, writable: false, pending: null as JSONNode | null, dirty: false, heartbeat: 0, inputs: 0, lastInput: new Date().toISOString(), meta: null as Meta | null });
@@ -367,9 +368,9 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
         placeholder={t('无标题')}
         rows={1}
         value={title}
-        onBlur={saveTitle}
+        onBlur={() => { setTitleFocus(false); saveTitle(); }}
         onChange={(event) => setTitle(event.target.value.replace(/\n/g, ''))}
-        onFocus={() => { editingTitle.current = true; }}
+        onFocus={() => { editingTitle.current = true; setTitleFocus(true); }}
         onKeyDown={(event) => {
           // 回车确认标题并跳到正文开头；Esc 放弃这次修改。
           if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.blur(); editorRef.current?.commands.focus('start'); }
@@ -383,6 +384,8 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
           </a>
         ) : <span>{meta.pathSegment ? t('页面路径 /{0}，发布后生效', meta.pathSegment) : t('首次发布时设置页面路径')}</span>}
         {meta.lastPublishedAt && <span title={fmtDateTime(meta.lastPublishedAt)}>{t('最后发布于 {0}', fmtRelative(meta.lastPublishedAt))}</span>}
+        {/* 标题属于元数据，不走草稿：已发布文档改标题后公开页立即更新。 */}
+        {titleFocus && meta.state === 'published' && <span className="text-warning">{t('已发布文档的标题修改后会立即更新公开页')}</span>}
       </div>
     </div>
   );

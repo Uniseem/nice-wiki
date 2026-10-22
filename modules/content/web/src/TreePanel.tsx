@@ -34,6 +34,8 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
     const missing = ids.filter((id) => !current.includes(id));
     return missing.length ? [...current, ...missing] : current;
   });
+  // 新建时清空搜索，免得新文档被筛掉、在树里看不到。
+  const create = (parentId: string | null) => { setQuery(''); if (parentId) expand([parentId]); onCreate(parentId); };
   const toggle = (id: string) => setExpandedList((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
 
   // 新打开的文档所在的分支自动展开，并滚到可见处（之后用户收起也不再强行展开）。
@@ -138,7 +140,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between gap-2 px-4 pb-2 pt-3">
         <h2 className="text-sm font-semibold text-foreground">{t('文档')}<span className="ms-1.5 text-xs font-normal text-muted">{live.length}</span></h2>
-        {canEdit && <Button isIconOnly aria-label={t('新建顶层文档')} size="sm" variant="ghost" onPress={() => onCreate(null)}><Plus /></Button>}
+        {canEdit && <Button isIconOnly aria-label={t('新建顶层文档')} size="sm" variant="ghost" onPress={() => create(null)}><Plus /></Button>}
       </div>
       <div className="px-3 pb-2">
         <SearchField aria-label={t('搜索文档')} value={query} variant="secondary" onChange={setQuery}>
@@ -162,7 +164,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
             icon={<FileText />}
             title={query ? t('没有匹配的文档') : t('还没有文档')}
             description={query ? t('换个关键词试试。') : t('新建第一篇文档，写完点“发布”，访客就能看到。')}
-            action={!query && canEdit ? <Button size="sm" onPress={() => onCreate(null)}><Plus />{t('新建文档')}</Button> : undefined}
+            action={!query && canEdit ? <Button size="sm" onPress={() => create(null)}><Plus />{t('新建文档')}</Button> : undefined}
           />
         ) : (
           <ul className="flex flex-col gap-px">
@@ -215,7 +217,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
                             <Dropdown.Menu
                               disabledKeys={edgeKeys(doc)}
                               onAction={(key: Key) => {
-                                if (key === 'child') onCreate(doc.documentId);
+                                if (key === 'child') create(doc.documentId);
                                 if (key === 'move') setMoving(doc);
                                 if (key === 'up') void reorder(doc, -1);
                                 if (key === 'down') void reorder(doc, 1);
@@ -230,7 +232,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
                             </Dropdown.Menu>
                           </Dropdown.Popover>
                         </Dropdown>
-                        <Button isIconOnly aria-label={t('新建子文档')} className="size-6 min-w-6" size="sm" variant="ghost" onPress={() => { expand([doc.documentId]); onCreate(doc.documentId); }}><Plus className="size-3.5" /></Button>
+                        <Button isIconOnly aria-label={t('新建子文档')} className="size-6 min-w-6" size="sm" variant="ghost" onPress={() => create(doc.documentId)}><Plus className="size-3.5" /></Button>
                       </span>
                     )}
                   </div>
