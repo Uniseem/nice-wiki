@@ -2,6 +2,7 @@ package publicsite
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html"
 	"strings"
@@ -47,6 +48,32 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 			output.WriteString(markup)
 		}
 		return output.String(), nil
+	}
+	// 图注是行内内容数组，和正文行内节点一样渲染；显示宽度与编辑器一致，作为最大宽度。
+	figure := func(node TiptapNode, inner string) (string, error) {
+		style := ""
+		if width := attrInt(node.Attrs, "widthPercent"); width > 0 && width < 100 {
+			style = fmt.Sprintf(" style=\"max-width:%d%%\"", width)
+		}
+		caption := ""
+		if items, ok := node.Attrs["caption"].([]any); ok && len(items) > 0 {
+			var inline []TiptapNode
+			if raw, err := json.Marshal(items); err == nil && json.Unmarshal(raw, &inline) == nil {
+				markup, err := children(TiptapNode{Content: inline})
+				if err != nil {
+					return "", err
+				}
+				if markup != "" {
+					caption = "<figcaption>" + markup + "</figcaption>"
+				}
+			}
+		}
+		if node.Type == "video" && caption == "" {
+			if title := attrString(node.Attrs, "title"); title != "" {
+				caption = "<figcaption>" + html.EscapeString(title) + "</figcaption>"
+			}
+		}
+		return "<figure" + style + ">" + inner + caption + "</figure>", nil
 	}
 	media := func(value any) (PublicAsset, bool) {
 		asset, ok := assetFrom(value)
@@ -178,7 +205,8 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 				if text := attrString(node.Attrs, "description"); text != "" {
 					description = "<p>" + html.EscapeString(text) + "</p>"
 				}
-				return "<video" + idAttribute + " controls playsinline preload=\"metadata\" src=\"" + html.EscapeString(delivery.URL) + "\"" + posterAttr + "></video>" + description, nil
+				video, err := figure(node, "<video"+idAttribute+" controls playsinline preload=\"metadata\" src=\""+html.EscapeString(delivery.URL)+"\""+posterAttr+"></video>")
+				return video + description, err
 			}
 			if label == "" {
 				label = delivery.Alt
@@ -197,7 +225,11 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 			if delivery.Width > 0 && delivery.Height > 0 {
 				dimensions = fmt.Sprintf(" width=\"%d\" height=\"%d\"", delivery.Width, delivery.Height)
 			}
-			image := "<img" + idAttribute + " loading=\"lazy\" src=\"" + html.EscapeString(delivery.URL) + "\" alt=\"" + html.EscapeString(label) + "\" srcset=\"" + srcset.String() + "\" sizes=\"(max-width:900px) 100vw, 760px\"" + dimensions + ">"
+			responsive := ""
+			if srcset.Len() > 0 {
+				responsive = " srcset=\"" + srcset.String() + "\" sizes=\"(max-width:900px) 100vw, 760px\""
+			}
+			image := "<img" + idAttribute + " loading=\"lazy\" src=\"" + html.EscapeString(delivery.URL) + "\" alt=\"" + html.EscapeString(label) + "\"" + responsive + dimensions + ">"
 			if node.Type == "drawing" {
 				// 浅色与深色两张图都输出，按页面的明暗主题（而不是系统设置）显示其中一张。
 				image = "<img" + idAttribute + " class=\"drawing drawing-light\" loading=\"lazy\" src=\"" + html.EscapeString(delivery.URL) + "\" alt=\"" + html.EscapeString(label) + "\">"
@@ -205,7 +237,7 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 					image += "<img class=\"drawing drawing-dark\" loading=\"lazy\" src=\"" + html.EscapeString(dark.URL) + "\" alt=\"" + html.EscapeString(label) + "\">"
 				}
 			}
-			return "<figure>" + image + "</figure>", nil
+			return figure(node, image)
 		}
 		text, err := children(node)
 		if err != nil {

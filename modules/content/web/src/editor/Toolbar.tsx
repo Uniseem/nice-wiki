@@ -1,7 +1,8 @@
-import { ArrowUturnCcwLeft, ArrowUturnCwRight, Bold, ChevronDown, Code, Italic, LayoutHeaderCells, Link as LinkIcon, ListCheck, ListOl, ListUl, Paintbrush, Plus, QuoteOpen, Strikethrough, Underline } from '@gravity-ui/icons';
+import { ArrowUturnCcwLeft, ArrowUturnCwRight, Bold, ChevronDown, Code, Italic, LayoutHeaderCells, Link as LinkIcon, ListCheck, ListOl, ListUl, Paintbrush, Picture, Plus, QuoteOpen, Strikethrough, Underline } from '@gravity-ui/icons';
 import { Button, Description, Dropdown, Header, Label, Separator, ToggleButton, Toolbar as ToolbarRoot, Tooltip } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import { askText, t } from '@ui';
+import { NodeSelection } from '@tiptap/pm/state';
 import { useEditorState, type Editor } from '@tiptap/react';
 import type { ReactNode } from 'react';
 import { blockCommands, codeLanguages, type EditorActions } from './commands';
@@ -10,7 +11,23 @@ type State = {
   bold: boolean; italic: boolean; underline: boolean; strike: boolean; code: boolean; highlight: boolean; link: boolean;
   bullet: boolean; ordered: boolean; task: boolean; quote: boolean; codeBlock: boolean; table: boolean; heading: number;
   language: string; canUndo: boolean; canRedo: boolean;
+  media: '' | 'image' | 'video' | 'drawing'; mediaWidth: number | null;
 };
+
+const mediaLabel = { image: t('图片'), video: t('视频'), drawing: t('画板') } as const;
+const mediaWidths = [25, 50, 75];
+
+// 选中的图片/视频/画板节点（点一下媒体块就是节点选区）。
+function selectedMedia(editor: Editor) {
+  const { selection } = editor.state;
+  const node = selection instanceof NodeSelection ? selection.node : null;
+  return node && (node.type.name === 'image' || node.type.name === 'video' || node.type.name === 'drawing') ? node : null;
+}
+
+// 图注是行内内容数组；这里按纯文本编辑（原有格式在改写时不保留）。
+function captionText(caption: unknown): string {
+  return Array.isArray(caption) ? caption.map((item: { text?: string }) => item.text ?? '').join('') : '';
+}
 
 const blockTypes = [
   { id: '0', label: t('正文') },
@@ -30,6 +47,7 @@ export function EditorToolbar({ editor, editable, actions }: { editor: Editor; e
       heading: [2, 3, 4].find((level) => e.isActive('heading', { level })) ?? 0,
       language: e.isActive('codeBlock') ? (e.getAttributes('codeBlock').language as string | null) ?? '' : '',
       canUndo: e.can().undo(), canRedo: e.can().redo(),
+      media: (selectedMedia(e)?.type.name ?? '') as State['media'], mediaWidth: (selectedMedia(e)?.attrs.widthPercent as number | null | undefined) ?? null,
     }),
   });
   const chain = () => editor.chain().focus();
@@ -122,6 +140,49 @@ export function EditorToolbar({ editor, editable, actions }: { editor: Editor; e
               <Dropdown.Item id="deleteRow" textValue={t('删除行')}><Label>{t('删除当前行')}</Label></Dropdown.Item>
               <Dropdown.Item id="deleteColumn" textValue={t('删除列')}><Label>{t('删除当前列')}</Label></Dropdown.Item>
               <Dropdown.Item id="deleteTable" textValue={t('删除表格')} variant="danger"><Label>{t('删除整个表格')}</Label></Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown.Popover>
+        </Dropdown>
+      )}
+      {state.media && (
+        <Dropdown>
+          <Button isDisabled={disabled} size="sm" variant="ghost"><Picture />{mediaLabel[state.media]}<ChevronDown className="size-3.5 text-muted" /></Button>
+          <Dropdown.Popover placement="bottom start">
+            <Dropdown.Menu
+              onAction={async (key: Key) => {
+                const node = selectedMedia(editor);
+                if (!node) return;
+                const type = node.type.name;
+                if (String(key).startsWith('w')) { chain().updateAttributes(type, { widthPercent: key === 'wfull' ? null : Number(String(key).slice(1)) }).run(); return; }
+                if (key === 'alt') {
+                  const alt = await askText({ title: t('替代文字'), label: t('替代文字'), defaultValue: (node.attrs.alt as string | null) ?? '', required: false, description: t('给看不到图片的读者和搜索引擎看；留空则发布时由 AI 自动生成。') });
+                  if (alt !== null) chain().updateAttributes(type, { alt: alt.trim() || null, altSource: alt.trim() ? 'manual' : 'auto' }).run();
+                }
+                if (key === 'caption') {
+                  const caption = await askText({ title: t('图注'), label: t('图注'), defaultValue: captionText(node.attrs.caption), required: false, description: t('显示在图片下方，留空则不显示。') });
+                  if (caption !== null) chain().updateAttributes(type, { caption: caption.trim() ? [{ type: 'text', text: caption.trim(), marks: [] }] : [] }).run();
+                }
+                if (key === 'title') {
+                  const title = await askText({ title: t('视频标题'), label: t('视频标题'), defaultValue: (node.attrs.title as string | null) ?? '', required: false, validate: (value) => value.length <= 500 ? null : t('最多 500 个字符'), description: t('显示在视频下方，也用于无障碍朗读。') });
+                  if (title !== null) chain().updateAttributes(type, { title: title.trim() }).run();
+                }
+                if (key === 'delete') chain().deleteSelection().run();
+              }}
+            >
+              <Dropdown.Section>
+                <Header>{t('显示宽度')}</Header>
+                {[...mediaWidths.map((width) => (
+                  <Dropdown.Item key={width} id={`w${width}`} textValue={`${width}%`}><Label>{`${width}%`}</Label>{state.mediaWidth === width && <Dropdown.ItemIndicator />}</Dropdown.Item>
+                )), <Dropdown.Item key="full" id="wfull" textValue={t('原始宽度')}><Label>{t('原始宽度')}</Label>{state.mediaWidth === null && <Dropdown.ItemIndicator />}</Dropdown.Item>]}
+              </Dropdown.Section>
+              <Dropdown.Section>
+                {[
+                  ...(state.media === 'image' ? [<Dropdown.Item key="alt" id="alt" textValue={t('替代文字')}><Label>{t('替代文字…')}</Label></Dropdown.Item>] : []),
+                  ...(state.media !== 'video' ? [<Dropdown.Item key="caption" id="caption" textValue={t('图注')}><Label>{t('图注…')}</Label></Dropdown.Item>] : []),
+                  ...(state.media === 'video' ? [<Dropdown.Item key="title" id="title" textValue={t('视频标题')}><Label>{t('视频标题…')}</Label></Dropdown.Item>] : []),
+                  <Dropdown.Item key="delete" id="delete" textValue={t('删除')} variant="danger"><Label>{t('删除')}</Label></Dropdown.Item>,
+                ]}
+              </Dropdown.Section>
             </Dropdown.Menu>
           </Dropdown.Popover>
         </Dropdown>

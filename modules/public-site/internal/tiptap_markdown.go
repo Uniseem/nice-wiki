@@ -93,6 +93,14 @@ func RenderTiptapMarkdown(ctx context.Context, op platform.OperationContext, in 
 			value := node.Attrs["asset"]
 			label := attrString(node.Attrs, "displayName")
 			description := ""
+			// 图片和画板的图注（行内内容）以纯文本跟在图后面，和视频描述一样。
+			if items, ok := node.Attrs["caption"].([]any); ok {
+				for _, item := range items {
+					if inline, ok := item.(map[string]any); ok {
+						description += attrString(inline, "text")
+					}
+				}
+			}
 			switch node.Type {
 			case "image":
 				label = attrString(node.Attrs, "alt")
