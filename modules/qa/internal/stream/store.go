@@ -28,7 +28,7 @@ func AppendAnswerEvent(ctx context.Context, op OperationContext, input AppendAns
 		return AppendAnswerEventResult{}, platform.NewError(platform.CodeValidation, false, "流事件来源身份和序号须同时提供")
 	}
 	switch string(input.Event.Event) {
-	case "accepted", "progress", "delta", "citation", "invalidate":
+	case "accepted", "progress", "step", "delta", "citation", "invalidate":
 	default:
 		return AppendAnswerEventResult{}, platform.NewError(platform.CodeValidation, false, "终态事件必须与轮次终态同事务写入")
 	}

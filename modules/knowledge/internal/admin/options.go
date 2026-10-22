@@ -36,6 +36,8 @@ type ReadIndexOptionsResult struct {
 	Profiles          []IndexProfileOption  `json:"profiles"`
 	Documents         []IndexDocumentOption `json:"documents"`
 	TreeRevision      *int                  `json:"treeRevision,omitempty"`
+	SiteOverview      string                `json:"siteOverview,omitempty"`
+	OverviewUpdatedAt string                `json:"siteOverviewUpdatedAt,omitempty"`
 }
 
 // ReadIndexOptions 为现有管理选择框提供真实安全声明，不把跨域故障伪装成空目录。
@@ -51,6 +53,8 @@ func ReadIndexOptions(ctx context.Context, op OperationContext, input ReadIndexO
 		return ReadIndexOptionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "站点基准语言未装配")
 	}
 	result := ReadIndexOptionsResult{BaseLanguage: runtime.BaseLanguage, ModelsState: "unavailable", DocumentsState: "unavailable", Profiles: []IndexProfileOption{}, Documents: []IndexDocumentOption{}}
+	// 全站概括（每天由层级摘要合成）一起给后台展示；还没生成时不提供。
+	_ = runtime.DB.QueryRowContext(ctx, `SELECT overview,updated_at FROM site_overview WHERE site_id=? AND data_epoch=?`, op.Actor.SiteID, op.DataEpoch).Scan(&result.SiteOverview, &result.OverviewUpdatedAt)
 	catalog, err := indexer.ReadModelCatalog(ctx, op, runtime)
 	if err != nil {
 		result.ModelErrorCode = optionErrorCode(err)

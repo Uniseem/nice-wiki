@@ -4,7 +4,10 @@ import { solveChallenge } from '@ui/pow';
 
 export type Citation = { citationId?: string; title?: string; href?: string };
 export type TurnInfo = { turnId: string; answerRevision?: number };
+// 回答过程中的一步（读取当前页、检索、生成），给访客看 AI 在做什么。
+export type Step = { key: 'understand' | 'page' | 'search' | 'answer'; status: 'running' | 'done' | 'skipped'; title: string; detail?: string; items?: string[] };
 export type StreamEvent =
+  | { kind: 'step'; step: Step }
   | { kind: 'delta'; text: string }
   | { kind: 'reset' }
   | { kind: 'citation'; citation: Citation }
@@ -78,12 +81,14 @@ export function resetConversation(language: string): void {
 
 export type StartedTurn = { turn: TurnInfo; streamPath: string };
 
-// 提问：会话已过期（GONE）或已不存在（NOT_FOUND）时换一个新会话再试一次。
-export async function startTurn(question: string, language: string): Promise<StartedTurn> {
+// 提问：带上访客所在页面（AI 会把这一页全文作为预读材料）；会话已过期（GONE）或已不存在（NOT_FOUND）时换一个新会话再试一次。
+export async function startTurn(question: string, language: string, documentId?: string): Promise<StartedTurn> {
   for (let attempt = 0; ; attempt++) {
     const id = await conversation(language);
     try {
-      return await call<StartedTurn>('POST', '/v1/turns', { conversationId: id, question, idempotencyKey: key() });
+      const body: Record<string, unknown> = { conversationId: id, question, idempotencyKey: key() };
+      if (documentId && /^[A-Za-z0-9._:-]{1,128}$/.test(documentId)) body.currentDocumentId = documentId;
+      return await call<StartedTurn>('POST', '/v1/turns', body);
     } catch (problem) {
       if (attempt === 0 && problem instanceof QaError && (problem.code === 'GONE' || problem.code === 'NOT_FOUND')) { resetConversation(language); continue; }
       throw problem;
@@ -117,9 +122,10 @@ export async function followTurn(started: StartedTurn, onEvent: (event: StreamEv
         }
         if (id) last = Number.parseInt(id, 10) || last;
         if (!data) continue;
-        let payload: { delta?: string; citation?: Citation; code?: string; turn?: TurnInfo };
+        let payload: { delta?: string; citation?: Citation; code?: string; turn?: TurnInfo; step?: Step };
         try { payload = JSON.parse(data); } catch { continue; }
-        if (event === 'delta' && payload.delta) onEvent({ kind: 'delta', text: payload.delta });
+        if (event === 'step' && payload.step) onEvent({ kind: 'step', step: payload.step });
+        else if (event === 'delta' && payload.delta) onEvent({ kind: 'delta', text: payload.delta });
         else if (event === 'invalidate') onEvent({ kind: 'reset' });
         else if (event === 'citation' && payload.citation) onEvent({ kind: 'citation', citation: payload.citation });
         else if (event === 'failed') { onEvent({ kind: 'failed', code: payload.code ?? '' }); ended = true; }

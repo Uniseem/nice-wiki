@@ -106,6 +106,7 @@
   <section class="relative isolate flex min-h-[min(72svh,44rem)] items-center justify-center overflow-hidden px-4 py-20 {{if .HeroDark}}text-[#172033]{{else}}text-white{{end}}" style="background: {{.HeroBackground}}">
     <div class="absolute inset-0 -z-10" style="background: {{.HeroOverlay}}"></div>
     {{if not .HeroCustomColor}}<div class="absolute inset-0 -z-10 opacity-60 [background:radial-gradient(60rem_30rem_at_50%_-10%,var(--accent),transparent_70%)]"></div>{{end}}
+    {{template "hero-art"}}
     <div class="relative mx-auto flex max-w-3xl flex-col items-center text-center">
       {{if .HeroBackgroundText}}<div aria-hidden="true" class="pointer-events-none absolute -top-16 left-1/2 -z-10 -translate-x-1/2 select-none whitespace-nowrap text-[clamp(4rem,14vw,10rem)] font-black leading-none tracking-tighter opacity-10">{{.HeroBackgroundText}}</div>{{end}}
       <h1 class="text-4xl font-semibold tracking-tight sm:text-6xl">{{.HeroTitle}}</h1>
@@ -146,3 +147,40 @@
 {{define "icon-code"}}<svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg>{{end}}
 {{define "icon-file"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M9 1.75H4.5A1.75 1.75 0 0 0 2.75 3.5v9c0 .97.78 1.75 1.75 1.75h7c.97 0 1.75-.78 1.75-1.75V6L9 1.75Z"/><path d="M9 1.75V6h4.25"/></svg>{{end}}
 {{define "icon-copy"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.25" y="5.25" width="8.5" height="8.5" rx="1.75"/><path d="M10.75 5.25V3.5a1.75 1.75 0 0 0-1.75-1.75H3.5A1.75 1.75 0 0 0 1.75 3.5V9c0 .97.78 1.75 1.75 1.75h1.75"/></svg>{{end}}
+
+{{/* 首页主视觉的解构主义背景：4 幅 SVG 构图（错位平面、断裂网格、断开的弧、漂浮碎片），每 12 秒交叉淡入淡出轮换；
+     颜色跟随文字色和主题色，纯装饰、不可聚焦；系统要求减少动态效果时停在第一幅。 */}}
+{{define "hero-art"}}<div aria-hidden="true" class="nw-hero-art">
+  <svg class="nw-hero-scene" viewBox="0 0 1200 640" preserveAspectRatio="xMidYMid slice" fill="none">
+    <g class="nw-drift"><polygon points="120,520 470,330 560,470 210,640" fill="var(--accent)" opacity=".28"/></g>
+    <g class="nw-drift nw-slow"><polygon points="690,40 1080,150 990,360 640,250" fill="currentColor" opacity=".08"/></g>
+    <g class="nw-drift nw-reverse"><rect x="820" y="380" width="260" height="140" transform="rotate(-14 950 450)" fill="var(--accent)" opacity=".18"/></g>
+    <g stroke="currentColor" stroke-width="1.2" opacity=".35"><path class="nw-dash" d="M-40 420 L1240 120"/><path d="M60 -20 L430 660"/><path class="nw-dash nw-reverse" d="M760 -30 L1010 680"/></g>
+    <g class="nw-drift nw-reverse" stroke="var(--accent)" stroke-width="2" opacity=".55"><path d="M300 110 h160 v60 h-90"/><path d="M930 560 h-120 v-48"/></g>
+  </svg>
+  <svg class="nw-hero-scene" viewBox="0 0 1200 640" preserveAspectRatio="xMidYMid slice" fill="none">
+    <g stroke="currentColor" stroke-width="1" opacity=".22">
+      <path d="M0 160 H1200 M0 320 H1200 M0 480 H1200 M200 0 V640 M400 0 V640 M600 0 V640 M800 0 V640 M1000 0 V640"/>
+    </g>
+    <g class="nw-drift" ><rect x="400" y="160" width="200" height="160" fill="var(--accent)" opacity=".26"/></g>
+    <g class="nw-drift nw-reverse"><rect x="612" y="332" width="200" height="160" fill="currentColor" opacity=".09"/></g>
+    <g class="nw-drift nw-slow"><rect x="188" y="342" width="200" height="140" transform="rotate(6 288 412)" stroke="var(--accent)" stroke-width="2" opacity=".6"/></g>
+    <g stroke="currentColor" stroke-width="2" opacity=".45"><path class="nw-dash" d="M800 160 L1000 160 L1000 300"/><path class="nw-dash nw-reverse" d="M200 480 L200 600 L340 600"/></g>
+    <circle class="nw-pulse" cx="800" cy="320" r="7" fill="var(--accent)"/><circle class="nw-pulse nw-late" cx="400" cy="480" r="5" fill="currentColor" opacity=".6"/>
+  </svg>
+  <svg class="nw-hero-scene" viewBox="0 0 1200 640" preserveAspectRatio="xMidYMid slice" fill="none">
+    <g class="nw-spin" stroke="currentColor" stroke-width="1.4" opacity=".3"><circle cx="880" cy="300" r="250" stroke-dasharray="380 120 60 160"/></g>
+    <g class="nw-spin nw-reverse" stroke="var(--accent)" stroke-width="10" stroke-linecap="square" opacity=".45"><circle cx="880" cy="300" r="190" stroke-dasharray="140 300 40 400"/></g>
+    <g class="nw-spin nw-slow" stroke="currentColor" stroke-width="1" opacity=".25"><circle cx="880" cy="300" r="120" stroke-dasharray="4 10"/></g>
+    <g class="nw-drift"><rect x="40" y="250" width="520" height="34" transform="rotate(-22 300 267)" fill="var(--accent)" opacity=".22"/></g>
+    <g class="nw-drift nw-reverse"><rect x="140" y="380" width="360" height="12" transform="rotate(-22 320 386)" fill="currentColor" opacity=".18"/></g>
+  </svg>
+  <svg class="nw-hero-scene" viewBox="0 0 1200 640" preserveAspectRatio="xMidYMid slice" fill="none">
+    <g class="nw-float"><polygon points="160,140 300,90 250,230" fill="var(--accent)" opacity=".35"/></g>
+    <g class="nw-float nw-late"><polygon points="980,110 1110,180 1000,260" fill="currentColor" opacity=".12"/></g>
+    <g class="nw-float nw-slow"><polygon points="860,430 1010,400 950,560" fill="var(--accent)" opacity=".25"/></g>
+    <g class="nw-float nw-late nw-slow"><polygon points="240,420 420,470 300,600" stroke="currentColor" stroke-width="1.5" opacity=".4"/></g>
+    <g class="nw-float"><polygon points="560,40 640,70 590,130" stroke="var(--accent)" stroke-width="2" opacity=".6"/></g>
+    <g stroke="currentColor" stroke-width="1" opacity=".25"><path class="nw-dash" d="M0 560 C300 470 500 640 760 520 S1100 420 1200 460"/></g>
+  </svg>
+</div>{{end}}

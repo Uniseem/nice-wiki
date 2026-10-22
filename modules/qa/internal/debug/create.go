@@ -134,7 +134,7 @@ func executeDebug(ctx context.Context, op OperationContext, record gen.DebugTurn
 	if err != nil {
 		return err
 	}
-	prompt, err := answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: input.Question, Memory: memory, EvidenceText: evidence.EvidenceText, History: []gen.Message{}})
+	prompt, err := answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: input.Question, Memory: memory, Materials: answer.Materials{Evidence: evidence.EvidenceText}, History: []gen.Message{}})
 	if err != nil {
 		return err
 	}

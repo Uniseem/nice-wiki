@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 104 个：手写 92、UI 1、生成 4、配置 6、迁移 1。函数 212 个：约束 37，参考 175。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 105 个：手写 93、UI 1、生成 4、配置 6、迁移 1。函数 214 个：约束 39，参考 175。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -110,3 +110,4 @@
 | `modules/knowledge/internal/model/expectation.go` | 手写 | 只绑定原明确批准opaque路由和逐真实候选价格快照，接受事务CAS由MG统一拥有 | `knowledge.WithModelExpectations`（参考） |
 | `modules/knowledge/web/src/index.tsx` | UI | 知识索引：入库配置、为已发布文档建立索引、索引任务进度与取消 | `knowledge.KnowledgePage` |
 | `modules/knowledge/internal/card/view.go` | 手写 | 文档卡片与按预算压缩的文档索引视图；Go包，禁止直接访问其他域私有存储。 | `knowledge.ReadDocumentIndex` |
+| `modules/knowledge/internal/overview/overview.go` | 手写 | 层级摘要与全站概括：每篇文档的摘要包含其下级文档的概述，顶层摘要合成全站概括 | `knowledge.ReadSiteOverview`、`knowledge.RefreshSiteOverview` |

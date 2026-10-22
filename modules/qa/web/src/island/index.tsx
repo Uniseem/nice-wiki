@@ -15,14 +15,14 @@ export function preloadQa() {
   void loadPanel();
 }
 
-// 文档页右下角的问答入口；面板代码还在下载时，按钮原地显示加载状态。
-export function QaFloating({ open, onOpenChange, locale, t }: { open: boolean; onOpenChange: (open: boolean) => void; locale: string; t: Translate }) {
+// 文档页右下角的问答入口；面板代码还在下载时，按钮原地显示加载状态。documentId 是当前页面，AI 会先读它。
+export function QaFloating({ open, onOpenChange, locale, t, documentId, pageTitle }: { open: boolean; onOpenChange: (open: boolean) => void; locale: string; t: Translate; documentId?: string; pageTitle?: string }) {
   const [used, setUsed] = useState(open);
   if (open && !used) setUsed(true);
   const launcher = (pending: boolean) => (
     <Button
       aria-label={t('AI 问答')}
-      className="fixed bottom-5 end-5 z-40 h-12 rounded-full px-5 shadow-overlay"
+      className="nw-qa-launcher fixed bottom-5 end-5 z-40 h-12 rounded-full px-5 shadow-overlay"
       isPending={pending}
       onFocus={preloadQa}
       onHoverStart={preloadQa}
@@ -37,7 +37,7 @@ export function QaFloating({ open, onOpenChange, locale, t }: { open: boolean; o
       {!open && launcher(false)}
       {used && (
         <Suspense fallback={open ? launcher(true) : null}>
-          <QaPanel locale={locale} open={open} t={t} onOpenChange={onOpenChange} />
+          <QaPanel documentId={documentId} locale={locale} open={open} pageTitle={pageTitle} t={t} onOpenChange={onOpenChange} />
         </Suspense>
       )}
     </>

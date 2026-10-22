@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -240,24 +241,56 @@ func protectedUnit(unit gen.TranslationUnit) bool {
 	return unit.Protected || unit.Origin == "human"
 }
 
-// translateBatch 翻译一批单元并校验：模型必须完整返回本批 unitId，编号标签不得改变。
+// translateBatch 翻译一批单元并逐个校验（模型须返回本批 unitId，编号标签不得改变）。
+// 个别单元没通过（例如模型把标签嵌套错了）时只重译这几个；仍不通过的先显示原文（fallback），不让整篇作废。
 func translateBatch(ctx context.Context, op OperationContext, translationID string, route localizationruntime.PlanTaskRoute, memory platform.MemoryContext, source localizationruntime.PublishedSnapshot, batch []gen.TranslationUnit) ([]gen.TranslationUnit, error) {
-	prompt, err := BuildTranslationPrompt(ctx, op, BuildTranslationPromptInput{SourceUnits: batch, DocumentText: "", SectionTitle: source.Title, Memory: memory})
+	done, failed, err := translateUnits(ctx, op, translationID, "", route, memory, source, batch)
 	if err != nil {
 		return nil, err
 	}
-	// 幂等键按译文和本批单元定：进程重启后接着翻，同一批复用网关已有的结果。
+	if len(failed) > 0 {
+		retried, still, err := translateUnits(ctx, op, translationID, "retry", route, memory, source, failed)
+		if err != nil {
+			return nil, err
+		}
+		done = append(done, retried...)
+		// 仍不通过的先放原文（带原样标签，还原出来就是原文），标 fallback：公开页这一段显示原文并提示未译完。
+		for _, unit := range still {
+			unit.TargetText, unit.Origin, unit.Status = *unit.SourceText, "machine", "fallback"
+			unit.TargetHash = platform.HashBytes([]byte(unit.TargetText))
+			done = append(done, unit)
+		}
+	}
+	// 保持本批原有顺序。
+	order := make(map[string]int, len(batch))
+	for i, unit := range batch {
+		order[unit.UnitId] = i
+	}
+	sort.Slice(done, func(i, j int) bool { return order[done[i].UnitId] < order[done[j].UnitId] })
+	return done, nil
+}
+
+// translateUnits 调一次模型翻译这些单元，返回通过校验的和没通过的。
+func translateUnits(ctx context.Context, op OperationContext, translationID, attempt string, route localizationruntime.PlanTaskRoute, memory platform.MemoryContext, source localizationruntime.PublishedSnapshot, batch []gen.TranslationUnit) ([]gen.TranslationUnit, []gen.TranslationUnit, error) {
+	prompt, err := BuildTranslationPrompt(ctx, op, BuildTranslationPromptInput{SourceUnits: batch, DocumentText: "", SectionTitle: source.Title, Memory: memory})
+	if err != nil {
+		return nil, nil, err
+	}
+	// 幂等键按译文和本批单元定：进程重启后接着翻，同一批复用网关已有的结果；重译另起键。
 	ids := make([]string, len(batch))
 	for i, unit := range batch {
 		ids[i] = unit.UnitId
 	}
-	key := "translate." + platform.HashBytes([]byte(translationID+":"+strings.Join(ids, ",")))
+	key := "translate." + platform.HashBytes([]byte(translationID+":"+attempt+":"+strings.Join(ids, ",")))
+	if attempt == "" {
+		key = "translate." + platform.HashBytes([]byte(translationID+":"+strings.Join(ids, ",")))
+	}
 	outcome, err := localizationruntime.InvokeModel(ctx, op, platform.InvokeModelRequest{IDempotencyKey: key, Request: platform.CreateInvocationInput{TaskID: "localization.document", ProfileID: route.ProfileID, ExpectedRouteVersion: route.RouteVersion, Capability: platform.CapabilityChat, Messages: prompt.Messages, MaximumOutputTokens: 4000, IDempotencyKey: key}})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if outcome.State != "completed" || outcome.CurrentSnapshot == nil || outcome.CurrentSnapshot.Output == nil || outcome.CurrentSnapshot.Output.Text == nil {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "模型翻译结果未完成")
+		return nil, nil, platform.NewError(platform.CodeDependencyUnavailable, false, "模型翻译结果未完成")
 	}
 	var reply struct {
 		Units []struct {
@@ -265,16 +298,37 @@ func translateBatch(ctx context.Context, op OperationContext, translationID stri
 			TargetText string `json:"targetText"`
 		} `json:"units"`
 	}
-	if json.Unmarshal([]byte(*outcome.CurrentSnapshot.Output.Text), &reply) != nil {
-		return nil, platform.NewError(platform.CodeUnsupportedSchema, false, "模型翻译结果不是约定的JSON")
+	if json.Unmarshal([]byte(stripCodeFence(*outcome.CurrentSnapshot.Output.Text)), &reply) != nil {
+		// 整批回复不是约定的 JSON：全部算没通过，交给重译。
+		return nil, batch, nil
 	}
-	candidates := make([]gen.TranslationUnit, 0, len(reply.Units))
+	answers := make(map[string]string, len(reply.Units))
 	for _, item := range reply.Units {
-		candidates = append(candidates, gen.TranslationUnit{UnitId: item.UnitID, TargetText: item.TargetText})
+		answers[item.UnitID] = item.TargetText
 	}
-	checked, err := ValidateTranslationOutput(ctx, op, ValidateTranslationOutputInput{SourceUnits: batch, TranslatedUnits: candidates, SourceLanguage: source.SourceLanguage})
-	if err != nil {
-		return nil, err
+	var done, failed []gen.TranslationUnit
+	for _, unit := range batch {
+		text, found := answers[unit.UnitId]
+		if !found {
+			failed = append(failed, unit)
+			continue
+		}
+		checked, err := ValidateTranslationOutput(ctx, op, ValidateTranslationOutputInput{SourceUnits: []gen.TranslationUnit{unit}, TranslatedUnits: []gen.TranslationUnit{{UnitId: unit.UnitId, TargetText: text}}, SourceLanguage: source.SourceLanguage})
+		if err != nil {
+			failed = append(failed, unit)
+			continue
+		}
+		done = append(done, checked.Units...)
 	}
-	return checked.Units, nil
+	return done, failed, nil
+}
+
+// stripCodeFence 去掉模型偶尔包在 JSON 外面的 ```json 代码围栏。
+func stripCodeFence(text string) string {
+	text = strings.TrimSpace(text)
+	if strings.HasPrefix(text, "```") {
+		text = text[strings.Index(text, "\n")+1:]
+		text = strings.TrimSuffix(strings.TrimSpace(text), "```")
+	}
+	return text
 }

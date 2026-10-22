@@ -61,17 +61,19 @@ func RenderText(entries []gen.MemoryEntry) string {
 	}
 	return text.String()
 }
+
+// maximumContextBytes 是全部注入时的总上限，只防异常数据撑爆模型窗口；正常情况下全部注入。
+const maximumContextBytes = 256 << 10
+
+// ApplyContextBudget 全部注入；总量超过上限时从末尾（优先级低的）开始省略，不再因预算报错让调用方整轮失败。
 func ApplyContextBudget(ctx context.Context, op OperationContext, input ApplyContextBudgetInput) (ApplyContextBudgetResult, error) {
-	for _, e := range input.Entries {
-		if len([]byte(e.Body)) > e.MaximumBytes {
-			return ApplyContextBudgetResult{}, platform.NewError(platform.CodeIntegrityError, false, "记忆条目超出已保存预算")
-		}
+	kept := input.Entries
+	omitted := []string{}
+	for len(kept) > 0 && len([]byte(RenderText(kept))) > maximumContextBytes {
+		omitted = append(omitted, kept[len(kept)-1].EntryId)
+		kept = kept[:len(kept)-1]
 	}
-	n := len([]byte(RenderText(input.Entries)))
-	if n > input.Budget.MaximumBytes || len(input.Entries) > input.Budget.MaximumEntries {
-		return ApplyContextBudgetResult{}, platform.NewError(platform.CodeIntegrityError, false, "完整记忆注入超过任务预算")
-	}
-	return ApplyContextBudgetResult{Entries: input.Entries, OmittedIds: []string{}, ByteSize: n}, nil
+	return ApplyContextBudgetResult{Entries: kept, OmittedIds: omitted, ByteSize: len([]byte(RenderText(kept)))}, nil
 }
 func RenderContext(ctx context.Context, op OperationContext, input RenderContextInput) (RenderContextResult, error) {
 	bounded, err := ApplyContextBudget(ctx, op, ApplyContextBudgetInput{Entries: input.Entries, Budget: input.Budget})
@@ -80,7 +82,7 @@ func RenderContext(ctx context.Context, op OperationContext, input RenderContext
 	}
 	text := RenderText(bounded.Entries)
 	m := ContextManifest{TaskId: input.TaskId, Language: input.Language, EntryIds: []string{}, EntryVersions: []int{}, MappingRevision: input.MappingRevision, RendererVersion: RendererVersion, BodyHash: platform.HashBytes([]byte(text)), ByteSize: len([]byte(text)), BudgetRevision: input.Budget.Revision, MaximumBytes: input.Budget.MaximumBytes, MaximumEntries: input.Budget.MaximumEntries, EntryLanguages: []string{}, EntryBodyHashes: []string{}}
-	for _, e := range input.Entries {
+	for _, e := range bounded.Entries {
 		m.EntryIds = append(m.EntryIds, e.EntryId)
 		m.EntryVersions = append(m.EntryVersions, e.Version)
 		m.EntryLanguages = append(m.EntryLanguages, e.Language)

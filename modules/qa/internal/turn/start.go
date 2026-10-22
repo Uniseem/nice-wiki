@@ -117,6 +117,11 @@ func StartTurn(ctx context.Context, op OperationContext, input StartTurnInput) (
 	execution := stored
 	execution.Deadline = time.Now().UTC().Add(5 * time.Minute).Format(time.RFC3339Nano)
 	execution.Actor.ExpiresAt = execution.Deadline
-	go ExecuteTurn(qaruntime.WithRuntime(context.Background(), runtime), execution, turn.TurnId)
+	// 访客所在页面只用于本轮回答（交给回答模型的预读材料），随执行一起交过去，不另存。
+	current := ""
+	if input.CurrentDocumentId != nil {
+		current = string(*input.CurrentDocumentId)
+	}
+	go ExecuteTurn(qaruntime.WithRuntime(context.Background(), runtime), execution, turn.TurnId, current)
 	return result, nil
 }

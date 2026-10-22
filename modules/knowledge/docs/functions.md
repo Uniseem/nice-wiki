@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 212 个函数：约束 37 个，参考 175 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 214 个函数：约束 39 个，参考 175 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -4211,7 +4211,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`platform.LoadServiceIdentity`、`platform.NewSiteConfigClient`、`platform.ReadRuntime`、`platform.ApplyRestoreSwap`、`platform.NewPayloadValidator`、`platform.NewIdentityAuthorizer`、`knowledge.OpenRepository`、`knowledge.NewIndexRuntime`、`knowledge.NewModelRuntime`、`knowledge.LoadRuntime`、`knowledge.WithIndexRuntime`、`knowledge.WithModelRuntime`、`knowledge.WithAdminSigningKey`、`knowledge.bindSearchRuntime`、`knowledge.assembleBackgroundTasks`、`knowledge.serviceOperation`、`knowledge.NewApplication`、`site-config:readSiteConfig`、`identity:checkAuthorization`、`knowledge.NewWorkerRuntime`、`knowledge.WithWorkerRuntime`、`knowledge.ExecuteBuild`、`knowledge.ExecuteExtraction`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`knowledge.RecoverBuildLeases`、`knowledge.CollectRetiredIndexes`、`knowledge.PublishOutbox`、`knowledge.ConsumeEvents`、`knowledge.RunWorker`、`platform.TaskGroup.SetAdmission`、`platform.TaskGroup.CancelActive`、`platform.TaskGroup.WaitIdle`
+- 依赖：`platform.LoadServiceIdentity`、`platform.NewSiteConfigClient`、`platform.ReadRuntime`、`platform.ApplyRestoreSwap`、`platform.NewPayloadValidator`、`platform.NewIdentityAuthorizer`、`knowledge.OpenRepository`、`knowledge.NewIndexRuntime`、`knowledge.NewModelRuntime`、`knowledge.LoadRuntime`、`knowledge.WithIndexRuntime`、`knowledge.WithModelRuntime`、`knowledge.WithAdminSigningKey`、`knowledge.bindSearchRuntime`、`knowledge.assembleBackgroundTasks`、`knowledge.serviceOperation`、`knowledge.NewApplication`、`site-config:readSiteConfig`、`identity:checkAuthorization`、`knowledge.NewWorkerRuntime`、`knowledge.WithWorkerRuntime`、`knowledge.ExecuteBuild`、`knowledge.ExecuteExtraction`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`knowledge.RecoverBuildLeases`、`knowledge.CollectRetiredIndexes`、`knowledge.PublishOutbox`、`knowledge.ConsumeEvents`、`knowledge.RunWorker`、`platform.TaskGroup.SetAdmission`、`platform.TaskGroup.CancelActive`、`platform.TaskGroup.WaitIdle`、`knowledge.RefreshSiteOverview`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## knowledge.NewRuntimeClient
@@ -8123,6 +8123,96 @@ func ReadDocumentIndex(ctx context.Context, op OperationContext, input ReadDocum
 3. 全部详细卡片起步，超预算按重要度降到摘要、再降到只剩主题
 4. 仍超预算或选项过多时从最深、文档最多的子树开始折叠成分区
 5. 返回路由视图与全量index.md；只读，不调模型
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+
+- 副作用：无
+- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`content:readPublicTree`
+
+## knowledge.ReadSiteOverview
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/overview/overview.go`
+- 作用：读取全站概括
+
+```go
+func ReadSiteOverview(ctx context.Context, op OperationContext, input ReadSiteOverviewInput) (ReadSiteOverviewResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `ReadSiteOverviewInput` | 封闭业务输入；逐字段见types $defs/ReadSiteOverviewInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadSiteOverviewResult` | 成功结果；逐字段见types $defs/ReadSiteOverviewResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 只接受qa纯服务
+2. 读本域最近生成的全站概括
+3. 只读，不调模型
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `UNAUTHENTICATED` / HTTP 401：（不可重试）
+- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+- `DEPENDENCY_UNAVAILABLE` / HTTP 503：（可重试）
+
+- 副作用：无
+- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
+- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
+- 依赖：`content:readPublicTree`
+
+## knowledge.RefreshSiteOverview
+
+- 级别：约束
+- 文件：`modules/knowledge/internal/overview/overview.go`
+- 作用：立即重算全站概括
+
+```go
+func RefreshSiteOverview(ctx context.Context, op OperationContext, input RefreshSiteOverviewInput) (RefreshSiteOverviewResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
+| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
+| `input` | `RefreshSiteOverviewInput` | 封闭业务输入；逐字段见types $defs/RefreshSiteOverviewInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `RefreshSiteOverviewResult` | 成功结果；逐字段见types $defs/RefreshSiteOverviewResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
+| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
+
+**步骤**
+
+1. 只接受portal转来的管理员（knowledge.manage）
+2. 在后台自下而上重算层级摘要与全站概括
+3. 立即返回已开始
 
 **错误**
 

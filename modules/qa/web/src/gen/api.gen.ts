@@ -550,6 +550,7 @@ export interface components {
         KnowledgeReadDocumentIndexResult: components["schemas"]["ReadDocumentIndexResult"];
         LocalizationReadTranslationResult: components["schemas"]["ReadTranslationResult"];
         KnowledgeReadDocumentChunksResult: components["schemas"]["ReadDocumentChunksResult"];
+        KnowledgeReadSiteOverviewResult: components["schemas"]["ReadSiteOverviewResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /**
@@ -747,6 +748,8 @@ export interface components {
             admission: components["schemas"]["AdmissionPermit"];
             /** @description 键 */
             idempotencyKey: string;
+            /** @description 访客打开问答时所在页面的文档；本轮把这篇文档全文交给回答模型 */
+            currentDocumentId?: components["schemas"]["Identifier"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         CancelTurnResult: {
@@ -1071,6 +1074,25 @@ export interface components {
             /** @description 幂等键 */
             idempotencyKey: string;
         };
+        /** @description 回答过程中的一步 */
+        AnswerStep: {
+            /**
+             * @description 步骤
+             * @enum {string}
+             */
+            key: "understand" | "page" | "search" | "answer";
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            status: "running" | "done" | "skipped";
+            /** @description 简短标题 */
+            title: string;
+            /** @description 补充说明（如改写后的检索问题） */
+            detail?: string;
+            /** @description 相关条目（如命中的文档标题） */
+            items?: string[];
+        };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         AnswerEvent: {
             /** @description 严格递增SSE序号 */
@@ -1079,7 +1101,7 @@ export interface components {
              * @description 事件
              * @enum {string}
              */
-            event: "accepted" | "progress" | "delta" | "citation" | "invalidate" | "completed" | "error" | "cancelled";
+            event: "accepted" | "progress" | "step" | "delta" | "citation" | "invalidate" | "completed" | "error" | "cancelled";
             /** @description 文本增量 */
             delta?: string;
             /** @description 引用 */
@@ -1088,6 +1110,8 @@ export interface components {
             turn?: components["schemas"]["Turn"];
             /** @description 公共错误代码 */
             code?: string;
+            /** @description 回答过程中的一步（读取当前页、检索文档、生成回答等），供访客界面展示 */
+            step?: components["schemas"]["AnswerStep"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         ReadDebugTurnResult: {
@@ -2841,6 +2865,13 @@ export interface components {
             documents: components["schemas"]["DocumentChunks"][];
             /** @description 读取所用活动索引版本 */
             indexVersionHash: components["schemas"]["Hash"];
+        };
+        /** @description 全站概括：由各文档的层级摘要自下而上合成，基准语言，不超过3000字 */
+        ReadSiteOverviewResult: {
+            /** @description 全站概括；还没生成时为空字符串 */
+            overview: string;
+            /** @description 最近生成时间；没生成过不提供 */
+            updatedAt?: components["schemas"]["Timestamp"];
         };
     };
     responses: never;

@@ -3310,6 +3310,9 @@
       },
       "KnowledgeReadDocumentChunksResult": {
         "$ref": "../../knowledge/contracts/types.json#/$defs/ReadDocumentChunksResult"
+      },
+      "KnowledgeReadSiteOverviewResult": {
+        "$ref": "../../knowledge/contracts/types.json#/$defs/ReadSiteOverviewResult"
       }
     }
   },
@@ -3352,6 +3355,7 @@
     "LookupInvocationResult",
     "KnowledgeReadDocumentIndexResult",
     "LocalizationReadTranslationResult",
-    "KnowledgeReadDocumentChunksResult"
+    "KnowledgeReadDocumentChunksResult",
+    "KnowledgeReadSiteOverviewResult"
   ]
 }

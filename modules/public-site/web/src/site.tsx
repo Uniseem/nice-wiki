@@ -15,6 +15,8 @@ const config: Config = (() => {
   try { return JSON.parse(document.getElementById('nw-islands')?.dataset.config ?? '{}') as Config; } catch { return {} as Config; }
 })();
 const t = (key: string) => config.ui?.[key] ?? key;
+// 当前文档页的标题（问答窗口里提示 AI 正在读哪一页）；首页、问答页等没有文档时为空。
+const pageTitle = () => (config.documentId ? document.querySelector('main h1, article h1, h1')?.textContent?.trim() || undefined : undefined);
 const loadNav = () => import('./nav-drawer');
 const MobileNav = lazy(loadNav);
 const loadSearch = () => import('./search');
@@ -75,7 +77,7 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
       {header && createPortal(<HeaderActions config={config} t={t} onAsk={onAsk} onAskIntent={ask ? undefined : preloadQa} onSearch={() => setSearchOpen(true)} onSearchIntent={() => { void loadSearch(); }} />, header)}
       {searchUsed && <Suspense fallback={null}><Search locale={config.locale || document.documentElement.lang} open={searchOpen} t={t} onOpenChange={setSearchOpen} /></Suspense>}
       {navUsed && <Suspense fallback={null}><MobileNav open={navOpen} t={t} onOpenChange={setNavOpen} /></Suspense>}
-      {config.aiEnabled && !ask && <QaFloating locale={config.locale} open={askOpen} t={t} onOpenChange={setAskOpen} />}
+      {config.aiEnabled && !ask && <QaFloating documentId={config.documentId || undefined} locale={config.locale} open={askOpen} pageTitle={pageTitle()} t={t} onOpenChange={setAskOpen} />}
       {config.aiEnabled && ask && createPortal(<QaInline locale={config.locale} t={t} />, ask)}
       {suggested && <LanguageSuggestion config={config} t={t} target={suggested} onClose={() => setSuggested(null)} />}
     </I18nProvider>

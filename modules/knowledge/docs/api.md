@@ -32,6 +32,8 @@
 | GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `knowledge.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 | POST `/v1/document-index:read` | `readDocumentIndex` | `knowledge.ReadDocumentIndex` | `service` | `ReadDocumentIndexInput` → 200 `ReadDocumentIndexResult` | 读取文档索引视图 | `HTTP 403`、`HTTP 409`、`HTTP 404`、`HTTP 401`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/document-chunks:read` | `readDocumentChunks` | `knowledge.ReadDocumentChunks` | `service` | `ReadDocumentChunksInput` → 200 `ReadDocumentChunksResult` | 按文档读取全部分块 | `HTTP 403`、`HTTP 409`、`HTTP 404`、`HTTP 401`、`HTTP 504`、`HTTP 500`、`HTTP default` |
+| POST `/v1/site-overview:read` | `readSiteOverview` | `knowledge.ReadSiteOverview` | `service` | `ReadSiteOverviewInput` → 200 `ReadSiteOverviewResult` | 读取全站概括 | `HTTP 403`、`HTTP 409`、`HTTP 404`、`HTTP 401`、`HTTP 504`、`HTTP 500`、`HTTP default` |
+| POST `/v1/site-overview:refresh` | `refreshSiteOverview` | `knowledge.RefreshSiteOverview` | `knowledge.manage` | `RefreshSiteOverviewInput` → 202 `RefreshSiteOverviewResult` | 立即重算全站概括 | `HTTP 404`、`HTTP 409`、`HTTP 503`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 <!-- openapi:end -->
 
 完整字段、requestBody/query/path/header、错误HTTP状态和security见openapi.json。请求JSON上限1MiB，UTF8，Content-Type=application/json，拒绝额外字段/null。私网所有请求服务认证；管理写请求Origin/CSRF检查。HTTP202只确认持久接受，后续状态/账单以事件和读取操作为准。

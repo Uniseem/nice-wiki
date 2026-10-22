@@ -3725,6 +3725,15 @@
         },
         "treeRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "siteOverview": {
+          "type": "string",
+          "maxLength": 20000,
+          "description": "当前全站概括；没生成过为空"
+        },
+        "siteOverviewUpdatedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "全站概括生成时间"
         }
       },
       "required": [
@@ -4248,6 +4257,62 @@
         "documents",
         "indexVersionHash"
       ]
+    },
+    "ReadSiteOverviewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": [],
+      "description": "读取全站概括，无参数"
+    },
+    "ReadSiteOverviewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "全站概括：由各文档的层级摘要自下而上合成，基准语言，不超过3000字",
+      "properties": {
+        "overview": {
+          "type": "string",
+          "maxLength": 20000,
+          "description": "全站概括；还没生成时为空字符串"
+        },
+        "updatedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "最近生成时间；没生成过不提供"
+        }
+      },
+      "required": [
+        "overview"
+      ]
+    },
+    "RefreshSiteOverviewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "幂等键"
+        }
+      },
+      "required": [
+        "idempotencyKey"
+      ],
+      "description": "立即重算层级摘要与全站概括"
+    },
+    "RefreshSiteOverviewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "已开始后台重算"
+        }
+      },
+      "required": [
+        "accepted"
+      ],
+      "description": "重算在后台进行"
     }
   }
 }

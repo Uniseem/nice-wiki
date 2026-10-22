@@ -8107,7 +8107,8 @@
             "knowledge.RunWorker",
             "platform.TaskGroup.SetAdmission",
             "platform.TaskGroup.CancelActive",
-            "platform.TaskGroup.WaitIdle"
+            "platform.TaskGroup.WaitIdle",
+            "knowledge.RefreshSiteOverview"
           ],
           "resources": [
             "本域implementation全部x-handler",
@@ -12736,6 +12737,185 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/knowledge/internal/overview/overview.go",
+      "kind": "handwritten",
+      "purpose": "层级摘要与全站概括：每篇文档的摘要包含其下级文档的概述，顶层摘要合成全站概括",
+      "functions": [
+        {
+          "id": "knowledge.ReadSiteOverview",
+          "name": "ReadSiteOverview",
+          "signature": "func ReadSiteOverview(ctx context.Context, op OperationContext, input ReadSiteOverviewInput) (ReadSiteOverviewResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "ReadSiteOverviewInput",
+              "description": "封闭业务输入；逐字段见types $defs/ReadSiteOverviewInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadSiteOverviewResult",
+              "description": "成功结果；逐字段见types $defs/ReadSiteOverviewResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "读取全站概括",
+          "steps": [
+            "1 只接受qa纯服务",
+            "2 读本域最近生成的全站概括",
+            "3 只读，不调模型"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "content发布树暂不可读。",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "content:readPublicTree"
+          ],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "knowledge.RefreshSiteOverview",
+          "name": "RefreshSiteOverview",
+          "signature": "func RefreshSiteOverview(ctx context.Context, op OperationContext, input RefreshSiteOverviewInput) (RefreshSiteOverviewResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "RefreshSiteOverviewInput",
+              "description": "封闭业务输入；逐字段见types $defs/RefreshSiteOverviewInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "RefreshSiteOverviewResult",
+              "description": "成功结果；逐字段见types $defs/RefreshSiteOverviewResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "立即重算全站概括",
+          "steps": [
+            "1 只接受portal转来的管理员（knowledge.manage）",
+            "2 在后台自下而上重算层级摘要与全站概括",
+            "3 立即返回已开始"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "content发布树暂不可读。",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "content:readPublicTree"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
     }
   ],
   "jobHandlers": {
@@ -12782,6 +12962,10 @@
     {
       "function": "knowledge.RunWorker",
       "schedule": "启动后持续"
+    },
+    {
+      "function": "knowledge.RefreshSiteOverview",
+      "schedule": "启动后每分钟检查，距上次生成满24小时或从没生成过时在后台重算"
     }
   ]
 }

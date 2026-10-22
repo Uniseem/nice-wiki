@@ -52,6 +52,7 @@
 | `knowledge.PublishOutbox` | 启动后持续，空闲每1秒 | 发布索引生命周期事件 |
 | `knowledge.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
 | `knowledge.RunWorker` | 启动后持续 | 主动领取本域持久任务 |
+| `knowledge.RefreshSiteOverview` | 启动后每分钟检查，距上次生成满24小时或从没生成过时在后台重算 | 立即重算全站概括 |
 <!-- flows:end -->
 
 ## 2026-10-18 已编写链路

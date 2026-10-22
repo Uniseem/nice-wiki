@@ -45,6 +45,14 @@ func publishedTree(ctx context.Context, op OperationContext, runtime indexer.Run
 	return tree.Nodes, nil
 }
 
+// TreeNode 是发布树里的一篇文档（前序），供层级摘要使用。
+type TreeNode = treeNode
+
+// PublishedTree 读 content 的发布树（前序）。
+func PublishedTree(ctx context.Context, op OperationContext, runtime indexer.Runtime) ([]TreeNode, error) {
+	return publishedTree(ctx, op, runtime)
+}
+
 func documentTitle(ctx context.Context, op OperationContext, runtime indexer.Runtime, documentID string) (string, error) {
 	nodes, err := publishedTree(ctx, op, runtime)
 	if err != nil {

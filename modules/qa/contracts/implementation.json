@@ -4305,7 +4305,8 @@
             "qa.ValidateCitations",
             "knowledge:readDocumentIndex",
             "localization:readTranslation",
-            "knowledge:readDocumentChunks"
+            "knowledge:readDocumentChunks",
+            "knowledge:readSiteOverview"
           ],
           "resources": [],
           "contract": "reference"

@@ -463,6 +463,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/site-overview:read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 读取全站概括
+         * @description 返回由各文档层级摘要自下而上合成的全站概括（基准语言，不超过3000字），供问答注入回答提示。只读，不调模型。
+         */
+        post: operations["readSiteOverview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/site-overview:refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 立即重算全站概括
+         * @description 后台立即自下而上重算各文档的层级摘要和全站概括（平时每天自动一次）；输入没变的文档不重新调模型。
+         */
+        post: operations["refreshSiteOverview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1287,6 +1327,10 @@ export interface components {
             profiles: components["schemas"]["IndexProfileOption"][];
             documents: components["schemas"]["IndexDocumentOption"][];
             treeRevision?: components["schemas"]["Revision"];
+            /** @description 当前全站概括；没生成过为空 */
+            siteOverview?: string;
+            /** @description 全站概括生成时间 */
+            siteOverviewUpdatedAt?: components["schemas"]["Timestamp"];
         };
         /** @description jobs从自己持久任务与失效租约读取，只读owner恢复证明；不得浏览器自报或新建dedupeKey绕过孤立。 */
         OwnerRecoveryRequest: {
@@ -1376,6 +1420,25 @@ export interface components {
             documentIds: components["schemas"]["Identifier"][];
             /** @description 所有文档分块 tokenCount 合计上限 */
             maximumTokens: number;
+        };
+        /** @description 全站概括：由各文档的层级摘要自下而上合成，基准语言，不超过3000字 */
+        ReadSiteOverviewResult: {
+            /** @description 全站概括；还没生成时为空字符串 */
+            overview: string;
+            /** @description 最近生成时间；没生成过不提供 */
+            updatedAt?: components["schemas"]["Timestamp"];
+        };
+        /** @description 读取全站概括，无参数 */
+        ReadSiteOverviewInput: Record<string, never>;
+        /** @description 重算在后台进行 */
+        RefreshSiteOverviewResult: {
+            /** @description 已开始后台重算 */
+            accepted: boolean;
+        };
+        /** @description 立即重算层级摘要与全站概括 */
+        RefreshSiteOverviewInput: {
+            /** @description 幂等键 */
+            idempotencyKey: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Attempt: {
@@ -4546,6 +4609,199 @@ export interface operations {
             };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；错误code必须来自处理函数集合。 */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readSiteOverview: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 若输入schema含idempotencyKey必须一致；同键不同hash为409。 */
+                "Idempotency-Key"?: string;
+                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
+                "X-Request-Id": components["schemas"]["Identifier"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadSiteOverviewInput"];
+            };
+        };
+        responses: {
+            /** @description 读取全站概括成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadSiteOverviewResult"];
+                };
+            };
+            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 对象不存在、游标已过保留期或公开派生结果尚不可用。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；错误code必须来自处理函数集合。 */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    refreshSiteOverview: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 若输入schema含idempotencyKey必须一致；同键不同hash为409。 */
+                "Idempotency-Key"?: string;
+                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
+                "X-Request-Id": components["schemas"]["Identifier"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshSiteOverviewInput"];
+            };
+        };
+        responses: {
+            /** @description 已开始后台重算 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshSiteOverviewResult"];
+                };
+            };
+            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 对象不存在、游标已过保留期或公开派生结果尚不可用。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

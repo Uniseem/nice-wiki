@@ -72,7 +72,7 @@ type runtimeKey struct{}
 // NewRuntime 固定所有使用的生产方响应校验器；未知响应不当作成功。
 func NewRuntime(runtime Runtime) (Runtime, error) {
 	runtime.Validators = make(map[string]func(json.RawMessage) error)
-	for _, name := range []string{"KnowledgeReadDocumentChunksResult", "LocalizationReadTranslationResult", "QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "GuardRenewPermitResult", "SiteConfigReadSiteConfigResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "KnowledgeReadDocumentIndexResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
+	for _, name := range []string{"KnowledgeReadDocumentChunksResult", "LocalizationReadTranslationResult", "QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "GuardRenewPermitResult", "SiteConfigReadSiteConfigResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "KnowledgeReadDocumentIndexResult", "KnowledgeReadSiteOverviewResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
 		validator, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if err != nil {
 			return Runtime{}, err
@@ -657,6 +657,28 @@ func ReadDocumentIndex(ctx context.Context, op OperationContext, root string) ([
 		return nil, err
 	}
 	return result.Entries, nil
+}
+
+// ReadSiteOverview 读知识服务每天由层级摘要合成的全站概括；还没生成时为空字符串。
+func ReadSiteOverview(ctx context.Context, op OperationContext) (string, error) {
+	runtime, err := FromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+	if runtime.Knowledge == nil {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, false, "知识索引权威未装配")
+	}
+	raw, err := runtime.Knowledge.ReadSiteOverview(ServiceReadContext(ctx, op), map[string]any{})
+	if err != nil {
+		return "", err
+	}
+	var result struct {
+		Overview string `json:"overview"`
+	}
+	if err := DecodeResponse(runtime, "KnowledgeReadSiteOverviewResult", raw, &result); err != nil {
+		return "", err
+	}
+	return result.Overview, nil
 }
 
 // citedDocuments 数近 500 轮已完成问答里各文档被引用的次数。

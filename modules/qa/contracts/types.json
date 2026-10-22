@@ -202,6 +202,7 @@
           "enum": [
             "accepted",
             "progress",
+            "step",
             "delta",
             "citation",
             "invalidate",
@@ -230,6 +231,10 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "公共错误代码"
+        },
+        "step": {
+          "$ref": "#/$defs/AnswerStep",
+          "description": "回答过程中的一步（读取当前页、检索文档、生成回答等），供访客界面展示"
         }
       },
       "required": [
@@ -1157,6 +1162,10 @@
           "minLength": 1,
           "maxLength": 65536,
           "description": "键"
+        },
+        "currentDocumentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "访客打开问答时所在页面的文档；本轮把这篇文档全文交给回答模型"
         }
       },
       "required": [
@@ -4390,6 +4399,58 @@
         "sourceLanguage"
       ],
       "description": "仅localization纯服务同站同代读取真实缓存基准材料；不由请求自报active，不新建缓存或模型。sourceHash仅由QA固定schema1对象canonical产生，消费者直接保存，不复制算法。"
+    },
+    "AnswerStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "回答过程中的一步",
+      "properties": {
+        "key": {
+          "type": "string",
+          "enum": [
+            "understand",
+            "page",
+            "search",
+            "answer"
+          ],
+          "description": "步骤"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "running",
+            "done",
+            "skipped"
+          ],
+          "description": "状态"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "简短标题"
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "补充说明（如改写后的检索问题）"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "description": "相关条目（如命中的文档标题）"
+        }
+      },
+      "required": [
+        "key",
+        "status",
+        "title"
+      ]
     }
   }
 }

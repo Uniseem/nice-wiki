@@ -15,6 +15,7 @@ import (
 	"nice-wiki/modules/knowledge/internal/gen"
 	indexer "nice-wiki/modules/knowledge/internal/index"
 	modelruntime "nice-wiki/modules/knowledge/internal/model"
+	"nice-wiki/modules/knowledge/internal/overview"
 	domainruntime "nice-wiki/modules/knowledge/internal/runtime"
 	"nice-wiki/modules/knowledge/internal/search"
 	"nice-wiki/modules/knowledge/internal/transport"
@@ -222,6 +223,10 @@ func assembleBackgroundTasks(bind func(context.Context) context.Context, siteID,
 		batch("knowledge.outbox", 1000, func(ctx context.Context, op platform.OperationContext) error {
 			_, err := events.PublishOutbox(ctx, op, events.PublishOutboxInput{Limit: 100, WorkerID: ModuleSlug})
 			return err
+		}),
+		// 层级摘要与全站概括：每分钟检查一次，满 24 小时（或从没生成过）才在后台重算。
+		batch("knowledge.overview", 60000, func(ctx context.Context, op platform.OperationContext) error {
+			return overview.RunDaily(ctx, op)
 		}),
 		batch("knowledge.recovery", 60000, func(ctx context.Context, op platform.OperationContext) error {
 			if err := domainruntime.RecoverExtractionTasks(ctx, op, 100); err != nil {

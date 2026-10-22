@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 type ProfileOption = { profileId: string; label: string; tier: string; usable: boolean; space?: unknown };
 type DocOption = { documentId: string; title: string; reference: unknown };
-type Options = { modelsState: string; modelErrorCode?: string; profiles: ProfileOption[]; documents: DocOption[]; baseLanguage: string };
+type Options = { modelsState: string; modelErrorCode?: string; profiles: ProfileOption[]; documents: DocOption[]; baseLanguage: string; siteOverview?: string; siteOverviewUpdatedAt?: string };
 type Config = { configId: string; version: number; enabled: boolean; embeddingProfileId: string; space: unknown; chunkTokens: number; overlapTokens: number; language: string };
 type Build = { buildId: string; document: { documentId: string; publishedRevisionId?: string }; space?: unknown; state: string; failureCode?: string | null; completedChunks: number; totalChunks: number; createdAt?: string };
 
@@ -80,6 +80,12 @@ export default function KnowledgePage() {
       builds.reload();
     }, t('已提交索引任务'));
   };
+
+  // 全站概括每天自动重算；这里可以立即重算（在后台进行，几分钟后刷新查看）。
+  const refreshOverview = () => run(async () => {
+    const idempotencyKey = newKey();
+    await api('/v1/site-overview:refresh', { method: 'POST', idempotencyKey, body: { idempotencyKey } });
+  }, t('已开始重新生成，几分钟后刷新查看'));
 
   const cancel = (item: Build) => run(async () => {
     const idempotencyKey = newKey();
@@ -156,6 +162,13 @@ export default function KnowledgePage() {
               )}
             </Panel>
           </div>
+          <Panel
+            title={t('全站概括')}
+            description={o.siteOverviewUpdatedAt ? t('每天由各文档的层级摘要自下而上合成，AI 问答每次都会参考。生成于 {0}。', fmtRelative(o.siteOverviewUpdatedAt)) : t('每天由各文档的层级摘要自下而上合成，AI 问答每次都会参考。')}
+            actions={<Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => void refreshOverview()}>{t('立即重新生成')}</Button>}
+          >
+            {o.siteOverview ? <p className="max-h-96 overflow-auto whitespace-pre-wrap rounded-xl bg-surface-secondary px-4 py-3 text-sm leading-6 text-foreground/90">{o.siteOverview}</p> : <p className="py-4 text-center text-sm text-muted">{t('还没有生成。建好索引后会自动生成，也可以点“立即重新生成”。')}</p>}
+          </Panel>
           <Panel title={t('索引任务')} description={running ? t('有任务在进行，每 5 秒自动刷新。') : t('最近 50 个任务。')} actions={<Button size="sm" variant="tertiary" onPress={builds.reload}>{t('刷新')}</Button>}>
             {builds.error ? <ErrorBlock error={builds.error} onRetry={builds.reload} /> : !builds.data ? <LoadingBlock lines={3} /> : !builds.data.length ? (
               <p className="py-4 text-center text-sm text-muted">{t('暂无任务。')}</p>

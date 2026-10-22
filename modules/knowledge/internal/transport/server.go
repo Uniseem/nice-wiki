@@ -22,6 +22,7 @@ import (
 	"nice-wiki/modules/knowledge/internal/card"
 	indexconfig "nice-wiki/modules/knowledge/internal/config"
 	"nice-wiki/modules/knowledge/internal/gen"
+	"nice-wiki/modules/knowledge/internal/overview"
 	domainruntime "nice-wiki/modules/knowledge/internal/runtime"
 	"nice-wiki/modules/knowledge/internal/search"
 )
@@ -96,6 +97,8 @@ func NewOperationHandlers(bind func(context.Context) context.Context) map[string
 		"searchKnowledge":      jsonOperation(bind, search.Retrieve, http.StatusOK),
 		"readSections":         jsonOperation(bind, search.ReadSections, http.StatusOK),
 		"readDocumentIndex":    jsonOperation(bind, card.ReadDocumentIndex, http.StatusOK),
+		"readSiteOverview":     jsonOperation(bind, overview.ReadSiteOverview, http.StatusOK),
+		"refreshSiteOverview":  jsonOperation(bind, overview.RefreshSiteOverview, http.StatusAccepted),
 		"readDocumentChunks":   jsonOperation(bind, search.ReadDocumentChunks, http.StatusOK),
 		"createQueryEmbedding": jsonOperation(bind, search.CreateQueryEmbedding, http.StatusOK),
 		"getBuild": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -215,7 +218,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域HTTP合同不可读")
 	}
 	router, err := apivalidate.NewServiceHandler(schema, platform.ServiceBoundaryConfig{Self: "knowledge", Anchors: anchors, Runtime: func(ctx context.Context) (platform.RuntimeView, error) { return lifecycle.ReadRuntime(ctx, authority) }, OpenedDataEpoch: epoch, Authorize: authorize, MaxBodyBytes: 2 << 20, AllowedCallers: map[string][]string{
-		"readIndexConfig": {"portal"}, "putIndexConfig": {"portal"}, "readIndexOptions": {"portal"}, "createBuild": {"portal"}, "cancelBuild": {"portal"}, "listBuilds": {"portal"}, "getBuild": {"portal"}, "redactDiagnostics": {"portal"}, "estimateRebuildPlan": {"portal"}, "approveRebuildPlan": {"portal"}, "searchKnowledge": {"qa"}, "readSections": {"qa"}, "readDocumentIndex": {"qa"}, "readDocumentChunks": {"qa"}, "createQueryEmbedding": {"qa"}, "acquireBarrier": {"data-protection"}, "releaseBarrier": {"data-protection"}, "exportSnapshot": {"data-protection"}, "stageSnapshot": {"data-protection"}, "discardSnapshot": {"data-protection"}, "inspectEvidence": {"data-protection"}, "readJobRecovery": {"jobs"}}, ServiceActorCallers: map[string][]string{"searchKnowledge": {"qa"}, "readSections": {"qa"}, "readDocumentIndex": {"qa"}, "readDocumentChunks": {"qa"}, "createQueryEmbedding": {"qa"}, "readJobRecovery": {"jobs"}}, MaintenanceOperations: map[string]bool{"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "inspectEvidence": true, "readJobRecovery": true}}, handlers)
+		"readIndexConfig": {"portal"}, "putIndexConfig": {"portal"}, "readIndexOptions": {"portal"}, "createBuild": {"portal"}, "cancelBuild": {"portal"}, "listBuilds": {"portal"}, "getBuild": {"portal"}, "redactDiagnostics": {"portal"}, "estimateRebuildPlan": {"portal"}, "approveRebuildPlan": {"portal"}, "searchKnowledge": {"qa"}, "readSections": {"qa"}, "readDocumentIndex": {"qa"}, "readDocumentChunks": {"qa"}, "readSiteOverview": {"qa"}, "refreshSiteOverview": {"portal"}, "createQueryEmbedding": {"qa"}, "acquireBarrier": {"data-protection"}, "releaseBarrier": {"data-protection"}, "exportSnapshot": {"data-protection"}, "stageSnapshot": {"data-protection"}, "discardSnapshot": {"data-protection"}, "inspectEvidence": {"data-protection"}, "readJobRecovery": {"jobs"}}, ServiceActorCallers: map[string][]string{"searchKnowledge": {"qa"}, "readSections": {"qa"}, "readDocumentIndex": {"qa"}, "readDocumentChunks": {"qa"}, "readSiteOverview": {"qa"}, "createQueryEmbedding": {"qa"}, "readJobRecovery": {"jobs"}}, MaintenanceOperations: map[string]bool{"acquireBarrier": true, "releaseBarrier": true, "exportSnapshot": true, "stageSnapshot": true, "discardSnapshot": true, "inspectEvidence": true, "readJobRecovery": true}}, handlers)
 	if err != nil {
 		return nil, err
 	}

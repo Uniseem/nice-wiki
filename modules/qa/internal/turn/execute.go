@@ -10,10 +10,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/qa/internal/answer"
-	questioncontext "nice-wiki/modules/qa/internal/context"
 	"nice-wiki/modules/qa/internal/gen"
 	"nice-wiki/modules/qa/internal/history"
 	"nice-wiki/modules/qa/internal/normalize"
@@ -21,11 +21,12 @@ import (
 	"nice-wiki/modules/qa/internal/stream"
 )
 
-// ExecuteTurn 在本进程里跑完一轮回答：检索证据 → 流式生成 → 校验引用并落终态；任何失败都落 failed 终态并释放准入。
-func ExecuteTurn(ctx context.Context, op OperationContext, turnID string) {
+// ExecuteTurn 在本进程里跑完一轮回答：理解问题 → 读当前页 → 混合检索 → 流式生成 → 校验引用并落终态；
+// 任何失败都落 failed 终态并释放准入。currentDocument 是访客提问时所在页面（可为空）。
+func ExecuteTurn(ctx context.Context, op OperationContext, turnID, currentDocument string) {
 	work, cancel := context.WithDeadline(ctx, mustDeadline(op))
 	defer cancel()
-	if err := runTurn(work, op, turnID); err != nil {
+	if err := runTurn(work, op, turnID, currentDocument); err != nil {
 		if os.Getenv("NW_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "问答轮次失败 turn=%s err=%v\n", turnID, err)
 		}
@@ -53,7 +54,7 @@ func stopRunningTurn(turnID string, cause error) {
 	}
 }
 
-func runTurn(parent context.Context, op OperationContext, turnID string) (err error) {
+func runTurn(parent context.Context, op OperationContext, turnID, currentDocument string) (err error) {
 	runtime, err := qaruntime.FromContext(parent)
 	if err != nil {
 		return err
@@ -116,26 +117,15 @@ func runTurn(parent context.Context, op OperationContext, turnID string) (err er
 	if err != nil {
 		return err
 	}
-	// 每轮先让决策模型判断：滥用交风控，离题和闲聊直接用固定回答结束，不检索也不调回答模型。
-	decision := decideTurn(ctx, op, record, conversation)
-	if decision != nil {
-		if err := questioncontext.ReportRisk(ctx, op, platform.HashBytes([]byte(record.Question)), decision.risk); err != nil {
-			return err
-		}
-		if decision.intent == "smalltalk" || decision.intent == "off_topic" {
-			return replyWithoutRetrieval(ctx, op, turnID, lease, record, decision.intent)
-		}
+	step := func(key gen.AnswerStepKey, status gen.AnswerStepStatus, title, detail string, items []string) {
+		emitStep(ctx, op, turnID, lease, key, status, title, detail, items)
 	}
-	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, decision, conversation.Summary, conversation.Recent(6))
+	// 理解问题：前置改写把追问补成独立问题（检索用它），同时分类并上报风险；前置不可用时退回访客原话。
+	step(gen.Understand, gen.Running, "理解问题", "", nil)
+	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, conversation.Summary, conversation.Recent(6))
 	if err != nil {
 		return err
 	}
-	if planned != nil && planned.cacheable && resolved.Policy.CacheEnabled {
-		if hit, err := answerFromCache(ctx, op, turnID, lease, record, resolved, planned, conversation.Summary == "" && len(conversation.Messages) == 0); err != nil || hit {
-			return err
-		}
-	}
-	// 检索用前置改写后的独立问题，追问才能检索准；前置不可用时退回访客原话。
 	var query string
 	if planned != nil {
 		query = planned.plan.CanonicalQuestion
@@ -146,51 +136,45 @@ func runTurn(parent context.Context, op OperationContext, turnID string) (err er
 		}
 		query = canonical.Normalized
 	}
-	// 文档路由和材料筛选（决策模型只读英文）：独立问题在每轮决策里已经选好文档；
-	// 追问把改写出的独立问题译成英文后再单独路由一次，译不出来就只做全站检索。
-	var documents []string
-	var selectEvidence func([]answer.EvidenceCandidate) []string
-	if decision != nil {
-		documents = decision.documents
-		english := decision.english
-		if !decision.standalone && planned != nil {
-			if translated, err := toEnglish(ctx, op, query, runtime.BaseLanguage, "english.canonical"); err == nil {
-				english = translated
-				documents = routeDocuments(ctx, op, english, "", 0)
-			}
+	step(gen.Understand, gen.Done, "理解问题", query, nil)
+	// 回答和当前页有关时缓存的答案不一定对得上，带了当前页的提问不读也不写缓存。
+	cacheable := planned != nil && planned.cacheable && resolved.Policy.CacheEnabled && currentDocument == ""
+	if cacheable {
+		if hit, err := answerFromCache(ctx, op, turnID, lease, record, resolved, planned, conversation.Summary == "" && len(conversation.Messages) == 0); err != nil || hit {
+			return err
 		}
-		selectEvidence = evidenceSelector(ctx, op, english)
 	}
-	// 回答档位以模型接入里的任务分配为准（网关只接受与任务路线一致的档位），解析不到时才退回策略里填的档位；
-	// 简单问题改用快速档回答（任务 qa.answer-fast 没分配时仍用回答档位）。
 	task, profile := "qa.answer", string(resolved.Policy.ProfileId)
 	if routed, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer"); err == nil {
 		profile = routed
 	}
-	if decision != nil && decision.simple {
-		if fast, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer-fast"); err == nil {
-			task, profile = "qa.answer-fast", fast
+	budget := materialBudget(ctx, op, resolved.Policy, task)
+	// 当前页：访客在哪一页打开问答，就把那一页全文交给回答模型（问题常常指“这里”“这个功能”）。读不到不影响本轮。
+	page := answer.RetrieveEvidenceResult{Citations: []gen.Citation{}, EvidenceText: "[]"}
+	if currentDocument != "" {
+		step(gen.Page, gen.Running, "阅读当前页面", "", nil)
+		read, err := answer.ReadDocuments(ctx, op, answer.ReadDocumentsInput{TurnID: turnID, DocumentIDs: []string{currentDocument}, Language: record.Language, MaximumTokens: budget})
+		if err == nil && len(read.Citations) > 0 {
+			page = read
+			step(gen.Page, gen.Done, "阅读当前页面", "", []string{read.Citations[0].Title})
+		} else {
+			step(gen.Page, gen.Skipped, "阅读当前页面", "", nil)
 		}
 	}
-	// 决策模型选中了文档就把这些文章整篇交给回答模型；没选中、读不到或决策不可用时才走片段检索（全站检索加材料筛选）。
-	var evidence answer.RetrieveEvidenceResult
-	if len(documents) > 0 {
-		if evidence, err = answer.ReadDocuments(ctx, op, answer.ReadDocumentsInput{TurnID: turnID, DocumentIDs: documents, Language: record.Language, MaximumTokens: materialBudget(ctx, op, resolved.Policy, task)}); err != nil {
-			return err
-		}
-		if os.Getenv("NW_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "整篇读取 turn=%s 文档=%d 引用=%d\n", turnID, len(documents), len(evidence.Citations))
-		}
+	// 检索：混合检索（关键词 BM25 + 向量，按排名融合后重排），找全站相关片段。
+	step(gen.Search, gen.Running, "检索文档", query, nil)
+	evidence, err := answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language})
+	if err != nil {
+		return err
 	}
-	if len(evidence.Citations) == 0 {
-		if evidence, err = answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language, Select: selectEvidence}); err != nil {
-			return err
-		}
-	}
+	step(gen.Search, gen.Done, fmt.Sprintf("找到 %d 段相关内容", len(evidence.Citations)), query, citedTitles(evidence.Citations))
+	// 全站概括（每天由层级摘要合成）让模型知道整个网站讲什么；读不到不影响本轮。
+	overview, _ := qaruntime.ReadSiteOverview(ctx, op)
 	if _, err := takeState(ctx, op, turnID, lease, "generating"); err != nil {
 		return err
 	}
-	prompt, err := answerPrompt(ctx, op, record, resolved, evidence.EvidenceText, conversation, task)
+	step(gen.Answer, gen.Running, "生成回答", "", nil)
+	prompt, err := answerPrompt(ctx, op, record, resolved, answer.Materials{Overview: overview, Page: page.EvidenceText, Evidence: evidence.EvidenceText}, conversation, task)
 	if err != nil {
 		return err
 	}
@@ -202,21 +186,22 @@ func runTurn(parent context.Context, op OperationContext, turnID string) (err er
 	if err != nil {
 		return err
 	}
-	evidence.Citations = usedCitations(text, evidence.Citations)
-	for _, citation := range evidence.Citations {
+	citations := usedCitations(text, append(append([]gen.Citation{}, page.Citations...), evidence.Citations...))
+	for _, citation := range citations {
 		c := citation
 		if _, err := stream.AppendAnswerEvent(ctx, op, stream.AppendAnswerEventInput{TurnID: turnID, LeaseID: lease, Event: gen.AnswerEvent{Event: gen.AnswerEventEvent("citation"), Citation: &c}}); err != nil {
 			return err
 		}
 	}
+	step(gen.Answer, gen.Done, "生成回答", "", nil)
 	kind := "answered"
-	if len(evidence.Citations) == 0 {
+	if len(citations) == 0 {
 		kind = "no_evidence"
 	}
-	if _, err = CompleteTurn(ctx, op, CompleteTurnInput{TurnID: turnID, Answer: text, Citations: evidence.Citations, LeaseID: lease, AnswerKind: kind, TokenCount: len(text)/4 + 1}); err != nil {
+	if _, err = CompleteTurn(ctx, op, CompleteTurnInput{TurnID: turnID, Answer: text, Citations: citations, LeaseID: lease, AnswerKind: kind, TokenCount: len(text)/4 + 1}); err != nil {
 		return err
 	}
-	if planned != nil && planned.cacheable && resolved.Policy.CacheEnabled && kind == "answered" {
+	if cacheable && kind == "answered" {
 		writeCache(ctx, op, turnID, planned, text, resolved.Memory.VersionHash)
 	}
 	return nil
@@ -336,9 +321,9 @@ const summaryRoom = 4000
 
 // answerPrompt 组装回答提示词。超过回答模型窗口（扣掉预留比例和输出额度）时，像 ADE 一样先把早期对话压缩进摘要再组装；
 // 后台关闭压缩时改为丢掉最早的消息。估算和网关核对窗口用同一口径。
-func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, evidenceText string, conversation history.Conversation, task string) (answer.BuildAnswerPromptResult, error) {
+func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, materials answer.Materials, conversation history.Conversation, task string) (answer.BuildAnswerPromptResult, error) {
 	build := func() (answer.BuildAnswerPromptResult, error) {
-		return answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, EvidenceText: evidenceText, Summary: conversation.Summary, History: conversation.Messages})
+		return answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, Materials: materials, Summary: conversation.Summary, History: conversation.Messages})
 	}
 	prompt, err := build()
 	if err != nil {
@@ -374,6 +359,40 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 		return prompt, err
 	}
 	return build()
+}
+
+// emitStep 把回答过程的一步推给访客界面（思考过程展示）；推送失败不影响回答。
+func emitStep(ctx context.Context, op OperationContext, turnID, lease string, key gen.AnswerStepKey, status gen.AnswerStepStatus, title, detail string, items []string) {
+	value := gen.AnswerStep{Key: key, Status: status, Title: title}
+	if detail != "" {
+		detail = clip(detail, 2000)
+		value.Detail = &detail
+	}
+	if len(items) > 0 {
+		value.Items = &items
+	}
+	_, _ = stream.AppendAnswerEvent(ctx, op, stream.AppendAnswerEventInput{TurnID: turnID, LeaseID: lease, Event: gen.AnswerEvent{Event: gen.AnswerEventEvent("step"), Step: &value}})
+}
+
+// citedTitles 是命中片段所在文档的标题（去重、保持顺序，最多 8 个），给访客看检索到了什么。
+func citedTitles(citations []gen.Citation) []string {
+	seen := map[string]bool{}
+	titles := []string{}
+	for _, citation := range citations {
+		if citation.Title == "" || seen[citation.Title] || len(titles) >= 8 {
+			continue
+		}
+		seen[citation.Title] = true
+		titles = append(titles, clip(citation.Title, 300))
+	}
+	return titles
+}
+
+func clip(text string, limit int) string {
+	if utf8.RuneCountInString(text) <= limit {
+		return text
+	}
+	return string([]rune(text)[:limit])
 }
 
 // usedCitations 只留回答里真正引用到的材料。一处都没引用的回答（通常是“文档未提及”）不列来源，记为无依据，也不进缓存。

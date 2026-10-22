@@ -112,6 +112,37 @@
     @apply border border-current bg-transparent text-current hover:bg-white/10;
   }
 
+  /* 首页主视觉的解构主义背景：4 幅构图每 12 秒交叉淡入淡出（48 秒一轮），构图里的元素缓慢漂移、旋转。 */
+  .nw-hero-art {
+    @apply pointer-events-none absolute inset-0 -z-10 overflow-hidden;
+  }
+  .nw-hero-scene {
+    @apply absolute inset-0 size-full opacity-0;
+    animation: nw-hero-scene 48s linear infinite;
+  }
+  .nw-hero-scene:nth-child(1) { animation-delay: -2.4s; }
+  .nw-hero-scene:nth-child(2) { animation-delay: 9.6s; }
+  .nw-hero-scene:nth-child(3) { animation-delay: 21.6s; }
+  .nw-hero-scene:nth-child(4) { animation-delay: 33.6s; }
+  .nw-hero-scene :is(.nw-drift, .nw-spin, .nw-float, .nw-pulse) {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .nw-drift { animation: nw-drift 16s ease-in-out infinite alternate; }
+  .nw-spin { animation: nw-spin 70s linear infinite; }
+  .nw-float { animation: nw-float 11s ease-in-out infinite alternate; }
+  .nw-pulse { animation: nw-pulse 3.2s ease-in-out infinite; }
+  .nw-dash { stroke-dasharray: 8 14; animation: nw-dash 9s linear infinite; }
+  .nw-hero-scene .nw-reverse { animation-direction: alternate-reverse; }
+  .nw-hero-scene .nw-spin.nw-reverse, .nw-hero-scene .nw-dash.nw-reverse { animation-direction: reverse; }
+  .nw-hero-scene .nw-slow { animation-duration: 26s; }
+  .nw-hero-scene .nw-spin.nw-slow { animation-duration: 110s; }
+  .nw-hero-scene .nw-late { animation-delay: -4s; }
+  @media (prefers-reduced-motion: reduce) {
+    .nw-hero-scene, .nw-hero-scene * { animation: none !important; }
+    .nw-hero-scene:first-child { opacity: 1; }
+  }
+
   /* 平台视频的“点击播放”入口。 */
   .platform-video img {
     @apply m-0 w-full rounded-none;
@@ -132,4 +163,30 @@
   #nw-qa-root {
     display: none !important;
   }
+}
+
+@keyframes nw-hero-scene {
+  0% { opacity: 0; }
+  5% { opacity: 1; }
+  25% { opacity: 1; }
+  30% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes nw-drift {
+  from { transform: translate(-1.5%, 1.2%) rotate(-3deg); }
+  to { transform: translate(2.5%, -1.8%) rotate(4deg); }
+}
+@keyframes nw-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes nw-float {
+  from { transform: translateY(14px) rotate(-6deg); }
+  to { transform: translateY(-18px) rotate(8deg); }
+}
+@keyframes nw-pulse {
+  0%, 100% { transform: scale(1); opacity: .9; }
+  50% { transform: scale(1.8); opacity: .35; }
+}
+@keyframes nw-dash {
+  to { stroke-dashoffset: -220; }
 }
