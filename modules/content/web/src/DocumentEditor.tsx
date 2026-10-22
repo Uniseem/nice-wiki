@@ -291,12 +291,23 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
     });
   };
 
-  const preview = () => act(async () => {
-    if (!(await flush())) return;
-    const draft = live.current.draft!;
-    const grant = await api<{ previewId: string; token: string }>('/v1/preview/tokens', { method: 'POST', body: { documentId, draftRevisionId: draft.revisionId } });
-    window.open(`/v1/preview/${encodeURIComponent(grant.token)}?previewId=${encodeURIComponent(grant.previewId)}`, '_blank', 'noopener');
-  });
+  // 预览：先在点击当下打开空白标签页，拿到预览地址后再跳过去（Safari 会拦截 await 之后才打开的窗口）。
+  const preview = () => {
+    const tab = window.open('about:blank', '_blank');
+    if (tab) tab.opener = null;
+    void act(async () => {
+      try {
+        if (!(await flush())) { tab?.close(); return; }
+        const draft = live.current.draft!;
+        const grant = await api<{ previewId: string; token: string }>('/v1/preview/tokens', { method: 'POST', body: { documentId, draftRevisionId: draft.revisionId } });
+        const url = `/v1/preview/${encodeURIComponent(grant.token)}?previewId=${encodeURIComponent(grant.previewId)}`;
+        if (tab) tab.location.href = url; else window.open(url, '_blank', 'noopener');
+      } catch (problem) {
+        tab?.close();
+        throw problem;
+      }
+    });
+  };
 
   const withdraw = async () => {
     const ok = await confirmAction({ title: t('撤回发布？'), body: t('撤回后公开页将不可访问，草稿保留，可以随时重新发布。'), confirmLabel: t('撤回'), tone: 'warning' });
@@ -485,7 +496,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
           meta={meta}
           onClose={() => setDialog(null)}
           onMove={(parentId) => act(async () => {
-            await flush();
+            if (!(await flush())) return;
             await api('/v1/tree:move', { method: 'POST', body: { documentId, newParentId: parentId, beforeDocumentId: null, expectedTreeRevision: treeRevision } });
             await refreshMeta();
             setDialog(null);

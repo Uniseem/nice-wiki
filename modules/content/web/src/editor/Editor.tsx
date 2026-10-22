@@ -14,7 +14,7 @@ import { internalHref, type JSONNode } from '../convert';
 import type { Meta } from '../types';
 import { Attachment, Callout, Column, Columns, jsonAttr, MathBlock } from './blocks';
 import { BlockHandle } from './BlockHandle';
-import { filterCommands, type BlockCommand, type EditorActions } from './commands';
+import { filterCommands, insertBlock, type BlockCommand, type EditorActions } from './commands';
 import { Drawing } from './drawing';
 import { DrawingDialog, type DrawingAttrs } from './DrawingDialog';
 import { StableIds } from './ids';
@@ -94,7 +94,7 @@ export function Editor({ doc, docs, documentId, editable, toolbar, header, edito
       const content = kind === 'image' ? { type: 'image', attrs: { asset, alt: null } }
         : kind === 'video' ? { type: 'video', attrs: { source: { kind: 'uploaded', asset }, title: file.name.replace(/\.[^.]+$/, '').slice(0, 500), description: '', poster, widthPercent: null } }
         : { type: 'attachment', attrs: { asset, displayName: file.name.slice(0, 255) } };
-      current.chain().focus().insertContent(content).run();
+      insertBlock(current, content);
       toast.update(id, t('{0}已插入', label), { description: file.name, isLoading: false, timeout: 2500, variant: 'success' });
     } catch (problem) {
       toast.update(id, t('{0}上传失败', label), { description: errorText(problem), isLoading: false, timeout: 8000, variant: 'danger' });
@@ -282,7 +282,7 @@ export function Editor({ doc, docs, documentId, editable, toolbar, header, edito
           onClose={() => setMath(null)}
           onSave={(latex) => {
             if (math.pos !== null) editor.chain().focus().setNodeSelection(math.pos).updateAttributes('mathBlock', { latex }).run();
-            else editor.chain().focus().insertContent({ type: 'mathBlock', attrs: { latex } }).run();
+            else insertBlock(editor, { type: 'mathBlock', attrs: { latex } });
             setMath(null);
           }}
         />
@@ -293,7 +293,7 @@ export function Editor({ doc, docs, documentId, editable, toolbar, header, edito
           onClose={() => setDrawing(null)}
           onSave={(attrs) => {
             if (drawing.pos !== null) editor.chain().focus().setNodeSelection(drawing.pos).updateAttributes('drawing', attrs).run();
-            else editor.chain().focus().insertContent({ type: 'drawing', attrs }).run();
+            else insertBlock(editor, { type: 'drawing', attrs });
             setDrawing(null);
           }}
         />

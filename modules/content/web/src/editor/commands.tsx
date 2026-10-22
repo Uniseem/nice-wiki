@@ -1,6 +1,6 @@
 import { Brush, CircleCheck, CircleExclamation, CircleInfo, Code, FileText, Function as FunctionIcon, Heading2, Heading3, Heading4, LayoutColumns, LayoutColumns3, LayoutHeaderCells, ListCheck, ListOl, ListUl, Minus, Paperclip, Picture, QuoteOpen, TextAlignLeft, TriangleExclamation, Video } from '@gravity-ui/icons';
-import { TextSelection } from '@tiptap/pm/state';
-import type { Editor } from '@tiptap/react';
+import { NodeSelection, TextSelection, type Transaction } from '@tiptap/pm/state';
+import type { Editor, JSONContent } from '@tiptap/react';
 import type { ComponentType } from 'react';
 import { t } from '@ui';
 
@@ -24,6 +24,28 @@ export type BlockCommand = {
   icon: ComponentType<{ className?: string }>;
   run: (editor: Editor, actions: EditorActions) => void;
 };
+
+// 光标移到某个块后面：后面是段落就放到段落开头，否则补一个空段落。
+function caretAfter(editor: Editor, tr: Transaction, after: number): void {
+  if (!tr.doc.resolve(after).nodeAfter?.isTextblock) tr.insert(after, editor.schema.nodes.paragraph.create());
+  tr.setSelection(TextSelection.create(tr.doc, after + 1));
+}
+
+// 当前选中的是整块（比如刚点过的图片）时先把光标移到它后面，接下来插入的内容不会替换它。
+export function leaveBlockSelection(editor: Editor): void {
+  const { selection } = editor.state;
+  if (selection instanceof NodeSelection) editor.chain().command(({ tr }) => { caretAfter(editor, tr, selection.to); return true; }).run();
+}
+
+// 插入原子块（图片、视频、附件、公式、画板）：插完把光标移到它后面，否则选区停在新块上，
+// 接着再插入（比如一次拖入多张图）会把它替换掉。
+export function insertBlock(editor: Editor, content: JSONContent): void {
+  leaveBlockSelection(editor);
+  editor.chain().focus().insertContent(content).command(({ tr }) => {
+    if (tr.selection instanceof NodeSelection) caretAfter(editor, tr, tr.selection.to);
+    return true;
+  }).run();
+}
 
 export function insertColumns(editor: Editor, count: number): void {
   if (editor.isActive('column')) return; // 分栏不能嵌套

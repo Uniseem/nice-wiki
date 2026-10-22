@@ -5,7 +5,7 @@ import { askText, t } from '@ui';
 import { NodeSelection } from '@tiptap/pm/state';
 import { useEditorState, type Editor } from '@tiptap/react';
 import type { ReactNode } from 'react';
-import { blockCommands, calloutKinds, codeLanguages, toggleCallout, type EditorActions } from './commands';
+import { blockCommands, calloutKinds, codeLanguages, leaveBlockSelection, toggleCallout, type EditorActions } from './commands';
 
 type State = {
   bold: boolean; italic: boolean; underline: boolean; strike: boolean; code: boolean; highlight: boolean; link: boolean;
@@ -100,7 +100,7 @@ export function EditorToolbar({ editor, editable, actions }: { editor: Editor; e
       <Dropdown>
         <Button isDisabled={disabled} size="sm" variant="ghost"><Plus />{t('插入')}<ChevronDown className="size-3.5 text-muted" /></Button>
         <Dropdown.Popover className="max-h-[70vh] min-w-64" placement="bottom start">
-          <Dropdown.Menu onAction={(key: Key) => blockCommands.find((command) => command.id === key)?.run(editor, actions)}>
+          <Dropdown.Menu onAction={(key: Key) => { leaveBlockSelection(editor); blockCommands.find((command) => command.id === key)?.run(editor, actions); }}>
             {([t('结构'), t('媒体'), t('文本'), t('列表')] as const).map((group) => (
               <Dropdown.Section key={group}>
                 <Header>{group}</Header>
