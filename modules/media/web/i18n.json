@@ -239,22 +239,6 @@
   "id": "Dipakai versi lama",
   "ar": "مستخدم في إصدارات سابقة"
  },
- "合计大小": {
-  "zh-Hant": "合計大小",
-  "en": "Total size",
-  "ja": "合計サイズ",
-  "ko": "전체 크기",
-  "fr": "Taille totale",
-  "de": "Gesamtgröße",
-  "es": "Tamaño total",
-  "pt": "Tamanho total",
-  "ru": "Общий размер",
-  "it": "Dimensione totale",
-  "vi": "Tổng dung lượng",
-  "th": "ขนาดรวม",
-  "id": "Ukuran total",
-  "ar": "الحجم الإجمالي"
- },
  "图片": {
   "zh-Hant": "圖片",
   "en": "Image",
@@ -303,6 +287,22 @@
   "id": "Ukuran",
   "ar": "الحجم"
  },
+ "将在 {0} 之后删除。": {
+  "zh-Hant": "將在 {0} 之後刪除。",
+  "en": "Will be deleted after {0}.",
+  "ja": "{0} 以降に削除されます。",
+  "ko": "{0} 이후에 삭제됩니다.",
+  "fr": "Sera supprimé après le {0}.",
+  "de": "Wird nach {0} gelöscht.",
+  "es": "Se eliminará después de {0}.",
+  "pt": "Será excluído após {0}.",
+  "ru": "Будет удалено после {0}.",
+  "it": "Verrà eliminato dopo {0}.",
+  "vi": "Sẽ bị xóa sau {0}.",
+  "th": "จะถูกลบหลัง {0}",
+  "id": "Akan dihapus setelah {0}.",
+  "ar": "سيُحذف بعد {0}."
+ },
  "已删除": {
   "zh-Hant": "已刪除",
   "en": "Deleted",
@@ -334,6 +334,22 @@
   "th": "ถูกบล็อก",
   "id": "Diblokir",
   "ar": "محظور"
+ },
+ "已撤销，这些资源不会被删除": {
+  "zh-Hant": "已撤銷，這些資源不會被刪除",
+  "en": "Cancelled. These files won’t be deleted",
+  "ja": "取り消しました。これらのリソースは削除されません",
+  "ko": "취소했습니다. 이 리소스는 삭제되지 않습니다",
+  "fr": "Annulé. Ces ressources ne seront pas supprimées",
+  "de": "Abgebrochen. Diese Dateien werden nicht gelöscht",
+  "es": "Cancelado. Estos recursos no se eliminarán",
+  "pt": "Cancelado. Estes recursos não serão excluídos",
+  "ru": "Отменено. Эти файлы не будут удалены",
+  "it": "Annullato. Queste risorse non verranno eliminate",
+  "vi": "Đã hủy. Các tài nguyên này sẽ không bị xóa",
+  "th": "ยกเลิกแล้ว ทรัพยากรเหล่านี้จะไม่ถูกลบ",
+  "id": "Dibatalkan. Sumber daya ini tidak akan dihapus",
+  "ar": "أُلغي. لن تُحذف هذه الموارد"
  },
  "已放弃清理计划": {
   "zh-Hant": "已放棄清理計畫",
@@ -447,6 +463,22 @@
   "id": "Menunggu dihapus",
   "ar": "بانتظار الحذف"
  },
+ "待确认": {
+  "zh-Hant": "待確認",
+  "en": "Awaiting confirmation",
+  "ja": "確認待ち",
+  "ko": "확인 대기",
+  "fr": "En attente de confirmation",
+  "de": "Wartet auf Bestätigung",
+  "es": "Pendiente de confirmar",
+  "pt": "Aguardando confirmação",
+  "ru": "Ожидает подтверждения",
+  "it": "In attesa di conferma",
+  "vi": "Chờ xác nhận",
+  "th": "รอการยืนยัน",
+  "id": "Menunggu konfirmasi",
+  "ar": "بانتظار التأكيد"
+ },
  "所有资源都在被使用。": {
   "zh-Hant": "所有資源都在使用中。",
   "en": "All media is in use.",
@@ -478,6 +510,22 @@
   "th": "ยอมรับความเสี่ยงและลบ",
   "id": "Terima risiko dan hapus",
   "ar": "قبول المخاطرة والحذف"
+ },
+ "撤销删除": {
+  "zh-Hant": "撤銷刪除",
+  "en": "Cancel deletion",
+  "ja": "削除を取り消す",
+  "ko": "삭제 취소",
+  "fr": "Annuler la suppression",
+  "de": "Löschen abbrechen",
+  "es": "Cancelar eliminación",
+  "pt": "Cancelar exclusão",
+  "ru": "Отменить удаление",
+  "it": "Annulla eliminazione",
+  "vi": "Hủy xóa",
+  "th": "ยกเลิกการลบ",
+  "id": "Batalkan penghapusan",
+  "ar": "إلغاء الحذف"
  },
  "放弃计划": {
   "zh-Hant": "放棄計畫",
@@ -671,6 +719,22 @@
   "id": "Konfirmasi hapus",
   "ar": "تأكيد الحذف"
  },
+ "确认后要等 24 小时保护窗口结束才真正删除，在此之前可以撤销。": {
+  "zh-Hant": "確認後要等 24 小時保護期結束才會真正刪除，在此之前可以撤銷。",
+  "en": "After confirmation, files are only deleted once the 24-hour protection window ends. You can cancel until then.",
+  "ja": "確認後、24 時間の保護期間が終わるまで実際には削除されません。それまでは取り消せます。",
+  "ko": "확인 후 24시간 보호 기간이 끝나야 실제로 삭제됩니다. 그 전까지는 취소할 수 있습니다.",
+  "fr": "Après confirmation, la suppression n’a lieu qu’à la fin de la période de protection de 24 heures. Vous pouvez annuler d’ici là.",
+  "de": "Nach der Bestätigung wird erst nach Ablauf der 24-stündigen Schutzfrist gelöscht. Bis dahin kann abgebrochen werden.",
+  "es": "Tras confirmar, solo se elimina cuando termina la ventana de protección de 24 horas. Hasta entonces puedes cancelar.",
+  "pt": "Após a confirmação, a exclusão só acontece quando termina a janela de proteção de 24 horas. Até lá, é possível cancelar.",
+  "ru": "После подтверждения файлы удаляются только по окончании 24-часового защитного периода. До этого удаление можно отменить.",
+  "it": "Dopo la conferma, l’eliminazione avviene solo al termine della finestra di protezione di 24 ore. Fino ad allora puoi annullare.",
+  "vi": "Sau khi xác nhận, tệp chỉ bị xóa khi hết khoảng bảo vệ 24 giờ. Trước đó bạn có thể hủy.",
+  "th": "หลังยืนยัน ไฟล์จะถูกลบจริงเมื่อพ้นช่วงคุ้มครอง 24 ชั่วโมง ก่อนหน้านั้นยังยกเลิกได้",
+  "id": "Setelah dikonfirmasi, file baru dihapus saat jendela perlindungan 24 jam berakhir. Sampai saat itu Anda masih bisa membatalkan.",
+  "ar": "بعد التأكيد، لا يتم الحذف إلا بعد انتهاء فترة الحماية البالغة 24 ساعة، ويمكنك الإلغاء قبل ذلك."
+ },
  "确认清理": {
   "zh-Hant": "確認清理",
   "en": "Confirm cleanup",
@@ -719,6 +783,22 @@
   "id": "Pengaturan situs (merek, beranda, atau footer)",
   "ar": "إعدادات الموقع (العلامة أو الصفحة الرئيسية أو التذييل)"
  },
+ "等待删除": {
+  "zh-Hant": "等待刪除",
+  "en": "Pending deletion",
+  "ja": "削除待ち",
+  "ko": "삭제 대기",
+  "fr": "Suppression en attente",
+  "de": "Löschen ausstehend",
+  "es": "Eliminación pendiente",
+  "pt": "Exclusão pendente",
+  "ru": "Ожидает удаления",
+  "it": "Eliminazione in attesa",
+  "vi": "Chờ xóa",
+  "th": "รอการลบ",
+  "id": "Menunggu penghapusan",
+  "ar": "بانتظار الحذف"
+ },
  "类别": {
   "zh-Hant": "類別",
   "en": "Type",
@@ -750,22 +830,6 @@
   "th": "วิดีโอ",
   "id": "Video",
   "ar": "فيديو"
- },
- "计划编号": {
-  "zh-Hant": "計畫編號",
-  "en": "Plan ID",
-  "ja": "計画 ID",
-  "ko": "계획 ID",
-  "fr": "ID du plan",
-  "de": "Plan-ID",
-  "es": "ID del plan",
-  "pt": "ID do plano",
-  "ru": "ID плана",
-  "it": "ID piano",
-  "vi": "Mã kế hoạch",
-  "th": "รหัสแผน",
-  "id": "ID rencana",
-  "ar": "معرّف الخطة"
  },
  "资源": {
   "zh-Hant": "資源",
@@ -846,6 +910,22 @@
   "th": "ยังไม่มีสื่อ",
   "id": "Belum ada media",
   "ar": "لا توجد وسائط بعد"
+ },
+ "还没确认，不会删除任何文件。": {
+  "zh-Hant": "尚未確認，不會刪除任何檔案。",
+  "en": "Not confirmed yet. No files will be deleted.",
+  "ja": "まだ確認されていないため、ファイルは削除されません。",
+  "ko": "아직 확인되지 않아 어떤 파일도 삭제되지 않습니다.",
+  "fr": "Pas encore confirmé : aucun fichier ne sera supprimé.",
+  "de": "Noch nicht bestätigt – es werden keine Dateien gelöscht.",
+  "es": "Aún sin confirmar: no se eliminará ningún archivo.",
+  "pt": "Ainda não confirmado: nenhum arquivo será excluído.",
+  "ru": "Ещё не подтверждено — файлы не будут удалены.",
+  "it": "Non ancora confermato: nessun file verrà eliminato.",
+  "vi": "Chưa xác nhận, sẽ không xóa tệp nào.",
+  "th": "ยังไม่ได้ยืนยัน จะไม่มีไฟล์ใดถูกลบ",
+  "id": "Belum dikonfirmasi, tidak ada file yang akan dihapus.",
+  "ar": "لم يُؤكَّد بعد، ولن يُحذف أي ملف."
  },
  "这里只列当前没有任何文档或站点设置引用的资源。勾选后生成清理计划；仍被历史版本引用的会单独提示风险。": {
   "zh-Hant": "這裡只列出目前沒有任何文件或網站設定引用的資源。勾選後產生清理計畫；仍被歷史版本引用的會另外提示風險。",

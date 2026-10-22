@@ -1163,6 +1163,40 @@ func (s *localBlobStore) completeCleanupApproval(ctx context.Context, op Operati
 	return result, nil
 }
 
+type ListCleanupPlansInput struct{}
+type ListCleanupPlansResult = gen.ListCleanupPlansResult
+
+// ListCleanupPlans列出还没结束的人工计划，让24小时保护窗口内的删除可见、可撤销。
+// 只核对计划原文摘要，不按当前引用复核：引用变化由确认和执行阶段处理。
+func ListCleanupPlans(ctx context.Context, op OperationContext, _ ListCleanupPlansInput) (ListCleanupPlansResult, error) {
+	s, err := cleanupStore(op, true)
+	if err != nil {
+		return ListCleanupPlansResult{}, err
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT CASE WHEN length(CAST(plan_json AS BLOB))<=16777216 THEN plan_json ELSE NULL END,plan_hash FROM manual_cleanup_plans WHERE site_id=? AND data_epoch=? AND state IN ('proposed','confirmed','waiting') ORDER BY created_at DESC LIMIT 100`, op.Actor.SiteID, op.DataEpoch)
+	if err != nil {
+		return ListCleanupPlansResult{}, mapMediaDBError(err, "读取人工计划列表失败")
+	}
+	defer rows.Close()
+	result := ListCleanupPlansResult{Plans: []gen.CleanupPlan{}}
+	for rows.Next() {
+		var raw sql.NullString
+		var digest string
+		if err := rows.Scan(&raw, &digest); err != nil {
+			return ListCleanupPlansResult{}, mapMediaDBError(err, "读取人工计划列表失败")
+		}
+		var plan gen.CleanupPlan
+		if !raw.Valid || platform.HashBytes([]byte(raw.String)) != digest || s.validateCleanupPlan(json.RawMessage(raw.String)) != nil || json.Unmarshal([]byte(raw.String), &plan) != nil {
+			return ListCleanupPlansResult{}, platform.NewError(platform.CodeIntegrityError, false, "人工计划原材料损坏")
+		}
+		result.Plans = append(result.Plans, plan)
+	}
+	if err := rows.Err(); err != nil {
+		return ListCleanupPlansResult{}, mapMediaDBError(err, "读取人工计划列表失败")
+	}
+	return result, nil
+}
+
 // ListUnusedAssetsInput保留既有HTTP kind筛选；省略为全部类别。
 type ListUnusedAssetsInput = ListAssetsInput
 type ListUnusedAssetsResult = gen.ListUnusedAssetsResult

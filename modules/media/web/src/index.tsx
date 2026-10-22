@@ -1,12 +1,12 @@
 import { Brush, File as FileIcon, Link as LinkIcon, Picture, TrashBin, Video } from '@gravity-ui/icons';
 import { Button, Checkbox, Chip, Drawer, Table, Tabs } from '@heroui/react';
 import type { Selection } from '@heroui/react';
-import { api, assetURL, confirmAction, Details, EmptyBlock, ErrorBlock, fmtBytes, fmtDateTime, LoadingBlock, Mono, navigate, notify, Notice, PageHeader, Panel, SelectInput, useAction, t } from '@ui';
+import { api, assetURL, confirmAction, EmptyBlock, ErrorBlock, fmtBytes, fmtDateTime, LoadingBlock, Mono, navigate, notify, Notice, PageHeader, Panel, SelectInput, useAction, t } from '@ui';
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 
 type AssetRef = { assetId: string; version: number; sha256: string; mediaType: string; byteSize: number };
 type Asset = { ref: AssetRef; kind: string; originalName: string; createdAt: string; state: string };
-type Plan = { planId: string; confirmationHash: string; revision: number; assets: AssetRef[]; historyAffectedDocumentIds: string[] };
+type Plan = { planId: string; confirmationHash: string; revision: number; assets: AssetRef[]; historyAffectedDocumentIds: string[]; state: string; notBefore: string };
 type Reference = { documentId?: string; sourceObjectId?: string; sourceService: string; sourceRevisionId: string };
 type Snapshot = { currentReferences: Reference[]; historyReferences: Reference[] };
 
@@ -17,6 +17,7 @@ const states: Record<string, { label: string; tone: 'default' | 'warning' | 'dan
   uploading: { label: t('上传中'), tone: 'default' }, validating: { label: t('校验中'), tone: 'default' }, blocked: { label: t('已拦截'), tone: 'danger' },
   delete_pending: { label: t('待删除'), tone: 'warning' }, deleted: { label: t('已删除'), tone: 'danger' },
 };
+const planStates: Record<string, string> = { proposed: t('待确认'), confirmed: t('等待删除'), waiting: t('等待删除') };
 const kindIcon = (kind: string) => kind === 'image' || kind === 'platform_cover' ? Picture : kind === 'video' ? Video : kind.startsWith('drawing') ? Brush : FileIcon;
 
 export default function LibraryPage() {
@@ -27,7 +28,7 @@ export default function LibraryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const [selected, setSelected] = useState<Selection>(new Set());
-  const [plan, setPlan] = useState<Plan | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [refs, setRefs] = useState<{ asset: Asset; snapshot: Snapshot; titles: Map<string, string> } | null>(null);
   const { busy, run } = useAction();
 
@@ -44,7 +45,13 @@ export default function LibraryPage() {
     } catch (problem) { setError(problem); } finally { setLoading(false); }
   }, [tab, kind]);
 
-  useEffect(() => { setSelected(new Set()); setPlan(null); void load(false, null); }, [load]);
+  useEffect(() => { setSelected(new Set()); void load(false, null); }, [load]);
+
+  // 还没结束的清理计划：确认后要等保护窗口结束才删，期间可以撤销。
+  const loadPlans = useCallback(async () => {
+    setPlans((await api<{ plans: Plan[] }>('/v1/cleanup-plans')).plans);
+  }, []);
+  useEffect(() => { void run(loadPlans); }, [run, loadPlans]);
 
   const chosen = selected === 'all' ? assets : assets.filter((asset) => (selected as Set<string>).has(asset.ref.assetId));
 
@@ -60,12 +67,12 @@ export default function LibraryPage() {
   });
 
   const propose = () => run(async () => {
-    const result = await api<{ plan: Plan }>('/v1/cleanup-plans', { method: 'POST', body: { assets: chosen.map((asset) => asset.ref) } });
-    setPlan(result.plan);
+    await api<{ plan: Plan }>('/v1/cleanup-plans', { method: 'POST', body: { assets: chosen.map((asset) => asset.ref) } });
+    setSelected(new Set());
+    await loadPlans();
   });
 
-  const confirmPlan = async () => {
-    if (!plan) return;
+  const confirmPlan = async (plan: Plan) => {
     const risky = plan.historyAffectedDocumentIds.length > 0;
     const ok = await confirmAction({
       title: t('删除这 {0} 个资源？', plan.assets.length),
@@ -75,17 +82,16 @@ export default function LibraryPage() {
     if (!ok) return;
     await run(async () => {
       await api(`/v1/cleanup-plans/${plan.planId}:confirm`, { method: 'POST', body: { confirmationHash: plan.confirmationHash, acknowledgeHistoryLoss: risky, expectedRevision: plan.revision } });
-      setPlan(null);
-      setSelected(new Set());
+      await loadPlans();
       await load(false, null);
     }, t('已确认，保护窗口结束后删除'));
   };
 
-  const cancelPlan = () => run(async () => {
-    if (!plan) return;
+  const cancelPlan = (plan: Plan) => run(async () => {
     await api(`/v1/cleanup-plans/${plan.planId}`, { method: 'DELETE', body: {} });
-    setPlan(null);
-  }, t('已放弃清理计划'));
+    await loadPlans();
+    await load(false, null);
+  }, plan.state === 'proposed' ? t('已放弃清理计划') : t('已撤销，这些资源不会被删除'));
 
   return (
     <div className="flex flex-col gap-6">
@@ -105,10 +111,32 @@ export default function LibraryPage() {
       </div>
       {tab === 'unused' && <Notice status="accent">{t('这里只列当前没有任何文档或站点设置引用的资源。勾选后生成清理计划；仍被历史版本引用的会单独提示风险。')}</Notice>}
 
-      {plan && (
-        <Panel title={t('清理计划')} description={t('共 {0} 个资源{1}。', plan.assets.length, plan.historyAffectedDocumentIds.length ? t('，历史版本涉及 {0} 篇文档', plan.historyAffectedDocumentIds.length) : '')}
-          footer={<><Button isDisabled={busy} variant="tertiary" onPress={cancelPlan}>{t('放弃计划')}</Button><Button isDisabled={busy} variant="danger" onPress={confirmPlan}><TrashBin />{t('确认清理')}</Button></>}>
-          <Details items={[[t('计划编号'), <Mono>{plan.planId}</Mono>], [t('合计大小'), fmtBytes(plan.assets.reduce((sum, asset) => sum + asset.byteSize, 0))]]} />
+      {plans.length > 0 && (
+        <Panel title={t('清理计划')} description={t('确认后要等 24 小时保护窗口结束才真正删除，在此之前可以撤销。')}>
+          <div className="flex flex-col divide-y divide-border">
+            {plans.map((item) => (
+              <div key={item.planId} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Chip color={item.state === 'proposed' ? 'default' : 'warning'} size="sm" variant="soft">{planStates[item.state] ?? item.state}</Chip>
+                    <span className="text-sm">{t('共 {0} 个资源{1}。', item.assets.length, item.historyAffectedDocumentIds.length ? t('，历史版本涉及 {0} 篇文档', item.historyAffectedDocumentIds.length) : '')}</span>
+                    <span className="text-sm text-muted">{fmtBytes(item.assets.reduce((sum, asset) => sum + asset.byteSize, 0))}</span>
+                  </div>
+                  <span className="text-xs text-muted">{item.state === 'proposed' ? t('还没确认，不会删除任何文件。') : t('将在 {0} 之后删除。', fmtDateTime(item.notBefore))}</span>
+                </div>
+                <div className="flex gap-2">
+                  {item.state === 'proposed' ? (
+                    <>
+                      <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => void cancelPlan(item)}>{t('放弃计划')}</Button>
+                      <Button isDisabled={busy} size="sm" variant="danger" onPress={() => void confirmPlan(item)}><TrashBin />{t('确认清理')}</Button>
+                    </>
+                  ) : (
+                    <Button isDisabled={busy} size="sm" variant="secondary" onPress={() => void cancelPlan(item)}>{t('撤销删除')}</Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </Panel>
       )}
 
@@ -119,7 +147,7 @@ export default function LibraryPage() {
           {tab === 'unused' && (
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted">{t('已选 {0} 项', chosen.length)}</span>
-              <Button isDisabled={busy || !chosen.length || !!plan} size="sm" variant="secondary" onPress={propose}>{t('为选中的资源生成清理计划')}</Button>
+              <Button isDisabled={busy || !chosen.length} size="sm" variant="secondary" onPress={propose}>{t('为选中的资源生成清理计划')}</Button>
             </div>
           )}
           <Table key={tab}>

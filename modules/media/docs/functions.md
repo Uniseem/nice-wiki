@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 185 个函数：约束 38 个，参考 147 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 186 个函数：约束 39 个，参考 147 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -3614,6 +3614,50 @@ func ListUnusedAssets(ctx context.Context, op OperationContext, input ListUnused
 - 并发：本地短只读快照→全部锁外源RPC→独立本地复核→SQL外签名；不用一条长事务跨RPC
 - 幂等：按候选稳定keyset，固定本地与两个来源水位，任一变化从头，不缓存删除许可
 - 依赖：`media.assetListingStore`、`media.readAssetListingCursor`、`media.readAssetListingPage`、`media.ValidateCleanupSources`、`media.recheckAssetListingPage`、`media.assetListingPageInfo`
+
+## media.ListCleanupPlans
+
+- 级别：约束
+- 文件：`modules/media/internal/cleanup_service.go`
+- 作用：列出待确认、已确认和等待保护窗口的人工清理计划，供后台查看和撤销
+
+```go
+func ListCleanupPlans(ctx context.Context, op OperationContext, input ListCleanupPlansInput) (ListCleanupPlansResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `ListCleanupPlansInput` | 无参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ListCleanupPlansResult` | 还没结束的计划 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
+
+**步骤**
+
+1. 只允许本站持有media.manage的管理员
+2. 读取本站本代次state为proposed、confirmed、waiting的计划，按创建时间从新到旧最多100个
+3. 逐个核对计划原文摘要与索引字段后返回；损坏的计划报完整性错误，不跳过
+
+**错误**
+
+- `FORBIDDEN`：非当前本站media.manage管理员（不可重试）
+- `VERSION_MISMATCH`：opened epoch、本地或引用来源水位改变，须重头分页（可重试）
+- `INTEGRITY_ERROR`：持久Asset/索引/fence/generation或权威材料损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储/密钥/权威来源未知，或风险响应预算超限（可重试）
+
+- 副作用：无，只读
+- 授权：当前本站media.manage或superadmin管理员，HTTP仅portal
+- 并发：只读
+- 幂等：只读
+- 依赖：无
 
 ## media.ProposeManualCleanup
 

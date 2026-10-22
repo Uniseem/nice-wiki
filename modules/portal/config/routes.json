@@ -1022,6 +1022,16 @@
       "streaming": false
     },
     {
+      "method": "GET",
+      "path": "/v1/cleanup-plans",
+      "owner": "media",
+      "operationId": "listCleanupPlans",
+      "permission": "media.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
       "method": "POST",
       "path": "/v1/cleanup-plans",
       "owner": "media",

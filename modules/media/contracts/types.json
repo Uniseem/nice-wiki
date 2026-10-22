@@ -5889,6 +5889,33 @@
     "SnapshotArchiveReadResult": {
       "x-internal": true,
       "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
+    },
+    "ListCleanupPlansInput": {
+      "type": "object",
+      "description": "列出还没结束的人工清理计划",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ListCleanupPlansResult": {
+      "type": "object",
+      "description": "待确认、已确认和等待保护窗口结束的计划，按创建时间从新到旧",
+      "additionalProperties": false,
+      "properties": {
+        "plans": {
+          "type": "array",
+          "description": "计划",
+          "items": {
+            "$ref": "#/$defs/CleanupPlan",
+            "description": "CleanupPlan"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "plans"
+      ]
     }
   }
 }
