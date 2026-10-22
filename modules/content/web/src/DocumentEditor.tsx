@@ -2,7 +2,7 @@ import { ArrowRotateLeft, ArrowUpRightFromSquare, ChevronRight, CircleCheck, Cir
 import { Button, Chip, Dropdown, Label, Separator, Spinner } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import type { Editor as TiptapEditor } from '@tiptap/react';
-import { api, confirmAction, errorText, fmtDateTime, fmtRelative, fmtTime, newKey, notify, Notice, setNavigationGuard, useHasGrant, t } from '@ui';
+import { api, ApiError, confirmAction, errorText, fmtDateTime, fmtRelative, fmtTime, newKey, notify, Notice, setNavigationGuard, useHasGrant, t } from '@ui';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { fromBody, toBody, type JSONNode } from './convert';
 import { HistoryDrawer, MoveDialog, PublishDialog, SettingsDialog } from './dialogs';
@@ -53,6 +53,23 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
   const editingTitle = useRef(false);
   const cancelTitle = useRef(false);
 
+  // 编辑锁在服务端失效（服务重启、电脑休眠超过租约时长）时重新取锁：拿回就接着编辑，被别人拿走就转为只读。
+  const regainLock = useCallback(async (): Promise<boolean> => {
+    const state = live.current;
+    try {
+      const acquired = await api<{ lease: Lease; writable: boolean }>(`/v1/documents/${documentId}/lock`, { method: 'POST', body: { tabId } });
+      state.lease = acquired.lease;
+      state.writable = acquired.writable;
+      state.heartbeat = acquired.lease.heartbeatSequence;
+      state.inputs = acquired.lease.inputSequence;
+      setLock(acquired.writable ? 'writable' : 'readonly');
+      setHolder(acquired.writable ? '' : acquired.lease.holderAccountName || t('其他人'));
+      return acquired.writable;
+    } catch {
+      return false;
+    }
+  }, [documentId]);
+
   const flush = useCallback(async (): Promise<boolean> => {
     window.clearTimeout(timers.current.save);
     if (saving.current) await saving.current;
@@ -68,11 +85,16 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
     saving.current = (async () => {
       try {
         const body = toBody(sent);
-        const result = await api<{ draft: Draft }>(`/v1/documents/${documentId}/draft`, {
+        const put = () => api<{ draft: Draft }>(`/v1/documents/${documentId}/draft`, {
           method: 'PUT', body: {
             body, expectedDraftVersion: state.draft!.draftVersion, expectedDraftRevisionId: state.draft!.revisionId,
             leaseId: state.lease!.leaseId, fencingToken: state.lease!.fencingToken, serverBootId: state.lease!.serverBootId,
           },
+        });
+        // 锁失效就重新取锁再存一次；草稿版本仍按原值核对，期间别人改过会如实报冲突，不会覆盖。
+        const result = await put().catch(async (problem) => {
+          if (problem instanceof ApiError && problem.code === 'LOCKED' && await regainLock()) return put();
+          throw problem;
         });
         state.draft = result.draft;
         setDraftHash(result.draft.bodyHash);
@@ -88,7 +110,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
       }
     })();
     return saving.current;
-  }, [documentId]);
+  }, [documentId, regainLock]);
 
   const releaseLock = useCallback(async () => {
     window.clearInterval(timers.current.heartbeat);
@@ -154,6 +176,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
             });
             state.lease = result.lease;
           } catch (problem) {
+            if (problem instanceof ApiError && problem.code === 'LOCKED') { await regainLock(); return; }
             notify.warning(t('编辑锁续期失败'), t('{0}。请保存后刷新页面。', errorText(problem)));
           }
         }, 30000);
@@ -186,7 +209,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
       // 守卫放行后才会卸载；万一仍没存上就不主动放锁，让锁自然过期。
       void flush().then((saved) => { if (saved) void releaseLock(); });
     };
-  }, [documentId, applyMeta, flush, releaseLock]);
+  }, [documentId, applyMeta, flush, releaseLock, regainLock]);
 
   const onChange = useCallback((doc: JSONNode) => {
     const state = live.current;
