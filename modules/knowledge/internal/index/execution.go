@@ -142,7 +142,8 @@ func AdoptClaimedJob(ctx context.Context, job platform.ClaimedJob) (OperationCon
 	if err != nil && err != sql.ErrNoRows {
 		return OperationContext{}, storageError(err)
 	}
-	if err == nil && (job.FencingToken < oldFence || (job.FencingToken == oldFence && (job.WorkerID != oldWorker || job.Attempt != oldAttempt)) || job.Attempt < oldAttempt) {
+	// fence 每次领取严格递增，足以排除过期领取；人工重试死信时 jobs 会把 attempt 归零，不能要求它单调。
+	if err == nil && (job.FencingToken < oldFence || (job.FencingToken == oldFence && (job.WorkerID != oldWorker || job.Attempt != oldAttempt))) {
 		return OperationContext{}, platform.NewError(platform.CodeStaleResult, false, "原任务fence或worker已失效")
 	}
 	if (err == sql.ErrNoRows || job.FencingToken > oldFence) && !currentCancel {

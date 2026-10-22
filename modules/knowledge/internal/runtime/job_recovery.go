@@ -28,6 +28,14 @@ func ReadJobRecovery(ctx context.Context, op OperationContext, input ReadJobReco
 	if err != nil {
 		return result, err
 	}
+	// 执行记录与失效租约是否对得上。fence 每次领取递增：相等时逐项核 worker/attempt/取消（人工重试死信时 jobs 的租约已删除、不给 worker）；
+	// 记录 fence 更小说明失效的那次领取没来得及接管、什么也没执行，按记录里更早那次执行的事实判断。
+	sameClaim := func(fence int64, worker string, attempt int, cancelled bool) bool {
+		if fence != input.ExpiredFence {
+			return fence < input.ExpiredFence
+		}
+		return (input.WorkerID == "" || worker == input.WorkerID) && int64(attempt) == input.Attempt && cancelled == input.CancelRequested
+	}
 	tx, err := runtime.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return result, platform.NormalizeIOError(err, platform.CodeInternal, false, "原任务恢复快照不可读")
@@ -36,7 +44,7 @@ func ReadJobRecovery(ctx context.Context, op OperationContext, input ReadJobReco
 	// GC不删除最终拥有者证明；即使退役索引和原派发行已回收，仍能恢复真实已完成结果。
 	completed, lookup := indexer.LoadExecutionRecord(ctx, tx, input.JobID)
 	if lookup == nil && completed.State == "completed" && completed.ResultRef != nil {
-		if completed.JobType != input.Type || completed.ObjectID != input.InputRef.ObjectID || completed.InputRef != input.InputRef || completed.Operation.RootOperationID != input.RootOperationID || completed.Operation.Actor.SiteID != op.Actor.SiteID || completed.Operation.DataEpoch != input.DataEpoch || completed.Fence != input.ExpiredFence || completed.WorkerID != input.WorkerID || int64(completed.Attempt) != input.Attempt || completed.CancelRequested != input.CancelRequested {
+		if completed.JobType != input.Type || completed.ObjectID != input.InputRef.ObjectID || completed.InputRef != input.InputRef || completed.Operation.RootOperationID != input.RootOperationID || completed.Operation.Actor.SiteID != op.Actor.SiteID || completed.Operation.DataEpoch != input.DataEpoch || !sameClaim(completed.Fence, completed.WorkerID, completed.Attempt, completed.CancelRequested) {
 			return result, platform.NewError(platform.CodeIntegrityError, false, "原完成证明与恢复来源或失效租约不一致")
 		}
 		result.Status = "completed"
@@ -68,7 +76,7 @@ func ReadJobRecovery(ctx context.Context, op OperationContext, input ReadJobReco
 	result.Status = "pending"
 	record, err := indexer.LoadExecutionRecord(ctx, tx, input.JobID)
 	if err == nil {
-		if record.JobType != input.Type || record.ObjectID != input.InputRef.ObjectID || record.InputRef != input.InputRef || record.Operation.RootOperationID != input.RootOperationID || record.Operation.OperationID != jobsOperation || record.Operation.Actor.SiteID != site || record.Operation.DataEpoch != input.DataEpoch || record.Fence != input.ExpiredFence || record.WorkerID != input.WorkerID || int64(record.Attempt) != input.Attempt || record.CancelRequested != input.CancelRequested {
+		if record.JobType != input.Type || record.ObjectID != input.InputRef.ObjectID || record.InputRef != input.InputRef || record.Operation.RootOperationID != input.RootOperationID || record.Operation.OperationID != jobsOperation || record.Operation.Actor.SiteID != site || record.Operation.DataEpoch != input.DataEpoch || !sameClaim(record.Fence, record.WorkerID, record.Attempt, record.CancelRequested) {
 			return result, platform.NewError(platform.CodeIntegrityError, false, "恢复请求与原worker/fence/attempt不一致")
 		}
 		result.PaidResultRefs, err = indexer.ReadPaidResultRefs(ctx, tx, original.Operation, record.ObjectID)
@@ -100,7 +108,7 @@ func ReadJobRecovery(ctx context.Context, op OperationContext, input ReadJobReco
 		if err != nil {
 			return result, err
 		}
-		if record.Fence != input.ExpiredFence || record.WorkerID != input.WorkerID || int64(record.Attempt) != input.Attempt || record.CancelRequested != input.CancelRequested || record.InputRef != input.InputRef {
+		if !sameClaim(record.Fence, record.WorkerID, record.Attempt, record.CancelRequested) || record.InputRef != input.InputRef {
 			return result, platform.NewError(platform.CodeStaleResult, false, "模型观察期间原恢复租约或取消事实变化")
 		}
 		result.PaidResultRefs, err = indexer.ReadPaidResultRefs(ctx, tx, original.Operation, record.ObjectID)
@@ -178,7 +186,7 @@ func ReadJobRecovery(ctx context.Context, op OperationContext, input ReadJobReco
 			if err != nil {
 				return result, err
 			}
-			if current.Fence != input.ExpiredFence || current.WorkerID != input.WorkerID || int64(current.Attempt) != input.Attempt || current.CancelRequested != input.CancelRequested {
+			if !sameClaim(current.Fence, current.WorkerID, current.Attempt, current.CancelRequested) {
 				return result, platform.NewError(platform.CodeStaleResult, false, "费用证明期间任务归属或取消变化")
 			}
 			if current.State == "completed" && current.ResultRef != nil {
