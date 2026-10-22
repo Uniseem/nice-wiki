@@ -7,7 +7,8 @@ import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 type AssetRef = { assetId: string; version: number; sha256: string; mediaType: string; byteSize: number };
 type Asset = { ref: AssetRef; kind: string; originalName: string; createdAt: string; state: string };
 type Plan = { planId: string; confirmationHash: string; revision: number; assets: AssetRef[]; historyAffectedDocumentIds: string[]; state: string; notBefore: string };
-type Reference = { documentId?: string; sourceObjectId?: string; sourceService: string; sourceRevisionId: string };
+// 引用来源：content 的 sourceObjectId 就是文档 ID；site-config 等其他来源是各自的对象编号。
+type Reference = { sourceObjectId: string; sourceService: string; sourceRevisionId: string };
 type Snapshot = { currentReferences: Reference[]; historyReferences: Reference[] };
 
 const kinds: Record<string, string> = { image: t('图片'), attachment: t('附件'), video: t('视频'), drawing_scene: t('画板场景'), drawing_svg: t('画板图像'), platform_cover: t('平台封面') };
@@ -225,7 +226,7 @@ export default function LibraryPage() {
                     {!(list as Reference[]).length ? <span className="text-sm text-muted">{t('无')}</span> : (
                       <ul className="flex flex-col gap-1.5">
                         {bySource(list as Reference[]).map(({ ref, count }) => (
-                          <li key={ref.sourceService + (ref.documentId ?? ref.sourceObjectId)} className="flex items-center justify-between gap-2 rounded-lg bg-surface-secondary px-3 py-2 text-sm">
+                          <li key={ref.sourceService + ref.sourceObjectId} className="flex items-center justify-between gap-2 rounded-lg bg-surface-secondary px-3 py-2 text-sm">
                             <SourceLink reference={ref} titles={refs.titles} />
                             {count > 1 && <span className="shrink-0 text-xs text-muted">{t('{0} 处', count)}</span>}
                           </li>
@@ -247,7 +248,7 @@ export default function LibraryPage() {
 function bySource(list: Reference[]) {
   const groups = new Map<string, { ref: Reference; count: number }>();
   for (const ref of list) {
-    const key = ref.sourceService + (ref.documentId ?? ref.sourceObjectId);
+    const key = ref.sourceService + ref.sourceObjectId;
     const group = groups.get(key);
     if (group) group.count++;
     else groups.set(key, { ref, count: 1 });
@@ -257,12 +258,12 @@ function bySource(list: Reference[]) {
 
 function SourceLink({ reference, titles }: { reference: Reference; titles: Map<string, string> }) {
   const go = (path: string) => (event: MouseEvent) => { event.preventDefault(); navigate(path); };
-  if (reference.documentId) {
-    const path = `/admin/content?doc=${reference.documentId}`;
-    const title = titles.get(reference.documentId);
+  if (reference.sourceService === 'content') {
+    const path = `/admin/content?doc=${reference.sourceObjectId}`;
+    const title = titles.get(reference.sourceObjectId);
     return title
       ? <a className="truncate text-accent hover:underline" href={path} onClick={go(path)}>{title}</a>
-      : <span className="truncate">{t('文档')} <Mono>{reference.documentId}</Mono></span>;
+      : <span className="truncate">{t('文档')} <Mono>{reference.sourceObjectId}</Mono></span>;
   }
   if (reference.sourceService === 'site-config') return <a className="truncate text-accent hover:underline" href="/admin/site" onClick={go('/admin/site')}>{t('站点设置（品牌图片、首页或页脚）')}</a>;
   return <span className="truncate">{sources[reference.sourceService] ?? reference.sourceService} <Mono>{reference.sourceObjectId}</Mono></span>;
