@@ -1583,6 +1583,22 @@
   "id": "Dipulihkan sebagai draf",
   "ar": "تمت الاستعادة كمسودة"
  },
+ "已恢复成线上版本": {
+  "zh-Hant": "已恢復成線上版本",
+  "en": "Reset to the live version",
+  "ja": "公開中のバージョンに戻しました",
+  "ko": "게시된 버전으로 되돌렸습니다",
+  "fr": "Version en ligne rétablie",
+  "de": "Auf veröffentlichte Version zurückgesetzt",
+  "es": "Se restauró la versión publicada",
+  "pt": "Versão publicada restaurada",
+  "ru": "Возвращено к опубликованной версии",
+  "it": "Ripristinata la versione pubblicata",
+  "vi": "Đã khôi phục về phiên bản đang xuất bản",
+  "th": "กลับเป็นเวอร์ชันที่เผยแพร่อยู่แล้ว",
+  "id": "Dikembalikan ke versi terbit",
+  "ar": "تمت العودة إلى النسخة المنشورة"
+ },
  "已撤回": {
   "zh-Hant": "已撤回",
   "en": "Unpublished",
@@ -2239,6 +2255,22 @@
   "id": "Letakkan di",
   "ar": "وضع في"
  },
+ "放弃修改": {
+  "zh-Hant": "放棄修改",
+  "en": "Discard changes",
+  "ja": "変更を破棄",
+  "ko": "변경 사항 버리기",
+  "fr": "Abandonner",
+  "de": "Verwerfen",
+  "es": "Descartar cambios",
+  "pt": "Descartar alterações",
+  "ru": "Отменить изменения",
+  "it": "Scarta modifiche",
+  "vi": "Bỏ thay đổi",
+  "th": "ละทิ้งการแก้ไข",
+  "id": "Buang perubahan",
+  "ar": "تجاهل التغييرات"
+ },
  "放弃修改并离开": {
   "zh-Hant": "放棄修改並離開",
   "en": "Discard changes and leave",
@@ -2254,6 +2286,38 @@
   "th": "ทิ้งการเปลี่ยนแปลงแล้วออก",
   "id": "Buang perubahan dan keluar",
   "ar": "تجاهل التغييرات والمغادرة"
+ },
+ "放弃未发布的修改": {
+  "zh-Hant": "放棄未發布的修改",
+  "en": "Discard unpublished changes",
+  "ja": "未公開の変更を破棄",
+  "ko": "게시하지 않은 변경 사항 버리기",
+  "fr": "Abandonner les modifications non publiées",
+  "de": "Unveröffentlichte Änderungen verwerfen",
+  "es": "Descartar cambios sin publicar",
+  "pt": "Descartar alterações não publicadas",
+  "ru": "Отменить неопубликованные изменения",
+  "it": "Scarta modifiche non pubblicate",
+  "vi": "Bỏ thay đổi chưa xuất bản",
+  "th": "ละทิ้งการแก้ไขที่ยังไม่เผยแพร่",
+  "id": "Buang perubahan yang belum terbit",
+  "ar": "تجاهل التغييرات غير المنشورة"
+ },
+ "放弃未发布的修改？": {
+  "zh-Hant": "放棄未發布的修改？",
+  "en": "Discard unpublished changes?",
+  "ja": "未公開の変更を破棄しますか？",
+  "ko": "게시하지 않은 변경 사항을 버릴까요?",
+  "fr": "Abandonner les modifications non publiées ?",
+  "de": "Unveröffentlichte Änderungen verwerfen?",
+  "es": "¿Descartar los cambios sin publicar?",
+  "pt": "Descartar alterações não publicadas?",
+  "ru": "Отменить неопубликованные изменения?",
+  "it": "Scartare le modifiche non pubblicate?",
+  "vi": "Bỏ các thay đổi chưa xuất bản?",
+  "th": "ละทิ้งการแก้ไขที่ยังไม่เผยแพร่ใช่ไหม",
+  "id": "Buang perubahan yang belum terbit?",
+  "ar": "تجاهل التغييرات غير المنشورة؟"
  },
  "文本": {
   "zh-Hant": "文字",
@@ -2975,6 +3039,22 @@
   "id": "Belum ada ringkasan pencarian; tambahkan di Pengaturan halaman",
   "ar": "لا يوجد ملخص بحث، ويمكنك إضافته من «إعدادات الصفحة»"
  },
+ "没有找到线上版本": {
+  "zh-Hant": "沒有找到線上版本",
+  "en": "No live version found",
+  "ja": "公開中のバージョンが見つかりません",
+  "ko": "게시된 버전을 찾지 못했습니다",
+  "fr": "Aucune version en ligne trouvée",
+  "de": "Keine veröffentlichte Version gefunden",
+  "es": "No se encontró la versión publicada",
+  "pt": "Versão publicada não encontrada",
+  "ru": "Опубликованная версия не найдена",
+  "it": "Versione pubblicata non trovata",
+  "vi": "Không tìm thấy phiên bản đang xuất bản",
+  "th": "ไม่พบเวอร์ชันที่เผยแพร่อยู่",
+  "id": "Versi terbit tidak ditemukan",
+  "ar": "لم يُعثر على النسخة المنشورة"
+ },
  "没有找到这个标题的文档；外部地址要以 http://、https:// 或 mailto: 开头。": {
   "zh-Hant": "沒有找到這個標題的文件；外部網址要以 http://、https:// 或 mailto: 開頭。",
   "en": "No document has this title. External addresses must start with http://, https:// or mailto:.",
@@ -3470,6 +3550,22 @@
   "th": "ฉบับร่าง",
   "id": "Draf",
   "ar": "مسودة"
+ },
+ "草稿会恢复成线上版本的内容，之后的修改会丢失，发布历史里会多一条回滚记录。": {
+  "zh-Hant": "草稿會恢復成線上版本的內容，之後的修改會遺失，發布歷史裡會多一筆回復紀錄。",
+  "en": "The draft will be reset to the live version. Changes made since then will be lost, and a rollback entry will be added to the publish history.",
+  "ja": "下書きは公開中のバージョンに戻り、それ以降の変更は失われます。公開履歴にはロールバックの記録が追加されます。",
+  "ko": "초안이 게시된 버전으로 되돌아가고 이후 변경 사항은 사라집니다. 게시 기록에 롤백 항목이 추가됩니다.",
+  "fr": "Le brouillon reprendra le contenu de la version en ligne ; les modifications ultérieures seront perdues et un retour arrière sera ajouté à l’historique.",
+  "de": "Der Entwurf wird auf die veröffentlichte Version zurückgesetzt. Spätere Änderungen gehen verloren, und im Verlauf erscheint ein Rücksetzungseintrag.",
+  "es": "El borrador volverá al contenido de la versión publicada; los cambios posteriores se perderán y se añadirá una reversión al historial.",
+  "pt": "O rascunho voltará ao conteúdo da versão publicada; as alterações posteriores serão perdidas e uma reversão será adicionada ao histórico.",
+  "ru": "Черновик вернётся к опубликованной версии, последующие изменения будут потеряны, а в истории публикаций появится запись об откате.",
+  "it": "La bozza tornerà al contenuto della versione pubblicata; le modifiche successive andranno perse e nella cronologia comparirà un ripristino.",
+  "vi": "Bản nháp sẽ trở về nội dung của phiên bản đang xuất bản, các thay đổi sau đó sẽ mất và lịch sử xuất bản sẽ thêm một mục khôi phục.",
+  "th": "ฉบับร่างจะกลับเป็นเนื้อหาของเวอร์ชันที่เผยแพร่อยู่ การแก้ไขหลังจากนั้นจะหายไป และประวัติการเผยแพร่จะมีรายการย้อนกลับเพิ่มขึ้น",
+  "id": "Draf akan dikembalikan ke versi yang terbit. Perubahan sesudahnya akan hilang, dan riwayat terbit akan mendapat catatan pemulihan.",
+  "ar": "ستعود المسودة إلى محتوى النسخة المنشورة، وستضيع التعديلات اللاحقة، وسيُضاف سجل تراجع إلى سجل النشر."
  },
  "草稿保存失败": {
   "zh-Hant": "草稿儲存失敗",

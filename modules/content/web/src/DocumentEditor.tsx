@@ -1,4 +1,4 @@
-import { ArrowUpRightFromSquare, ChevronRight, CircleCheck, CircleExclamation, ClockArrowRotateLeft, Ellipsis, Eye, FolderArrowRight, Gear, Lock, PaperPlane, TrashBin, ArrowUturnCcwLeft as Withdraw } from '@gravity-ui/icons';
+import { ArrowRotateLeft, ArrowUpRightFromSquare, ChevronRight, CircleCheck, CircleExclamation, ClockArrowRotateLeft, Ellipsis, Eye, FolderArrowRight, Gear, Lock, PaperPlane, TrashBin, ArrowUturnCcwLeft as Withdraw } from '@gravity-ui/icons';
 import { Button, Chip, Dropdown, Label, Separator, Spinner } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import type { Editor as TiptapEditor } from '@tiptap/react';
@@ -7,7 +7,7 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, ty
 import { fromBody, toBody, type JSONNode } from './convert';
 import { HistoryDrawer, MoveDialog, PublishDialog, SettingsDialog } from './dialogs';
 import { Editor } from './editor/Editor';
-import { ancestors, type Draft, type DraftRead, type Lease, type Meta } from './types';
+import { ancestors, type Draft, type DraftRead, type HistoryEntry, type Lease, type Meta } from './types';
 
 type SaveState = { kind: 'idle' } | { kind: 'dirty' } | { kind: 'saving' } | { kind: 'saved'; at: Date } | { kind: 'error'; message: string };
 const tabId = newKey();
@@ -304,6 +304,31 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
     });
   };
 
+  // 回滚到某次发布：草稿换成那次的正文并重新发布。锁要先放掉，之后重新打开文档取新锁。
+  const rollback = (historyId: string, done: string) => act(async () => {
+    if (!(await flush())) return;
+    await releaseLock();
+    try {
+      await api(`/v1/documents/${documentId}/history:rollback`, { method: 'POST', body: { historyId, expectedRevision: live.current.meta!.revision, acknowledgeMissingAssets: false } });
+    } catch (problem) {
+      onReopen();
+      throw problem;
+    }
+    notify.success(done);
+    await onTreeChanged();
+    onReopen();
+  });
+
+  // 放弃未发布的修改：回滚到当前线上版本。正文与线上相同，下游按哈希复用，不会重新付费处理。
+  const discard = async () => {
+    const ok = await confirmAction({ title: t('放弃未发布的修改？'), body: t('草稿会恢复成线上版本的内容，之后的修改会丢失，发布历史里会多一条回滚记录。'), confirmLabel: t('放弃修改'), tone: 'danger' });
+    if (!ok) return;
+    const history = await api<{ history: HistoryEntry[] }>(`/v1/documents/${documentId}/history?limit=1`).catch((problem) => { notify.error(errorText(problem)); return null; });
+    const current = history?.history[0];
+    if (!current || current.operation === 'withdraw') { notify.error(t('没有找到线上版本')); return; }
+    await rollback(current.historyId, t('已恢复成线上版本'));
+  };
+
   const forceUnlock = async () => {
     const lease = live.current.lease;
     if (!lease) return;
@@ -390,13 +415,14 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
             <Button isIconOnly aria-label={t('更多操作')} size="sm" variant="ghost"><Ellipsis /></Button>
             <Dropdown.Popover className="min-w-48" placement="bottom end">
               <Dropdown.Menu
-                disabledKeys={writable ? [] : ['settings', 'move', 'withdraw', 'delete']}
+                disabledKeys={writable ? [] : ['settings', 'move', 'discard', 'withdraw', 'delete']}
                 onAction={(key: Key) => {
                   if (key === 'open' && link) window.open(link, '_blank', 'noopener');
                   if (key === 'settings') setDialog('settings');
                   if (key === 'move') setDialog('move');
                   if (key === 'history') setDialog('history');
                   if (key === 'withdraw') void withdraw();
+                  if (key === 'discard') void discard();
                   if (key === 'delete') void remove();
                 }}
               >
@@ -404,6 +430,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
                 <Dropdown.Item id="settings" textValue={t('页面设置')}><Gear className="size-4 text-muted" /><Label>{t('页面设置')}</Label></Dropdown.Item>
                 <Dropdown.Item id="move" textValue={t('移动到')}><FolderArrowRight className="size-4 text-muted" /><Label>{t('移动到…')}</Label></Dropdown.Item>
                 {canPublish ? <Dropdown.Item id="history" textValue={t('发布历史')}><ClockArrowRotateLeft className="size-4 text-muted" /><Label>{t('发布历史')}</Label></Dropdown.Item> : null}
+                {canPublish && meta.state === 'published' && !upToDate ? <Dropdown.Item id="discard" textValue={t('放弃未发布的修改')}><ArrowRotateLeft className="size-4 text-muted" /><Label>{t('放弃未发布的修改')}</Label></Dropdown.Item> : null}
                 {canPublish && meta.state === 'published' ? <Dropdown.Item id="withdraw" textValue={t('撤回发布')}><Withdraw className="size-4 text-muted" /><Label>{t('撤回发布')}</Label></Dropdown.Item> : null}
                 {canPublish ? <Dropdown.Item id="delete" textValue={t('删除')} variant="danger"><TrashBin className="size-4" /><Label>{t('移入回收站')}</Label></Dropdown.Item> : null}
               </Dropdown.Menu>
@@ -433,21 +460,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
           documentId={documentId}
           writable={writable}
           onClose={() => setDialog(null)}
-          onRollback={async (historyId) => {
-            await act(async () => {
-              if (!(await flush())) return;
-              await releaseLock();
-              try {
-                await api(`/v1/documents/${documentId}/history:rollback`, { method: 'POST', body: { historyId, expectedRevision: live.current.meta!.revision, acknowledgeMissingAssets: false } });
-              } catch (problem) {
-                onReopen();
-                throw problem;
-              }
-              notify.success(t('已回滚并重新发布'));
-              await onTreeChanged();
-              onReopen();
-            });
-          }}
+          onRollback={(historyId) => rollback(historyId, t('已回滚并重新发布'))}
         />
       )}
     </div>
