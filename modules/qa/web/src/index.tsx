@@ -224,7 +224,7 @@ function CacheTab() {
             {entries.data.map((entry) => (
               <Table.Row key={entry.cacheId} id={entry.cacheId}>
                 <Table.Cell><span className="line-clamp-2 font-medium">{entry.question}</span><span className="text-xs text-muted">{entry.language}</span></Table.Cell>
-                <Table.Cell><span className="line-clamp-2 text-sm text-muted">{entry.answer ?? ''}</span></Table.Cell>
+                <Table.Cell><span className="line-clamp-2 text-sm text-muted">{(entry.answer ?? '').replace(/\s*\[\[citation\.[0-9a-f]+\]\]/g, '')}</span></Table.Cell>
                 <Table.Cell>
                   <span className="flex flex-wrap gap-1">
                     {entry.curated ? <Chip color="accent" size="sm" variant="soft">{t('精选')}</Chip> : <Chip size="sm" variant="soft">{t('自动')}</Chip>}
@@ -297,7 +297,8 @@ function DebugTab() {
         {state.citations.length > 0 && (
           <div className="flex flex-col gap-1.5">
             <span className="text-xs font-medium text-muted">{t('引用来源')}</span>
-            {state.citations.map((citation, index) => (
+            {/* 同一篇文档的多段引用只列一次 */}
+            {state.citations.filter((citation, index, all) => all.findIndex((other) => (other.title || other.href) === (citation.title || citation.href)) === index).map((citation, index) => (
               <a key={index} className="truncate text-sm text-accent hover:underline" href={citation.href} rel="noopener" target="_blank">{citation.title || citation.href}</a>
             ))}
           </div>
