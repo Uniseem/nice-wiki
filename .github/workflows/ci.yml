@@ -1,0 +1,57 @@
+# 推送到 main 和 PR 时的检查，与 GitLab CI 同一套：生成物一致、Go 编译/vet/gofmt/测试、合同与译文检查、前端类型检查与构建。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: Go 编译、测试与合同检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache-dependency-path: "**/go.sum"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: 生成物与仓库一致
+        run: |
+          make gen
+          make docs
+          git diff --stat --exit-code
+      - name: 编译、vet、gofmt
+        run: make build
+      - name: 测试
+        run: |
+          for m in libs/platform modules/*; do
+            if test -f "$m/go.mod"; then (cd "$m" && GOFLAGS=-mod=readonly go test -p 2 ./...) || exit 1; fi
+          done
+      - name: 合同、链接、隐私与译文检查
+        run: make check
+
+  web:
+    name: 前端类型检查与构建
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm build

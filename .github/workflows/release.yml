@@ -1,0 +1,99 @@
+# 推送 v* 标签时在 GitHub 正式发版：构建 linux amd64/arm64 的全部服务二进制与前端产物，打包附校验和。
+# 发布说明取自附注标签的正文。GitLab 只同步代码，不在那边发版。
+name: 发版
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  web:
+    name: 前端产物
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: NW_WEB_OUT="$PWD/web-dist" pnpm build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: web-dist/
+
+  binaries:
+    name: 服务二进制（${{ matrix.arch }}）
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache-dependency-path: "**/go.sum"
+      - name: 编译
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          out="$PWD/bin"
+          mkdir -p "$out"
+          for cmd in modules/*/cmd/*; do
+            module="${cmd%/cmd/*}"
+            name="${cmd##*/}"
+            (cd "$module" && go build -trimpath -ldflags "-s -w" -o "$out/$name" "./cmd/$name") || exit 1
+          done
+          (cd libs/platform && go build -trimpath -ldflags "-s -w" -o "$out/nw-keys" ./cmd/nw-keys)
+          ls -l "$out"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.arch }}
+          path: bin/
+
+  release:
+    name: 创建 GitHub Release
+    needs: [web, binaries]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: 打包
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          mkdir -p dist
+          for arch in amd64 arm64; do
+            name="nice-wiki-${tag}-linux-${arch}"
+            mkdir -p "pkg/$name/config"
+            cp -R "artifacts/bin-${arch}" "pkg/$name/bin"
+            chmod +x "pkg/$name/bin/"*
+            cp -R artifacts/web "pkg/$name/web"
+            cp modules/portal/config/routes.json "pkg/$name/config/routes.json"
+            cp LICENSE "pkg/$name/"
+            cat > "pkg/$name/README.txt" <<EOF
+          nice-wiki ${tag}（linux/${arch}）
+
+          bin/     15 个服务和生成服务密钥的 nw-keys，均为静态编译
+          web/     后台单页应用与公开页样式、交互岛（portal 以 NW_WEB_DIR=web 读取）
+          config/  portal 的路由表 routes.json（portal 从当前目录的 config/routes.json 读取）
+
+          每个服务用 --config <配置文件> 启动，配置格式见源码 deploy/config/。
+          推荐的单机部署方式是在源码目录用 docker compose 构建运行，见 deploy/README.md。
+          EOF
+            tar -C pkg -czf "dist/$name.tar.gz" "$name"
+          done
+          (cd dist && sha256sum *.tar.gz > SHA256SUMS)
+      - name: 发布
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "nice-wiki $GITHUB_REF_NAME" --notes-from-tag --verify-tag
