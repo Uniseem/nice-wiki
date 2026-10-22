@@ -35,6 +35,7 @@ const presetModels = [
 ];
 const tierModel: Record<string, string> = { fast: 'deepseek-flash', accurate: 'deepseek-flash', vision: 'deepseek-flash', embedding: 'text-embedding-3-small', decision: 'jev' };
 const costClasses = ['qa', 'background', 'admin-probe'];
+const concurrency = 32;
 
 const put = (path: string, body: Record<string, unknown>, method: 'PUT' | 'POST' = 'PUT') => {
   const idempotencyKey = newKey();
@@ -46,12 +47,13 @@ async function configure(secret: string, step: (label: string) => void): Promise
   const c = await api<Catalog>('/v1/admin/catalog');
   step(t('保存密钥'));
   const existing = c.providers.find((provider) => provider.providerId === providerId);
-  if (!existing || !existing.enabled || existing.baseUrl !== baseUrl) {
+  // 翻译、索引、问答和发布时的 AI 会同时调用，并发给足，避免被网关自己限流。
+  if (!existing || !existing.enabled || existing.baseUrl !== baseUrl || (existing.concurrencyLimit as number) < concurrency) {
     const { credentialConfigured: _configured, ...fields } = existing ?? {} as Provider;
     await put(`/v1/admin/providers/${providerId}`, {
       expectedVersion: existing?.version ?? 0, provider: {
-        connectTimeoutMs: 5000, requestTimeoutMs: 60000, concurrencyLimit: 4, streamIdleTimeoutMs: 30000, extraHeaderNames: [], ...fields, credentialVersion: existing?.credentialVersion ?? 0,
-        providerId, displayName: 'OpenRouter', adapter: 'openai_chat', baseUrl, enabled: true, lastProbe: undefined, extraHeaderSecretRefs: [], version: (existing?.version ?? 0) + 1,
+        connectTimeoutMs: 5000, requestTimeoutMs: 60000, streamIdleTimeoutMs: 30000, extraHeaderNames: [], ...fields, credentialVersion: existing?.credentialVersion ?? 0,
+        providerId, displayName: 'OpenRouter', adapter: 'openai_chat', baseUrl, enabled: true, concurrencyLimit: concurrency, lastProbe: undefined, extraHeaderSecretRefs: [], version: (existing?.version ?? 0) + 1,
       },
     });
   }
@@ -78,7 +80,7 @@ async function configure(secret: string, step: (label: string) => void): Promise
         const profileId = profile?.profileId ?? `${costClass}-${tier}`;
         await put(`/v1/admin/profiles/${profileId}`, {
           expectedVersion: profile?.version ?? 0, profile: {
-            profileId, version: (profile?.version ?? 0) + 1, costClass, tier, orderedModelIds: [ids[modelId]], concurrency: profile?.concurrency ?? 4,
+            profileId, version: (profile?.version ?? 0) + 1, costClass, tier, orderedModelIds: [ids[modelId]], concurrency: Math.max(profile?.concurrency ?? 0, 16),
             maximumCost: profile?.maximumCost ?? { currency: 'USD', micros: 0 }, dailyLimitCost: profile?.dailyLimitCost ?? { currency: 'USD', micros: 0 },
           },
         });

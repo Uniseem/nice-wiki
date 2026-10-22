@@ -8,6 +8,7 @@ import (
 	"nice-wiki/libs/platform"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/security"
+	"slices"
 	"strings"
 )
 
@@ -181,7 +182,13 @@ func BuildProviderRequest(ctx context.Context, op OperationContext, input BuildP
 			}
 			messages = append(messages, map[string]any{"role": message.Role, "content": content})
 		}
-		raw, _ := json.Marshal(map[string]any{"model": attempt.Model.ProviderModelVersion, "messages": messages, "max_tokens": output, "stream": true, "stream_options": map[string]any{"include_usage": true}})
+		payload := map[string]any{"model": attempt.Model.ProviderModelVersion, "messages": messages, "max_tokens": output, "stream": true, "stream_options": map[string]any{"include_usage": true}}
+		// OpenRouter 上的混合推理模型（如 DeepSeek Flash）默认先“思考”，思考也占 max_tokens，
+		// 输出额度小的任务（路径名、摘要）会只剩空回复。没标“推理”能力的模型关掉思考。
+		if parsed, err := url.Parse(base); err == nil && strings.EqualFold(parsed.Hostname(), "openrouter.ai") && !slices.Contains(attempt.Model.Capabilities, "reasoning") {
+			payload["reasoning"] = map[string]any{"enabled": false}
+		}
+		raw, _ := json.Marshal(payload)
 		body = string(raw)
 		path = "/chat/completions"
 		headers.Set("Authorization", "Bearer "+string(key))

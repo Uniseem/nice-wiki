@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
@@ -70,7 +71,8 @@ func InvokeModel(ctx context.Context, op OperationContext, models *ModelRuntime,
 		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "模型任务档位解析结果不完整")
 	}
 	inputKey := platform.HashBytes([]byte(route.Resolved.Profile.ProfileID + "\x00" + inputHash))
-	if text, found, err := models.store.readModelSuggestion(ctx, op, taskID, inputKey); err != nil || found {
+	// 空回复不算结果（例如模型把输出额度都花在思考上），不复用，重新问。
+	if text, found, err := models.store.readModelSuggestion(ctx, op, taskID, inputKey); err != nil || found && strings.TrimSpace(text) != "" {
 		return text, err
 	}
 	key := taskID + "." + platform.HashBytes([]byte(op.RootOperationID+"\x00"+inputKey))
@@ -84,6 +86,9 @@ func InvokeModel(ctx context.Context, op OperationContext, models *ModelRuntime,
 		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "模型没有给出完整结果")
 	}
 	text := *outcome.CurrentSnapshot.Output.Text
+	if strings.TrimSpace(text) == "" {
+		return "", nil
+	}
 	if err := models.store.saveModelSuggestion(ctx, op, taskID, inputKey, text); err != nil {
 		return "", err
 	}
@@ -105,7 +110,7 @@ func (s *Store) readModelSuggestion(ctx context.Context, op OperationContext, ta
 func (s *Store) saveModelSuggestion(ctx context.Context, op OperationContext, taskID string, inputKey Hash, text string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, err := s.db.ExecContext(ctx, `INSERT OR IGNORE INTO model_suggestions(site_id,data_epoch,task_id,input_key,output_text,created_at) VALUES(?,?,?,?,?,?)`, op.Actor.SiteID, op.DataEpoch, taskID, inputKey, text, platform.Now()); err != nil {
+	if _, err := s.db.ExecContext(ctx, `INSERT INTO model_suggestions(site_id,data_epoch,task_id,input_key,output_text,created_at) VALUES(?,?,?,?,?,?) ON CONFLICT(site_id,data_epoch,task_id,input_key) DO UPDATE SET output_text=excluded.output_text,created_at=excluded.created_at WHERE model_suggestions.output_text=''`, op.Actor.SiteID, op.DataEpoch, taskID, inputKey, text, platform.Now()); err != nil {
 		return contentStorageError()
 	}
 	return nil
