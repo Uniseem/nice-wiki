@@ -15,38 +15,6 @@
   "id": "Kedaluwarsa {0}",
   "ar": "تنتهي {0}"
  },
- "{0}（{1}）": {
-  "zh-Hant": "{0}（{1}）",
-  "en": "{0} ({1})",
-  "ja": "{0}（{1}）",
-  "ko": "{0} ({1})",
-  "fr": "{0} ({1})",
-  "de": "{0} ({1})",
-  "es": "{0} ({1})",
-  "pt": "{0} ({1})",
-  "ru": "{0} ({1})",
-  "it": "{0} ({1})",
-  "vi": "{0} ({1})",
-  "th": "{0} ({1})",
-  "id": "{0} ({1})",
-  "ar": "{0} ({1})"
- },
- "{0}（模型接入里没有这个档位）": {
-  "zh-Hant": "{0}（模型接入中沒有這個檔位）",
-  "en": "{0} (not in Models)",
-  "ja": "{0}（モデル接続にこのプロファイルはありません）",
-  "ko": "{0}(모델 연결에 이 프로필이 없음)",
-  "fr": "{0} (absent de Modèles)",
-  "de": "{0} (nicht unter „Modelle“)",
-  "es": "{0} (no está en Modelos)",
-  "pt": "{0} (não está em Modelos)",
-  "ru": "{0} (нет в разделе «Модели»)",
-  "it": "{0} (non presente in Modelli)",
-  "vi": "{0} (không có trong mục Mô hình)",
-  "th": "{0} (ไม่มีโปรไฟล์นี้ในหน้าโมเดล)",
-  "id": "{0} (tidak ada di Model)",
-  "ar": "{0} (غير موجود في «النماذج»)"
- },
  "上下文最大词元": {
   "zh-Hant": "上下文最大詞元",
   "en": "Max context tokens",
@@ -94,6 +62,22 @@
   "th": "ขีดจำกัดเนื้อหาบทความที่ส่งให้โมเดลตอบคำถาม และจะไม่เกินหนึ่งในสามของหน้าต่างบริบทของโมเดล",
   "id": "Batas teks artikel yang dikirim ke model jawaban; selain itu tidak pernah melebihi sepertiga jendela konteks model.",
   "ar": "الحد الأقصى لنص المقالات المرسَل إلى نموذج الإجابة، ولا يتجاوز أيضًا ثلث نافذة سياق النموذج."
+ },
+ "使用“模型接入”里为问答回答分配的后台档位。": {
+  "zh-Hant": "使用「模型接入」裡為問答回答分配的後台檔位。",
+  "en": "Uses the background profile assigned to Q&A answers under “Models”.",
+  "ja": "「モデル接続」で Q&A 回答に割り当てたバックグラウンド用プロファイルを使います。",
+  "ko": "‘모델 연결’에서 질의응답 답변에 할당한 백그라운드 프로필을 사용합니다.",
+  "fr": "Utilise le profil d’arrière-plan attribué aux réponses Q&R dans « Modèles ».",
+  "de": "Verwendet das Hintergrundprofil, das unter „Modelle“ den Q&A-Antworten zugewiesen ist.",
+  "es": "Usa el perfil de segundo plano asignado a las respuestas en «Modelos».",
+  "pt": "Usa o perfil de segundo plano atribuído às respostas em “Modelos”.",
+  "ru": "Используется фоновый профиль, назначенный ответам в разделе «Модели».",
+  "it": "Usa il profilo in background assegnato alle risposte Q&A in «Modelli».",
+  "vi": "Dùng hồ sơ nền đã gán cho câu trả lời hỏi đáp trong “Kết nối mô hình”.",
+  "th": "ใช้โปรไฟล์งานเบื้องหลังที่กำหนดให้คำตอบถามตอบใน “เชื่อมต่อโมเดล”",
+  "id": "Memakai profil latar yang ditetapkan untuk jawaban tanya jawab di “Model”.",
+  "ar": "يستخدم ملف الخلفية المعيّن لإجابات الأسئلة في «النماذج»."
  },
  "例如：如何安装？": {
   "zh-Hant": "例如：如何安裝？",
@@ -207,22 +191,6 @@
   "id": "Tutup",
   "ar": "إغلاق"
  },
- "准确": {
-  "zh-Hant": "準確",
-  "en": "Accurate",
-  "ja": "高精度",
-  "ko": "정확",
-  "fr": "Précis",
-  "de": "Genau",
-  "es": "Preciso",
-  "pt": "Preciso",
-  "ru": "Точный",
-  "it": "Accurato",
-  "vi": "Chính xác",
-  "th": "แม่นยำ",
-  "id": "Akurat",
-  "ar": "دقيق"
- },
  "历史最大词元": {
   "zh-Hant": "歷史最大詞元",
   "en": "Max history tokens",
@@ -255,6 +223,22 @@
   "id": "Token terbaru yang disimpan saat pemadatan",
   "ar": "الرموز الأخيرة المحفوظة عند الضغط"
  },
+ "去设置": {
+  "zh-Hant": "去設定",
+  "en": "Set it up",
+  "ja": "設定する",
+  "ko": "설정하러 가기",
+  "fr": "Configurer",
+  "de": "Einrichten",
+  "es": "Configurar",
+  "pt": "Configurar",
+  "ru": "Настроить",
+  "it": "Configura",
+  "vi": "Đi thiết lập",
+  "th": "ไปตั้งค่า",
+  "id": "Atur sekarang",
+  "ar": "اذهب للإعداد"
+ },
  "取消": {
   "zh-Hant": "取消",
   "en": "Cancel",
@@ -270,38 +254,6 @@
   "th": "ยกเลิก",
   "id": "Batal",
   "ar": "إلغاء"
- },
- "只列出“后台任务”用途的对话档位。": {
-  "zh-Hant": "只列出「後台任務」用途的對話檔位。",
-  "en": "Only chat profiles for background tasks are listed.",
-  "ja": "「バックグラウンドタスク」用のチャットプロファイルだけを表示します。",
-  "ko": "'백그라운드 작업' 용도의 대화 프로필만 표시합니다.",
-  "fr": "Seuls les profils de conversation pour tâches de fond sont listés.",
-  "de": "Nur Chat-Profile für Hintergrundaufgaben werden angezeigt.",
-  "es": "Solo se muestran perfiles de chat para tareas en segundo plano.",
-  "pt": "Só aparecem perfis de chat para tarefas em segundo plano.",
-  "ru": "Показаны только профили чата для фоновых задач.",
-  "it": "Sono elencati solo i profili chat per le attività in background.",
-  "vi": "Chỉ liệt kê hồ sơ hội thoại dùng cho \"tác vụ nền\".",
-  "th": "แสดงเฉพาะโปรไฟล์แชตสำหรับ “งานเบื้องหลัง”",
-  "id": "Hanya profil obrolan untuk tugas latar yang ditampilkan.",
-  "ar": "تُعرض فقط ملفات المحادثة المخصصة للمهام الخلفية."
- },
- "只列出“访客问答”用途的对话档位。": {
-  "zh-Hant": "只列出「訪客問答」用途的對話檔位。",
-  "en": "Only chat profiles for visitor Q&A are listed.",
-  "ja": "「訪問者 Q&A」用のチャットプロファイルだけを表示します。",
-  "ko": "'방문자 Q&A' 용도의 대화 프로필만 표시합니다.",
-  "fr": "Seuls les profils de conversation pour les Q&R visiteurs sont listés.",
-  "de": "Nur Chat-Profile für Besucherfragen werden angezeigt.",
-  "es": "Solo se muestran perfiles de chat para preguntas de visitantes.",
-  "pt": "Só aparecem perfis de chat para perguntas de visitantes.",
-  "ru": "Показаны только профили чата для вопросов посетителей.",
-  "it": "Sono elencati solo i profili chat per le domande dei visitatori.",
-  "vi": "Chỉ liệt kê hồ sơ hội thoại dùng cho \"hỏi đáp của khách\".",
-  "th": "แสดงเฉพาะโปรไฟล์แชตสำหรับ “ถามตอบของผู้เยี่ยมชม”",
-  "id": "Hanya profil obrolan untuk Tanya Jawab pengunjung yang ditampilkan.",
-  "ar": "تُعرض فقط ملفات المحادثة المخصصة لأسئلة الزوار."
  },
  "回答、引用和失败原因会显示在这里。": {
   "zh-Hant": "回答、引用和失敗原因會顯示在這裡。",
@@ -334,6 +286,22 @@
   "th": "โทเคนเอาต์พุตสูงสุดของคำตอบ",
   "id": "Token keluaran jawaban maks.",
   "ar": "الحد الأقصى لرموز مخرجات الإجابة"
+ },
+ "回答用“模型接入”里为访客问答分配的档位。数值越大回答越充分，但每次调用的词元也越多。": {
+  "zh-Hant": "回答用「模型接入」裡為訪客問答分配的檔位。數值越大回答越充分，但每次呼叫的詞元也越多。",
+  "en": "Answers use the profile assigned to visitor Q&A under “Models”. Larger values give fuller answers but use more tokens per call.",
+  "ja": "回答には「モデル接続」で訪問者 Q&A に割り当てたプロファイルを使います。値が大きいほど回答は充実しますが、1 回あたりのトークンも増えます。",
+  "ko": "답변에는 ‘모델 연결’에서 방문자 질의응답에 할당한 프로필을 사용합니다. 값이 클수록 답변이 충실해지지만 호출당 토큰도 늘어납니다.",
+  "fr": "Les réponses utilisent le profil attribué aux Q&R visiteurs dans « Modèles ». Des valeurs plus grandes donnent des réponses plus complètes mais consomment plus de jetons.",
+  "de": "Antworten nutzen das Profil, das unter „Modelle“ den Besucherfragen zugewiesen ist. Größere Werte ergeben ausführlichere Antworten, kosten aber mehr Tokens pro Aufruf.",
+  "es": "Las respuestas usan el perfil asignado a las preguntas de visitantes en «Modelos». Valores mayores dan respuestas más completas, pero gastan más tokens por llamada.",
+  "pt": "As respostas usam o perfil atribuído às perguntas de visitantes em “Modelos”. Valores maiores dão respostas mais completas, mas gastam mais tokens por chamada.",
+  "ru": "Для ответов используется профиль, назначенный вопросам посетителей в разделе «Модели». Чем больше значения, тем полнее ответы, но тем больше токенов за вызов.",
+  "it": "Le risposte usano il profilo assegnato alle domande dei visitatori in «Modelli». Valori più alti danno risposte più complete ma consumano più token per chiamata.",
+  "vi": "Câu trả lời dùng hồ sơ đã gán cho hỏi đáp của khách trong “Kết nối mô hình”. Giá trị càng lớn câu trả lời càng đầy đủ nhưng mỗi lần gọi tốn nhiều token hơn.",
+  "th": "คำตอบใช้โปรไฟล์ที่กำหนดให้ถามตอบของผู้เยี่ยมชมใน “เชื่อมต่อโมเดล” ค่ายิ่งมากคำตอบยิ่งครบถ้วน แต่ใช้โทเค็นต่อครั้งมากขึ้น",
+  "id": "Jawaban memakai profil yang ditetapkan untuk tanya jawab pengunjung di “Model”. Nilai lebih besar memberi jawaban lebih lengkap, tetapi memakai lebih banyak token per panggilan.",
+  "ar": "تستخدم الإجابات الملف المعيّن لأسئلة الزوار في «النماذج». القيم الأكبر تعطي إجابات أوفى لكنها تستهلك رموزًا أكثر لكل استدعاء."
  },
  "失败": {
   "zh-Hant": "失敗",
@@ -543,22 +511,6 @@
   "id": "Menunggu persetujuan",
   "ar": "بانتظار الموافقة"
  },
- "快速": {
-  "zh-Hant": "快速",
-  "en": "Fast",
-  "ja": "高速",
-  "ko": "빠름",
-  "fr": "Rapide",
-  "de": "Schnell",
-  "es": "Rápido",
-  "pt": "Rápido",
-  "ru": "Быстрый",
-  "it": "Veloce",
-  "vi": "Nhanh",
-  "th": "เร็ว",
-  "id": "Cepat",
-  "ar": "سريع"
- },
  "打开“答案缓存”后，完整且可共享的问题回答完会自动写入；撤回或改动来源文档后，相关缓存不再命中。": {
   "zh-Hant": "開啟「答案快取」後，完整且可共享的問題回答完會自動寫入；撤回或修改來源文件後，相關快取不再命中。",
   "en": "With Answer cache on, answers to complete, shareable questions are saved automatically. Unpublishing or editing a source document stops related cache hits.",
@@ -670,22 +622,6 @@
   "th": "การดำเนินการ",
   "id": "Tindakan",
   "ar": "الإجراءات"
- },
- "数值越大回答越充分，但每次调用的词元也越多。": {
-  "zh-Hant": "數值越大回答越充分，但每次呼叫的詞元也越多。",
-  "en": "Higher values allow fuller answers but use more tokens per call.",
-  "ja": "値が大きいほど回答は充実しますが、1 回あたりのトークンも増えます。",
-  "ko": "값이 클수록 답변이 충실해지지만 호출당 토큰도 늘어납니다.",
-  "fr": "Plus la valeur est élevée, plus la réponse est complète, mais chaque appel consomme plus de jetons.",
-  "de": "Höhere Werte ermöglichen ausführlichere Antworten, kosten aber mehr Tokens pro Aufruf.",
-  "es": "Valores más altos dan respuestas más completas, pero usan más tokens por llamada.",
-  "pt": "Valores maiores dão respostas mais completas, mas usam mais tokens por chamada.",
-  "ru": "Чем больше значение, тем полнее ответ, но тем больше токенов за вызов.",
-  "it": "Valori più alti consentono risposte più complete ma usano più token per chiamata.",
-  "vi": "Giá trị càng lớn câu trả lời càng đầy đủ, nhưng mỗi lần gọi tốn nhiều token hơn.",
-  "th": "ค่ายิ่งมากคำตอบยิ่งละเอียด แต่ใช้โทเคนต่อครั้งมากขึ้น",
-  "id": "Nilai lebih besar memberi jawaban lebih lengkap, tetapi memakai lebih banyak token per panggilan.",
-  "ar": "القيم الأعلى تتيح إجابات أوفى لكنها تستهلك رموزًا أكثر في كل استدعاء."
  },
  "无依据": {
   "zh-Hant": "無依據",
@@ -814,6 +750,22 @@
   "th": "กำลังค้นหาและสร้างคำตอบ…",
   "id": "Mencari dan membuat jawaban…",
   "ar": "جارٍ البحث وإنشاء الإجابة…"
+ },
+ "没保存过防滥用策略时，访客提问会被拒绝。到“防滥用”页面确认并保存一次即可（可以直接用默认值）。": {
+  "zh-Hant": "沒儲存過防濫用策略時，訪客提問會被拒絕。到「防濫用」頁面確認並儲存一次即可（可以直接用預設值）。",
+  "en": "Visitor questions are rejected until an abuse protection policy has been saved. Open “Abuse protection”, review it and save once (the defaults are fine).",
+  "ja": "不正利用対策ポリシーを一度も保存していないと、訪問者の質問は拒否されます。「不正利用対策」ページで確認して一度保存してください（既定値のままで構いません）。",
+  "ko": "남용 방지 정책을 한 번도 저장하지 않으면 방문자 질문이 거부됩니다. ‘남용 방지’ 페이지에서 확인 후 한 번 저장하세요(기본값 그대로도 됩니다).",
+  "fr": "Tant qu’aucune politique anti-abus n’a été enregistrée, les questions des visiteurs sont refusées. Ouvrez « Anti-abus », vérifiez et enregistrez une fois (les valeurs par défaut conviennent).",
+  "de": "Solange keine Missbrauchsschutz-Richtlinie gespeichert wurde, werden Besucherfragen abgelehnt. Öffnen Sie „Missbrauchsschutz“, prüfen und speichern Sie einmal (Standardwerte genügen).",
+  "es": "Mientras no se guarde una política antiabuso, se rechazan las preguntas de los visitantes. Abre «Antiabuso», revísala y guárdala una vez (los valores predeterminados sirven).",
+  "pt": "Enquanto nenhuma política antiabuso for salva, as perguntas dos visitantes são recusadas. Abra “Antiabuso”, revise e salve uma vez (os padrões servem).",
+  "ru": "Пока политика защиты от злоупотреблений не сохранена, вопросы посетителей отклоняются. Откройте «Защита от злоупотреблений», проверьте и сохраните один раз (можно со значениями по умолчанию).",
+  "it": "Finché non viene salvata una politica anti-abuso, le domande dei visitatori vengono rifiutate. Apri «Anti-abuso», verifica e salva una volta (vanno bene i valori predefiniti).",
+  "vi": "Khi chưa lưu chính sách chống lạm dụng, câu hỏi của khách sẽ bị từ chối. Vào trang “Chống lạm dụng”, kiểm tra và lưu một lần (dùng giá trị mặc định cũng được).",
+  "th": "หากยังไม่เคยบันทึกนโยบายป้องกันการละเมิด คำถามของผู้เยี่ยมชมจะถูกปฏิเสธ ไปที่หน้า “ป้องกันการละเมิด” ตรวจสอบแล้วบันทึกหนึ่งครั้ง (ใช้ค่าเริ่มต้นได้)",
+  "id": "Pertanyaan pengunjung ditolak sampai kebijakan antipenyalahgunaan pernah disimpan. Buka “Antipenyalahgunaan”, periksa, lalu simpan sekali (nilai bawaan pun boleh).",
+  "ar": "تُرفض أسئلة الزوار ما لم تُحفظ سياسة مكافحة إساءة الاستخدام. افتح «مكافحة إساءة الاستخدام» وراجعها واحفظها مرة واحدة (القيم الافتراضية تكفي)."
  },
  "没帮助": {
   "zh-Hant": "沒幫助",
@@ -974,22 +926,6 @@
   "th": "คำตอบ",
   "id": "Jawaban",
   "ar": "الإجابة"
- },
- "答案模型档位": {
-  "zh-Hant": "答案模型檔位",
-  "en": "Answer model profile",
-  "ja": "回答モデルのプロファイル",
-  "ko": "답변 모델 프로필",
-  "fr": "Profil du modèle de réponse",
-  "de": "Profil des Antwortmodells",
-  "es": "Perfil del modelo de respuesta",
-  "pt": "Perfil do modelo de resposta",
-  "ru": "Профиль модели ответов",
-  "it": "Profilo del modello di risposta",
-  "vi": "Hồ sơ mô hình trả lời",
-  "th": "โปรไฟล์โมเดลตอบ",
-  "id": "Profil model jawaban",
-  "ar": "ملف نموذج الإجابة"
  },
  "答案缓存": {
   "zh-Hant": "答案快取",
@@ -1247,22 +1183,6 @@
   "id": "Mendiagnosis…",
   "ar": "جارٍ التشخيص…"
  },
- "诊断档位": {
-  "zh-Hant": "診斷檔位",
-  "en": "Diagnostic profile",
-  "ja": "診断用プロファイル",
-  "ko": "진단 프로필",
-  "fr": "Profil de diagnostic",
-  "de": "Diagnoseprofil",
-  "es": "Perfil de diagnóstico",
-  "pt": "Perfil de diagnóstico",
-  "ru": "Профиль диагностики",
-  "it": "Profilo di diagnostica",
-  "vi": "Hồ sơ chẩn đoán",
-  "th": "โปรไฟล์วินิจฉัย",
-  "id": "Profil diagnosis",
-  "ar": "ملف التشخيص"
- },
  "试问": {
   "zh-Hant": "試問",
   "en": "Ask",
@@ -1486,6 +1406,22 @@
   "th": "จำนวนอักขระสูงสุดของคำถาม",
   "id": "Panjang maks. pertanyaan (karakter)",
   "ar": "الحد الأقصى لطول السؤال (أحرف)"
+ },
+ "防滥用策略还没有保存": {
+  "zh-Hant": "防濫用策略還沒有儲存",
+  "en": "Abuse protection policy not saved yet",
+  "ja": "不正利用対策ポリシーが未保存です",
+  "ko": "남용 방지 정책이 아직 저장되지 않았습니다",
+  "fr": "Politique anti-abus pas encore enregistrée",
+  "de": "Missbrauchsschutz-Richtlinie noch nicht gespeichert",
+  "es": "Aún no se ha guardado la política antiabuso",
+  "pt": "Política antiabuso ainda não salva",
+  "ru": "Политика защиты от злоупотреблений ещё не сохранена",
+  "it": "Politica anti-abuso non ancora salvata",
+  "vi": "Chưa lưu chính sách chống lạm dụng",
+  "th": "ยังไม่ได้บันทึกนโยบายป้องกันการละเมิด",
+  "id": "Kebijakan antipenyalahgunaan belum disimpan",
+  "ar": "لم تُحفظ سياسة مكافحة إساءة الاستخدام بعد"
  },
  "需澄清": {
   "zh-Hant": "需澄清",

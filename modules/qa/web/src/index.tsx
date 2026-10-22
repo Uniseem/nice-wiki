@@ -1,8 +1,8 @@
 import { Comments, PaperPlane, Star } from '@gravity-ui/icons';
 import { Button, Chip, Form, Modal, Spinner, Table, Tabs } from '@heroui/react';
 import {
-  adminLanguage, api, confirmAction, EmptyBlock, ErrorBlock, errorText, fmtDateTime, fmtRelative, FormGrid, LoadingBlock, newKey, Notice, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, TextAreaInput, TextInput,
-  useAction, useHasGrant, useLoad, t,
+  adminLanguage, api, ApiError, confirmAction, EmptyBlock, ErrorBlock, errorText, fmtDateTime, fmtRelative, FormGrid, LoadingBlock, newKey, Notice, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, TextAreaInput, TextInput,
+  navigate, useAction, useHasGrant, useLoad, t,
 } from '@ui';
 import { useEffect, useState } from 'react';
 import { Markdown } from './island/markdown';
@@ -26,24 +26,12 @@ const numbers: Record<string, string> = {
 const numberHints: Record<string, string> = {
   maximumContextTokens: t('交给回答模型的文章原文上限；实际还不超过回答模型窗口的三分之一。'),
 };
-const texts: Record<string, string> = { profileId: t('答案模型档位'), semanticMode: t('语义判定方式') };
+const texts: Record<string, string> = { semanticMode: t('语义判定方式') };
 const semanticModes = [{ value: 'ai_equivalence', label: t('由 AI 判断是否同一问题') }, { value: 'threshold', label: t('按语义相似阈值') }];
-type ProfileOption = { profileId: string; costClass: string; tier: string };
-const chatTiers: Record<string, string> = { fast: t('快速'), accurate: t('准确') };
-// 模型目录需要“模型接入”权限；读不到时档位退回手填。
-const useProfiles = () => useLoad((signal) => api<{ profiles: ProfileOption[] }>('/v1/admin/catalog', { signal }).then((result) => result.profiles).catch(() => null), []);
-
-function ProfileField({ label, description, costClass, profiles, value, onChange }: {
-  label: string; description?: string; costClass: string; profiles: ProfileOption[] | null | undefined; value: string; onChange: (value: string) => void;
-}) {
-  const options = (profiles ?? []).filter((profile) => profile.costClass === costClass && chatTiers[profile.tier]).map((profile) => ({ value: profile.profileId, label: t('{0}（{1}）', profile.profileId, chatTiers[profile.tier]) }));
-  if (!options.length) return <TextInput isRequired description={description} label={label} value={value} onChange={onChange} />;
-  if (value && !options.some((option) => option.value === value)) options.unshift({ value, label: t('{0}（模型接入里没有这个档位）', value) });
-  return <SelectInput description={description} label={label} options={options} value={value} onChange={onChange} />;
-}
-// 历史预算跟随回答模型的上下文窗口，不再单独设上限；预检、核查、子问题、多轮检索和工具调用这几项当前回答流程不用。
+// 历史预算跟随回答模型的上下文窗口，不再单独设上限；预检、核查、子问题、多轮检索和工具调用这几项当前回答流程不用；
+// 回答档位以“模型接入”里的任务分配为准（服务端按任务路线解析），不在这里选。
 const hidden = new Set([
-  'version', 'retrievalSpace', 'maximumHistoryTokens',
+  'version', 'retrievalSpace', 'maximumHistoryTokens', 'profileId',
   'preflightOutputTokens', 'inspectionOutputTokens', 'maximumSubqueries', 'maximumRetrievalRounds', 'maximumToolCalls',
 ]);
 const answerKinds: Record<string, string> = { answered: t('已回答'), refused: t('拒答'), cached: t('缓存命中'), no_evidence: t('无依据'), out_of_scope: t('离题/闲聊'), clarification: t('需澄清'), failed: t('失败'), cancelled: t('已取消') };
@@ -77,7 +65,8 @@ function PolicyTab() {
   const current = useLoad((signal) => api<{ policy: Policy; version: number }>('/v1/admin/policy', { signal }), []);
   // 知识索引当前的向量空间：换了向量模型后，问答要跟着用新的空间检索（没有知识库权限时读不到，就不提示）。
   const indexSpace = useLoad((signal) => api<{ config: { space: unknown } }>('/v1/index-config', { signal }).then((result) => result.config.space).catch(() => null), []);
-  const profiles = useProfiles();
+  // 防滥用策略从没保存过时，访客提问会被拒绝（没有防滥用权限时读不到，就不提示）。
+  const guardMissing = useLoad((signal) => api('/v1/policies', { signal }).then(() => false).catch((problem) => problem instanceof ApiError && problem.code === 'NOT_FOUND'), []);
   const [policy, setPolicy] = useState<Policy | null>(null);
   const { busy, run } = useAction();
   useEffect(() => { if (current.data) setPolicy(current.data.policy); }, [current.data]);
@@ -97,6 +86,13 @@ function PolicyTab() {
   return (
     <Form className="flex flex-col gap-6" onSubmit={(event) => { event.preventDefault(); void save(); }}>
       {!policy.enabled && <Notice status="default" title={t('公开问答目前关闭')}>{t('访客看不到问答入口。确认模型、索引和防滥用都已就绪后再打开。')}</Notice>}
+      {guardMissing.data && (
+        <Notice status="warning" title={t('防滥用策略还没有保存')}>
+          <span className="flex flex-wrap items-center gap-2">{t('没保存过防滥用策略时，访客提问会被拒绝。到“防滥用”页面确认并保存一次即可（可以直接用默认值）。')}
+            <Button size="sm" variant="secondary" onPress={() => navigate('/admin/guard')}>{t('去设置')}</Button>
+          </span>
+        </Notice>
+      )}
       {staleSpace && <Notice status="warning" title={t('知识索引换了向量模型')}>{t('问答还在用旧的向量空间检索，访客提问会失败。保存一次策略即可切换到新的空间。')}</Notice>}
       <Panel title={t('开关')} description={t('策略版本 #{0}', current.data.version)}>
         <div className="grid gap-5 md:grid-cols-3">
@@ -105,13 +101,11 @@ function PolicyTab() {
           ))}
         </div>
       </Panel>
-      <Panel title={t('模型与额度')} description={t('数值越大回答越充分，但每次调用的词元也越多。')}>
+      <Panel title={t('模型与额度')} description={t('回答用“模型接入”里为访客问答分配的档位。数值越大回答越充分，但每次调用的词元也越多。')}>
         <FormGrid columns={3}>
-          {keys.filter((key) => typeof policy[key] === 'string').map((key) => key === 'profileId'
-            ? <ProfileField key={key} costClass="qa" description={t('只列出“访客问答”用途的对话档位。')} label={texts[key]} profiles={profiles.data} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />
-            : key === 'semanticMode'
-              ? <SelectInput key={key} label={texts[key]} options={semanticModes} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />
-              : <TextInput key={key} label={texts[key] ?? key} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />)}
+          {keys.filter((key) => typeof policy[key] === 'string').map((key) => key === 'semanticMode'
+            ? <SelectInput key={key} label={texts[key]} options={semanticModes} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />
+            : <TextInput key={key} label={texts[key] ?? key} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />)}
           {keys.filter((key) => typeof policy[key] === 'number').map((key) => (
             <NumberInput key={key} description={numberHints[key]} formatOptions={key === 'semanticThreshold' ? { maximumFractionDigits: 3 } : undefined} label={numbers[key] ?? key} minValue={0} step={key === 'semanticThreshold' ? 0.01 : 1} value={policy[key] as number} onChange={(value) => set(key, value)} />
           ))}
@@ -257,8 +251,8 @@ function CacheTab() {
 // 调试台：管理员直接试问，结果只存在隔离的诊断记录里（7 天），不影响访客对话和缓存；使用“后台任务”用途的档位。
 function DebugTab() {
   const [question, setQuestion] = useState('');
-  const [profileId, setProfileId] = useState('background-accurate');
-  const profiles = useProfiles();
+  // 接口要求带档位，服务端以任务路线为准，这里只是占位。
+  const profileId = 'background-accurate';
   const [state, setState] = useState<{ running: boolean; answer: string; citations: Citation[]; status: '' | 'running' | 'done' | 'failed'; error: string }>({ running: false, answer: '', citations: [], status: '', error: '' });
 
   async function ask() {
@@ -291,7 +285,7 @@ function DebugTab() {
       <Panel className="xl:col-span-2" title={t('试问')} description={t('检索知识库并调用模型回答，结果不影响访客对话和缓存。')}>
         <Form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void ask(); }}>
           <TextAreaInput isRequired label={t('问题')} maxLength={500} placeholder={t('例如：如何安装？')} rows={4} value={question} onChange={setQuestion} />
-          <ProfileField costClass="background" description={t('只列出“后台任务”用途的对话档位。')} label={t('诊断档位')} profiles={profiles.data} value={profileId} onChange={setProfileId} />
+          <p className="text-xs text-muted">{t('使用“模型接入”里为问答回答分配的后台档位。')}</p>
           <div className="flex justify-end"><Button isPending={state.running} type="submit"><PaperPlane />{state.running ? t('诊断中…') : t('试问')}</Button></div>
         </Form>
       </Panel>

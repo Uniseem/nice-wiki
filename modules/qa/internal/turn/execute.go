@@ -161,8 +161,12 @@ func runTurn(parent context.Context, op OperationContext, turnID string) (err er
 		}
 		selectEvidence = evidenceSelector(ctx, op, english)
 	}
+	// 回答档位以模型接入里的任务分配为准（网关只接受与任务路线一致的档位），解析不到时才退回策略里填的档位；
 	// 简单问题改用快速档回答（任务 qa.answer-fast 没分配时仍用回答档位）。
 	task, profile := "qa.answer", string(resolved.Policy.ProfileId)
+	if routed, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer"); err == nil {
+		profile = routed
+	}
 	if decision != nil && decision.simple {
 		if fast, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer-fast"); err == nil {
 			task, profile = "qa.answer-fast", fast

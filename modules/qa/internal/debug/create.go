@@ -139,7 +139,12 @@ func executeDebug(ctx context.Context, op OperationContext, record gen.DebugTurn
 		return err
 	}
 	_ = runtime
-	outcome, err := qaruntime.InvokeModel(ctx, op, qaruntime.InvokeModelInput{Request: platform.CreateInvocationInput{TaskID: "qa.answer", ProfileID: input.ProfileId, Capability: platform.CapabilityChat, Messages: prompt.Messages, MaximumOutputTokens: int64(min(prompt.MaximumOutputTokens, policy.MaximumOutputTokens)), IDempotencyKey: "debug.answer"}})
+	// 档位以模型接入里的任务分配为准（网关只接受与任务路线一致的档位），解析不到时才用请求里给的。
+	profile := input.ProfileId
+	if routed, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer"); err == nil {
+		profile = platform.Identifier(routed)
+	}
+	outcome, err := qaruntime.InvokeModel(ctx, op, qaruntime.InvokeModelInput{Request: platform.CreateInvocationInput{TaskID: "qa.answer", ProfileID: profile, Capability: platform.CapabilityChat, Messages: prompt.Messages, MaximumOutputTokens: int64(min(prompt.MaximumOutputTokens, policy.MaximumOutputTokens)), IDempotencyKey: "debug.answer"}})
 	if err != nil {
 		return err
 	}
