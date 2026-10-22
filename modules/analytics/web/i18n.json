@@ -591,6 +591,22 @@
   "id": "Diekspor",
   "ar": "تم التصدير"
  },
+ "已撤回或删除的文档": {
+  "zh-Hant": "已撤回或刪除的文件",
+  "en": "Unpublished or deleted document",
+  "ja": "公開取り消しまたは削除されたドキュメント",
+  "ko": "게시 취소되었거나 삭제된 문서",
+  "fr": "Document dépublié ou supprimé",
+  "de": "Zurückgezogenes oder gelöschtes Dokument",
+  "es": "Documento retirado o eliminado",
+  "pt": "Documento despublicado ou excluído",
+  "ru": "Снятый с публикации или удалённый документ",
+  "it": "Documento ritirato o eliminato",
+  "vi": "Tài liệu đã thu hồi hoặc xóa",
+  "th": "เอกสารที่ถอนหรือลบแล้ว",
+  "id": "Dokumen yang ditarik atau dihapus",
+  "ar": "مستند مسحوب أو محذوف"
+ },
  "开始上传文件": {
   "zh-Hant": "開始上傳檔案",
   "en": "Start file upload",
