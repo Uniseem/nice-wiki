@@ -249,11 +249,12 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
     try { await action(); } catch (problem) { notify.error(errorText(problem)); } finally { setBusy(false); }
   };
 
-  const saveTitle = () => {
+  // 失焦时直接读输入框的值，不依赖上一次渲染的 title（改完立刻失焦时状态可能还没更新）。
+  const saveTitle = (value: string) => {
     editingTitle.current = false;
     if (cancelTitle.current) { cancelTitle.current = false; return; }
     const current = live.current.meta;
-    const next = title.replace(/\s+/g, ' ').trim();
+    const next = value.replace(/\s+/g, ' ').trim();
     if (!current || !next || next === current.title) { if (current) setTitle(current.title); return; }
     void act(async () => {
       await api(`/v1/documents/${documentId}/metadata`, { method: 'PUT', body: { title: next, pathSegment: current.pathSegment, seoDescription: current.seoDescription, shareImage: current.shareImage ?? null, expectedRevision: current.revision } });
@@ -406,7 +407,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
         placeholder={t('无标题')}
         rows={1}
         value={title}
-        onBlur={() => { setTitleFocus(false); saveTitle(); }}
+        onBlur={(event) => { setTitleFocus(false); saveTitle(event.currentTarget.value); }}
         onChange={(event) => setTitle(event.target.value.replace(/\n/g, ''))}
         onFocus={() => { editingTitle.current = true; setTitleFocus(true); }}
         onKeyDown={(event) => {
