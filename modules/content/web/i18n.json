@@ -1087,22 +1087,6 @@
   "id": "Batal",
   "ar": "إلغاء"
  },
- "只支持 http、https 或 mailto 链接": {
-  "zh-Hant": "僅支援 http、https 或 mailto 連結",
-  "en": "Only http, https or mailto links are supported",
-  "ja": "http、https、mailto のリンクのみ対応しています",
-  "ko": "http, https, mailto 링크만 지원합니다",
-  "fr": "Seuls les liens http, https ou mailto sont pris en charge",
-  "de": "Nur http-, https- oder mailto-Links werden unterstützt",
-  "es": "Solo se admiten enlaces http, https o mailto",
-  "pt": "Só links http, https ou mailto são aceitos",
-  "ru": "Поддерживаются только ссылки http, https и mailto",
-  "it": "Sono supportati solo link http, https o mailto",
-  "vi": "Chỉ hỗ trợ liên kết http, https hoặc mailto",
-  "th": "รองรับเฉพาะลิงก์ http, https หรือ mailto",
-  "id": "Hanya mendukung tautan http, https, atau mailto",
-  "ar": "تُدعم روابط http وhttps وmailto فقط"
- },
  "只用小写字母、数字和连字符，例如 getting-started。发布后仍可在页面设置里修改，旧地址会自动跳转。": {
   "zh-Hant": "只使用小寫字母、數字和連字號，例如 getting-started。發布後仍可在頁面設定中修改，舊網址會自動轉址。",
   "en": "Use only lowercase letters, numbers and hyphens, e.g. getting-started. You can still change it in page settings after publishing; old URLs redirect automatically.",
@@ -1406,6 +1390,22 @@
   "th": "ล็อกจะปลดเองเมื่ออีกฝ่ายออกหรือบันทึก จากนั้นเปิดใหม่เพื่อแก้ไขได้",
   "id": "Kunci terlepas saat ia pergi atau menyimpan; buka ulang untuk menyunting.",
   "ar": "يُحرَّر القفل تلقائيًا عند مغادرته أو حفظه، فأعد الفتح حينها للتحرير."
+ },
+ "将链接到外部地址": {
+  "zh-Hant": "將連結到外部網址",
+  "en": "Will link to an external address",
+  "ja": "外部アドレスにリンクします",
+  "ko": "외부 주소로 연결합니다",
+  "fr": "Lien vers une adresse externe",
+  "de": "Verlinkt auf eine externe Adresse",
+  "es": "Enlazará a una dirección externa",
+  "pt": "Vai vincular a um endereço externo",
+  "ru": "Ссылка на внешний адрес",
+  "it": "Collegherà a un indirizzo esterno",
+  "vi": "Sẽ liên kết tới địa chỉ bên ngoài",
+  "th": "จะลิงก์ไปยังที่อยู่ภายนอก",
+  "id": "Akan menautkan ke alamat eksternal",
+  "ar": "سيُربط بعنوان خارجي"
  },
  "小节标题": {
   "zh-Hant": "小節標題",
@@ -1791,6 +1791,22 @@
   "id": "Versi aktif saat ini",
   "ar": "الإصدار المنشور الحالي"
  },
+ "当前链接到：{0}": {
+  "zh-Hant": "目前連結到：{0}",
+  "en": "Currently links to: {0}",
+  "ja": "現在のリンク先：{0}",
+  "ko": "현재 연결 대상: {0}",
+  "fr": "Lien actuel : {0}",
+  "de": "Verlinkt derzeit auf: {0}",
+  "es": "Enlaza actualmente a: {0}",
+  "pt": "Vincula atualmente a: {0}",
+  "ru": "Сейчас ведёт на: {0}",
+  "it": "Collegato attualmente a: {0}",
+  "vi": "Đang liên kết tới: {0}",
+  "th": "ขณะนี้ลิงก์ไปที่: {0}",
+  "id": "Saat ini menaut ke: {0}",
+  "ar": "يرتبط حاليًا بـ: {0}"
+ },
  "彻底删除": {
   "zh-Hant": "永久刪除",
   "en": "Delete permanently",
@@ -1934,6 +1950,22 @@
   "th": "ลากเอกสารเพื่อจัดลำดับหรือจัดระดับชั้น",
   "id": "Seret dokumen untuk mengubah urutan atau tingkatannya.",
   "ar": "اسحب المستندات لإعادة ترتيبها أو تضمينها."
+ },
+ "指向站内另一篇文档": {
+  "zh-Hant": "指向站內另一篇文件",
+  "en": "Point to another document on this site",
+  "ja": "サイト内の別のドキュメントへ",
+  "ko": "사이트 내 다른 문서로 연결",
+  "fr": "Vers un autre document du site",
+  "de": "Auf ein anderes Dokument dieser Website",
+  "es": "Apunta a otro documento del sitio",
+  "pt": "Aponta para outro documento do site",
+  "ru": "Ссылка на другой документ сайта",
+  "it": "Punta a un altro documento del sito",
+  "vi": "Trỏ tới tài liệu khác trong trang",
+  "th": "ชี้ไปยังเอกสารอื่นในเว็บไซต์",
+  "id": "Mengarah ke dokumen lain di situs ini",
+  "ar": "يشير إلى مستند آخر في الموقع"
  },
  "换个关键词试试。": {
   "zh-Hant": "換個關鍵字試試。",
@@ -2158,22 +2190,6 @@
   "th": "เลิกทำ",
   "id": "Urungkan",
   "ar": "تراجع"
- },
- "支持 http、https 和 mailto；留空并确定会移除链接。": {
-  "zh-Hant": "支援 http、https 和 mailto；留空並確定會移除連結。",
-  "en": "http, https and mailto are supported. Leave empty and confirm to remove the link.",
-  "ja": "http、https、mailto に対応しています。空欄で確定するとリンクを削除します。",
-  "ko": "http, https, mailto를 지원합니다. 비워 두고 확인하면 링크가 제거됩니다.",
-  "fr": "http, https et mailto sont pris en charge. Laissez vide et validez pour retirer le lien.",
-  "de": "http, https und mailto werden unterstützt. Leer lassen und bestätigen entfernt den Link.",
-  "es": "Se admiten http, https y mailto. Déjalo vacío y confirma para quitar el enlace.",
-  "pt": "Aceita http, https e mailto. Deixe vazio e confirme para remover o link.",
-  "ru": "Поддерживаются http, https и mailto. Оставьте пустым и подтвердите, чтобы удалить ссылку.",
-  "it": "Supporta http, https e mailto. Lascia vuoto e conferma per rimuovere il link.",
-  "vi": "Hỗ trợ http, https và mailto; để trống rồi xác nhận sẽ gỡ liên kết.",
-  "th": "รองรับ http, https และ mailto เว้นว่างแล้วยืนยันเพื่อลบลิงก์",
-  "id": "Mendukung http, https, dan mailto. Kosongkan lalu konfirmasi untuk menghapus tautan.",
-  "ar": "يدعم http وhttps وmailto، واتركه فارغًا ثم أكّد لإزالة الرابط."
  },
  "收起": {
   "zh-Hant": "收合",
@@ -2959,6 +2975,22 @@
   "id": "Belum ada ringkasan pencarian; tambahkan di Pengaturan halaman",
   "ar": "لا يوجد ملخص بحث، ويمكنك إضافته من «إعدادات الصفحة»"
  },
+ "没有找到这个标题的文档；外部地址要以 http://、https:// 或 mailto: 开头。": {
+  "zh-Hant": "沒有找到這個標題的文件；外部網址要以 http://、https:// 或 mailto: 開頭。",
+  "en": "No document has this title. External addresses must start with http://, https:// or mailto:.",
+  "ja": "このタイトルのドキュメントは見つかりません。外部アドレスは http://、https://、mailto: で始めてください。",
+  "ko": "이 제목의 문서를 찾지 못했습니다. 외부 주소는 http://, https:// 또는 mailto:로 시작해야 합니다.",
+  "fr": "Aucun document ne porte ce titre. Les adresses externes doivent commencer par http://, https:// ou mailto:.",
+  "de": "Kein Dokument mit diesem Titel. Externe Adressen müssen mit http://, https:// oder mailto: beginnen.",
+  "es": "No hay ningún documento con este título. Las direcciones externas deben empezar por http://, https:// o mailto:.",
+  "pt": "Nenhum documento com este título. Endereços externos devem começar com http://, https:// ou mailto:.",
+  "ru": "Документ с таким названием не найден. Внешний адрес должен начинаться с http://, https:// или mailto:.",
+  "it": "Nessun documento con questo titolo. Gli indirizzi esterni devono iniziare con http://, https:// o mailto:.",
+  "vi": "Không tìm thấy tài liệu có tiêu đề này; địa chỉ bên ngoài phải bắt đầu bằng http://, https:// hoặc mailto:.",
+  "th": "ไม่พบเอกสารที่มีชื่อนี้ ที่อยู่ภายนอกต้องขึ้นต้นด้วย http://, https:// หรือ mailto:",
+  "id": "Tidak ada dokumen dengan judul ini. Alamat eksternal harus diawali http://, https://, atau mailto:.",
+  "ar": "لا يوجد مستند بهذا العنوان. يجب أن تبدأ العناوين الخارجية بـ http:// أو https:// أو mailto:."
+ },
  "没有未发布的草稿。": {
   "zh-Hant": "沒有未發布的草稿。",
   "en": "No unpublished drafts.",
@@ -3199,6 +3231,54 @@
   "id": "Gagal memindahkan",
   "ar": "تعذر النقل"
  },
+ "移除链接": {
+  "zh-Hant": "移除連結",
+  "en": "Remove link",
+  "ja": "リンクを削除",
+  "ko": "링크 제거",
+  "fr": "Supprimer le lien",
+  "de": "Link entfernen",
+  "es": "Quitar enlace",
+  "pt": "Remover link",
+  "ru": "Удалить ссылку",
+  "it": "Rimuovi link",
+  "vi": "Gỡ liên kết",
+  "th": "นำลิงก์ออก",
+  "id": "Hapus tautan",
+  "ar": "إزالة الرابط"
+ },
+ "站内文档": {
+  "zh-Hant": "站內文件",
+  "en": "Site documents",
+  "ja": "サイト内ドキュメント",
+  "ko": "사이트 문서",
+  "fr": "Documents du site",
+  "de": "Dokumente dieser Website",
+  "es": "Documentos del sitio",
+  "pt": "Documentos do site",
+  "ru": "Документы сайта",
+  "it": "Documenti del sito",
+  "vi": "Tài liệu trong trang",
+  "th": "เอกสารในเว็บไซต์",
+  "id": "Dokumen situs",
+  "ar": "مستندات الموقع"
+ },
+ "站内链接在公开页按当前语言和文档位置生成地址，文档移动或改名后仍然有效；链接到草稿时，发布前访客看到的是不可点击的文字。": {
+  "zh-Hant": "站內連結在公開頁依目前語言和文件位置產生網址，文件移動或改名後仍然有效；連結到草稿時，發布前訪客看到的是不可點擊的文字。",
+  "en": "Site links get their address from the current language and the document’s position, so they keep working after moves or renames. Links to drafts show as plain text to visitors until the draft is published.",
+  "ja": "サイト内リンクは公開ページで現在の言語と位置からアドレスを生成するため、移動や名前変更後も有効です。下書きへのリンクは、公開されるまで訪問者にはクリックできない文字として表示されます。",
+  "ko": "사이트 내 링크는 공개 페이지에서 현재 언어와 문서 위치로 주소를 만들기 때문에 이동하거나 이름을 바꿔도 유지됩니다. 초안으로의 링크는 게시 전까지 방문자에게 클릭할 수 없는 텍스트로 보입니다.",
+  "fr": "Les liens internes sont générés selon la langue et l’emplacement du document : ils restent valides après un déplacement ou un renommage. Un lien vers un brouillon s’affiche comme texte simple tant qu’il n’est pas publié.",
+  "de": "Interne Links werden aus Sprache und Position des Dokuments erzeugt und funktionieren auch nach Verschieben oder Umbenennen. Links auf Entwürfe erscheinen für Besucher bis zur Veröffentlichung als nicht anklickbarer Text.",
+  "es": "Los enlaces internos se generan según el idioma y la ubicación del documento, así que siguen funcionando tras moverlo o renombrarlo. Los enlaces a borradores se muestran como texto sin enlace hasta que se publican.",
+  "pt": "Links internos são gerados pelo idioma e posição do documento e continuam válidos após mover ou renomear. Links para rascunhos aparecem como texto sem link até a publicação.",
+  "ru": "Внутренние ссылки строятся по текущему языку и положению документа, поэтому не ломаются при перемещении и переименовании. Ссылка на черновик до публикации показывается посетителям как обычный текст.",
+  "it": "I link interni sono generati in base a lingua e posizione del documento, quindi restano validi dopo spostamenti o rinomine. I link a bozze appaiono come testo non cliccabile finché non vengono pubblicate.",
+  "vi": "Liên kết trong trang tạo địa chỉ theo ngôn ngữ hiện tại và vị trí tài liệu, nên vẫn dùng được khi di chuyển hoặc đổi tên. Liên kết tới bản nháp hiển thị là chữ không bấm được cho đến khi xuất bản.",
+  "th": "ลิงก์ภายในสร้างที่อยู่จากภาษาปัจจุบันและตำแหน่งเอกสาร จึงยังใช้ได้หลังย้ายหรือเปลี่ยนชื่อ ลิงก์ไปยังฉบับร่างจะแสดงเป็นข้อความที่คลิกไม่ได้จนกว่าจะเผยแพร่",
+  "id": "Tautan internal dibuat dari bahasa saat ini dan posisi dokumen, sehingga tetap berfungsi setelah dipindah atau diganti nama. Tautan ke draf tampil sebagai teks biasa sampai draf diterbitkan.",
+  "ar": "تُنشأ الروابط الداخلية من اللغة الحالية وموقع المستند، لذا تبقى صالحة بعد النقل أو إعادة التسمية. تظهر الروابط إلى المسودات كنص غير قابل للنقر حتى تُنشر."
+ },
  "章节标题": {
   "zh-Hant": "章節標題",
   "en": "Section heading",
@@ -3214,6 +3294,22 @@
   "th": "หัวข้อส่วน",
   "id": "Judul bagian",
   "ar": "عنوان القسم"
+ },
+ "粘贴 https:// 地址，或输入标题搜索站内文档": {
+  "zh-Hant": "貼上 https:// 網址，或輸入標題搜尋站內文件",
+  "en": "Paste an https:// address, or type a title to find a document",
+  "ja": "https:// のアドレスを貼り付けるか、タイトルを入力して検索",
+  "ko": "https:// 주소를 붙여 넣거나 제목으로 문서를 검색하세요",
+  "fr": "Collez une adresse https:// ou tapez un titre pour chercher un document",
+  "de": "https://-Adresse einfügen oder Titel zum Suchen eingeben",
+  "es": "Pega una dirección https:// o escribe un título para buscar",
+  "pt": "Cole um endereço https:// ou digite um título para buscar",
+  "ru": "Вставьте адрес https:// или введите название для поиска",
+  "it": "Incolla un indirizzo https:// o digita un titolo per cercare",
+  "vi": "Dán địa chỉ https:// hoặc nhập tiêu đề để tìm tài liệu",
+  "th": "วางที่อยู่ https:// หรือพิมพ์ชื่อเพื่อค้นหาเอกสาร",
+  "id": "Tempel alamat https:// atau ketik judul untuk mencari dokumen",
+  "ar": "الصق عنوان https:// أو اكتب عنوانًا للبحث عن مستند"
  },
  "纯文本": {
   "zh-Hant": "純文字",
@@ -3663,22 +3759,6 @@
   "id": "Belum ada dokumen",
   "ar": "لا توجد مستندات بعد"
  },
- "这是站内链接。填写外部地址会替换它，留空并确定会移除链接。": {
-  "zh-Hant": "這是站內連結。填寫外部網址會取代它，留空並確定會移除連結。",
-  "en": "This is an internal link. Entering an external address replaces it; leaving it empty and confirming removes the link.",
-  "ja": "これはサイト内リンクです。外部アドレスを入力すると置き換わり、空のまま確定するとリンクが削除されます。",
-  "ko": "사이트 내부 링크입니다. 외부 주소를 입력하면 대체되고, 비워 두고 확인하면 링크가 제거됩니다.",
-  "fr": "Il s’agit d’un lien interne. Saisir une adresse externe le remplace ; laisser vide et confirmer supprime le lien.",
-  "de": "Dies ist ein interner Link. Eine externe Adresse ersetzt ihn; leer lassen und bestätigen entfernt den Link.",
-  "es": "Es un enlace interno. Escribir una dirección externa lo reemplaza; dejarlo vacío y confirmar elimina el enlace.",
-  "pt": "Este é um link interno. Inserir um endereço externo o substitui; deixar vazio e confirmar remove o link.",
-  "ru": "Это внутренняя ссылка. Внешний адрес заменит её; если оставить поле пустым и подтвердить, ссылка будет удалена.",
-  "it": "Questo è un link interno. Inserire un indirizzo esterno lo sostituisce; lasciare vuoto e confermare rimuove il link.",
-  "vi": "Đây là liên kết nội bộ. Nhập địa chỉ bên ngoài sẽ thay thế nó; để trống và xác nhận sẽ xóa liên kết.",
-  "th": "นี่คือลิงก์ภายในเว็บไซต์ การกรอกที่อยู่ภายนอกจะแทนที่ลิงก์นี้ เว้นว่างแล้วยืนยันจะลบลิงก์",
-  "id": "Ini tautan internal. Mengisi alamat eksternal akan menggantinya; membiarkan kosong lalu mengonfirmasi akan menghapus tautan.",
-  "ar": "هذا رابط داخلي. إدخال عنوان خارجي يستبدله، وترك الحقل فارغًا ثم التأكيد يزيل الرابط."
- },
  "这篇文档含有子文档，会一起移入回收站。已发布的页面会立即失效，可以在回收站恢复。": {
   "zh-Hant": "這篇文件含有子文件，會一起移至資源回收筒。已發布的頁面會立即失效，可以在資源回收筒還原。",
   "en": "This document has child documents, which will also move to the trash. Published pages stop working immediately; you can restore them from the trash.",
@@ -3775,21 +3855,37 @@
   "id": "Tautan",
   "ar": "رابط"
  },
- "链接地址": {
-  "zh-Hant": "連結網址",
-  "en": "Link URL",
-  "ja": "リンク URL",
-  "ko": "링크 주소",
-  "fr": "URL du lien",
-  "de": "Link-Adresse",
-  "es": "URL del enlace",
-  "pt": "URL do link",
-  "ru": "Адрес ссылки",
-  "it": "URL del link",
-  "vi": "Địa chỉ liên kết",
-  "th": "URL ของลิงก์",
-  "id": "URL tautan",
-  "ar": "عنوان الرابط"
+ "链接到文档": {
+  "zh-Hant": "連結到文件",
+  "en": "Link to page",
+  "ja": "ドキュメントへのリンク",
+  "ko": "문서에 링크",
+  "fr": "Lien vers une page",
+  "de": "Auf Seite verlinken",
+  "es": "Enlazar a página",
+  "pt": "Link para página",
+  "ru": "Ссылка на страницу",
+  "it": "Link a pagina",
+  "vi": "Liên kết tới tài liệu",
+  "th": "ลิงก์ไปยังเอกสาร",
+  "id": "Tautkan ke halaman",
+  "ar": "ربط بمستند"
+ },
+ "链接地址或文档标题": {
+  "zh-Hant": "連結網址或文件標題",
+  "en": "Address or document title",
+  "ja": "リンク先アドレスまたはドキュメント名",
+  "ko": "링크 주소 또는 문서 제목",
+  "fr": "Adresse ou titre du document",
+  "de": "Adresse oder Dokumenttitel",
+  "es": "Dirección o título del documento",
+  "pt": "Endereço ou título do documento",
+  "ru": "Адрес или название документа",
+  "it": "Indirizzo o titolo del documento",
+  "vi": "Địa chỉ hoặc tiêu đề tài liệu",
+  "th": "ที่อยู่ลิงก์หรือชื่อเอกสาร",
+  "id": "Alamat atau judul dokumen",
+  "ar": "العنوان أو اسم المستند"
  },
  "附件": {
   "zh-Hant": "附件",

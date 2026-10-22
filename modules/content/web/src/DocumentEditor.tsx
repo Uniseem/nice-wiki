@@ -411,7 +411,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
           </Dropdown>
         </div>
       </header>
-      <Editor doc={initial} editable={writable} editorRef={editorRef} header={header} toolbar={lock !== 'readonly'} onChange={onChange} />
+      <Editor doc={initial} docs={docs} documentId={documentId} editable={writable} editorRef={editorRef} header={header} toolbar={lock !== 'readonly'} onChange={onChange} />
       {dialog === 'publish' && <PublishDialog docs={docs} meta={meta} draftRevisionId={publishDraft} onClose={() => setDialog(null)} onPublish={async (path, seo) => { if (await publish(path, seo)) setDialog(null); }} />}
       {dialog === 'settings' && <SettingsDialog meta={meta} onClose={() => setDialog(null)} onSaved={async () => { await refreshMeta(); setDialog(null); }} />}
       {dialog === 'move' && (

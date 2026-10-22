@@ -10,7 +10,8 @@ import StarterKit from '@tiptap/starter-kit';
 import { cn, ScrollShadow, toast } from '@heroui/react';
 import { captureVideoPoster, errorText, uploadAsset, uploadImage, t } from '@ui';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MutableRefObject, type ReactNode } from 'react';
-import type { JSONNode } from '../convert';
+import { internalHref, type JSONNode } from '../convert';
+import type { Meta } from '../types';
 import { Attachment, Callout, Column, Columns, jsonAttr, MathBlock } from './blocks';
 import { filterCommands, type BlockCommand, type EditorActions } from './commands';
 import { Drawing } from './drawing';
@@ -19,7 +20,8 @@ import { StableIds } from './ids';
 import { ImageBlock } from './image';
 import { MathDialog, renderMath } from './MathDialog';
 import { Outline } from './Outline';
-import { EditorToolbar, editLink } from './Toolbar';
+import { LinkDialog, type LinkChoice } from './LinkDialog';
+import { EditorToolbar } from './Toolbar';
 import { VideoBlock } from './video';
 
 const videoLimit = 500 << 20;
@@ -52,8 +54,10 @@ const WikiTableHeader = TableHeader.extend({ addAttributes() { return { ...this.
 type Slash = { left: number; top: number; query: string };
 
 // 编辑区：吸顶工具栏 + 居中正文（header 放在正文上方，如标题）+ 宽屏时右侧大纲；滚动容器在这里。
-export function Editor({ doc, editable, toolbar, header, editorRef: exposed, onChange }: {
+export function Editor({ doc, docs, documentId, editable, toolbar, header, editorRef: exposed, onChange }: {
   doc: JSONNode;
+  docs: Meta[];
+  documentId: string;
   editable: boolean;
   toolbar: boolean;
   header?: ReactNode;
@@ -71,6 +75,7 @@ export function Editor({ doc, editable, toolbar, header, editorRef: exposed, onC
   const slashState = useRef<{ slash: Slash | null; index: number; items: BlockCommand[] }>({ slash: null, index: 0, items: [] });
   const [math, setMath] = useState<{ pos: number | null; latex: string | null } | null>(null);
   const [drawing, setDrawing] = useState<{ pos: number | null; initial: DrawingAttrs | null } | null>(null);
+  const [link, setLink] = useState<{ href: string; documentId: string | null; editing: boolean } | null>(null);
   const imageInput = useRef<HTMLInputElement>(null);
   const videoInput = useRef<HTMLInputElement>(null);
   const attachInput = useRef<HTMLInputElement>(null);
@@ -108,7 +113,29 @@ export function Editor({ doc, editable, toolbar, header, editorRef: exposed, onC
     pickAttachment: () => attachInput.current?.click(),
     openDrawing: () => setDrawing({ pos: null, initial: null }),
     openMath: () => setMath({ pos: null, latex: null }),
+    editLink: () => {
+      const current = editorRef.current;
+      if (!current) return;
+      const attrs = current.getAttributes('link');
+      const internal = attrs.linkTarget?.kind === 'internal';
+      setLink({ href: internal ? '' : (attrs.href as string | undefined) ?? '', documentId: internal ? attrs.linkTarget.documentId : null, editing: current.isActive('link') });
+    },
   }), []);
+
+  // 有选中文字（或光标在已有链接上）就给它加/改链接；什么都没选时插入以标题或地址为文字的链接。
+  const applyLink = (choice: LinkChoice) => {
+    const current = editorRef.current;
+    setLink(null);
+    if (!current) return;
+    const attrs = choice.kind === 'external'
+      ? { href: choice.href, linkTarget: null }
+      : { href: internalHref, linkTarget: { kind: 'internal', documentId: choice.documentId, blockId: null } };
+    if (current.state.selection.empty && !current.isActive('link')) {
+      current.chain().focus().insertContent({ type: 'text', text: choice.kind === 'external' ? choice.href : choice.title, marks: [{ type: 'link', attrs }] }).run();
+    } else {
+      current.chain().focus().extendMarkRange('link').setLink(attrs as { href: string }).run();
+    }
+  };
 
   // 斜杠菜单：在空段落里输入“/”，按名称或拼音关键字过滤，方向键选择、回车执行、Esc 关闭。
   const refreshSlash = useCallback((current: TiptapEditor) => {
@@ -159,7 +186,7 @@ export function Editor({ doc, editable, toolbar, header, editorRef: exposed, onC
       handleDrop: (_view, event) => handleFiles((event as DragEvent).dataTransfer?.files),
       handleKeyDown: (_view, event) => {
         const { slash: open, items, index } = slashState.current;
-        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k' && editorRef.current) { void editLink(editorRef.current); return true; }
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k' && editorRef.current) { actions.editLink(); return true; }
         if (!open || !items.length) return false;
         if (event.key === 'ArrowDown') { slashState.current.index = (index + 1) % items.length; setSlashIndex(slashState.current.index); return true; }
         if (event.key === 'ArrowUp') { slashState.current.index = (index + items.length - 1) % items.length; setSlashIndex(slashState.current.index); return true; }
@@ -236,6 +263,17 @@ export function Editor({ doc, editable, toolbar, header, editorRef: exposed, onC
       <input ref={imageInput} accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" type="file" onChange={pick('image')} />
       <input ref={videoInput} accept="video/mp4,video/webm" className="hidden" type="file" onChange={pick('video')} />
       <input ref={attachInput} className="hidden" type="file" onChange={pick('attachment')} />
+      {link && (
+        <LinkDialog
+          currentId={documentId}
+          docs={docs}
+          editing={link.editing}
+          initial={link}
+          onClose={() => { setLink(null); editor.commands.focus(); }}
+          onRemove={() => { setLink(null); editor.chain().focus().extendMarkRange('link').unsetLink().run(); }}
+          onSubmit={applyLink}
+        />
+      )}
       {math && (
         <MathDialog
           initial={math.latex}

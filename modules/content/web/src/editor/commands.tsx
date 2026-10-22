@@ -1,4 +1,4 @@
-import { Brush, CircleCheck, CircleExclamation, CircleInfo, Code, Function as FunctionIcon, Heading2, Heading3, Heading4, LayoutColumns, LayoutColumns3, LayoutHeaderCells, ListCheck, ListOl, ListUl, Minus, Paperclip, Picture, QuoteOpen, TextAlignLeft, TriangleExclamation, Video } from '@gravity-ui/icons';
+import { Brush, CircleCheck, CircleExclamation, CircleInfo, Code, FileText, Function as FunctionIcon, Heading2, Heading3, Heading4, LayoutColumns, LayoutColumns3, LayoutHeaderCells, ListCheck, ListOl, ListUl, Minus, Paperclip, Picture, QuoteOpen, TextAlignLeft, TriangleExclamation, Video } from '@gravity-ui/icons';
 import { TextSelection } from '@tiptap/pm/state';
 import type { Editor } from '@tiptap/react';
 import type { ComponentType } from 'react';
@@ -12,6 +12,7 @@ export type EditorActions = {
   pickAttachment: () => void;
   openDrawing: () => void;
   openMath: () => void;
+  editLink: () => void;
 };
 
 export type BlockCommand = {
@@ -58,6 +59,7 @@ export const blockCommands: BlockCommand[] = [
   { id: 'h2', label: t('标题 2'), hint: t('章节标题'), keywords: 'h2 heading biaoti', group: t('文本'), icon: Heading2, run: (e) => { e.chain().focus().setHeading({ level: 2 }).run(); } },
   { id: 'h3', label: t('标题 3'), hint: t('小节标题'), keywords: 'h3 heading biaoti', group: t('文本'), icon: Heading3, run: (e) => { e.chain().focus().setHeading({ level: 3 }).run(); } },
   { id: 'h4', label: t('标题 4'), hint: t('更小一级'), keywords: 'h4 heading biaoti', group: t('文本'), icon: Heading4, run: (e) => { e.chain().focus().setHeading({ level: 4 }).run(); } },
+  { id: 'link', label: t('链接到文档'), hint: t('指向站内另一篇文档'), keywords: 'link wiki page lianjie wendang', group: t('文本'), icon: FileText, run: (_, a) => a.editLink() },
   { id: 'quote', label: t('引用'), hint: t('引用一段话'), keywords: 'quote blockquote yinyong', group: t('文本'), icon: QuoteOpen, run: (e) => { e.chain().focus().toggleBlockquote().run(); } },
   { id: 'code', label: t('代码块'), hint: t('带语法高亮'), keywords: 'code pre daima', group: t('文本'), icon: Code, run: (e) => { e.chain().focus().toggleCodeBlock().run(); } },
   { id: 'bullet', label: t('无序列表'), hint: t('圆点列表'), keywords: 'ul list bullet liebiao', group: t('列表'), icon: ListUl, run: (e) => { e.chain().focus().toggleBulletList().run(); } },

@@ -19,20 +19,6 @@ const blockTypes = [
   { id: '4', label: t('标题 4') },
 ];
 
-export async function editLink(editor: Editor): Promise<void> {
-  const attrs = editor.getAttributes('link');
-  const internal = attrs.linkTarget?.kind === 'internal';
-  const current = internal ? '' : (attrs.href as string | undefined) ?? '';
-  const href = await askText({
-    title: current || internal ? t('编辑链接') : t('插入链接'), label: t('链接地址'), defaultValue: current, placeholder: 'https://example.com', required: false,
-    description: internal ? t('这是站内链接。填写外部地址会替换它，留空并确定会移除链接。') : t('支持 http、https 和 mailto；留空并确定会移除链接。'), confirmLabel: t('确定'), type: 'url',
-    validate: (value) => value === '' || /^(https?:|mailto:)/i.test(value.trim()) ? null : t('只支持 http、https 或 mailto 链接'),
-  });
-  if (href === null) return;
-  if (href.trim() === '') editor.chain().focus().extendMarkRange('link').unsetLink().run();
-  else editor.chain().focus().extendMarkRange('link').setLink({ href: href.trim(), linkTarget: null } as { href: string }).run();
-}
-
 export function EditorToolbar({ editor, editable, actions }: { editor: Editor; editable: boolean; actions: EditorActions }) {
   const state = useEditorState({
     editor,
@@ -85,7 +71,7 @@ export function EditorToolbar({ editor, editable, actions }: { editor: Editor; e
       <Toggle label={t('删除线')} isDisabled={disabled} isSelected={state.strike} onPress={() => chain().toggleStrike().run()}><Strikethrough /></Toggle>
       <Toggle label={t('行内代码')} shortcut="⌘E" isDisabled={disabled} isSelected={state.code} onPress={() => chain().toggleCode().run()}><Code /></Toggle>
       <Toggle label={t('高亮')} isDisabled={disabled} isSelected={state.highlight} onPress={() => chain().toggleHighlight().run()}><Paintbrush /></Toggle>
-      <Toggle label={t('链接')} shortcut="⌘K" isDisabled={disabled} isSelected={state.link} onPress={() => void editLink(editor)}><LinkIcon /></Toggle>
+      <Toggle label={t('链接')} shortcut="⌘K" isDisabled={disabled} isSelected={state.link} onPress={actions.editLink}><LinkIcon /></Toggle>
       <Divider />
       <Toggle label={t('无序列表')} isDisabled={disabled} isSelected={state.bullet} onPress={() => chain().toggleBulletList().run()}><ListUl /></Toggle>
       <Toggle label={t('有序列表')} isDisabled={disabled} isSelected={state.ordered} onPress={() => chain().toggleOrderedList().run()}><ListOl /></Toggle>

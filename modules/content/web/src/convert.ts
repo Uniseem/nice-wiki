@@ -17,7 +17,7 @@ export function newId(): string {
 
 const simpleMarks = new Set(['bold', 'italic', 'underline', 'strike', 'code']);
 // 站内链接在编辑器里的占位地址：真正的目标在 linkTarget 属性里。
-const internalHref = '#nw-internal-link';
+export const internalHref = '#nw-internal-link';
 
 function inlines(nodes: JSONNode[] | undefined): any[] {
   const out: any[] = [];
