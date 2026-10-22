@@ -182,7 +182,8 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 			translated = append(translated, unit)
 			continue
 		}
-		if size+len(text) > 3000 || len(batch) >= 20 {
+		// 每批控制在约 1500 字节原文：日文等语言的译文词元多，批太大时一次回复要写很久，容易超出请求超时。
+		if size+len(text) > 1500 || len(batch) >= 12 {
 			if err := flush(); err != nil {
 				return err
 			}

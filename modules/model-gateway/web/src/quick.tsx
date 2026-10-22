@@ -36,6 +36,7 @@ const presetModels = [
 const tierModel: Record<string, string> = { fast: 'deepseek-flash', accurate: 'deepseek-flash', vision: 'deepseek-flash', embedding: 'text-embedding-3-small', decision: 'jev' };
 const costClasses = ['qa', 'background', 'admin-probe'];
 const concurrency = 32;
+const requestTimeout = 180000;
 
 const put = (path: string, body: Record<string, unknown>, method: 'PUT' | 'POST' = 'PUT') => {
   const idempotencyKey = newKey();
@@ -48,12 +49,13 @@ async function configure(secret: string, step: (label: string) => void): Promise
   step(t('保存密钥'));
   const existing = c.providers.find((provider) => provider.providerId === providerId);
   // 翻译、索引、问答和发布时的 AI 会同时调用，并发给足，避免被网关自己限流。
-  if (!existing || !existing.enabled || existing.baseUrl !== baseUrl || (existing.concurrencyLimit as number) < concurrency) {
+  // 请求超时按整次流式回复计，长文档翻译一批要写几千词元，给到上限 180 秒；卡住由片段间隔超时兜住。
+  if (!existing || !existing.enabled || existing.baseUrl !== baseUrl || (existing.concurrencyLimit as number) < concurrency || (existing.requestTimeoutMs as number) < requestTimeout) {
     const { credentialConfigured: _configured, ...fields } = existing ?? {} as Provider;
     await put(`/v1/admin/providers/${providerId}`, {
       expectedVersion: existing?.version ?? 0, provider: {
-        connectTimeoutMs: 5000, requestTimeoutMs: 60000, streamIdleTimeoutMs: 30000, extraHeaderNames: [], ...fields, credentialVersion: existing?.credentialVersion ?? 0,
-        providerId, displayName: 'OpenRouter', adapter: 'openai_chat', baseUrl, enabled: true, concurrencyLimit: concurrency, lastProbe: undefined, extraHeaderSecretRefs: [], version: (existing?.version ?? 0) + 1,
+        connectTimeoutMs: 5000, streamIdleTimeoutMs: 30000, extraHeaderNames: [], ...fields, credentialVersion: existing?.credentialVersion ?? 0,
+        providerId, displayName: 'OpenRouter', adapter: 'openai_chat', baseUrl, enabled: true, concurrencyLimit: concurrency, requestTimeoutMs: requestTimeout, lastProbe: undefined, extraHeaderSecretRefs: [], version: (existing?.version ?? 0) + 1,
       },
     });
   }

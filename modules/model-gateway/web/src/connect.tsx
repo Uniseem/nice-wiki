@@ -89,7 +89,7 @@ export function ConnectProviderDialog({ existing, onClose, onConnected }: { exis
       if (created !== form.providerId) await api(`/v1/admin/providers/${form.providerId}`, {
         method: 'PUT', idempotencyKey: key, body: {
           expectedVersion: 0, idempotencyKey: key, provider: {
-            providerId: form.providerId, version: 1, adapter: form.adapter, baseUrl: form.baseUrl.replace(/\/+$/, ''), enabled: true, credentialVersion: 0, connectTimeoutMs: 5000, requestTimeoutMs: 60000,
+            providerId: form.providerId, version: 1, adapter: form.adapter, baseUrl: form.baseUrl.replace(/\/+$/, ''), enabled: true, credentialVersion: 0, connectTimeoutMs: 5000, requestTimeoutMs: 180000,
             displayName: form.displayName || form.providerId, extraHeaderNames: [], extraHeaderSecretRefs: [], concurrencyLimit: 4, streamIdleTimeoutMs: 30000,
           },
         },
