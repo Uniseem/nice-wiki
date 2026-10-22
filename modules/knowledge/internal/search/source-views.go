@@ -45,8 +45,13 @@ func ValidateSectionSources(ctx context.Context, op OperationContext, chunks []g
 			if err != nil {
 				return err
 			}
+			// 旧索引按文本节点逐个切叶，路径与合并叶不重叠，两种都能查到。
+			legacy, err := source.CollectLegacySourceLeaves(body, value.Document)
+			if err != nil {
+				return err
+			}
 			leaves = map[string]source.SourceLeaf{}
-			for _, leaf := range original {
+			for _, leaf := range append(original, legacy...) {
 				leaves[leaf.Path] = leaf
 			}
 			views[key] = leaves

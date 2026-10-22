@@ -87,16 +87,79 @@ func BuildSourceBlocks(ctx context.Context, op OperationContext, input BuildSour
 	return result, nil
 }
 
-// CollectSourceLeaves 原块文本视图为最近稳定块的text、alt及视频题名/简介按固定顺序直接串联。
-// 嵌套稳定块单独起算；sourcePath仍指向实际JSON字符串，offset不混入JSON转义字节。
+// 合并叶的上限：同一节相邻短块合并到大约这个字节数为止（约一个 512 token 分块），更长的由分块按 token 再切。
+const mergedLeafBytes = 1200
+
+// mergedLeafPrefix 标出合并叶的路径，与旧索引按文本节点记下的路径不会撞。
+const mergedLeafPrefix = "group:"
+
+// CollectSourceLeaves 给出建索引用的检索原文叶，按文档顺序：
+// 同一稳定块里的文字（被加粗、链接等拆开的多个文本节点，以及图片替代文字、视频题名简介）合成一个叶，句子不再被格式拆碎；
+// 同一节（到下一个标题为止）里相邻的短块再合并，直到约 mergedLeafBytes，避免短段落、列表项、表格单元格各自成块。
+// 合并叶以第一个块为来源块（引用锚点指向它），文字用换行连接，偏移是合并文字内的字节位置。
 func CollectSourceLeaves(body []byte, document gen.PublishedRevisionRef) ([]SourceLeaf, error) {
+	pieces, headings, err := collectTextNodes(body, document)
+	if err != nil {
+		return nil, err
+	}
+	type blockText struct {
+		block      gen.BlockRef
+		first      string
+		last       string
+		text       string
+		newSection bool
+	}
+	blocks := []blockText{}
+	for _, piece := range pieces {
+		if n := len(blocks); n > 0 && blocks[n-1].block.BlockId == piece.Block.BlockId {
+			blocks[n-1].text += piece.Text
+			blocks[n-1].last = piece.Path
+			continue
+		}
+		blocks = append(blocks, blockText{block: piece.Block, first: piece.Path, last: piece.Path, text: piece.Text, newSection: headings[piece.Block.BlockId]})
+	}
+	leaves := []SourceLeaf{}
+	var group *SourceLeaf
+	var groupLast string
+	flush := func() {
+		if group != nil {
+			group.Path = mergedLeafPrefix + group.Path + ".." + groupLast
+			leaves = append(leaves, *group)
+			group = nil
+		}
+	}
+	for _, block := range blocks {
+		if group != nil && (block.newSection || len(group.Text)+1+len(block.text) > mergedLeafBytes) {
+			flush()
+		}
+		if group == nil {
+			group = &SourceLeaf{Block: block.block, Path: block.first, Text: block.text}
+		} else {
+			group.Text += "\n" + block.text
+		}
+		groupLast = block.last
+	}
+	flush()
+	return leaves, nil
+}
+
+// CollectLegacySourceLeaves 是旧索引按文本节点逐个切出的叶；检索核验旧索引时按原路径查找，新索引不再使用。
+func CollectLegacySourceLeaves(body []byte, document gen.PublishedRevisionRef) ([]SourceLeaf, error) {
+	pieces, _, err := collectTextNodes(body, document)
+	return pieces, err
+}
+
+// collectTextNodes 原块文本视图为最近稳定块的text、alt及视频题名/简介按固定顺序直接串联，逐个文本节点给出；
+// 同时记下哪些块是标题。嵌套稳定块单独起算；sourcePath指向实际JSON字符串，offset不混入JSON转义字节。
+func collectTextNodes(body []byte, document gen.PublishedRevisionRef) ([]SourceLeaf, map[string]bool, error) {
 	var root map[string]any
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.UseNumber()
 	if decoder.Decode(&root) != nil {
-		return nil, platform.NewError(platform.CodeIntegrityError, false, "源正文树不可读")
+		return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "源正文树不可读")
 	}
 	leaves := []SourceLeaf{}
+	headings := map[string]bool{}
 	positions := map[string]int{}
 	var walk func(map[string]any, string, *gen.BlockRef) error
 	appendLeaf := func(value any, path string, current *gen.BlockRef) error {
@@ -117,6 +180,9 @@ func CollectSourceLeaves(body []byte, document gen.PublishedRevisionRef) ([]Sour
 			raw, _ := platform.CanonicalJSON(node)
 			ref := gen.BlockRef{Document: document, BlockId: id, BlockHash: platform.HashBytes(raw)}
 			current = &ref
+			if node["type"] == "heading" {
+				headings[id] = true
+			}
 		}
 		if err := appendLeaf(node["text"], path+"/text", current); err != nil {
 			return err
@@ -146,7 +212,7 @@ func CollectSourceLeaves(body []byte, document gen.PublishedRevisionRef) ([]Sour
 		return nil
 	}
 	if err := walk(root, "", nil); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return leaves, nil
+	return leaves, headings, nil
 }

@@ -4043,7 +4043,7 @@ func RunWorker(ctx context.Context, op OperationContext,input RunWorkerInput)(Ru
 
 **步骤**
 
-1. 两个平台RunWorkerLoopWithResult分别按knowledge.build并发1与knowledge.extract并发3领取，jobs权威可选jobTypes筛选，总并发固定4；维护暂停由平台统一拥有
+1. 两个平台RunWorkerLoopWithResult分别按knowledge.build并发3与knowledge.extract并发3领取，jobs权威可选jobTypes筛选，总并发固定6；维护暂停由平台统一拥有
 2. 平台Start后首次真实Heartbeat及每次续约回调MirrorExecutionLease；AdoptClaimedJob在执行前保存完整原claim，执行保留原批准root/op/deadline
 3. OnCancellationObserved持久原cancel事实与写资格关闭，不CheckLease递归、不本地伪造心跳；ExecuteBuild/ExecuteExtraction使用实际registry
 4. 真实jobs回执累计四种结果并等待两个循环退出；只取消协作ctx，不丢仍在途任务/费用事实

@@ -164,7 +164,7 @@ model_steps现在真实由所有本域InvokeModel入口写入：付费前持久�
 
 009只追加本域私有表：execution_records保存jobs真实原job/inputRef/payload/root/op/worker/fence/attempt和权威租约镜像；首次及续约镜像只来自平台真实Heartbeat回执。原批准截止不被claim或控制回执延长。最终业务状态与完整结果字节、真实ObjectRef和完整paidResultRefs同事务提交；jobs完成回执未知只重交原结果。原结果拥有者证明不随退役索引GC删除。
 
-knowledge.build与knowledge.extract由两个平台循环按生产方jobTypes筛选，固定并发1与3，总4；构建等待同一个独立提取ID，不inline、不快速失败耗尽孩子重试。类型筛选生产方/公共worker由根统一提供，未集成前整个worker保持blocked。取消先关闭原写资格并记录原意图；仅在没有其他仍有效批准构建引用时取消共享提取。未知模型与接受结果保留原引用，取消清理只原job/key，不推退款。
+knowledge.build与knowledge.extract由两个平台循环按生产方jobTypes筛选，固定并发3与3，总6；构建等待同一个独立提取ID，不inline、不快速失败耗尽孩子重试。类型筛选生产方/公共worker由根统一提供，未集成前整个worker保持blocked。取消先关闭原写资格并记录原意图；仅在没有其他仍有效批准构建引用时取消共享提取。未知模型与接受结果保留原引用，取消清理只原job/key，不推退款。
 
 提取首次冻结精确AssetSource、任务记忆、档位/任务覆盖和MG opaque模型声明；重放先找原来源关联。新owner只来自原已批准构建，不随unknown或记忆漂移自动产生。只复用原asset hash/MIME/长度/提取器/任务记忆版本与当前声明覆盖的真实winning模型结果。PDF免费真实隔离解析；文本附件/图像按原批准任务；视频元数据只读原发布快照，字幕unsupported。源授权关联单独持久，缓存不把原结果错误绑定到未授权新资源。
 

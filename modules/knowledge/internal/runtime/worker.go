@@ -63,10 +63,11 @@ func RunWorker(ctx context.Context, op OperationContext, input RunWorkerInput) (
 	results := make(chan outcome, 2)
 	var waiting sync.WaitGroup
 	// 两个真实平台循环经类型筛选领取；孩子保留三个独立槽位，不会被等待中的build占满。
+	// 构建同时跑 3 个：一篇很大的文档要调用几百次模型，单并发时其余文档的索引都得等它做完。
 	for _, pool := range []struct {
 		kind        string
 		concurrency int
-	}{{"knowledge.build", 1}, {"knowledge.extract", 3}} {
+	}{{"knowledge.build", 3}, {"knowledge.extract", 3}} {
 		waiting.Add(1)
 		go func(kind string, concurrency int) {
 			defer waiting.Done()
