@@ -272,7 +272,8 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 			if value, _ := node.Attrs["checked"].(bool); value {
 				checked = " checked"
 			}
-			text = "<input type=\"checkbox\" disabled" + checked + ">" + text
+			// 正文包一层 div：任务项可含多段和嵌套子任务，竖排在勾选框右侧（与编辑器结构一致）。
+			text = "<input type=\"checkbox\" disabled" + checked + "><div>" + text + "</div>"
 		case "callout":
 			tag = "aside"
 			attributes += " class=\"callout " + html.EscapeString(attrString(node.Attrs, "kind")) + "\""

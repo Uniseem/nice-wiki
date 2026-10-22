@@ -431,6 +431,22 @@
   "id": "Daftar tugas",
   "ar": "قائمة مهام"
  },
+ "任务：{0}": {
+  "zh-Hant": "任務：{0}",
+  "en": "Task: {0}",
+  "ja": "タスク：{0}",
+  "ko": "할 일: {0}",
+  "fr": "Tâche : {0}",
+  "de": "Aufgabe: {0}",
+  "es": "Tarea: {0}",
+  "pt": "Tarefa: {0}",
+  "ru": "Задача: {0}",
+  "it": "Attività: {0}",
+  "vi": "Việc cần làm: {0}",
+  "th": "งาน: {0}",
+  "id": "Tugas: {0}",
+  "ar": "مهمة: {0}"
+ },
  "任意文件，供下载": {
   "zh-Hant": "任意檔案，供下載",
   "en": "Any file, for download",
@@ -3774,6 +3790,22 @@
   "th": "นำลิงก์ออก",
   "id": "Hapus tautan",
   "ar": "إزالة الرابط"
+ },
+ "空白任务": {
+  "zh-Hant": "空白任務",
+  "en": "Empty task",
+  "ja": "空のタスク",
+  "ko": "빈 할 일",
+  "fr": "Tâche vide",
+  "de": "Leere Aufgabe",
+  "es": "Tarea vacía",
+  "pt": "Tarefa vazia",
+  "ru": "Пустая задача",
+  "it": "Attività vuota",
+  "vi": "Việc trống",
+  "th": "งานว่าง",
+  "id": "Tugas kosong",
+  "ar": "مهمة فارغة"
  },
  "站内文档": {
   "zh-Hant": "站內文件",

@@ -30,7 +30,11 @@
   .nw-prose :is(ul.task-list, ul[data-type="taskList"]) { @apply list-none ps-1; }
   .nw-prose :is(ul.task-list, ul[data-type="taskList"]) > li { @apply flex items-start gap-2 ps-0; }
   .nw-prose :is(ul.task-list, ul[data-type="taskList"]) > li > :is(label, input) { @apply mt-1.5 shrink-0; }
+  .nw-prose ul[data-type="taskList"] > li > label { @apply flex; }
   .nw-prose :is(ul.task-list, ul[data-type="taskList"]) > li > :is(div, p) { @apply my-0 min-w-0 flex-1; }
+  /* 任务项正文包在 div 里（编辑器与公开页一致）：块不留上下边距才能和勾选框对齐，相邻的段落和子任务之间留一点间距。 */
+  .nw-prose :is(ul.task-list, ul[data-type="taskList"]) > li > div > * { @apply my-0; }
+  .nw-prose :is(ul.task-list, ul[data-type="taskList"]) > li > div > * + * { @apply mt-1.5; }
   .nw-prose input[type="checkbox"] { @apply size-4 accent-[var(--accent)]; }
   .nw-prose hr { @apply my-10 border-separator; }
   .nw-prose :is(img, video) { @apply h-auto max-w-full rounded-xl; }

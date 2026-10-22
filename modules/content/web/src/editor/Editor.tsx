@@ -59,7 +59,7 @@ export function documentExtensions(): Extensions {
     StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: false }),
     WikiLink.configure({ openOnClick: false, autolink: false, protocols: ['mailto'], HTMLAttributes: { rel: 'noopener noreferrer nofollow' } }),
     Table.configure({ resizable: false }), TableRow, WikiTableHeader, WikiTableCell,
-    TaskList, TaskItem.configure({ nested: true }), Highlight.configure({ multicolor: true }),
+    TaskList, TaskItem.configure({ nested: true, a11y: { checkboxLabel: (node) => node.firstChild?.textContent ? t('任务：{0}', node.firstChild.textContent) : t('空白任务') } }), Highlight.configure({ multicolor: true }),
     ImageBlock, VideoBlock, Callout, MathBlockWithPreview, Attachment, Columns, Column, Drawing,
   ];
 }
