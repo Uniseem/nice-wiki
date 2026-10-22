@@ -35,9 +35,7 @@ func ExecuteTranslation(ctx context.Context, op OperationContext, translationID 
 	if err := runTranslation(work, op, translationID); err != nil && errors.Is(err, errTranslationCancelled) {
 		return
 	} else if err != nil {
-		if os.Getenv("NW_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "翻译失败 translation=%s err=%v\n", translationID, err)
-		}
+		fmt.Fprintf(os.Stderr, "翻译失败 translation=%s err=%v\n", translationID, err)
 		fail, stop := context.WithTimeout(ctx, 15*time.Second)
 		defer stop()
 		_ = language.WriteData(fail, op, func(tx *sql.Tx) error {

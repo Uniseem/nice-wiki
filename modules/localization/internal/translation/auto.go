@@ -31,6 +31,18 @@ func AutoTranslate(ctx context.Context, op OperationContext) error {
 	if err != nil {
 		return err
 	}
+	if len(unfinished) == 0 && len(languages) == 0 {
+		return nil
+	}
+	// 先确认正文（content）和模型网关都能用了再开始或接着翻：进程刚重启时它们可能还在启动，
+	// 这时接着翻会立刻失败，并按失败次数退避，最长要等一小时才重来。没配好模型时同样先不动。
+	tree, err := localizationruntime.ReadPublicTree(ctx, op)
+	if err != nil {
+		return err
+	}
+	if _, err := localizationruntime.ResolvePlanTaskRoute(ctx, op, "localization.document"); err != nil {
+		return nil
+	}
 	running := 0
 	for _, id := range unfinished {
 		if running >= maximumRunningTranslations {
@@ -44,11 +56,6 @@ func AutoTranslate(ctx context.Context, op OperationContext) error {
 	if len(languages) == 0 || running >= maximumRunningTranslations {
 		return nil
 	}
-	tree, err := localizationruntime.ReadPublicTree(ctx, op)
-	if err != nil {
-		return err
-	}
-	routeChecked := false
 	// 一篇文档建不了译文（例如正文结构切不出翻译单元）不挡其他文档；第一个错误留给恢复循环记日志。
 	var firstErr error
 	for _, document := range tree.Documents {
@@ -62,13 +69,6 @@ func AutoTranslate(ctx context.Context, op OperationContext) error {
 			}
 			if !due {
 				continue
-			}
-			if !routeChecked {
-				// 文档翻译任务还解析不出档位（没配模型）时，建了也只会失败：等配好再建。
-				if _, err := localizationruntime.ResolvePlanTaskRoute(ctx, op, "localization.document"); err != nil {
-					return nil
-				}
-				routeChecked = true
 			}
 			key := "auto." + platform.HashBytes([]byte(tag+":"+document.Reference.PublishedRevisionId+":"+strconv.Itoa(attempt)))
 			if _, err := createTranslation(ctx, op, gen.CreateTranslationInput{Document: document.Reference, TargetLanguage: tag, IdempotencyKey: key}); err != nil {
