@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"mime"
 	"net/http"
@@ -340,7 +341,8 @@ func StreamResponse(ctx context.Context, op OperationContext, input StreamRespon
 			runtime.Writer.Header().Add(entry.Name, value)
 		}
 	}
-	if strings.HasPrefix(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
+	stream := strings.HasPrefix(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream")
+	if stream {
 		runtime.Writer.Header().Set("X-Accel-Buffering", "no")
 	}
 	runtime.ResponseStarted = true
@@ -348,13 +350,46 @@ func StreamResponse(ctx context.Context, op OperationContext, input StreamRespon
 	if runtime.Request.Method == http.MethodHead {
 		return StreamResponseResult{Accepted: true}, nil
 	}
-	if _, err := io.Copy(runtime.Writer, response.Body); err != nil {
+	var err error
+	if stream {
+		err = copyFlushing(runtime.Writer, response.Body)
+	} else {
+		_, err = io.Copy(runtime.Writer, response.Body)
+	}
+	if err != nil {
 		if ctx.Err() != nil {
 			return StreamResponseResult{}, platform.NewError(platform.CodeCancelled, true, "客户端已断开")
 		}
 		return StreamResponseResult{}, platform.NewError(platform.CodeInternal, false, "转发响应失败")
 	}
 	return StreamResponseResult{Accepted: true}, nil
+}
+
+// copyFlushing 转发事件流：上游送来多少就立刻写出并刷新本进程的响应缓冲，进度和分批的回答文字及时到达浏览器。
+// 读写交替进行，客户端读得慢时自然反压上游；客户端断开时写入失败，请求上下文随之取消上游。
+func copyFlushing(writer http.ResponseWriter, body io.Reader) error {
+	controller := http.NewResponseController(writer)
+	if err := controller.Flush(); err != nil {
+		return err
+	}
+	buffer := make([]byte, 32<<10)
+	for {
+		n, readErr := body.Read(buffer)
+		if n > 0 {
+			if _, err := writer.Write(buffer[:n]); err != nil {
+				return err
+			}
+			if err := controller.Flush(); err != nil {
+				return err
+			}
+		}
+		if errors.Is(readErr, io.EOF) {
+			return nil
+		}
+		if readErr != nil {
+			return readErr
+		}
+	}
 }
 
 func MapUpstreamFailure(input MapUpstreamFailureInput) (MapUpstreamFailureResult, error) {
