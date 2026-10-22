@@ -13,7 +13,7 @@ import (
 // NewGuardHandlers 只交给公共NewServiceHandler；权限、服务身份、epoch和schema由入口建立。
 // 管理动作的私有marker表示本次公共边界已即时查权，领域函数不再重复查询identity。
 func NewGuardHandlers(runtime GuardRuntime) map[string]http.Handler {
-	handlers := NewLoginHandlers(runtime.Store)
+	handlers := NewLoginHandlers(runtime)
 	for _, operation := range []string{"getPolicy", "updatePolicy", "createBan", "revokeBan", "listBans", "listRiskEvents", "reportModelRisk", "queueSessionAdmission", "createAdmission", "renewAdmission", "releaseAdmission", "consumeAdmission", "verifyAdmission", "issueChallenge", "verifyChallenge", "readSnapshotArchive"} {
 		handlers[operation] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())

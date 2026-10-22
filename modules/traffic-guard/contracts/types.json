@@ -1827,7 +1827,8 @@
           "minLength": 1,
           "enum": [
             "pow",
-            "turnstile"
+            "turnstile",
+            "login-pow"
           ]
         },
         "dataEpoch": {
@@ -2939,7 +2940,8 @@
           "minLength": 1,
           "enum": [
             "pow",
-            "turnstile"
+            "turnstile",
+            "login-pow"
           ]
         },
         "visitorToken": {
@@ -3608,6 +3610,16 @@
             "bootstrap"
           ],
           "description": "仅区分原请求语义；login/bootstrap共享账号与网络失败窗、锁及并发"
+        },
+        "challengeId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "账号近期多次登录失败时必填：login-pow 挑战ID，核验通过即消费，一次挑战只换一次登录尝试"
+        },
+        "challengeProof": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "对应挑战的工作量证明"
         }
       },
       "required": [

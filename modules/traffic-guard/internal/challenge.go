@@ -35,6 +35,13 @@ type VerifyChallengeResult struct {
 	PassedToken string `json:"passedToken"`
 	ExpiresAt   string `json:"expiresAt"`
 }
+
+// loginChallengeMethod 是登录专用的工作量挑战：不受问答人机验证开关影响，只能用来换一次登录尝试，不能当问答通过证明。
+const (
+	loginChallengeMethod     = "login-pow"
+	loginChallengeDifficulty = 18
+)
+
 type challengeRecord struct {
 	id, subject, session, request, inputHash, method, nonceHash, state string
 	difficulty, attempts                                               int
@@ -56,6 +63,7 @@ func IssueChallenge(ctx context.Context, op OperationContext, in IssueChallengeI
 		return IssueChallengeResult{}, err
 	}
 	switch in.Method {
+	case loginChallengeMethod:
 	case "pow":
 		if !policy.ChallengeEnabled {
 			return IssueChallengeResult{}, platform.NewError(platform.CodeValidation, false, "工作量挑战未启用")
@@ -94,16 +102,20 @@ func IssueChallenge(ctx context.Context, op OperationContext, in IssueChallengeI
 	if !errors.Is(err, sql.ErrNoRows) {
 		return IssueChallengeResult{}, loginDBError()
 	}
-	signals, err := LoadSignals(t.ctx, op, LoadSignalsInput{SubjectKey: in.SubjectKey, Action: "qa.ask", NowMs: t.now.UnixMilli()})
-	if err != nil {
-		return IssueChallengeResult{}, err
-	}
-	risk, err := ComputeRisk(t.ctx, op, ComputeRiskInput{ChallengePassed: signals.ChallengePassed, ActiveBan: signals.ActiveBan, ModelVerdict: signals.ModelVerdict})
-	if err != nil {
-		return IssueChallengeResult{}, err
-	}
-	if risk.Decision == "deny" {
-		return IssueChallengeResult{}, platform.NewError(platform.CodeForbidden, false, "该网络AI功能暂被限制")
+	difficulty := loginChallengeDifficulty
+	if in.Method != loginChallengeMethod {
+		signals, err := LoadSignals(t.ctx, op, LoadSignalsInput{SubjectKey: in.SubjectKey, Action: "qa.ask", NowMs: t.now.UnixMilli()})
+		if err != nil {
+			return IssueChallengeResult{}, err
+		}
+		risk, err := ComputeRisk(t.ctx, op, ComputeRiskInput{ChallengePassed: signals.ChallengePassed, ActiveBan: signals.ActiveBan, ModelVerdict: signals.ModelVerdict})
+		if err != nil {
+			return IssueChallengeResult{}, err
+		}
+		if risk.Decision == "deny" {
+			return IssueChallengeResult{}, platform.NewError(platform.CodeForbidden, false, "该网络AI功能暂被限制")
+		}
+		difficulty = risk.Difficulty
 	}
 	var recent, active int
 	if t.tx.QueryRowContext(t.ctx, `SELECT COUNT(*) FROM guard_challenges WHERE site_id=? AND data_epoch=? AND subject_key=? AND created_at_ns>?`, t.site, op.DataEpoch, in.SubjectKey, t.now.Add(-time.Minute).UnixNano()).Scan(&recent) != nil {
@@ -120,7 +132,7 @@ func IssueChallenge(ctx context.Context, op OperationContext, in IssueChallengeI
 	if t.tx.QueryRowContext(t.ctx, `SELECT session_key FROM guard_subjects WHERE site_id=? AND data_epoch=? AND subject_key=?`, t.site, op.DataEpoch, in.SubjectKey).Scan(&session) != nil {
 		return IssueChallengeResult{}, loginDBError()
 	}
-	row := challengeRecord{id: platform.NewIdentifier(), subject: in.SubjectKey, session: session, request: in.RequestID, inputHash: digest, method: in.Method, difficulty: risk.Difficulty, expires: t.now.Add(120 * time.Second).UnixNano(), created: t.now.UnixNano(), state: "issued"}
+	row := challengeRecord{id: platform.NewIdentifier(), subject: in.SubjectKey, session: session, request: in.RequestID, inputHash: digest, method: in.Method, difficulty: difficulty, expires: t.now.Add(120 * time.Second).UnixNano(), created: t.now.UnixNano(), state: "issued"}
 	nonce, err := challengeNonce(t.runtime, t.site, op.DataEpoch, row)
 	if err != nil {
 		return IssueChallengeResult{}, err
@@ -148,6 +160,9 @@ func VerifyChallenge(ctx context.Context, op OperationContext, in VerifyChalleng
 	}
 	if row.subject != in.SubjectKey {
 		return VerifyChallengeResult{}, platform.NewError(platform.CodeForbidden, false, "挑战不属于当前匿名主体")
+	}
+	if row.method == loginChallengeMethod {
+		return VerifyChallengeResult{}, platform.NewError(platform.CodeValidation, false, "登录挑战只能随登录请求提交")
 	}
 	if err = checkIssuedChallenge(row, time.Now().UTC()); err != nil {
 		return VerifyChallengeResult{}, err

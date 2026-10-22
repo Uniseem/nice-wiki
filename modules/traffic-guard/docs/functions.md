@@ -1078,7 +1078,7 @@ func BeginLoginAttempt(ctx context.Context, op OperationContext, in BeginLoginAt
 
 1. 要求identity纯服务，事务绑定PolicyStore打开代次；通用服务断言、当前runtime/维护与schema只由公共HTTP入口核验一次
 2. requestId必须等于op.OperationID；networkKeys排序去重后与accountKey/action作规范摘要；按caller+epoch+requestId查原回执，同摘要返回原attempt、expiresAt和创建revision，包括已到期/终局，不增加预留也不延长
-3. login/bootstrap共享账号和每个网络键：检查当前固定锁及滚动15分钟失败，账号5次、网络20次即拒；既有锁及重放不重算锁起点或续期
+3. login/bootstrap共享账号和每个网络键：检查当前固定锁及滚动15分钟失败；网络20次即拒，账号5次后不拒绝而要求附一份新解出的login-pow挑战并在本事务核验消费（一次挑战换一次尝试）；既有锁及重放不重算锁起点或续期
 4. 同事务检查未终局且expiresAt晚于当前服务时间的预留：账号最多1、每个网络键最多8；持久新attempt和全部网络关联，30秒到期；过期pending自然不占并发、不自动当失败
 5. 提交成功才返回预留；未知存储失败关闭，不记录原账号/IP/口令或HMAC原料
 
@@ -1088,7 +1088,8 @@ func BeginLoginAttempt(ctx context.Context, op OperationContext, in BeginLoginAt
 - `VERSION_MISMATCH`：op代次与打开的active库或持久attempt不一致（不可重试）
 - `CONFLICT`：同operation/request异输入、异终局或过期authenticated（不可重试）
 - `DEPENDENCY_UNAVAILABLE`：私有库未注入、已关闭或事务失败（可重试）
-- `RATE_LIMITED`：当前账号或任一网络失败阈值/锁/并发已满（不可重试）
+- `RATE_LIMITED`：任一网络失败阈值/锁已满，或账号/网络并发已满（不可重试）
+- `CHALLENGE_REQUIRED`：账号失败达到阈值或在锁期内，且未附有效、未用过的login-pow挑战（不可重试）
 
 - 副作用：本域SQLite保留、计数及回执事务
 - 授权：permission：service；rule：只允许已认证CallerService=identity且Actor.Kind=service；可信入口核当前runtime，事务严格匹配PolicyStore打开代次，正文不声明身份或epoch

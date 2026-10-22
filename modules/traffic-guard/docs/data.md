@@ -34,7 +34,7 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 - `login_locks(data_epoch, scope_kind, scope_key, locked_until_ns)`；阈值首次达到时固定15分钟锁，锁内追加在途失败不续锁，重放及新Begin也不重算锁期；锁结束后按滚动窗正常判定。
 - `login_finish_receipts(data_epoch, caller, operation_id, attempt_id, outcome, created_at_ns)`；Finish命名空间与Begin分开，同attempt同outcome换key仍返回原终局，不重复失败或清除；异终局始终冲突。
 
-login/bootstrap共享账号及所有网络的失败窗、锁和并发。账号5次/每网络20次失败触发锁15分钟；账号未过期pending最多1个、每网络最多8个，30秒后自然释放并发，不自动计失败。过期pending只禁首次authenticated；首次late rejected仍按Finish当前服务时间计失败；aborted只释放不清计数。authenticated只清此账号失败与账号锁，不清任何共享网络失败/锁。终局、失败/清除、锁和回执在同一SQLite事务提交；后续session写入失败不改写口令核验事实。
+login/bootstrap共享账号及所有网络的失败窗、锁和并发。账号5次/每网络20次失败触发锁15分钟；网络锁期间直接拒绝，账号达到阈值或锁期内改为每次尝试附一份新解出的login-pow挑战（Begin同事务核验并消费，一次挑战换一次尝试），避免他人把账号一直锁死；账号未过期pending最多1个、每网络最多8个，30秒后自然释放并发，不自动计失败。过期pending只禁首次authenticated；首次late rejected仍按Finish当前服务时间计失败；aborted只释放不清计数。authenticated只清此账号失败与账号锁，不清任何共享网络失败/锁。终局、失败/清除、锁和回执在同一SQLite事务提交；后续session写入失败不改写口令核验事实。
 
 表中只保存不可逆HMAC、安全操作引用和服务时间，不保存原账号、IP、口令、凭证或HMAC原料。当前只实现登录保护事务与HTTP映射；匿名保留清理、全域barrier/恢复和完整服务装配仍未完成，不能由本包宣称已可上线或已验收。
 

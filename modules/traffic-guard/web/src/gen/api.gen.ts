@@ -585,7 +585,7 @@ export interface components {
              * @description method；UTF-8；不得为 null
              * @enum {string}
              */
-            method: "pow" | "turnstile";
+            method: "pow" | "turnstile" | "login-pow";
             /** @description 可选原guard会话通过证明；仍需平台验签与本人/epoch匹配，不接自声明actor。 */
             visitorToken?: string;
         };
@@ -1083,6 +1083,10 @@ export interface components {
              * @enum {string}
              */
             action: "login" | "bootstrap";
+            /** @description 账号近期多次登录失败时必填：login-pow 挑战ID，核验通过即消费，一次挑战只换一次登录尝试 */
+            challengeId?: components["schemas"]["Identifier"];
+            /** @description 对应挑战的工作量证明 */
+            challengeProof?: string;
         };
         FinishLoginAttemptResult: {
             /** @constant */

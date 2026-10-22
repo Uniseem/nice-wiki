@@ -11,7 +11,7 @@ import (
 
 // NewLoginHandlers 只供统一NewServiceHandler装配；服务身份、当前runtime、
 // 维护、schema和路径值由该入口建立。其余业务缺失时不能单独启动本组。
-func NewLoginHandlers(store *PolicyStore) map[string]http.Handler {
+func NewLoginHandlers(runtime GuardRuntime) map[string]http.Handler {
 	return map[string]http.Handler{
 		"beginLoginAttempt": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
@@ -20,7 +20,7 @@ func NewLoginHandlers(store *PolicyStore) map[string]http.Handler {
 				writeLoginResponse(w, op.RequestID, nil, platform.NewError(platform.CodeValidation, false, "登录预留请求绑定失败"))
 				return
 			}
-			result, err := BeginLoginAttempt(WithPolicyStore(r.Context(), store), op, input)
+			result, err := BeginLoginAttempt(WithGuardRuntime(r.Context(), runtime), op, input)
 			writeLoginResponse(w, op.RequestID, result, err)
 		}),
 		"finishLoginAttempt": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +30,7 @@ func NewLoginHandlers(store *PolicyStore) map[string]http.Handler {
 				writeLoginResponse(w, op.RequestID, nil, platform.NewError(platform.CodeValidation, false, "登录终局请求绑定失败"))
 				return
 			}
-			result, err := FinishLoginAttempt(WithPolicyStore(r.Context(), store), op, r.PathValue("attemptId"), input)
+			result, err := FinishLoginAttempt(WithGuardRuntime(r.Context(), runtime), op, r.PathValue("attemptId"), input)
 			writeLoginResponse(w, op.RequestID, result, err)
 		}),
 	}

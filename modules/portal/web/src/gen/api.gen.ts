@@ -617,6 +617,10 @@ export interface components {
             password: string;
             /** @description 浏览器按 User-Agent 生成的设备说明（如“Chrome · macOS”），只用于登录设备列表展示；省略为空 */
             deviceLabel?: string;
+            /** @description 账号近期多次登录失败、服务要求人机验证时，附上新解出的 login-pow 挑战ID */
+            challengeId?: components["schemas"]["Identifier"];
+            /** @description 对应挑战的工作量证明 */
+            challengeProof?: string;
         };
         /**
          * @description 已确认10项功能，默认全部勾选

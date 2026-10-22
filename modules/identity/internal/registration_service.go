@@ -132,7 +132,7 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 	if subtle.ConstantTimeCompare([]byte(input.Password), []byte(input.PasswordConfirmation)) != 1 {
 		return RegisterFirstSuperadminResult{}, platform.NewError(platform.CodeValidation, false, "两次口令不一致")
 	}
-	attempt, err := beginIdentityLogin(ctx, op, normalized.Normalized, "bootstrap")
+	attempt, err := beginIdentityLogin(ctx, op, normalized.Normalized, "bootstrap", "", "")
 	if err != nil {
 		return RegisterFirstSuperadminResult{}, err
 	}

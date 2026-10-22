@@ -1,6 +1,7 @@
 import { ArrowRight, Globe, Lock, Person } from '@gravity-ui/icons';
 import { Button, Card, Form, Spinner } from '@heroui/react';
-import { adminLanguage, api, chosenAdminLanguage, errorText, findSiteLanguage, LanguageMenu, Notice, setAdminLanguage, siteLanguages, storeSession, TextInput, ThemeMenu, t } from '@ui';
+import { adminLanguage, api, ApiError, chosenAdminLanguage, errorText, findSiteLanguage, LanguageMenu, newKey, Notice, setAdminLanguage, siteLanguages, storeSession, TextInput, ThemeMenu, t } from '@ui';
+import { solveChallenge } from '@ui/pow';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ensureBaseLanguage, type Account } from './App';
 import { SiteMark, useSiteBrand } from './brand';
@@ -66,7 +67,16 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
       if (password !== confirmation) throw new Error(t('两次输入的口令不一致'));
       await afterLogin(await api<SessionReply>('/v1/registration', { method: 'POST', body: { accountName, password, passwordConfirmation: confirmation } }));
     } else if (step === 'login') {
-      await afterLogin(await api<SessionReply>('/v1/sessions', { method: 'POST', body: { accountName, password, deviceLabel: deviceLabel() } }));
+      const body = { accountName, password, deviceLabel: deviceLabel() };
+      try {
+        await afterLogin(await api<SessionReply>('/v1/sessions', { method: 'POST', body }));
+      } catch (problem) {
+        // 账号近期多次登录失败：浏览器先解一道工作量证明，带上它重试这一次登录（每次尝试都要一份新的）。
+        if (!(problem instanceof ApiError && problem.code === 'CHALLENGE_REQUIRED')) throw problem;
+        const issued = await api<{ challengeId: string; nonce: string; difficulty: number }>('/v1/challenges', { method: 'POST', body: { requestId: newKey(), method: 'login-pow' } });
+        const challengeProof = await solveChallenge(issued.nonce, issued.difficulty);
+        await afterLogin(await api<SessionReply>('/v1/sessions', { method: 'POST', body: { ...body, challengeId: issued.challengeId, challengeProof } }));
+      }
     } else if (step === 'site') {
       await api('/v1/initialization', { method: 'POST', body: { name: siteName, baseLanguage: adminLanguage() } });
       await ensureBaseLanguage(adminLanguage());

@@ -18,10 +18,12 @@ type Identifier = platform.Identifier
 
 // 登录准入只接受已经过统一入口校验的HMAC，不持有其原始身份或网络信息。
 type BeginLoginAttemptInput struct {
-	RequestID   string   `json:"requestId"`
-	AccountKey  string   `json:"accountKey"`
-	NetworkKeys []string `json:"networkKeys"`
-	Action      string   `json:"action"`
+	RequestID      string   `json:"requestId"`
+	AccountKey     string   `json:"accountKey"`
+	NetworkKeys    []string `json:"networkKeys"`
+	Action         string   `json:"action"`
+	ChallengeID    string   `json:"challengeId,omitempty"`
+	ChallengeProof string   `json:"challengeProof,omitempty"`
 }
 type BeginLoginAttemptResult struct {
 	AttemptID string             `json:"attemptId"`
@@ -79,7 +81,21 @@ func BeginLoginAttempt(ctx context.Context, op OperationContext, in BeginLoginAt
 	if !errors.Is(err, sql.ErrNoRows) {
 		return BeginLoginAttemptResult{}, loginDBError()
 	}
-	if err := checkLoginScope(ctx, t, "account", in.AccountKey, 5, 1); err != nil {
+	// 账号维度连错后不硬锁：否则任何知道账号名的人每 15 分钟试几次，就能把唯一的超管一直锁在门外。
+	// 改为此后每次登录尝试都要附一份新解出的工作量证明，一次挑战只换一次尝试；网络维度仍硬锁。
+	limited, err := loginScopeLimited(ctx, t, "account", in.AccountKey, 5)
+	if err != nil {
+		return BeginLoginAttemptResult{}, err
+	}
+	if limited {
+		if in.ChallengeID == "" {
+			return BeginLoginAttemptResult{}, platform.NewError(platform.CodeChallengeRequired, false, "账号近期多次登录失败，请先完成人机验证")
+		}
+		if err := consumeLoginChallenge(ctx, t, op, in.ChallengeID, in.ChallengeProof); err != nil {
+			return BeginLoginAttemptResult{}, err
+		}
+	}
+	if err := checkLoginConcurrency(ctx, t, "account", in.AccountKey, 1); err != nil {
 		return BeginLoginAttemptResult{}, err
 	}
 	for _, key := range networks {
@@ -218,19 +234,72 @@ func loginInputHash(in BeginLoginAttemptInput) (string, []string) {
 }
 
 func checkLoginScope(ctx context.Context, t *loginTransaction, kind string, key string, failureLimit int, concurrencyLimit int) error {
+	limited, err := loginScopeLimited(ctx, t, kind, key, failureLimit)
+	if err != nil {
+		return err
+	}
+	if limited {
+		return platform.NewError(platform.CodeRateLimited, false, "登录失败保护暂时锁定")
+	}
+	return checkLoginConcurrency(ctx, t, kind, key, concurrencyLimit)
+}
+
+// loginScopeLimited 报告该作用域是否在锁定期内或近期失败已达上限。
+func loginScopeLimited(ctx context.Context, t *loginTransaction, kind string, key string, failureLimit int) (bool, error) {
 	var lockedUntil int64
 	err := t.tx.QueryRowContext(ctx, `SELECT locked_until_ns FROM login_locks WHERE data_epoch=? AND scope_kind=? AND scope_key=?`, t.store.openedDataEpoch, kind, key).Scan(&lockedUntil)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return loginDBError()
+		return false, loginDBError()
 	}
 	var failures int
 	if err := t.tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM login_failures
         WHERE data_epoch=? AND scope_kind=? AND scope_key=? AND failed_at_ns>?`, t.store.openedDataEpoch, kind, key, t.now.Add(-loginFailureWindow).UnixNano()).Scan(&failures); err != nil {
+		return false, loginDBError()
+	}
+	return lockedUntil > t.now.UnixNano() || failures >= failureLimit, nil
+}
+
+// consumeLoginChallenge 核验并在本登录事务里消费一份 login-pow 挑战；登录尝试没开成，消费也随事务回滚。
+func consumeLoginChallenge(ctx context.Context, t *loginTransaction, op OperationContext, challengeID, proof string) error {
+	runtime, ok := ctx.Value(guardRuntimeKey{}).(GuardRuntime)
+	if !ok {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "风控运行依赖未装配")
+	}
+	var row challengeRecord
+	var site string
+	err := t.tx.QueryRowContext(ctx, `SELECT challenge_id,site_id,subject_key,session_key,request_id,input_hash,method,difficulty,nonce_hash,expires_at_ns,created_at_ns,state,attempts FROM guard_challenges WHERE challenge_id=? AND data_epoch=?`, challengeID, t.store.openedDataEpoch).Scan(&row.id, &site, &row.subject, &row.session, &row.request, &row.inputHash, &row.method, &row.difficulty, &row.nonceHash, &row.expires, &row.created, &row.state, &row.attempts)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && row.method != loginChallengeMethod) {
+		return platform.NewError(platform.CodeChallengeRequired, false, "人机验证无效，请重新验证")
+	}
+	if err != nil {
 		return loginDBError()
 	}
-	if lockedUntil > t.now.UnixNano() || failures >= failureLimit {
-		return platform.NewError(platform.CodeRateLimited, false, "登录失败保护暂时锁定")
+	if checkIssuedChallenge(row, t.now) != nil {
+		return platform.NewError(platform.CodeChallengeRequired, false, "人机验证已过期或已用过，请重新验证")
 	}
+	nonce, err := challengeNonce(runtime, site, t.store.openedDataEpoch, row)
+	if err != nil {
+		return err
+	}
+	checked, err := VerifyPoW(ctx, op, VerifyPoWInput{nonce, proof, row.difficulty})
+	if err != nil {
+		return err
+	}
+	if !checked.Valid {
+		return platform.NewError(platform.CodeChallengeRequired, false, "人机验证未通过，请重新验证")
+	}
+	consumed, err := t.tx.ExecContext(ctx, `UPDATE guard_challenges SET state='consumed' WHERE challenge_id=? AND data_epoch=? AND state='issued'`, challengeID, t.store.openedDataEpoch)
+	if err != nil {
+		return loginDBError()
+	}
+	if count, err := consumed.RowsAffected(); err != nil || count != 1 {
+		return platform.NewError(platform.CodeChallengeRequired, false, "人机验证已用过，请重新验证")
+	}
+	return nil
+}
+
+// checkLoginConcurrency 限制同一作用域同时进行中的登录核验数。
+func checkLoginConcurrency(ctx context.Context, t *loginTransaction, kind string, key string, concurrencyLimit int) error {
 	var pending int
 	query := `SELECT COUNT(*) FROM login_attempts WHERE data_epoch=? AND account_key=? AND outcome='pending' AND expires_at_ns>?`
 	if kind == "network" {

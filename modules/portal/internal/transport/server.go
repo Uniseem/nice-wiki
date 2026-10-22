@@ -145,9 +145,10 @@ func (a *Application) MountWeb(dir string) {
 		w.Header().Set("Cache-Control", "no-cache")
 		site.ServeHTTP(w, r)
 	})
+	// worker-src 放行 blob：登录页的人机验证在 blob 创建的 Web Worker 里算工作量证明。
 	shell := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; frame-ancestors 'none'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'")
 		http.ServeFile(w, r, filepath.Join(dir, "index.html"))
 	}
 	mux.HandleFunc("GET /admin", shell)

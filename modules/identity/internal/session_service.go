@@ -388,9 +388,11 @@ func RefreshSession(ctx context.Context, op OperationContext, input RefreshSessi
 }
 
 type CreateSessionInput struct {
-	AccountName AccountName `json:"accountName"`
-	Password    string      `json:"password"`
-	DeviceLabel string      `json:"deviceLabel"`
+	AccountName    AccountName `json:"accountName"`
+	Password       string      `json:"password"`
+	DeviceLabel    string      `json:"deviceLabel"`
+	ChallengeID    string      `json:"challengeId,omitempty"`
+	ChallengeProof string      `json:"challengeProof,omitempty"`
 }
 type CreateSessionResult struct {
 	Tokens    SessionTokens `json:"tokens"`
@@ -410,7 +412,8 @@ func WithLoginRuntime(ctx context.Context, runtime LoginRuntime) context.Context
 	return context.WithValue(ctx, loginRuntimeContextKey{}, runtime)
 }
 
-func beginIdentityLogin(ctx context.Context, op OperationContext, accountName, action string) (loginAttempt, error) {
+// challengeID/challengeProof 是账号近期多次失败后风控要求的 login-pow 证明，平时为空。
+func beginIdentityLogin(ctx context.Context, op OperationContext, accountName, action, challengeID, challengeProof string) (loginAttempt, error) {
 	runtime, ok := ctx.Value(loginRuntimeContextKey{}).(LoginRuntime)
 	if !ok || runtime.Client == nil {
 		return loginAttempt{}, platform.NewError(platform.CodeDependencyUnavailable, true, "登录风控尚未装配")
@@ -427,12 +430,14 @@ func beginIdentityLogin(ctx context.Context, op OperationContext, accountName, a
 		return loginAttempt{}, err
 	}
 	body := struct {
-		RequestID   string          `json:"requestId"`
-		AccountKey  string          `json:"accountKey"`
-		NetworkKeys []platform.Hash `json:"networkKeys"`
-		Action      string          `json:"action"`
+		RequestID      string          `json:"requestId"`
+		AccountKey     string          `json:"accountKey"`
+		NetworkKeys    []platform.Hash `json:"networkKeys"`
+		Action         string          `json:"action"`
+		ChallengeID    string          `json:"challengeId,omitempty"`
+		ChallengeProof string          `json:"challengeProof,omitempty"`
 	}{
-		op.OperationID, accountKey, op.LoginNetworkScopes, action}
+		op.OperationID, accountKey, op.LoginNetworkScopes, action, challengeID, challengeProof}
 	raw, err := runtime.Client.BeginLoginAttempt(platform.WithOperationContext(ctx, op), body, op.OperationID)
 	if err != nil {
 		return loginAttempt{}, err
@@ -506,7 +511,7 @@ func CreateSession(ctx context.Context, op OperationContext, input CreateSession
 	if err != nil {
 		return CreateSessionResult{}, err
 	}
-	attempt, err := beginIdentityLogin(ctx, op, normalized.Normalized, "login")
+	attempt, err := beginIdentityLogin(ctx, op, normalized.Normalized, "login", input.ChallengeID, input.ChallengeProof)
 	if err != nil {
 		return CreateSessionResult{}, err
 	}

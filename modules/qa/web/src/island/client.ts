@@ -1,4 +1,4 @@
-import { solveChallenge } from './pow';
+import { solveChallenge } from '@ui/pow';
 
 // 访客问答的同源接口：会话 ID 与准入令牌只放会话存储；需要人机验证时先做一次工作量证明再重试。
 
