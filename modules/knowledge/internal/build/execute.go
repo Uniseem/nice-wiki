@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/knowledge/internal/card"
@@ -76,7 +77,15 @@ func ExecuteBuild(ctx context.Context, op OperationContext, input JobExecutionIn
 	if err = CheckRebuildApproval(ctx, op, payload.BuildID, payload.Config); err != nil {
 		return JobExecutionResult{}, err
 	}
-	content, err := source.FetchPublishedSource(ctx, op, source.FetchPublishedSourceInput{BuildID: payload.BuildID, LeaseID: leaseID})
+	fetch := source.FetchPublishedSourceInput{BuildID: payload.BuildID, LeaseID: leaseID}
+	content, err := source.FetchPublishedSource(ctx, op, fetch)
+	// 读取期间正文有变化时再读一次：只是移动等改了可见性会读到同一版；撤回、删除或换了新版本则答 NOT_FOUND。
+	if errorCode(err) == platform.CodeStaleResult {
+		content, err = source.FetchPublishedSource(ctx, op, fetch)
+	}
+	if code := errorCode(err); code == platform.CodeNotFound || code == platform.CodeStaleResult {
+		return retireUnpublishedBuild(ctx, op, payload.BuildID, leaseID)
+	}
 	if err != nil {
 		return JobExecutionResult{}, err
 	}
@@ -373,4 +382,35 @@ func PrepareBuildChunks(ctx context.Context, op OperationContext, payload BuildJ
 		split = value.NextCursor
 	}
 	return result, nil
+}
+
+// retireUnpublishedBuild 处理构建排队或读取期间文档被撤回、删除或换了新版本：这一版已无内容可索引，
+// 构建记为已被取代并正常结束任务，不算失败、不进死信；新版本发布时会另起构建。
+func retireUnpublishedBuild(ctx context.Context, op OperationContext, buildID, leaseID string) (JobExecutionResult, error) {
+	work, tx, record, cancel, err := indexer.BeginBuildWrite(ctx, op, buildID, leaseID)
+	if err != nil {
+		return JobExecutionResult{}, err
+	}
+	defer cancel()
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(work, `UPDATE builds SET state='superseded',generation_state='retired',retired_at_ns=? WHERE build_id=?`, time.Now().UTC().UnixNano(), buildID); err != nil {
+		return JobExecutionResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "过期构建写入失败")
+	}
+	record.Build.State = gen.IndexBuildState("superseded")
+	result, err := indexer.CommitExecutionResult(work, tx, op, "knowledge.build", buildID, leaseID, record.Build)
+	if err != nil {
+		return JobExecutionResult{}, err
+	}
+	if err = tx.Commit(); err != nil {
+		return JobExecutionResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "过期构建提交失败")
+	}
+	return result, nil
+}
+
+func errorCode(err error) string {
+	var failure *platform.Error
+	if errors.As(err, &failure) {
+		return failure.Code
+	}
+	return ""
 }

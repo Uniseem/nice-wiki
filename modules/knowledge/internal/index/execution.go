@@ -447,10 +447,21 @@ func FinishExecutionFailure(ctx context.Context, op OperationContext, input plat
 	if err != nil {
 		return platform.JobExecutionResult{}, cause
 	}
-	object, key := "builds", "build_id"
+	object, key, sideEffects := "builds", "build_id", CancelBuildSideEffects
 	if record.JobType == "knowledge.extract" {
 		object = "extractions"
 		key = "extraction_id"
+		sideEffects = CancelExtractionSideEffects
+	}
+	// 本域已取消（管理员取消、文档撤回）时，失败只是收回租约后的连带结果：确认 jobs 侧已请求取消后按取消结束，不进死信。
+	var cancelled int
+	if tx.QueryRowContext(work, "SELECT cancelled FROM "+object+" WHERE "+key+"=?", record.ObjectID).Scan(&cancelled) == nil && cancelled == 1 {
+		_ = tx.Rollback()
+		closeWrite()
+		if sideEffects(platform.WithPortalProof(control, ""), metadata, record.ObjectID) != nil {
+			return platform.JobExecutionResult{PaidResultRefs: paid}, cause
+		}
+		return platform.JobExecutionResult{State: platform.JobCancelled, PaidResultRefs: paid}, nil
 	}
 	if _, err = tx.ExecContext(work, "UPDATE "+object+" SET state='failed',failure_code=?,lease_id='',lease_until='' WHERE "+key+"=? AND site_id=? AND data_epoch=? AND lease_id=? AND cancelled=0 AND state NOT IN ('active','ready','unsupported','superseded')", code, record.ObjectID, op.Actor.SiteID, op.DataEpoch, ExecutionLeaseID(input.JobID, input.FencingToken)); err != nil {
 		return platform.JobExecutionResult{PaidResultRefs: paid}, cause

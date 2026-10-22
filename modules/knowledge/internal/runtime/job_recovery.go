@@ -198,9 +198,6 @@ func ReadJobRecovery(ctx context.Context, op OperationContext, input ReadJobReco
 	if !errors.As(err, &failure) || failure.Code != platform.CodeNotFound {
 		return result, err
 	}
-	if input.ExpiredFence != 0 || input.WorkerID != "" || input.Attempt != 0 {
-		return result, nil
-	}
 	var workflowVersion int
 	var objectState string
 	var qualified int
@@ -213,7 +210,7 @@ func ReadJobRecovery(ctx context.Context, op OperationContext, input ReadJobReco
 	if err != nil {
 		return result, platform.NormalizeIOError(err, platform.CodeInternal, false, "原任务执行标记不可读")
 	}
-	if workflowVersion != 1 || qualified != 1 || (objectState != "queued" && objectState != "cancelled" && objectState != "failed") || (state != "dispatched" && state != "cancelled") {
+	if workflowVersion != 1 || qualified != 1 || (objectState != "queued" && objectState != "cancelled" && objectState != "failed" && objectState != "superseded") || (state != "dispatched" && state != "cancelled") {
 		return result, nil
 	}
 	var facts int
@@ -225,6 +222,7 @@ func ReadJobRecovery(ctx context.Context, op OperationContext, input ReadJobReco
 		return result, nil
 	}
 	// 新版入口在任何业务执行前先原子存execution_records；缺行且无阶段事实才证明从未执行。
+	// 领取后未及接管（开始前已请求取消、首次续租即见取消、或 worker 中途退出）同样缺行：失效时 jobs 已换新 fence，旧 worker 不可能再开始。
 	result.Status = "safeToRetry"
 	return result, nil
 }
