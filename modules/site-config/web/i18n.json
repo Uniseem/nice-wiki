@@ -399,6 +399,22 @@
   "id": "Subjudul",
   "ar": "العنوان الفرعي"
  },
+ "另有 {0} 个站内链接不能在这里编辑，保存时原样保留。": {
+  "zh-Hant": "另有 {0} 個站內連結無法在這裡編輯，儲存時會原樣保留。",
+  "en": "{0} more on-site links can’t be edited here; they’re kept as they are when you save.",
+  "ja": "ほかに {0} 件のサイト内リンクはここでは編集できません。保存してもそのまま残ります。",
+  "ko": "이 외에 사이트 내부 링크 {0}개는 여기서 편집할 수 없으며, 저장해도 그대로 유지됩니다.",
+  "fr": "{0} autres liens internes ne sont pas modifiables ici ; ils sont conservés tels quels à l’enregistrement.",
+  "de": "{0} weitere interne Links lassen sich hier nicht bearbeiten; sie bleiben beim Speichern unverändert.",
+  "es": "Hay {0} enlaces internos más que no se pueden editar aquí; se conservan tal cual al guardar.",
+  "pt": "Há mais {0} links internos que não podem ser editados aqui; eles são mantidos como estão ao salvar.",
+  "ru": "Ещё {0} внутренних ссылок нельзя изменить здесь; при сохранении они остаются без изменений.",
+  "it": "Altri {0} link interni non si possono modificare qui; vengono mantenuti così come sono al salvataggio.",
+  "vi": "Còn {0} liên kết nội bộ không thể chỉnh sửa ở đây; chúng được giữ nguyên khi lưu.",
+  "th": "ยังมีลิงก์ภายในเว็บไซต์อีก {0} รายการที่แก้ไขที่นี่ไม่ได้ ระบบจะคงไว้ตามเดิมเมื่อบันทึก",
+  "id": "Ada {0} tautan internal lain yang tidak dapat diedit di sini; tautan tersebut tetap dipertahankan saat menyimpan.",
+  "ar": "هناك {0} روابط داخلية أخرى لا يمكن تعديلها هنا؛ وتبقى كما هي عند الحفظ."
+ },
  "品牌": {
   "zh-Hant": "品牌",
   "en": "Branding",
@@ -526,6 +542,22 @@
   "th": "เริ่มอ่าน",
   "id": "Mulai membaca",
   "ar": "ابدأ القراءة"
+ },
+ "当前是图片或视频背景；填写颜色会改为纯色背景，留空则保持不变。": {
+  "zh-Hant": "目前是圖片或影片背景；填寫顏色會改為純色背景，留空則保持不變。",
+  "en": "The background is currently an image or video. Entering a color switches it to a solid color; leave blank to keep it.",
+  "ja": "現在の背景は画像または動画です。色を入力すると単色の背景に変わります。空欄のままなら変わりません。",
+  "ko": "현재 배경은 이미지 또는 동영상입니다. 색상을 입력하면 단색 배경으로 바뀌고, 비워 두면 그대로 유지됩니다.",
+  "fr": "L’arrière-plan est actuellement une image ou une vidéo. Saisir une couleur le remplace par une couleur unie ; laissez vide pour le conserver.",
+  "de": "Der Hintergrund ist derzeit ein Bild oder Video. Eine Farbe macht ihn einfarbig; leer lassen, um ihn beizubehalten.",
+  "es": "El fondo es actualmente una imagen o un vídeo. Si introduces un color pasará a ser un fondo liso; déjalo vacío para mantenerlo.",
+  "pt": "O fundo atual é uma imagem ou vídeo. Informar uma cor troca para um fundo sólido; deixe em branco para mantê-lo.",
+  "ru": "Сейчас фон — изображение или видео. Если указать цвет, фон станет однотонным; оставьте поле пустым, чтобы ничего не менять.",
+  "it": "Lo sfondo attuale è un’immagine o un video. Inserendo un colore diventa a tinta unita; lascia vuoto per mantenerlo.",
+  "vi": "Nền hiện tại là hình ảnh hoặc video. Nhập màu sẽ chuyển sang nền đơn sắc; để trống để giữ nguyên.",
+  "th": "พื้นหลังตอนนี้เป็นรูปภาพหรือวิดีโอ ถ้ากรอกสีจะเปลี่ยนเป็นพื้นหลังสีพื้น เว้นว่างไว้เพื่อคงเดิม",
+  "id": "Latar belakang saat ini berupa gambar atau video. Mengisi warna akan menggantinya menjadi warna polos; kosongkan untuk mempertahankannya.",
+  "ar": "الخلفية حاليًا صورة أو فيديو. إدخال لون يحوّلها إلى خلفية بلون واحد؛ اتركه فارغًا للإبقاء عليها."
  },
  "当前状态": {
   "zh-Hant": "目前狀態",

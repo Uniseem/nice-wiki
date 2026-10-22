@@ -171,7 +171,8 @@ function HomeTab({ config, onSaved }: TabProps) {
           <TextInput label={t('副标题')} value={form.subtitle} onChange={(subtitle) => setForm({ ...form, subtitle })} />
           <TextInput description={t('主标题背后淡淡的大号装饰文字，可以留空。')} label={t('背景文字')} value={form.backgroundText} onChange={(backgroundText) => setForm({ ...form, backgroundText })} />
           <FormGrid>
-            <ColorInput label={t('背景颜色')} placeholder="#0F172A" value={form.color} onChange={(color) => setForm({ ...form, color })} />
+            {/* 背景没有“默认”一说：纯色背景时颜色必填；图片/视频背景只能在这里改成纯色，留空则原样保留。 */}
+            <ColorInput description={config.home.background?.kind === 'color' ? undefined : t('当前是图片或视频背景；填写颜色会改为纯色背景，留空则保持不变。')} isRequired={config.home.background?.kind === 'color'} label={t('背景颜色')} placeholder="#0F172A" value={form.color} onChange={(color) => setForm({ ...form, color })} />
             <NumberInput description={t('0 为不加遮罩，数值越大背景越暗。')} label={t('遮罩浓度（%）')} maxValue={100} minValue={0} value={form.overlayPercent} onChange={(overlayPercent) => setForm({ ...form, overlayPercent })} />
           </FormGrid>
           <RadioInput label={t('文字颜色')} options={[{ value: 'light', label: t('浅色（深色背景用）') }, { value: 'dark', label: t('深色（浅色背景用）') }]} value={form.textColor} onChange={(textColor) => setForm({ ...form, textColor })} />
@@ -278,13 +279,15 @@ function FooterTab({ config, onSaved }: TabProps) {
       method: 'PUT', body: {
         footer: {
           ...config.footer, copyright: form.copyright, icpNumber: form.icpNumber || null, icpLink: form.icpLink || null, sourceCodeURL: form.sourceCodeURL,
-          links: form.links.filter((link) => link.text && link.url).map((link) => ({ linkId: link.linkId, text: link.text, target: { kind: 'external', url: link.url } })),
+          // 这里只编辑外链；经接口设置的站内文档/问答链接原样保留。
+          links: [...config.footer.links.filter((link) => link.target.kind !== 'external'), ...form.links.filter((link) => link.text && link.url).map((link) => ({ linkId: link.linkId, text: link.text, target: { kind: 'external' as const, url: link.url } }))],
         },
         expectedRevision: config.revision,
       },
     });
     onSaved();
   }, t('页脚已保存'));
+  const kept = config.footer.links.filter((link) => link.target.kind !== 'external').length;
   const setLink = (index: number, patch: Partial<{ text: string; url: string }>) => setForm((current) => ({ ...current, links: current.links.map((link, i) => i === index ? { ...link, ...patch } : link) }));
   return (
     <Panel title={t('页脚')} description={t('显示在公开站每个页面底部。')}>
@@ -295,8 +298,9 @@ function FooterTab({ config, onSaved }: TabProps) {
           <TextInput description={t('以 https:// 开头。')} label={t('ICP 备案链接')} type="url" value={form.icpLink} onChange={(icpLink) => setForm({ ...form, icpLink })} />
         </FormGrid>
         <TextInput isRequired description={t('页脚“源代码”链接指向的地址。')} label={t('源码链接')} type="url" value={form.sourceCodeURL} onChange={(sourceCodeURL) => setForm({ ...form, sourceCodeURL })} />
-        <Group title={t('自定义链接')} action={form.links.length < 10 ? <Button size="sm" variant="secondary" onPress={() => setForm({ ...form, links: [...form.links, { linkId: newId(), text: '', url: '' }] })}><Plus />{t('添加链接')}</Button> : null}>
+        <Group title={t('自定义链接')} action={form.links.length + kept < 10 ? <Button size="sm" variant="secondary" onPress={() => setForm({ ...form, links: [...form.links, { linkId: newId(), text: '', url: '' }] })}><Plus />{t('添加链接')}</Button> : null}>
           {!form.links.length && <p className="text-sm text-muted">{t('例如“联系我们”“隐私政策”，只支持 https 外链。')}</p>}
+          {kept > 0 && <p className="text-sm text-muted">{t('另有 {0} 个站内链接不能在这里编辑，保存时原样保留。', kept)}</p>}
           {form.links.map((link, index) => (
             <div key={link.linkId} className="flex flex-wrap items-start gap-2">
               <TextInput aria-label={t('链接文字')} className="sm:w-48" placeholder={t('链接文字')} value={link.text} onChange={(text) => setLink(index, { text })} />

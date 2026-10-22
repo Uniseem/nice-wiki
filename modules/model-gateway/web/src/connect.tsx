@@ -62,6 +62,8 @@ export function ConnectProviderDialog({ existing, onClose, onConnected }: { exis
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<CatalogProvider | 'custom' | null>(null);
   const [form, setForm] = useState({ providerId: '', displayName: '', adapter: 'openai_chat', baseUrl: 'https://', secret: '' });
+  // 供应方建好但密钥没存上时，重试只补存密钥，不再重复创建。
+  const [created, setCreated] = useState('');
   const { busy, run } = useAction();
 
   const choose = (item: CatalogProvider | 'custom') => {
@@ -84,7 +86,7 @@ export function ConnectProviderDialog({ existing, onClose, onConnected }: { exis
   const submit = async () => {
     const done = await run(async () => {
       let key = newKey();
-      await api(`/v1/admin/providers/${form.providerId}`, {
+      if (created !== form.providerId) await api(`/v1/admin/providers/${form.providerId}`, {
         method: 'PUT', idempotencyKey: key, body: {
           expectedVersion: 0, idempotencyKey: key, provider: {
             providerId: form.providerId, version: 1, adapter: form.adapter, baseUrl: form.baseUrl.replace(/\/+$/, ''), enabled: true, credentialVersion: 0, connectTimeoutMs: 5000, requestTimeoutMs: 60000,
@@ -92,6 +94,7 @@ export function ConnectProviderDialog({ existing, onClose, onConnected }: { exis
           },
         },
       });
+      setCreated(form.providerId);
       key = newKey();
       await api(`/v1/admin/providers/${form.providerId}/credentials`, { method: 'POST', idempotencyKey: key, body: { providerId: form.providerId, secret: form.secret, expectedVersion: 0, idempotencyKey: key } });
       return true;
@@ -126,7 +129,7 @@ export function ConnectProviderDialog({ existing, onClose, onConnected }: { exis
       onSubmit={() => void submit()}
     >
       <FormGrid>
-        <TextInput isRequired description={t('字母、数字和 . _ : -，之后不能改。')} label={t('供应方 ID')} pattern="[A-Za-z0-9._:-]+" value={form.providerId} onChange={(providerId) => setForm({ ...form, providerId })} />
+        <TextInput isRequired description={t('字母、数字和 . _ : -，之后不能改。')} isReadOnly={!!created && created === form.providerId} label={t('供应方 ID')} pattern="[A-Za-z0-9._:-]+" value={form.providerId} onChange={(providerId) => setForm({ ...form, providerId })} />
         <TextInput label={t('显示名')} value={form.displayName} onChange={(displayName) => setForm({ ...form, displayName })} />
       </FormGrid>
       <SelectInput label={t('协议')} options={['openai_chat', 'anthropic_messages', 'gemini'].map((value) => ({ value, label: protocolLabels[value] }))} value={form.adapter} onChange={(adapter) => setForm({ ...form, adapter })} />
@@ -204,7 +207,8 @@ export function AddModelsDialog({ providers, models, initialProviderId, onClose,
     if (!picked.length) return;
     const done = await run(async () => {
       const taken = new Set(models.map((model) => model.modelId));
-      for (const id of picked) {
+      // 上次中途失败时已加上的模型跳过，不再重复提交。
+      for (const id of picked.filter((item) => !added.has(item))) {
         const model = all.find((item) => item.providerModelId === id)!;
         const choice = chosen[id];
         const embedding = choice.capabilities.includes('embedding');
@@ -226,6 +230,7 @@ export function AddModelsDialog({ providers, models, initialProviderId, onClose,
       return true;
     }, t('已添加 {0} 个模型', picked.length));
     if (done) onSaved();
+    else onChanged();
   };
 
   return (

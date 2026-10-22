@@ -177,11 +177,13 @@ export default function ModelsPage() {
               <Section hint={t('每个 AI 任务默认走对应级别的档位；需要时可以为单个任务指定某个模型。')}>
                 <DataTable label={t('任务分配')} columns={[t('任务'), t('默认级别'), t('指定模型'), t('状态')]} empty="" rows={tasks.map((task) => {
                   const current = c.taskAssignments.find((item) => item.taskId === task[0]);
+                  // 只列出启用且具备该级别能力的模型（服务端同样会拒绝其他模型）；已指定的旧模型仍保留在列表里。
+                  const eligible = c.models.filter((model) => (model.enabled && model.capabilities.includes(tierCapability[task[1]])) || model.modelId === current?.overrideModelId);
                   return [
                     task[0],
                     <span><span className="block">{task[2]}</span><Mono>{task[0]}</Mono></span>,
                     <Chip size="sm" variant="soft">{tiers[task[1]]}</Chip>,
-                    <SelectInput aria-label={t('{0}指定模型', task[2])} className="w-56" isDisabled={busy} options={[{ value: '__tier', label: t('按档位') }, ...c.models.map((model) => ({ value: model.modelId, label: model.providerModelVersion }))]} value={current?.overrideModelId ?? '__tier'} onChange={(value) => void assign(task, value === '__tier' ? '' : value)} variant="primary" />,
+                    <SelectInput aria-label={t('{0}指定模型', task[2])} className="w-56" isDisabled={busy} options={[{ value: '__tier', label: t('按档位') }, ...eligible.map((model) => ({ value: model.modelId, label: model.providerModelVersion }))]} value={current?.overrideModelId ?? '__tier'} onChange={(value) => void assign(task, value === '__tier' ? '' : value)} variant="primary" />,
                     current ? <Chip color="success" size="sm" variant="soft">{t('已分配')}</Chip> : <Chip color="warning" size="sm" variant="soft">{t('未分配')}</Chip>,
                   ];
                 })} />
@@ -190,7 +192,7 @@ export default function ModelsPage() {
           </Tabs>
         </>
       )}
-      {dialog === 'provider' && c && <ConnectProviderDialog existing={c.providers} onClose={() => setDialog(null)} onConnected={(providerId) => { catalog.reload(); setModelsProvider(providerId); setDialog('models'); }} />}
+      {dialog === 'provider' && c && <ConnectProviderDialog existing={c.providers} onClose={() => { setDialog(null); catalog.reload(); }} onConnected={(providerId) => { catalog.reload(); setModelsProvider(providerId); setDialog('models'); }} />}
       {dialog === 'models' && c && <AddModelsDialog initialProviderId={modelsProvider} models={c.models} providers={c.providers} onChanged={catalog.reload} onClose={() => setDialog(null)} onManual={() => setDialog('manual-model')} onSaved={() => { setDialog(null); catalog.reload(); setTab('models'); }} />}
       {dialog === 'manual-model' && c && <ModelDialog providers={c.providers} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); catalog.reload(); setTab('models'); }} />}
       {(dialog === 'profile' || (dialog && typeof dialog === 'object')) && c && (
@@ -325,7 +327,10 @@ function ProfileDialog({ models, profile, onClose, onSaved }: { models: Model[];
     return { ...current, modelIds: ids };
   });
   const submit = async () => {
-    if (!form.modelIds.length) return;
+    if (!form.modelIds.length) {
+      notify.error(t('从下面选择至少一个模型。'));
+      return;
+    }
     const done = await run(async () => {
       const idempotencyKey = newKey();
       await api(`/v1/admin/profiles/${form.profileId}`, {
