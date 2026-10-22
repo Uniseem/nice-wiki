@@ -160,13 +160,13 @@ func validateUsageGatewayPage(page UsageGatewayPage, siteID string, upper, throu
 		switch observation.Kind {
 		case "invocation":
 			fact := observation.Invocation
+			// 未终止的调用可以所有尝试都已结束（上一次尝试结束、尚未重试或写终态的中间快照），不算矛盾。
 			if fact == nil ||
 				observation.Attempt != nil ||
 				observation.Reservation != nil ||
 				observation.EntityID != origin.InvocationID ||
 				observation.Deleted ||
-				(fact.Terminal && fact.ActiveExecution) ||
-				(!fact.Terminal && fact.AllAttemptsFinal) {
+				(fact.Terminal && fact.ActiveExecution) {
 				return platform.NewError(platform.CodeIntegrityError, false, "费用原调用观察关联矛盾")
 			}
 		case "attempt":
