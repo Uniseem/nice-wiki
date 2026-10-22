@@ -96,4 +96,7 @@ jobs:
       - name: 发布
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "nice-wiki $GITHUB_REF_NAME" --notes-from-tag --verify-tag
+        # checkout 会把附注标签换成轻量标签，--notes-from-tag 就会退回读提交说明；先取回原附注标签。
+        run: |
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          gh release create "$GITHUB_REF_NAME" dist/* --title "nice-wiki $GITHUB_REF_NAME" --notes-from-tag --verify-tag
