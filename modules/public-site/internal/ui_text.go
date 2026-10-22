@@ -12,6 +12,7 @@ import (
 // 页面自带的界面文字以简体中文为原文；其他语言先用 builtinUI 的内置译文，没有的退回英文。
 // 只替换固定文案，正文和用户填写的内容不经过这里。整句在前、片段在后（替换按参数顺序匹配）。
 var englishUI = strings.NewReplacer(
+	"搜索文档标题…", "Search page titles…", "没有找到相关文档", "No matching pages", "搜索文档", "Search docs", "搜索", "Search",
 	"要切换到这种语言阅读吗？", "Switch to this language?", "保持当前语言", "Keep current language", "切换", "Switch",
 	"当前语言的译文尚未完成，部分内容显示旧译文或原文。", "This translation is still in progress; some content shows an older translation or the original.",
 	"回答由 AI 生成，可能有误，请以文档原文为准。", "Answers are AI-generated and may be wrong; check the docs for details.",

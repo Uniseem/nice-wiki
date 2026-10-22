@@ -1,4 +1,4 @@
-import { Display, Globe, Moon, Sparkles, Sun } from '@gravity-ui/icons';
+import { Display, Globe, Magnifier, Moon, Sparkles, Sun } from '@gravity-ui/icons';
 import { Button, Dropdown, Label, Modal, useTheme } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import { rememberLanguage } from './enhance';
@@ -12,11 +12,17 @@ function nativeName(language: Language): string {
   try { return new Intl.DisplayNames([language.tag], { type: 'language' }).of(language.tag) ?? language.label; } catch { return language.label; }
 }
 
-export function HeaderActions({ config, t, onAsk, onAskIntent }: { config: Config; t: Translate; onAsk: () => void; onAskIntent?: () => void }) {
+export function HeaderActions({ config, t, onAsk, onAskIntent, onSearch, onSearchIntent }: { config: Config; t: Translate; onAsk: () => void; onAskIntent?: () => void; onSearch: () => void; onSearchIntent: () => void }) {
   const languages = config.languages ?? [];
   const current = languages.find((language) => language.current);
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   return (
     <>
+      <Button aria-label={t('搜索文档')} className="md:min-w-44 md:justify-start" size="sm" variant="ghost" onFocus={onSearchIntent} onHoverStart={onSearchIntent} onPress={onSearch}>
+        <Magnifier />
+        <span className="hidden text-muted md:inline">{t('搜索')}</span>
+        <kbd className="ms-auto hidden rounded border border-border px-1 font-sans text-[11px] leading-4 text-muted md:inline">{mac ? '⌘K' : 'Ctrl K'}</kbd>
+      </Button>
       {config.aiEnabled && (
         <Button size="sm" variant="secondary" onFocus={onAskIntent} onHoverStart={onAskIntent} onPress={onAsk}>
           <Sparkles />

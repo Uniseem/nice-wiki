@@ -17,13 +17,27 @@ const config: Config = (() => {
 const t = (key: string) => config.ui?.[key] ?? key;
 const loadNav = () => import('./nav-drawer');
 const MobileNav = lazy(loadNav);
+const loadSearch = () => import('./search');
+const Search = lazy(loadSearch);
 
 function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement | null }) {
   const [askOpen, setAskOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [navUsed, setNavUsed] = useState(false);
   const [suggested, setSuggested] = useState<Language | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchUsed, setSearchUsed] = useState(false);
   if (navOpen && !navUsed) setNavUsed(true);
+  if (searchOpen && !searchUsed) setSearchUsed(true);
+
+  // ⌘K / Ctrl+K 打开快速搜索（常见文档站的习惯）。
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'k') { event.preventDefault(); setSearchOpen(true); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // 语言建议：决策模型判断的用居中弹窗，规则判断的用页首提示条。
   useEffect(() => {
@@ -58,7 +72,8 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
 
   return (
     <I18nProvider locale={config.locale || document.documentElement.lang}>
-      {header && createPortal(<HeaderActions config={config} t={t} onAsk={onAsk} onAskIntent={ask ? undefined : preloadQa} />, header)}
+      {header && createPortal(<HeaderActions config={config} t={t} onAsk={onAsk} onAskIntent={ask ? undefined : preloadQa} onSearch={() => setSearchOpen(true)} onSearchIntent={() => { void loadSearch(); }} />, header)}
+      {searchUsed && <Suspense fallback={null}><Search locale={config.locale || document.documentElement.lang} open={searchOpen} t={t} onOpenChange={setSearchOpen} /></Suspense>}
       {navUsed && <Suspense fallback={null}><MobileNav open={navOpen} t={t} onOpenChange={setNavOpen} /></Suspense>}
       {config.aiEnabled && !ask && <QaFloating locale={config.locale} open={askOpen} t={t} onOpenChange={setAskOpen} />}
       {config.aiEnabled && ask && createPortal(<QaInline locale={config.locale} t={t} />, ask)}
