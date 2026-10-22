@@ -14,6 +14,56 @@ function range(hours: number): { from: string; to: string } {
   end.setUTCHours(end.getUTCHours() + 1);
   return { from: new Date(end.getTime() - hours * 3600_000).toISOString(), to: end.toISOString() };
 }
+// 审计里常见动作的可读名称；没列出的显示原始动作键。
+const actionLabels: Record<string, string> = {
+  'content.createDocument': t('新建文档'),
+  'content.updateDocumentMetadata': t('修改文档信息'),
+  'content.saveDraft': t('保存草稿'),
+  'content.publishDocument': t('发布文档'),
+  'content.withdrawDocument': t('撤回发布'),
+  'content.trashDocument': t('移入回收站'),
+  'content.restoreDocument': t('从回收站恢复'),
+  'content.purgeDocuments': t('彻底删除文档'),
+  'content.moveDocument': t('移动文档'),
+  'content.reorderChildren': t('调整文档顺序'),
+  'content.rollbackPublishedRevision': t('回滚到历史版本'),
+  'content.acquireEditLock': t('打开文档编辑'),
+  'content.releaseEditLock': t('结束文档编辑'),
+  'content.forceReleaseEditLock': t('强制解除编辑锁'),
+  'content.createPreviewGrant': t('预览草稿'),
+  'media.beginUpload': t('开始上传文件'),
+  'media.completeUpload': t('完成上传'),
+  'media.proposeManualCleanup': t('生成资源清理计划'),
+  'media.confirmManualCleanup': t('确认资源清理'),
+  'media.cancelManualCleanup': t('撤销资源清理'),
+  'identity.createSession': t('登录'),
+  'identity.revokeSession': t('撤销登录会话'),
+  'identity.changePassword': t('修改口令'),
+  'identity.createAccount': t('新建子账号'),
+  'identity.setAccountPermissions': t('修改账号权限'),
+  'identity.setAccountStatus': t('修改账号状态'),
+  'identity.resetAccountPassword': t('重置账号口令'),
+  'site-config.updateSiteConfig': t('修改站点基本信息'),
+  'site-config.updateBranding': t('修改品牌'),
+  'site-config.updateHome': t('修改首页'),
+  'site-config.updateBanner': t('修改公告横幅'),
+  'site-config.updateFooter': t('修改页脚'),
+  'localization.putLanguage': t('修改语言设置'),
+  'data-protection.createBackup': t('创建备份'),
+  'memory.createEntry': t('新建长期记忆'),
+  'memory.updateEntry': t('修改长期记忆'),
+  'memory.archiveEntry': t('归档长期记忆'),
+  'qa.putQaPolicy': t('修改问答策略'),
+  'traffic-guard.updatePolicy': t('修改防滥用策略'),
+  'traffic-guard.createBan': t('新建禁令'),
+  'model-gateway.putProvider': t('修改模型供应方'),
+  'model-gateway.putModel': t('修改模型'),
+};
+function ActionName({ action }: { action: string }) {
+  const label = actionLabels[action];
+  return label ? <span className="flex flex-col"><span>{label}</span><span className="font-mono text-xs text-muted">{action}</span></span> : <Mono>{action}</Mono>;
+}
+
 const presets: Record<string, [string, number]> = { day: [t('近 24 小时'), 24], week: [t('近 7 天'), 24 * 7], month: [t('近 30 天'), 24 * 30] };
 
 export default function AnalyticsPage() {
@@ -235,7 +285,7 @@ function AuditTab() {
                 {items.map((item) => (
                   <Table.Row key={item.auditJSON.auditId} id={item.auditJSON.auditId}>
                     <Table.Cell>{fmtDateTime(item.auditJSON.occurredAt)}</Table.Cell>
-                    <Table.Cell><Mono>{item.auditJSON.action}</Mono></Table.Cell>
+                    <Table.Cell><ActionName action={item.auditJSON.action} /></Table.Cell>
                     <Table.Cell>{actorOf(item.auditJSON.actorId)}</Table.Cell>
                     <Table.Cell>{item.auditJSON.resultCode}</Table.Cell>
                     <Table.Cell>{item.chainValid ? <Chip color="success" size="sm" variant="soft"><CircleCheck />{t('通过')}</Chip> : <Chip color="danger" size="sm" variant="soft"><CircleExclamation />{t('未通过')}</Chip>}</Table.Cell>
@@ -262,7 +312,7 @@ function AuditTab() {
               <Drawer.Body className="flex flex-col gap-4">
                 {detail.chainValid ? <Chip color="success" variant="soft"><CircleCheck />{t('本条内容与前驱链校验通过')}</Chip> : <Chip color="danger" variant="soft"><CircleExclamation />{t('链完整性校验未通过，请核查')}</Chip>}
                 <Details items={[
-                  [t('动作'), <Mono>{detail.auditJSON.action}</Mono>], [t('主体'), actorOf(detail.auditJSON.actorId)], [t('资源'), <Mono>{detail.auditJSON.resourceId}</Mono>],
+                  [t('动作'), <ActionName action={detail.auditJSON.action} />], [t('主体'), actorOf(detail.auditJSON.actorId)], [t('资源'), <Mono>{detail.auditJSON.resourceId}</Mono>],
                   [t('结果'), detail.auditJSON.resultCode], [t('发生时间'), fmtDateTime(detail.auditJSON.occurredAt)],
                 ]} />
                 <pre className="max-h-96 overflow-auto rounded-xl bg-surface-secondary p-3 font-mono text-xs leading-5">{JSON.stringify(detail.auditJSON, null, 2)}</pre>

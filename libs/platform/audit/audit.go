@@ -21,10 +21,11 @@ import (
 	"nice-wiki/libs/platform/serviceauth"
 )
 
-// readLike 是用 POST 发出的校验/只读类接口，不算后台写操作。
+// readLike 不算后台写操作：用 POST 发出的校验/只读类接口，以及编辑锁每 30 秒的自动续期（只是心跳，不是操作意图）。
 var readLike = map[string]bool{
 	"identity.checkAuthorization": true, "identity.verifySessionCSRF": true,
 	"content.validatePreviewGrant": true, "content.validatePublications": true, "content.diffRevisions": true,
+	"content.renewEditLock": true,
 }
 
 // 待交付事实的重试间隔：失败后从 2 秒起翻倍，最长 5 分钟。
