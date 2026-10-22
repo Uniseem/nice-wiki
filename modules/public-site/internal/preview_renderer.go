@@ -7,8 +7,10 @@ import (
 	"nice-wiki/libs/platform"
 )
 
-// previewNotice 预览页顶部的提示条：提醒这是草稿，访客看不到。
-const previewNotice = `<aside class="border-b border-warning/30 bg-warning-soft px-4 py-2 text-center text-sm text-foreground">草稿预览：访客看不到这个页面，发布后才会公开。</aside>`
+// previewNotice 预览页顶部的提示条：提醒这是草稿，访客看不到（按页面语言显示）。
+func previewNotice(locale string) string {
+	return `<aside class="border-b border-warning/30 bg-warning-soft px-4 py-2 text-center text-sm text-foreground">` + html.EscapeString(uiText(locale, nil, "草稿预览：访客看不到这个页面，发布后才会公开。")) + `</aside>`
+}
 
 type RenderPreviewInput struct {
 	PreviewID    string
@@ -63,7 +65,8 @@ func RenderPreview(ctx context.Context, op platform.OperationContext, in RenderP
 	targets := collectInternalLinks(parsed.Document)
 	links := map[string]string{}
 	if len(targets) > 0 {
-		resolved, err := RewriteInternalLinks(ctx, op, RewriteInternalLinksInput{targets, in.Snapshot.Metadata.SourceLanguage, string(op.DataEpoch)})
+		// 公开导航是访客可见的数据，用本服务身份读：预览请求带着管理员委托，content 的公开树只接受服务身份。
+		resolved, err := RewriteInternalLinks(platform.WithPortalProof(ctx, ""), op, RewriteInternalLinksInput{targets, in.Snapshot.Metadata.SourceLanguage, string(op.DataEpoch)})
 		if err != nil {
 			return RenderPreviewResult{}, err
 		}
@@ -82,7 +85,7 @@ func RenderPreview(ctx context.Context, op platform.OperationContext, in RenderP
 	page, err := ComposeHTML(ctx, op, ComposeHTMLInput{
 		SafeHTML: rendered.SafeHTML, Title: in.Snapshot.Metadata.Title, TOC: toc.Items, Navigation: []NavigationNode{},
 		Metadata: "<title>" + html.EscapeString(meta.pageTitle(in.Snapshot.Metadata.Title)) + "</title><meta name=\"robots\" content=\"noindex,nofollow\">",
-		Locale:   in.Snapshot.Metadata.SourceLanguage, DocumentID: in.Snapshot.Metadata.DocumentID, Announcement: previewNotice,
+		Locale:   in.Snapshot.Metadata.SourceLanguage, DocumentID: in.Snapshot.Metadata.DocumentID, Announcement: previewNotice(in.Snapshot.Metadata.SourceLanguage),
 		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor,
 	})
 	if err != nil {

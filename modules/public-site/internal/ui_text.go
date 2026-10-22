@@ -28,6 +28,7 @@ var englishUI = strings.NewReplacer(
 	"复制为 Markdown", "Copy as Markdown", "Markdown 版本", "Markdown version", "复制代码", "Copy code", "已复制", "Copied",
 	"跳到正文", "Skip to content", "开始阅读", "Start reading", "思考中…", "Thinking…", "感谢反馈", "Thanks for the feedback",
 	"有帮助", "Helpful", "没帮助", "Not helpful", "停止", "Stop",
+	"草稿预览：访客看不到这个页面，发布后才会公开。", "Draft preview: visitors can’t see this page until it is published.",
 	"目标暂不可用", "Target unavailable", "资源暂不可用", "Media unavailable", "打开视频", "Open video", "点击播放", "Play", "画板", "Drawing",
 	"最后更新", "Last updated", "上一篇", "Previous", "下一篇", "Next", "首页", "Home", "源代码", "Source code", "视频播放器", "Video player",
 	"文档", "Docs", "语言", "Language",
