@@ -1,0 +1,272 @@
+# 单机部署编排（发布包）：拉取 ghcr.io 上的发布镜像。由 scripts/gen_deploy.py 生成，勿手改。
+name: nice-wiki
+
+networks:
+  internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 198.51.100.0/24
+
+services:
+  portal:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-portal:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+      NW_ALLOW_LOCAL_HTTP: "false"
+      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
+    volumes:
+      - ./config/portal.json:/config/portal.json:ro
+      - ./secrets/portal/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/portal/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - portal-data:/data/portal
+      - ./secrets/portal/delegation-key.json:/run/secrets/delegation-key.json:ro
+      - ./secrets/portal/delegation.pem:/run/secrets/delegation.pem:ro
+      - ./secrets/budget/budget-key.json:/run/secrets/budget-key.json:ro
+      - ./secrets/budget/budget.pem:/run/secrets/budget.pem:ro
+
+  public-site:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-public-site:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/public-site.json:/config/public-site.json:ro
+      - ./secrets/public-site/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/public-site/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - public-site-data:/data/public-site
+
+  identity:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-identity:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+      NW_ALLOW_LOCAL_HTTP: "false"
+      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
+    volumes:
+      - ./config/identity.json:/config/identity.json:ro
+      - ./secrets/identity/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/identity/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - identity-data:/data/identity
+
+  site-config:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-site-config:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+      NW_ALLOW_LOCAL_HTTP: "false"
+      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
+    volumes:
+      - ./config/site-config.json:/config/site-config.json:ro
+      - ./secrets/site-config/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/site-config/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - site-config-data:/data/site-config
+
+  content:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-content:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/content.json:/config/content.json:ro
+      - ./secrets/content/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/content/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - content-data:/data/content
+
+  media:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-media:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/media.json:/config/media.json:ro
+      - ./secrets/media/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/media/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - media-data:/data/media
+
+  model-gateway:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-model-gateway:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    user: "0:0"
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/model-gateway.json:/config/model-gateway.json:ro
+      - ./secrets/model-gateway/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/model-gateway/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - model-gateway-data:/data/model-gateway
+      - ./secrets/model-gateway/master-key:/run/secrets/master-key:ro
+
+  knowledge:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-knowledge:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/knowledge.json:/config/knowledge.json:ro
+      - ./secrets/knowledge/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/knowledge/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - knowledge-data:/data/knowledge
+
+  qa:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-qa:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/qa.json:/config/qa.json:ro
+      - ./secrets/qa/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/qa/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - qa-data:/data/qa
+
+  localization:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-localization:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/localization.json:/config/localization.json:ro
+      - ./secrets/localization/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/localization/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - localization-data:/data/localization
+
+  memory:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-memory:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/memory.json:/config/memory.json:ro
+      - ./secrets/memory/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/memory/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - memory-data:/data/memory
+
+  traffic-guard:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-traffic-guard:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/traffic-guard.json:/config/traffic-guard.json:ro
+      - ./secrets/traffic-guard/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/traffic-guard/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - traffic-guard-data:/data/traffic-guard
+      - ./secrets/budget/budget-key.json:/run/secrets/budget-key.json:ro
+      - ./secrets/budget/budget.pem:/run/secrets/budget.pem:ro
+
+  jobs:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-jobs:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/jobs.json:/config/jobs.json:ro
+      - ./secrets/jobs/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/jobs/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - jobs-data:/data/jobs
+
+  analytics:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-analytics:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/analytics.json:/config/analytics.json:ro
+      - ./secrets/analytics/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/analytics/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - analytics-data:/data/analytics
+
+  data-protection:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-data-protection:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    user: "0:0"
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/data-protection.json:/config/data-protection.json:ro
+      - ./secrets/data-protection/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/data-protection/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - data-protection-data:/data/data-protection
+      - ./secrets/data-protection/master-key:/run/secrets/master-key:ro
+      - backups:/backups
+      - ./secrets:/backup-secrets:ro
+      - portal-data:/sources/portal:ro
+      - public-site-data:/sources/public-site:ro
+      - identity-data:/sources/identity:ro
+      - site-config-data:/sources/site-config:ro
+      - content-data:/sources/content:ro
+      - media-data:/sources/media:ro
+      - model-gateway-data:/sources/model-gateway:ro
+      - knowledge-data:/sources/knowledge:ro
+      - qa-data:/sources/qa:ro
+      - localization-data:/sources/localization:ro
+      - memory-data:/sources/memory:ro
+      - traffic-guard-data:/sources/traffic-guard:ro
+      - jobs-data:/sources/jobs:ro
+      - analytics-data:/sources/analytics:ro
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    networks: [internal]
+    ports: ["${NW_BIND:-0.0.0.0}:80:80", "${NW_BIND:-0.0.0.0}:443:443"]
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/conf.d:/etc/caddy/conf.d:ro
+      - ./secrets/tls:/run/tls:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [portal]
+
+volumes:
+  portal-data:
+  public-site-data:
+  identity-data:
+  site-config-data:
+  content-data:
+  media-data:
+  model-gateway-data:
+  knowledge-data:
+  qa-data:
+  localization-data:
+  memory-data:
+  traffic-guard-data:
+  jobs-data:
+  analytics-data:
+  data-protection-data:
+  backups:
+  caddy-data:
+  caddy-config:

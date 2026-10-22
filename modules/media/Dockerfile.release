@@ -1,0 +1,12 @@
+# media 发布镜像：直接打包发版流程已编译好的二进制（release/linux-<架构>/），不在镜像里再编译。
+# 构建上下文为仓库根，由 .github/workflows/release.yml 按 amd64/arm64 构建。由 scripts/gen_deploy.py 生成。
+FROM alpine:3.20
+RUN adduser -D -u 10005 media && mkdir -p /data/media && chown 10005:10005 /data/media
+ARG TARGETARCH
+COPY release/linux-${TARGETARCH}/media /usr/local/bin/media
+USER 10005:10005
+EXPOSE 8104
+VOLUME ["/data/media"]
+WORKDIR /config
+ENTRYPOINT ["/usr/local/bin/media"]
+CMD ["--config", "/config/media.json"]

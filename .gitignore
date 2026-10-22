@@ -3,6 +3,8 @@
 /.local/
 .env
 .env.*
+# 部署变量模板不含密钥，需要进仓库（README 让用户复制它）。
+!deploy/.env.example
 **/node_modules/
 **/dist/
 **/bin/

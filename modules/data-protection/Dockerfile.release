@@ -1,0 +1,12 @@
+# data-protection 发布镜像：直接打包发版流程已编译好的二进制（release/linux-<架构>/），不在镜像里再编译。
+# 构建上下文为仓库根，由 .github/workflows/release.yml 按 amd64/arm64 构建。由 scripts/gen_deploy.py 生成。
+FROM alpine:3.20
+RUN adduser -D -u 10014 data-protection && mkdir -p /data/data-protection && chown 10014:10014 /data/data-protection
+ARG TARGETARCH
+COPY release/linux-${TARGETARCH}/data-protection /usr/local/bin/data-protection
+USER 10014:10014
+EXPOSE 8113
+VOLUME ["/data/data-protection"]
+WORKDIR /config
+ENTRYPOINT ["/usr/local/bin/data-protection"]
+CMD ["--config", "/config/data-protection.json"]

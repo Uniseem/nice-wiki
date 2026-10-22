@@ -12,6 +12,7 @@ SERVICES = {  # slug: 端口
 STATELESS = {"portal", "public-site"}  # 不存业务数据，在线备份里没有它们的目录，恢复时不动它们的卷
 WEB_MODULES = ["portal", "content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection", "public-site"]
 SUBNET = "198.51.100.0/24"  # 文档保留地址段，仅作内部桥接网络的子网
+IMAGES = "ghcr.io/uniseem/nice-wiki"  # 发版流程推送的镜像：{IMAGES}-{slug}:{版本}
 
 
 def write(path, text):
@@ -48,9 +49,21 @@ COPY modules/{slug}/ modules/{slug}/
 WORKDIR /src/modules/{slug}
 RUN CGO_ENABLED=0 go build -trimpath -o /out/{slug} ./cmd/{slug}
 
-FROM alpine:3.20
+{runtime_stage(slug, port, f"COPY --from=build /out/{slug} /usr/local/bin/{slug}", copy_web)}"""
+
+
+def release_dockerfile(slug, port):
+    copy_web = "COPY release/web /web\nCOPY modules/portal/config/routes.json /config/routes.json\nENV NW_WEB_DIR=/web\n" if slug == "portal" else ""
+    return f"""# {slug} 发布镜像：直接打包发版流程已编译好的二进制（release/linux-<架构>/），不在镜像里再编译。
+# 构建上下文为仓库根，由 .github/workflows/release.yml 按 amd64/arm64 构建。由 scripts/gen_deploy.py 生成。
+{runtime_stage(slug, port, f"ARG TARGETARCH\nCOPY release/linux-${{TARGETARCH}}/{slug} /usr/local/bin/{slug}", copy_web)}"""
+
+
+def runtime_stage(slug, port, copy_binary, copy_web):
+    uid = 10000 + list(SERVICES).index(slug)
+    return f"""FROM alpine:3.20
 RUN adduser -D -u {uid} {slug} && mkdir -p /data/{slug} && chown {uid}:{uid} /data/{slug}
-COPY --from=build /out/{slug} /usr/local/bin/{slug}
+{copy_binary}
 {copy_web}USER {uid}:{uid}
 EXPOSE {port}
 VOLUME ["/data/{slug}"]
@@ -81,12 +94,17 @@ def service_config(slug, port):
     return cfg
 
 
-def compose():
-    lines = ["# 单机部署编排：由 scripts/gen_deploy.py 生成，勿手改。", "name: nice-wiki", "", "networks:", "  internal:", "    driver: bridge",
+def compose(release=False):
+    # 源码仓库里的编排在本机构建镜像；发布包里的编排只拉取发版推送的镜像，服务器上不用编译。
+    header = "# 单机部署编排（发布包）：拉取 ghcr.io 上的发布镜像。由 scripts/gen_deploy.py 生成，勿手改。" if release else "# 单机部署编排：由 scripts/gen_deploy.py 生成，勿手改。"
+    lines = [header, "name: nice-wiki", "", "networks:", "  internal:", "    driver: bridge",
              "    ipam:", "      config:", f"        - subnet: {SUBNET}", "", "services:"]
     for slug, port in SERVICES.items():
-        lines += [f"  {slug}:", f"    build:", "      context: ..", f"      dockerfile: modules/{slug}/Dockerfile",
-                  f"    image: nice-wiki/{slug}:${{NW_VERSION:-dev}}", "    restart: unless-stopped", "    networks: [internal]",
+        if release:
+            lines += [f"  {slug}:", f"    image: ${{NW_IMAGES:-{IMAGES}}}-{slug}:${{NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}}"]
+        else:
+            lines += [f"  {slug}:", f"    build:", "      context: ..", f"      dockerfile: modules/{slug}/Dockerfile", f"    image: nice-wiki/{slug}:${{NW_VERSION:-dev}}"]
+        lines += ["    restart: unless-stopped", "    networks: [internal]",
                   "    environment:", "      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}"]
         if slug in ("model-gateway", "data-protection"):
             # 主密钥文件要求权限 0600（只有属主可读），容器里的普通服务用户读不到，这两个服务以 root 运行。
@@ -117,11 +135,46 @@ def compose():
     return "\n".join(lines)
 
 
+RELEASE_README = """# nice-wiki 部署包
+
+单机部署：15 个服务以 Docker 镜像运行（从 ghcr.io 拉取发布镜像，服务器上不用编译，也不需要 Go），前面由 Caddy 终止 HTTPS。
+
+需要：Linux 服务器（amd64 或 arm64）、Docker 及 compose 插件、已解析到服务器的域名、可用的 80/443 端口。
+
+## 首次部署
+
+在解压出的目录里执行：
+
+```sh
+sh deploy/init-secrets.sh                 # 生成各服务密钥，写入 deploy/secrets（务必另行备份，丢了无法恢复数据）
+cp deploy/.env.example deploy/.env        # 把 SITE_DOMAIN 改成你的域名；NW_VERSION 已是本包版本
+docker compose -f deploy/docker-compose.yml up -d
+```
+
+然后用浏览器打开 `https://你的域名/admin`，选语言、注册超级管理员并填站名。
+
+尚未开放公网、只经 SSH 隧道访问时，把 `deploy/.env` 里的 `NW_BIND` 改成 `127.0.0.1`。
+
+## 升级
+
+数据在 Docker 卷里，不随目录变化。下载新版本的部署包并解压，把旧目录里的 `deploy/secrets`、`deploy/.env`、`deploy/caddy/conf.d` 拷到新目录，
+把 `deploy/.env` 里的 `NW_VERSION` 改成新版本，再在新目录执行 `docker compose -f deploy/docker-compose.yml up -d`。
+
+## 其他
+
+- 备份与恢复：`deploy/backup.sh`、`deploy/restore.sh`、`deploy/restore-archive.sh`，说明见源码仓库的 `deploy/README.md`；放在 Cloudflare 后面等定制也在那里。
+- `bin/` 与 `web/` 是同版本的二进制和前端产物，不用 Docker 部署时可以直接使用。
+"""
+
+
 def main():
     for slug, port in SERVICES.items():
         write(f"modules/{slug}/Dockerfile", dockerfile(slug, port))
+        write(f"modules/{slug}/Dockerfile.release", release_dockerfile(slug, port))
         write(f"deploy/config/{slug}.json", json.dumps(service_config(slug, port), indent=2, ensure_ascii=False) + "\n")
     write("deploy/docker-compose.yml", compose())
+    write("deploy/release/docker-compose.yml", compose(release=True))
+    write("deploy/release/README.md", RELEASE_README)
     write("deploy/caddy/Caddyfile", """# 只有 portal 对外：访客页面、后台和接口都经它代理到各服务。
 # 部署相关的定制（例如放在 Cloudflare 后面：源站证书、只放行 Cloudflare 回源、取真实访客 IP）
 # 写成 conf.d 下的 global-*.caddy / site-*.caddy，本地文件不进 git，见 deploy/README.md。
@@ -161,14 +214,18 @@ NW_BIND=0.0.0.0
 """)
     write("deploy/init-secrets.sh", """#!/bin/sh
 # 首次部署：生成各服务的签名密钥与公钥表，并写出容器内使用的引用文件。
-# 需要 Go；私钥只写入 deploy/secrets（已在 .gitignore 里），不要提交。
+# 发布包自带 bin/nw-keys，不需要 Go；在源码仓库里运行时用 Go 现场编译。私钥只写入 deploy/secrets，不要提交。
 set -eu
 cd "$(dirname "$0")/.."
-# secretsDir 是相对仓库根的路径，所以要在仓库根运行工具（先编译出来）。
-tool=$(mktemp)
-(cd libs/platform && go build -o "$tool" ./cmd/nw-keys)
+# secretsDir 是相对发布包根（或仓库根）的路径，所以要在这里运行工具。
+if [ -x bin/nw-keys ]; then
+	tool=bin/nw-keys
+else
+	tool=$(mktemp)
+	(cd libs/platform && go build -o "$tool" ./cmd/nw-keys)
+fi
 "$tool" --services deploy/config/services.json --out deploy/config/trust-anchors.json --budget-dir deploy/secrets/budget
-rm -f "$tool"
+[ "$tool" = bin/nw-keys ] || rm -f "$tool"
 budget=$(ls deploy/secrets/budget/budget-*.pem | head -n1)
 cp "$budget" deploy/secrets/budget/budget.pem
 printf '{"keyId":"%s","privateKeyRef":"/run/secrets/budget.pem"}\\n' "$(basename "$budget" .pem | sed 's/^budget-//')" > deploy/secrets/budget/budget-key.json
@@ -194,7 +251,7 @@ find deploy/secrets -type d -exec chmod 755 {} +
 find deploy/secrets -type f -exec chmod 644 {} +
 chmod 600 deploy/secrets/model-gateway/master-key deploy/secrets/data-protection/master-key
 chmod 700 deploy/secrets
-echo "密钥已生成；下一步：cp deploy/.env.example deploy/.env 并修改域名，然后 docker compose -f deploy/docker-compose.yml up -d --build"
+echo "密钥已生成；下一步：cp deploy/.env.example deploy/.env 并修改域名，然后 docker compose -f deploy/docker-compose.yml up -d（在源码仓库里加 --build 本机构建）"
 """)
     os.chmod(os.path.join(ROOT, "deploy/init-secrets.sh"), 0o755)
     volumes = " ".join(f"nice-wiki_{s}-data" for s in SERVICES)
