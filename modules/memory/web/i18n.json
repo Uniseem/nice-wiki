@@ -1,20 +1,4 @@
 {
- "und 表示所有语言。": {
-  "zh-Hant": "und 表示所有語言。",
-  "en": "und means all languages.",
-  "ja": "und はすべての言語を表します。",
-  "ko": "und는 모든 언어를 뜻합니다.",
-  "fr": "und signifie toutes les langues.",
-  "de": "und steht für alle Sprachen.",
-  "es": "und significa todos los idiomas.",
-  "pt": "und significa todos os idiomas.",
-  "ru": "und — все языки.",
-  "it": "und indica tutte le lingue.",
-  "vi": "und nghĩa là mọi ngôn ngữ.",
-  "th": "und หมายถึงทุกภาษา",
-  "id": "und berarti semua bahasa.",
-  "ar": "und تعني كل اللغات."
- },
  "{0} / {1} 字节，支持 Markdown。": {
   "zh-Hant": "{0} / {1} 位元組，支援 Markdown。",
   "en": "{0} / {1} bytes. Markdown is supported.",
@@ -287,6 +271,22 @@
   "id": "Pulihkan",
   "ar": "استعادة"
  },
+ "所有语言": {
+  "zh-Hant": "所有語言",
+  "en": "All languages",
+  "ja": "すべての言語",
+  "ko": "모든 언어",
+  "fr": "Toutes les langues",
+  "de": "Alle Sprachen",
+  "es": "Todos los idiomas",
+  "pt": "Todos os idiomas",
+  "ru": "Все языки",
+  "it": "Tutte le lingue",
+  "vi": "Tất cả ngôn ngữ",
+  "th": "ทุกภาษา",
+  "id": "Semua bahasa",
+  "ar": "جميع اللغات"
+ },
  "新建记忆": {
   "zh-Hant": "新建記憶",
   "en": "New memory",
@@ -527,22 +527,6 @@
   "id": "Ditempatkan di awal prompt sistem model jawaban saat pengunjung bertanya.",
   "ar": "توضع في بداية موجّه النظام لنموذج الإجابة عندما يسأل الزائر."
  },
- "语言": {
-  "zh-Hant": "語言",
-  "en": "Language",
-  "ja": "言語",
-  "ko": "언어",
-  "fr": "Langue",
-  "de": "Sprache",
-  "es": "Idioma",
-  "pt": "Idioma",
-  "ru": "Язык",
-  "it": "Lingua",
-  "vi": "Ngôn ngữ",
-  "th": "ภาษา",
-  "id": "Bahasa",
-  "ar": "اللغة"
- },
  "说明": {
   "zh-Hant": "說明",
   "en": "Description",
@@ -606,6 +590,38 @@
   "th": "ยังไม่มีหน่วยความจำ",
   "id": "Belum ada memori",
   "ar": "لا توجد ذكريات بعد"
+ },
+ "适用语言": {
+  "zh-Hant": "適用語言",
+  "en": "Applies to",
+  "ja": "対象言語",
+  "ko": "적용 언어",
+  "fr": "Langue concernée",
+  "de": "Gilt für Sprache",
+  "es": "Idioma aplicable",
+  "pt": "Idioma aplicável",
+  "ru": "Язык применения",
+  "it": "Lingua di applicazione",
+  "vi": "Ngôn ngữ áp dụng",
+  "th": "ภาษาที่ใช้",
+  "id": "Bahasa yang berlaku",
+  "ar": "اللغة المطبَّقة"
+ },
+ "选了某种语言时，只有这种语言的问答（以及基准语言是它时的索引）会用到；一般选“所有语言”。": {
+  "zh-Hant": "選了某種語言時，只有這種語言的問答（以及基準語言是它時的索引）會用到；一般選「所有語言」。",
+  "en": "If you pick a language, only Q&A in that language (and indexing when it’s the base language) uses this. Usually choose “All languages”.",
+  "ja": "言語を選ぶと、その言語での質問応答（および基準言語がその言語の場合のインデックス作成）でのみ使われます。通常は「すべての言語」を選んでください。",
+  "ko": "언어를 고르면 그 언어의 문답(그리고 기준 언어가 그 언어일 때의 색인)에서만 사용됩니다. 보통은 ‘모든 언어’를 선택하세요.",
+  "fr": "Si vous choisissez une langue, seules les questions-réponses dans cette langue (et l’indexation quand c’est la langue de base) l’utilisent. En général, choisissez « Toutes les langues ».",
+  "de": "Bei einer bestimmten Sprache wird der Eintrag nur für Fragen in dieser Sprache genutzt (und für die Indexierung, wenn sie die Basissprache ist). Meist „Alle Sprachen“ wählen.",
+  "es": "Si eliges un idioma, solo lo usarán las preguntas en ese idioma (y la indexación cuando sea el idioma base). Normalmente elige «Todos los idiomas».",
+  "pt": "Se você escolher um idioma, só as perguntas nesse idioma (e a indexação quando ele for o idioma base) vão usá-la. Normalmente escolha “Todos os idiomas”.",
+  "ru": "Если выбрать язык, запись будет использоваться только в вопросах на этом языке (и при индексации, если он базовый). Обычно выбирайте «Все языки».",
+  "it": "Se scegli una lingua, la useranno solo le domande in quella lingua (e l’indicizzazione quando è la lingua di base). Di solito scegli «Tutte le lingue».",
+  "vi": "Nếu chọn một ngôn ngữ, chỉ phần hỏi đáp bằng ngôn ngữ đó (và việc lập chỉ mục khi đó là ngôn ngữ cơ sở) mới dùng mục này. Thường hãy chọn “Tất cả ngôn ngữ”.",
+  "th": "หากเลือกภาษาใดภาษาหนึ่ง จะใช้เฉพาะในถามตอบภาษานั้น (และการทำดัชนีเมื่อเป็นภาษาหลัก) โดยทั่วไปให้เลือก “ทุกภาษา”",
+  "id": "Jika memilih satu bahasa, hanya tanya jawab dalam bahasa itu (dan pengindeksan bila itu bahasa dasar) yang memakainya. Biasanya pilih “Semua bahasa”.",
+  "ar": "إذا اخترت لغة، فلن تُستخدم إلا في الأسئلة بتلك اللغة (وفي الفهرسة عندما تكون اللغة الأساسية). عادةً اختر «جميع اللغات»."
  },
  "逗号分隔。": {
   "zh-Hant": "以逗號分隔。",

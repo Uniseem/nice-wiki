@@ -1,6 +1,6 @@
 import { BookOpen, Pencil, Plus } from '@gravity-ui/icons';
 import { Button, Card, Chip, Drawer, Form, Tabs } from '@heroui/react';
-import { adminLanguage, api, CheckGroupInput, EmptyBlock, ErrorBlock, errorText, fmtRelative, FormGrid, LoadingBlock, newKey, NumberInput, PageHeader, TextAreaInput, TextInput, useAction, useLoad, t } from '@ui';
+import { api, CheckGroupInput, EmptyBlock, ErrorBlock, errorText, fmtRelative, FormGrid, LoadingBlock, newKey, NumberInput, PageHeader, SelectInput, siteLanguages, TextAreaInput, TextInput, useAction, useLoad, t } from '@ui';
 import { useState } from 'react';
 
 type Entry = {
@@ -44,6 +44,13 @@ async function syncMappings(entryId: string, language: string, chosen: string[],
     await api(`/v1/mappings/${mappingId}`, { method: 'PUT', idempotencyKey, body: { expectedRevision: 0, idempotencyKey, mapping: { mappingId, taskId, entryId, language, order: 0, enabled: true, revision: 0 } } });
   }
 }
+
+// 问答按访客语言、索引按基准语言挑记忆，只认相同语言或 und（所有语言）；记忆是给模型的指令，默认对所有语言生效。
+const languageOptions = (current: string) => [
+  { value: 'und', label: t('所有语言') },
+  ...siteLanguages.map((language) => ({ value: language.tag, label: `${language.native} (${language.tag})` })),
+  ...(current === 'und' || siteLanguages.some((language) => language.tag === current) ? [] : [{ value: current, label: current }]),
+];
 
 const maxBytes = 4096;
 const bytesOf = (text: string) => new TextEncoder().encode(text).length;
@@ -101,7 +108,7 @@ export default function MemoryPage() {
                   </div>
                   <p className="line-clamp-4 whitespace-pre-wrap rounded-xl bg-surface-secondary px-3 py-2 font-mono text-xs leading-5 text-muted">{entry.body}</p>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <Chip size="sm" variant="soft">{entry.language}</Chip>
+                    <Chip size="sm" variant="soft">{entry.language === 'und' ? t('所有语言') : entry.language}</Chip>
                     {entry.tags.map((tag) => <Chip key={tag} size="sm" variant="tertiary">#{tag}</Chip>)}
                     {entry.readonly && <Chip color="warning" size="sm" variant="soft">{t('只读')}</Chip>}
                     {mappings.data && (() => {
@@ -137,7 +144,7 @@ export default function MemoryPage() {
 // existing 是该条目现有的任务映射；还没读到时为 undefined，先不让保存，免得重复添加。
 function EntryDrawer({ entry, existing, onClose, onSaved }: { entry: Entry | null; existing: Mapping[] | undefined; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
-    title: entry?.title ?? '', description: entry?.description ?? '', body: entry?.body ?? '', language: entry?.language ?? adminLanguage(), priority: entry?.priority ?? 50, tags: entry?.tags.join(', ') ?? '',
+    title: entry?.title ?? '', description: entry?.description ?? '', body: entry?.body ?? '', language: entry?.language ?? 'und', priority: entry?.priority ?? 50, tags: entry?.tags.join(', ') ?? '',
   });
   const [chosen, setChosen] = useState<string[] | null>(entry ? null : ['qa']);
   const used = chosen ?? (existing ? scopesOf(existing) : []);
@@ -198,7 +205,7 @@ function EntryDrawer({ entry, existing, onClose, onSaved }: { entry: Entry | nul
                 onChange={(body) => setForm({ ...form, body })}
               />
               <FormGrid columns={3}>
-                <TextInput description={t('und 表示所有语言。')} label={t('语言')} value={form.language} onChange={(language) => setForm({ ...form, language })} />
+                <SelectInput description={t('选了某种语言时，只有这种语言的问答（以及基准语言是它时的索引）会用到；一般选“所有语言”。')} label={t('适用语言')} options={languageOptions(form.language)} value={form.language} onChange={(language) => setForm({ ...form, language })} />
                 <NumberInput description={t('越大越优先。')} label={t('优先级')} maxValue={100} minValue={1} value={form.priority} onChange={(priority) => setForm({ ...form, priority })} />
                 <TextInput description={t('逗号分隔。')} label={t('标签')} value={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
               </FormGrid>
