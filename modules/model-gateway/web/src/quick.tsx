@@ -1,7 +1,7 @@
 // OpenRouter 一键配置：只填一个密钥，供应方、模型、档位、任务分配，以及知识索引、防滥用和公开问答一次配好。
 // 决策用 TypeSafe Jev，向量用 text-embedding-3-small，其余（快速、准确、视觉）都用 DeepSeek Flash。
 import { Button, Form, Modal } from '@heroui/react';
-import { api, ApiError, newKey, TextInput, useAction, t } from '@ui';
+import { api, ApiError, newKey, notify, TextInput, useAction, t } from '@ui';
 import { guardDefaults } from '@modules/traffic-guard/web/src';
 import { useState } from 'react';
 
@@ -42,7 +42,7 @@ const put = (path: string, body: Record<string, unknown>, method: 'PUT' | 'POST'
 };
 const missing = (problem: unknown) => problem instanceof ApiError && problem.status === 404;
 
-async function configure(secret: string, step: (label: string) => void) {
+async function configure(secret: string, step: (label: string) => void): Promise<TestResult[]> {
   const c = await api<Catalog>('/v1/admin/catalog');
   step(t('保存密钥'));
   const existing = c.providers.find((provider) => provider.providerId === providerId);
@@ -116,19 +116,47 @@ async function configure(secret: string, step: (label: string) => void) {
   }
   const qa = await api<{ policy: Record<string, unknown>; version: number }>('/v1/admin/policy');
   await put('/v1/admin/policy', { expectedVersion: qa.version, policy: { ...qa.policy, enabled: true, retrievalSpace: space } });
+
+  // 每个模型真实调用一次（极小的请求），把供应方的回应直接摆出来：密钥、余额、模型名、服务器出网有问题当场就能看到。
+  step(t('测试连接'));
+  const results: TestResult[] = [];
+  for (const preset of presetModels) results.push(await probe(ids[preset.modelId], preset.providerModelVersion));
+  return results;
+}
+
+type TestResult = { name: string; ok: boolean; detail: string };
+type ProbeSummary = { invocation: { invocationId: string; state: string }; latencyMs?: number; httpStatus?: number; failureCode?: string; providerMessage?: string };
+const finished = ['succeeded', 'failed', 'cancelled', 'charge_unknown', 'reconciled'];
+
+async function probe(modelId: string, name: string): Promise<TestResult> {
+  const idempotencyKey = newKey();
+  const created = await api<{ invocation: { invocationId: string } }>(`/v1/providers/${providerId}:probe`, { method: 'POST', idempotencyKey, body: { providerId, modelId, idempotencyKey } });
+  for (let waited = 0; waited < 40_000; waited += 1500) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const c = await api<{ providers: { providerId: string; lastProbe?: ProbeSummary }[] }>('/v1/admin/catalog');
+    const last = c.providers.find((item) => item.providerId === providerId)?.lastProbe;
+    if (last?.invocation.invocationId !== created.invocation.invocationId || !finished.includes(last.invocation.state)) continue;
+    if (last.invocation.state === 'succeeded') return { name, ok: true, detail: t('正常，{0} 毫秒', last.latencyMs ?? 0) };
+    if (!last.httpStatus) return { name, ok: false, detail: t('连不上 OpenRouter：服务器访问不了外网，或被防火墙拦截。{0}', last.providerMessage ?? '') };
+    return { name, ok: false, detail: `HTTP ${last.httpStatus}${last.providerMessage ? `：${last.providerMessage}` : ''}` };
+  }
+  return { name, ok: false, detail: t('等了 40 秒还没有结果') };
 }
 
 export function OpenRouterSetupDialog({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [secret, setSecret] = useState('');
   const [current, setCurrent] = useState('');
+  const [results, setResults] = useState<TestResult[] | null>(null);
   const { busy, run } = useAction();
   const submit = async () => {
-    const done = await run(async () => { await configure(secret.trim(), setCurrent); return true; }, t('AI 已全部配置好，翻译和索引会自动开始'));
+    const tested = await run(() => configure(secret.trim(), setCurrent));
     setCurrent('');
-    if (done) onDone();
+    if (!tested) return;
+    setResults(tested);
+    if (tested.every((item) => item.ok)) notify.success(t('AI 已全部配置好，翻译和索引会自动开始'));
   };
   return (
-    <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
+    <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open && !busy) (results ? onDone : onClose)(); }}>
       <Modal.Container size="md">
         <Modal.Dialog>
           <Modal.CloseTrigger aria-label={t('关闭')} />
@@ -138,10 +166,24 @@ export function OpenRouterSetupDialog({ onClose, onDone }: { onClose: () => void
               <p className="text-sm leading-6 text-muted">{t('填入 OpenRouter 的 API 密钥，一次配好全部 AI：决策用 Jev，向量用 text-embedding-3-small，其余都用 DeepSeek Flash；同时开启知识索引并为已发布文档建索引、保存防滥用默认值、打开公开问答。之后翻译和索引都会自动进行。')}</p>
               <TextInput isRequired autoComplete="off" description={t('只在提交时传输一次，保存后加密存放，界面不会再显示。')} label={t('OpenRouter API 密钥')} type="password" value={secret} onChange={setSecret} />
               {current && <p className="text-sm text-muted">{t('正在{0}…', current)}</p>}
+              {results && (
+                <ul className="flex flex-col gap-2 rounded-xl border border-border p-3 text-sm">
+                  {results.map((item) => (
+                    <li key={item.name} className="flex flex-col gap-0.5">
+                      <span className="font-mono text-xs text-muted">{item.name}</span>
+                      <span className={item.ok ? 'text-success' : 'text-danger'}>{item.ok ? '✓ ' : '✗ '}{item.detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Modal.Body>
             <Modal.Footer>
-              <Button isDisabled={busy} variant="tertiary" onPress={onClose}>{t('取消')}</Button>
-              <Button isDisabled={!secret.trim()} isPending={busy} type="submit">{t('开始配置')}</Button>
+              {results ? <Button onPress={onDone}>{t('关闭')}</Button> : (
+                <>
+                  <Button isDisabled={busy} variant="tertiary" onPress={onClose}>{t('取消')}</Button>
+                  <Button isDisabled={!secret.trim()} isPending={busy} type="submit">{t('开始配置')}</Button>
+                </>
+              )}
             </Modal.Footer>
           </Form>
         </Modal.Dialog>

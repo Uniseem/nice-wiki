@@ -11,7 +11,7 @@ SERVICES = {  # slug: 端口
 }
 STATELESS = {"portal", "public-site"}  # 不存业务数据，在线备份里没有它们的目录，恢复时不动它们的卷
 WEB_MODULES = ["portal", "content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection", "public-site"]
-SUBNET = "198.51.100.0/24"  # 文档保留地址段，仅作内部桥接网络的子网
+SUBNET = "10.231.97.0/24"  # 内部桥接网络：用私有网段（服务器防火墙通常只给私有网段放行转发，文档保留段的容器出不了网），避开 Docker 默认地址池
 IMAGES = "ghcr.io/uniseem/nice-wiki"  # 发版流程（scripts/release.sh）推送的镜像：{IMAGES}-{slug}:{版本}
 
 

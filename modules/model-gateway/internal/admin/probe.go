@@ -96,6 +96,23 @@ func ReadLatestProbes(ctx context.Context, op OperationContext, tx *sql.Tx, prov
 				}
 				latency := int((responded - attempt.DispatchedNS) / int64(time.Millisecond))
 				summary.LatencyMs = &latency
+				// 失败时把供应方的 HTTP 状态和错误说明带给后台，方便当场看出原因（余额、模型名、隐私设置等）。
+				outcome, err := invocation.ReadAttemptEvidence(execution, attempt.Attempt.AttemptId)
+				if err != nil {
+					return err
+				}
+				if outcome.HTTPStatus > 0 {
+					status := outcome.HTTPStatus
+					summary.HttpStatus = &status
+				}
+				if outcome.Code != "" {
+					code := outcome.Code
+					summary.FailureCode = &code
+				}
+				if outcome.ProviderMessage != "" {
+					message := outcome.ProviderMessage
+					summary.ProviderMessage = &message
+				}
 			}
 		}
 		provider.LastProbe = &summary

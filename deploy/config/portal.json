@@ -23,6 +23,6 @@
   "budgetKeyRef": "/run/secrets/budget-key.json",
   "delegationKeyRef": "/run/secrets/delegation-key.json",
   "trustedProxyCIDRs": [
-    "198.51.100.0/24"
+    "10.231.97.0/24"
   ]
 }

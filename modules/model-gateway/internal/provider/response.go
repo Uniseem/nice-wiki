@@ -33,6 +33,7 @@ type ProviderOutcome struct {
 	AcceptanceProof string                `json:"acceptanceProof"`
 	Code            string                `json:"code"`
 	OutputStarted   bool                  `json:"outputStarted"`
+	ProviderMessage string                `json:"providerMessage,omitempty"`
 }
 type providerFrame struct {
 	ID           string  `json:"id"`
@@ -90,9 +91,10 @@ type providerFrame struct {
 		Values []float64 `json:"values"`
 	} `json:"embeddings"`
 	Error *struct {
-		Type   string `json:"type"`
-		Code   any    `json:"code"`
-		Status string `json:"status"`
+		Type    string `json:"type"`
+		Code    any    `json:"code"`
+		Status  string `json:"status"`
+		Message string `json:"message"`
 	} `json:"error"`
 }
 type providerUsage struct {
@@ -277,16 +279,21 @@ func ConsumeProviderFrame(raw []byte, adapter, capability, expectedModel, curren
 		if outcome.HTTPStatus >= 400 && outcome.HTTPStatus < 500 && slices.Contains([]string{"invalid_api_key", "authentication_error", "permission_error", "invalid_request_error", "model_not_found", "rate_limit_exceeded", "rate_limit_error", "INVALID_ARGUMENT", "UNAUTHENTICATED", "PERMISSION_DENIED", "NOT_FOUND", "RESOURCE_EXHAUSTED"}, code) {
 			outcome.AcceptanceProof = "not_accepted"
 		}
-		if os.Getenv("NW_DEBUG") != "" {
-			// 只记 HTTP 状态和供应方错误码，不记请求正文或密钥。
-			fmt.Fprintf(os.Stderr, "供应方返回错误 status=%d code=%v\n", outcome.HTTPStatus, code)
-		}
+		// 供应方的错误说明（如余额不足、模型不存在、隐私设置拦截）留作诊断证据并写日志；不记请求正文或密钥。
+		outcome.ProviderMessage = providerMessage(frame.Error.Message)
+		fmt.Fprintf(os.Stderr, "供应方返回错误 status=%d code=%v message=%q\n", outcome.HTTPStatus, code, outcome.ProviderMessage)
 		outcome.Code = platform.CodeDependencyUnavailable
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "供应方明确返回错误，原费用证据保留")
 	}
 	if capability == "embedding" {
-		if (frame.Model != "" && frame.Model != expectedModel) || (frame.ModelVersion != "" && frame.ModelVersion != expectedModel) {
-			return platform.NewError(platform.CodeStaleResult, false, "返回嵌入模型版本与固定请求版本不一致")
+		// 聚合网关（如 OpenRouter）可能只回模型名、不带厂商前缀，按去掉前缀后的名字比对。
+		bare := func(name string) string { return name[strings.LastIndex(name, "/")+1:] }
+		for _, returned := range []string{frame.Model, frame.ModelVersion} {
+			if returned != "" && returned != expectedModel && bare(returned) != bare(expectedModel) {
+				outcome.ProviderMessage = providerMessage("返回的向量模型是 " + returned)
+				fmt.Fprintf(os.Stderr, "供应方返回的向量模型与请求不一致 expected=%s returned=%s\n", expectedModel, returned)
+				return platform.NewError(platform.CodeStaleResult, false, "返回嵌入模型版本与固定请求版本不一致")
+			}
 		}
 		vectors := make([][]float64, 0)
 		if adapter == "openai_embeddings" {
@@ -397,6 +404,8 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 		if !sent.Load() {
 			outcome.AcceptanceProof = "not_accepted"
 		}
+		outcome.ProviderMessage = providerMessage(err.Error())
+		fmt.Fprintf(os.Stderr, "供应方请求未完成 url=%s err=%q\n", request.URL, outcome.ProviderMessage)
 		return outcome, platform.NewError(platform.CodeDependencyUnavailable, false, "供应方请求未完成，原费用状态不能假定为零")
 	}
 	defer response.Body.Close()
@@ -513,9 +522,7 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 		}
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		if os.Getenv("NW_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "供应方HTTP状态 status=%d\n", response.StatusCode)
-		}
+		fmt.Fprintf(os.Stderr, "供应方HTTP状态 status=%d url=%s\n", response.StatusCode, request.URL)
 		return outcome, platform.NewError(platform.CodeDependencyUnavailable, false, "供应方HTTP状态不表示成功")
 	}
 	outcome.AcceptanceProof = "accepted"
@@ -541,4 +548,13 @@ func (r *providerIdleReader) Read(data []byte) (int, error) {
 		r.idle.Reset(r.duration)
 	}
 	return n, err
+}
+
+// providerMessage 把供应方错误说明压成一行、最多 300 个字符，供诊断显示和日志。
+func providerMessage(text string) string {
+	text = strings.Join(strings.Fields(text), " ")
+	if runes := []rune(text); len(runes) > 300 {
+		text = string(runes[:300])
+	}
+	return text
 }

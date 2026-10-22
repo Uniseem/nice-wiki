@@ -3179,7 +3179,7 @@
         "summary": "显式测试连接",
         "x-handler": "model-gateway.CreateConnectionProbe",
         "x-permission": "superadmin",
-        "x-timeout-ms": 5000,
+        "x-timeout-ms": 30000,
         "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 superadmin；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
         "parameters": [
           {

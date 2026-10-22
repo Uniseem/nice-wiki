@@ -161,7 +161,8 @@ def scan_privacy(label, text):
             address = ipaddress.ip_address(value)
         except ValueError:
             continue
-        if not address.is_loopback and not address.is_unspecified and not any(address in n for n in networks):
+        # 私有网段（如容器内网）不指向任何真实主机，与文档保留段一样允许。
+        if not address.is_loopback and not address.is_unspecified and not address.is_private and not any(address in n for n in networks):
             fail(label, '非文档IPv4地址，具体值不输出')
 
 

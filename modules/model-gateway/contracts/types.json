@@ -5547,6 +5547,22 @@
           "minimum": 0,
           "maximum": 9007199254740991,
           "description": "实际dispatched_ns至持久供应方响应evidence.recorded_ns耗时；没有响应证据不提供"
+        },
+        "httpStatus": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999,
+          "description": "供应方响应的 HTTP 状态；没有响应证据不提供"
+        },
+        "failureCode": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "诊断失败时的错误码；成功不提供"
+        },
+        "providerMessage": {
+          "type": "string",
+          "maxLength": 1200,
+          "description": "供应方返回的错误说明（截断到 300 字符，不含请求正文和密钥）；没有不提供"
         }
       },
       "required": [

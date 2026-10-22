@@ -110,7 +110,12 @@ func CreateProbeInvocation(ctx context.Context, op OperationContext, input gen.C
 		return result, platform.NewError(platform.CodeDependencyUnavailable, false, "诊断渠道尚未启用或没有真实凭据")
 	}
 	request := gen.CreateInvocationInput{IdempotencyKey: input.IdempotencyKey, Messages: []gen.GatewayMessage{}, Texts: []string{}, CandidateIds: []string{}}
-	switch string(provider.Adapter) {
+	// 一个供应方可同时挂对话和向量模型（向量走 /embeddings），按模型能力选探测方式。
+	adapter := string(provider.Adapter)
+	if slices.Contains(model.Capabilities, "embedding") {
+		adapter = "openai_embeddings"
+	}
+	switch adapter {
 	case "openai_embeddings", "gemini_embeddings":
 		request.Capability = "embedding"
 		request.Texts = []string{"OK"}
@@ -131,7 +136,7 @@ func CreateProbeInvocation(ctx context.Context, op OperationContext, input gen.C
 		if !slices.Contains(model.Capabilities, "chat") && slices.Contains(model.Capabilities, "translation") {
 			request.Capability = "translation"
 		}
-		request.MaximumOutputTokens = 1
+		request.MaximumOutputTokens = 16
 		request.Messages = []gen.GatewayMessage{{Role: "user", Content: "OK"}}
 	}
 	if !slices.Contains(model.Capabilities, string(request.Capability)) {
@@ -142,7 +147,7 @@ func CreateProbeInvocation(ctx context.Context, op OperationContext, input gen.C
 		return result, err
 	}
 	now := time.Now().UTC()
-	if bound := now.Add(5 * time.Second); deadline.After(bound) {
+	if bound := now.Add(30 * time.Second); deadline.After(bound) {
 		deadline = bound
 	}
 	op.Deadline = deadline.Format(time.RFC3339Nano)

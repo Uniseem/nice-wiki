@@ -1819,6 +1819,12 @@ export interface components {
             createdAt: components["schemas"]["Timestamp"];
             /** @description 实际dispatched_ns至持久供应方响应evidence.recorded_ns耗时；没有响应证据不提供 */
             latencyMs?: number;
+            /** @description 供应方响应的 HTTP 状态；没有响应证据不提供 */
+            httpStatus?: number;
+            /** @description 诊断失败时的错误码；成功不提供 */
+            failureCode?: string;
+            /** @description 供应方返回的错误说明（截断到 300 字符，不含请求正文和密钥）；没有不提供 */
+            providerMessage?: string;
         };
         /** @description 后台安全供应方投影，不含秘密引用或密文；最近探测另待实施。 */
         ProviderSummary: {
