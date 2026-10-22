@@ -1,6 +1,6 @@
 #!/bin/sh
 # 从后台“备份与恢复”页下载的 tar.gz 备份恢复（归档里每个顶层目录对应一个服务的数据卷）。会覆盖当前数据卷，请先确认。
-# 先核对归档可读且每个服务都有数据，停机后逐卷解到暂存目录，全部解好才替换；失败时原数据不动或被换回。
+# 先核对归档可读且每个有状态服务都有数据（入口和公开站不存数据，不在归档里），停机后逐卷解到暂存目录，全部解好才替换；失败时原数据不动或被换回。
 # 恢复后目录统一收紧为仅属主可访问（服务要求数据目录私有）。
 # 密钥不在默认备份里：需要原来的 deploy/secrets（同一套签名密钥与主密钥）。
 # 用法：deploy/restore-archive.sh <备份 tar.gz 或 tar.gz.enc 的绝对路径>
@@ -23,7 +23,7 @@ case "$archive" in
 esac
 docker run --rm -v "$archive":/in/backup.tar.gz:ro alpine tar tzf /in/backup.tar.gz > "$list" || { echo "备份文件不可读，未做任何改动"; exit 1; }
 volumes=""
-for slug in portal public-site identity site-config content media model-gateway knowledge qa localization memory traffic-guard jobs analytics; do
+for slug in identity site-config content media model-gateway knowledge qa localization memory traffic-guard jobs analytics; do
 	grep -q "^$slug/" "$list" || { echo "备份里缺少 $slug 的数据，未做任何改动"; exit 1; }
 	volumes="$volumes nice-wiki_$slug-data"
 done

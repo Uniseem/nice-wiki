@@ -9,6 +9,7 @@ SERVICES = {  # slug: 端口
     "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108, "memory": 8109,
     "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113,
 }
+STATELESS = {"portal", "public-site"}  # 不存业务数据，在线备份里没有它们的目录，恢复时不动它们的卷
 WEB_MODULES = ["portal", "content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection", "public-site"]
 SUBNET = "198.51.100.0/24"  # 文档保留地址段，仅作内部桥接网络的子网
 
@@ -272,7 +273,7 @@ done
     os.chmod(os.path.join(ROOT, "deploy/restore.sh"), 0o755)
     write("deploy/restore-archive.sh", r"""#!/bin/sh
 # 从后台“备份与恢复”页下载的 tar.gz 备份恢复（归档里每个顶层目录对应一个服务的数据卷）。会覆盖当前数据卷，请先确认。
-# 先核对归档可读且每个服务都有数据，停机后逐卷解到暂存目录，全部解好才替换；失败时原数据不动或被换回。
+# 先核对归档可读且每个有状态服务都有数据（入口和公开站不存数据，不在归档里），停机后逐卷解到暂存目录，全部解好才替换；失败时原数据不动或被换回。
 # 恢复后目录统一收紧为仅属主可访问（服务要求数据目录私有）。
 # 密钥不在默认备份里：需要原来的 deploy/secrets（同一套签名密钥与主密钥）。
 # 用法：deploy/restore-archive.sh <备份 tar.gz 或 tar.gz.enc 的绝对路径>
@@ -321,7 +322,7 @@ done
 if grep -q '^secrets/' "$list"; then
 	mkdir -p secrets-restored && tar xzf "$archive" -C secrets-restored --strip-components=1 secrets && echo "备份里的密钥已解到 deploy/secrets-restored，确认后用它替换 deploy/secrets"
 fi
-""".replace("@SLUGS@", " ".join(s for s in SERVICES if s != "data-protection")).replace("@ABORT@", abort_staging).replace("@SWAP@", swap_steps))
+""".replace("@SLUGS@", " ".join(s for s in SERVICES if s not in STATELESS and s != "data-protection")).replace("@ABORT@", abort_staging).replace("@SWAP@", swap_steps))
     os.chmod(os.path.join(ROOT, "deploy/restore-archive.sh"), 0o755)
 
 
