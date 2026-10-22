@@ -266,20 +266,20 @@ services:
       - ./secrets/data-protection/master-key:/run/secrets/master-key:ro
       - backups:/backups
       - ./secrets:/backup-secrets:ro
-      - portal-data:/sources/portal
-      - public-site-data:/sources/public-site
-      - identity-data:/sources/identity
-      - site-config-data:/sources/site-config
-      - content-data:/sources/content
-      - media-data:/sources/media
-      - model-gateway-data:/sources/model-gateway
-      - knowledge-data:/sources/knowledge
-      - qa-data:/sources/qa
-      - localization-data:/sources/localization
-      - memory-data:/sources/memory
-      - traffic-guard-data:/sources/traffic-guard
-      - jobs-data:/sources/jobs
-      - analytics-data:/sources/analytics
+      - portal-data:/sources/portal:ro
+      - public-site-data:/sources/public-site:ro
+      - identity-data:/sources/identity:ro
+      - site-config-data:/sources/site-config:ro
+      - content-data:/sources/content:ro
+      - media-data:/sources/media:ro
+      - model-gateway-data:/sources/model-gateway:ro
+      - knowledge-data:/sources/knowledge:ro
+      - qa-data:/sources/qa:ro
+      - localization-data:/sources/localization:ro
+      - memory-data:/sources/memory:ro
+      - traffic-guard-data:/sources/traffic-guard:ro
+      - jobs-data:/sources/jobs:ro
+      - analytics-data:/sources/analytics:ro
 
   caddy:
     image: caddy:2-alpine

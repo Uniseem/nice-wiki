@@ -237,8 +237,14 @@ func writeBackupArchive(ctx context.Context, target string, sources map[string]s
 	return manifest, nil
 }
 
+// vacuumInto 从只读挂载的来源库取一致快照。服务在运行时库旁有 -wal/-shm，只读打开即可读到 WAL 里的最新提交；
+// 服务已停、-wal 不在时只读目录里建不了 -shm，此时库文件就是全部内容，按 immutable 打开。
 func vacuumInto(ctx context.Context, path, target string) error {
-	db, err := sql.Open("sqlite", "file:"+path+"?mode=ro&_pragma=busy_timeout(5000)")
+	options := "?mode=ro&_pragma=busy_timeout(5000)"
+	if _, err := os.Stat(path + "-wal"); errors.Is(err, fs.ErrNotExist) {
+		options += "&immutable=1"
+	}
+	db, err := sql.Open("sqlite", "file:"+path+options)
 	if err != nil {
 		return err
 	}

@@ -104,8 +104,9 @@ def compose():
         if slug in ("model-gateway", "data-protection"):
             lines += [f"      - ./secrets/{slug}/master-key:/run/secrets/master-key:ro"]
         if slug == "data-protection":
-            # 简易备份只读取各服务数据目录（代码里只读打开，SQLite 用 VACUUM INTO 取快照）；WAL 库需要能访问 -shm，所以不加 :ro。
-            lines += ["      - backups:/backups", "      - ./secrets:/backup-secrets:ro"] + [f"      - {s}-data:/sources/{s}" for s in SERVICES if s != slug]
+            # 简易备份只读取各服务数据目录：只读挂载，保护服务（以 root 运行）也改不了其他域的数据。
+            # SQLite 只读打开时会退回进程内的 WAL 索引，仍能读到 WAL 里的最新提交（VACUUM INTO 取快照），写入只落在自己的 backups 卷。
+            lines += ["      - backups:/backups", "      - ./secrets:/backup-secrets:ro"] + [f"      - {s}-data:/sources/{s}:ro" for s in SERVICES if s != slug]
         lines.append("")
     lines += ["  caddy:", "    image: caddy:2-alpine", "    restart: unless-stopped", "    networks: [internal]",
               "    ports: [\"${NW_BIND:-0.0.0.0}:80:80\", \"${NW_BIND:-0.0.0.0}:443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
@@ -212,64 +213,115 @@ done
 echo "备份已写入 $out（时间戳 $stamp）；请同时妥善保管 deploy/secrets，没有密钥无法恢复。"
 """)
     os.chmod(os.path.join(ROOT, "deploy/backup.sh"), 0o755)
-    write("deploy/restore.sh", f"""#!/bin/sh
+    # 两个恢复脚本共用的换卷步骤：数据先解到卷内 .restore-incoming（同一文件系统，换上只是改名），
+    # 全部解好才逐卷换上，原数据挪进 .restore-previous；任何一卷失败就把所有卷换回原数据。
+    swap_steps = r"""# 换上：原数据挪进 .restore-previous（挪完留标记），再把暂存挪到卷根。
+swap='set -e
+mkdir /data/.restore-previous
+find /data -mindepth 1 -maxdepth 1 ! -name .restore-incoming ! -name .restore-previous -exec sh -c "mv \"\$@\" /data/.restore-previous/" sh {} +
+touch /data/.restore-previous/.restore-complete
+find /data/.restore-incoming -mindepth 1 -maxdepth 1 -exec sh -c "mv \"\$@\" /data/" sh {} +
+rmdir /data/.restore-incoming'
+# 换回：有标记说明卷根已是新数据，先清掉；再把原数据挪回卷根。
+back='set -e
+if [ -d /data/.restore-previous ]; then
+	if [ -f /data/.restore-previous/.restore-complete ]; then
+		rm /data/.restore-previous/.restore-complete
+		find /data -mindepth 1 -maxdepth 1 ! -name .restore-previous -exec rm -rf {} +
+	fi
+	find /data/.restore-previous -mindepth 1 -maxdepth 1 -exec sh -c "mv \"\$@\" /data/" sh {} +
+	rmdir /data/.restore-previous
+fi
+rm -rf /data/.restore-incoming'
+for volume in $volumes; do
+	if ! docker run --rm -v "$volume":/data alpine sh -c "$swap"; then
+		for v in $volumes; do docker run --rm -v "$v":/data alpine sh -c "$back"; done
+		echo "替换 $volume 失败，所有数据卷已换回原数据"
+		exit 1
+	fi
+done
+for volume in $volumes; do docker run --rm -v "$volume":/data alpine rm -rf /data/.restore-previous; done
+echo "恢复完成"
+"""
+    abort_staging = r"""for v in $volumes; do docker run --rm -v "$v":/data alpine rm -rf /data/.restore-incoming; done"""
+    write("deploy/restore.sh", r"""#!/bin/sh
 # 过渡方案：从 backup.sh 生成的备份恢复。会覆盖当前数据卷，请先确认。
+# 先核对全部归档都在且可读，停机后逐卷解到暂存目录，全部解好才替换；失败时原数据不动或被换回。
 # 用法：deploy/restore.sh <备份目录> <时间戳>
 set -eu
 cd "$(dirname "$0")"
-dir="$1"; stamp="$2"
+dir="$(cd "$1" && pwd)"; stamp="$2"
+volumes="@VOLUMES@"
+for volume in $volumes; do
+	[ -f "$dir/$volume-$stamp.tar.gz" ] || { echo "缺少 $volume-$stamp.tar.gz，未做任何改动"; exit 1; }
+	docker run --rm -v "$dir":/in:ro alpine tar tzf "/in/$volume-$stamp.tar.gz" > /dev/null || { echo "$volume-$stamp.tar.gz 已损坏，未做任何改动"; exit 1; }
+done
 printf '将用备份 %s 覆盖当前所有数据卷，输入 yes 继续：' "$stamp"
 read answer
 [ "$answer" = yes ] || exit 1
 docker compose stop
-for volume in {volumes}; do
-	docker run --rm -v "$volume":/data -v "$(cd "$dir" && pwd)":/in alpine sh -c "rm -rf /data/* /data/.[!.]* 2>/dev/null; tar xzf /in/$volume-$stamp.tar.gz -C /data"
+trap 'docker compose start' EXIT
+for volume in $volumes; do
+	if ! docker run --rm -v "$volume":/data -v "$dir":/in:ro alpine sh -c "set -e; rm -rf /data/.restore-incoming /data/.restore-previous; mkdir /data/.restore-incoming; tar xzf /in/$volume-$stamp.tar.gz -C /data/.restore-incoming"; then
+		@ABORT@
+		echo "解包 $volume 失败（空间不足或归档损坏），已清掉暂存，原数据未改动"
+		exit 1
+	fi
 done
-docker compose start
-""")
+@SWAP@""".replace("@VOLUMES@", volumes).replace("@ABORT@", abort_staging).replace("@SWAP@", swap_steps))
     os.chmod(os.path.join(ROOT, "deploy/restore.sh"), 0o755)
-    write("deploy/restore-archive.sh", f"""#!/bin/sh
+    write("deploy/restore-archive.sh", r"""#!/bin/sh
 # 从后台“备份与恢复”页下载的 tar.gz 备份恢复（归档里每个顶层目录对应一个服务的数据卷）。会覆盖当前数据卷，请先确认。
+# 先核对归档可读且每个服务都有数据，停机后逐卷解到暂存目录，全部解好才替换；失败时原数据不动或被换回。
 # 恢复后目录统一收紧为仅属主可访问（服务要求数据目录私有）。
 # 密钥不在默认备份里：需要原来的 deploy/secrets（同一套签名密钥与主密钥）。
 # 用法：deploy/restore-archive.sh <备份 tar.gz 或 tar.gz.enc 的绝对路径>
 set -eu
 cd "$(dirname "$0")"
 archive="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+list="$(mktemp "$PWD/.restore-list.XXXXXX")"
+plain=""
+cleanup() { rm -f "$list"; [ -z "$plain" ] || rm -f "$plain"; }
+trap cleanup EXIT
 # 带 .enc 后缀的是设了下载口令的加密备份：先用 openssl 解密到临时文件（会提示输入口令）。
 case "$archive" in
 	*.enc)
 		plain="$(mktemp "$PWD/.restore-plain.XXXXXX")"   # 放在 deploy 目录下，容器才能挂载到；脚本结束会删除
-		trap 'rm -f "$plain"' EXIT
 		# 口令默认交互输入；脚本化时可设环境变量 NW_BACKUP_PASSPHRASE。
-		if [ -n "${{NW_BACKUP_PASSPHRASE:-}}" ]; then pass_arg="-pass env:NW_BACKUP_PASSPHRASE"; else pass_arg=""; fi
-		openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 $pass_arg -in "$archive" -out "$plain" || {{ echo "解密失败（口令不对或文件损坏），未做任何改动"; exit 1; }}
+		if [ -n "${NW_BACKUP_PASSPHRASE:-}" ]; then pass_arg="-pass env:NW_BACKUP_PASSPHRASE"; else pass_arg=""; fi
+		openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 $pass_arg -in "$archive" -out "$plain" || { echo "解密失败（口令不对或文件损坏），未做任何改动"; exit 1; }
 		archive="$plain"
 		;;
 esac
-docker run --rm -v "$archive":/in/backup.tar.gz:ro alpine tar tzf /in/backup.tar.gz > /dev/null || {{ echo "备份文件不可读，未做任何改动"; exit 1; }}
+docker run --rm -v "$archive":/in/backup.tar.gz:ro alpine tar tzf /in/backup.tar.gz > "$list" || { echo "备份文件不可读，未做任何改动"; exit 1; }
+volumes=""
+for slug in @SLUGS@; do
+	grep -q "^$slug/" "$list" || { echo "备份里缺少 $slug 的数据，未做任何改动"; exit 1; }
+	volumes="$volumes nice-wiki_$slug-data"
+done
 printf '将用 %s 覆盖当前所有数据卷，输入 yes 继续：' "$archive"
 read answer
 [ "$answer" = yes ] || exit 1
 docker compose stop
-for slug in {" ".join(s for s in SERVICES if s != "data-protection")}; do
-	docker run --rm -v "nice-wiki_$slug-data":/data -v "$archive":/in/backup.tar.gz:ro alpine sh -c "
+trap 'cleanup; docker compose start' EXIT
+for volume in $volumes; do
+	slug="${volume#nice-wiki_}"; slug="${slug%-data}"
+	if ! docker run --rm -v "$volume":/data -v "$archive":/in/backup.tar.gz:ro alpine sh -c "
 		set -e
-		tar tzf /in/backup.tar.gz | grep '^$slug/' > /tmp/list || exit 0
-		owner=\\$(stat -c %u:%g /data)
-		rm -rf /data/incoming-restore && mkdir /data/incoming-restore
-		tar xzf /in/backup.tar.gz -C /data/incoming-restore -T /tmp/list --strip-components=1
-		find /data -mindepth 1 -maxdepth 1 ! -name incoming-restore -exec rm -rf {{}} +
-		find /data/incoming-restore -mindepth 1 -maxdepth 1 -exec mv {{}} /data/ \\\\;
-		rmdir /data/incoming-restore
-		chmod -R go-rwx /data && chown -R \\$owner /data"
+		rm -rf /data/.restore-incoming /data/.restore-previous && mkdir /data/.restore-incoming
+		tar tzf /in/backup.tar.gz | grep '^$slug/' > /tmp/list
+		tar xzf /in/backup.tar.gz -C /data/.restore-incoming -T /tmp/list --strip-components=1
+		chmod -R go-rwx /data/.restore-incoming && chown -R \$(stat -c %u:%g /data) /data/.restore-incoming"; then
+		@ABORT@
+		echo "解包 $slug 失败（空间不足或归档损坏），已清掉暂存，原数据未改动"
+		exit 1
+	fi
 done
-# 备份若包含密钥（超管勾选过），解到 ./secrets-restored，请自行核对后替换 deploy/secrets。
-if docker run --rm -v "$archive":/in/backup.tar.gz:ro alpine tar tzf /in/backup.tar.gz | grep -q '^secrets/'; then
+@SWAP@# 备份若包含密钥（超管勾选过），解到 ./secrets-restored，请自行核对后替换 deploy/secrets。
+if grep -q '^secrets/' "$list"; then
 	mkdir -p secrets-restored && tar xzf "$archive" -C secrets-restored --strip-components=1 secrets && echo "备份里的密钥已解到 deploy/secrets-restored，确认后用它替换 deploy/secrets"
 fi
-docker compose start
-""")
+""".replace("@SLUGS@", " ".join(s for s in SERVICES if s != "data-protection")).replace("@ABORT@", abort_staging).replace("@SWAP@", swap_steps))
     os.chmod(os.path.join(ROOT, "deploy/restore-archive.sh"), 0o755)
 
 
