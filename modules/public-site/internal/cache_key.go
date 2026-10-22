@@ -23,7 +23,7 @@ type BuildCacheKeyResult struct{ Key string }
 func BuildCacheKey(ctx context.Context, op platform.OperationContext, in BuildCacheKeyInput) (BuildCacheKeyResult, error) {
 	hash := sha256.New()
 	var length [8]byte
-	for _, field := range []string{"public-site-renderer-v2", in.DataEpoch, in.DocumentID, strconv.FormatInt(in.PublicationRevision, 10), strconv.FormatInt(in.MetadataRevision, 10), in.Locale, strconv.FormatInt(in.ThemeRevision, 10)} {
+	for _, field := range []string{"public-site-renderer-v2:" + assetVersion, in.DataEpoch, in.DocumentID, strconv.FormatInt(in.PublicationRevision, 10), strconv.FormatInt(in.MetadataRevision, 10), in.Locale, strconv.FormatInt(in.ThemeRevision, 10)} {
 		binary.BigEndian.PutUint64(length[:], uint64(len(field)))
 		hash.Write(length[:])
 		hash.Write([]byte(field))

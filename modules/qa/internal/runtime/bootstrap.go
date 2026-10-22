@@ -426,6 +426,26 @@ func ReadPublishedDocument(ctx context.Context, op OperationContext, ref gen.Pub
 	return document, nil
 }
 
+// ReadCurrentDocument 读文档当前公开的正文（不指定修订、不经知识索引），访客所在页面还没建好索引时也能交给回答模型。
+func ReadCurrentDocument(ctx context.Context, op OperationContext, documentID string) (PublishedDocument, error) {
+	runtime, err := FromContext(ctx)
+	if err != nil {
+		return PublishedDocument{}, err
+	}
+	if runtime.Content == nil {
+		return PublishedDocument{}, platform.NewError(platform.CodeDependencyUnavailable, false, "正文权威未装配")
+	}
+	raw, err := runtime.Content.ReadPublishedRevision(ServiceReadContext(ctx, op), documentID)
+	if err != nil {
+		return PublishedDocument{}, err
+	}
+	var document PublishedDocument
+	if err := DecodeResponse(runtime, "ContentReadPublishedRevisionResult", raw, &document); err != nil {
+		return PublishedDocument{}, err
+	}
+	return document, nil
+}
+
 // ValidateCitations 检查精确发布引用和规范块hash，不依赖事件是否已经抵达。
 func ValidateCitations(ctx context.Context, op OperationContext, citations []gen.Citation, language string) ([]gen.Citation, error) {
 	documents := make(map[string]PublishedDocument)

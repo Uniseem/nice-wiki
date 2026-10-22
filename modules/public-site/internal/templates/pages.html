@@ -8,10 +8,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 {{.Head}}
 <script>(function(){try{var t=localStorage.getItem('heroui-theme')||'system';if(t==='system')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.add(t);document.documentElement.setAttribute('data-theme',t)}catch(e){}})()</script>
-<link rel="stylesheet" href="/_site/site.css">
+<link rel="stylesheet" href="{{asset "site.css"}}">
 {{if .Accent}}<style>:root{--accent:{{.Accent}};--focus:{{.Accent}}}</style>{{end}}
 {{.ExtraHead}}
-<script type="module" src="/_site/site.js"></script>
+<script type="module" src="{{asset "site.js"}}"></script>
 </head>
 <body class="flex min-h-dvh flex-col bg-background text-foreground antialiased" data-doc="{{.DocumentID}}" data-locale="{{.Locale}}" data-page="{{.Kind}}">
 <a class="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-surface focus:px-4 focus:py-2 focus:shadow-overlay" href="#nw-main">{{.T "跳到正文"}}</a>
@@ -130,7 +130,7 @@
 <html lang="{{.Locale}}" dir="{{.Dir}}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>{{.Title}}</title>
 <script>(function(){try{var t=localStorage.getItem('heroui-theme')||'system';if(t==='system')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.add(t)}catch(e){}})()</script>
-<link rel="stylesheet" href="/_site/site.css"></head>
+<link rel="stylesheet" href="{{asset "site.css"}}"></head>
 <body class="flex min-h-dvh items-center justify-center bg-background px-4 text-foreground antialiased">
 <main class="card card--default w-full max-w-md items-center gap-3 p-8 text-center">
   <p class="text-5xl font-semibold tabular-nums text-muted">{{.Code}}</p>

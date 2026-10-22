@@ -232,8 +232,10 @@ func assembleBackgroundTasks(bind func(context.Context) context.Context, siteID,
 			if err := domainruntime.RecoverExtractionTasks(ctx, op, 100); err != nil {
 				return err
 			}
-			_, err := domainruntime.RecoverBuildLeases(ctx, op, domainruntime.RecoverBuildLeasesInput{Now: platform.Now(), Limit: 100})
-			return err
+			if _, err := domainruntime.RecoverBuildLeases(ctx, op, domainruntime.RecoverBuildLeasesInput{Now: platform.Now(), Limit: 100}); err != nil {
+				return err
+			}
+			return build.RetryFailedBuilds(ctx, op)
 		}),
 		batch("knowledge.gc", 60000, func(ctx context.Context, op platform.OperationContext) error {
 			if time.Now().Before(nextGC) {

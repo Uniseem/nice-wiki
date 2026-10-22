@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"html/template"
 	"regexp"
+	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,7 +22,22 @@ import (
 //go:embed templates/*.html
 var templateFS embed.FS
 
-var pageTemplates = template.Must(template.ParseFS(templateFS, "templates/*.html"))
+var pageTemplates = template.Must(template.New("").Funcs(template.FuncMap{"asset": assetURL}).ParseFS(templateFS, "templates/*.html"))
+
+// assetVersion 区分每次发版的前端产物：/_site/ 下的 site.css、site.js 文件名固定，CDN 和浏览器会按 URL 缓存几个小时，
+// 带上版本参数后升级立刻生效。取二进制里嵌入的提交号（发版时每个服务都重新编译），没有时用启动时间。
+var assetVersion = func() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" && len(setting.Value) >= 12 {
+				return setting.Value[:12]
+			}
+		}
+	}
+	return strconv.FormatInt(time.Now().Unix(), 36)
+}()
+
+func assetURL(name string) string { return "/_site/" + name + "?v=" + assetVersion }
 
 type ComposeHTMLInput struct {
 	SafeHTML      string

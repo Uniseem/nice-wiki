@@ -220,7 +220,8 @@ func (l *workerLoop) execute(ctx context.Context, workerID string, job platform.
 			},
 		})
 		if executeErr != nil {
-			debugSkip(job, "执行函数返回错误", executeErr)
+			// 失败原因只有这里看得到（任务记录只留错误码），总是写日志；错误文字由各域给出，不含密钥和正文。
+			fmt.Fprintf(os.Stderr, "任务失败 type=%s job=%s attempt=%d err=%v\n", job.JobType, job.JobID, job.Attempt, executeErr)
 			result.State = platform.JobFailed
 			result.ErrorCode = platform.CodeInternal
 			var failure *platform.Error

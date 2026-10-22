@@ -153,10 +153,10 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	page := answer.RetrieveEvidenceResult{Citations: []gen.Citation{}, EvidenceText: "[]"}
 	if currentDocument != "" {
 		step(gen.Page, gen.Running, "阅读当前页面", "", nil)
-		read, err := answer.ReadDocuments(ctx, op, answer.ReadDocumentsInput{TurnID: turnID, DocumentIDs: []string{currentDocument}, Language: record.Language, MaximumTokens: budget})
-		if err == nil && len(read.Citations) > 0 {
+		read, title, err := answer.ReadCurrentPage(ctx, op, answer.ReadDocumentsInput{TurnID: turnID, DocumentIDs: []string{currentDocument}, Language: record.Language, MaximumTokens: budget})
+		if err == nil {
 			page = read
-			step(gen.Page, gen.Done, "阅读当前页面", "", []string{read.Citations[0].Title})
+			step(gen.Page, gen.Done, "阅读当前页面", "", []string{title})
 		} else {
 			step(gen.Page, gen.Skipped, "阅读当前页面", "", nil)
 		}
@@ -398,8 +398,10 @@ func clip(text string, limit int) string {
 // usedCitations 只留回答里真正引用到的材料。一处都没引用的回答（通常是“文档未提及”）不列来源，记为无依据，也不进缓存。
 func usedCitations(text string, all []gen.Citation) []gen.Citation {
 	used := []gen.Citation{}
+	seen := map[string]bool{} // 当前页分块和检索结果可能是同一段（引用标识相同），只留一份
 	for _, citation := range all {
-		if strings.Contains(text, citation.CitationId) {
+		if !seen[citation.CitationId] && strings.Contains(text, citation.CitationId) {
+			seen[citation.CitationId] = true
 			used = append(used, citation)
 		}
 	}
