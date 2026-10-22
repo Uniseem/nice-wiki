@@ -1455,6 +1455,22 @@
   "id": "Daftar berpoin",
   "ar": "قائمة نقطية"
  },
+ "在新标签页打开": {
+  "zh-Hant": "在新分頁開啟",
+  "en": "Open in new tab",
+  "ja": "新しいタブで開く",
+  "ko": "새 탭에서 열기",
+  "fr": "Ouvrir dans un nouvel onglet",
+  "de": "In neuem Tab öffnen",
+  "es": "Abrir en una pestaña nueva",
+  "pt": "Abrir em nova aba",
+  "ru": "Открыть в новой вкладке",
+  "it": "Apri in una nuova scheda",
+  "vi": "Mở trong thẻ mới",
+  "th": "เปิดในแท็บใหม่",
+  "id": "Buka di tab baru",
+  "ar": "فتح في علامة تبويب جديدة"
+ },
  "大纲": {
   "zh-Hant": "大綱",
   "en": "Outline",
@@ -2094,6 +2110,22 @@
   "th": "กู้คืนไม่สำเร็จ",
   "id": "Gagal memulihkan",
   "ar": "فشلت الاستعادة"
+ },
+ "手机宽度": {
+  "zh-Hant": "手機寬度",
+  "en": "Phone width",
+  "ja": "スマートフォン幅",
+  "ko": "휴대폰 너비",
+  "fr": "Largeur mobile",
+  "de": "Handy-Breite",
+  "es": "Ancho de móvil",
+  "pt": "Largura de celular",
+  "ru": "Ширина телефона",
+  "it": "Larghezza smartphone",
+  "vi": "Chiều rộng điện thoại",
+  "th": "ความกว้างมือถือ",
+  "id": "Lebar ponsel",
+  "ar": "عرض الهاتف"
  },
  "手绘图示（Excalidraw）": {
   "zh-Hant": "手繪圖示（Excalidraw）",
@@ -3263,6 +3295,22 @@
   "id": "Format salah: hanya huruf kecil, angka, dan tanda hubung",
   "ar": "تنسيق خاطئ: أحرف صغيرة وأرقام وشرطات فقط"
  },
+ "桌面宽度": {
+  "zh-Hant": "桌面寬度",
+  "en": "Desktop width",
+  "ja": "デスクトップ幅",
+  "ko": "데스크톱 너비",
+  "fr": "Largeur bureau",
+  "de": "Desktop-Breite",
+  "es": "Ancho de escritorio",
+  "pt": "Largura de desktop",
+  "ru": "Ширина компьютера",
+  "it": "Larghezza desktop",
+  "vi": "Chiều rộng máy tính",
+  "th": "ความกว้างเดสก์ท็อป",
+  "id": "Lebar desktop",
+  "ar": "عرض سطح المكتب"
+ },
  "概览": {
   "zh-Hant": "概覽",
   "en": "Overview",
@@ -3999,6 +4047,38 @@
   "id": "Gagal menyimpan draf",
   "ar": "تعذّر حفظ المسودة"
  },
+ "草稿预览": {
+  "zh-Hant": "草稿預覽",
+  "en": "Draft preview",
+  "ja": "下書きプレビュー",
+  "ko": "초안 미리보기",
+  "fr": "Aperçu du brouillon",
+  "de": "Entwurfsvorschau",
+  "es": "Vista previa del borrador",
+  "pt": "Prévia do rascunho",
+  "ru": "Предпросмотр черновика",
+  "it": "Anteprima della bozza",
+  "vi": "Xem trước bản nháp",
+  "th": "ตัวอย่างฉบับร่าง",
+  "id": "Pratinjau draf",
+  "ar": "معاينة المسودة"
+ },
+ "草稿预览：{0}": {
+  "zh-Hant": "草稿預覽：{0}",
+  "en": "Draft preview: {0}",
+  "ja": "下書きプレビュー：{0}",
+  "ko": "초안 미리보기: {0}",
+  "fr": "Aperçu du brouillon : {0}",
+  "de": "Entwurfsvorschau: {0}",
+  "es": "Vista previa del borrador: {0}",
+  "pt": "Prévia do rascunho: {0}",
+  "ru": "Предпросмотр черновика: {0}",
+  "it": "Anteprima della bozza: {0}",
+  "vi": "Xem trước bản nháp: {0}",
+  "th": "ตัวอย่างฉบับร่าง: {0}",
+  "id": "Pratinjau draf: {0}",
+  "ar": "معاينة المسودة: {0}"
+ },
  "行内代码": {
   "zh-Hant": "行內程式碼",
   "en": "Inline code",
@@ -4142,6 +4222,22 @@
   "th": "ผู้เยี่ยมชมเห็นเนื้อหาล่าสุดแล้ว",
   "id": "Pengunjung kini dapat melihat konten terbaru.",
   "ar": "يمكن للزوار الآن رؤية أحدث محتوى."
+ },
+ "访客看不到这个预览，发布后才会公开。": {
+  "zh-Hant": "訪客看不到這個預覽，發布後才會公開。",
+  "en": "Visitors can’t see this preview; it goes public only when published.",
+  "ja": "このプレビューは訪問者には見えません。公開後に公開されます。",
+  "ko": "방문자는 이 미리보기를 볼 수 없으며, 게시해야 공개됩니다.",
+  "fr": "Les visiteurs ne voient pas cet aperçu ; il devient public à la publication.",
+  "de": "Besucher sehen diese Vorschau nicht; öffentlich wird sie erst beim Veröffentlichen.",
+  "es": "Los visitantes no ven esta vista previa; se hace pública al publicar.",
+  "pt": "Os visitantes não veem esta prévia; ela fica pública só ao publicar.",
+  "ru": "Посетители не видят этот предпросмотр; страница станет публичной после публикации.",
+  "it": "I visitatori non vedono questa anteprima; diventa pubblica solo alla pubblicazione.",
+  "vi": "Khách truy cập không thấy bản xem trước này, chỉ công khai sau khi xuất bản.",
+  "th": "ผู้เยี่ยมชมมองไม่เห็นตัวอย่างนี้ จะเป็นสาธารณะหลังเผยแพร่",
+  "id": "Pengunjung tidak bisa melihat pratinjau ini; baru publik setelah terbit.",
+  "ar": "لا يرى الزوار هذه المعاينة؛ لا تصبح عامة إلا بعد النشر."
  },
  "语言名称": {
   "zh-Hant": "語言名稱",
@@ -4638,6 +4734,22 @@
   "th": "ตัวอย่างจะแสดงที่นี่",
   "id": "Pratinjau muncul di sini",
   "ar": "ستظهر المعاينة هنا"
+ },
+ "预览宽度": {
+  "zh-Hant": "預覽寬度",
+  "en": "Preview width",
+  "ja": "プレビュー幅",
+  "ko": "미리보기 너비",
+  "fr": "Largeur de l’aperçu",
+  "de": "Vorschaubreite",
+  "es": "Ancho de la vista previa",
+  "pt": "Largura da prévia",
+  "ru": "Ширина предпросмотра",
+  "it": "Larghezza anteprima",
+  "vi": "Chiều rộng xem trước",
+  "th": "ความกว้างตัวอย่าง",
+  "id": "Lebar pratinjau",
+  "ar": "عرض المعاينة"
  },
  "首次发布时设置页面路径": {
   "zh-Hant": "首次發布時設定頁面路徑",

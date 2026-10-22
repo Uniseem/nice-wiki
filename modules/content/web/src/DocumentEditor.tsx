@@ -7,6 +7,7 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, ty
 import { fromBody, toBody, type JSONNode } from './convert';
 import { HistoryDrawer, MoveDialog, PublishDialog, SettingsDialog } from './dialogs';
 import { Editor } from './editor/Editor';
+import { PreviewDialog } from './PreviewDialog';
 import { ancestors, type Draft, type DraftRead, type HistoryEntry, type Lease, type Meta } from './types';
 
 type SaveState = { kind: 'idle' } | { kind: 'dirty' } | { kind: 'saving' } | { kind: 'saved'; at: Date } | { kind: 'error'; message: string };
@@ -45,6 +46,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
   const [titleFocus, setTitleFocus] = useState(false);
   // 草稿在别处（另一个标签页或窗口）存了更新的版本：这里的修改存不上，提示重新打开。
   const [conflict, setConflict] = useState(false);
+  const [previewURL, setPreviewURL] = useState<string | null>(null);
 
   // 计时器和最新状态放在 ref 里，供自动保存与卸载时使用。
   const live = useRef({ draft: null as Draft | null, lease: null as Lease | null, writable: false, pending: null as JSONNode | null, dirty: false, heartbeat: 0, inputs: 0, lastInput: new Date().toISOString(), meta: null as Meta | null });
@@ -291,23 +293,13 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
     });
   };
 
-  // 预览：先在点击当下打开空白标签页，拿到预览地址后再跳过去（Safari 会拦截 await 之后才打开的窗口）。
-  const preview = () => {
-    const tab = window.open('about:blank', '_blank');
-    if (tab) tab.opener = null;
-    void act(async () => {
-      try {
-        if (!(await flush())) { tab?.close(); return; }
-        const draft = live.current.draft!;
-        const grant = await api<{ previewId: string; token: string }>('/v1/preview/tokens', { method: 'POST', body: { documentId, draftRevisionId: draft.revisionId } });
-        const url = `/v1/preview/${encodeURIComponent(grant.token)}?previewId=${encodeURIComponent(grant.previewId)}`;
-        if (tab) tab.location.href = url; else window.open(url, '_blank', 'noopener');
-      } catch (problem) {
-        tab?.close();
-        throw problem;
-      }
-    });
-  };
+  // 预览：存好草稿、拿到预览凭证后在后台里的全屏对话框中显示（不弹新窗口）。
+  const preview = () => act(async () => {
+    if (!(await flush())) return;
+    const draft = live.current.draft!;
+    const grant = await api<{ previewId: string; token: string }>('/v1/preview/tokens', { method: 'POST', body: { documentId, draftRevisionId: draft.revisionId } });
+    setPreviewURL(`/v1/preview/${encodeURIComponent(grant.token)}?previewId=${encodeURIComponent(grant.previewId)}`);
+  });
 
   const withdraw = async () => {
     const ok = await confirmAction({ title: t('撤回发布？'), body: t('撤回后公开页将不可访问，草稿保留，可以随时重新发布。'), confirmLabel: t('撤回'), tone: 'warning' });
@@ -488,6 +480,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
         </div>
       </header>
       <Editor doc={initial} docs={docs} documentId={documentId} editable={writable} editorRef={editorRef} header={header} toolbar={lock !== 'readonly'} onChange={onChange} />
+      {previewURL && <PreviewDialog title={title.trim() || meta.title} url={previewURL} onClose={() => setPreviewURL(null)} />}
       {dialog === 'publish' && <PublishDialog docs={docs} meta={meta} draftRevisionId={publishDraft} onClose={() => setDialog(null)} onPublish={async (path, seo) => { if (await publish(path, seo)) setDialog(null); }} />}
       {dialog === 'settings' && <SettingsDialog meta={meta} onClose={() => setDialog(null)} onSaved={async () => { await refreshMeta(); setDialog(null); }} />}
       {dialog === 'move' && (
