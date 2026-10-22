@@ -22,7 +22,7 @@ export const tasks: [string, string, string][] = [
 
 type Money = { currency: string; micros: number };
 type Provider = { providerId: string; version: number; enabled: boolean; credentialConfigured: boolean; credentialVersion: number } & Record<string, unknown>;
-type Model = { modelId: string; version: number };
+type Model = { modelId: string; version: number; providerId: string; providerModelVersion: string; dimension: number; preprocessorVersion: string };
 type Profile = { profileId: string; version: number; costClass: string; tier: string; maximumCost: Money; dailyLimitCost: Money; concurrency: number };
 type Catalog = { providers: Provider[]; models: Model[]; profiles: Profile[]; taskAssignments: { taskId: string; version: number }[] };
 
@@ -59,9 +59,15 @@ async function configure(secret: string, step: (label: string) => void) {
   else await put(`/v1/admin/providers/${providerId}/credentials`, { providerId, secret, expectedVersion: 0 }, 'POST');
 
   step(t('添加模型'));
+  // 之前接入过 OpenRouter 时：同一供应方、同一模型版本的直接复用（不管叫什么 ID）；
+  // 预设 ID 已被别的模型占用（网关不允许改模型身份）时换一个新 ID。
+  const ids: Record<string, string> = {};
   for (const preset of presetModels) {
-    const current = c.models.find((model) => model.modelId === preset.modelId);
-    await put(`/v1/admin/models/${preset.modelId}`, { expectedVersion: current?.version ?? 0, model: { ...preset, providerId, version: (current?.version ?? 0) + 1, catalogOrigin: 'manual', manualOverride: true, enabled: true } });
+    const current = c.models.find((model) => model.providerId === providerId && model.providerModelVersion === preset.providerModelVersion && model.dimension === preset.dimension && model.preprocessorVersion === preset.preprocessorVersion);
+    let modelId = current?.modelId ?? preset.modelId;
+    for (let n = 2; !current && c.models.some((model) => model.modelId === modelId); n++) modelId = `${providerId}.${preset.modelId}${n > 2 ? `-${n - 1}` : ''}`;
+    ids[preset.modelId] = modelId;
+    await put(`/v1/admin/models/${encodeURIComponent(modelId)}`, { expectedVersion: current?.version ?? 0, model: { ...preset, modelId, providerId, version: (current?.version ?? 0) + 1, catalogOrigin: 'manual', manualOverride: true, enabled: true } });
   }
 
   step(t('生成档位和任务分配'));
@@ -72,7 +78,7 @@ async function configure(secret: string, step: (label: string) => void) {
         const profileId = profile?.profileId ?? `${costClass}-${tier}`;
         await put(`/v1/admin/profiles/${profileId}`, {
           expectedVersion: profile?.version ?? 0, profile: {
-            profileId, version: (profile?.version ?? 0) + 1, costClass, tier, orderedModelIds: [modelId], concurrency: profile?.concurrency ?? 4,
+            profileId, version: (profile?.version ?? 0) + 1, costClass, tier, orderedModelIds: [ids[modelId]], concurrency: profile?.concurrency ?? 4,
             maximumCost: profile?.maximumCost ?? { currency: 'USD', micros: 0 }, dailyLimitCost: profile?.dailyLimitCost ?? { currency: 'USD', micros: 0 },
           },
         });
