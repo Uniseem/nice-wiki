@@ -2,7 +2,7 @@ import { ArrowRotateLeft, ArrowsExpandHorizontal, Keyboard, ArrowUpRightFromSqua
 import { Button, Chip, Dropdown, Label, Separator, Spinner } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import type { Editor as TiptapEditor } from '@tiptap/react';
-import { api, ApiError, confirmAction, errorText, fmtDateTime, fmtRelative, fmtTime, newKey, notify, Notice, setNavigationGuard, useHasGrant, useStoredState, t } from '@ui';
+import { api, ApiError, confirmAction, errorText, fmtDateTime, fmtRelative, fmtTime, InHeader, newKey, Notice, notify, setNavigationGuard, useHasGrant, useStoredState, t } from '@ui';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { fromBody, toBody, type JSONNode } from './convert';
 import { HistoryDrawer, MoveDialog, PublishDialog, SettingsDialog } from './dialogs';
@@ -436,7 +436,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
   );
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-separator px-3">
+      <InHeader className="flex h-12 shrink-0 items-center gap-2 border-b border-separator px-3">
         {leading}
         <nav aria-label={t('文档位置')} className="flex min-w-0 flex-1 items-center gap-0.5 text-sm">
           {trail.map((doc) => (
@@ -489,7 +489,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
             </Dropdown.Popover>
           </Dropdown>
         </div>
-      </header>
+      </InHeader>
       <Editor doc={initial} docs={docs} documentId={documentId} editable={writable} editorRef={editorRef} header={header} toolbar={lock !== 'readonly'} wide={wide} onChange={onChange} />
       {previewURL && <PreviewDialog title={title.trim() || meta.title} url={previewURL} onClose={() => setPreviewURL(null)} />}
       {dialog === 'publish' && <PublishDialog docs={docs} meta={meta} draftRevisionId={publishDraft} onClose={() => setDialog(null)} onPublish={async (path, seo) => { if (await publish(path, seo)) setDialog(null); }} />}

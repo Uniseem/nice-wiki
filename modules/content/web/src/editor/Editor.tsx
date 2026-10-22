@@ -270,7 +270,7 @@ export function Editor({ doc, docs, documentId, editable, toolbar, header, wide 
             </div>
           )}
         </div>
-        <Outline editor={editor} scroller={scroller} />
+        <Outline editor={editor} scroller={scroller} wide={wide} />
       </div>
       <input ref={imageInput} accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" type="file" onChange={pick('image')} />
       <input ref={videoInput} accept="video/mp4,video/webm" className="hidden" type="file" onChange={pick('video')} />

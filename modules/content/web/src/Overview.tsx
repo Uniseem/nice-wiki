@@ -1,6 +1,6 @@
 import { CircleCheck, FileText, Pencil, Plus } from '@gravity-ui/icons';
 import { Button, Spinner } from '@heroui/react';
-import { EmptyBlock, fmtDateTime, fmtRelative, useHasGrant, t } from '@ui';
+import { EmptyBlock, fmtDateTime, fmtRelative, InHeader, useHasGrant, t } from '@ui';
 import type { ReactNode } from 'react';
 import { ancestors, flatten, liveDocs, type Meta } from './types';
 
@@ -15,10 +15,10 @@ export function Overview({ docs, leading, onCreate, onSelect }: { docs: Meta[] |
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-separator px-3">
+      <InHeader className="flex h-12 shrink-0 items-center gap-2 border-b border-separator px-3">
         {leading}
         <span className="text-sm font-medium text-foreground">{t('概览')}</span>
-      </header>
+      </InHeader>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!docs ? <div className="flex justify-center py-24"><Spinner /></div> : !live.length ? (
           <div className="flex justify-center px-6 py-24">

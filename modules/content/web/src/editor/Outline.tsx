@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 type Heading = { level: number; text: string };
 
 // 右侧大纲：列出正文里的 H2–H4，点一下滚到对应位置，滚动时高亮当前所在的小节；编辑区够宽时才显示。
-export function Outline({ editor, scroller }: { editor: Editor; scroller: RefObject<HTMLDivElement | null> }) {
+export function Outline({ editor, scroller, wide = false }: { editor: Editor; scroller: RefObject<HTMLDivElement | null>; wide?: boolean }) {
   const headings = useEditorState({
     editor,
     selector: ({ editor: e }): Heading[] => {
@@ -55,7 +55,8 @@ export function Outline({ editor, scroller }: { editor: Editor; scroller: RefObj
   };
 
   return (
-    <aside aria-label={t('大纲')} className="sticky top-16 hidden max-h-[calc(100dvh-9rem)] w-52 shrink-0 self-start overflow-y-auto pb-6 pt-10 @5xl:block">
+    // 加宽编辑区时要更宽的编辑区才显示大纲，把位置让给正文。
+    <aside aria-label={t('大纲')} className={cn('sticky top-16 hidden max-h-[calc(100dvh-9rem)] w-52 shrink-0 self-start overflow-y-auto pb-6 pt-10', wide ? '@7xl:block' : '@5xl:block')}>
       <div className="mb-2 text-xs font-medium text-muted">{t('大纲')}</div>
       {headings.length ? (
         <ul className="flex flex-col border-s border-separator">

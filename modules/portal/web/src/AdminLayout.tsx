@@ -1,7 +1,7 @@
 import { ArrowRightFromSquare, ArrowUpRightFromSquare, Bars, LayoutSideContentLeft, Person } from '@gravity-ui/icons';
 import { Button, buttonVariants, cn, Drawer, Dropdown, Label, ScrollShadow, Separator } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { CenteredSpinner, ErrorBlock, LanguageMenu, navigate, Notice, ThemeMenu, useGrants, usePath, useStoredState, t } from '@ui';
+import { CenteredSpinner, ErrorBlock, HeaderSlotContext, LanguageMenu, navigate, Notice, ThemeMenu, useGrants, usePath, useStoredState, t } from '@ui';
 import { Component, createContext, Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Account } from './App';
 import { canOpen, legacyPath, pageFor, pages, sections, type Page } from './routes';
@@ -36,6 +36,10 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   }, [path, page, visible, account.mustChangePassword]);
 
   const nav = <Navigation pages={visible} current={page} onNavigate={() => setNavOpen(false)} />;
+  // 整屏页面可以把自己的顶栏内容放进这里（见 InHeader），只留一层顶栏。
+  const [slotElement, setSlotElement] = useState<HTMLDivElement | null>(null);
+  const [claims, setClaims] = useState(0);
+  const slot = useMemo(() => ({ element: slotElement, claim: (on: boolean) => setClaims((count) => count + (on ? 1 : -1)) }), [slotElement]);
 
   return (
     <AccountContext.Provider value={account}>
@@ -62,12 +66,16 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
           <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-separator bg-background/85 px-3 backdrop-blur-md sm:px-4 lg:px-8">
             <Button isIconOnly aria-label={t('打开导航')} className="lg:hidden" size="sm" variant="ghost" onPress={() => setNavOpen(true)}><Bars /></Button>
             <Button isIconOnly aria-label={rail ? t('展开侧栏') : t('收起侧栏')} className="hidden lg:inline-flex" size="sm" variant="ghost" onPress={() => setRail((value) => !value)}><LayoutSideContentLeft className="rtl:-scale-x-100" /></Button>
-            <div className="flex min-w-0 items-center gap-2 text-sm">
-              {page?.section && <span className="hidden text-muted sm:inline">{page.section}</span>}
-              {page?.section && <span className="hidden text-muted sm:inline">/</span>}
-              <span className="truncate font-medium text-foreground">{page?.label ?? ''}</span>
-            </div>
-            <div className="ms-auto flex items-center gap-1">
+            {!claims && (
+              <div className="flex min-w-0 items-center gap-2 text-sm">
+                {page?.section && <span className="hidden text-muted sm:inline">{page.section}</span>}
+                {page?.section && <span className="hidden text-muted sm:inline">/</span>}
+                <span className="truncate font-medium text-foreground">{page?.label ?? ''}</span>
+              </div>
+            )}
+            <div ref={setSlotElement} className={cn('@container min-w-0 items-center gap-2', claims ? 'flex flex-1' : 'hidden')} />
+            {claims > 0 && <span className="mx-1 h-5 w-px shrink-0 bg-separator" />}
+            <div className={cn('flex items-center gap-1', !claims && 'ms-auto')}>
               <a className={buttonVariants({ size: 'sm', variant: 'ghost' })} href="/" rel="noopener" target="_blank">
                 <ArrowUpRightFromSquare />
                 <span className="hidden sm:inline">{t('查看站点')}</span>
@@ -76,6 +84,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
               <ThemeMenu />
             </div>
           </header>
+          <HeaderSlotContext.Provider value={slot}>
           <main className={page?.bleed ? 'flex min-h-0 flex-1 flex-col' : 'mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8'}>
             {account.mustChangePassword && page?.key !== 'me' && <Notice status="warning">{t('请先在个人设置里修改初始口令。')}</Notice>}
             {page && (
@@ -86,6 +95,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
               </PageBoundary>
             )}
           </main>
+          </HeaderSlotContext.Provider>
         </div>
       </div>
     </AccountContext.Provider>

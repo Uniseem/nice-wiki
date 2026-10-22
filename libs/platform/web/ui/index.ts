@@ -3,6 +3,7 @@ export * from './api';
 export * from './feedback';
 export * from './fields';
 export * from './format';
+export * from './header-slot';
 export * from './hooks';
 export * from './i18n';
 export * from './languages';
