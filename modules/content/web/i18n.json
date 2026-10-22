@@ -127,6 +127,22 @@
   "id": "Kotak {0}",
   "ar": "مربع تنبيه: {0}"
  },
+ "“{0}”的路径": {
+  "zh-Hant": "「{0}」的路徑",
+  "en": "Path for “{0}”",
+  "ja": "「{0}」のパス",
+  "ko": "‘{0}’의 경로",
+  "fr": "Chemin de « {0} »",
+  "de": "Pfad für „{0}“",
+  "es": "Ruta de «{0}»",
+  "pt": "Caminho de “{0}”",
+  "ru": "Путь для «{0}»",
+  "it": "Percorso di «{0}»",
+  "vi": "Đường dẫn của “{0}”",
+  "th": "พาธของ “{0}”",
+  "id": "Jalur untuk “{0}”",
+  "ar": "مسار «{0}»"
+ },
  "三栏": {
   "zh-Hant": "三欄",
   "en": "Three columns",
@@ -206,6 +222,38 @@
   "th": "เลื่อนขึ้น",
   "id": "Naik",
   "ar": "نقل لأعلى"
+ },
+ "上级文档的路径没能保存": {
+  "zh-Hant": "上級文件的路徑沒能儲存",
+  "en": "Couldn’t save the parent document’s path",
+  "ja": "上位ドキュメントのパスを保存できませんでした",
+  "ko": "상위 문서의 경로를 저장하지 못했습니다",
+  "fr": "Impossible d’enregistrer le chemin du document parent",
+  "de": "Pfad des übergeordneten Dokuments konnte nicht gespeichert werden",
+  "es": "No se pudo guardar la ruta del documento superior",
+  "pt": "Não foi possível salvar o caminho do documento superior",
+  "ru": "Не удалось сохранить путь родительского документа",
+  "it": "Impossibile salvare il percorso del documento superiore",
+  "vi": "Không lưu được đường dẫn của tài liệu cấp trên",
+  "th": "บันทึกพาธของเอกสารระดับบนไม่สำเร็จ",
+  "id": "Gagal menyimpan jalur dokumen induk",
+  "ar": "تعذر حفظ مسار المستند الأعلى"
+ },
+ "上级文档还没有页面路径，公开地址由各级路径组成，发布前会一并保存：": {
+  "zh-Hant": "上級文件還沒有頁面路徑，公開網址由各級路徑組成，發布前會一併儲存：",
+  "en": "Parent documents don’t have page paths yet. The public URL is built from every level’s path, so these will be saved before publishing:",
+  "ja": "上位ドキュメントにページパスがありません。公開 URL は各階層のパスで構成されるため、公開前にあわせて保存します：",
+  "ko": "상위 문서에 아직 페이지 경로가 없습니다. 공개 주소는 각 단계의 경로로 이루어지므로 게시 전에 함께 저장합니다:",
+  "fr": "Les documents parents n’ont pas encore de chemin. L’adresse publique est formée des chemins de chaque niveau ; ils seront enregistrés avant la publication :",
+  "de": "Übergeordnete Dokumente haben noch keinen Seitenpfad. Die öffentliche Adresse setzt sich aus den Pfaden aller Ebenen zusammen; sie werden vor dem Veröffentlichen gespeichert:",
+  "es": "Los documentos superiores aún no tienen ruta. La dirección pública se compone de las rutas de cada nivel; se guardarán antes de publicar:",
+  "pt": "Os documentos superiores ainda não têm caminho. O endereço público é formado pelos caminhos de cada nível; eles serão salvos antes de publicar:",
+  "ru": "У родительских документов ещё нет пути. Публичный адрес складывается из путей всех уровней, поэтому они будут сохранены перед публикацией:",
+  "it": "I documenti superiori non hanno ancora un percorso. L’indirizzo pubblico è composto dai percorsi di ogni livello; verranno salvati prima della pubblicazione:",
+  "vi": "Tài liệu cấp trên chưa có đường dẫn trang. Địa chỉ công khai ghép từ đường dẫn của từng cấp, nên sẽ được lưu cùng trước khi xuất bản:",
+  "th": "เอกสารระดับบนยังไม่มีพาธหน้า ที่อยู่สาธารณะประกอบจากพาธทุกระดับ จะบันทึกพร้อมกันก่อนเผยแพร่:",
+  "id": "Dokumen induk belum memiliki jalur halaman. Alamat publik tersusun dari jalur setiap tingkat, jadi jalur ini akan disimpan sebelum terbit:",
+  "ar": "المستندات الأعلى ليس لها مسار صفحة بعد. يتكوّن العنوان العام من مسارات كل المستويات، لذا ستُحفظ قبل النشر:"
  },
  "下划线": {
   "zh-Hant": "底線",

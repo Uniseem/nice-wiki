@@ -50,14 +50,15 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
   const rows = useMemo(() => {
     const all = flatten(docs);
     const q = query.trim().toLowerCase();
-    if (q) return all.filter((row) => row.doc.title.toLowerCase().includes(q)).map((row) => ({ ...row, depth: 0, hasChildren: false }));
+    // 搜索结果平铺显示，下面附上所在位置，同名文档也能分清。
+    if (q) return all.filter((row) => row.doc.title.toLowerCase().includes(q)).map((row) => ({ ...row, depth: 0, hasChildren: false, trail: ancestors(docs, row.doc.documentId).map((doc) => doc.title).join(' / ') }));
     // 只显示祖先全部展开的节点。
     const visible = new Set<string>();
     return all.filter((row) => {
       const show = !row.doc.parentId || (visible.has(row.doc.parentId) && expanded.has(row.doc.parentId));
       if (show) visible.add(row.doc.documentId);
       return show;
-    });
+    }).map((row) => ({ ...row, trail: '' }));
   }, [docs, query, expanded]);
 
   const siblings = (parentId: string | null, without?: string) => live.filter((item) => (item.parentId ?? null) === parentId && item.documentId !== without).sort(byOrder);
@@ -166,7 +167,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
           />
         ) : (
           <ul className="flex flex-col gap-px">
-            {rows.map(({ doc, depth, hasChildren }) => {
+            {rows.map(({ doc, depth, hasChildren, trail }) => {
               const active = doc.documentId === selected;
               const open = expanded.has(doc.documentId);
               const target = drop?.id === doc.documentId ? drop.position : null;
@@ -175,7 +176,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
                 <li key={doc.documentId}>
                   <div
                     className={cn(
-                      'group relative flex h-8 items-center gap-0.5 rounded-lg pe-1 text-sm transition-colors',
+                      'group relative flex min-h-8 items-center gap-0.5 rounded-lg pe-1 text-sm transition-colors',
                       active ? 'bg-accent-soft text-accent-soft-foreground' : 'text-foreground hover:bg-default',
                       dragging === doc.documentId && 'opacity-40',
                       target === 'inside' && 'bg-accent-soft ring-2 ring-inset ring-accent',
@@ -199,9 +200,12 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
                     >
                       {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5 rtl:-scale-x-100" />}
                     </button>
-                    <button className="flex h-full min-w-0 flex-1 items-center gap-2 text-start" title={doc.title} type="button" onClick={() => onSelect(doc.documentId)}>
+                    <button className="flex min-h-8 min-w-0 flex-1 items-center gap-2 py-1 text-start" title={doc.title} type="button" onClick={() => onSelect(doc.documentId)}>
                       <FileText className={cn('size-4 shrink-0', active ? 'text-accent' : 'text-muted')} />
-                      <span className={cn('truncate', active && 'font-medium')}>{doc.title || t('无标题')}</span>
+                      <span className="min-w-0">
+                        <span className={cn('block truncate', active && 'font-medium')}>{doc.title || t('无标题')}</span>
+                        {trail && <span className="block truncate text-xs text-muted">{trail}</span>}
+                      </span>
                       {doc.state === 'draft' && <span className="shrink-0 rounded border border-border px-1 text-[10px] leading-4 text-muted">{t('草稿')}</span>}
                     </button>
                     {canEdit && !query && (

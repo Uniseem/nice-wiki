@@ -199,7 +199,7 @@ export function Editor({ doc, editable, toolbar, header, editorRef: exposed, onC
     <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto">
       {toolbar && (
         <div className="sticky top-0 z-20 border-b border-separator bg-background/90 px-3 py-1.5 backdrop-blur-md sm:px-6">
-          <div className="mx-auto w-fit max-w-full"><EditorToolbar actions={actions} editable={editable} editor={editor} /></div>
+          <EditorToolbar actions={actions} editable={editable} editor={editor} />
         </div>
       )}
       <div className="flex justify-center gap-10 px-5 sm:px-10">

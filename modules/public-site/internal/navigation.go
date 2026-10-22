@@ -3,7 +3,6 @@ package publicsite
 import (
 	"context"
 	"encoding/json"
-	"sort"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -142,7 +141,9 @@ func BuildNavigation(ctx context.Context, op platform.OperationContext, in Build
 	return BuildNavigationResult{ordered, tree.TreeRevision}, nil
 }
 
-// navigationOrder 只排序已由 content 过滤的公开节点，不拼接可能缺失祖先的路径。
+// navigationOrder 只整理已由 content 过滤的公开节点，不拼接可能缺失祖先的路径。
+// content 按文档树先序给出节点：父级是草稿时子文档提升到上层，位置仍在原父级处，
+// 它的排序键却属于原来那一层，不能再按排序键重排，同级保持给出的先后即可。
 func navigationOrder(nodes []NavigationNode) ([]NavigationNode, error) {
 	byID := make(map[string]NavigationNode, len(nodes))
 	children := make(map[string][]NavigationNode)
@@ -161,9 +162,6 @@ func navigationOrder(nodes []NavigationNode) ([]NavigationNode, error) {
 			}
 		}
 		children[parent] = append(children[parent], node)
-	}
-	for key := range children {
-		sort.SliceStable(children[key], func(i, j int) bool { return children[key][i].SortKey < children[key][j].SortKey })
 	}
 	result := make([]NavigationNode, 0, len(nodes))
 	seen := make(map[string]bool)

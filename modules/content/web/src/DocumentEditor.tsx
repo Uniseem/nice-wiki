@@ -162,6 +162,11 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
     })();
     const beforeUnload = (event: BeforeUnloadEvent) => { if (live.current.dirty) event.preventDefault(); };
     addEventListener('beforeunload', beforeUnload);
+    // ⌘S / Ctrl+S：立即保存草稿，而不是弹出浏览器的“保存网页”。
+    const saveKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 's') { event.preventDefault(); void flush(); }
+    };
+    addEventListener('keydown', saveKey);
     // 切换文档或离开页面前先把草稿存好；存不上就留在原文档，除非用户明确放弃这些修改。
     const unguard = setNavigationGuard(async () => {
       if (await flush()) return true;
@@ -176,6 +181,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
       cancelled = true;
       unguard();
       removeEventListener('beforeunload', beforeUnload);
+      removeEventListener('keydown', saveKey);
       // 守卫放行后才会卸载；万一仍没存上就不主动放锁，让锁自然过期。
       void flush().then((saved) => { if (saved) void releaseLock(); });
     };
@@ -245,7 +251,8 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
 
   const startPublish = () => {
     if (!meta) return;
-    if (meta.pathSegment) { void publish(null, null); return; }
+    // 自己和上级都有路径时直接发布；否则先在对话框里补齐路径。
+    if (meta.pathSegment && ancestors(docs, documentId).every((doc) => doc.pathSegment)) { void publish(null, null); return; }
     // 首次发布：先存好草稿，对话框按这一版正文请 AI 建议路径和摘要。
     void act(async () => {
       if (!(await flush())) return;
@@ -405,7 +412,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
         </div>
       </header>
       <Editor doc={initial} editable={writable} editorRef={editorRef} header={header} toolbar={lock !== 'readonly'} onChange={onChange} />
-      {dialog === 'publish' && <PublishDialog meta={meta} draftRevisionId={publishDraft} onClose={() => setDialog(null)} onPublish={async (path, seo) => { if (await publish(path, seo)) setDialog(null); }} />}
+      {dialog === 'publish' && <PublishDialog docs={docs} meta={meta} draftRevisionId={publishDraft} onClose={() => setDialog(null)} onPublish={async (path, seo) => { if (await publish(path, seo)) setDialog(null); }} />}
       {dialog === 'settings' && <SettingsDialog meta={meta} onClose={() => setDialog(null)} onSaved={async () => { await refreshMeta(); setDialog(null); }} />}
       {dialog === 'move' && (
         <MoveDialog
