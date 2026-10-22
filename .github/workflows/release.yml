@@ -1,0 +1,57 @@
+# 推送 v* 标签时在 GitHub 发版：交叉编译全部服务、用 crane 组装并推送 amd64/arm64 镜像到 ghcr.io、
+# 打“下载即部署”的发布包，再发布到 GitHub Releases（步骤见 scripts/release.sh）。用 Actions 自带的令牌，不需要另配密钥。
+# 已有标签补发：在 Actions 页手动运行并填标签。发布说明取自附注标签的正文。GitLab 只同步代码，不在那边发版。
+name: 发版
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 要发布的已有标签，如 v0.1.3
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+
+jobs:
+  release:
+    name: 构建并发布
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+      # checkout 会把附注标签换成轻量标签，发布说明就读不到了；先取回原附注标签。
+      - run: git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25.x"
+          cache-dependency-path: "**/go.sum"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: 前端产物
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          test -f web-dist/index.html
+      - name: 安装 crane 并登录 ghcr.io
+        run: |
+          go install github.com/google/go-containerregistry/cmd/crane@v0.20.6
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          printf '%s' "$GITHUB_TOKEN" | "$(go env GOPATH)/bin/crane" auth login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - run: scripts/release.sh build "$TAG"
+      - run: scripts/release.sh images "$TAG"
+      - run: scripts/release.sh package "$TAG"
+      - run: scripts/release.sh publish "$TAG"

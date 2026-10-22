@@ -3,7 +3,7 @@
 单机部署的唯一配置来源。决策见 [ADR0005](../docs/adr/0005-engineering-and-deployment.md)，运维要求见 [部署与运维](../docs/operations.md)。
 
 - `docker-compose.yml`、各域 `modules/*/Dockerfile`：由 `scripts/gen_deploy.py` 生成，不要手改。
-- `release/`：发布包用的编排（拉取 ghcr.io 镜像）、说明和镜像规格 `images.tsv`，同样由 `scripts/gen_deploy.py` 生成。发版由 GitLab CI 在推送 `v*` 标签时执行 `scripts/release.sh`：交叉编译、用 crane 组装并推送 amd64/arm64 镜像、打发布包，再发布到 GitHub Releases（需要 GitLab CI/CD 变量 `GITHUB_TOKEN`，标签要同时推到 GitHub）。
+- `release/`：发布包用的编排（拉取 ghcr.io 镜像）、说明和镜像规格 `images.tsv`，同样由 `scripts/gen_deploy.py` 生成。发版由 GitHub Actions（`.github/workflows/release.yml`）在推送 `v*` 标签时执行 `scripts/release.sh`：交叉编译、用 crane 组装并推送 amd64/arm64 镜像、打发布包，再发布到 GitHub Releases，用 Actions 自带令牌，不需要另配密钥。
 - `caddy/Caddyfile`：只在这里终止 HTTPS，全部流量交给 portal（访客页面、后台和接口都经它代理）。
 - `config/*.json`：各服务的运行配置；`config/trust-anchors.json` 由 `nw-keys` 生成，只含公钥。
 - `init-secrets.sh`：首次部署生成各服务的签名密钥（写入 `deploy/secrets`，已被 git 忽略）。

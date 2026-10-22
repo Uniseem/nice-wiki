@@ -1,10 +1,10 @@
 #!/bin/sh
 # 发版：交叉编译全部服务、组装并推送 amd64/arm64 镜像、打“下载即部署”的发布包、发布到 GitHub Releases。
-# GitLab CI 在推送 v* 标签时按顺序调用（见 .gitlab-ci.yml 的“发版”）；本机演练可把镜像推到本地仓库，跳过 publish。
+# GitHub Actions 在推送 v* 标签时按顺序调用（见 .github/workflows/release.yml）。
 # 用法：scripts/release.sh build|images|package|publish <版本>
 #   NW_IMAGES  镜像前缀，默认 ghcr.io/uniseem/nice-wiki（镜像为 <前缀>-<服务>:<版本>）
 #   images     需要 crane 且已登录目标仓库；web-dist/ 为已构建的前端产物
-#   publish    需要 GITHUB_TOKEN；说明取自附注标签正文（GitLab 的 CI_COMMIT_TAG_MESSAGE）
+#   publish    需要 GITHUB_TOKEN；说明取自附注标签正文
 set -eu
 cd "$(dirname "$0")/.."
 step="$1"
@@ -97,7 +97,7 @@ package)
 	;;
 publish)
 	notes=$(mktemp)
-	if [ -n "${CI_COMMIT_TAG_MESSAGE:-}" ]; then printf '%s\n' "$CI_COMMIT_TAG_MESSAGE" >"$notes"; else git for-each-ref "refs/tags/$tag" --format='%(contents)' >"$notes"; fi
+	git for-each-ref "refs/tags/$tag" --format='%(contents)' >"$notes"
 	python3 scripts/release_github.py "$tag" "$notes" dist/*
 	rm -f "$notes"
 	;;
