@@ -2,8 +2,6 @@ package publicsite
 
 import (
 	"context"
-	"encoding/json"
-	"net/url"
 	"nice-wiki/libs/platform"
 	"reflect"
 	"strings"
@@ -25,29 +23,11 @@ func BuildLLMsIndex(ctx context.Context, op platform.OperationContext, in BuildL
 	if err != nil {
 		return BuildLLMsIndexResult{}, err
 	}
-	directory, err := directoryFrom(ctx)
-	if err != nil {
-		return BuildLLMsIndexResult{}, err
-	}
+	// 摘要取公开树同一快照里的搜索摘要，不逐篇读正文。
 	var output strings.Builder
 	output.WriteString("# 文档索引\n\n")
 	for _, node := range navigation.Tree {
-		raw, err := directory.Content.ReadPublishedRevision(ctx, node.DocumentID, url.Values{"publishedRevisionId": []string{node.Publication.PublishedRevisionId}})
-		if err != nil {
-			return BuildLLMsIndexResult{}, err
-		}
-		var envelope struct {
-			Metadata *struct {
-				SEODescription *string `json:"seoDescription"`
-			} `json:"metadata"`
-		}
-		if err = json.Unmarshal(raw, &envelope); err != nil || envelope.Metadata == nil {
-			return BuildLLMsIndexResult{}, dependency("公开摘要权威不完整")
-		}
-		summary := ""
-		if envelope.Metadata.SEODescription != nil {
-			summary = *envelope.Metadata.SEODescription
-		}
+		summary := node.SEODescription
 		output.WriteString("- [" + markdownLabel(node.Title) + "](" + node.CanonicalPath + ".md): " + strings.Join(strings.Fields(summary), " ") + "\n")
 		if int64(output.Len()) > in.MaxBytes {
 			return BuildLLMsIndexResult{}, platform.NewError(platform.CodeValidation, false, "INDEX_TOO_LARGE")

@@ -2,7 +2,6 @@ package publicsite
 
 import (
 	"context"
-	"encoding/json"
 	"net/url"
 	"nice-wiki/libs/platform"
 	"reflect"
@@ -42,33 +41,14 @@ func BuildSitemapEntries(ctx context.Context, op platform.OperationContext, in B
 	if err != nil {
 		return BuildSitemapEntriesResult{}, err
 	}
+	// lastmod 取公开树同一快照里的发布时间；逐篇读正文会让几百篇的站点 sitemap 超时。
 	entries := make([]SitemapEntry, 0, len(nav.Tree))
 	for _, node := range nav.Tree {
-		query := url.Values{"publishedRevisionId": []string{node.Publication.PublishedRevisionId}}
-		raw, err := directory.Content.ReadPublishedRevision(ctx, node.DocumentID, query)
-		if err != nil {
-			return BuildSitemapEntriesResult{}, err
-		}
-		var body struct {
-			Reference *struct {
-				DocumentID          string `json:"documentId"`
-				PublishedRevisionID string `json:"publishedRevisionId"`
-			} `json:"reference"`
-			Metadata *struct {
-				LastPublishedAt *time.Time `json:"lastPublishedAt"`
-			} `json:"metadata"`
-		}
-		if err = json.Unmarshal(raw, &body); err != nil || body.Metadata == nil || body.Metadata.LastPublishedAt == nil || body.Reference == nil {
-			return BuildSitemapEntriesResult{}, dependency("发布更新时间权威不完整")
-		}
-		if body.Reference.DocumentID != node.DocumentID || body.Reference.PublishedRevisionID != node.Publication.PublishedRevisionId {
-			return BuildSitemapEntriesResult{}, stale()
-		}
 		relative, err := url.Parse(node.CanonicalPath)
 		if err != nil {
 			return BuildSitemapEntriesResult{}, err
 		}
-		entries = append(entries, SitemapEntry{base.ResolveReference(relative).String(), *body.Metadata.LastPublishedAt, []AlternateLocale{}})
+		entries = append(entries, SitemapEntry{base.ResolveReference(relative).String(), node.LastPublishedAt, []AlternateLocale{}})
 	}
 	again, err := BuildNavigation(ctx, op, BuildNavigationInput{in.Locale, in.DataEpoch, 10000})
 	if err != nil {

@@ -700,6 +700,25 @@ func RewriteInternalLinks(ctx context.Context, op platform.OperationContext, in 
 	if err != nil {
 		return RewriteInternalLinksResult{}, err
 	}
+	result, err := resolveInternalLinks(ctx, navigation, in.Links)
+	if err != nil {
+		return RewriteInternalLinksResult{}, err
+	}
+	// 精确比较每个引用，防止仅树顺序未变时复用已被替换的发布修订。
+	again, err := BuildNavigation(ctx, op, BuildNavigationInput{in.Locale, in.DataEpoch, 10000})
+	if err != nil {
+		return RewriteInternalLinksResult{}, err
+	}
+	first, _ := json.Marshal(navigation)
+	second, _ := json.Marshal(again)
+	if !bytes.Equal(first, second) {
+		return RewriteInternalLinksResult{}, stale()
+	}
+	return result, nil
+}
+
+// resolveInternalLinks 按给定的公开导航解析站内链接；正式页面渲染时直接用本页已经建好的导航。
+func resolveInternalLinks(ctx context.Context, navigation BuildNavigationResult, links []InternalLinkTarget) (RewriteInternalLinksResult, error) {
 	directory, err := directoryFrom(ctx)
 	if err != nil {
 		return RewriteInternalLinksResult{}, err
@@ -709,7 +728,7 @@ func RewriteInternalLinks(ctx context.Context, op platform.OperationContext, in 
 		nodes[node.DocumentID] = node
 	}
 	result := RewriteInternalLinksResult{Rewritten: map[string]string{}, Unavailable: []string{}}
-	for _, target := range in.Links {
+	for _, target := range links {
 		block := ""
 		if target.BlockID != nil {
 			block = *target.BlockID
@@ -735,16 +754,6 @@ func RewriteInternalLinks(ctx context.Context, op platform.OperationContext, in 
 			href += "#" + url.PathEscape(block)
 		}
 		result.Rewritten[key] = href
-	}
-	// 精确比较每个引用，防止仅树顺序未变时复用已被替换的发布修订。
-	again, err := BuildNavigation(ctx, op, BuildNavigationInput{in.Locale, in.DataEpoch, 10000})
-	if err != nil {
-		return RewriteInternalLinksResult{}, err
-	}
-	first, _ := json.Marshal(navigation)
-	second, _ := json.Marshal(again)
-	if !bytes.Equal(first, second) {
-		return RewriteInternalLinksResult{}, stale()
 	}
 	return result, nil
 }

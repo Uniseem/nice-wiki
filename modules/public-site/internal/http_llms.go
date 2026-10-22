@@ -4,6 +4,8 @@ import (
 	"context"
 	"nice-wiki/libs/platform"
 	"strings"
+	"sync"
+	"sync/atomic"
 )
 
 type HandleLLMsIndexInput struct {
@@ -60,21 +62,40 @@ func HandleLLMsFull(ctx context.Context, op platform.OperationContext, in Handle
 	if err != nil {
 		return HandleLLMsFullResult{}, err
 	}
-	var output strings.Builder
-	prefix := "/" + in.Locale + "/"
-	for _, node := range navigation.Tree {
-		slug := strings.TrimPrefix(node.CanonicalPath, prefix)
-		page, err := HandlePage(ctx, op, HandlePageInput{Locale: in.Locale, Slug: slug + ".md", DataEpoch: in.DataEpoch})
-		if err != nil {
-			return HandleLLMsFullResult{}, err
-		}
-		if output.Len() > 0 {
-			output.WriteString("\n\n---\n\n")
-		}
-		output.WriteString(strings.TrimSpace(page.HTML))
-		if output.Len() > llmsFullLimit {
-			return HandleLLMsFullResult{}, platform.NewError(platform.CodeValidation, false, "LLMS_FULL_TOO_LARGE")
-		}
+	// 导航只建一次，各篇 Markdown 并发渲染（每篇要读正文、资源清单和译文），再按导航顺序拼接。
+	pages := make([]string, len(navigation.Tree))
+	var size atomic.Int64
+	var failed atomic.Pointer[error]
+	next := make(chan int)
+	var workers sync.WaitGroup
+	for range 8 {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			for i := range next {
+				page, err := renderNode(ctx, op, in.Locale, true, navigation, navigation.Tree[i])
+				if err != nil {
+					failed.CompareAndSwap(nil, &err)
+					continue
+				}
+				pages[i] = strings.TrimSpace(page)
+				size.Add(int64(len(pages[i])))
+			}
+		}()
 	}
-	return HandleLLMsFullResult{Status: 200, Text: output.String() + "\n"}, nil
+	for i := range navigation.Tree {
+		if failed.Load() != nil || size.Load() > llmsFullLimit {
+			break
+		}
+		next <- i
+	}
+	close(next)
+	workers.Wait()
+	if err := failed.Load(); err != nil {
+		return HandleLLMsFullResult{}, *err
+	}
+	if size.Load() > llmsFullLimit {
+		return HandleLLMsFullResult{}, platform.NewError(platform.CodeValidation, false, "LLMS_FULL_TOO_LARGE")
+	}
+	return HandleLLMsFullResult{Status: 200, Text: strings.Join(pages, "\n\n---\n\n") + "\n"}, nil
 }

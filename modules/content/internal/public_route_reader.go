@@ -68,6 +68,9 @@ func readPublicRouteSnapshot(ctx context.Context, tx *sql.Tx, op OperationContex
 		if !ok || document.PathSegment == nil {
 			return ReadPublicTreeResult{}, platform.NewError(platform.CodeIntegrityError, false, "公开文档缺少完整规范路径")
 		}
+		if document.LastPublishedAt == nil {
+			return ReadPublicTreeResult{}, platform.NewError(platform.CodeIntegrityError, false, "公开文档缺少发布时间")
+		}
 		parent := document.ParentId
 		for parent != nil && !visible[*parent] {
 			ancestor, ok := metadata[*parent]
@@ -76,7 +79,7 @@ func readPublicRouteSnapshot(ctx context.Context, tx *sql.Tx, op OperationContex
 			}
 			parent = ancestor.ParentId
 		}
-		nodes = append(nodes, gen.PublicTreeNode{DocumentId: document.DocumentId, ParentId: parent, Title: document.Title, PathSegment: *document.PathSegment, OrderKey: document.OrderKey, Reference: *document.PublishedReference, VisibilityRevision: document.VisibilityRevision, CanonicalPath: path})
+		nodes = append(nodes, gen.PublicTreeNode{DocumentId: document.DocumentId, ParentId: parent, Title: document.Title, PathSegment: *document.PathSegment, OrderKey: document.OrderKey, Reference: *document.PublishedReference, VisibilityRevision: document.VisibilityRevision, CanonicalPath: path, LastPublishedAt: *document.LastPublishedAt, SeoDescription: document.SeoDescription})
 	}
 	return ReadPublicTreeResult{Nodes: nodes, TreeRevision: int(revision)}, nil
 }

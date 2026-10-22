@@ -251,6 +251,11 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 	if !found {
 		return "", platform.NewError(platform.CodeNotFound, false, "NOT_PUBLISHED")
 	}
+	return renderNode(ctx, op, locale, markdown, navigation, node)
+}
+
+// renderNode 用调用方已经建好的公开导航渲染一篇文档；批量渲染（llms-full）时导航只建一次。
+func renderNode(ctx context.Context, op platform.OperationContext, locale string, markdown bool, navigation BuildNavigationResult, node NavigationNode) (string, error) {
 	bundle, err := LoadPublishedBundle(ctx, op, LoadPublishedBundleInput{Publication: node.Publication, Locale: locale})
 	if err != nil {
 		return "", err
@@ -262,7 +267,7 @@ func renderPage(ctx context.Context, op platform.OperationContext, locale, epoch
 	// 站内链接按当前语言的公开路径改写；目标未发布、已撤回或锚点不在时由渲染器显示为“暂不可用”。
 	links := map[string]string{}
 	if targets := collectInternalLinks(bundle.Document); len(targets) > 0 {
-		resolved, linkErr := RewriteInternalLinks(ctx, op, RewriteInternalLinksInput{targets, locale, epoch})
+		resolved, linkErr := resolveInternalLinks(ctx, navigation, targets)
 		if linkErr != nil {
 			return "", linkErr
 		}

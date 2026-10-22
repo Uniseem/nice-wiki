@@ -2254,6 +2254,10 @@ export interface components {
             visibilityRevision: components["schemas"]["Revision"];
             /** @description content同一treeRevision快照计算的完整规范URL路径；各段已编码，不含语言/basePath/query/fragment；不可由消费方用缺失祖先拼接；恰好一个起始/，禁止空白/控制符/反斜杠/query/fragment，分段无点跳转，百分号只用于各段规范编码 */
             canonicalPath: string;
+            /** @description 最近一次发布时间，sitemap lastmod 用，免得逐篇读正文 */
+            lastPublishedAt: components["schemas"]["Timestamp"];
+            /** @description 待生成null */
+            seoDescription: string | null;
         };
         /** @description 公开导航读取已发布文档树的结果 */
         ReadPublicTreeResult: {

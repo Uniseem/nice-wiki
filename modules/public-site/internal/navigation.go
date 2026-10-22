@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"sort"
+	"time"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/public-site/internal/gen"
@@ -16,6 +17,9 @@ type NavigationNode struct {
 	CanonicalPath string                   `json:"canonicalPath"`
 	SortKey       string                   `json:"sortKey"`
 	Publication   gen.PublishedRevisionRef `json:"publication"`
+	// 来自同一公开树快照：sitemap 的 lastmod 和 llms 摘要直接用，不逐篇读正文。
+	LastPublishedAt time.Time `json:"lastPublishedAt"`
+	SEODescription  string    `json:"seoDescription"`
 }
 type BuildNavigationInput struct {
 	Locale    string
@@ -57,6 +61,8 @@ func BuildNavigation(ctx context.Context, op platform.OperationContext, in Build
 			OrderKey           string                   `json:"orderKey"`
 			Reference          gen.PublishedRevisionRef `json:"reference"`
 			VisibilityRevision int                      `json:"visibilityRevision"`
+			LastPublishedAt    time.Time                `json:"lastPublishedAt"`
+			SEODescription     *string                  `json:"seoDescription"`
 		}
 		TreeRevision int `json:"treeRevision"`
 	}
@@ -76,7 +82,11 @@ func BuildNavigation(ctx context.Context, op platform.OperationContext, in Build
 		if err != nil {
 			return BuildNavigationResult{}, err
 		}
-		nodes = append(nodes, NavigationNode{node.DocumentID, node.ParentID, node.Title, href, node.OrderKey, node.Reference})
+		summary := ""
+		if node.SEODescription != nil {
+			summary = *node.SEODescription
+		}
+		nodes = append(nodes, NavigationNode{node.DocumentID, node.ParentID, node.Title, href, node.OrderKey, node.Reference, node.LastPublishedAt, summary})
 		refs = append(refs, node.Reference)
 	}
 	// 非基准语言：有标题译文且对应的发布修订没变的文档，导航里显示译文标题。

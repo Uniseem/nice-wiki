@@ -2528,7 +2528,7 @@
       "operationId": "handleLLMsFull",
       "permission": "anonymous",
       "admission": null,
-      "timeoutMs": null,
+      "timeoutMs": 30000,
       "streaming": false
     },
     {

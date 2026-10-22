@@ -821,6 +821,7 @@
     "/{locale}/llms-full.txt": {
       "get": {
         "operationId": "handleLLMsFull",
+        "x-timeout-ms": 30000,
         "summary": "输出合并正文或分片索引",
         "description": "该语言全正文或明确分片链接",
         "x-handler": "public-site.HandleLLMsFull",
