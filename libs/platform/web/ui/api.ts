@@ -1,7 +1,8 @@
 import type { ModuleAPIClient, ModuleAPIRequest } from '../module-api';
 import { t } from './i18n';
 
-// 浏览器端的同源 API 客户端：CSRF 令牌、会话 ID 和授权项只存会话存储，HttpOnly 的会话 cookie 由浏览器自带。
+// 浏览器端的同源 API 客户端：HttpOnly 的会话 cookie 由浏览器自带，CSRF 令牌、会话 ID 和授权项存本地存储。
+// cookie 是同一浏览器所有标签页共用的，配套的 CSRF 也必须共用：任一标签页刷新会话后，其他标签页立即读到新令牌。
 // 各域页面只用它请求本站版本化路径，不接触凭据，也不拼接其他来源的地址。
 
 export class ApiError extends Error {
@@ -13,13 +14,13 @@ export class ApiError extends Error {
 const keys = { csrf: 'nw_csrf', grants: 'nw_grants', session: 'nw_session_id' };
 
 function read(key: string): string {
-  try { return sessionStorage.getItem(key) ?? ''; } catch { return ''; }
+  try { return localStorage.getItem(key) ?? ''; } catch { return ''; }
 }
 
 function write(key: string, value: string | null): void {
   try {
-    if (value === null) sessionStorage.removeItem(key);
-    else sessionStorage.setItem(key, value);
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
   } catch { /* 隐私模式下忽略 */ }
 }
 
@@ -49,6 +50,16 @@ export function currentGrants(): string[] {
   return grantsCache;
 }
 
+// 其他标签页登录、刷新或退出：授权项跟着变；退出了就回登录页。
+if (typeof window !== 'undefined') {
+  addEventListener('storage', (event) => {
+    if (event.key !== keys.grants && event.key !== keys.csrf && event.key !== null) return;
+    grantsCache = null;
+    grantListeners.forEach((listener) => listener());
+    if (!read(keys.csrf)) unauthorizedListeners.forEach((listener) => listener());
+  });
+}
+
 export function subscribeGrants(listener: () => void): () => void {
   grantListeners.add(listener);
   return () => grantListeners.delete(listener);
@@ -66,8 +77,11 @@ export function newKey(): string {
 let refreshing: Promise<boolean> | null = null;
 
 // 访问令牌过期时静默刷新一次；刷新失败说明需要重新登录。
-export function refresh(): Promise<boolean> {
-  refreshing ??= (async () => {
+// seen 是发现需要刷新时手里的 CSRF：多个标签页排队刷新，轮到时令牌已被别的标签页换新就直接用新的，
+// 不再拿同一个已消费的刷新凭据去刷新（那会被当成凭据被盗而撤销整个会话）。
+export function refresh(seen = read(keys.csrf)): Promise<boolean> {
+  refreshing ??= withRefreshLock(async () => {
+    if (read(keys.csrf) && read(keys.csrf) !== seen) return true;
     try {
       const response = await fetch('/v1/sessions:refresh', {
         method: 'POST', credentials: 'same-origin',
@@ -78,9 +92,15 @@ export function refresh(): Promise<boolean> {
       const body = await response.json() as { session?: SessionReply };
       storeSession(body.session ?? null);
       return !!body.session;
-    } catch { return false; } finally { setTimeout(() => { refreshing = null; }, 0); }
-  })();
+    } catch { return false; }
+  }).finally(() => { setTimeout(() => { refreshing = null; }, 0); });
   return refreshing;
+}
+
+// 同一浏览器的标签页依次刷新。Web Locks 只在安全上下文（HTTPS 或本机）可用，没有时退回本标签页内去重。
+function withRefreshLock(run: () => Promise<boolean>): Promise<boolean> {
+  const locks = (navigator as Navigator & { locks?: LockManager }).locks;
+  return locks ? locks.request('nw-session-refresh', run) : run();
 }
 
 const unauthorizedListeners = new Set<() => void>();
@@ -110,14 +130,19 @@ export async function request<T>(path: string, options: ModuleAPIRequest = {}, r
   }
   if (options.backupDownloadToken) headers['X-Backup-Download-Token'] = options.backupDownloadToken;
   if (options.backupPassphrase) headers['X-Backup-Passphrase'] = options.backupPassphrase;
+  const csrf = read(keys.csrf);
   if (method !== 'GET') {
     headers['Idempotency-Key'] = options.idempotencyKey ?? newKey();
-    headers['X-CSRF-Token'] = read(keys.csrf);
+    headers['X-CSRF-Token'] = csrf;
   }
   const response = await fetch(path, { method, headers, body, credentials: 'same-origin', signal: options.signal });
   if (response.status === 401 && !retried && !path.startsWith('/v1/sessions') && path !== '/v1/registration') {
-    if (await refresh()) return request<T>(path, options, true);
+    if (await refresh(csrf)) return request<T>(path, options, true);
     unauthorizedListeners.forEach((listener) => listener());
+  }
+  // 请求在途时别的标签页刷新了会话，带去的 CSRF 已作废：换新令牌重发一次。其他 403 照常报错。
+  if (response.status === 403 && !retried && method !== 'GET' && read(keys.csrf) && read(keys.csrf) !== csrf) {
+    return request<T>(path, options, true);
   }
   if (!response.ok) {
     let payload: { code?: string; detail?: string } | null = null;

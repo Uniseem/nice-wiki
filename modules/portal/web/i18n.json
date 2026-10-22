@@ -47,6 +47,22 @@
   "id": "{0} item",
   "ar": "{0} عنصر"
  },
+ "{0}。登录仍然有效，请稍后再试。": {
+  "zh-Hant": "{0}。登入仍然有效，請稍後再試。",
+  "en": "{0}. You are still signed in; please try again later.",
+  "ja": "{0}。ログインはまだ有効です。しばらくしてからもう一度お試しください。",
+  "ko": "{0}. 로그인은 아직 유효합니다. 잠시 후 다시 시도하세요.",
+  "fr": "{0}. Vous êtes toujours connecté ; réessayez plus tard.",
+  "de": "{0}. Sie sind weiterhin angemeldet; bitte später erneut versuchen.",
+  "es": "{0}. Tu sesión sigue activa; inténtalo de nuevo más tarde.",
+  "pt": "{0}. Você continua conectado; tente novamente mais tarde.",
+  "ru": "{0}. Вы всё ещё в системе; повторите попытку позже.",
+  "it": "{0}. Sei ancora connesso; riprova più tardi.",
+  "vi": "{0}. Bạn vẫn đang đăng nhập; vui lòng thử lại sau.",
+  "th": "{0} คุณยังเข้าสู่ระบบอยู่ โปรดลองอีกครั้งภายหลัง",
+  "id": "{0}. Anda masih masuk; coba lagi nanti.",
+  "ar": "{0}. ما زلت مسجّل الدخول؛ يُرجى المحاولة لاحقًا."
+ },
  "{0}（登录于 {1}）将需要重新登录。": {
   "zh-Hant": "{0}（登入於 {1}）將需要重新登入。",
   "en": "{0} (signed in {1}) will need to sign in again.",
@@ -1902,6 +1918,22 @@
   "th": "ออกจากระบบ",
   "id": "Keluar",
   "ar": "تسجيل الخروج"
+ },
+ "退出失败": {
+  "zh-Hant": "登出失敗",
+  "en": "Sign-out failed",
+  "ja": "ログアウトに失敗しました",
+  "ko": "로그아웃 실패",
+  "fr": "Échec de la déconnexion",
+  "de": "Abmelden fehlgeschlagen",
+  "es": "No se pudo cerrar sesión",
+  "pt": "Falha ao sair",
+  "ru": "Не удалось выйти",
+  "it": "Disconnessione non riuscita",
+  "vi": "Đăng xuất thất bại",
+  "th": "ออกจากระบบไม่สำเร็จ",
+  "id": "Gagal keluar",
+  "ar": "تعذّر تسجيل الخروج"
  },
  "退出登录": {
   "zh-Hant": "登出",

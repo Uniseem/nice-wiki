@@ -1,5 +1,5 @@
 import { I18nProvider, RouterProvider, Toast } from '@heroui/react';
-import { adminLanguage, api, ApiError, CenteredSpinner, currentGrants, currentSessionId, DialogHost, findSiteLanguage, navigate, newKey, onUnauthorized, refresh, storeSession } from '@ui';
+import { adminLanguage, api, ApiError, CenteredSpinner, currentGrants, currentSessionId, DialogHost, errorText, findSiteLanguage, navigate, newKey, notify, onUnauthorized, refresh, storeSession, t } from '@ui';
 import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
 import { AuthScreen } from './AuthScreen';
@@ -49,7 +49,7 @@ export function App() {
     void (async () => {
       try {
         const self = await api<{ account: Account }>('/v1/self');
-        // 授权项只在登录/刷新响应里；新开标签页时会话存储为空，静默刷新一次补上。
+        // 授权项只在登录/刷新响应里；本地还没有（比如从旧版本升级上来）时静默刷新一次补上。
         if (!currentGrants().length) await refresh();
         const init = await api<{ initialized: boolean }>('/v1/initialization');
         if (!init.initialized) { setPhase({ kind: 'auth', pending: self.account }); return; }
@@ -66,7 +66,13 @@ export function App() {
   const signOut = useCallback(async () => {
     const id = currentSessionId();
     if (id) {
-      try { await api(`/v1/sessions/${id}`, { method: 'DELETE', body: {} }); } catch { /* 退出以清本地状态为准 */ }
+      try { await api(`/v1/sessions/${id}`, { method: 'DELETE', body: {} }); } catch (problem) {
+        // 会话本来就失效了才算已退出；断网、校验失败时服务端会话还有效，不能显示成已退出。
+        if (!(problem instanceof ApiError && problem.status === 401)) {
+          notify.error(t('退出失败'), t('{0}。登录仍然有效，请稍后再试。', errorText(problem)));
+          return;
+        }
+      }
     }
     storeSession(null);
     setPhase({ kind: 'auth' });
