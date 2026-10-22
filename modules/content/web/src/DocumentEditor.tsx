@@ -43,6 +43,8 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
   const [dialog, setDialog] = useState<'publish' | 'settings' | 'move' | 'history' | null>(null);
   const [publishDraft, setPublishDraft] = useState('');
   const [titleFocus, setTitleFocus] = useState(false);
+  // 草稿在别处（另一个标签页或窗口）存了更新的版本：这里的修改存不上，提示重新打开。
+  const [conflict, setConflict] = useState(false);
 
   // 计时器和最新状态放在 ref 里，供自动保存与卸载时使用。
   const live = useRef({ draft: null as Draft | null, lease: null as Lease | null, writable: false, pending: null as JSONNode | null, dirty: false, heartbeat: 0, inputs: 0, lastInput: new Date().toISOString(), meta: null as Meta | null });
@@ -103,7 +105,10 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
       } catch (problem) {
         const message = errorText(problem);
         setSave({ kind: 'error', message });
-        notify.error(t('草稿保存失败'), message);
+        if (problem instanceof ApiError && problem.code === 'VERSION_MISMATCH') {
+          setConflict(true);
+          notify.error(t('这篇文档在别处保存了更新的内容'), t('正文顶部有处理办法。'));
+        } else notify.error(t('草稿保存失败'), message);
         return false;
       } finally {
         saving.current = null;
@@ -374,6 +379,13 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
   const trail = ancestors(docs, documentId);
   const header = (
     <div className="mb-8">
+      {conflict && (
+        <Notice className="mb-6" status="danger" title={t('这篇文档在别处保存了更新的内容')}>
+          <span className="flex flex-wrap items-center gap-2">{t('可能在另一个标签页或窗口里编辑过，这里的修改没能保存。需要的话先复制内容，再重新打开文档。')}
+            <Button size="sm" variant="secondary" onPress={() => { live.current.dirty = false; onReopen(); }}>{t('重新打开')}</Button>
+          </span>
+        </Notice>
+      )}
       {lock === 'readonly' && (
         <Notice className="mb-6" status="warning" title={t('只读：{0} 正在编辑这篇文档', holder)}>
           <span className="flex flex-wrap items-center gap-2">{t('对方离开或保存后锁会自动释放，届时重新打开即可编辑。')}

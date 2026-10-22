@@ -1167,6 +1167,22 @@
   "id": "Tugas yang bisa dicentang",
   "ar": "مهام قابلة للتحديد"
  },
+ "可能在另一个标签页或窗口里编辑过，这里的修改没能保存。需要的话先复制内容，再重新打开文档。": {
+  "zh-Hant": "可能在另一個分頁或視窗裡編輯過，這裡的修改沒能儲存。需要的話先複製內容，再重新開啟文件。",
+  "en": "It may have been edited in another tab or window, so the changes here weren’t saved. Copy anything you need, then reopen the document.",
+  "ja": "別のタブやウィンドウで編集された可能性があり、ここでの変更は保存できませんでした。必要な内容をコピーしてから開き直してください。",
+  "ko": "다른 탭이나 창에서 편집된 것 같아 여기서의 변경 사항은 저장되지 않았습니다. 필요한 내용을 복사한 뒤 문서를 다시 여세요.",
+  "fr": "Il a peut-être été modifié dans un autre onglet ou une autre fenêtre ; vos modifications ici n’ont pas été enregistrées. Copiez ce dont vous avez besoin, puis rouvrez le document.",
+  "de": "Es wurde vermutlich in einem anderen Tab oder Fenster bearbeitet; die Änderungen hier wurden nicht gespeichert. Kopieren Sie, was Sie brauchen, und öffnen Sie das Dokument erneut.",
+  "es": "Puede que se haya editado en otra pestaña o ventana, así que los cambios de aquí no se guardaron. Copia lo que necesites y vuelve a abrir el documento.",
+  "pt": "Pode ter sido editado em outra aba ou janela, e as alterações aqui não foram salvas. Copie o que precisar e reabra o documento.",
+  "ru": "Возможно, документ редактировали в другой вкладке или окне, поэтому изменения здесь не сохранились. Скопируйте нужное и откройте документ заново.",
+  "it": "Potrebbe essere stato modificato in un’altra scheda o finestra, quindi le modifiche qui non sono state salvate. Copia ciò che ti serve e riapri il documento.",
+  "vi": "Có thể tài liệu đã được sửa ở thẻ hoặc cửa sổ khác nên thay đổi ở đây chưa lưu được. Hãy sao chép nội dung cần thiết rồi mở lại tài liệu.",
+  "th": "อาจมีการแก้ไขในแท็บหรือหน้าต่างอื่น การแก้ไขที่นี่จึงบันทึกไม่ได้ คัดลอกเนื้อหาที่ต้องการแล้วเปิดเอกสารใหม่",
+  "id": "Mungkin sudah disunting di tab atau jendela lain, jadi perubahan di sini tidak tersimpan. Salin yang diperlukan, lalu buka ulang dokumen.",
+  "ar": "ربما عُدّل في علامة تبويب أو نافذة أخرى، لذا لم تُحفظ التغييرات هنا. انسخ ما تحتاجه ثم أعد فتح المستند."
+ },
  "右侧插入列": {
   "zh-Hant": "右側插入欄",
   "en": "Insert column right",
@@ -3199,6 +3215,22 @@
   "id": "Judul bagian dalam dokumen akan muncul di sini.",
   "ar": "تظهر عناوين المستند هنا."
  },
+ "正文顶部有处理办法。": {
+  "zh-Hant": "正文頂部有處理辦法。",
+  "en": "See the top of the document for what to do.",
+  "ja": "対処方法は本文の上部にあります。",
+  "ko": "본문 맨 위에서 해결 방법을 확인하세요.",
+  "fr": "La marche à suivre est indiquée en haut du document.",
+  "de": "Was zu tun ist, steht oben im Dokument.",
+  "es": "Arriba del documento se indica qué hacer.",
+  "pt": "Veja no topo do documento o que fazer.",
+  "ru": "Что делать — см. в начале документа.",
+  "it": "In cima al documento trovi cosa fare.",
+  "vi": "Xem cách xử lý ở đầu tài liệu.",
+  "th": "ดูวิธีแก้ไขที่ด้านบนของเอกสาร",
+  "id": "Lihat bagian atas dokumen untuk langkahnya.",
+  "ar": "راجع أعلى المستند لمعرفة ما يجب فعله."
+ },
  "水平分隔": {
   "zh-Hant": "水平分隔",
   "en": "Horizontal divider",
@@ -4127,6 +4159,22 @@
   "id": "Dokumen ini memiliki dokumen anak yang juga akan dipindahkan ke sampah. Halaman terbit langsung tidak berlaku; bisa dipulihkan dari sampah.",
   "ar": "يحتوي هذا المستند على مستندات فرعية ستنتقل معه إلى سلة المحذوفات، وتتوقف الصفحات المنشورة فورًا ويمكن استعادتها من السلة."
  },
+ "这篇文档在别处保存了更新的内容": {
+  "zh-Hant": "這篇文件在別處儲存了更新的內容",
+  "en": "A newer version of this document was saved elsewhere",
+  "ja": "このドキュメントは別の場所で新しい内容が保存されています",
+  "ko": "이 문서의 더 새로운 내용이 다른 곳에서 저장되었습니다",
+  "fr": "Une version plus récente de ce document a été enregistrée ailleurs",
+  "de": "Eine neuere Fassung dieses Dokuments wurde anderswo gespeichert",
+  "es": "Se guardó una versión más reciente de este documento en otro lugar",
+  "pt": "Uma versão mais recente deste documento foi salva em outro lugar",
+  "ru": "Более новая версия документа сохранена в другом месте",
+  "it": "Una versione più recente di questo documento è stata salvata altrove",
+  "vi": "Phiên bản mới hơn của tài liệu đã được lưu ở nơi khác",
+  "th": "มีการบันทึกเนื้อหาที่ใหม่กว่าของเอกสารนี้จากที่อื่น",
+  "id": "Versi lebih baru dokumen ini disimpan di tempat lain",
+  "ar": "حُفظت نسخة أحدث من هذا المستند في مكان آخر"
+ },
  "连同 {0} 篇子文档一起彻底删除，无法恢复，公开地址会返回“已删除”。": {
   "zh-Hant": "連同 {0} 篇子文件一起徹底刪除，無法復原，公開網址會傳回「已刪除」。",
   "en": "This also permanently deletes its {0} child documents. It can’t be undone, and the public URLs will show “Deleted”.",
@@ -4190,6 +4238,22 @@
   "th": "ลองอีกครั้ง",
   "id": "Coba lagi",
   "ar": "حاول مجددًا"
+ },
+ "重新打开": {
+  "zh-Hant": "重新開啟",
+  "en": "Reopen",
+  "ja": "開き直す",
+  "ko": "다시 열기",
+  "fr": "Rouvrir",
+  "de": "Neu öffnen",
+  "es": "Volver a abrir",
+  "pt": "Reabrir",
+  "ru": "Открыть заново",
+  "it": "Riapri",
+  "vi": "Mở lại",
+  "th": "เปิดใหม่",
+  "id": "Buka ulang",
+  "ar": "إعادة الفتح"
  },
  "链接": {
   "zh-Hant": "連結",
