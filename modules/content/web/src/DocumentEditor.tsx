@@ -34,6 +34,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
   const [loadError, setLoadError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<'publish' | 'settings' | 'move' | 'history' | null>(null);
+  const [publishDraft, setPublishDraft] = useState('');
 
   // 计时器和最新状态放在 ref 里，供自动保存与卸载时使用。
   const live = useRef({ draft: null as Draft | null, lease: null as Lease | null, writable: false, pending: null as JSONNode | null, dirty: false, heartbeat: 0, inputs: 0, lastInput: new Date().toISOString(), meta: null as Meta | null });
@@ -209,8 +210,14 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
 
   const startPublish = () => {
     if (!meta) return;
-    if (!meta.pathSegment) setDialog('publish');
-    else void publish(null, null);
+    if (meta.pathSegment) { void publish(null, null); return; }
+    // 首次发布：先存好草稿，对话框按这一版正文请 AI 建议路径和摘要。
+    void act(async () => {
+      if (!(await flush())) return;
+      const read = await refreshMeta();
+      setPublishDraft(read.draft.revisionId);
+      setDialog('publish');
+    });
   };
 
   const preview = () => act(async () => {
@@ -337,7 +344,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
       <div className="min-h-0 flex-1 overflow-y-auto">
         <Editor doc={initial} editable={writable} onChange={onChange} />
       </div>
-      {dialog === 'publish' && <PublishDialog meta={meta} onClose={() => setDialog(null)} onPublish={async (path, seo) => { if (await publish(path, seo)) setDialog(null); }} />}
+      {dialog === 'publish' && <PublishDialog meta={meta} draftRevisionId={publishDraft} onClose={() => setDialog(null)} onPublish={async (path, seo) => { if (await publish(path, seo)) setDialog(null); }} />}
       {dialog === 'settings' && <SettingsDialog meta={meta} onClose={() => setDialog(null)} onSaved={async () => { await refreshMeta(); setDialog(null); }} />}
       {dialog === 'move' && (
         <MoveDialog

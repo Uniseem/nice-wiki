@@ -6718,6 +6718,79 @@
     "SnapshotArchiveReadResult": {
       "x-internal": true,
       "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
+    },
+    "SuggestPublicationMetadataInput": {
+      "type": "object",
+      "description": "首次发布前请模型建议路径名和搜索摘要",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "待发布的共享草稿版本"
+        }
+      },
+      "required": [
+        "documentId",
+        "draftRevisionId"
+      ]
+    },
+    "suggestPublicationMetadataRequest": {
+      "type": "object",
+      "description": "首次发布前请模型建议路径名和搜索摘要请求体",
+      "additionalProperties": false,
+      "properties": {
+        "draftRevisionId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "待发布的共享草稿版本"
+        }
+      },
+      "required": [
+        "draftRevisionId"
+      ]
+    },
+    "SuggestPublicationMetadataResult": {
+      "type": "object",
+      "description": "模型建议；已有路径或摘要、或模型给不出合格结果时对应字段为null",
+      "additionalProperties": false,
+      "properties": {
+        "pathSegment": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "英文slug",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "建议的英文路径名；已有路径时null"
+        },
+        "seoDescription": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "建议的搜索摘要，文档源语言",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "已有摘要时null"
+        }
+      },
+      "required": [
+        "pathSegment",
+        "seoDescription"
+      ]
     }
   }
 }

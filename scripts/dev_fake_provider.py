@@ -27,6 +27,13 @@ def reply_text(messages, last):
             return json.dumps({"items": [{"chunkId": i, "prefix": "（假背景）"} for i in ids]}, ensure_ascii=False)
         except Exception as e:
             return "{}"
+    if "URL 路径名" in system:
+        return "fake-" + hashlib.sha256(last.encode()).hexdigest()[:6]
+    if "搜索摘要" in system:
+        try:
+            return "（假摘要）" + json.loads(last)["title"]
+        except Exception:
+            return ""
     if "summary card" in system:
         try:
             title = json.loads(last)["title"] or "Document"

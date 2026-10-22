@@ -35,6 +35,7 @@ type TreeRuntime struct {
 	WriteWindow    platform.WriteWindowConfig
 	validateResult map[string]func(json.RawMessage) error
 	Media          *gen.MediaClient
+	Models         *ModelRuntime
 }
 type treeRuntimeKey struct{}
 

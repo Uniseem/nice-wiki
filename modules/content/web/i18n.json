@@ -15,6 +15,22 @@
   "id": "3 × 3 dengan baris judul",
   "ar": "3 × 3 مع صف عناوين"
  },
+ "AI 暂时没能给出建议，请手动填写。": {
+  "zh-Hant": "AI 暫時無法提供建議，請手動填寫。",
+  "en": "AI couldn’t make a suggestion right now. Please fill these in yourself.",
+  "ja": "AI が今は提案できませんでした。手動で入力してください。",
+  "ko": "AI가 지금은 제안하지 못했습니다. 직접 입력하세요.",
+  "fr": "L’IA n’a pas pu faire de suggestion pour le moment. Veuillez remplir ces champs vous-même.",
+  "de": "Die KI konnte gerade keinen Vorschlag machen. Bitte selbst ausfüllen.",
+  "es": "La IA no pudo hacer una sugerencia ahora. Rellena los campos manualmente.",
+  "pt": "A IA não conseguiu sugerir agora. Preencha os campos manualmente.",
+  "ru": "ИИ сейчас не смог предложить вариант. Заполните поля вручную.",
+  "it": "L’IA non è riuscita a fare un suggerimento ora. Compila i campi manualmente.",
+  "vi": "AI chưa thể đưa ra gợi ý lúc này. Vui lòng tự điền.",
+  "th": "ตอนนี้ AI ยังให้คำแนะนำไม่ได้ โปรดกรอกเอง",
+  "id": "AI belum bisa memberi saran saat ini. Silakan isi sendiri.",
+  "ar": "تعذّر على الذكاء الاصطناعي تقديم اقتراح الآن. يرجى تعبئة الحقول يدويًا."
+ },
  "LaTeX 数学公式": {
   "zh-Hant": "LaTeX 數學公式",
   "en": "LaTeX math",
@@ -2639,6 +2655,22 @@
   "id": "Memuat dokumen…",
   "ar": "جارٍ تحميل المستند…"
  },
+ "正在用 AI 生成路径和搜索摘要…": {
+  "zh-Hant": "正在用 AI 產生路徑和搜尋摘要…",
+  "en": "Generating the path and search summary with AI…",
+  "ja": "AI でパスと検索用の要約を生成しています…",
+  "ko": "AI로 경로와 검색 요약을 생성하는 중…",
+  "fr": "Génération du chemin et du résumé de recherche par l’IA…",
+  "de": "Pfad und Suchzusammenfassung werden mit KI erstellt…",
+  "es": "Generando la ruta y el resumen de búsqueda con IA…",
+  "pt": "Gerando o caminho e o resumo de pesquisa com IA…",
+  "ru": "ИИ создаёт путь и описание для поиска…",
+  "it": "Generazione del percorso e del riassunto di ricerca con l’IA…",
+  "vi": "Đang dùng AI tạo đường dẫn và tóm tắt tìm kiếm…",
+  "th": "กำลังใช้ AI สร้างพาธและสรุปสำหรับการค้นหา…",
+  "id": "Membuat jalur dan ringkasan pencarian dengan AI…",
+  "ar": "جارٍ إنشاء المسار وملخص البحث بالذكاء الاصطناعي…"
+ },
  "正文": {
   "zh-Hant": "內文",
   "en": "Body text",
@@ -3326,6 +3358,22 @@
   "th": "กลับไปที่เอกสาร",
   "id": "Kembali ke dokumen",
   "ar": "العودة إلى المستندات"
+ },
+ "还没有为路径名和摘要配置 AI 模型，请手动填写。": {
+  "zh-Hant": "尚未為路徑名稱和摘要設定 AI 模型，請手動填寫。",
+  "en": "No AI model is set up for paths and summaries yet. Please fill them in yourself.",
+  "ja": "パス名と要約用の AI モデルがまだ設定されていません。手動で入力してください。",
+  "ko": "경로 이름과 요약용 AI 모델이 아직 설정되지 않았습니다. 직접 입력하세요.",
+  "fr": "Aucun modèle d’IA n’est encore configuré pour les chemins et les résumés. Veuillez les saisir vous-même.",
+  "de": "Für Pfade und Zusammenfassungen ist noch kein KI-Modell eingerichtet. Bitte selbst ausfüllen.",
+  "es": "Aún no hay un modelo de IA configurado para rutas y resúmenes. Rellénalos manualmente.",
+  "pt": "Ainda não há um modelo de IA configurado para caminhos e resumos. Preencha-os manualmente.",
+  "ru": "Модель ИИ для путей и описаний ещё не настроена. Заполните поля вручную.",
+  "it": "Non è ancora configurato un modello di IA per percorsi e riassunti. Compilali manualmente.",
+  "vi": "Chưa cấu hình mô hình AI cho đường dẫn và tóm tắt. Vui lòng tự điền.",
+  "th": "ยังไม่ได้ตั้งค่าโมเดล AI สำหรับพาธและสรุป โปรดกรอกเอง",
+  "id": "Model AI untuk jalur dan ringkasan belum diatur. Silakan isi sendiri.",
+  "ar": "لم يتم إعداد نموذج ذكاء اصطناعي للمسارات والملخصات بعد. يرجى تعبئتها يدويًا."
  },
  "还没有发布记录": {
   "zh-Hant": "還沒有發布記錄",

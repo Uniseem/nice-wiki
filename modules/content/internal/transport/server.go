@@ -400,10 +400,11 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 		return platform.NewError(platform.CodeIntegrityError, false, "发布HTTP规格不可读")
 	}
 	keep := map[string]bool{
-		"/v1/documents/{documentId}:publish":  true,
-		"/v1/documents/{documentId}:withdraw": true,
-		"/v1/publications:validate":           true,
-		"/v1/public-tree":                     true, "/v1/public-path:resolve": true,
+		"/v1/documents/{documentId}:publish":             true,
+		"/v1/documents/{documentId}:suggest-publication": true,
+		"/v1/documents/{documentId}:withdraw":            true,
+		"/v1/publications:validate":                      true,
+		"/v1/public-tree":                                true, "/v1/public-path:resolve": true,
 		"/v1/documents/{documentId}/history": true, "/v1/documents/{documentId}/history:diff": true,
 		"/v1/documents/{documentId}/published": true,
 		"/v1/documents/{documentId}:trash":     true, "/v1/documents/{documentId}:restore": true, "/v1/trash:purge": true,
@@ -424,6 +425,21 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 			}
 			input := content.PublishDocumentInput{DocumentId: r.PathValue("documentId"), DraftRevisionId: body.DraftRevisionId, ExpectedDraftVersion: body.ExpectedDraftVersion, ExpectedRevision: body.ExpectedRevision, ManualPathSegment: body.ManualPathSegment, ManualSEO: body.ManualSEO}
 			result, err := content.PublishDocument(content.WithTreeRuntime(r.Context(), runtime), op, input)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"suggestPublicationMetadata": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			op, _ := platform.OperationContextFrom(r.Context())
+			var body gen.SuggestPublicationMetadataRequest
+			if json.NewDecoder(r.Body).Decode(&body) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "发布建议参数无法转换"))
+				return
+			}
+			result, err := content.SuggestPublicationMetadata(content.WithTreeRuntime(r.Context(), runtime), op, content.SuggestPublicationMetadataInput{DocumentId: r.PathValue("documentId"), DraftRevisionId: body.DraftRevisionId})
 			if err != nil {
 				writeProblem(w, err)
 				return
@@ -565,14 +581,14 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 	}
 	authorize := func(ctx context.Context, op platform.OperationContext, permission, action string) error {
 		switch action {
-		case "content:publishDocument", "content:withdrawDocument", "content:readRevisionHistory", "content:diffRevisions", "content:trashDocument", "content:restoreDocument", "content:purgeDocuments":
+		case "content:publishDocument", "content:suggestPublicationMetadata", "content:withdrawDocument", "content:readRevisionHistory", "content:diffRevisions", "content:trashDocument", "content:restoreDocument", "content:purgeDocuments":
 			return nil
 		}
 		return platform.NewError(platform.CodeForbidden, false, "发布路由没有该操作的用户授权")
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch), Authorize: authorize,
 		AllowedCallers: map[string][]string{
-			"publishDocument":     {"portal"},
+			"publishDocument": {"portal"}, "suggestPublicationMetadata": {"portal"},
 			"readRevisionHistory": {"portal"}, "diffRevisions": {"portal"},
 			"withdrawDocument": {"portal"}, "trashDocument": {"portal"}, "restoreDocument": {"portal"}, "purgeDocuments": {"portal"},
 			"validatePublications": {"public-site", "knowledge", "qa", "localization", "site-config", "memory"},
@@ -584,6 +600,7 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 		return err
 	}
 	app.router.Handle("POST", "/v1/documents/{documentId}:publish", handler)
+	app.router.Handle("POST", "/v1/documents/{documentId}:suggest-publication", handler)
 	app.router.Handle("POST", "/v1/documents/{documentId}:withdraw", handler)
 	app.router.Handle("POST", "/v1/documents/{documentId}:trash", handler)
 	app.router.Handle("POST", "/v1/documents/{documentId}:restore", handler)

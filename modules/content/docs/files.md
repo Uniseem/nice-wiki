@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 58 个：手写 47、UI 1、生成 4、配置 6。函数 253 个：约束 43，参考 210。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 59 个：手写 48、UI 1、生成 4、配置 6。函数 254 个：约束 44，参考 210。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -21,7 +21,7 @@
 | `modules/content/internal/revision_files.go` | 手写 | 持久写权威正文文件 | `content.WriteRevisionFile`（参考）、`content.RecoverPreparedCommits`（参考）、`content.revisionPreparationDigest`（参考）、`content.validatePreparedMaterial`（参考）、`content.newRevisionWriteWindow`（参考）、`content.persistPreparedRevision`（参考）、`content.verifyRevisionMaterialFile`（参考）、`content.quarantineRevisionMaterial`（参考）、`content.scanCommitJournal`（参考）、`content.appendJournalState`（参考）、`content.openRevisionJournal`（参考）、`content.validateRevisionJournalFile`（参考）、`content.sameJournalIdentity`（参考）、`content.moveBodyToQuarantine`（参考）、`content.syncDirectory`（参考）、`content.revisionBodyPath`（参考） |
 | `modules/content/internal/revision_repository.go` | 手写 | 原子提交共享草稿head | `content.CommitDraftJournal`（参考）、`content.WithDraftCommitStore`（参考）、`content.draftCommitStoreFromContext`（参考）、`content.validateDraftCommitInput`（参考）、`content.validateDraftCommitStore`（参考）、`content.verifyPreparedRevisionFile`（参考）、`content.checkDraftCommitIOContext`（参考）、`content.draftCommitDigest`（参考）、`content.sameIdentifierPointer`（参考）、`content.normalizeDraftCommitError`（参考） |
 | `modules/content/internal/revision_reader.go` | 手写 | 读取COMMITTED正文并核真相 | `content.ReadRevisionBody`（参考）、`content.revisionFileStoreFromContext`（参考）、`content.revisionFileLocation`（参考）、`content.validateCommittedMaterial`（参考）、`content.readImmutableRevision`（参考）、`content.Read`（参考）、`content.decodeStoredBody`（参考）、`content.isolateRevisionRead`（参考）、`content.WithRevisionFileStore`（参考） |
-| `modules/content/internal/publication_metadata.go` | 手写 | 人工优先准备首次slug和SEO | `content.PreparePublicationMetadata`（参考） |
+| `modules/content/internal/publication_metadata.go` | 手写 | 人工优先准备首次slug和SEO | `content.PreparePublicationMetadata`（参考）、`content.SuggestPublicationMetadata` |
 | `modules/content/internal/publication_service.go` | 手写 | 点击发布才公开精确共享草稿版本 | `content.PublishDocument`、`content.WithdrawDocument`、`content.authorizePublication`（参考）、`content.readPublicationReceipt`（参考）、`content.insertPublicationReceipt`（参考） |
 | `modules/content/internal/publication_repository.go` | 手写 | 原子提交当前发布快照与署名历史 | `content.CommitPublication`（参考）、`content.applyPublication`（参考）、`content.loadSharedDraft`（参考）、`content.casPublicationIdentity`（参考）、`content.preparePublicationPin`（参考）、`content.pinPublicationReferences`（参考）、`content.copyPublishedReferences`（参考）、`content.listPublicationReferences`（参考）、`content.archivePublishedReferences`（参考）、`content.enqueuePublication`（参考）、`content.enqueueTreeChanged`（参考）、`content.ReadReferenceDecision` |
 | `modules/content/internal/visibility_service.go` | 手写 | 同步核公开引用是否仍可见且当前 | `content.ValidatePublications`、`content.readPublicationSnapshot`（参考）、`content.validatePublicationRef`（参考） |
@@ -62,5 +62,6 @@
 | `modules/content/migrations/0006_tree_operations.sql` | 手写 | 只追加树操作完整scope/动作/摘要与原结果回执；不另建影子树或虚假manifest | 无 |
 | `modules/content/migrations/0007_metadata_operations.sql` | 手写 | 只追加完整同代metadata原回执：scope/caller/actor/request hash/result/hash，同真实CAS/outbox事务，不建资源影子来源 | 无 |
 | `modules/content/migrations/0008_publication_snapshots.sql` | 手写 | 只追加发布快照、署名历史、已发布引用和版本化重定向清单 | 无 |
+| `modules/content/migrations/0009_model_suggestions.sql` | 手写 | 只追加首次发布模型建议的按哈希结果缓存 | 无 |
 | `modules/content/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `content.ReadSnapshotArchive` |
 | `modules/content/web/src/index.tsx` | UI | 文档管理：文档树、Tiptap 编辑器（稳定块 ID、斜杠菜单、画板、公式、上传）、编辑锁与自动保存、发布/撤回/历史/回收站 | `content.ContentPage` |

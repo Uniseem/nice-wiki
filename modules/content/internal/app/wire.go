@@ -107,6 +107,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if endpoint := config.Dependencies["media"]; endpoint != "" {
 		treeRuntime.Media = gen.NewMediaClient(endpoint, ModuleSlug, key)
 	}
+	if endpoint := config.Dependencies["model-gateway"]; endpoint != "" {
+		if treeRuntime.Models, err = content.NewModelRuntime(gen.NewModelGatewayClient(endpoint, ModuleSlug, key), store); err != nil {
+			return nil, err
+		}
+	}
 	if err = transport.RegisterTreeRoutes(application, treeRuntime, anchors); err != nil {
 		return nil, err
 	}

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 253 个函数：约束 43 个，参考 210 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 254 个函数：约束 44 个，参考 210 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -4377,7 +4377,7 @@ func PreparePublicationMetadata(ctx context.Context, op OperationContext, input 
 **步骤**
 
 1. 人工slug/SEO优先且不被模型覆盖；已有合法英文slug保持
-2. 本轮不调用模型，不制造slug或SEO。首次空slug只返回publication.slug_missing，由发布入口提示人工补填
+2. 本函数不调用模型，不制造slug或SEO：模型建议由SuggestPublicationMetadata在发布对话框里先给出，用户确认后作为人工值提交。首次空slug只返回publication.slug_missing，由发布入口提示人工补填
 3. 已有manual/generated SEO保持；否则返回publication.seo_missing。缺模型不阻塞已经提供合法元数据的基础发布。路径唯一由发布事务的可信树校验
 
 **错误**
@@ -4391,6 +4391,54 @@ func PreparePublicationMetadata(ctx context.Context, op OperationContext, input 
 - 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
 - 幂等：父operationId子任务幂等；manual字段不覆写
 - 依赖：`content.InvokeModel`
+
+## content.SuggestPublicationMetadata
+
+- 级别：约束
+- 文件：`modules/content/internal/publication_metadata.go`
+- 作用：首次发布前请模型建议英文路径名和搜索摘要，供发布对话框预填
+
+```go
+func SuggestPublicationMetadata(ctx context.Context, op OperationContext, input SuggestPublicationMetadataInput) (SuggestPublicationMetadataResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `SuggestPublicationMetadataInput` | 待发布文档与精确共享草稿版本 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `SuggestPublicationMetadataResult` | 模型建议的英文路径名与搜索摘要 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值；UNAUTHENTICATED: 会话、委托或服务证明缺失、失效或被撤销；FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；NOT_FOUND: 资源不存在或在当前主体作用域中不可见；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；UNSUPPORTED_CAPABILITY: 路径名或摘要任务没有可用模型档位 |
+
+**步骤**
+
+1. 按content.publish授权当前管理账户；读文档元数据与指定共享草稿正文，只读不写
+2. 已有路径名时不建议路径；摘要来源为manual或generated时不建议摘要；两者都已有时直接返回两个null，不调用模型
+3. 缺路径名时以后台费用类别调用content.slug（依据标题），缺摘要时调用content.seo（依据标题和正文纯文本，用文档源语言）；两个任务并行
+4. 同样的任务、档位和输入哈希先查本域model_suggestions缓存，命中直接用，不调用模型；未命中才调用并保存完整文本。网关幂等键带本次根操作，只防同一请求重试重复付费
+5. 模型输出规范化为小写连字符slug、去掉多余空白的单段摘要；不合格时对应字段返回null，由用户手填。路径唯一仍由发布事务校验
+
+**错误**
+
+- `VALIDATION`：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值（不可重试）
+- `UNAUTHENTICATED`：会话、委托或服务证明缺失、失效或被撤销（不可重试）
+- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+- `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
+- `UNSUPPORTED_CAPABILITY`：路径名或摘要任务没有可用模型档位（不可重试）
+
+- 副作用：经model-gateway的模型调用，费用由网关按后台类别记账；结果写入本域model_suggestions缓存，不改文档元数据
+- 授权：content.publish
+- 并发：只读；两个模型任务并行，各自按幂等键去重
+- 幂等：按任务、档位和输入哈希缓存结果，同输入不重复付费
+- 依赖：`content.authorizePublication`、`content.ReadRevisionBody`、`content.InvokeModel`、`model-gateway:resolveTaskRoute`
 
 ## content.PublishDocument
 
@@ -6874,7 +6922,7 @@ func InvokeModel(ctx context.Context, op OperationContext, input InvokeModelInpu
 - 授权：permission：service；rule：以本服务身份调用网关，费用类别继承可信op
 - 并发：每次调用独立；同一根操作的子调用共享网关费用作用域
 - 幂等：幂等键固定，重试返回原invocation
-- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`platform.InvokeModel`
+- 依赖：`model-gateway:createInference`、`model-gateway:resumeInference`、`model-gateway:cancelInference`、`model-gateway:readInference`、`model-gateway:lookupInference`、`platform.InvokeModel`
 
 ## content.OpenDatabase
 

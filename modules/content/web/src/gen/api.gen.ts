@@ -260,6 +260,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/documents/{documentId}:suggest-publication": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 首次发布前请模型建议英文路径名和搜索摘要
+         * @description 调用函数 content.SuggestPublicationMetadata；只读，不改元数据；同样的标题、正文和档位复用已有模型结果。
+         */
+        post: operations["suggestPublicationMetadata"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/documents/{documentId}:withdraw": {
         parameters: {
             query?: never;
@@ -675,6 +695,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CreateInvocationResult: components["schemas"]["types_CreateInvocationResult"];
+        CancelInvocationResult: components["schemas"]["types_CancelInvocationResult"];
+        StreamEvent: components["schemas"]["types_StreamEvent"];
+        GetInvocationResult: components["schemas"]["types_GetInvocationResult"];
+        LookupInvocationResult: components["schemas"]["types_LookupInvocationResult"];
+        GatewayResolveTaskRouteResult: components["schemas"]["ResolveRouteResult"];
         /** @description 系统生成的不透明 ID，不含个人信息 */
         Identifier: string;
         /** @description 对象单调修订号 */
@@ -1715,6 +1741,18 @@ export interface components {
             /** @description 允许缺项提示null */
             manualSEO: string | null;
         };
+        /** @description 模型建议；已有路径或摘要、或模型给不出合格结果时对应字段为null */
+        SuggestPublicationMetadataResult: {
+            /** @description 建议的英文路径名；已有路径时null */
+            pathSegment: string | null;
+            /** @description 已有摘要时null */
+            seoDescription: string | null;
+        };
+        /** @description 首次发布前请模型建议路径名和搜索摘要请求体 */
+        suggestPublicationMetadataRequest: {
+            /** @description 待发布的共享草稿版本 */
+            draftRevisionId: components["schemas"]["Identifier"];
+        };
         /** @description 撤回后回草稿并让公开页面下线的结果 */
         WithdrawDocumentResult: {
             /** @description DocumentMetadata */
@@ -2076,6 +2114,263 @@ export interface components {
             dataEpoch: components["schemas"]["Identifier"];
         };
         ReadReferenceDecisionResult: components["schemas"]["ReferenceSourceDecision"];
+        /**
+         * @description 可信服务上下文决定，公开请求不能指定
+         * @enum {string}
+         */
+        CostClass: "qa" | "background" | "admin-probe";
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Attempt: {
+            /** @description 尝试ID */
+            attemptId: components["schemas"]["Identifier"];
+            /** @description 统一调用 */
+            invocationId: components["schemas"]["Identifier"];
+            /** @description 尝试序号 */
+            ordinal: number;
+            /** @description 固定模型 */
+            modelId: components["schemas"]["Identifier"];
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            state: "reserved" | "dispatching" | "streaming" | "succeeded" | "failed" | "charge_unknown" | "reconciled";
+            /** @description 独立费用预留 */
+            reservationId: components["schemas"]["Identifier"];
+            /** @description 收费标识 */
+            providerRequestId?: string;
+            /**
+             * @description 原因
+             * @enum {string}
+             */
+            retryReason: "initial" | "fallback" | "structured_retry";
+            /** @description MG对该attempt实际固定Model的CanonicalJSON SHA256，含配置版本，旧无证据不伪造。 */
+            modelSnapshotHash?: components["schemas"]["Hash"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Invocation: {
+            /** @description 调用ID */
+            invocationId: components["schemas"]["Identifier"];
+            /** @description 根操作ID */
+            rootOperationId: components["schemas"]["Identifier"];
+            /** @description 可信费用类别 */
+            costClass: components["schemas"]["CostClass"];
+            /**
+             * @description 调用状态
+             * @enum {string}
+             */
+            state: "accepted" | "reserved" | "dispatching" | "streaming" | "succeeded" | "failed" | "cancel_requested" | "cancelled" | "charge_unknown" | "reconciled";
+            /** @description 预留ID */
+            reservationId?: components["schemas"]["Identifier"];
+            /** @description 供应方请求ID */
+            providerRequestId?: string;
+            /** @description 全链路截止 */
+            deadline: components["schemas"]["Timestamp"];
+            /** @description 固定价目快照 */
+            priceSnapshotId: components["schemas"]["Identifier"];
+            /** @description SSE最后序号 */
+            lastSequence: number;
+            /** @description 全部独立计费尝试 */
+            attempts: components["schemas"]["Attempt"][];
+            /** @description 真实完整有效结果来源attempt，费用仍可unknown；对账不改写。 */
+            resultAttemptId?: components["schemas"]["Identifier"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_CreateInvocationResult: {
+            /** @description accepted状态 */
+            invocation: components["schemas"]["Invocation"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_CancelInvocationResult: {
+            /** @description 取消状态 */
+            invocation: components["schemas"]["Invocation"];
+        };
+        /** @description 供应方、模型版本、维度与预处理版本共同定义空间；不同空间不得比相似度 */
+        EmbeddingSpace: {
+            /** @description 完整嵌入空间唯一ID */
+            spaceId: components["schemas"]["Hash"];
+            /** @description 供应方稳定标识 */
+            provider: string;
+            /** @description 供应方模型版本，不只用展示名 */
+            modelVersion: string;
+            /** @description 向量维度正整数 */
+            dimensions: number;
+            /** @description 规范预处理算法版本 */
+            preprocessingVersion: string;
+        };
+        /** @description 模型完整结果：embedding/rerank/decision结构结果或chat/vision/translation完整UTF8文本；completed事件或严格当前快照承载，不以delta片段冒充完整。 */
+        ModelOutput: {
+            /** @enum {string} */
+            capability: "embedding" | "rerank" | "chat" | "vision" | "translation" | "decision";
+            embeddingSpace?: components["schemas"]["EmbeddingSpace"];
+            vectors?: number[][];
+            candidateIds?: components["schemas"]["Identifier"][];
+            /** @description 真实完整文本；生产方UTF8字节总数另限64KiB。显式空串是已证明空输出，字段缺失不是空结果。 */
+            text?: string;
+            /** @description decision能力的类型化答案：题目ID→该题答案（noul概率、choice选项与各选项概率、score加权分）；不含文本。 */
+            decision?: {
+                [key: string]: Record<string, never>;
+            };
+        } & ({
+            /** @constant */
+            capability?: "embedding";
+        } | {
+            /** @constant */
+            capability?: "rerank";
+        } | {
+            /** @enum {unknown} */
+            capability?: "chat" | "vision" | "translation";
+        } | {
+            /** @constant */
+            capability?: "decision";
+        });
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_StreamEvent: {
+            /** @description 严格递增序号 */
+            sequence: number;
+            /**
+             * @description SSE事件名
+             * @enum {string}
+             */
+            event: "accepted" | "delta" | "usage" | "completed" | "error" | "cancelled";
+            /** @description 文本增量 */
+            delta?: string;
+            /** @description 状态快照 */
+            invocation?: components["schemas"]["Invocation"];
+            /** @description 终态错误代码 */
+            code?: string;
+            /** @description 仅completed事件携带的持久结构化结果，可选新增兼容旧文本消费者 */
+            output?: components["schemas"]["ModelOutput"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        types_GetInvocationResult: {
+            /** @description 状态 */
+            invocation: components["schemas"]["Invocation"];
+            /** @description 兼容可选；仅winning完整文本/结构结果与原evidence及record摘要一致；旧单initial完整原SSE可保守只读派生，缺证据不造空/404或重新收费。 */
+            output?: components["schemas"]["ModelOutput"];
+        };
+        types_LookupInvocationResult: components["schemas"]["types_GetInvocationResult"];
+        /** @description 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限 */
+        Money: {
+            /**
+             * @description 唯一支持USD
+             * @constant
+             */
+            currency: "USD";
+            /** @description 百万分之一美元，整数，禁止浮点累计 */
+            micros: number;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Profile: {
+            /** @description 档位ID */
+            profileId: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+            /** @description 该档位配置面向的费用类别；不覆盖可信op.costClass */
+            costClass: components["schemas"]["CostClass"];
+            /**
+             * @description 五档
+             * @enum {string}
+             */
+            tier: "fast" | "accurate" | "vision" | "embedding" | "rerank" | "decision";
+            /** @description 第一为主其余有序备用 */
+            orderedModelIds: components["schemas"]["Identifier"][];
+            /** @description 本请求最大费用，0表示不限；不能释放或覆盖旧unknown held */
+            maximumCost: components["schemas"]["Money"];
+            /** @description 并发上限 */
+            concurrency: number;
+            /** @description site+UTC日+profile独立预算，0不限；profile已绑定costClass，background不占QA额度 */
+            dailyLimitCost: components["schemas"]["Money"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        TaskAssignment: {
+            /** @description 根唯一任务目录ID */
+            taskId: string;
+            /**
+             * @description 根唯一AI任务目录登记的默认档位；不能用输入改写目录
+             * @enum {string}
+             */
+            tier: "fast" | "accurate" | "vision" | "embedding" | "rerank" | "decision";
+            /** @description 单任务覆盖模型 */
+            overrideModelId?: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+        };
+        /** @description 免费配置快照，不过滤供应方或解密凭据。 */
+        ResolveProfileResult: {
+            /** @description 真实生效档位原始快照，费用字段仅配置声明，不作额度准入 */
+            profile: components["schemas"]["Profile"];
+            /** @description 同快照真实任务赋值及版本 */
+            assignment: components["schemas"]["TaskAssignment"];
+            /** @description 先覆盖再回退的有序唯一引用，不改原始profile */
+            orderedModelIds: components["schemas"]["Identifier"][];
+            /** @description 有效目录能力；无override的rerank回退转fast/chat */
+            requiredCapabilities: string[];
+            /** @description 是否采用真实fast档位承载回退 */
+            fallback: boolean;
+        };
+        /** @description models.dev显式源身份，不是本站渠道ID；不从URL/名称推断。 */
+        ModelCatalogRef: {
+            providerId: string;
+            modelId: string;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Model: {
+            /** @description 网关模型ID */
+            modelId: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+            /** @description 供应方ID */
+            providerId: components["schemas"]["Identifier"];
+            /** @description 不可变供应方模型版本 */
+            providerModelVersion: string;
+            /** @description chat vision structured reasoning embedding rerank translation decision能力集合；file必须同时vision和完整输入窗口。 */
+            capabilities: string[];
+            /** @description 嵌入维度chat为0 */
+            dimension: number;
+            /**
+             * @description 预处理版本，显式默认none；不得默示归一化，算法改变必须新版本/模型ID/space
+             * @default none
+             */
+            preprocessorVersion: string;
+            /** @description 输入上限 */
+            maxInputTokens: number;
+            /** @description 输出上限 */
+            maxOutputTokens: number;
+            /**
+             * @description 模型目录来源
+             * @enum {string}
+             */
+            catalogOrigin: "bundled" | "remote" | "manual";
+            /** @description 手动覆盖目录 */
+            manualOverride: boolean;
+            /** @description 是否显示并可分配 */
+            enabled: boolean;
+            /** @description remote/bundled更新精确来源绑定，缺失旧行保留，manualOverride优先。 */
+            catalogRef?: components["schemas"]["ModelCatalogRef"];
+        };
+        types_EmbeddingSpace: components["schemas"]["EmbeddingSpace"];
+        /** @description 免费路线候选；未获取持久派发引用，不表示凭据可解密。 */
+        RouteCandidate: {
+            /** @description 同代启用模型安全元数据 */
+            model: components["schemas"]["Model"];
+            /** @description 同快照供应方配置版本 */
+            providerVersion: number;
+            /** @description active凭据版本，仅元数据引用 */
+            credentialVersion: number;
+            /** @description 生产方既有不透明完整Model规范快照hash，消费者不可自行推导 */
+            modelSnapshotHash: components["schemas"]["Hash"];
+            /** @description embedding实际五字段空间；非embedding省略 */
+            embeddingSpace?: components["schemas"]["types_EmbeddingSpace"];
+        };
+        /** @description 本地元数据eligible候选，不表示在线、费用或派发准入。 */
+        ResolveRouteResult: {
+            /** @description 与候选同一SQL快照的解析结果 */
+            resolved: components["schemas"]["ResolveProfileResult"];
+            /** @description 先完整过滤再保序取16项 */
+            candidates: components["schemas"]["RouteCandidate"][];
+            /** @description epoch/完整解析配置/全eligible候选冻结版本的规范hash；返回候选仍按保序最多16，配置资格变化接受事务严格检测 */
+            routeVersion: components["schemas"]["Hash"];
+        };
     };
     responses: never;
     parameters: never;
@@ -3345,6 +3640,87 @@ export interface operations {
             };
             /** @description LOCKED：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    suggestPublicationMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 路径中的documentId；合并到 handler input，不能跨站点 */
+                documentId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["suggestPublicationMetadataRequest"];
+            };
+        };
+        responses: {
+            /** @description 模型建议 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestPublicationMetadataResult"];
+                };
+            };
+            /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND：资源不存在或在当前主体作用域中不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNSUPPORTED_CAPABILITY：路径名或摘要任务没有可用的模型档位；前端提示手动填写 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

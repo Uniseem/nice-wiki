@@ -1313,6 +1313,16 @@
     },
     {
       "method": "POST",
+      "path": "/v1/documents/{documentId}:suggest-publication",
+      "owner": "content",
+      "operationId": "suggestPublicationMetadata",
+      "permission": "content.publish",
+      "admission": null,
+      "timeoutMs": 30000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
       "path": "/v1/documents/{documentId}:trash",
       "owner": "content",
       "operationId": "trashDocument",

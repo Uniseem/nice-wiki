@@ -1,17 +1,38 @@
 import { ClockArrowRotateLeft } from '@gravity-ui/icons';
 import { Button, Chip, Drawer, Form, Modal } from '@heroui/react';
-import { api, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, fmtRelative, LoadingBlock, notify, errorText, SelectInput, TextAreaInput, TextInput, useLoad, t } from '@ui';
-import { useMemo, useState } from 'react';
+import { api, ApiError, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, fmtRelative, LoadingBlock, notify, errorText, SelectInput, TextAreaInput, TextInput, useLoad, t } from '@ui';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { flatten, operationLabel, pathPattern, subtree, suggestPath, type HistoryEntry, type Meta } from './types';
 
 const pathHint = t('只用小写字母、数字和连字符，例如 getting-started。发布后仍可在页面设置里修改，旧地址会自动跳转。');
 
-// 首次发布：确定页面路径和搜索摘要。
-export function PublishDialog({ meta, onPublish, onClose }: { meta: Meta; onPublish: (path: string, seo: string | null) => Promise<void>; onClose: () => void }) {
-  const [path, setPath] = useState(() => suggestPath(meta.title));
+// 首次发布：确定页面路径和搜索摘要。打开时请 AI 按标题和正文建议，用户改过的字段不再覆盖；没有 AI 时手填。
+export function PublishDialog({ meta, draftRevisionId, onPublish, onClose }: { meta: Meta; draftRevisionId: string; onPublish: (path: string, seo: string | null) => Promise<void>; onClose: () => void }) {
+  const [path, setPath] = useState('');
   const [seo, setSeo] = useState(meta.seoDescription ?? '');
   const [busy, setBusy] = useState(false);
+  const [suggesting, setSuggesting] = useState(true);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const touched = useRef({ path: false, seo: false });
   const invalid = path !== '' && !pathPattern.test(path);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const suggested = await api<{ pathSegment: string | null; seoDescription: string | null }>(`/v1/documents/${encodeURIComponent(meta.documentId)}:suggest-publication`, { method: 'POST', body: { draftRevisionId } });
+        if (cancelled) return;
+        if (!touched.current.path) setPath(suggested.pathSegment ?? suggestPath(meta.title));
+        if (!touched.current.seo && suggested.seoDescription) setSeo(suggested.seoDescription);
+      } catch (problem) {
+        if (cancelled) return;
+        if (!touched.current.path) setPath(suggestPath(meta.title));
+        setAiNote(problem instanceof ApiError && problem.code === 'UNSUPPORTED_CAPABILITY' ? t('还没有为路径名和摘要配置 AI 模型，请手动填写。') : t('AI 暂时没能给出建议，请手动填写。'));
+      } finally {
+        if (!cancelled) setSuggesting(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [meta.documentId, meta.title, draftRevisionId]);
   return (
     <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Container size="md">
@@ -20,8 +41,10 @@ export function PublishDialog({ meta, onPublish, onClose }: { meta: Meta; onPubl
           <Modal.Header><Modal.Heading>{t('发布“{0}”', meta.title)}</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={async (event) => { event.preventDefault(); if (invalid || !path) return; setBusy(true); await onPublish(path, seo.trim() || null); setBusy(false); }}>
             <Modal.Body className="flex flex-col gap-4">
-              <TextInput isRequired description={pathHint} error={invalid ? t('格式不对：只能用小写字母、数字和连字符') : null} label={t('页面路径')} value={path} onChange={(value) => setPath(value.trim().toLowerCase())} />
-              <TextAreaInput description={t('显示在搜索结果和分享卡片里，可以留空。')} label={t('搜索摘要')} maxLength={300} rows={3} value={seo} onChange={setSeo} />
+              {suggesting && <p className="text-sm text-muted">{t('正在用 AI 生成路径和搜索摘要…')}</p>}
+              {aiNote && <p className="text-sm text-muted">{aiNote}</p>}
+              <TextInput isRequired description={pathHint} error={invalid ? t('格式不对：只能用小写字母、数字和连字符') : null} label={t('页面路径')} value={path} onChange={(value) => { touched.current.path = true; setPath(value.trim().toLowerCase()); }} />
+              <TextAreaInput description={t('显示在搜索结果和分享卡片里，可以留空。')} label={t('搜索摘要')} maxLength={300} rows={3} value={seo} onChange={(value) => { touched.current.seo = true; setSeo(value); }} />
             </Modal.Body>
             <Modal.Footer>
               <Button variant="tertiary" onPress={onClose}>{t('取消')}</Button>
