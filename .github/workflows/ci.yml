@@ -42,7 +42,13 @@ jobs:
             if test -f "$m/go.mod"; then (cd "$m" && GOFLAGS=-mod=readonly go test -p 2 ./...) || exit 1; fi
           done
       - name: 合同、链接、隐私与译文检查
-        run: make check
+        # 检查脚本会核对提交身份；与 GitLab CI 一样取当前提交的作者，不改仓库配置。
+        run: |
+          author_name="$(git show -s --format=%an HEAD)"
+          author_email="$(git show -s --format=%ae HEAD)"
+          export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=user.name GIT_CONFIG_KEY_1=user.email
+          export GIT_CONFIG_VALUE_0="$author_name" GIT_CONFIG_VALUE_1="$author_email"
+          make check
 
   web:
     name: 前端类型检查与构建
