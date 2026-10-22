@@ -210,7 +210,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
                       {doc.state === 'draft' && <span className="shrink-0 rounded border border-border px-1 text-[10px] leading-4 text-muted">{t('草稿')}</span>}
                     </button>
                     {canEdit && !query && (
-                      <span className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                      <span className={cn('flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100', active && 'opacity-100')}>
                         <Dropdown>
                           <Button isIconOnly aria-label={t('更多')} className="size-6 min-w-6" size="sm" variant="ghost"><Ellipsis className="size-3.5" /></Button>
                           <Dropdown.Popover placement="bottom end">
@@ -241,7 +241,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
             })}
           </ul>
         )}
-        {draggable && rows.length > 0 && <p className="px-2 pt-3 text-xs text-muted/80">{t('拖动文档可以调整顺序和层级。')}</p>}
+        {draggable && rows.length > 0 && <p className="px-2 pt-3 text-xs text-muted/80 pointer-coarse:hidden">{t('拖动文档可以调整顺序和层级。')}</p>}
       </nav>
       {canTrash && (
         <div className="border-t border-separator p-2">
