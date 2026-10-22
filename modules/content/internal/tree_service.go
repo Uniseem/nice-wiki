@@ -219,6 +219,48 @@ func readTreeSnapshot(ctx context.Context, tx *sql.Tx, op OperationContext, runt
 	return version, documents, nil
 }
 
+// readDocuments 只读指定的几篇文档，逐篇校验与整树快照相同（代次、站点、元数据 schema、隔离状态）。
+// 读已发布正文、核对发布引用只关心这几篇，不必每次读出并校验整棵树；不存在的文档不在结果里。
+func readDocuments(ctx context.Context, tx *sql.Tx, op OperationContext, runtime TreeRuntime, ids []Identifier) (map[Identifier]gen.DocumentMetadata, error) {
+	var epoch string
+	var site sql.NullString
+	if err := tx.QueryRowContext(ctx, `SELECT data_epoch,site_id FROM store_identity WHERE singleton=1`).Scan(&epoch, &site); err != nil {
+		return nil, contentStorageError()
+	}
+	if epoch != op.DataEpoch {
+		return nil, platform.NewError(platform.CodeVersionMismatch, false, "文档树持久代次已变化")
+	}
+	if site.Valid && site.String != op.Actor.SiteID {
+		return nil, platform.NewError(platform.CodeForbidden, false, "文档树持久站点不匹配")
+	}
+	result := make(map[Identifier]gen.DocumentMetadata, len(ids))
+	for _, id := range ids {
+		if _, done := result[id]; done {
+			continue
+		}
+		var state string
+		var revision int
+		var raw []byte
+		var quarantined bool
+		err := tx.QueryRowContext(ctx, `SELECT d.state,d.revision,CASE WHEN length(CAST(m.metadata_json AS BLOB))<=16777216 THEN m.metadata_json ELSE NULL END,EXISTS(SELECT 1 FROM document_quarantines q WHERE q.site_id=d.site_id AND q.document_id=d.document_id) FROM documents d LEFT JOIN document_metadata m ON m.site_id=d.site_id AND m.document_id=d.document_id WHERE d.site_id=? AND d.document_id=? AND d.state<>'purged'`, op.Actor.SiteID, id).Scan(&state, &revision, &raw, &quarantined)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return nil, contentStorageError()
+		}
+		if runtime.Reference.validateMetadata(raw) != nil {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "文档持久元数据不符合唯一schema")
+		}
+		var metadata gen.DocumentMetadata
+		if decodeStorageJSON(raw, &metadata) != nil || metadata.DocumentId != id || metadata.SiteId != op.Actor.SiteID || string(metadata.State) != state || metadata.Revision != revision || quarantined {
+			return nil, platform.NewError(platform.CodeIntegrityError, false, "文档元数据或隔离状态损坏")
+		}
+		result[id] = metadata
+	}
+	return result, nil
+}
+
 func validateTreeSiblings(documents []gen.DocumentMetadata) error {
 	index := make(map[Identifier]gen.DocumentMetadata, len(documents))
 	for _, document := range documents {

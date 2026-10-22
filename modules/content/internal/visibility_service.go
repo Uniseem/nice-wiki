@@ -39,13 +39,13 @@ func ValidatePublications(ctx context.Context, op OperationContext, input Valida
 		return ValidatePublicationsResult{}, contentStorageError()
 	}
 	defer tx.Rollback()
-	_, documents, err := readTreeSnapshot(ctx, tx, op, runtime)
+	ids := make([]Identifier, 0, len(input.Refs))
+	for _, ref := range input.Refs {
+		ids = append(ids, ref.DocumentId)
+	}
+	index, err := readDocuments(ctx, tx, op, runtime, ids)
 	if err != nil {
 		return ValidatePublicationsResult{}, publicationDependency(err)
-	}
-	index := make(map[Identifier]gen.DocumentMetadata, len(documents))
-	for _, document := range documents {
-		index[document.DocumentId] = document
 	}
 	validations := make([]gen.PublicationValidation, 0, len(input.Refs))
 	for _, ref := range input.Refs {

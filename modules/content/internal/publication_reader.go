@@ -94,14 +94,11 @@ func publicationReadError(err error) error {
 }
 
 func loadVisiblePublication(ctx context.Context, tx *sql.Tx, op OperationContext, runtime TreeRuntime, documentID Identifier) (gen.DocumentMetadata, storedPublication, error) {
-	_, documents, err := readTreeSnapshot(ctx, tx, op, runtime)
+	documents, err := readDocuments(ctx, tx, op, runtime, []Identifier{documentID})
 	if err != nil {
 		return gen.DocumentMetadata{}, storedPublication{}, publicationReadError(err)
 	}
-	for _, document := range documents {
-		if document.DocumentId != documentID {
-			continue
-		}
+	if document, found := documents[documentID]; found {
 		if document.ShareImage != nil {
 			return gen.DocumentMetadata{}, storedPublication{}, platform.NewError(platform.CodeDependencyUnavailable, true, "分享图发布权威尚未装配")
 		}
