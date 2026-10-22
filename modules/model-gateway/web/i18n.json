@@ -431,6 +431,38 @@
   "id": "ID penyedia",
   "ar": "معرّف المزوّد"
  },
+ "供应方已停用，档位里不会再选它的模型": {
+  "zh-Hant": "供應方已停用，檔位裡不會再選它的模型",
+  "en": "Provider disabled; its models won’t be chosen by profiles anymore",
+  "ja": "プロバイダーを無効にしました。プロファイルはこのプロバイダーのモデルを選ばなくなります",
+  "ko": "공급자를 비활성화했습니다. 프로필에서 이 공급자의 모델을 더 이상 선택하지 않습니다",
+  "fr": "Fournisseur désactivé : ses modèles ne seront plus choisis par les profils",
+  "de": "Anbieter deaktiviert; Profile wählen seine Modelle nicht mehr",
+  "es": "Proveedor desactivado; los perfiles ya no elegirán sus modelos",
+  "pt": "Provedor desativado; os perfis não vão mais escolher os modelos dele",
+  "ru": "Поставщик отключён: профили больше не будут выбирать его модели",
+  "it": "Fornitore disattivato: i profili non sceglieranno più i suoi modelli",
+  "vi": "Đã tắt nhà cung cấp; các cấu hình sẽ không chọn mô hình của nhà cung cấp này nữa",
+  "th": "ปิดใช้งานผู้ให้บริการแล้ว โปรไฟล์จะไม่เลือกโมเดลของผู้ให้บริการนี้อีก",
+  "id": "Penyedia dinonaktifkan; profil tidak akan memilih modelnya lagi",
+  "ar": "تم تعطيل المزوّد؛ لن تختار الملفات الشخصية نماذجه بعد الآن"
+ },
+ "供应方已启用": {
+  "zh-Hant": "供應方已啟用",
+  "en": "Provider enabled",
+  "ja": "プロバイダーを有効にしました",
+  "ko": "공급자를 활성화했습니다",
+  "fr": "Fournisseur activé",
+  "de": "Anbieter aktiviert",
+  "es": "Proveedor activado",
+  "pt": "Provedor ativado",
+  "ru": "Поставщик включён",
+  "it": "Fornitore attivato",
+  "vi": "Đã bật nhà cung cấp",
+  "th": "เปิดใช้งานผู้ให้บริการแล้ว",
+  "id": "Penyedia diaktifkan",
+  "ar": "تم تفعيل المزوّد"
+ },
  "供应方已接入，接着选要用的模型": {
   "zh-Hant": "供應商已接入，接著選擇要使用的模型",
   "en": "Provider connected. Now choose the models to use.",

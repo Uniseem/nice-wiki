@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpRightFromSquare, ChevronDown, ChevronRight, Ellipsis, FileText, FolderArrowRight, Plus, TrashBin } from '@gravity-ui/icons';
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpRightFromSquare, ChevronDown, ChevronRight, Ellipsis, FileText, FolderArrowRight, Plus, Star, StarFill, TrashBin } from '@gravity-ui/icons';
 import { Button, cn, Dropdown, Label, SearchField, Spinner } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import { api, ApiError, askText, confirmAction, EmptyBlock, errorText, fmtRelative, notify, useHasGrant, useLoad, useStoredState, t } from '@ui';
@@ -29,6 +29,10 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
   const canEdit = useHasGrant('content.edit');
   const canTrash = useHasGrant('content.trash', 'content.publish');
   const live = useMemo(() => liveDocs(docs), [docs]);
+  // 收藏：常用文档置顶，记在本浏览器；已删除的文档自动不再显示。
+  const [starredList, setStarredList] = useStoredState<string[]>('nw-content-starred', []);
+  const starred = useMemo(() => starredList.map((id) => live.find((doc) => doc.documentId === id)).filter((doc): doc is Meta => !!doc), [starredList, live]);
+  const toggleStar = (id: string) => setStarredList((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
 
   const expand = (ids: string[]) => setExpandedList((current) => {
     const missing = ids.filter((id) => !current.includes(id));
@@ -160,6 +164,22 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
         onDragOver={(event) => dragOver(event, null)}
         onDrop={(event) => dropOn(event, null)}
       >
+        {!query && starred.length > 0 && (
+          <section aria-label={t('收藏')} className="mb-2 border-b border-separator pb-2">
+            <h3 className="px-2 pb-1 pt-1 text-xs font-medium text-muted">{t('收藏')}</h3>
+            <ul className="flex flex-col gap-px">
+              {starred.map((doc) => (
+                <li key={doc.documentId} className={cn('group flex min-h-8 items-center gap-2 rounded-lg pe-1 ps-2 text-sm transition-colors', doc.documentId === selected ? 'bg-accent-soft text-accent-soft-foreground' : 'text-foreground hover:bg-default')}>
+                  <button className="flex min-h-8 min-w-0 flex-1 items-center gap-2 text-start" title={doc.title} type="button" onClick={() => onSelect(doc.documentId)}>
+                    <StarFill className="size-3.5 shrink-0 text-warning" />
+                    <span className={cn('truncate', doc.documentId === selected && 'font-medium')}>{doc.title || t('无标题')}</span>
+                  </button>
+                  <Button isIconOnly aria-label={t('取消收藏')} className="size-6 min-w-6 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100" size="sm" variant="ghost" onPress={() => toggleStar(doc.documentId)}><Star className="size-3.5" /></Button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {!rows.length ? (
           <EmptyBlock
             className="mx-1 mt-2"
@@ -211,8 +231,12 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
                       </span>
                       {doc.state === 'draft' && <span className="shrink-0 rounded border border-border px-1 text-[10px] leading-4 text-muted">{t('草稿')}</span>}
                     </button>
-                    {canEdit && !query && (
+                    {!query && (
                       <span className={cn('flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100', active && 'opacity-100')}>
+                        <Button isIconOnly aria-label={starredList.includes(doc.documentId) ? t('取消收藏') : t('收藏')} className="size-6 min-w-6" size="sm" variant="ghost" onPress={() => toggleStar(doc.documentId)}>
+                          {starredList.includes(doc.documentId) ? <StarFill className="size-3.5 text-warning" /> : <Star className="size-3.5" />}
+                        </Button>
+                        {canEdit && (<>
                         <Dropdown>
                           <Button isIconOnly aria-label={t('更多')} className="size-6 min-w-6" size="sm" variant="ghost"><Ellipsis className="size-3.5" /></Button>
                           <Dropdown.Popover placement="bottom end">
@@ -235,6 +259,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
                           </Dropdown.Popover>
                         </Dropdown>
                         <Button isIconOnly aria-label={t('新建子文档')} className="size-6 min-w-6" size="sm" variant="ghost" onPress={() => create(doc.documentId)}><Plus className="size-3.5" /></Button>
+                        </>)}
                       </span>
                     )}
                   </div>

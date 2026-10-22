@@ -7,7 +7,10 @@ import { useState, type ReactNode } from 'react';
 import { AddModelsDialog, ConnectProviderDialog, protocolLabels } from './connect';
 
 type Money = { currency: string; micros: number };
-type Provider = { providerId: string; displayName: string; adapter: string; baseUrl: string; credentialConfigured: boolean; credentialVersion: number };
+type Provider = {
+  providerId: string; version: number; displayName: string; adapter: string; baseUrl: string; enabled: boolean; credentialConfigured: boolean; credentialVersion: number;
+  connectTimeoutMs: number; requestTimeoutMs: number; extraHeaderNames: string[]; concurrencyLimit: number; streamIdleTimeoutMs: number;
+};
 type Model = { modelId: string; version: number; providerId: string; providerModelVersion: string; capabilities: string[]; dimension: number; preprocessorVersion: string; maxInputTokens: number; maxOutputTokens: number; catalogOrigin: string; manualOverride: boolean; enabled: boolean };
 type Profile = { profileId: string; version: number; costClass: string; tier: string; orderedModelIds: string[]; maximumCost: Money; dailyLimitCost: Money; concurrency: number };
 type Assignment = { taskId: string; tier: string; version: number; overrideModelId?: string };
@@ -93,6 +96,14 @@ export default function ModelsPage() {
     }, t('密钥已加密保存'));
   };
 
+  // 供应方不能删除（模型和历史调用仍引用它）；停用后路由不再选它的模型。后台从不创建额外请求头，停用/启用时保留空列表。
+  const toggleProvider = (provider: Provider) => run(async () => {
+    const idempotencyKey = newKey();
+    const { credentialConfigured: _configured, ...fields } = provider;
+    await api(`/v1/admin/providers/${encodeURIComponent(provider.providerId)}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: provider.version, idempotencyKey, provider: { ...fields, lastProbe: undefined, version: provider.version + 1, enabled: !provider.enabled, extraHeaderSecretRefs: [] } } });
+    catalog.reload();
+  }, provider.enabled ? t('供应方已停用，档位里不会再选它的模型') : t('供应方已启用'));
+
   const toggleModel = (model: Model) => run(async () => {
     const idempotencyKey = newKey();
     await api(`/v1/admin/models/${encodeURIComponent(model.modelId)}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: model.version, idempotencyKey, model: { ...model, version: model.version + 1, enabled: !model.enabled } } });
@@ -138,13 +149,17 @@ export default function ModelsPage() {
             </Tabs.ListContainer>
             <Tabs.Panel id="providers">
               <Section action={<Button variant="secondary" onPress={() => setDialog('provider')}><Plus />{t('接入供应方')}</Button>} hint={t('从 models.dev 目录里选供应方，只需填密钥；同一个供应方的对话和向量模型共用一个接入。')}>
-                <DataTable label={t('供应方')} columns={[t('名称'), t('协议'), t('地址'), t('密钥'), '']} empty={t('还没有供应方。先添加一个，再设置密钥。')} rows={c.providers.map((provider) => [
+                <DataTable label={t('供应方')} columns={[t('名称'), t('协议'), t('地址'), t('密钥'), t('状态'), '']} empty={t('还没有供应方。先添加一个，再设置密钥。')} rows={c.providers.map((provider) => [
                   provider.providerId,
                   <span><span className="block font-medium">{provider.displayName}</span><Mono>{provider.providerId}</Mono></span>,
                   protocolLabels[provider.adapter] ?? provider.adapter,
                   <span className="break-all text-sm text-muted">{provider.baseUrl}</span>,
                   provider.credentialConfigured ? <Chip color="success" size="sm" variant="soft">{t('已配置 · v{0}', provider.credentialVersion)}</Chip> : <Chip color="warning" size="sm" variant="soft">{t('未配置')}</Chip>,
-                  <Button isDisabled={busy} size="sm" variant="secondary" onPress={() => saveSecret(provider)}><KeyIcon />{provider.credentialConfigured ? t('轮换') : t('设置密钥')}</Button>,
+                  <Chip color={provider.enabled ? 'success' : 'default'} size="sm" variant="soft">{provider.enabled ? t('启用') : t('停用')}</Chip>,
+                  <span className="inline-flex gap-2">
+                    <Button isDisabled={busy} size="sm" variant="secondary" onPress={() => saveSecret(provider)}><KeyIcon />{provider.credentialConfigured ? t('轮换') : t('设置密钥')}</Button>
+                    {!provider.extraHeaderNames.length && <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => void toggleProvider(provider)}>{provider.enabled ? t('停用') : t('启用')}</Button>}
+                  </span>,
                 ])} />
               </Section>
             </Tabs.Panel>

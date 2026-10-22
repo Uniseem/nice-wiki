@@ -47,6 +47,22 @@
   "id": "Rumus matematika LaTeX",
   "ar": "معادلة رياضية LaTeX"
  },
+ "Markdown 输入": {
+  "zh-Hant": "Markdown 輸入",
+  "en": "Markdown shortcuts",
+  "ja": "Markdown 入力",
+  "ko": "Markdown 입력",
+  "fr": "Raccourcis Markdown",
+  "de": "Markdown-Eingabe",
+  "es": "Atajos de Markdown",
+  "pt": "Atalhos de Markdown",
+  "ru": "Ввод Markdown",
+  "it": "Scorciatoie Markdown",
+  "vi": "Gõ Markdown",
+  "th": "พิมพ์แบบ Markdown",
+  "id": "Pintasan Markdown",
+  "ar": "اختصارات Markdown"
+ },
  "{0} 字": {
   "zh-Hant": "{0} 字",
   "en": "{0} words",
@@ -783,6 +799,22 @@
   "id": "Daftar",
   "ar": "القوائم"
  },
+ "列表缩进 / 取消缩进": {
+  "zh-Hant": "清單縮排 / 取消縮排",
+  "en": "Indent / outdent list item",
+  "ja": "リストのインデント / 解除",
+  "ko": "목록 들여쓰기 / 내어쓰기",
+  "fr": "Indenter / désindenter la liste",
+  "de": "Liste einrücken / ausrücken",
+  "es": "Aumentar / reducir sangría de la lista",
+  "pt": "Recuar / avançar item da lista",
+  "ru": "Отступ / уменьшить отступ в списке",
+  "it": "Rientra / riduci rientro elenco",
+  "vi": "Thụt lề / bỏ thụt lề danh sách",
+  "th": "เยื้อง / ยกเลิกเยื้องรายการ",
+  "id": "Inden / hapus inden daftar",
+  "ar": "إزاحة القائمة / إلغاء الإزاحة"
+ },
  "删除": {
   "zh-Hant": "刪除",
   "en": "Delete",
@@ -1023,6 +1055,22 @@
   "id": "Tebal",
   "ar": "غامق"
  },
+ "加粗、斜体、行内代码": {
+  "zh-Hant": "粗體、斜體、行內程式碼",
+  "en": "Bold, italic, inline code",
+  "ja": "太字・斜体・インラインコード",
+  "ko": "굵게, 기울임, 인라인 코드",
+  "fr": "Gras, italique, code en ligne",
+  "de": "Fett, kursiv, Inline-Code",
+  "es": "Negrita, cursiva, código en línea",
+  "pt": "Negrito, itálico, código em linha",
+  "ru": "Жирный, курсив, встроенный код",
+  "it": "Grassetto, corsivo, codice in linea",
+  "vi": "In đậm, in nghiêng, mã nội dòng",
+  "th": "ตัวหนา ตัวเอียง โค้ดในบรรทัด",
+  "id": "Tebal, miring, kode sebaris",
+  "ar": "عريض، مائل، شيفرة ضمن السطر"
+ },
  "危险": {
   "zh-Hant": "危險",
   "en": "Danger",
@@ -1246,6 +1294,22 @@
   "th": "นำกล่องข้อความเน้นออก",
   "id": "Hapus kotak info",
   "ar": "إزالة مربع التنبيه"
+ },
+ "取消收藏": {
+  "zh-Hant": "取消收藏",
+  "en": "Remove from starred",
+  "ja": "スターを外す",
+  "ko": "즐겨찾기 해제",
+  "fr": "Retirer des favoris",
+  "de": "Aus Favoriten entfernen",
+  "es": "Quitar de destacados",
+  "pt": "Remover dos favoritos",
+  "ru": "Убрать из избранного",
+  "it": "Rimuovi dai preferiti",
+  "vi": "Bỏ gắn sao",
+  "th": "เลิกติดดาว",
+  "id": "Hapus dari favorit",
+  "ar": "إزالة من المفضلة"
  },
  "只用小写字母、数字和连字符，例如 getting-started。发布后仍可在页面设置里修改，旧地址会自动跳转。": {
   "zh-Hant": "只使用小寫字母、數字和連字號，例如 getting-started。發布後仍可在頁面設定中修改，舊網址會自動轉址。",
@@ -1935,6 +1999,22 @@
   "id": "Dengan penyorotan sintaks",
   "ar": "مع تلوين الصياغة"
  },
+ "常用": {
+  "zh-Hant": "常用",
+  "en": "General",
+  "ja": "よく使う操作",
+  "ko": "자주 쓰는 기능",
+  "fr": "Général",
+  "de": "Allgemein",
+  "es": "General",
+  "pt": "Geral",
+  "ru": "Основное",
+  "it": "Generali",
+  "vi": "Thường dùng",
+  "th": "ทั่วไป",
+  "id": "Umum",
+  "ar": "عام"
+ },
  "并排三栏": {
   "zh-Hant": "並排三欄",
   "en": "Three columns side by side",
@@ -2110,6 +2190,38 @@
   "th": "ลบถาวรแล้วกู้คืนไม่ได้ ที่อยู่สาธารณะจะแสดง “ลบแล้ว”",
   "id": "Tidak bisa dibatalkan. URL publiknya akan menampilkan \"Dihapus\".",
   "ar": "لا يمكن التراجع، وسيُظهر العنوان العام «محذوف»."
+ },
+ "快捷键": {
+  "zh-Hant": "快速鍵",
+  "en": "Keyboard shortcuts",
+  "ja": "キーボードショートカット",
+  "ko": "단축키",
+  "fr": "Raccourcis clavier",
+  "de": "Tastenkürzel",
+  "es": "Atajos de teclado",
+  "pt": "Atalhos de teclado",
+  "ru": "Сочетания клавиш",
+  "it": "Scorciatoie da tastiera",
+  "vi": "Phím tắt",
+  "th": "แป้นพิมพ์ลัด",
+  "id": "Pintasan keyboard",
+  "ar": "اختصارات لوحة المفاتيح"
+ },
+ "快捷键一览": {
+  "zh-Hant": "快速鍵一覽",
+  "en": "Show shortcuts",
+  "ja": "ショートカット一覧",
+  "ko": "단축키 목록",
+  "fr": "Afficher les raccourcis",
+  "de": "Tastenkürzel anzeigen",
+  "es": "Ver atajos",
+  "pt": "Ver atalhos",
+  "ru": "Список сочетаний",
+  "it": "Mostra scorciatoie",
+  "vi": "Xem phím tắt",
+  "th": "ดูแป้นพิมพ์ลัด",
+  "id": "Lihat pintasan",
+  "ar": "عرض الاختصارات"
  },
  "恢复": {
   "zh-Hant": "還原",
@@ -2351,6 +2463,22 @@
   "id": "Sisipkan blok",
   "ar": "إدراج كتلة"
  },
+ "插入或编辑链接": {
+  "zh-Hant": "插入或編輯連結",
+  "en": "Insert or edit link",
+  "ja": "リンクを挿入・編集",
+  "ko": "링크 삽입 또는 편집",
+  "fr": "Insérer ou modifier un lien",
+  "de": "Link einfügen oder bearbeiten",
+  "es": "Insertar o editar enlace",
+  "pt": "Inserir ou editar link",
+  "ru": "Вставить или изменить ссылку",
+  "it": "Inserisci o modifica link",
+  "vi": "Chèn hoặc sửa liên kết",
+  "th": "แทรกหรือแก้ไขลิงก์",
+  "id": "Sisipkan atau edit tautan",
+  "ar": "إدراج رابط أو تعديله"
+ },
  "插入链接": {
   "zh-Hant": "插入連結",
   "en": "Insert link",
@@ -2495,6 +2623,22 @@
   "id": "Urungkan",
   "ar": "تراجع"
  },
+ "收藏": {
+  "zh-Hant": "收藏",
+  "en": "Starred",
+  "ja": "スター",
+  "ko": "즐겨찾기",
+  "fr": "Favoris",
+  "de": "Favoriten",
+  "es": "Destacados",
+  "pt": "Favoritos",
+  "ru": "Избранное",
+  "it": "Preferiti",
+  "vi": "Gắn sao",
+  "th": "ติดดาว",
+  "id": "Favorit",
+  "ar": "المفضلة"
+ },
  "收起": {
   "zh-Hant": "收合",
   "en": "Collapse",
@@ -2638,6 +2782,22 @@
   "th": "ละทิ้งภาพวาดนี้ใช่ไหม",
   "id": "Buang gambar ini?",
   "ar": "تجاهل هذا الرسم؟"
+ },
+ "文字格式": {
+  "zh-Hant": "文字格式",
+  "en": "Text formatting",
+  "ja": "文字の書式",
+  "ko": "텍스트 서식",
+  "fr": "Mise en forme du texte",
+  "de": "Textformatierung",
+  "es": "Formato de texto",
+  "pt": "Formatação de texto",
+  "ru": "Форматирование текста",
+  "it": "Formattazione del testo",
+  "vi": "Định dạng văn bản",
+  "th": "การจัดรูปแบบข้อความ",
+  "id": "Format teks",
+  "ar": "تنسيق النص"
  },
  "文本": {
   "zh-Hant": "文字",
@@ -3311,6 +3471,22 @@
   "id": "Judul 2",
   "ar": "عنوان 2"
  },
+ "标题 2 / 3 / 4": {
+  "zh-Hant": "標題 2 / 3 / 4",
+  "en": "Heading 2 / 3 / 4",
+  "ja": "見出し 2 / 3 / 4",
+  "ko": "제목 2 / 3 / 4",
+  "fr": "Titre 2 / 3 / 4",
+  "de": "Überschrift 2 / 3 / 4",
+  "es": "Encabezado 2 / 3 / 4",
+  "pt": "Título 2 / 3 / 4",
+  "ru": "Заголовок 2 / 3 / 4",
+  "it": "Titolo 2 / 3 / 4",
+  "vi": "Tiêu đề 2 / 3 / 4",
+  "th": "หัวข้อ 2 / 3 / 4",
+  "id": "Judul 2 / 3 / 4",
+  "ar": "عنوان 2 / 3 / 4"
+ },
  "标题 3": {
   "zh-Hant": "標題 3",
   "en": "Heading 3",
@@ -3342,6 +3518,22 @@
   "th": "หัวข้อ 4",
   "id": "Judul 4",
   "ar": "عنوان 4"
+ },
+ "标题、列表、引用等在行首打出符号再按空格即可转换；加粗等用符号把文字包住。": {
+  "zh-Hant": "標題、清單、引用等在行首打出符號再按空白鍵即可轉換；粗體等用符號把文字包住。",
+  "en": "For headings, lists, quotes and similar, type the symbol at the start of a line and press Space; for bold and the like, wrap the text in the symbols.",
+  "ja": "見出し・リスト・引用などは行頭に記号を入力してスペースを押すと変換されます。太字などは記号で文字を囲みます。",
+  "ko": "제목·목록·인용 등은 줄 맨 앞에 기호를 입력하고 스페이스를 누르면 변환됩니다. 굵게 등은 기호로 글자를 감쌉니다.",
+  "fr": "Pour les titres, listes, citations, etc., tapez le symbole en début de ligne puis Espace ; pour le gras et autres, entourez le texte des symboles.",
+  "de": "Überschriften, Listen, Zitate usw.: Zeichen am Zeilenanfang eingeben und Leertaste drücken; für Fett usw. den Text mit den Zeichen umschließen.",
+  "es": "Para encabezados, listas, citas, etc., escribe el símbolo al inicio de la línea y pulsa Espacio; para negrita y similares, rodea el texto con los símbolos.",
+  "pt": "Para títulos, listas, citações etc., digite o símbolo no início da linha e pressione Espaço; para negrito e afins, envolva o texto com os símbolos.",
+  "ru": "Для заголовков, списков, цитат и т. п. введите символ в начале строки и нажмите пробел; для жирного и подобного обрамите текст символами.",
+  "it": "Per titoli, elenchi, citazioni ecc. digita il simbolo a inizio riga e premi Spazio; per grassetto e simili racchiudi il testo tra i simboli.",
+  "vi": "Với tiêu đề, danh sách, trích dẫn…, gõ ký hiệu ở đầu dòng rồi nhấn phím cách; với in đậm…, bao văn bản bằng ký hiệu.",
+  "th": "หัวข้อ รายการ คำอ้างอิง ฯลฯ ให้พิมพ์สัญลักษณ์ที่ต้นบรรทัดแล้วกดเว้นวรรค ส่วนตัวหนา ฯลฯ ให้ครอบข้อความด้วยสัญลักษณ์",
+  "id": "Untuk judul, daftar, kutipan, dan sejenisnya, ketik simbol di awal baris lalu tekan Spasi; untuk tebal dan sejenisnya, apit teks dengan simbol.",
+  "ar": "للعناوين والقوائم والاقتباسات وما شابه، اكتب الرمز في بداية السطر ثم اضغط مسافة؛ وللخط العريض وما شابه، أحِط النص بالرموز."
  },
  "格式不对：只能用小写字母、数字和连字符": {
   "zh-Hant": "格式錯誤：只能使用小寫字母、數字和連字號",
@@ -3854,6 +4046,22 @@
   "th": "งานว่าง",
   "id": "Tugas kosong",
   "ar": "مهمة فارغة"
+ },
+ "立即保存": {
+  "zh-Hant": "立即儲存",
+  "en": "Save now",
+  "ja": "今すぐ保存",
+  "ko": "지금 저장",
+  "fr": "Enregistrer maintenant",
+  "de": "Jetzt speichern",
+  "es": "Guardar ahora",
+  "pt": "Salvar agora",
+  "ru": "Сохранить сейчас",
+  "it": "Salva ora",
+  "vi": "Lưu ngay",
+  "th": "บันทึกทันที",
+  "id": "Simpan sekarang",
+  "ar": "احفظ الآن"
  },
  "站内文档": {
   "zh-Hant": "站內文件",

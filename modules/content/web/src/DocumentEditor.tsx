@@ -1,4 +1,4 @@
-import { ArrowRotateLeft, ArrowsExpandHorizontal, ArrowUpRightFromSquare, ChevronRight, CircleCheck, CircleExclamation, ClockArrowRotateLeft, Ellipsis, Eye, FolderArrowRight, Gear, Lock, PaperPlane, TrashBin, ArrowUturnCcwLeft as Withdraw } from '@gravity-ui/icons';
+import { ArrowRotateLeft, ArrowsExpandHorizontal, Keyboard, ArrowUpRightFromSquare, ChevronRight, CircleCheck, CircleExclamation, ClockArrowRotateLeft, Ellipsis, Eye, FolderArrowRight, Gear, Lock, PaperPlane, TrashBin, ArrowUturnCcwLeft as Withdraw } from '@gravity-ui/icons';
 import { Button, Chip, Dropdown, Label, Separator, Spinner } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import type { Editor as TiptapEditor } from '@tiptap/react';
@@ -9,6 +9,7 @@ import { HistoryDrawer, MoveDialog, PublishDialog, SettingsDialog } from './dial
 import { Editor } from './editor/Editor';
 import { WordCount } from './editor/WordCount';
 import { PreviewDialog } from './PreviewDialog';
+import { ShortcutsDialog } from './ShortcutsDialog';
 import { ancestors, type Draft, type DraftRead, type HistoryEntry, type Lease, type Meta } from './types';
 
 type SaveState = { kind: 'idle' } | { kind: 'dirty' } | { kind: 'saving' } | { kind: 'saved'; at: Date } | { kind: 'error'; message: string };
@@ -42,7 +43,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
   const [draftHash, setDraftHash] = useState('');
   const [loadError, setLoadError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
-  const [dialog, setDialog] = useState<'publish' | 'settings' | 'move' | 'history' | null>(null);
+  const [dialog, setDialog] = useState<'publish' | 'settings' | 'move' | 'history' | 'shortcuts' | null>(null);
   const [publishDraft, setPublishDraft] = useState('');
   const [titleFocus, setTitleFocus] = useState(false);
   // 草稿在别处（另一个标签页或窗口）存了更新的版本：这里的修改存不上，提示重新打开。
@@ -199,6 +200,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
     // ⌘S / Ctrl+S：立即保存草稿，而不是弹出浏览器的“保存网页”。
     const saveKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 's') { event.preventDefault(); void flush(); }
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key === '/') { event.preventDefault(); setDialog('shortcuts'); }
     };
     addEventListener('keydown', saveKey);
     // 切换文档或离开页面前先把草稿存好；存不上就留在原文档，除非用户明确放弃这些修改。
@@ -466,6 +468,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
                   if (key === 'open' && link) window.open(link, '_blank', 'noopener');
                   if (key === 'settings') setDialog('settings');
                   if (key === 'wide') setWide((value) => !value);
+                  if (key === 'shortcuts') setDialog('shortcuts');
                   if (key === 'move') setDialog('move');
                   if (key === 'history') setDialog('history');
                   if (key === 'withdraw') void withdraw();
@@ -477,6 +480,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
                 <Dropdown.Item id="settings" textValue={t('页面设置')}><Gear className="size-4 text-muted" /><Label>{t('页面设置')}</Label></Dropdown.Item>
                 <Dropdown.Item id="move" textValue={t('移动到')}><FolderArrowRight className="size-4 text-muted" /><Label>{t('移动到…')}</Label></Dropdown.Item>
                 <Dropdown.Item id="wide" textValue={wide ? t('标准宽度') : t('加宽编辑区')}><ArrowsExpandHorizontal className="size-4 text-muted" /><Label>{wide ? t('标准宽度') : t('加宽编辑区')}</Label></Dropdown.Item>
+                <Dropdown.Item id="shortcuts" textValue={t('快捷键')}><Keyboard className="size-4 text-muted" /><Label>{t('快捷键')}</Label><kbd className="ms-auto font-sans text-xs text-muted">{/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘/' : 'Ctrl /'}</kbd></Dropdown.Item>
                 {canPublish ? <Dropdown.Item id="history" textValue={t('发布历史')}><ClockArrowRotateLeft className="size-4 text-muted" /><Label>{t('发布历史')}</Label></Dropdown.Item> : null}
                 {canPublish && meta.state === 'published' && !upToDate ? <Dropdown.Item id="discard" textValue={t('放弃未发布的修改')}><ArrowRotateLeft className="size-4 text-muted" /><Label>{t('放弃未发布的修改')}</Label></Dropdown.Item> : null}
                 {canPublish && meta.state === 'published' ? <Dropdown.Item id="withdraw" textValue={t('撤回发布')}><Withdraw className="size-4 text-muted" /><Label>{t('撤回发布')}</Label></Dropdown.Item> : null}
@@ -504,6 +508,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
           })}
         />
       )}
+      {dialog === 'shortcuts' && <ShortcutsDialog onClose={() => setDialog(null)} />}
       {dialog === 'history' && (
         <HistoryDrawer
           documentId={documentId}
