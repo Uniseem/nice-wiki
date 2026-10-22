@@ -1103,6 +1103,22 @@
   "id": "Batal",
   "ar": "إلغاء"
  },
+ "取消提示框": {
+  "zh-Hant": "取消提示框",
+  "en": "Remove callout",
+  "ja": "コールアウトを解除",
+  "ko": "콜아웃 해제",
+  "fr": "Retirer l’encadré",
+  "de": "Hinweisbox entfernen",
+  "es": "Quitar aviso",
+  "pt": "Remover destaque",
+  "ru": "Убрать выноску",
+  "it": "Rimuovi riquadro",
+  "vi": "Bỏ khung lưu ý",
+  "th": "นำกล่องข้อความเน้นออก",
+  "id": "Hapus kotak info",
+  "ar": "إزالة مربع التنبيه"
+ },
  "只用小写字母、数字和连字符，例如 getting-started。发布后仍可在页面设置里修改，旧地址会自动跳转。": {
   "zh-Hant": "只使用小寫字母、數字和連字號，例如 getting-started。發布後仍可在頁面設定中修改，舊網址會自動轉址。",
   "en": "Use only lowercase letters, numbers and hyphens, e.g. getting-started. You can still change it in page settings after publishing; old URLs redirect automatically.",
@@ -2046,6 +2062,22 @@
   "th": "ลองใช้คำค้นอื่น",
   "id": "Coba kata kunci lain.",
   "ar": "جرّب كلمة مفتاحية أخرى."
+ },
+ "提示框": {
+  "zh-Hant": "提示框",
+  "en": "Callout",
+  "ja": "コールアウト",
+  "ko": "콜아웃",
+  "fr": "Encadré",
+  "de": "Hinweisbox",
+  "es": "Aviso",
+  "pt": "Destaque",
+  "ru": "Выноска",
+  "it": "Riquadro",
+  "vi": "Khung lưu ý",
+  "th": "กล่องข้อความเน้น",
+  "id": "Kotak info",
+  "ar": "مربع تنبيه"
  },
  "提示：{0}": {
   "zh-Hant": "提示：{0}",

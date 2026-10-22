@@ -5,13 +5,13 @@ import { askText, t } from '@ui';
 import { NodeSelection } from '@tiptap/pm/state';
 import { useEditorState, type Editor } from '@tiptap/react';
 import type { ReactNode } from 'react';
-import { blockCommands, codeLanguages, type EditorActions } from './commands';
+import { blockCommands, calloutKinds, codeLanguages, toggleCallout, type EditorActions } from './commands';
 
 type State = {
   bold: boolean; italic: boolean; underline: boolean; strike: boolean; code: boolean; highlight: boolean; link: boolean;
   bullet: boolean; ordered: boolean; task: boolean; quote: boolean; codeBlock: boolean; table: boolean; heading: number;
   language: string; canUndo: boolean; canRedo: boolean;
-  media: '' | 'image' | 'video' | 'drawing'; mediaWidth: number | null;
+  media: '' | 'image' | 'video' | 'drawing'; mediaWidth: number | null; callout: string;
 };
 
 const mediaLabel = { image: t('图片'), video: t('视频'), drawing: t('画板') } as const;
@@ -47,6 +47,7 @@ export function EditorToolbar({ editor, editable, actions }: { editor: Editor; e
       heading: [2, 3, 4].find((level) => e.isActive('heading', { level })) ?? 0,
       language: e.isActive('codeBlock') ? (e.getAttributes('codeBlock').language as string | null) ?? '' : '',
       canUndo: e.can().undo(), canRedo: e.can().redo(),
+      callout: e.isActive('callout') ? String(e.getAttributes('callout').kind ?? 'info') : '',
       media: (selectedMedia(e)?.type.name ?? '') as State['media'], mediaWidth: (selectedMedia(e)?.attrs.widthPercent as number | null | undefined) ?? null,
     }),
   });
@@ -140,6 +141,26 @@ export function EditorToolbar({ editor, editable, actions }: { editor: Editor; e
               <Dropdown.Item id="deleteRow" textValue={t('删除行')}><Label>{t('删除当前行')}</Label></Dropdown.Item>
               <Dropdown.Item id="deleteColumn" textValue={t('删除列')}><Label>{t('删除当前列')}</Label></Dropdown.Item>
               <Dropdown.Item id="deleteTable" textValue={t('删除表格')} variant="danger"><Label>{t('删除整个表格')}</Label></Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown.Popover>
+        </Dropdown>
+      )}
+      {state.callout && (
+        <Dropdown>
+          <Button isDisabled={disabled} size="sm" variant="ghost">
+            {(() => { const Icon = calloutKinds.find((item) => item.kind === state.callout)?.icon ?? calloutKinds[0].icon; return <Icon />; })()}
+            {t('提示框')}<ChevronDown className="size-3.5 text-muted" />
+          </Button>
+          <Dropdown.Popover placement="bottom start">
+            <Dropdown.Menu onAction={(key: Key) => { if (key === 'remove') chain().lift('callout').run(); else if (key !== state.callout) toggleCallout(editor, String(key)); }}>
+              <Dropdown.Section>
+                {calloutKinds.map((item) => (
+                  <Dropdown.Item key={item.kind} id={item.kind} textValue={item.label}><item.icon className="size-4 text-muted" /><Label>{item.label}</Label>{state.callout === item.kind && <Dropdown.ItemIndicator />}</Dropdown.Item>
+                ))}
+              </Dropdown.Section>
+              <Dropdown.Section>
+                <Dropdown.Item id="remove" textValue={t('取消提示框')}><Label>{t('取消提示框')}</Label></Dropdown.Item>
+              </Dropdown.Section>
             </Dropdown.Menu>
           </Dropdown.Popover>
         </Dropdown>
