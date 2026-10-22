@@ -12,7 +12,7 @@ type Message = {
   text: string;
   status: 'streaming' | 'done' | 'error' | 'cancelled';
   citations: Citation[];
-  steps?: Step[];
+  steps?: StepView[];
   turn?: TurnInfo;
   feedback?: 'helpful' | 'unhelpful';
 };
@@ -198,17 +198,27 @@ function unique(citations: Citation[]): Citation[] {
   });
 }
 
+// StepView 在服务端步骤上加本地计时：第一次收到时记下开始时间，完成或跳过时算出耗时（毫秒）。
+type StepView = Step & { startedAt?: number; ms?: number };
+
 // mergeStep 按步骤类型更新：同一步从“进行中”变成“完成/跳过”，新步骤接在后面。
-function mergeStep(steps: Step[], step: Step): Step[] {
+function mergeStep(steps: StepView[], step: Step): StepView[] {
+  const now = Date.now();
   const index = steps.findIndex((item) => item.key === step.key);
-  if (index < 0) return [...steps, step];
+  if (index < 0) return [...steps, { ...step, startedAt: now, ms: step.status === 'running' ? undefined : 0 }];
   const next = [...steps];
-  next[index] = { ...steps[index], ...step };
+  const previous = steps[index];
+  next[index] = { ...previous, ...step, ms: step.status !== 'running' && previous.startedAt ? now - previous.startedAt : previous.ms };
   return next;
 }
 
+// 耗时太短（例如刷新后重放历史事件）不显示。
+function seconds(ms?: number): string {
+  return ms && ms >= 100 ? `${(ms / 1000).toFixed(1)}s` : '';
+}
+
 // Steps 是一条回答的思考过程：理解问题、阅读当前页、检索、生成。回答进行中展开，结束后自动收起，可再点开。
-function Steps({ steps, active, t }: { steps: Step[]; active: boolean; t: Translate }) {
+function Steps({ steps, active, t }: { steps: StepView[]; active: boolean; t: Translate }) {
   const [open, setOpen] = useState(active);
   const [wasActive, setWasActive] = useState(active);
   if (wasActive !== active) {
@@ -221,6 +231,7 @@ function Steps({ steps, active, t }: { steps: Step[]; active: boolean; t: Transl
       <button aria-expanded={open} className="flex w-full items-center gap-2 text-start text-muted" type="button" onClick={() => setOpen(!open)}>
         {active ? <Spinner color="current" size="sm" /> : <Sparkles className="size-3.5 text-accent" />}
         <span className="flex-1 font-medium">{active ? labels[steps[steps.length - 1].key] : t('思考过程')}</span>
+        {!active && <span className="tabular-nums text-muted">{seconds(steps.reduce((total, step) => total + (step.ms ?? 0), 0))}</span>}
         <ChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
@@ -228,7 +239,10 @@ function Steps({ steps, active, t }: { steps: Step[]; active: boolean; t: Transl
           {steps.map((step) => (
             <li key={step.key} className="nw-qa-step relative flex flex-col gap-1">
               <span className={cn('absolute -start-[17px] top-1 size-2 rounded-full ring-2 ring-surface', step.status === 'running' ? 'animate-pulse bg-accent' : step.status === 'done' ? 'bg-success' : 'bg-default')} />
-              <span className={cn('font-medium', step.status === 'skipped' ? 'text-muted line-through' : 'text-foreground')}>{labels[step.key]}</span>
+              <span className="flex items-baseline gap-2">
+                <span className={cn('flex-1 font-medium', step.status === 'skipped' ? 'text-muted line-through' : 'text-foreground')}>{labels[step.key]}</span>
+                <span className="tabular-nums text-muted">{seconds(step.ms)}</span>
+              </span>
               {step.detail && step.key !== 'answer' && <span className="line-clamp-2 break-words text-muted">{step.detail}</span>}
               {!!step.items?.length && (
                 <span className="flex flex-wrap gap-1">
