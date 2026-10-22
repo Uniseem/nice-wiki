@@ -80,7 +80,8 @@ func RefreshSiteOverview(ctx context.Context, op OperationContext, input Refresh
 	if err := admin.AuthorizeAdmin(op); err != nil {
 		return RefreshSiteOverviewResult{}, err
 	}
-	background := context.WithoutCancel(ctx)
+	// 去掉管理员请求带来的入口证明：重算以本服务身份调用 content，带着管理员证明会被拒绝。
+	background := platform.WithPortalProof(context.WithoutCancel(ctx), "")
 	go func() {
 		if err := Refresh(background, backgroundOperation(op)); err != nil {
 			fmt.Fprintf(os.Stderr, "全站概括重算失败 err=%v\n", err)
@@ -172,7 +173,10 @@ func Refresh(ctx context.Context, op OperationContext) error {
 				below = append(below, child{titles[kid], summaries[kid]})
 			}
 		}
-		text := documentText(ctx, op, id)
+		text, err := documentText(ctx, op, id)
+		if err != nil {
+			return err
+		}
 		payload, _ := json.Marshal(struct {
 			Title    string  `json:"title"`
 			Text     string  `json:"text"`
@@ -263,18 +267,21 @@ func readSummaries(ctx context.Context, op OperationContext, db *sql.DB) (map[st
 	return result, platform.NormalizeIOError(rows.Err(), platform.CodeInternal, false, "层级摘要读取中断")
 }
 
-// documentText 从活动索引按文内顺序取这篇文档的正文；还没建索引（或索引未启用）时为空。
-func documentText(ctx context.Context, op OperationContext, id string) string {
+// documentText 从活动索引按文内顺序取这篇文档的正文；还没建索引时为空。读取出错时整次重算中止，不拿空摘要覆盖已有结果。
+func documentText(ctx context.Context, op OperationContext, id string) (string, error) {
 	read, err := search.ReadDocumentChunks(ctx, op, search.ReadDocumentChunksInput{DocumentIds: []gen.Identifier{id}, MaximumTokens: 8000})
-	if err != nil || len(read.Documents) == 0 {
-		return ""
+	if err != nil {
+		return "", err
+	}
+	if len(read.Documents) == 0 {
+		return "", nil
 	}
 	var text strings.Builder
 	for _, chunk := range read.Documents[0].Chunks {
 		text.WriteString(chunk.Text)
 		text.WriteString("\n")
 	}
-	return clip(text.String(), textRunes)
+	return clip(text.String(), textRunes), nil
 }
 
 func complete(ctx context.Context, op OperationContext, runtime indexer.Runtime, key, system, data string, maximumTokens int64) (string, error) {
