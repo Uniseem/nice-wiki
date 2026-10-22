@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -104,15 +105,22 @@ func RunDaily(ctx context.Context, op OperationContext) error {
 	if at, parseErr := time.Parse(time.RFC3339Nano, checked); err == nil && parseErr == nil && time.Since(at) < refreshEvery {
 		return nil
 	}
+	if time.Now().UnixNano() < retryAfter.Load() {
+		return nil
+	}
 	// 逐篇调模型要几分钟，不占用这一轮循环的写窗口：在后台跑，互斥锁保证不叠加。
+	// 失败后一小时内不再自动重试，免得每分钟重复失败、重复调用模型。
 	background := context.WithoutCancel(ctx)
 	go func() {
 		if err := Refresh(background, backgroundOperation(op)); err != nil {
-			fmt.Fprintf(os.Stderr, "全站概括重算失败 err=%v\n", err)
+			retryAfter.Store(time.Now().Add(time.Hour).UnixNano())
+			fmt.Fprintf(os.Stderr, "全站概括重算失败，一小时后再试 err=%v\n", err)
 		}
 	}()
 	return nil
 }
+
+var retryAfter atomic.Int64
 
 // backgroundOperation 给重算一个足够长的截止时间（逐篇调模型）。
 func backgroundOperation(op OperationContext) OperationContext {
@@ -138,7 +146,9 @@ func Refresh(ctx context.Context, op OperationContext) error {
 		return err
 	}
 	ctx = platform.WithOperationContext(ctx, op)
-	ctx, err = modelruntime.WithModelOwner(ctx, "site-overview")
+	// 模型步骤按每次重算单独归属：跨次的复用由 tree_summaries / site_overview 的输入哈希负责；
+	// 共用一个归属时，同样的输入在新一次重算里再出现（删了摘要、文档改回原样）会因操作号不同被判冲突，整次重算一直失败。
+	ctx, err = modelruntime.WithModelOwner(ctx, "site-overview."+op.OperationID)
 	if err != nil {
 		return err
 	}
