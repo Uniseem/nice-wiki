@@ -40,8 +40,8 @@ for volume in $volumes; do
 		tar tzf /in/backup.tar.gz | grep '^$slug/' > /tmp/list
 		tar xzf /in/backup.tar.gz -C /data/.restore-incoming -T /tmp/list --strip-components=1
 		chmod -R go-rwx /data/.restore-incoming && chown -R \$(stat -c %u:%g /data) /data/.restore-incoming"; then
-		for v in $volumes; do docker run --rm -v "$v":/data alpine rm -rf /data/.restore-incoming; done
-		echo "解包 $slug 失败（空间不足或归档损坏），已清掉暂存，原数据未改动"
+		for v in $volumes; do docker run --rm -v "$v":/data alpine rm -rf /data/.restore-incoming || echo "$v 的暂存目录 .restore-incoming 没能清掉，请手动删除"; done
+		echo "解包 $slug 失败（空间不足或归档损坏），原数据未改动"
 		exit 1
 	fi
 done
@@ -65,12 +65,14 @@ fi
 rm -rf /data/.restore-incoming'
 for volume in $volumes; do
 	if ! docker run --rm -v "$volume":/data alpine sh -c "$swap"; then
-		for v in $volumes; do docker run --rm -v "$v":/data alpine sh -c "$back"; done
-		echo "替换 $volume 失败，所有数据卷已换回原数据"
+		# 换回逐卷进行，某一卷出错也继续换回其余的卷，最后如实报告。
+		failed=""
+		for v in $volumes; do docker run --rm -v "$v":/data alpine sh -c "$back" || failed="$failed $v"; done
+		if [ -n "$failed" ]; then echo "替换 $volume 失败；以下卷没能换回，原数据在卷内 .restore-previous，需手动挪回：$failed"; else echo "替换 $volume 失败，所有数据卷已换回原数据"; fi
 		exit 1
 	fi
 done
-for volume in $volumes; do docker run --rm -v "$volume":/data alpine rm -rf /data/.restore-previous; done
+for volume in $volumes; do docker run --rm -v "$volume":/data alpine rm -rf /data/.restore-previous || echo "$volume 的 .restore-previous 没能删除，可手动删除"; done
 echo "恢复完成"
 # 备份若包含密钥（超管勾选过），解到 ./secrets-restored，请自行核对后替换 deploy/secrets。
 if grep -q '^secrets/' "$list"; then
