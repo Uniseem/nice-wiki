@@ -108,11 +108,15 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 	}
 	translated := make([]gen.TranslationUnit, 0, len(split.Units))
 	// 每次调用模型之前都确认译文没被取消，正文批次和标题一样。
+	templates := make(map[string]UnitTemplate, len(split.Templates))
+	for _, template := range split.Templates {
+		templates[template.UnitId] = template
+	}
 	dispatch := func(units []gen.TranslationUnit) ([]gen.TranslationUnit, error) {
 		if translationCancelled(ctx, op, translationID) {
 			return nil, errTranslationCancelled
 		}
-		return translateBatch(ctx, op, translationID, route, memory, source, units)
+		return translateBatch(ctx, op, translationID, route, memory, source, templates, units)
 	}
 	var batch []gen.TranslationUnit
 	size := 0
@@ -253,13 +257,13 @@ func protectedUnit(unit gen.TranslationUnit) bool {
 
 // translateBatch 翻译一批单元并逐个校验（模型须返回本批 unitId，编号标签不得改变）。
 // 个别单元没通过（例如模型把标签嵌套错了）时只重译这几个；仍不通过的先显示原文（fallback），不让整篇作废。
-func translateBatch(ctx context.Context, op OperationContext, translationID string, route localizationruntime.PlanTaskRoute, memory platform.MemoryContext, source localizationruntime.PublishedSnapshot, batch []gen.TranslationUnit) ([]gen.TranslationUnit, error) {
-	done, failed, err := translateUnits(ctx, op, translationID, "", route, memory, source, batch)
+func translateBatch(ctx context.Context, op OperationContext, translationID string, route localizationruntime.PlanTaskRoute, memory platform.MemoryContext, source localizationruntime.PublishedSnapshot, templates map[string]UnitTemplate, batch []gen.TranslationUnit) ([]gen.TranslationUnit, error) {
+	done, failed, err := translateUnits(ctx, op, translationID, "", route, memory, source, templates, batch)
 	if err != nil {
 		return nil, err
 	}
 	if len(failed) > 0 {
-		retried, still, err := translateUnits(ctx, op, translationID, "retry", route, memory, source, failed)
+		retried, still, err := translateUnits(ctx, op, translationID, "retry", route, memory, source, templates, failed)
 		if err != nil {
 			return nil, err
 		}
@@ -281,7 +285,7 @@ func translateBatch(ctx context.Context, op OperationContext, translationID stri
 }
 
 // translateUnits 调一次模型翻译这些单元，返回通过校验的和没通过的。
-func translateUnits(ctx context.Context, op OperationContext, translationID, attempt string, route localizationruntime.PlanTaskRoute, memory platform.MemoryContext, source localizationruntime.PublishedSnapshot, batch []gen.TranslationUnit) ([]gen.TranslationUnit, []gen.TranslationUnit, error) {
+func translateUnits(ctx context.Context, op OperationContext, translationID, attempt string, route localizationruntime.PlanTaskRoute, memory platform.MemoryContext, source localizationruntime.PublishedSnapshot, templates map[string]UnitTemplate, batch []gen.TranslationUnit) ([]gen.TranslationUnit, []gen.TranslationUnit, error) {
 	prompt, err := BuildTranslationPrompt(ctx, op, BuildTranslationPromptInput{SourceUnits: batch, DocumentText: "", SectionTitle: source.Title, Memory: memory})
 	if err != nil {
 		return nil, nil, err
@@ -319,7 +323,7 @@ func translateUnits(ctx context.Context, op OperationContext, translationID, att
 	var done, failed []gen.TranslationUnit
 	for _, unit := range batch {
 		text, found := answers[unit.UnitId]
-		if !found {
+		if template, ok := templates[unit.UnitId]; !found || ok && !fitsTemplate(template, text) {
 			failed = append(failed, unit)
 			continue
 		}
@@ -331,6 +335,29 @@ func translateUnits(ctx context.Context, op OperationContext, translationID, att
 		done = append(done, checked.Units...)
 	}
 	return done, failed, nil
+}
+
+// fitsTemplate 检查译文能套回原文的标签结构，且原来有文字的文本节点译后不为空（空文本节点不符合正文合同，会让整篇译文写不出来）。
+func fitsTemplate(template UnitTemplate, text string) bool {
+	values, err := ParseSlotValues(template.Slots, text)
+	if err != nil {
+		return false
+	}
+	originals, replaced := map[string]string{}, map[string]string{}
+	for i, slot := range template.Slots {
+		if len(slot.Path) == 0 {
+			continue
+		}
+		key := strings.Join(slot.Path, "\x00")
+		originals[key] += slot.Value
+		replaced[key] += values[i]
+	}
+	for key, original := range originals {
+		if original != "" && replaced[key] == "" {
+			return false
+		}
+	}
+	return true
 }
 
 // stripCodeFence 去掉模型偶尔包在 JSON 外面的 ```json 代码围栏。
