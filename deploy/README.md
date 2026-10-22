@@ -16,6 +16,13 @@ cp deploy/.env.example deploy/.env   # 改域名与时区，不进 git
 docker compose -f deploy/docker-compose.yml up -d --build
 ```
 
+内存不足 4GB 的机器上，`--build` 同时编译多个服务会把 Go 编译器 OOM 杀掉，改为逐个构建后再启动：
+
+```bash
+for s in portal public-site identity site-config content media model-gateway knowledge qa localization memory traffic-guard jobs analytics data-protection; do docker compose -f deploy/docker-compose.yml build "$s"; done
+docker compose -f deploy/docker-compose.yml up -d
+```
+
 备份必须连同 `deploy/secrets` 一起保管，没有密钥无法恢复。
 
 ## 放在 Cloudflare 后面（小黄云）
