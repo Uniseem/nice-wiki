@@ -59,6 +59,8 @@
   .nw-prose.nw-answer li > :is(p, ul, ol, pre) { @apply my-1; }
   .nw-prose.nw-answer pre { @apply p-3 text-xs; }
   .nw-prose.nw-answer table { @apply text-xs; }
+  /* 窄窗口里表格按列最小宽度横向滚动，不把每列挤成一个字一行。 */
+  .nw-prose.nw-answer :is(th, td) { @apply min-w-24; }
 
   /* 问答回答里的引用编号（上标，点击跳到对应段落）。 */
   .nw-prose sup .nw-cite { @apply ms-0.5 rounded px-1 font-medium text-accent no-underline hover:bg-accent-soft; }
