@@ -365,6 +365,7 @@ func renderNodeDetail(ctx context.Context, op platform.OperationContext, locale 
 		Locale:        locale,
 		DocumentID:    node.DocumentID,
 		MarkdownURL:   node.CanonicalPath + ".md",
+		UpdatedAt:     node.LastPublishedAt,
 		Announcement:  loadAnnouncement(ctx, op),
 		Breadcrumbs:   crumbs,
 		Previous:      previous,

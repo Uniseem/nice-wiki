@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"regexp"
 	"strings"
+	"time"
 
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/styles"
@@ -44,6 +45,7 @@ type ComposeHTMLInput struct {
 	AIEnabled     bool
 	AskURL        string
 	MarkdownURL   string
+	UpdatedAt     time.Time // 最后发布时间，页尾显示“最后更新”
 }
 type LanguageLink struct {
 	Tag, Href string
@@ -96,6 +98,8 @@ type docPage struct {
 	Previous, Next *Breadcrumb
 	Untranslated   bool
 	MarkdownURL    string
+	// 最后更新日期：Updated 给人看（YYYY-MM-DD，各语言通用），UpdatedISO 给 <time datetime>。
+	Updated, UpdatedISO string
 }
 
 var hexColor = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
@@ -254,6 +258,9 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 	}
 	if safeLink(in.MarkdownURL) {
 		page.MarkdownURL = in.MarkdownURL
+	}
+	if !in.UpdatedAt.IsZero() {
+		page.Updated, page.UpdatedISO = in.UpdatedAt.UTC().Format("2006-01-02"), in.UpdatedAt.UTC().Format(time.RFC3339)
 	}
 	html, err := render("doc", page)
 	return ComposeHTMLResult{html}, err

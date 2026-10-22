@@ -71,6 +71,7 @@
       {{if .MarkdownURL}}<div class="mt-14 flex flex-wrap items-center gap-2 border-t border-separator pt-6">
         <a class="button button--tertiary button--sm" data-markdown href="{{.MarkdownURL}}">{{template "icon-file"}}{{.T "Markdown 版本"}}</a>
         <button class="button button--ghost button--sm" type="button" data-copy-markdown>{{template "icon-copy"}}<span>{{.T "复制为 Markdown"}}</span></button>
+        {{if .Updated}}<span class="ms-auto text-xs text-muted">{{.T "最后更新"}} <time datetime="{{.UpdatedISO}}">{{.Updated}}</time></span>{{end}}
       </div>{{end}}
       {{if or .Previous .Next}}<nav class="mt-8 grid gap-4 sm:grid-cols-2" aria-label="{{.T "相邻文档"}}">
         {{with .Previous}}<a class="card card--default group/nb gap-1 p-4 transition-colors hover:bg-surface-secondary" href="{{.URL}}"><span class="text-xs text-muted"><span class="inline-block rtl:-scale-x-100" aria-hidden="true">←</span> {{$.T "上一篇"}}</span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{else}}<span class="hidden sm:block"></span>{{end}}

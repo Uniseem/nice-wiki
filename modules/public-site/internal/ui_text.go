@@ -28,7 +28,7 @@ var englishUI = strings.NewReplacer(
 	"复制为 Markdown", "Copy as Markdown", "Markdown 版本", "Markdown version", "复制代码", "Copy code", "已复制", "Copied",
 	"跳到正文", "Skip to content", "开始阅读", "Start reading", "思考中…", "Thinking…", "感谢反馈", "Thanks for the feedback",
 	"有帮助", "Helpful", "没帮助", "Not helpful", "停止", "Stop",
-	"上一篇", "Previous", "下一篇", "Next", "首页", "Home", "源代码", "Source code", "视频播放器", "Video player",
+	"最后更新", "Last updated", "上一篇", "Previous", "下一篇", "Next", "首页", "Home", "源代码", "Source code", "视频播放器", "Video player",
 	"文档", "Docs", "语言", "Language",
 	"新对话", "New chat", "发送", "Send", "关闭", "Close", "问问这个站点的文档…", "Ask about these docs…",
 	"来源：", "Source: ", "这次没有回答成功（", "Could not answer (", "），请稍后再试。", "). Please try again later.",
