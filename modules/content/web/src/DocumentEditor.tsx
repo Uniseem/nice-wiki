@@ -507,6 +507,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
       {dialog === 'history' && (
         <HistoryDrawer
           documentId={documentId}
+          published={meta.state === 'published'}
           writable={writable}
           onClose={() => setDialog(null)}
           onRollback={(historyId) => rollback(historyId, t('已回滚并重新发布'))}

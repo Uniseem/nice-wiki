@@ -182,7 +182,7 @@ export function MoveDialog({ meta, docs, onMove, onClose }: { meta: Meta; docs: 
 }
 
 // 发布历史：每次发布、撤回、回滚各一条；可以把正文回滚到某次发布并重新发布。
-export function HistoryDrawer({ documentId, writable, onRollback, onClose }: { documentId: string; writable: boolean; onRollback: (historyId: string) => Promise<void>; onClose: () => void }) {
+export function HistoryDrawer({ documentId, writable, published, onRollback, onClose }: { documentId: string; writable: boolean; published: boolean; onRollback: (historyId: string) => Promise<void>; onClose: () => void }) {
   const history = useLoad((signal) => api<{ history: HistoryEntry[] }>(`/v1/documents/${documentId}/history?limit=50`, { signal }).then((result) => result.history), [documentId]);
   const rollback = async (entry: HistoryEntry) => {
     const ok = await confirmAction({ title: t('回滚到这个版本？'), body: t('正文会回到 {0} 的发布内容，并作为新的发布上线；当前草稿会被覆盖。', fmtDateTime(entry.createdAt)), confirmLabel: t('回滚并发布'), tone: 'warning' });
@@ -201,14 +201,14 @@ export function HistoryDrawer({ documentId, writable, onRollback, onClose }: { d
               <ol className="relative flex flex-col gap-1 border-s border-separator ps-5">
                 {history.data.map((entry, index) => (
                   <li key={entry.historyId} className="relative rounded-xl p-3 transition-colors hover:bg-default/60">
-                    <span className={`absolute -start-[26px] top-4 size-2.5 rounded-full ${index === 0 ? 'bg-accent' : 'bg-border'}`} />
+                    <span className={`absolute -start-[26px] top-4 size-2.5 rounded-full ${index === 0 && published ? 'bg-accent' : 'bg-border'}`} />
                     <div className="flex flex-wrap items-center gap-2">
                       <Chip color={entry.operation === 'withdraw' ? 'warning' : entry.operation === 'rollback' ? 'accent' : 'success'} size="sm" variant="soft">{operationLabel[entry.operation] ?? entry.operation}</Chip>
                       <span className="text-sm text-foreground">{entry.authorAccountName}</span>
                       <span className="text-xs text-muted" title={fmtDateTime(entry.createdAt)}>{fmtRelative(entry.createdAt)}</span>
                     </div>
-                    {/* 最新一条（没被撤回时）就是线上版本，不必回滚到它。 */}
-                    {entry.operation !== 'withdraw' && (index === 0 ? <p className="mt-2 text-xs text-muted">{t('当前线上版本')}</p> : (
+                    {/* 文档仍在发布时最新一条就是线上版本，不必回滚到它；撤回后（历史里不单独记撤回）每条都能回滚重新发布。 */}
+                    {entry.operation !== 'withdraw' && (index === 0 && published ? <p className="mt-2 text-xs text-muted">{t('当前线上版本')}</p> : (
                       <Button className="mt-2" isDisabled={!writable} size="sm" variant="secondary" onPress={() => rollback(entry)}>{t('回滚到此版本')}</Button>
                     ))}
                   </li>
