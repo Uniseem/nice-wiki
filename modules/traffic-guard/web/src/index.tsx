@@ -14,7 +14,8 @@ const labels: Record<string, [string, string?]> = {
   qaSubjectConcurrency: [t('每位访客并发')], qaSiteConcurrency: [t('全站并发')], qaPerNetworkPerMinute: [t('每个网络每分钟上限'), t('同一网络（如同一公司出口）合计')],
   challengeEnabled: [t('工作量证明挑战'), t('可疑请求先在浏览器里完成一次计算验证，挡住脚本刷量。')], externalChallengeEnabled: [t('外部挑战'), t('需要另行配置第三方验证的密钥。')],
 };
-const defaults: Policy = { qaPerSubjectPerMinute: 30, qaBurst: 5, qaPerSitePerMinute: 600, qaSubjectConcurrency: 1, qaSiteConcurrency: 32, challengeEnabled: true, externalChallengeEnabled: false, qaPerNetworkPerMinute: 60 };
+// 防滥用默认策略；模型接入的一键配置在没保存过策略时也用它。
+export const guardDefaults: Policy = { qaPerSubjectPerMinute: 30, qaBurst: 5, qaPerSitePerMinute: 600, qaSubjectConcurrency: 1, qaSiteConcurrency: 32, challengeEnabled: true, externalChallengeEnabled: false, qaPerNetworkPerMinute: 60 };
 const banState: Record<string, { label: string; tone: 'danger' | 'default' }> = { active: { label: t('生效中'), tone: 'danger' }, expired: { label: t('已过期'), tone: 'default' }, revoked: { label: t('已撤销'), tone: 'default' } };
 const durations = [{ value: '3600', label: t('1 小时') }, { value: '86400', label: t('1 天') }, { value: '604800', label: t('7 天') }, { value: '2592000', label: t('30 天') }];
 
@@ -48,7 +49,7 @@ function PolicyTab() {
       api<{ account: { siteId: string } }>('/v1/self', { signal }),
       // 还没保存过策略时给出默认值，保存后版本从 0 起。
       api<{ policyJSON: Policy; revision: number }>('/v1/policies', { signal }).catch((problem) => {
-        if (problem instanceof ApiError && problem.status === 404) return { policyJSON: defaults, revision: 0 };
+        if (problem instanceof ApiError && problem.status === 404) return { policyJSON: guardDefaults, revision: 0 };
         throw problem;
       }),
     ]);

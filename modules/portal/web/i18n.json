@@ -1967,22 +1967,6 @@
   "id": "Keluarkan perangkat",
   "ar": "تسجيل خروج الجهاز"
  },
- "配置供应方、密钥和模型，再一键生成档位和任务分配。AI 问答和翻译都依赖它。": {
-  "zh-Hant": "設定供應商、金鑰和模型，再一鍵產生檔位和任務分配。AI 問答和翻譯都依賴它。",
-  "en": "Set up providers, keys and models, then generate profiles and task assignments in one click. AI Q&A and translation depend on it.",
-  "ja": "プロバイダー、キー、モデルを設定し、ワンクリックでプロファイルとタスク割り当てを生成します。AI Q&A と翻訳はこれに依存します。",
-  "ko": "공급자, 키, 모델을 설정한 뒤 클릭 한 번으로 프로필과 작업 할당을 생성합니다. AI Q&A와 번역이 이를 사용합니다.",
-  "fr": "Configurez fournisseurs, clés et modèles, puis générez profils et affectations de tâches en un clic. Les questions IA et la traduction en dépendent.",
-  "de": "Anbieter, Schlüssel und Modelle einrichten und dann Profile und Aufgabenzuweisungen mit einem Klick erzeugen. KI-Q&A und Übersetzung hängen davon ab.",
-  "es": "Configura proveedores, claves y modelos y genera perfiles y asignaciones de tareas con un clic. Las preguntas con IA y la traducción dependen de ello.",
-  "pt": "Configure provedores, chaves e modelos e gere perfis e atribuições de tarefas com um clique. As perguntas com IA e a tradução dependem disso.",
-  "ru": "Настройте провайдеров, ключи и модели, затем одним нажатием создайте профили и назначения задач. От этого зависят ИИ-ответы и перевод.",
-  "it": "Configura fornitori, chiavi e modelli, poi genera profili e assegnazioni delle attività con un clic. Le domande IA e la traduzione dipendono da questo.",
-  "vi": "Cấu hình nhà cung cấp, khóa và mô hình, rồi tạo hồ sơ và phân công tác vụ chỉ với một cú nhấp. Hỏi đáp AI và dịch thuật đều dựa vào đó.",
-  "th": "ตั้งค่าผู้ให้บริการ คีย์ และโมเดล แล้วสร้างโปรไฟล์และการมอบหมายงานในคลิกเดียว ถามตอบ AI และการแปลต้องใช้สิ่งนี้",
-  "id": "Atur penyedia, kunci, dan model, lalu buat profil dan penugasan tugas dengan sekali klik. Tanya Jawab AI dan terjemahan bergantung padanya.",
-  "ar": "اضبط المزوّدين والمفاتيح والنماذج، ثم أنشئ الملفات وتعيينات المهام بنقرة واحدة. تعتمد عليه أسئلة الذكاء الاصطناعي والترجمة."
- },
  "长期记忆": {
   "zh-Hant": "長期記憶",
   "en": "Memory",
@@ -2062,5 +2046,21 @@
   "th": "เกิดข้อผิดพลาดในหน้านี้",
   "id": "Terjadi kesalahan di halaman ini",
   "ar": "حدث خطأ في هذه الصفحة"
+ },
+ "在“模型接入”填入 OpenRouter 密钥一键配好。AI 问答、翻译和索引都依赖它。": {
+  "zh-Hant": "在「模型接入」填入 OpenRouter 金鑰一鍵設定好。AI 問答、翻譯和索引都依賴它。",
+  "en": "Enter an OpenRouter key under Models for one-click setup. AI Q&A, translation and indexing depend on it.",
+  "ja": "「モデル接続」で OpenRouter のキーを入力してワンクリック設定します。AI Q&A、翻訳、インデックスはこれに依存します。",
+  "ko": "'모델 연결'에서 OpenRouter 키를 입력해 원클릭으로 설정합니다. AI Q&A, 번역, 색인이 모두 이것에 의존합니다.",
+  "fr": "Saisissez une clé OpenRouter dans Modèles pour tout configurer en un clic. Questions IA, traduction et indexation en dépendent.",
+  "de": "Unter „Modelle“ einen OpenRouter-Schlüssel eintragen und mit einem Klick einrichten. KI-Fragen, Übersetzung und Indexierung hängen davon ab.",
+  "es": "Introduce una clave de OpenRouter en Modelos y configúralo en un clic. Las preguntas con IA, la traducción y la indexación dependen de ello.",
+  "pt": "Informe uma chave do OpenRouter em Modelos e configure em um clique. Perguntas com IA, tradução e indexação dependem disso.",
+  "ru": "Введите ключ OpenRouter в разделе «Модели» и настройте всё в один клик. От этого зависят ИИ-ответы, перевод и индексация.",
+  "it": "Inserisci una chiave OpenRouter in Modelli e configura tutto con un clic. Domande con IA, traduzione e indicizzazione dipendono da questo.",
+  "vi": "Nhập khóa OpenRouter trong \"Kết nối mô hình\" để cấu hình một chạm. Hỏi đáp AI, dịch và lập chỉ mục đều cần nó.",
+  "th": "กรอกคีย์ OpenRouter ใน “เชื่อมต่อโมเดล” เพื่อตั้งค่าในคลิกเดียว ถามตอบ AI การแปล และดัชนีล้วนต้องใช้",
+  "id": "Masukkan kunci OpenRouter di Model untuk penyiapan sekali klik. Tanya jawab AI, penerjemahan, dan pengindeksan bergantung padanya.",
+  "ar": "أدخل مفتاح OpenRouter في «النماذج» للإعداد بنقرة واحدة. تعتمد عليه أسئلة الذكاء الاصطناعي والترجمة والفهرسة."
  }
 }

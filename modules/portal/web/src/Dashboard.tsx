@@ -49,7 +49,7 @@ export default function Dashboard() {
     }).catch(() => {}));
     if (grants.includes('model.manage')) {
       tasks.push(api<{ models: unknown[]; taskAssignments: unknown[] }>('/v1/admin/catalog', { signal }).then((catalog) => {
-        checklist.push({ key: 'model', title: t('接入模型'), description: t('配置供应方、密钥和模型，再一键生成档位和任务分配。AI 问答和翻译都依赖它。'), done: catalog.models.length > 0 && catalog.taskAssignments.length > 0, href: '/admin/models' });
+        checklist.push({ key: 'model', title: t('接入模型'), description: t('在“模型接入”填入 OpenRouter 密钥一键配好。AI 问答、翻译和索引都依赖它。'), done: catalog.models.length > 0 && catalog.taskAssignments.length > 0, href: '/admin/models' });
       }).catch(() => {}));
     }
     if (grants.includes('qa.manage')) {

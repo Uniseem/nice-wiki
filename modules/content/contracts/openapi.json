@@ -1614,9 +1614,10 @@
       "post": {
         "operationId": "publishDocument",
         "summary": "点击发布才公开精确共享草稿版本",
-        "description": "调用函数 content.PublishDocument；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
+        "description": "调用函数 content.PublishDocument；参数/结果以 types.json 为准。没人工填写的路径名和搜索摘要由模型生成（最多等 10 秒）。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
         "x-handler": "content.PublishDocument",
         "x-permission": "content.publish",
+        "x-timeout-ms": 30000,
         "security": [
           {
             "serviceAssertion": [],

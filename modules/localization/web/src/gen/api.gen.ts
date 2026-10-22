@@ -2056,7 +2056,7 @@ export interface components {
             /** @description 幂等键 */
             idempotencyKey: string;
         };
-        /** @description 各语言翻译进度 */
+        /** @description 各语言翻译进度与每篇公开文档的译文状态 */
         ListTranslationProgressResult: {
             /** @description 语言进度 */
             languages: {
@@ -2083,6 +2083,22 @@ export interface components {
                  */
                 state: "queued" | "running";
             }[];
+            /** @description 每篇公开文档在每门启用的非基准语言下的译文状态（按当前发布修订） */
+            documents: {
+                /** @description 文档 */
+                documentId: components["schemas"]["Identifier"];
+                /** @description 目标语言 */
+                language: string;
+                /**
+                 * @description translated 已翻译；translating 排队或翻译中；retrying 上次失败，稍后自动重试；waiting 还没开始
+                 * @enum {string}
+                 */
+                state: "translated" | "translating" | "retrying" | "waiting";
+                /** @description 当前修订还没译好时，访客是否先看到旧修订的译文 */
+                previous: boolean;
+            }[];
+            /** @description 文档翻译任务能否解析到模型档位；为 false 时自动翻译等模型配好再开始 */
+            modelReady: boolean;
         };
         /** @description 分页结果状态；没有下一页时nextCursor省略 */
         PageInfo: {

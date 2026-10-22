@@ -3,9 +3,12 @@ package content
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 	"unicode/utf8"
 
 	"nice-wiki/libs/platform"
@@ -17,6 +20,7 @@ type PreparePublicationMetadataInput struct {
 	Body              DocumentBody         `json:"body"`
 	ManualPathSegment *string              `json:"manualPathSegment"`
 	ManualSEO         *string              `json:"manualSEO"`
+	GeneratedSEO      *string              `json:"generatedSEO"`
 }
 
 type PreparePublicationMetadataResult struct {
@@ -34,7 +38,7 @@ type SuggestPublicationMetadataResult = gen.SuggestPublicationMetadataResult
 // 摘要只看正文开头这么多字，足够概括，也控制模型输入。
 const seoSourceRunes = 4000
 
-// SuggestPublicationMetadata 在首次发布对话框打开时请模型建议英文路径名和搜索摘要；只读，用户确认后作为人工值随发布提交。
+// SuggestPublicationMetadata 请模型建议英文路径名和搜索摘要（后台给还没路径的上级补路径时用）；只读。
 // 已有的路径或摘要不再建议；同样的标题、正文和档位复用网关已有结果。
 func SuggestPublicationMetadata(ctx context.Context, op OperationContext, input SuggestPublicationMetadataInput) (SuggestPublicationMetadataResult, error) {
 	result := SuggestPublicationMetadataResult{}
@@ -51,45 +55,111 @@ func SuggestPublicationMetadata(ctx context.Context, op OperationContext, input 
 	}
 	needPath := metadata.PathSegment == nil
 	needSEO := metadata.SeoDescriptionSource == gen.DocumentMetadataSeoDescriptionSourcePending
+	result.PathSegment, result.SeoDescription, err = suggestMetadata(ctx, op, runtime, metadata, input.DraftRevisionId, needPath, needSEO)
+	if err != nil {
+		return SuggestPublicationMetadataResult{}, err
+	}
+	return result, nil
+}
+
+// suggestMetadata 并行请模型给出路径名和/或搜索摘要；任一失败返回该错误。
+func suggestMetadata(ctx context.Context, op OperationContext, runtime TreeRuntime, metadata gen.DocumentMetadata, revisionID Identifier, needPath, needSEO bool) (*string, *string, error) {
 	if !needPath && !needSEO {
-		return result, nil
+		return nil, nil, nil
 	}
 	if runtime.Models == nil {
-		return result, platform.NewError(platform.CodeDependencyUnavailable, true, "模型网关未装配")
+		return nil, nil, platform.NewError(platform.CodeDependencyUnavailable, true, "模型网关未装配")
 	}
 	text := ""
 	if needSEO {
 		files := runtime.Reference.Store.ConfigureRevisionStorage(RevisionStorageConfig{})
-		body, err := ReadRevisionBody(WithRevisionFileStore(ctx, files), op, ReadRevisionBodyInput{DocumentID: input.DocumentId, RevisionID: input.DraftRevisionId})
+		body, err := ReadRevisionBody(WithRevisionFileStore(ctx, files), op, ReadRevisionBodyInput{DocumentID: metadata.DocumentId, RevisionID: revisionID})
 		if err != nil {
-			return result, err
+			return nil, nil, err
 		}
 		text = bodyPlainText(body.Body, seoSourceRunes)
 	}
 	var wait sync.WaitGroup
+	var path, seo *string
 	var pathErr, seoErr error
 	if needPath {
 		wait.Add(1)
 		go func() {
 			defer wait.Done()
-			result.PathSegment, pathErr = suggestPathSegment(ctx, op, runtime.Models, metadata.Title)
+			path, pathErr = suggestPathSegment(ctx, op, runtime.Models, metadata.Title)
 		}()
 	}
 	if needSEO {
 		wait.Add(1)
 		go func() {
 			defer wait.Done()
-			result.SeoDescription, seoErr = suggestSEODescription(ctx, op, runtime.Models, metadata.Title, text, metadata.SourceLanguage)
+			seo, seoErr = suggestSEODescription(ctx, op, runtime.Models, metadata.Title, text, metadata.SourceLanguage)
 		}()
 	}
 	wait.Wait()
 	if pathErr != nil {
-		return SuggestPublicationMetadataResult{}, pathErr
+		return nil, nil, pathErr
 	}
 	if seoErr != nil {
-		return SuggestPublicationMetadataResult{}, seoErr
+		return nil, nil, seoErr
 	}
-	return result, nil
+	return path, seo, nil
+}
+
+// autoPublicationMetadata 在发布时补上没人工填写的路径名和搜索摘要：请模型生成（与发布建议同一缓存），最多等 10 秒。
+// 路径名生成不了时按文档 ID 起一个，发布不因模型不可用而失败；摘要生成不了就留到下次发布再生成。
+func autoPublicationMetadata(ctx context.Context, op OperationContext, runtime TreeRuntime, documentID, revisionID Identifier, manualPath, manualSEO *string) (*string, *string, error) {
+	metadata, _, _, err := readPublicationPinMaterial(ctx, runtime.Reference.Store.db, op, documentID, revisionID)
+	if err != nil {
+		return nil, nil, err
+	}
+	needPath := manualPath == nil && metadata.PathSegment == nil
+	needSEO := manualSEO == nil && metadata.SeoDescriptionSource == gen.DocumentMetadataSeoDescriptionSourcePending
+	if !needPath && !needSEO {
+		return manualPath, nil, nil
+	}
+	work, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	var path, seo *string
+	var wait sync.WaitGroup
+	if needPath {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			path, _, _ = suggestMetadata(work, op, runtime, metadata, revisionID, true, false)
+		}()
+	}
+	if needSEO {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			_, seo, _ = suggestMetadata(work, op, runtime, metadata, revisionID, false, true)
+		}()
+	}
+	wait.Wait()
+	if !needPath {
+		return manualPath, seo, nil
+	}
+	if path == nil {
+		fallback := "page-" + strings.ToLower(string(documentID))[:6]
+		path = &fallback
+	}
+	return path, seo, nil
+}
+
+// uniqueSiblingPath 给自动生成的路径名避开同级已用的名字（以及根级固定入口），依次加 -2、-3……
+func uniqueSiblingPath(base string, parentID *Identifier, documentID Identifier, documents []gen.DocumentMetadata) string {
+	candidate := base
+	for n := 2; n < 1000; n++ {
+		_, err := validatePathSnapshot(ValidatePathSegmentInput{Segment: candidate, ParentId: parentID, DocumentId: documentID, Documents: documents})
+		var problem *platform.Error
+		if !errors.As(err, &problem) || problem.Code != platform.CodeConflict {
+			break
+		}
+		suffix := "-" + strconv.Itoa(n)
+		candidate = strings.TrimRight(base[:min(len(base), 128-len(suffix))], "-") + suffix
+	}
+	return candidate
 }
 
 func suggestPathSegment(ctx context.Context, op OperationContext, models *ModelRuntime, title string) (*string, error) {
@@ -163,8 +233,8 @@ func bodyPlainText(body DocumentBody, limit int) string {
 	return string(runes)
 }
 
-// PreparePublicationMetadata只合并人工slug/SEO与已有英文路径。
-// 本函数不调用模型，不制造slug或SEO；模型建议由SuggestPublicationMetadata先给发布对话框，缺项只记提示。
+// PreparePublicationMetadata只合并人工slug/SEO、发布前已生成的SEO与已有英文路径。
+// 本函数不调用模型；自动生成由发布前的autoPublicationMetadata完成，仍缺的摘要只记提示。
 func PreparePublicationMetadata(ctx context.Context, op OperationContext, input PreparePublicationMetadataInput) (PreparePublicationMetadataResult, error) {
 	if op.CallerService != "portal" || op.Actor.Kind != "admin" {
 		return PreparePublicationMetadataResult{}, platform.NewError(platform.CodeForbidden, false, "发布元数据仅允许当前管理账户")
@@ -189,6 +259,11 @@ func PreparePublicationMetadata(ctx context.Context, op OperationContext, input 
 	case metadata.SeoDescriptionSource == gen.DocumentMetadataSeoDescriptionSourcePending:
 		if metadata.SeoDescription != nil {
 			return PreparePublicationMetadataResult{}, platform.NewError(platform.CodeIntegrityError, false, "待生成SEO已带有未确认描述")
+		}
+		if input.GeneratedSEO != nil {
+			metadata.SeoDescription = input.GeneratedSEO
+			metadata.SeoDescriptionSource = gen.DocumentMetadataSeoDescriptionSourceGenerated
+			break
 		}
 		warnings = append(warnings, "publication.seo_missing")
 	default:

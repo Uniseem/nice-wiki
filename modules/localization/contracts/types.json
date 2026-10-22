@@ -4179,7 +4179,7 @@
     "ListTranslationProgressResult": {
       "type": "object",
       "additionalProperties": false,
-      "description": "各语言翻译进度",
+      "description": "各语言翻译进度与每篇公开文档的译文状态",
       "properties": {
         "languages": {
           "type": "array",
@@ -4260,10 +4260,57 @@
               "state"
             ]
           }
+        },
+        "documents": {
+          "type": "array",
+          "maxItems": 10000,
+          "description": "每篇公开文档在每门启用的非基准语言下的译文状态（按当前发布修订）",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "文档译文状态",
+            "properties": {
+              "documentId": {
+                "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+                "description": "文档"
+              },
+              "language": {
+                "type": "string",
+                "maxLength": 35,
+                "description": "目标语言"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "translated",
+                  "translating",
+                  "retrying",
+                  "waiting"
+                ],
+                "description": "translated 已翻译；translating 排队或翻译中；retrying 上次失败，稍后自动重试；waiting 还没开始"
+              },
+              "previous": {
+                "type": "boolean",
+                "description": "当前修订还没译好时，访客是否先看到旧修订的译文"
+              }
+            },
+            "required": [
+              "documentId",
+              "language",
+              "state",
+              "previous"
+            ]
+          }
+        },
+        "modelReady": {
+          "type": "boolean",
+          "description": "文档翻译任务能否解析到模型档位；为 false 时自动翻译等模型配好再开始"
         }
       },
       "required": [
-        "languages"
+        "languages",
+        "documents",
+        "modelReady"
       ]
     },
     "ReadTranslationUnitsInput": {

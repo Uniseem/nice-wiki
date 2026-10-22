@@ -5,6 +5,7 @@ import {
 } from '@ui';
 import { useState, type ReactNode } from 'react';
 import { AddModelsDialog, ConnectProviderDialog, protocolLabels } from './connect';
+import { OpenRouterSetupDialog, tasks } from './quick';
 
 type Money = { currency: string; micros: number };
 type Provider = {
@@ -33,65 +34,23 @@ const tokenizers = [
   { value: 'none;tiktoken-go@v0.7.0;cl100k_base', label: 'cl100k_base', description: t('多数向量模型可用的近似计数') },
   { value: 'none;tiktoken-go@v0.7.0;o200k_base', label: 'o200k_base', description: t('OpenAI 新一代模型的分词') },
 ];
-// 任务目录与 contracts/ai-tasks.json 一致（26 项）；新增任务时这里要同步。
-const tasks: [string, string, string][] = [
-  ['qa.preflight', 'fast', t('前置分类、改写、完整性与风险')], ['qa.inspect', 'fast', t('检索核查')], ['qa.answer', 'accurate', t('最终回答')],
-  ['qa.answer-fast', 'fast', t('简单问题的快速回答')], ['qa.decide', 'decision', t('每轮问答决策（意图、风险、难度）')],
-  ['qa.english', 'fast', t('访客问题译成英文（供决策模型）')],
-  ['qa.cache-match', 'fast', t('缓存同义复用判断')], ['qa.cache-translate', 'fast', t('缓存回答翻译')], ['qa.compact', 'fast', t('对话增量压缩')],
-  ['knowledge.context', 'fast', t('检索单元背景上下文')], ['knowledge.summary', 'fast', t('文档卡片（摘要、主题、能回答的问题）')], ['knowledge.decide', 'decision', t('知识索引决策（旧卡片是否仍准确）')], ['knowledge.describe', 'fast', t('文字附件/视频公开元信息描述')],
-  ['knowledge.describe-visual', 'vision', t('图片、画板、视频封面视觉描述')], ['knowledge.extract-attachment', 'vision', t('非文本附件内容提取')],
-  ['knowledge.embed', 'embedding', t('生成向量')], ['knowledge.rerank', 'rerank', t('召回重排')],
-  ['localization.document', 'accurate', t('块级文档翻译')], ['localization.ui', 'accurate', t('站点/界面文字翻译')], ['localization.terms', 'accurate', t('首次文档术语抽取')],
-  ['localization.review', 'accurate', t('可选反思润色')], ['localization.suggest', 'decision', t('语言切换建议')],
-  ['memory.overview', 'fast', t('项目概述维护')], ['memory.assistant', 'accurate', t('记忆助手')],
-  ['content.slug', 'fast', t('首次发布路径名')], ['content.seo', 'fast', t('首次发布 SEO 描述')],
-];
 const tierCapability: Record<string, string> = { fast: 'chat', accurate: 'chat', vision: 'vision', embedding: 'embedding', rerank: 'rerank', decision: 'decision' };
 const idPattern = '[A-Za-z0-9._:-]+';
 
 export default function ModelsPage() {
   const catalog = useLoad((signal) => api<Catalog>('/v1/admin/catalog', { signal }), []);
   const [tab, setTab] = useState('providers');
-  const [dialog, setDialog] = useState<'provider' | 'models' | 'manual-model' | Profile | 'profile' | null>(null);
+  const [dialog, setDialog] = useState<'quick' | 'provider' | 'models' | 'manual-model' | Profile | 'profile' | null>(null);
   const [modelsProvider, setModelsProvider] = useState<string | undefined>();
   const { busy, run } = useAction();
-
-  const autoSetup = async () => {
-    const message = await run(async () => {
-      const c = catalog.data!;
-      const usable = c.models.filter((model) => model.enabled);
-      const byCap = (cap: string) => usable.filter((model) => model.capabilities.includes(cap)).map((model) => model.modelId);
-      const tierModels: Record<string, string[]> = { fast: byCap('chat'), accurate: byCap('chat'), vision: byCap('vision'), embedding: byCap('embedding'), rerank: byCap('rerank'), decision: byCap('decision') };
-      let profiles = 0, assignments = 0;
-      for (const costClass of ['qa', 'background']) {
-        for (const [tier, ids] of Object.entries(tierModels)) {
-          const profileId = `${costClass}-${tier}`;
-          if (!ids.length || c.profiles.some((profile) => profile.costClass === costClass && profile.tier === tier)) continue;
-          const idempotencyKey = newKey();
-          await api(`/v1/admin/profiles/${profileId}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: 0, idempotencyKey, profile: { profileId, version: 1, costClass, tier, orderedModelIds: ids, maximumCost: { currency: 'USD', micros: 0 }, concurrency: 4, dailyLimitCost: { currency: 'USD', micros: 0 } } } });
-          profiles++;
-        }
-      }
-      for (const [taskId, tier] of tasks) {
-        // 即使该级别暂时没有模型也要分配：检索等流程会解析每个任务的分配，缺了会整轮失败；没有档位时按“该能力不可用”降级。
-        if (c.taskAssignments.some((assignment) => assignment.taskId === taskId)) continue;
-        const idempotencyKey = newKey();
-        await api(`/v1/task-assignments/${taskId}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: 0, idempotencyKey, assignment: { taskId, tier, version: 1 } } });
-        assignments++;
-      }
-      catalog.reload();
-      return t('已生成 {0} 个档位、{1} 个任务分配', profiles, assignments);
-    });
-    if (message) notify.success(message, t('已有的档位和分配不会被覆盖。'));
-  };
 
   const saveSecret = async (provider: Provider) => {
     const secret = await askText({ title: provider.credentialConfigured ? t('轮换“{0}”的密钥', provider.displayName) : t('设置“{0}”的密钥', provider.displayName), label: t('API 密钥'), type: 'password', description: t('只在提交时传输一次，保存后加密存放，界面不会再显示。'), confirmLabel: t('保存密钥') });
     if (!secret) return;
     await run(async () => {
       const idempotencyKey = newKey();
-      await api(`/v1/admin/providers/${provider.providerId}/credentials${provider.credentialConfigured ? '/rotate' : ''}`, { method: 'POST', idempotencyKey, body: { providerId: provider.providerId, secret, expectedVersion: provider.credentialVersion, idempotencyKey } });
+      const body = provider.credentialConfigured ? { newSecret: secret } : { secret };
+      await api(`/v1/admin/providers/${provider.providerId}/credentials${provider.credentialConfigured ? '/rotate' : ''}`, { method: 'POST', idempotencyKey, body: { providerId: provider.providerId, ...body, expectedVersion: provider.credentialVersion, idempotencyKey } });
       catalog.reload();
     }, t('密钥已加密保存'));
   };
@@ -128,16 +87,17 @@ export default function ModelsPage() {
       <PageHeader
         title={t('模型接入')}
         description={t('配置供应方、密钥、模型、档位和任务分配。这里只做配置，不调用模型。')}
-        actions={c && <Button isDisabled={!c.models.length} isPending={busy} onPress={() => void autoSetup()}><Thunderbolt />{t('一键生成档位和任务分配')}</Button>}
+        actions={c && <Button onPress={() => setDialog('quick')}><Thunderbolt />{t('OpenRouter 一键配置')}</Button>}
       />
       {!c ? <LoadingBlock lines={6} /> : (
         <>
-          <Steps items={[
-            [t('添加供应方并设置密钥'), c.providers.some((provider) => provider.credentialConfigured)],
-            [t('添加模型'), c.models.length > 0],
-            [t('生成档位和任务分配'), c.profiles.length > 0 && c.taskAssignments.length >= tasks.length],
-          ]} />
-          {ready && <Notice status="success" title={t('模型已就绪')}>{t('接下来可以去“知识索引”建立索引，再到“问答”开启公开问答。')}</Notice>}
+          {!ready && (
+            <Notice status="accent" title={t('还没配好模型')}>
+              <span className="flex flex-wrap items-center gap-2">{t('填入 OpenRouter 密钥即可一键配好全部 AI；也可以在下面手动接入供应方和模型。')}
+                <Button size="sm" onPress={() => setDialog('quick')}><Thunderbolt />{t('OpenRouter 一键配置')}</Button>
+              </span>
+            </Notice>
+          )}
           <Tabs selectedKey={tab} onSelectionChange={(key) => setTab(String(key))}>
             <Tabs.ListContainer className="mb-4 overflow-x-auto">
               <Tabs.List aria-label={t('模型配置')}>
@@ -207,6 +167,7 @@ export default function ModelsPage() {
           </Tabs>
         </>
       )}
+      {dialog === 'quick' && <OpenRouterSetupDialog onClose={() => setDialog(null)} onDone={() => { setDialog(null); catalog.reload(); }} />}
       {dialog === 'provider' && c && <ConnectProviderDialog existing={c.providers} onClose={() => { setDialog(null); catalog.reload(); }} onConnected={(providerId) => { catalog.reload(); setModelsProvider(providerId); setDialog('models'); }} />}
       {dialog === 'models' && c && <AddModelsDialog initialProviderId={modelsProvider} models={c.models} providers={c.providers} onChanged={catalog.reload} onClose={() => setDialog(null)} onManual={() => setDialog('manual-model')} onSaved={() => { setDialog(null); catalog.reload(); setTab('models'); }} />}
       {dialog === 'manual-model' && c && <ModelDialog providers={c.providers} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); catalog.reload(); setTab('models'); }} />}
@@ -219,19 +180,6 @@ export default function ModelsPage() {
 
 function Count({ n }: { n: number }) {
   return <span className="ms-1.5 rounded-full bg-default px-1.5 text-xs tabular-nums text-muted">{n}</span>;
-}
-
-function Steps({ items }: { items: [string, boolean][] }) {
-  return (
-    <ol className="grid gap-3 sm:grid-cols-3">
-      {items.map(([label, done], index) => (
-        <li key={label} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${done ? 'border-success/30 bg-success-soft' : 'border-border bg-surface'}`}>
-          <span className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${done ? 'bg-success text-success-foreground' : 'bg-default text-muted'}`}>{done ? '✓' : index + 1}</span>
-          <span className="text-sm font-medium text-foreground">{label}</span>
-        </li>
-      ))}
-    </ol>
-  );
 }
 
 function Section({ hint, action, children }: { hint: string; action?: ReactNode; children: ReactNode }) {

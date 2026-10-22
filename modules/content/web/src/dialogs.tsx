@@ -1,104 +1,11 @@
 import { ClockArrowRotateLeft } from '@gravity-ui/icons';
 import { Button, Chip, Drawer, Form, Modal } from '@heroui/react';
-import { api, ApiError, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, fmtRelative, LoadingBlock, notify, errorText, SelectInput, TextAreaInput, TextInput, useLoad, t } from '@ui';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { api, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, fmtRelative, LoadingBlock, notify, errorText, SelectInput, TextAreaInput, TextInput, useLoad, t } from '@ui';
+import { useMemo, useRef, useState } from 'react';
 import { VersionDialog } from './VersionDialog';
-import { ancestors, flatten, operationLabel, pathPattern, subtree, suggestPath, type HistoryEntry, type Meta } from './types';
+import { flatten, operationLabel, pathPattern, subtree, type HistoryEntry, type Meta } from './types';
 
 const pathHint = t('只用小写字母、数字和连字符，例如 getting-started。发布后仍可在页面设置里修改，旧地址会自动跳转。');
-
-// 首次发布：确定页面路径和搜索摘要。打开时请 AI 按标题和正文建议，用户改过的字段不再覆盖；没有 AI 时手填。
-// 公开地址由祖先路径段拼成：上级还没有路径时在这里一并填写，发布前先给上级设好路径，不必中途退出去改。
-export function PublishDialog({ meta, docs, draftRevisionId, onPublish, onClose }: { meta: Meta; docs: Meta[]; draftRevisionId: string; onPublish: (path: string, seo: string | null) => Promise<void>; onClose: () => void }) {
-  const [path, setPath] = useState('');
-  const [seo, setSeo] = useState(meta.seoDescription ?? '');
-  const [busy, setBusy] = useState(false);
-  const [suggesting, setSuggesting] = useState(true);
-  const [aiNote, setAiNote] = useState<string | null>(null);
-  const missing = useMemo(() => ancestors(docs, meta.documentId).filter((doc) => !doc.pathSegment), [docs, meta.documentId]);
-  const [parentPaths, setParentPaths] = useState<Record<string, string>>(() => Object.fromEntries(missing.map((doc) => [doc.documentId, suggestPath(doc.title)])));
-  const touched = useRef({ path: false, seo: false });
-  // 自己已有路径（在页面设置里先填过）时沿用，不再要求填写。
-  const own = meta.pathSegment;
-  const invalid = !own && path !== '' && !pathPattern.test(path);
-  const parentsInvalid = missing.some((doc) => !pathPattern.test(parentPaths[doc.documentId] ?? ''));
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const suggested = await api<{ pathSegment: string | null; seoDescription: string | null }>(`/v1/documents/${encodeURIComponent(meta.documentId)}:suggest-publication`, { method: 'POST', body: { draftRevisionId } });
-        if (cancelled) return;
-        if (!touched.current.path) setPath(suggested.pathSegment ?? suggestPath(meta.title));
-        if (!touched.current.seo && suggested.seoDescription) setSeo(suggested.seoDescription);
-      } catch (problem) {
-        if (cancelled) return;
-        if (!touched.current.path) setPath(suggestPath(meta.title));
-        setAiNote(problem instanceof ApiError && problem.code === 'UNSUPPORTED_CAPABILITY' ? t('还没有为路径名和摘要配置 AI 模型，请手动填写。') : t('AI 暂时没能给出建议，请手动填写。'));
-      } finally {
-        if (!cancelled) setSuggesting(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [meta.documentId, meta.title, draftRevisionId]);
-  const submit = async () => {
-    if (invalid || (!own && !path) || parentsInvalid) return;
-    setBusy(true);
-    try {
-      // 从最上层开始补路径：下层的检查依赖上层已有路径。
-      for (const doc of missing) {
-        await api(`/v1/documents/${doc.documentId}/metadata`, {
-          method: 'PUT', body: { title: doc.title, pathSegment: parentPaths[doc.documentId].trim(), seoDescription: doc.seoDescription, shareImage: doc.shareImage ?? null, expectedRevision: doc.revision },
-        });
-      }
-    } catch (problem) {
-      notify.error(t('上级文档的路径没能保存'), errorText(problem));
-      setBusy(false);
-      return;
-    }
-    await onPublish(path, seo.trim() || null);
-    setBusy(false);
-  };
-  return (
-    <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
-      <Modal.Container size="md">
-        <Modal.Dialog>
-          <Modal.CloseTrigger aria-label={t('关闭')} />
-          <Modal.Header><Modal.Heading>{t('发布“{0}”', meta.title)}</Modal.Heading></Modal.Header>
-          <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
-            <Modal.Body className="flex flex-col gap-4">
-              {suggesting && <p className="text-sm text-muted">{t('正在用 AI 生成路径和搜索摘要…')}</p>}
-              {aiNote && <p className="text-sm text-muted">{aiNote}</p>}
-              {missing.length > 0 && (
-                <div className="flex flex-col gap-3 rounded-xl border border-warning/30 bg-warning-soft/50 p-3">
-                  <p className="text-sm text-foreground">{t('上级文档还没有页面路径，公开地址由各级路径组成，发布前会一并保存：')}</p>
-                  {missing.map((doc) => {
-                    const value = parentPaths[doc.documentId] ?? '';
-                    return (
-                      <TextInput
-                        key={doc.documentId}
-                        isRequired
-                        error={value && !pathPattern.test(value) ? t('格式不对：只能用小写字母、数字和连字符') : null}
-                        label={t('“{0}”的路径', doc.title)}
-                        value={value}
-                        onChange={(next) => setParentPaths((current) => ({ ...current, [doc.documentId]: next.trim().toLowerCase() }))}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-              {!own && <TextInput isRequired description={pathHint} error={invalid ? t('格式不对：只能用小写字母、数字和连字符') : null} label={t('页面路径')} value={path} onChange={(value) => { touched.current.path = true; setPath(value.trim().toLowerCase()); }} />}
-              <TextAreaInput description={t('显示在搜索结果和分享卡片里，可以留空。')} label={t('搜索摘要')} maxLength={300} rows={3} value={seo} onChange={(value) => { touched.current.seo = true; setSeo(value); }} />
-            </Modal.Body>
-            <Modal.Footer>
-              <Button variant="tertiary" onPress={onClose}>{t('取消')}</Button>
-              <Button isDisabled={invalid || (!own && !path) || parentsInvalid} isPending={busy} type="submit">{t('发布')}</Button>
-            </Modal.Footer>
-          </Form>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal.Backdrop>
-  );
-}
 
 // 页面设置：标题以外的元数据（路径、搜索摘要）。
 export function SettingsDialog({ meta, onSaved, onClose }: { meta: Meta; onSaved: () => Promise<void>; onClose: () => void }) {
@@ -127,14 +34,14 @@ export function SettingsDialog({ meta, onSaved, onClose }: { meta: Meta; onSaved
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); if (!invalid) void save(); }}>
             <Modal.Body className="flex flex-col gap-4">
               <TextInput
-                description={meta.pathSegment ? pathHint : t('还没有发布过：路径会在首次发布时确定，也可以现在先填。')}
+                description={meta.pathSegment ? pathHint : t('留空时首次发布由 AI 按标题生成英文路径，也可以现在自己填。')}
                 error={invalid ? t('格式不对：只能用小写字母、数字和连字符') : null}
                 label={t('页面路径')}
                 placeholder="getting-started"
                 value={path}
                 onChange={(value) => setPath(value.trim().toLowerCase())}
               />
-              <TextAreaInput description={t('显示在搜索结果和分享卡片里，可以留空。')} label={t('搜索摘要')} maxLength={300} rows={3} value={seo} onChange={setSeo} />
+              <TextAreaInput description={t('显示在搜索结果和分享卡片里。留空时发布由 AI 按正文生成。')} label={t('搜索摘要')} maxLength={300} rows={3} value={seo} onChange={setSeo} />
             </Modal.Body>
             <Modal.Footer>
               <Button variant="tertiary" onPress={onClose}>{t('取消')}</Button>

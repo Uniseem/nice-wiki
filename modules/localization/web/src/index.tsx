@@ -7,8 +7,8 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 
 type Language = { tag: string; version: number; enabled: boolean; isDefault: boolean; automaticTranslation: boolean; direction: 'ltr' | 'rtl'; reflectionEnabled: boolean; batchOutputTokens: number; translationMemoryMinimumCharacters: number };
-type Progress = { language: string; completedUnits: number; queuedUnits: number; reviewUnits: number };
-type Active = { translationId: string; documentId: string; language: string; state: string };
+type DocState = 'translated' | 'translating' | 'retrying' | 'waiting';
+type Progress = { documents: { documentId: string; language: string; state: DocState; previous: boolean }[]; modelReady: boolean };
 type NavNode = { documentId: string; title?: string; publication: unknown };
 
 const names = new Intl.DisplayNames([adminLanguage()], { type: 'language' });
@@ -28,24 +28,6 @@ export default function LanguagesPage() {
     await api(`/v1/languages/${encodeURIComponent(language.tag)}/enabled`, { method: 'POST', idempotencyKey, body: { tag: language.tag, enabled, expectedVersion: language.version, idempotencyKey } });
     languages.reload();
   }, enabled ? t('{0}已启用', nameOf(language.tag)) : t('{0}已停用', nameOf(language.tag)));
-
-  const setAuto = async (language: Language, on: boolean) => {
-    if (on && !(await confirmAction({ title: t('开启自动翻译？'), body: t('开启后，每篇文档发布新版本时都会自动调用模型翻译到该语言。'), confirmLabel: t('开启'), tone: 'warning' }))) return;
-    await run(async () => {
-      const idempotencyKey = newKey();
-      await api(`/v1/languages/${encodeURIComponent(language.tag)}`, { method: 'PUT', idempotencyKey, body: { expectedVersion: language.version, idempotencyKey, language: { ...language, version: language.version + 1, automaticTranslation: on } } });
-      languages.reload();
-    }, on ? t('已开启自动翻译') : t('已关闭自动翻译'));
-  };
-
-  const translateUI = async (language: Language) => {
-    const ok = await confirmAction({ title: t('把界面文字翻译成{0}？', nameOf(language.tag)), body: t('公开页上的固定文字（如“本页目录”“上一篇”）会调用一次模型翻译。约一分钟后生效，没翻译的部分仍显示英文。'), confirmLabel: t('开始翻译'), tone: 'warning' });
-    if (!ok) return;
-    await run(async () => {
-      const idempotencyKey = newKey();
-      await api(`/v1/interface-strings/${encodeURIComponent(language.tag)}:translate`, { method: 'POST', idempotencyKey, body: { language: language.tag } });
-    }, t('已开始翻译界面文字'));
-  };
 
   if (languages.error && !languages.data) return <ErrorBlock error={languages.error} onRetry={languages.reload} />;
   const list = languages.data ?? [];
@@ -76,13 +58,9 @@ export default function LanguagesPage() {
                 <p className="text-sm leading-6 text-muted">{t('访客默认看到这个语言。文档正文就是这个语言的内容，不需要翻译。')}</p>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <SwitchInput description={t('启用后访客才能切换到这个语言。')} isDisabled={busy || !canLanguages || requiredEnglish(language)} isSelected={language.enabled} label={t('对访客启用')} onChange={(value) => void setEnabled(language, value)} />
-                  <SwitchInput description={t('文档发布新版本时自动调用模型翻译。')} isDisabled={busy || !language.enabled || !canLanguages || requiredEnglish(language)} isSelected={language.automaticTranslation} label={t('发布时自动翻译')} onChange={(value) => void setAuto(language, value)} />
+                  <SwitchInput description={t('启用后访客可以切换到这个语言，所有已发布文档会自动翻译。')} isDisabled={busy || !canLanguages || requiredEnglish(language)} isSelected={language.enabled} label={t('对访客启用')} onChange={(value) => void setEnabled(language, value)} />
                   {requiredEnglish(language) && <p className="text-xs leading-5 text-muted">{t('英文是站点必需语言：始终启用，发布时自动翻译；AI 判断也只读英文。')}</p>}
                 </div>
-              )}
-              {!language.isDefault && language.enabled && canTranslate && (
-                <Card.Footer><Button isDisabled={busy} size="sm" variant="secondary" onPress={() => translateUI(language)}><Globe />{t('翻译界面文字')}</Button></Card.Footer>
               )}
             </Card>
           ))}
@@ -122,6 +100,7 @@ function SuggestionPanel() {
   );
 }
 
+// 文档译文全自动：启用的语言会自动翻译每篇已发布文档，重新发布后自动更新，失败的稍后自动重试。这里只看状态。
 function Translations({ base, languages }: { base: string; languages: Language[] }) {
   const [target, setTarget] = useState(languages[0]?.tag ?? '');
   useEffect(() => { if (!languages.some((language) => language.tag === target)) setTarget(languages[0]?.tag ?? ''); }, [languages, target]);
@@ -129,86 +108,62 @@ function Translations({ base, languages }: { base: string; languages: Language[]
     const response = await fetch(`/${base}/navigation`, { signal });
     return response.ok ? (await response.json()) as NavNode[] : [];
   }, [base]);
-  const progress = useLoad((signal) => api<{ languages: Progress[]; active?: Active[] }>('/v1/translations/progress', { signal }), []);
-  const { busy, run } = useAction();
+  const progress = useLoad((signal) => api<Progress>('/v1/translations/progress', { signal }), []);
   const titles = useMemo(() => new Map((nodes.data ?? []).map((node) => [node.documentId, node.title ?? node.documentId])), [nodes.data]);
+  const rows = (progress.data?.documents ?? []).filter((item) => item.language === target);
+  const pending = rows.filter((item) => item.state !== 'translated').length;
 
   useEffect(() => {
-    if (!progress.data?.active?.length) return;
+    if (!pending) return;
     const timer = setInterval(progress.reload, 8000);
     return () => clearInterval(timer);
-  }, [progress.data, progress.reload]);
-
-  const translate = async (node: NavNode) => {
-    const ok = await confirmAction({ title: t('把“{0}”翻译成{1}？', node.title ?? node.documentId, nameOf(target)), body: t('按块调用模型翻译。完成后访客就能看到该语言的页面。'), confirmLabel: t('开始翻译'), tone: 'warning' });
-    if (!ok) return;
-    await run(async () => {
-      const idempotencyKey = newKey();
-      await api('/v1/translations', { method: 'POST', idempotencyKey, body: { document: node.publication, targetLanguage: target, idempotencyKey } });
-      progress.reload();
-    }, t('已开始翻译，稍后刷新查看进度'));
-  };
-
-  const cancel = async (item: Active) => {
-    const ok = await confirmAction({ title: t('取消这次翻译？'), body: t('取消后不再继续调用模型；已经发出的那一批调用无法撤回。'), confirmLabel: t('取消翻译'), tone: 'danger', cancelLabel: t('继续翻译') });
-    if (!ok) return;
-    await run(async () => {
-      const idempotencyKey = newKey();
-      await api(`/v1/translations/${item.translationId}/cancel`, { method: 'POST', idempotencyKey, body: { translationId: item.translationId, reason: t('管理员在后台取消'), idempotencyKey } });
-      progress.reload();
-    }, t('已取消该翻译'));
-  };
+  }, [pending, progress.reload]);
 
   if (!languages.length) {
     return <Panel title={t('文档译文')}><EmptyBlock icon={<Globe />} title={t('还没有启用的其他语言')} description={t('先在上面启用一个非基准语言，才能翻译文档。')} /></Panel>;
   }
-  const stats = progress.data?.languages.find((item) => item.language === target);
-  const active = (progress.data?.active ?? []).filter((item) => item.language === target);
+  const count = (state: DocState) => rows.filter((item) => item.state === state).length;
+  const labels: Record<DocState, [string, 'success' | 'accent' | 'warning' | 'default']> = {
+    translated: [t('已翻译'), 'success'], translating: [t('翻译中'), 'accent'], retrying: [t('稍后自动重试'), 'warning'], waiting: [t('等待翻译'), 'default'],
+  };
   return (
     <Panel
       title={t('文档译文')}
-      description={t('选择目标语言，为已发布的文档发起翻译。')}
+      description={t('启用的语言会自动翻译每篇已发布文档，重新发布后自动更新，不需要手动操作。')}
       actions={<SelectInput aria-label={t('目标语言')} className="w-48" options={languages.map((language) => ({ value: language.tag, label: t('{0}（{1}）', nameOf(language.tag), language.tag) }))} value={target} onChange={setTarget} variant="primary" />}
     >
-      {stats && (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <MiniStat label={t('已完成')} value={stats.completedUnits} tone="success" />
-          <MiniStat label={t('进行中')} value={stats.queuedUnits} tone="accent" />
-          <MiniStat label={t('待复核')} value={stats.reviewUnits} tone="warning" />
-        </div>
-      )}
-      {active.length > 0 && (
-        <Notice status="accent" title={t('有 {0} 篇正在翻译', active.length)}>
-          <ul className="mt-1 flex flex-col gap-1">
-            {active.map((item) => (
-              <li key={item.translationId} className="flex flex-wrap items-center gap-2">
-                <span>{titles.get(item.documentId) ?? item.documentId}</span>
-                <Chip size="sm" variant="soft">{item.state === 'running' ? t('进行中') : t('排队中')}</Chip>
-                <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => cancel(item)}>{t('取消')}</Button>
-              </li>
-            ))}
-          </ul>
-        </Notice>
-      )}
-      {nodes.loading && !nodes.data ? <LoadingBlock lines={3} /> : (
-        <Table variant="secondary">
-          <Table.ScrollContainer>
-            <Table.Content aria-label={t('已发布文档')} className="min-w-[480px]">
-              <Table.Header>
-                <Table.Column isRowHeader>{t('已发布文档')}</Table.Column>
-                <Table.Column className="w-32 text-end">{t('操作')}</Table.Column>
-              </Table.Header>
-              <Table.Body renderEmptyState={() => <p className="py-6 text-center text-sm text-muted">{t('还没有已发布文档。')}</p>}>
-                {(nodes.data ?? []).map((node) => (
-                  <Table.Row key={node.documentId} id={node.documentId}>
-                    <Table.Cell>{node.title ?? node.documentId}</Table.Cell>
-                    <Table.Cell className="text-end"><Button isDisabled={busy} size="sm" variant="secondary" onPress={() => translate(node)}>{t('翻译')}</Button></Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table.Content>
-          </Table.ScrollContainer>
-        </Table>
+      {progress.error ? <ErrorBlock error={progress.error} onRetry={progress.reload} /> : !progress.data ? <LoadingBlock lines={3} /> : (
+        <>
+          {!progress.data.modelReady && <Notice status="warning" title={t('还没有可用的翻译模型')}>{t('到“模型接入”填入 OpenRouter 密钥一键配置后，会自动开始翻译。')}</Notice>}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <MiniStat label={t('已翻译')} value={count('translated')} tone="success" />
+            <MiniStat label={t('翻译中')} value={count('translating')} tone="accent" />
+            <MiniStat label={t('等待或重试')} value={count('waiting') + count('retrying')} tone="warning" />
+          </div>
+          <Table variant="secondary">
+            <Table.ScrollContainer>
+              <Table.Content aria-label={t('已发布文档')} className="min-w-[480px]">
+                <Table.Header>
+                  <Table.Column isRowHeader>{t('已发布文档')}</Table.Column>
+                  <Table.Column className="w-48 text-end">{t('状态')}</Table.Column>
+                </Table.Header>
+                <Table.Body renderEmptyState={() => <p className="py-6 text-center text-sm text-muted">{t('还没有已发布文档。')}</p>}>
+                  {rows.map((item) => (
+                    <Table.Row key={item.documentId} id={item.documentId}>
+                      <Table.Cell>{titles.get(item.documentId) ?? item.documentId}</Table.Cell>
+                      <Table.Cell className="text-end">
+                        <span className="inline-flex flex-wrap justify-end gap-1">
+                          <Chip color={labels[item.state][1]} size="sm" variant="soft">{labels[item.state][0]}</Chip>
+                          {item.previous && <Chip size="sm" variant="soft">{t('暂时显示旧译文')}</Chip>}
+                        </span>
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
+          </Table>
+        </>
       )}
     </Panel>
   );

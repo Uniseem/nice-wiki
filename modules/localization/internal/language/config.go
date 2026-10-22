@@ -194,9 +194,6 @@ func SetLanguageEnabled(ctx context.Context, op OperationContext, input SetLangu
 	if err := requireEnglishKept(existing.Tag, existing.IsDefault, input.Enabled, true); err != nil {
 		return SetLanguageEnabledResult{}, err
 	}
-	if input.Enabled && existing.AutomaticTranslation {
-		return SetLanguageEnabledResult{}, platform.NewError(platform.CodeConflict, false, "直接启停不能启用自动翻译")
-	}
 	if !input.Enabled {
 		// 只结束本域未完成任务。不删除 translation_units，也不调用模型或 jobs。
 		if _, err := tx.ExecContext(ctx, `UPDATE translation_jobs SET state = 'cancelled', updated_at = ?

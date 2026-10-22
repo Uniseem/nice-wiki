@@ -12,6 +12,7 @@ export type Meta = {
   pathSegment: string | null;
   seoDescription: string | null;
   revision: number;
+  draftRevisionId?: string;
   publishedReference?: { contentHash: string } | null;
   shareImage?: unknown;
   sourceLanguage?: string;

@@ -1318,7 +1318,7 @@
       "operationId": "publishDocument",
       "permission": "content.publish",
       "admission": null,
-      "timeoutMs": null,
+      "timeoutMs": 30000,
       "streaming": false
     },
     {

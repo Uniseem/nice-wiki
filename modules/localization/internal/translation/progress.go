@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/localization/internal/language"
+	localizationruntime "nice-wiki/modules/localization/internal/runtime"
 	"sort"
 )
 
@@ -23,9 +24,17 @@ type ActiveTranslation struct {
 	Language      string `json:"language"`
 	State         string `json:"state"`
 }
+type DocumentTranslation struct {
+	DocumentID string `json:"documentId"`
+	Language   string `json:"language"`
+	State      string `json:"state"`
+	Previous   bool   `json:"previous"`
+}
 type ListTranslationProgressResult struct {
-	Languages []LanguageProgress  `json:"languages"`
-	Active    []ActiveTranslation `json:"active"`
+	Languages  []LanguageProgress    `json:"languages"`
+	Active     []ActiveTranslation   `json:"active"`
+	Documents  []DocumentTranslation `json:"documents"`
+	ModelReady bool                  `json:"modelReady"`
 }
 
 func ListTranslationProgress(ctx context.Context, op OperationContext, input ListTranslationProgressInput) (ListTranslationProgressResult, error) {
@@ -40,7 +49,7 @@ func ListTranslationProgress(ctx context.Context, op OperationContext, input Lis
 		}
 		filter = parsed.Tag
 	}
-	result := ListTranslationProgressResult{Languages: []LanguageProgress{}, Active: []ActiveTranslation{}}
+	result := ListTranslationProgressResult{Languages: []LanguageProgress{}, Active: []ActiveTranslation{}, Documents: []DocumentTranslation{}}
 	err := language.ReadData(ctx, op, func(tx *sql.Tx) error {
 		rows, err := tx.QueryContext(ctx, `SELECT language_tag FROM languages WHERE data_epoch=? ORDER BY language_tag`, op.DataEpoch)
 		if err != nil {
@@ -111,5 +120,74 @@ func ListTranslationProgress(ctx context.Context, op OperationContext, input Lis
 		}
 		return language.StorageError(active.Err())
 	})
+	if err != nil {
+		return result, err
+	}
+	background := op
+	background.CostClass = platform.CostClassBackground
+	_, routeErr := localizationruntime.ResolvePlanTaskRoute(ctx, background, "localization.document")
+	result.ModelReady = routeErr == nil
+	result.Documents, err = documentStates(ctx, op, filter)
 	return result, err
+}
+
+// documentStates 按当前发布修订给出每篇公开文档在每门自动翻译语言下的译文状态，和 AutoTranslate 的判断一致。
+func documentStates(ctx context.Context, op OperationContext, filter string) ([]DocumentTranslation, error) {
+	tree, err := localizationruntime.ReadPublicTree(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+	var languages []string
+	states := map[string]string{}
+	completed := map[string]bool{}
+	err = language.ReadData(ctx, op, func(tx *sql.Tx) error {
+		var err error
+		if languages, err = queryStrings(ctx, tx, `SELECT language_tag FROM languages WHERE enabled=1 AND default_language=0 AND data_epoch=? ORDER BY language_tag`, op.DataEpoch); err != nil {
+			return err
+		}
+		rows, err := tx.QueryContext(ctx, `SELECT json_extract(publication_ref,'$.documentId'),json_extract(publication_ref,'$.publishedRevisionId'),target_language,state FROM translation_manifests WHERE data_epoch=?`, op.DataEpoch)
+		if err != nil {
+			return language.StorageError(err)
+		}
+		defer rows.Close()
+		rank := map[string]int{"retrying": 1, "translating": 2, "translated": 3}
+		for rows.Next() {
+			var document, revision, tag, state string
+			if err = rows.Scan(&document, &revision, &tag, &state); err != nil {
+				return language.StorageError(err)
+			}
+			status := ""
+			switch state {
+			case "ready", "review", "stale":
+				status = "translated"
+				completed[document+"\x00"+tag] = true
+			case "queued", "running":
+				status = "translating"
+			case "failed", "cancelled":
+				status = "retrying"
+			}
+			key := document + "\x00" + revision + "\x00" + tag
+			if rank[status] > rank[states[key]] {
+				states[key] = status
+			}
+		}
+		return language.StorageError(rows.Err())
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := []DocumentTranslation{}
+	for _, document := range tree.Documents {
+		for _, tag := range languages {
+			if filter != "" && tag != filter {
+				continue
+			}
+			state := states[document.DocumentID+"\x00"+document.Reference.PublishedRevisionId+"\x00"+tag]
+			if state == "" {
+				state = "waiting"
+			}
+			result = append(result, DocumentTranslation{DocumentID: document.DocumentID, Language: tag, State: state, Previous: state != "translated" && completed[document.DocumentID+"\x00"+tag]})
+		}
+	}
+	return result, nil
 }

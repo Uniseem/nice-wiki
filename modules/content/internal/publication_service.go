@@ -68,7 +68,13 @@ func PublishDocument(ctx context.Context, op OperationContext, input PublishDocu
 	if err != nil {
 		return PublishDocumentResult{}, err
 	}
-	referenceDigest, referencesPinned, err := preparePublicationPin(work, op, runtime, input.DocumentId, input.DraftRevisionId, input.ExpectedRevision, input.ManualPathSegment, input.ManualSEO)
+	// 没人工填写的路径名和摘要由模型生成；自动的路径名在事务里再避开同级重名。
+	path, generatedSEO, err := autoPublicationMetadata(work, op, runtime, input.DocumentId, input.DraftRevisionId, input.ManualPathSegment, input.ManualSEO)
+	if err != nil {
+		return PublishDocumentResult{}, err
+	}
+	autoPath := input.ManualPathSegment == nil && path != nil
+	referenceDigest, referencesPinned, err := preparePublicationPin(work, op, runtime, input.DocumentId, input.DraftRevisionId, input.ExpectedRevision, path, input.ManualSEO)
 	if err != nil {
 		return PublishDocumentResult{}, err
 	}
@@ -93,7 +99,13 @@ func PublishDocument(ctx context.Context, op OperationContext, input PublishDocu
 	if current.Revision != input.ExpectedRevision || int64(current.Revision) >= maxEditFence || treeRevision >= maxEditFence {
 		return PublishDocumentResult{}, platform.NewError(platform.CodeVersionMismatch, false, "发布修订已变化或水位耗尽")
 	}
-	prepared, err := PreparePublicationMetadata(work, op, PreparePublicationMetadataInput{Metadata: *current, Body: body.Body, ManualPathSegment: input.ManualPathSegment, ManualSEO: input.ManualSEO})
+	if autoPath && current.PathSegment != nil {
+		path = nil
+	} else if autoPath {
+		unique := uniqueSiblingPath(*path, current.ParentId, current.DocumentId, documents)
+		path = &unique
+	}
+	prepared, err := PreparePublicationMetadata(work, op, PreparePublicationMetadataInput{Metadata: *current, Body: body.Body, ManualPathSegment: path, ManualSEO: input.ManualSEO, GeneratedSEO: generatedSEO})
 	if err != nil {
 		return PublishDocumentResult{}, err
 	}

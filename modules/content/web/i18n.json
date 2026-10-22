@@ -15,22 +15,6 @@
   "id": "3 × 3 dengan baris judul",
   "ar": "3 × 3 مع صف عناوين"
  },
- "AI 暂时没能给出建议，请手动填写。": {
-  "zh-Hant": "AI 暫時無法提供建議，請手動填寫。",
-  "en": "AI couldn’t make a suggestion right now. Please fill these in yourself.",
-  "ja": "AI が今は提案できませんでした。手動で入力してください。",
-  "ko": "AI가 지금은 제안하지 못했습니다. 직접 입력하세요.",
-  "fr": "L’IA n’a pas pu faire de suggestion pour le moment. Veuillez remplir ces champs vous-même.",
-  "de": "Die KI konnte gerade keinen Vorschlag machen. Bitte selbst ausfüllen.",
-  "es": "La IA no pudo hacer una sugerencia ahora. Rellena los campos manualmente.",
-  "pt": "A IA não conseguiu sugerir agora. Preencha os campos manualmente.",
-  "ru": "ИИ сейчас не смог предложить вариант. Заполните поля вручную.",
-  "it": "L’IA non è riuscita a fare un suggerimento ora. Compila i campi manualmente.",
-  "vi": "AI chưa thể đưa ra gợi ý lúc này. Vui lòng tự điền.",
-  "th": "ตอนนี้ AI ยังให้คำแนะนำไม่ได้ โปรดกรอกเอง",
-  "id": "AI belum bisa memberi saran saat ini. Silakan isi sendiri.",
-  "ar": "تعذّر على الذكاء الاصطناعي تقديم اقتراح الآن. يرجى تعبئة الحقول يدويًا."
- },
  "LaTeX 数学公式": {
   "zh-Hant": "LaTeX 數學公式",
   "en": "LaTeX math",
@@ -175,22 +159,6 @@
   "id": "Kotak {0}",
   "ar": "مربع تنبيه: {0}"
  },
- "“{0}”的路径": {
-  "zh-Hant": "「{0}」的路徑",
-  "en": "Path for “{0}”",
-  "ja": "「{0}」のパス",
-  "ko": "‘{0}’의 경로",
-  "fr": "Chemin de « {0} »",
-  "de": "Pfad für „{0}“",
-  "es": "Ruta de «{0}»",
-  "pt": "Caminho de “{0}”",
-  "ru": "Путь для «{0}»",
-  "it": "Percorso di «{0}»",
-  "vi": "Đường dẫn của “{0}”",
-  "th": "พาธของ “{0}”",
-  "id": "Jalur untuk “{0}”",
-  "ar": "مسار «{0}»"
- },
  "一起删除的 {0} 篇子文档也已恢复。": {
   "zh-Hant": "一起刪除的 {0} 篇子文件也已復原。",
   "en": " The {0} child documents deleted with it were restored too.",
@@ -286,38 +254,6 @@
   "th": "เลื่อนขึ้น",
   "id": "Naik",
   "ar": "نقل لأعلى"
- },
- "上级文档的路径没能保存": {
-  "zh-Hant": "上級文件的路徑沒能儲存",
-  "en": "Couldn’t save the parent document’s path",
-  "ja": "上位ドキュメントのパスを保存できませんでした",
-  "ko": "상위 문서의 경로를 저장하지 못했습니다",
-  "fr": "Impossible d’enregistrer le chemin du document parent",
-  "de": "Pfad des übergeordneten Dokuments konnte nicht gespeichert werden",
-  "es": "No se pudo guardar la ruta del documento superior",
-  "pt": "Não foi possível salvar o caminho do documento superior",
-  "ru": "Не удалось сохранить путь родительского документа",
-  "it": "Impossibile salvare il percorso del documento superiore",
-  "vi": "Không lưu được đường dẫn của tài liệu cấp trên",
-  "th": "บันทึกพาธของเอกสารระดับบนไม่สำเร็จ",
-  "id": "Gagal menyimpan jalur dokumen induk",
-  "ar": "تعذر حفظ مسار المستند الأعلى"
- },
- "上级文档还没有页面路径，公开地址由各级路径组成，发布前会一并保存：": {
-  "zh-Hant": "上級文件還沒有頁面路徑，公開網址由各級路徑組成，發布前會一併儲存：",
-  "en": "Parent documents don’t have page paths yet. The public URL is built from every level’s path, so these will be saved before publishing:",
-  "ja": "上位ドキュメントにページパスがありません。公開 URL は各階層のパスで構成されるため、公開前にあわせて保存します：",
-  "ko": "상위 문서에 아직 페이지 경로가 없습니다. 공개 주소는 각 단계의 경로로 이루어지므로 게시 전에 함께 저장합니다:",
-  "fr": "Les documents parents n’ont pas encore de chemin. L’adresse publique est formée des chemins de chaque niveau ; ils seront enregistrés avant la publication :",
-  "de": "Übergeordnete Dokumente haben noch keinen Seitenpfad. Die öffentliche Adresse setzt sich aus den Pfaden aller Ebenen zusammen; sie werden vor dem Veröffentlichen gespeichert:",
-  "es": "Los documentos superiores aún no tienen ruta. La dirección pública se compone de las rutas de cada nivel; se guardarán antes de publicar:",
-  "pt": "Os documentos superiores ainda não têm caminho. O endereço público é formado pelos caminhos de cada nível; eles serão salvos antes de publicar:",
-  "ru": "У родительских документов ещё нет пути. Публичный адрес складывается из путей всех уровней, поэтому они будут сохранены перед публикацией:",
-  "it": "I documenti superiori non hanno ancora un percorso. L’indirizzo pubblico è composto dai percorsi di ogni livello; verranno salvati prima della pubblicazione:",
-  "vi": "Tài liệu cấp trên chưa có đường dẫn trang. Địa chỉ công khai ghép từ đường dẫn của từng cấp, nên sẽ được lưu cùng trước khi xuất bản:",
-  "th": "เอกสารระดับบนยังไม่มีพาธหน้า ที่อยู่สาธารณะประกอบจากพาธทุกระดับ จะบันทึกพร้อมกันก่อนเผยแพร่:",
-  "id": "Dokumen induk belum memiliki jalur halaman. Alamat publik tersusun dari jalur setiap tingkat, jadi jalur ini akan disimpan sebelum terbit:",
-  "ar": "المستندات الأعلى ليس لها مسار صفحة بعد. يتكوّن العنوان العام من مسارات كل المستويات، لذا ستُحفظ قبل النشر:"
  },
  "下划线": {
   "zh-Hant": "底線",
@@ -1198,22 +1134,6 @@
   "th": "เผยแพร่",
   "id": "Terbitkan",
   "ar": "نشر"
- },
- "发布“{0}”": {
-  "zh-Hant": "發布「{0}」",
-  "en": "Publish \"{0}\"",
-  "ja": "「{0}」を公開",
-  "ko": "'{0}' 게시",
-  "fr": "Publier « {0} »",
-  "de": "„{0}“ veröffentlichen",
-  "es": "Publicar «{0}»",
-  "pt": "Publicar \"{0}\"",
-  "ru": "Опубликовать «{0}»",
-  "it": "Pubblica «{0}»",
-  "vi": "Xuất bản \"{0}\"",
-  "th": "เผยแพร่ “{0}”",
-  "id": "Terbitkan \"{0}\"",
-  "ar": "نشر «{0}»"
  },
  "发布之后，每个版本都会出现在这里。": {
   "zh-Hant": "發布之後，每個版本都會出現在這裡。",
@@ -3151,22 +3071,6 @@
   "id": "Ditampilkan di bawah gambar. Kosongkan bila tidak perlu.",
   "ar": "يظهر أسفل الصورة. اتركه فارغًا لعدم عرضه."
  },
- "显示在搜索结果和分享卡片里，可以留空。": {
-  "zh-Hant": "顯示在搜尋結果和分享卡片中，可以留空。",
-  "en": "Shown in search results and share cards. Optional.",
-  "ja": "検索結果や共有カードに表示されます。空欄でも構いません。",
-  "ko": "검색 결과와 공유 카드에 표시됩니다. 비워 둘 수 있습니다.",
-  "fr": "Affiché dans les résultats de recherche et les cartes de partage. Facultatif.",
-  "de": "Wird in Suchergebnissen und Vorschaukarten angezeigt. Optional.",
-  "es": "Se muestra en resultados de búsqueda y tarjetas para compartir. Opcional.",
-  "pt": "Exibido nos resultados de busca e nos cartões de compartilhamento. Opcional.",
-  "ru": "Показывается в результатах поиска и карточках для соцсетей. Необязательно.",
-  "it": "Mostrato nei risultati di ricerca e nelle schede di condivisione. Facoltativo.",
-  "vi": "Hiển thị trong kết quả tìm kiếm và thẻ chia sẻ, có thể để trống.",
-  "th": "แสดงในผลการค้นหาและการ์ดแชร์ เว้นว่างได้",
-  "id": "Ditampilkan di hasil pencarian dan kartu berbagi. Opsional.",
-  "ar": "يظهر في نتائج البحث وبطاقات المشاركة، ويمكن تركه فارغًا."
- },
  "显示在视频下方，也用于无障碍朗读。": {
   "zh-Hant": "顯示在影片下方，也用於無障礙朗讀。",
   "en": "Shown below the video and read aloud by screen readers.",
@@ -3599,22 +3503,6 @@
   "id": "Mengunggah {0}",
   "ar": "جارٍ رفع {0}"
  },
- "正在用 AI 生成路径和搜索摘要…": {
-  "zh-Hant": "正在用 AI 產生路徑和搜尋摘要…",
-  "en": "Generating the path and search summary with AI…",
-  "ja": "AI でパスと検索用の要約を生成しています…",
-  "ko": "AI로 경로와 검색 요약을 생성하는 중…",
-  "fr": "Génération du chemin et du résumé de recherche par l’IA…",
-  "de": "Pfad und Suchzusammenfassung werden mit KI erstellt…",
-  "es": "Generando la ruta y el resumen de búsqueda con IA…",
-  "pt": "Gerando o caminho e o resumo de pesquisa com IA…",
-  "ru": "ИИ создаёт путь и описание для поиска…",
-  "it": "Generazione del percorso e del riassunto di ricerca con l’IA…",
-  "vi": "Đang dùng AI tạo đường dẫn và tóm tắt tìm kiếm…",
-  "th": "กำลังใช้ AI สร้างพาธและสรุปสำหรับการค้นหา…",
-  "id": "Membuat jalur dan ringkasan pencarian dengan AI…",
-  "ar": "جارٍ إنشاء المسار وملخص البحث بالذكاء الاصطناعي…"
- },
  "正文": {
   "zh-Hant": "內文",
   "en": "Body text",
@@ -3710,22 +3598,6 @@
   "th": "ไม่มีเอกสารที่ตรงกัน",
   "id": "Tidak ada dokumen yang cocok",
   "ar": "لا توجد مستندات مطابقة"
- },
- "没有填写搜索摘要，可以在“页面设置”里补充": {
-  "zh-Hant": "沒有填寫搜尋摘要，可以在「頁面設定」中補充",
-  "en": "No search summary yet; you can add one in Page settings",
-  "ja": "検索用の概要が未入力です。「ページ設定」で追加できます",
-  "ko": "검색 요약이 없습니다. '페이지 설정'에서 추가할 수 있습니다",
-  "fr": "Aucun résumé pour la recherche ; ajoutez-en un dans Paramètres de page",
-  "de": "Keine Suchzusammenfassung; in den Seiteneinstellungen ergänzen",
-  "es": "Sin resumen para buscadores; puedes añadirlo en Ajustes de la página",
-  "pt": "Sem resumo para busca; adicione em Configurações da página",
-  "ru": "Описание для поиска не задано — добавьте его в настройках страницы",
-  "it": "Nessun riepilogo per la ricerca; aggiungilo in Impostazioni pagina",
-  "vi": "Chưa có tóm tắt tìm kiếm, có thể bổ sung trong \"Cài đặt trang\"",
-  "th": "ยังไม่มีสรุปสำหรับการค้นหา เพิ่มได้ใน “การตั้งค่าหน้า”",
-  "id": "Belum ada ringkasan pencarian; tambahkan di Pengaturan halaman",
-  "ar": "لا يوجد ملخص بحث، ويمكنك إضافته من «إعدادات الصفحة»"
  },
  "没有找到线上版本": {
   "zh-Hant": "沒有找到線上版本",
@@ -4607,22 +4479,6 @@
   "id": "Kembali ke dokumen",
   "ar": "العودة إلى المستندات"
  },
- "还没有为路径名和摘要配置 AI 模型，请手动填写。": {
-  "zh-Hant": "尚未為路徑名稱和摘要設定 AI 模型，請手動填寫。",
-  "en": "No AI model is set up for paths and summaries yet. Please fill them in yourself.",
-  "ja": "パス名と要約用の AI モデルがまだ設定されていません。手動で入力してください。",
-  "ko": "경로 이름과 요약용 AI 모델이 아직 설정되지 않았습니다. 직접 입력하세요.",
-  "fr": "Aucun modèle d’IA n’est encore configuré pour les chemins et les résumés. Veuillez les saisir vous-même.",
-  "de": "Für Pfade und Zusammenfassungen ist noch kein KI-Modell eingerichtet. Bitte selbst ausfüllen.",
-  "es": "Aún no hay un modelo de IA configurado para rutas y resúmenes. Rellénalos manualmente.",
-  "pt": "Ainda não há um modelo de IA configurado para caminhos e resumos. Preencha-os manualmente.",
-  "ru": "Модель ИИ для путей и описаний ещё не настроена. Заполните поля вручную.",
-  "it": "Non è ancora configurato un modello di IA per percorsi e riassunti. Compilali manualmente.",
-  "vi": "Chưa cấu hình mô hình AI cho đường dẫn và tóm tắt. Vui lòng tự điền.",
-  "th": "ยังไม่ได้ตั้งค่าโมเดล AI สำหรับพาธและสรุป โปรดกรอกเอง",
-  "id": "Model AI untuk jalur dan ringkasan belum diatur. Silakan isi sendiri.",
-  "ar": "لم يتم إعداد نموذج ذكاء اصطناعي للمسارات والملخصات بعد. يرجى تعبئتها يدويًا."
- },
  "还没有发布记录": {
   "zh-Hant": "還沒有發布記錄",
   "en": "No publish history yet",
@@ -4654,22 +4510,6 @@
   "th": "ยังไม่มีเอกสารที่เผยแพร่",
   "id": "Belum ada dokumen yang terbit.",
   "ar": "لم يُنشر أي مستند بعد."
- },
- "还没有发布过：路径会在首次发布时确定，也可以现在先填。": {
-  "zh-Hant": "還沒有發布過：路徑會在首次發布時確定，也可以現在先填。",
-  "en": "Not published yet: the path is set on first publish, but you can fill it in now.",
-  "ja": "まだ公開されていません。パスは初回公開時に決まりますが、今入力しておくこともできます。",
-  "ko": "아직 게시하지 않았습니다. 경로는 첫 게시 때 정해지며, 지금 미리 입력할 수도 있습니다.",
-  "fr": "Pas encore publié : le chemin est fixé à la première publication, mais vous pouvez le saisir dès maintenant.",
-  "de": "Noch nicht veröffentlicht: Der Pfad wird bei der ersten Veröffentlichung festgelegt, kann aber schon jetzt eingetragen werden.",
-  "es": "Aún no se ha publicado: la ruta se fija en la primera publicación, pero puedes rellenarla ya.",
-  "pt": "Ainda não publicado: o caminho é definido na primeira publicação, mas você já pode preenchê-lo.",
-  "ru": "Ещё не опубликовано: путь задаётся при первой публикации, но его можно указать уже сейчас.",
-  "it": "Non ancora pubblicato: il percorso si fissa alla prima pubblicazione, ma puoi già compilarlo.",
-  "vi": "Chưa xuất bản: đường dẫn được xác định khi xuất bản lần đầu, cũng có thể điền trước bây giờ.",
-  "th": "ยังไม่เคยเผยแพร่ พาธจะกำหนดเมื่อเผยแพร่ครั้งแรก หรือจะกรอกไว้ก่อนก็ได้",
-  "id": "Belum terbit: jalur ditetapkan saat pertama terbit, tetapi bisa diisi sekarang.",
-  "ar": "لم يُنشر بعد: يُحدد المسار عند النشر الأول، ويمكنك تعبئته الآن."
  },
  "还没有插入到文档，关闭后这些修改会丢失。": {
   "zh-Hant": "還沒有插入到文件，關閉後這些修改會遺失。",
@@ -5039,22 +4879,6 @@
   "id": "Lebar pratinjau",
   "ar": "عرض المعاينة"
  },
- "首次发布时设置页面路径": {
-  "zh-Hant": "首次發布時設定頁面路徑",
-  "en": "Page path is set on first publish",
-  "ja": "ページパスは初回公開時に設定します",
-  "ko": "페이지 경로는 처음 게시할 때 정합니다",
-  "fr": "Le chemin de page est défini à la première publication",
-  "de": "Der Seitenpfad wird beim ersten Veröffentlichen festgelegt",
-  "es": "La ruta de la página se define al publicar por primera vez",
-  "pt": "O caminho da página é definido na primeira publicação",
-  "ru": "Путь страницы задаётся при первой публикации",
-  "it": "Il percorso della pagina si imposta alla prima pubblicazione",
-  "vi": "Đường dẫn trang được đặt khi xuất bản lần đầu",
-  "th": "ตั้งพาธหน้าเมื่อเผยแพร่ครั้งแรก",
-  "id": "Jalur halaman ditetapkan saat pertama kali terbit",
-  "ar": "يُحدَّد مسار الصفحة عند النشر الأول"
- },
  "首次发布，以下是全部内容。": {
   "zh-Hant": "首次發布，以下是全部內容。",
   "en": "First publish — this is the full content.",
@@ -5134,5 +4958,69 @@
   "th": "; ",
   "id": "; ",
   "ar": "؛ "
+ },
+ "AI 这次没能生成搜索摘要，下次发布会再试；也可以在“页面设置”里填写": {
+  "zh-Hant": "AI 這次沒能生成搜尋摘要，下次發布會再試；也可以在「頁面設定」中填寫",
+  "en": "AI couldn't generate a search summary this time; it will try again on the next publish, or you can write one in Page settings",
+  "ja": "今回は AI が検索用の概要を生成できませんでした。次回の公開時に再試行します。「ページ設定」で入力することもできます",
+  "ko": "이번에는 AI가 검색 요약을 만들지 못했습니다. 다음 게시 때 다시 시도하며, '페이지 설정'에서 직접 입력할 수도 있습니다",
+  "fr": "L'IA n'a pas pu générer de résumé pour la recherche ; nouvel essai à la prochaine publication, ou saisissez-le dans Paramètres de page",
+  "de": "Die KI konnte diesmal keine Suchzusammenfassung erstellen; beim nächsten Veröffentlichen wird es erneut versucht, oder Sie tragen sie in den Seiteneinstellungen ein",
+  "es": "La IA no pudo generar el resumen para buscadores; lo intentará de nuevo en la próxima publicación, o puedes escribirlo en Ajustes de la página",
+  "pt": "A IA não conseguiu gerar o resumo para busca; tentará de novo na próxima publicação, ou você pode escrevê-lo em Configurações da página",
+  "ru": "ИИ не удалось создать описание для поиска; попытка повторится при следующей публикации, или задайте его в настройках страницы",
+  "it": "L'IA non è riuscita a generare il riepilogo per la ricerca; riproverà alla prossima pubblicazione, oppure scrivilo in Impostazioni pagina",
+  "vi": "Lần này AI chưa tạo được tóm tắt tìm kiếm, sẽ thử lại ở lần xuất bản sau; cũng có thể tự điền trong \"Cài đặt trang\"",
+  "th": "ครั้งนี้ AI สร้างสรุปสำหรับการค้นหาไม่สำเร็จ จะลองใหม่เมื่อเผยแพร่ครั้งถัดไป หรือกรอกเองได้ใน “การตั้งค่าหน้า”",
+  "id": "AI belum bisa membuat ringkasan pencarian kali ini; akan dicoba lagi saat terbit berikutnya, atau isi sendiri di Pengaturan halaman",
+  "ar": "تعذّر على الذكاء الاصطناعي إنشاء ملخص البحث هذه المرة، وسيحاول مجددًا عند النشر التالي، أو يمكنك كتابته من «إعدادات الصفحة»"
+ },
+ "显示在搜索结果和分享卡片里。留空时发布由 AI 按正文生成。": {
+  "zh-Hant": "顯示在搜尋結果和分享卡片中。留空時發布會由 AI 依內文生成。",
+  "en": "Shown in search results and share cards. Leave empty to have AI write one from the content when publishing.",
+  "ja": "検索結果や共有カードに表示されます。空欄なら公開時に AI が本文から生成します。",
+  "ko": "검색 결과와 공유 카드에 표시됩니다. 비워 두면 게시할 때 AI가 본문을 바탕으로 작성합니다.",
+  "fr": "Affiché dans les résultats de recherche et les cartes de partage. Laissez vide pour que l'IA le rédige à partir du contenu lors de la publication.",
+  "de": "Wird in Suchergebnissen und Vorschaukarten angezeigt. Leer lassen, dann erstellt die KI sie beim Veröffentlichen aus dem Inhalt.",
+  "es": "Se muestra en resultados de búsqueda y tarjetas para compartir. Déjalo vacío y la IA lo redactará a partir del contenido al publicar.",
+  "pt": "Exibido nos resultados de busca e nos cartões de compartilhamento. Deixe vazio para a IA gerá-lo a partir do conteúdo ao publicar.",
+  "ru": "Показывается в результатах поиска и карточках для соцсетей. Оставьте пустым — ИИ составит его по тексту при публикации.",
+  "it": "Mostrato nei risultati di ricerca e nelle schede di condivisione. Lascia vuoto e l'IA lo scriverà dal contenuto alla pubblicazione.",
+  "vi": "Hiển thị trong kết quả tìm kiếm và thẻ chia sẻ. Để trống thì khi xuất bản AI sẽ tạo dựa trên nội dung.",
+  "th": "แสดงในผลการค้นหาและการ์ดแชร์ หากเว้นว่าง AI จะเขียนจากเนื้อหาเมื่อเผยแพร่",
+  "id": "Ditampilkan di hasil pencarian dan kartu berbagi. Kosongkan agar AI membuatnya dari isi saat terbit.",
+  "ar": "يظهر في نتائج البحث وبطاقات المشاركة. اتركه فارغًا ليكتبه الذكاء الاصطناعي من المحتوى عند النشر."
+ },
+ "留空时首次发布由 AI 按标题生成英文路径，也可以现在自己填。": {
+  "zh-Hant": "留空時首次發布會由 AI 依標題生成英文路徑，也可以現在自己填。",
+  "en": "Leave empty to have AI create an English path from the title on first publish, or fill it in yourself now.",
+  "ja": "空欄なら初回公開時に AI がタイトルから英語のパスを作ります。今自分で入力することもできます。",
+  "ko": "비워 두면 첫 게시 때 AI가 제목으로 영문 경로를 만듭니다. 지금 직접 입력할 수도 있습니다.",
+  "fr": "Laissez vide pour que l'IA crée un chemin en anglais à partir du titre à la première publication, ou saisissez-le maintenant.",
+  "de": "Leer lassen, dann erstellt die KI bei der ersten Veröffentlichung einen englischen Pfad aus dem Titel – oder jetzt selbst eintragen.",
+  "es": "Déjalo vacío y la IA creará una ruta en inglés a partir del título en la primera publicación, o rellénala tú ahora.",
+  "pt": "Deixe vazio para a IA criar um caminho em inglês a partir do título na primeira publicação, ou preencha agora.",
+  "ru": "Оставьте пустым — при первой публикации ИИ составит английский путь по заголовку. Или укажите его сами сейчас.",
+  "it": "Lascia vuoto e l'IA creerà un percorso in inglese dal titolo alla prima pubblicazione, oppure compilalo ora.",
+  "vi": "Để trống thì khi xuất bản lần đầu AI sẽ tạo đường dẫn tiếng Anh từ tiêu đề; cũng có thể tự điền ngay.",
+  "th": "หากเว้นว่าง AI จะสร้างพาธภาษาอังกฤษจากชื่อเรื่องเมื่อเผยแพร่ครั้งแรก หรือกรอกเองตอนนี้ก็ได้",
+  "id": "Kosongkan agar AI membuat jalur berbahasa Inggris dari judul saat pertama terbit, atau isi sendiri sekarang.",
+  "ar": "اتركه فارغًا لينشئ الذكاء الاصطناعي مسارًا إنجليزيًا من العنوان عند النشر الأول، أو املأه بنفسك الآن."
+ },
+ "首次发布时由 AI 生成页面路径": {
+  "zh-Hant": "首次發布時由 AI 生成頁面路徑",
+  "en": "AI sets the page path on first publish",
+  "ja": "初回公開時に AI がページのパスを作成",
+  "ko": "첫 게시 때 AI가 페이지 경로 생성",
+  "fr": "L'IA définit le chemin à la première publication",
+  "de": "Die KI legt den Pfad bei der ersten Veröffentlichung fest",
+  "es": "La IA crea la ruta en la primera publicación",
+  "pt": "A IA cria o caminho na primeira publicação",
+  "ru": "ИИ задаст путь при первой публикации",
+  "it": "L'IA crea il percorso alla prima pubblicazione",
+  "vi": "AI tạo đường dẫn khi xuất bản lần đầu",
+  "th": "AI จะสร้างพาธเมื่อเผยแพร่ครั้งแรก",
+  "id": "AI membuat jalur saat pertama terbit",
+  "ar": "يُنشئ الذكاء الاصطناعي المسار عند النشر الأول"
  }
 }

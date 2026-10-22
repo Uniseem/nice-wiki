@@ -5,16 +5,16 @@ import type { Editor as TiptapEditor } from '@tiptap/react';
 import { api, ApiError, confirmAction, errorText, fmtDateTime, fmtRelative, fmtTime, InHeader, newKey, Notice, notify, setNavigationGuard, useHasGrant, useStoredState, t } from '@ui';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { fromBody, toBody, type JSONNode } from './convert';
-import { HistoryDrawer, MoveDialog, PublishDialog, SettingsDialog } from './dialogs';
+import { HistoryDrawer, MoveDialog, SettingsDialog } from './dialogs';
 import { Editor } from './editor/Editor';
 import { WordCount } from './editor/WordCount';
 import { PreviewDialog } from './PreviewDialog';
 import { ShortcutsDialog } from './ShortcutsDialog';
-import { ancestors, type Draft, type DraftRead, type HistoryEntry, type Lease, type Meta } from './types';
+import { ancestors, suggestPath, type Draft, type DraftRead, type HistoryEntry, type Lease, type Meta } from './types';
 
 type SaveState = { kind: 'idle' } | { kind: 'dirty' } | { kind: 'saving' } | { kind: 'saved'; at: Date } | { kind: 'error'; message: string };
 const tabId = newKey();
-const warningText: Record<string, string> = { 'publication.seo_missing': t('没有填写搜索摘要，可以在“页面设置”里补充') };
+const warningText: Record<string, string> = { 'publication.seo_missing': t('AI 这次没能生成搜索摘要，下次发布会再试；也可以在“页面设置”里填写') };
 
 // 一篇文档的编辑会话：读草稿 → 取编辑锁（别人持有时只读）→ 自动保存草稿 → 发布等操作；卸载时保存并释放锁。
 // 版式参照常见 wiki：顶栏是位置（面包屑）、保存状态和发布操作，标题作为正文的第一行，宽屏右侧显示大纲。
@@ -43,8 +43,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
   const [draftHash, setDraftHash] = useState('');
   const [loadError, setLoadError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
-  const [dialog, setDialog] = useState<'publish' | 'settings' | 'move' | 'history' | 'shortcuts' | null>(null);
-  const [publishDraft, setPublishDraft] = useState('');
+  const [dialog, setDialog] = useState<'settings' | 'move' | 'history' | 'shortcuts' | null>(null);
   const [titleFocus, setTitleFocus] = useState(false);
   // 草稿在别处（另一个标签页或窗口）存了更新的版本：这里的修改存不上，提示重新打开。
   const [conflict, setConflict] = useState(false);
@@ -267,7 +266,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
     });
   };
 
-  const publish = async (path: string | null, seo: string | null) => {
+  const publish = async () => {
     if (!(await flush())) return false;
     let ok = false;
     await act(async () => {
@@ -275,7 +274,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
       const result = await api<{ warnings?: string[] }>(`/v1/documents/${documentId}:publish`, {
         method: 'POST', body: {
           draftRevisionId: read.draft.revisionId, expectedDraftVersion: read.draft.draftVersion, expectedRevision: read.metadata.revision,
-          manualPathSegment: read.metadata.pathSegment ? null : path, manualSEO: seo || null,
+          manualPathSegment: null, manualSEO: null,
         },
       });
       await refreshMeta();
@@ -286,17 +285,29 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
     return ok;
   };
 
-  const startPublish = () => {
+  // 发布不再先问路径和摘要：没填的由服务端请 AI 生成。上级还没有路径时先请 AI 起好（没配 AI 时按标题生成），公开地址才拼得完整。
+  const startPublish = async () => {
     if (!meta) return;
-    // 自己和上级都有路径时直接发布；否则先在对话框里补齐路径。
-    if (meta.pathSegment && ancestors(docs, documentId).every((doc) => doc.pathSegment)) { void publish(null, null); return; }
-    // 首次发布：先存好草稿，对话框按这一版正文请 AI 建议路径和摘要。
-    void act(async () => {
-      if (!(await flush())) return;
-      const read = await refreshMeta();
-      setPublishDraft(read.draft.revisionId);
-      setDialog('publish');
-    });
+    const missing = ancestors(docs, documentId).filter((doc) => !doc.pathSegment);
+    if (missing.length) {
+      let ok = false;
+      await act(async () => {
+        for (const doc of missing) {
+          let path = '';
+          try {
+            path = (await api<{ pathSegment?: string | null }>(`/v1/documents/${encodeURIComponent(doc.documentId)}:suggest-publication`, { method: 'POST', body: { draftRevisionId: doc.draftRevisionId } })).pathSegment ?? '';
+          } catch { /* 没配 AI 或模型暂不可用：按标题生成 */ }
+          const base = path || suggestPath(doc.title);
+          const taken = new Set(docs.filter((item) => item.parentId === doc.parentId && item.documentId !== doc.documentId).map((item) => item.pathSegment));
+          let unique = base;
+          for (let n = 2; taken.has(unique); n++) unique = `${base}-${n}`;
+          await api(`/v1/documents/${doc.documentId}/metadata`, { method: 'PUT', body: { title: doc.title, pathSegment: unique, seoDescription: doc.seoDescription, shareImage: doc.shareImage ?? null, expectedRevision: doc.revision } });
+        }
+        ok = true;
+      });
+      if (!ok) return;
+    }
+    await publish();
   };
 
   // 预览：存好草稿、拿到预览凭证后在后台里的全屏对话框中显示（不弹新窗口）。
@@ -426,7 +437,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
           <a className="inline-flex min-w-0 items-center gap-1 hover:text-accent" href={link} rel="noopener" target="_blank" title={t('查看公开页')}>
             <span className="truncate font-mono">{link}</span><ArrowUpRightFromSquare className="size-3 shrink-0" />
           </a>
-        ) : <span>{meta.pathSegment ? t('页面路径 /{0}，发布后生效', meta.pathSegment) : t('首次发布时设置页面路径')}</span>}
+        ) : <span>{meta.pathSegment ? t('页面路径 /{0}，发布后生效', meta.pathSegment) : t('首次发布时由 AI 生成页面路径')}</span>}
         {meta.lastPublishedAt && <span title={fmtDateTime(meta.lastPublishedAt)}>{t('最后发布于 {0}', fmtRelative(meta.lastPublishedAt))}</span>}
         <WordCount editor={editor} />
         {/* 标题属于元数据，不走草稿：已发布文档改标题后公开页立即更新。 */}
@@ -455,7 +466,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
           <Separator className="mx-1 hidden h-5 @2xl:block" orientation="vertical" />
           <Button aria-label={t('预览')} isDisabled={busy} size="sm" variant="ghost" onPress={preview}><Eye /><span className="hidden @3xl:inline">{t('预览')}</span></Button>
           {canPublish && (
-            <Button isDisabled={!writable || upToDate} isPending={busy} size="sm" variant={upToDate ? 'secondary' : 'primary'} onPress={startPublish}>
+            <Button isDisabled={!writable || upToDate} isPending={busy} size="sm" variant={upToDate ? 'secondary' : 'primary'} onPress={() => void startPublish()}>
               <PaperPlane />{upToDate ? t('已是最新') : meta.state === 'published' ? t('发布更新') : t('发布')}
             </Button>
           )}
@@ -492,7 +503,6 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
       </InHeader>
       <Editor doc={initial} docs={docs} documentId={documentId} editable={writable} editorRef={editorRef} header={header} toolbar={lock !== 'readonly'} wide={wide} onChange={onChange} />
       {previewURL && <PreviewDialog title={title.trim() || meta.title} url={previewURL} onClose={() => setPreviewURL(null)} />}
-      {dialog === 'publish' && <PublishDialog docs={docs} meta={meta} draftRevisionId={publishDraft} onClose={() => setDialog(null)} onPublish={async (path, seo) => { if (await publish(path, seo)) setDialog(null); }} />}
       {dialog === 'settings' && <SettingsDialog meta={meta} onClose={() => setDialog(null)} onSaved={async () => { await refreshMeta(); setDialog(null); }} />}
       {dialog === 'move' && (
         <MoveDialog
