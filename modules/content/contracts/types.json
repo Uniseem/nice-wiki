@@ -4121,11 +4121,19 @@
           "description": "根null"
         },
         "pathSegment": {
-          "type": "string",
-          "description": "合法slug",
-          "minLength": 1,
-          "maxLength": 128,
-          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "合法slug；改用新路径时填写",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null沿用删除前的路径（从未设过路径的草稿保持没有路径）"
         },
         "expectedRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
@@ -5851,11 +5859,19 @@
           "description": "根null"
         },
         "pathSegment": {
-          "type": "string",
-          "description": "合法slug",
-          "minLength": 1,
-          "maxLength": 128,
-          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "合法slug；改用新路径时填写",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null沿用删除前的路径（从未设过路径的草稿保持没有路径）"
         },
         "expectedRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",

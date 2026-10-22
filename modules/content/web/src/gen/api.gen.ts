@@ -1828,8 +1828,8 @@ export interface components {
         restoreDocumentRequest: {
             /** @description 根null */
             parentId: components["schemas"]["Identifier"] | null;
-            /** @description 合法slug */
-            pathSegment: string;
+            /** @description null沿用删除前的路径（从未设过路径的草稿保持没有路径） */
+            pathSegment: string | null;
             /** @description CAS */
             expectedRevision: components["schemas"]["Revision"];
         };

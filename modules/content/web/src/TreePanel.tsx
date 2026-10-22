@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpRightFromSquare, ChevronDown, ChevronRight, Ellipsis, FileText, FolderArrowRight, Plus, TrashBin } from '@gravity-ui/icons';
-import { Button, Chip, cn, Dropdown, Label, SearchField, Spinner } from '@heroui/react';
+import { Button, cn, Dropdown, Label, SearchField, Spinner } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { api, askText, confirmAction, EmptyBlock, errorText, fmtRelative, notify, useHasGrant, useLoad, useStoredState, t } from '@ui';
+import { api, ApiError, askText, confirmAction, EmptyBlock, errorText, fmtRelative, notify, useHasGrant, useLoad, useStoredState, t } from '@ui';
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { MoveDialog } from './dialogs';
 import { ancestors, byOrder, flatten, liveDocs, pathPattern, sha256Hex, subtree, suggestPath, type Meta } from './types';
@@ -28,7 +28,6 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
   const nav = useRef<HTMLElement>(null);
   const canEdit = useHasGrant('content.edit');
   const canTrash = useHasGrant('content.trash', 'content.publish');
-  const trashCount = docs.filter((doc) => doc.state === 'trash').length;
   const live = useMemo(() => liveDocs(docs), [docs]);
 
   const expand = (ids: string[]) => setExpandedList((current) => {
@@ -132,7 +131,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
   };
   const dragEnd = () => { setDragging(null); setDrop(null); };
 
-  if (view === 'trash') return <TrashList treeRevision={treeRevision} onBack={() => setView('docs')} onChanged={onChanged} />;
+  if (view === 'trash') return <TrashList docs={live} treeRevision={treeRevision} onBack={() => setView('docs')} onChanged={onChanged} />;
 
   const draggable = canEdit && !query;
   return (
@@ -246,7 +245,6 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
         <div className="border-t border-separator p-2">
           <Button className="w-full justify-start" size="sm" variant="ghost" onPress={() => setView('trash')}>
             <TrashBin />{t('回收站')}
-            {trashCount > 0 && <Chip className="ms-auto" size="sm" variant="soft">{trashCount}</Chip>}
           </Button>
         </div>
       )}
@@ -262,33 +260,69 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
   );
 }
 
-function TrashList({ treeRevision, onBack, onChanged }: { treeRevision: number; onBack: () => void; onChanged: () => Promise<void> }) {
-  const isSuperadmin = useHasGrant('superadmin');
-  const trash = useLoad((signal) => api<{ documents: (Meta & { trashedAt?: string | null })[] }>('/v1/documents?state=trash&limit=100', { signal }).then((result) => result.documents), []);
-  const [busy, setBusy] = useState<string | null>(null);
+type Trashed = Meta & { trashedAt?: string | null };
 
-  const restore = async (doc: Meta) => {
-    const path = await askText({
-      title: t('恢复“{0}”', doc.title), label: t('页面路径'), defaultValue: doc.pathSegment ?? suggestPath(doc.title),
-      description: t('恢复到顶层。路径只能用小写字母、数字和连字符，不能和现有页面重复。'), confirmLabel: t('恢复'),
-      validate: (value) => pathPattern.test(value.trim()) ? null : t('格式不对：只能用小写字母、数字和连字符'),
-    });
-    if (!path) return;
-    setBusy(doc.documentId);
-    try {
-      await api(`/v1/documents/${doc.documentId}:restore`, { method: 'POST', body: { expectedRevision: doc.revision, parentId: null, pathSegment: path.trim() } });
-      notify.success(t('已恢复'), t('文档已回到顶层，需要的话再移动到合适的位置。'));
-      trash.reload();
-      await onChanged();
-    } catch (problem) { notify.error(t('恢复失败'), errorText(problem)); } finally { setBusy(null); }
+// 回收站：一键恢复到原位置（原上级已不在时回到顶层），沿用原路径；当时一起删除的子文档跟着恢复。
+function TrashList({ docs, treeRevision, onBack, onChanged }: { docs: Meta[]; treeRevision: number; onBack: () => void; onChanged: () => Promise<void> }) {
+  const isSuperadmin = useHasGrant('superadmin');
+  const trash = useLoad((signal) => api<{ documents: Trashed[] }>('/v1/documents?state=trash&limit=100', { signal }).then((result) => result.documents), []);
+  const [busy, setBusy] = useState<string | null>(null);
+  const items = trash.data ?? [];
+  // 一起删除的子文档不单独列出，跟着上级恢复。
+  const roots = items.filter((doc) => !items.some((other) => other.documentId === doc.parentId && other.trashedAt === doc.trashedAt));
+  const origin = (doc: Trashed) => ancestors([...docs, ...items], doc.documentId).map((item) => item.title).join(' / ');
+  const together = (root: Trashed): Trashed[] => {
+    const out: Trashed[] = [];
+    const walk = (parentId: string) => {
+      for (const child of items.filter((item) => item.parentId === parentId && item.trashedAt === root.trashedAt).sort(byOrder)) { out.push(child); walk(child.documentId); }
+    };
+    walk(root.documentId);
+    return out;
   };
 
-  const purge = async (doc: Meta) => {
-    const ok = await confirmAction({ title: t('彻底删除“{0}”？', doc.title), body: t('彻底删除后无法恢复，公开地址会返回“已删除”。'), confirmLabel: t('彻底删除'), tone: 'danger' });
+  const restoreOne = async (doc: Trashed, parentId: string | null, pathSegment: string | null) => {
+    await api(`/v1/documents/${doc.documentId}:restore`, { method: 'POST', body: { expectedRevision: doc.revision, parentId, pathSegment } });
+  };
+
+  const restore = async (doc: Trashed) => {
+    const parentId = doc.parentId && docs.some((item) => item.documentId === doc.parentId) ? doc.parentId : null;
+    setBusy(doc.documentId);
+    try {
+      try {
+        await restoreOne(doc, parentId, null);
+      } catch (problem) {
+        // 原路径已被同级占用：换一个路径再恢复。
+        if (!(problem instanceof ApiError) || problem.code !== 'CONFLICT') throw problem;
+        const path = await askText({
+          title: t('恢复“{0}”', doc.title), label: t('页面路径'), defaultValue: suggestPath(doc.title),
+          description: t('原来的路径已被其他文档使用，换一个再恢复。路径只能用小写字母、数字和连字符。'), confirmLabel: t('恢复'),
+          validate: (value) => pathPattern.test(value.trim()) ? null : t('格式不对：只能用小写字母、数字和连字符'),
+        });
+        if (!path) return;
+        await restoreOne(doc, parentId, path.trim());
+      }
+      const children = together(doc);
+      for (const child of children) await restoreOne(child, child.parentId, null);
+      const placed = parentId || !doc.parentId ? t('文档已回到原来的位置。') : t('原来的上级已不在，文档回到了顶层。');
+      notify.success(t('已恢复为草稿'), [placed, children.length ? t('一起删除的 {0} 篇子文档也已恢复。', children.length) : '', t('需要公开时重新发布。')].join(''));
+      trash.reload();
+      await onChanged();
+    } catch (problem) { notify.error(t('恢复失败'), errorText(problem)); trash.reload(); } finally { setBusy(null); }
+  };
+
+  // 彻底删除时连同一起删除的子文档；确认摘要是排序后 ID 列表的 SHA-256。
+  const purge = async (doc: Trashed) => {
+    const children = together(doc);
+    const ok = await confirmAction({
+      title: t('彻底删除“{0}”？', doc.title),
+      body: children.length ? t('连同 {0} 篇子文档一起彻底删除，无法恢复，公开地址会返回“已删除”。', children.length) : t('彻底删除后无法恢复，公开地址会返回“已删除”。'),
+      confirmLabel: t('彻底删除'), tone: 'danger',
+    });
     if (!ok) return;
     setBusy(doc.documentId);
     try {
-      await api('/v1/trash:purge', { method: 'POST', body: { documentIds: [doc.documentId], expectedTrashRevision: treeRevision, confirmationHash: await sha256Hex(doc.documentId) } });
+      const ids = [doc, ...children].map((item) => item.documentId).sort();
+      await api('/v1/trash:purge', { method: 'POST', body: { documentIds: ids, expectedTrashRevision: treeRevision, confirmationHash: await sha256Hex(ids.join(',')) } });
       notify.success(t('已彻底删除'));
       trash.reload();
       await onChanged();
@@ -302,20 +336,25 @@ function TrashList({ treeRevision, onBack, onChanged }: { treeRevision: number; 
         <h2 className="text-sm font-semibold text-foreground">{t('回收站')}</h2>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-        {trash.loading && !trash.data ? <div className="flex justify-center py-8"><Spinner size="sm" /></div> : !trash.data?.length ? (
+        {trash.loading && !trash.data ? <div className="flex justify-center py-8"><Spinner size="sm" /></div> : !roots.length ? (
           <EmptyBlock className="mt-2" icon={<TrashBin />} title={t('回收站是空的')} description={t('删除的文档会先放在这里。')} />
         ) : (
           <ul className="flex flex-col gap-2">
-            {trash.data.map((doc) => (
+            {roots.map((doc) => {
+              const where = origin(doc);
+              const count = together(doc).length;
+              return (
               <li key={doc.documentId} className="rounded-xl border border-border bg-surface p-3">
                 <div className="truncate text-sm font-medium text-foreground">{doc.title || t('无标题')}</div>
-                {doc.trashedAt && <div className="text-xs text-muted">{t('删除于 {0}', fmtRelative(doc.trashedAt))}</div>}
+                <div className="truncate text-xs text-muted">{where ? t('原位置：{0}', where) : t('原位置：顶层')}</div>
+                {doc.trashedAt && <div className="text-xs text-muted">{t('删除于 {0}', fmtRelative(doc.trashedAt))}{count ? t('，含 {0} 篇子文档', count) : ''}</div>}
                 <div className="mt-2 flex gap-2">
                   <Button isPending={busy === doc.documentId} size="sm" variant="secondary" onPress={() => restore(doc)}>{t('恢复')}</Button>
                   {isSuperadmin && <Button isDisabled={busy === doc.documentId} size="sm" variant="danger-soft" onPress={() => purge(doc)}>{t('彻底删除')}</Button>}
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>

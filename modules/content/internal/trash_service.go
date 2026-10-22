@@ -25,7 +25,7 @@ type TrashDocumentResult = gen.TrashDocumentResult
 type RestoreDocumentInput struct {
 	DocumentId       Identifier  `json:"documentId"`
 	ParentId         *Identifier `json:"parentId"`
-	PathSegment      string      `json:"pathSegment"`
+	PathSegment      *string     `json:"pathSegment"`
 	ExpectedRevision int         `json:"expectedRevision"`
 }
 type RestoreDocumentResult = gen.RestoreDocumentResult
@@ -243,7 +243,10 @@ func RestoreDocument(ctx context.Context, op OperationContext, input RestoreDocu
 	metadata.State = gen.DocumentMetadataStateDraft
 	metadata.TrashedAt = nil
 	metadata.ParentId = input.ParentId
-	metadata.PathSegment = &input.PathSegment
+	// 不填新路径时沿用删除前的路径；从未设过路径的草稿恢复后仍没有路径，首次发布时再定。
+	if input.PathSegment != nil {
+		metadata.PathSegment = input.PathSegment
+	}
 	metadata.Revision++
 	siblings := []gen.DocumentMetadata{}
 	for _, d := range documents {
@@ -265,8 +268,10 @@ func RestoreDocument(ctx context.Context, op OperationContext, input RestoreDocu
 			candidate[i] = metadata
 		}
 	}
-	if _, err = validatePathSnapshot(ValidatePathSegmentInput{Segment: input.PathSegment, ParentId: metadata.ParentId, DocumentId: metadata.DocumentId, Documents: candidate}); err != nil {
-		return RestoreDocumentResult{}, err
+	if metadata.PathSegment != nil {
+		if _, err = validatePathSnapshot(ValidatePathSegmentInput{Segment: *metadata.PathSegment, ParentId: metadata.ParentId, DocumentId: metadata.DocumentId, Documents: candidate}); err != nil {
+			return RestoreDocumentResult{}, err
+		}
 	}
 	if err = casPublicationIdentity(work, tx, op, version, metadata, current.Revision, string(current.State)); err != nil {
 		return RestoreDocumentResult{}, err
