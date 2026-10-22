@@ -14,14 +14,20 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   const path = usePath();
   const grants = useGrants();
   const [navOpen, setNavOpen] = useState(false);
-  // 宽屏侧栏可收成只有图标的窄栏，给文档编辑这类整屏页面腾地方；只记在本浏览器。
-  const [rail, setRail] = useStoredState('nw-admin-rail', false);
   const brand = useSiteBrand();
 
   // 必须先改口令的子账号只开放个人设置；其余按授权项显示（只是少展示，权限仍在服务端校验）。
   const visible = useMemo(() => account.mustChangePassword ? pages.filter((page) => page.key === 'me') : pages.filter((page) => canOpen(page, grants)), [account.mustChangePassword, grants]);
   const current = pageFor(path);
   const page = current && visible.includes(current) ? current : undefined;
+
+  // 宽屏侧栏可收成只有图标的窄栏，只记在本浏览器。文档页自带文档树作为主侧栏（常见 wiki 的布局），
+  // 默认收起全局导航把空间让给文档树和正文；文档页与其他页面各记各的选择。
+  const documents = page?.key === 'content';
+  const [railOther, setRailOther] = useStoredState('nw-admin-rail', false);
+  const [railDocuments, setRailDocuments] = useStoredState('nw-admin-rail-documents', true);
+  const rail = documents ? railDocuments : railOther;
+  const setRail = documents ? setRailDocuments : setRailOther;
 
   useEffect(() => {
     const moved = legacyPath(path);
