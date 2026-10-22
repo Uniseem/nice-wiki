@@ -50,7 +50,7 @@ export function EditorToolbar({ editor, editable, actions }: { editor: Editor; e
   const disabled = !editable;
 
   return (
-    <ToolbarRoot aria-label={t('编辑工具')} className="flex flex-wrap items-center gap-0.5">
+    <ToolbarRoot aria-label={t('编辑工具')} className="flex items-center gap-0.5 overflow-x-auto [scrollbar-width:none] *:shrink-0 @3xl:flex-wrap @3xl:overflow-visible">
       <Tool label={t('撤销')} shortcut="⌘Z" isDisabled={disabled || !state.canUndo} onPress={() => chain().undo().run()}><ArrowUturnCcwLeft /></Tool>
       <Tool label={t('重做')} shortcut="⇧⌘Z" isDisabled={disabled || !state.canRedo} onPress={() => chain().redo().run()}><ArrowUturnCwRight /></Tool>
       <Divider />

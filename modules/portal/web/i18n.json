@@ -783,6 +783,22 @@
   "id": "Selesaikan penyiapan",
   "ar": "إنهاء الإعداد"
  },
+ "展开侧栏": {
+  "zh-Hant": "展開側欄",
+  "en": "Expand sidebar",
+  "ja": "サイドバーを広げる",
+  "ko": "사이드바 펼치기",
+  "fr": "Développer la barre latérale",
+  "de": "Seitenleiste ausklappen",
+  "es": "Expandir la barra lateral",
+  "pt": "Expandir barra lateral",
+  "ru": "Развернуть боковую панель",
+  "it": "Espandi barra laterale",
+  "vi": "Mở rộng thanh bên",
+  "th": "ขยายแถบด้านข้าง",
+  "id": "Perluas bilah samping",
+  "ar": "توسيع الشريط الجانبي"
+ },
  "已发布": {
   "zh-Hant": "已發布",
   "en": "Published",
@@ -990,6 +1006,22 @@
   "th": "การดำเนินการ",
   "id": "Tindakan",
   "ar": "الإجراءات"
+ },
+ "收起侧栏": {
+  "zh-Hant": "收合側欄",
+  "en": "Collapse sidebar",
+  "ja": "サイドバーを折りたたむ",
+  "ko": "사이드바 접기",
+  "fr": "Réduire la barre latérale",
+  "de": "Seitenleiste einklappen",
+  "es": "Contraer la barra lateral",
+  "pt": "Recolher barra lateral",
+  "ru": "Свернуть боковую панель",
+  "it": "Comprimi barra laterale",
+  "vi": "Thu gọn thanh bên",
+  "th": "ยุบแถบด้านข้าง",
+  "id": "Ciutkan bilah samping",
+  "ar": "طي الشريط الجانبي"
  },
  "文档": {
   "zh-Hant": "文件",

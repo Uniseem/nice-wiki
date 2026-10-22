@@ -15,6 +15,7 @@ export type Meta = {
   publishedReference?: { contentHash: string } | null;
   shareImage?: unknown;
   sourceLanguage?: string;
+  lastPublishedAt?: string | null;
 };
 
 export type Draft = { draftVersion: number; revisionId: string; bodyHash: string };
@@ -60,6 +61,20 @@ export function flatten(docs: Meta[]): { doc: Meta; depth: number; hasChildren: 
   };
   walk(null, 0);
   return out;
+}
+
+// 从顶层到父文档的祖先链（不含自己）。
+export function ancestors(docs: Meta[], id: string): Meta[] {
+  const byId = new Map(docs.map((doc) => [doc.documentId, doc]));
+  const chain: Meta[] = [];
+  let parent = byId.get(id)?.parentId;
+  while (parent && chain.length < 64) {
+    const doc = byId.get(parent);
+    if (!doc) break;
+    chain.unshift(doc);
+    parent = doc.parentId;
+  }
+  return chain;
 }
 
 // 文档自己和所有后代（移动时不能放进它们下面）。

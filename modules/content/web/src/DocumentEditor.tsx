@@ -1,24 +1,29 @@
-import { ArrowUpRightFromSquare, CircleCheck, CircleExclamation, ClockArrowRotateLeft, Ellipsis, Eye, FolderArrowRight, Gear, Lock, PaperPlane, TrashBin, ArrowUturnCcwLeft as Withdraw } from '@gravity-ui/icons';
-import { Button, Chip, Dropdown, Label, Spinner } from '@heroui/react';
+import { ArrowUpRightFromSquare, ChevronRight, CircleCheck, CircleExclamation, ClockArrowRotateLeft, Ellipsis, Eye, FolderArrowRight, Gear, Lock, PaperPlane, TrashBin, ArrowUturnCcwLeft as Withdraw } from '@gravity-ui/icons';
+import { Button, Chip, Dropdown, Label, Separator, Spinner } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { api, confirmAction, errorText, fmtTime, newKey, notify, Notice, setNavigationGuard, useHasGrant, t } from '@ui';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Editor as TiptapEditor } from '@tiptap/react';
+import { api, confirmAction, errorText, fmtDateTime, fmtRelative, fmtTime, newKey, notify, Notice, setNavigationGuard, useHasGrant, t } from '@ui';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { fromBody, toBody, type JSONNode } from './convert';
 import { HistoryDrawer, MoveDialog, PublishDialog, SettingsDialog } from './dialogs';
 import { Editor } from './editor/Editor';
-import type { Draft, DraftRead, Lease, Meta } from './types';
+import { ancestors, type Draft, type DraftRead, type Lease, type Meta } from './types';
 
 type SaveState = { kind: 'idle' } | { kind: 'dirty' } | { kind: 'saving' } | { kind: 'saved'; at: Date } | { kind: 'error'; message: string };
 const tabId = newKey();
 const warningText: Record<string, string> = { 'publication.seo_missing': t('没有填写搜索摘要，可以在“页面设置”里补充') };
 
 // 一篇文档的编辑会话：读草稿 → 取编辑锁（别人持有时只读）→ 自动保存草稿 → 发布等操作；卸载时保存并释放锁。
-export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onTreeChanged, onClosed, onReopen }: {
+// 版式参照常见 wiki：顶栏是位置（面包屑）、保存状态和发布操作，标题作为正文的第一行，宽屏右侧显示大纲。
+export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading, publicPath, onTreeChanged, onSelect, onClosed, onReopen }: {
   documentId: string;
   docs: Meta[];
   treeRevision: number;
+  fresh: boolean;
+  leading: ReactNode;
   publicPath: (doc: Meta) => string | null;
   onTreeChanged: () => Promise<void>;
+  onSelect: (id: string) => void;
   onClosed: () => void;
   onReopen: () => void;
 }) {
@@ -26,7 +31,9 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
   const isSuperadmin = useHasGrant('superadmin');
   const [meta, setMeta] = useState<Meta | null>(null);
   const [initial, setInitial] = useState<JSONNode | null>(null);
-  const [writable, setWritable] = useState(false);
+  // 取锁结果回来之前是 pending：不能编辑，但也不要提示“别人在编辑”。
+  const [lock, setLock] = useState<'pending' | 'writable' | 'readonly'>('pending');
+  const writable = lock === 'writable';
   const [holder, setHolder] = useState('');
   const [title, setTitle] = useState('');
   const [save, setSave] = useState<SaveState>({ kind: 'idle' });
@@ -40,6 +47,10 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
   const live = useRef({ draft: null as Draft | null, lease: null as Lease | null, writable: false, pending: null as JSONNode | null, dirty: false, heartbeat: 0, inputs: 0, lastInput: new Date().toISOString(), meta: null as Meta | null });
   const timers = useRef<{ save?: number; heartbeat?: number }>({});
   const saving = useRef<Promise<boolean> | null>(null);
+  const editorRef = useRef<TiptapEditor | null>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const editingTitle = useRef(false);
+  const cancelTitle = useRef(false);
 
   const flush = useCallback(async (): Promise<boolean> => {
     window.clearTimeout(timers.current.save);
@@ -93,8 +104,15 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
     live.current.meta = next;
     if (draft) { live.current.draft = draft; setDraftHash(draft.bodyHash); }
     setMeta(next);
-    setTitle(next.title);
+    if (!editingTitle.current) setTitle(next.title);
   }, []);
+
+  // 在文档树里移动、改顺序后元数据版本会变：跟上树里的最新元数据，避免之后改标题/设置时版本冲突。
+  useEffect(() => {
+    const fromTree = docs.find((doc) => doc.documentId === documentId);
+    const current = live.current.meta;
+    if (fromTree && current && fromTree.revision > current.revision) applyMeta({ ...current, ...fromTree });
+  }, [docs, documentId, applyMeta]);
 
   const refreshMeta = useCallback(async () => {
     const read = await api<DraftRead>(`/v1/documents/${documentId}/draft`);
@@ -121,8 +139,8 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
         state.writable = acquired.writable;
         state.heartbeat = acquired.lease.heartbeatSequence;
         state.inputs = acquired.lease.inputSequence;
-        setWritable(acquired.writable);
-        setHolder(acquired.writable ? '' : acquired.lease.holderAccountName ?? t('其他人'));
+        setLock(acquired.writable ? 'writable' : 'readonly');
+        setHolder(acquired.writable ? '' : acquired.lease.holderAccountName || t('其他人'));
         timers.current.heartbeat = window.setInterval(async () => {
           if (!state.lease || !state.writable) return;
           state.heartbeat++;
@@ -174,14 +192,31 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
     timers.current.save = window.setTimeout(() => void flush(), 1500);
   }, [flush]);
 
+  // 标题框随内容自动增高（长标题换行显示，不截断）。
+  useLayoutEffect(() => {
+    const box = titleRef.current;
+    if (!box) return;
+    box.style.height = 'auto';
+    box.style.height = `${box.scrollHeight}px`;
+  }, [title, meta]);
+
+  // 刚新建的文档：拿到编辑锁后聚焦并选中标题，直接输入就是改名。
+  useEffect(() => {
+    if (!fresh || lock !== 'writable') return;
+    titleRef.current?.focus();
+    titleRef.current?.select();
+  }, [fresh, lock]);
+
   const act = async (action: () => Promise<void>) => {
     setBusy(true);
     try { await action(); } catch (problem) { notify.error(errorText(problem)); } finally { setBusy(false); }
   };
 
   const saveTitle = () => {
+    editingTitle.current = false;
+    if (cancelTitle.current) { cancelTitle.current = false; return; }
     const current = live.current.meta;
-    const next = title.trim();
+    const next = title.replace(/\s+/g, ' ').trim();
     if (!current || !next || next === current.title) { if (current) setTitle(current.title); return; }
     void act(async () => {
       await api(`/v1/documents/${documentId}/metadata`, { method: 'PUT', body: { title: next, pathSegment: current.pathSegment, seoDescription: current.seoDescription, shareImage: current.shareImage ?? null, expectedRevision: current.revision } });
@@ -280,70 +315,96 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
   const link = meta.state === 'published' ? publicPath(meta) : null;
   // 草稿正文与线上版本一致（且没有待保存的输入）时，无需再发布。
   const upToDate = meta.state === 'published' && (save.kind === 'idle' || save.kind === 'saved') && draftHash === meta.publishedReference?.contentHash;
+  const trail = ancestors(docs, documentId);
+  const header = (
+    <div className="mb-8">
+      {lock === 'readonly' && (
+        <Notice className="mb-6" status="warning" title={t('只读：{0} 正在编辑这篇文档', holder)}>
+          <span className="flex flex-wrap items-center gap-2">{t('对方离开或保存后锁会自动释放，届时重新打开即可编辑。')}
+            <Button size="sm" variant="secondary" onPress={onReopen}><Lock />{t('重新尝试')}</Button>
+            {isSuperadmin && <Button size="sm" variant="danger-soft" onPress={forceUnlock}>{t('强制解锁')}</Button>}
+          </span>
+        </Notice>
+      )}
+      <textarea
+        ref={titleRef}
+        aria-label={t('文档标题')}
+        className="block w-full resize-none overflow-hidden bg-transparent text-[2rem] font-bold leading-tight tracking-tight text-foreground outline-none placeholder:text-muted/50 disabled:cursor-default"
+        disabled={!writable}
+        maxLength={200}
+        placeholder={t('无标题')}
+        rows={1}
+        value={title}
+        onBlur={saveTitle}
+        onChange={(event) => setTitle(event.target.value.replace(/\n/g, ''))}
+        onFocus={() => { editingTitle.current = true; }}
+        onKeyDown={(event) => {
+          // 回车确认标题并跳到正文开头；Esc 放弃这次修改。
+          if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.blur(); editorRef.current?.commands.focus('start'); }
+          if (event.key === 'Escape') { cancelTitle.current = true; setTitle(meta.title); event.currentTarget.blur(); }
+        }}
+      />
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+        {link ? (
+          <a className="inline-flex min-w-0 items-center gap-1 hover:text-accent" href={link} rel="noopener" target="_blank" title={t('查看公开页')}>
+            <span className="truncate font-mono">{link}</span><ArrowUpRightFromSquare className="size-3 shrink-0" />
+          </a>
+        ) : <span>{meta.pathSegment ? t('页面路径 /{0}，发布后生效', meta.pathSegment) : t('首次发布时设置页面路径')}</span>}
+        {meta.lastPublishedAt && <span title={fmtDateTime(meta.lastPublishedAt)}>{t('最后发布于 {0}', fmtRelative(meta.lastPublishedAt))}</span>}
+      </div>
+    </div>
+  );
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-col gap-3 border-b border-separator px-5 pb-3 pt-4 sm:px-6">
-        <div className="flex flex-wrap items-start gap-3">
-          <input
-            aria-label={t('文档标题')}
-            className="min-w-0 flex-1 bg-transparent text-2xl font-semibold tracking-tight text-foreground outline-none placeholder:text-muted disabled:opacity-80"
-            disabled={!writable}
-            maxLength={200}
-            placeholder={t('无标题')}
-            value={title}
-            onBlur={saveTitle}
-            onChange={(event) => setTitle(event.target.value)}
-            onKeyDown={(event) => { if (event.key === 'Enter') (event.target as HTMLInputElement).blur(); if (event.key === 'Escape') { setTitle(meta.title); (event.target as HTMLInputElement).blur(); } }}
-          />
-          <div className="flex items-center gap-2">
-            <Button isDisabled={busy} size="sm" variant="secondary" onPress={preview}><Eye />{t('预览')}</Button>
-            {canPublish && (
-              <Button isDisabled={!writable || upToDate} isPending={busy} size="sm" variant={upToDate ? 'secondary' : 'primary'} onPress={startPublish}>
-                <PaperPlane />{upToDate ? t('已是最新') : meta.state === 'published' ? t('发布更新') : t('发布')}
-              </Button>
-            )}
-            <Dropdown>
-              <Button isIconOnly aria-label={t('更多操作')} size="sm" variant="tertiary"><Ellipsis /></Button>
-              <Dropdown.Popover placement="bottom end">
-                <Dropdown.Menu
-                  disabledKeys={writable ? [] : ['settings', 'move', 'withdraw', 'delete']}
-                  onAction={(key: Key) => {
-                    if (key === 'settings') setDialog('settings');
-                    if (key === 'move') setDialog('move');
-                    if (key === 'history') setDialog('history');
-                    if (key === 'withdraw') void withdraw();
-                    if (key === 'delete') void remove();
-                  }}
-                >
-                  <Dropdown.Item id="settings" textValue={t('页面设置')}><Gear className="size-4 text-muted" /><Label>{t('页面设置')}</Label></Dropdown.Item>
-                  <Dropdown.Item id="move" textValue={t('移动到')}><FolderArrowRight className="size-4 text-muted" /><Label>{t('移动到…')}</Label></Dropdown.Item>
-                  {canPublish ? <Dropdown.Item id="history" textValue={t('发布历史')}><ClockArrowRotateLeft className="size-4 text-muted" /><Label>{t('发布历史')}</Label></Dropdown.Item> : null}
-                  {canPublish && meta.state === 'published' ? <Dropdown.Item id="withdraw" textValue={t('撤回发布')}><Withdraw className="size-4 text-muted" /><Label>{t('撤回发布')}</Label></Dropdown.Item> : null}
-                  {canPublish ? <Dropdown.Item id="delete" textValue={t('删除')} variant="danger"><TrashBin className="size-4" /><Label>{t('移入回收站')}</Label></Dropdown.Item> : null}
-                </Dropdown.Menu>
-              </Dropdown.Popover>
-            </Dropdown>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-          <Chip color={meta.state === 'published' ? 'success' : 'default'} size="sm" variant="soft">{meta.state === 'published' ? t('已发布') : t('草稿')}</Chip>
-          {meta.state === 'published' && !upToDate && <Chip color="warning" size="sm" variant="soft">{t('有未发布的修改')}</Chip>}
-          {meta.pathSegment ? <span>{t('路径 /{0}', meta.pathSegment)}</span> : <span>{t('发布时设置页面路径')}</span>}
-          {link && <a className="inline-flex items-center gap-1 text-accent hover:underline" href={link} rel="noopener" target="_blank">{t('查看公开页')}<ArrowUpRightFromSquare className="size-3" /></a>}
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-separator px-3">
+        {leading}
+        <nav aria-label={t('文档位置')} className="flex min-w-0 flex-1 items-center gap-0.5 text-sm">
+          {trail.map((doc) => (
+            <Fragment key={doc.documentId}>
+              <button className="hidden max-w-40 shrink truncate rounded-md px-1.5 py-0.5 text-muted transition-colors hover:bg-default hover:text-foreground @3xl:block" title={doc.title} type="button" onClick={() => onSelect(doc.documentId)}>{doc.title || t('无标题')}</button>
+              <ChevronRight className="hidden size-3.5 shrink-0 text-muted @3xl:block rtl:-scale-x-100" />
+            </Fragment>
+          ))}
+          <span className="min-w-0 truncate px-1.5 font-medium text-foreground">{title.trim() || t('无标题')}</span>
+        </nav>
+        <div className="flex shrink-0 items-center gap-1.5">
           <SaveIndicator state={save} />
+          {meta.state !== 'published' ? <Chip size="sm" variant="soft">{t('草稿')}</Chip>
+            : upToDate ? <Chip color="success" size="sm" variant="soft">{t('已发布')}</Chip>
+              : <Chip color="warning" size="sm" variant="soft">{t('有未发布的修改')}</Chip>}
+          <Separator className="mx-1 hidden h-5 @2xl:block" orientation="vertical" />
+          <Button aria-label={t('预览')} isDisabled={busy} size="sm" variant="ghost" onPress={preview}><Eye /><span className="hidden @3xl:inline">{t('预览')}</span></Button>
+          {canPublish && (
+            <Button isDisabled={!writable || upToDate} isPending={busy} size="sm" variant={upToDate ? 'secondary' : 'primary'} onPress={startPublish}>
+              <PaperPlane />{upToDate ? t('已是最新') : meta.state === 'published' ? t('发布更新') : t('发布')}
+            </Button>
+          )}
+          <Dropdown>
+            <Button isIconOnly aria-label={t('更多操作')} size="sm" variant="ghost"><Ellipsis /></Button>
+            <Dropdown.Popover className="min-w-48" placement="bottom end">
+              <Dropdown.Menu
+                disabledKeys={writable ? [] : ['settings', 'move', 'withdraw', 'delete']}
+                onAction={(key: Key) => {
+                  if (key === 'open' && link) window.open(link, '_blank', 'noopener');
+                  if (key === 'settings') setDialog('settings');
+                  if (key === 'move') setDialog('move');
+                  if (key === 'history') setDialog('history');
+                  if (key === 'withdraw') void withdraw();
+                  if (key === 'delete') void remove();
+                }}
+              >
+                {link ? <Dropdown.Item id="open" textValue={t('查看公开页')}><ArrowUpRightFromSquare className="size-4 text-muted" /><Label>{t('查看公开页')}</Label></Dropdown.Item> : null}
+                <Dropdown.Item id="settings" textValue={t('页面设置')}><Gear className="size-4 text-muted" /><Label>{t('页面设置')}</Label></Dropdown.Item>
+                <Dropdown.Item id="move" textValue={t('移动到')}><FolderArrowRight className="size-4 text-muted" /><Label>{t('移动到…')}</Label></Dropdown.Item>
+                {canPublish ? <Dropdown.Item id="history" textValue={t('发布历史')}><ClockArrowRotateLeft className="size-4 text-muted" /><Label>{t('发布历史')}</Label></Dropdown.Item> : null}
+                {canPublish && meta.state === 'published' ? <Dropdown.Item id="withdraw" textValue={t('撤回发布')}><Withdraw className="size-4 text-muted" /><Label>{t('撤回发布')}</Label></Dropdown.Item> : null}
+                {canPublish ? <Dropdown.Item id="delete" textValue={t('删除')} variant="danger"><TrashBin className="size-4" /><Label>{t('移入回收站')}</Label></Dropdown.Item> : null}
+              </Dropdown.Menu>
+            </Dropdown.Popover>
+          </Dropdown>
         </div>
-        {!writable && (
-          <Notice status="warning" title={t('只读：{0} 正在编辑这篇文档', holder)}>
-            <span className="flex flex-wrap items-center gap-2">{t('对方离开或保存后锁会自动释放，届时重新打开即可编辑。')}
-              <Button size="sm" variant="secondary" onPress={onReopen}><Lock />{t('重新尝试')}</Button>
-              {isSuperadmin && <Button size="sm" variant="danger-soft" onPress={forceUnlock}>{t('强制解锁')}</Button>}
-            </span>
-          </Notice>
-        )}
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <Editor doc={initial} editable={writable} onChange={onChange} />
-      </div>
+      </header>
+      <Editor doc={initial} editable={writable} editorRef={editorRef} header={header} toolbar={lock !== 'readonly'} onChange={onChange} />
       {dialog === 'publish' && <PublishDialog meta={meta} draftRevisionId={publishDraft} onClose={() => setDialog(null)} onPublish={async (path, seo) => { if (await publish(path, seo)) setDialog(null); }} />}
       {dialog === 'settings' && <SettingsDialog meta={meta} onClose={() => setDialog(null)} onSaved={async () => { await refreshMeta(); setDialog(null); }} />}
       {dialog === 'move' && (
@@ -387,11 +448,12 @@ export function DocumentEditor({ documentId, docs, treeRevision, publicPath, onT
 }
 
 function SaveIndicator({ state }: { state: SaveState }) {
+  const base = 'hidden items-center gap-1 whitespace-nowrap text-xs text-muted @xl:inline-flex';
   switch (state.kind) {
-    case 'dirty': return <span className="inline-flex items-center gap-1">{t('有未保存的修改…')}</span>;
-    case 'saving': return <span className="inline-flex items-center gap-1.5"><Spinner color="current" size="sm" />{t('保存中')}</span>;
-    case 'saved': return <span className="inline-flex items-center gap-1 text-success"><CircleCheck className="size-3.5" />{t('已保存 {0}', fmtTime(state.at))}</span>;
-    case 'error': return <span className="inline-flex items-center gap-1 text-danger" title={state.message}><CircleExclamation className="size-3.5" />{t('保存失败')}</span>;
+    case 'dirty': return <span className={base}>{t('未保存')}</span>;
+    case 'saving': return <span className={base}><Spinner color="current" size="sm" />{t('保存中')}</span>;
+    case 'saved': return <span className={base} title={t('已保存 {0}', fmtTime(state.at))}><CircleCheck className="size-3.5 text-success" />{t('已保存')}</span>;
+    case 'error': return <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-danger" title={state.message}><CircleExclamation className="size-3.5" />{t('保存失败')}</span>;
     default: return null;
   }
 }

@@ -1,7 +1,7 @@
-import { ArrowRightFromSquare, ArrowUpRightFromSquare, Bars, Person } from '@gravity-ui/icons';
+import { ArrowRightFromSquare, ArrowUpRightFromSquare, Bars, LayoutSideContentLeft, Person } from '@gravity-ui/icons';
 import { Button, buttonVariants, cn, Drawer, Dropdown, Label, ScrollShadow, Separator } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { CenteredSpinner, ErrorBlock, LanguageMenu, navigate, Notice, ThemeMenu, useGrants, usePath, t } from '@ui';
+import { CenteredSpinner, ErrorBlock, LanguageMenu, navigate, Notice, ThemeMenu, useGrants, usePath, useStoredState, t } from '@ui';
 import { Component, createContext, Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Account } from './App';
 import { canOpen, legacyPath, pageFor, pages, sections, type Page } from './routes';
@@ -14,6 +14,8 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   const path = usePath();
   const grants = useGrants();
   const [navOpen, setNavOpen] = useState(false);
+  // 宽屏侧栏可收成只有图标的窄栏，给文档编辑这类整屏页面腾地方；只记在本浏览器。
+  const [rail, setRail] = useStoredState('nw-admin-rail', false);
   const brand = useSiteBrand();
 
   // 必须先改口令的子账号只开放个人设置；其余按授权项显示（只是少展示，权限仍在服务端校验）。
@@ -32,10 +34,12 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   return (
     <AccountContext.Provider value={account}>
       <div className="flex min-h-dvh bg-background">
-        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-e border-separator bg-surface lg:flex">
-          <Brand brand={brand} />
-          <ScrollShadow className="flex-1 px-3 pb-4" hideScrollBar>{nav}</ScrollShadow>
-          <AccountBox account={account} onSignOut={onSignOut} />
+        <aside className={cn('sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-separator bg-surface transition-[width] duration-200 lg:flex', rail ? 'w-16' : 'w-64')}>
+          <Brand brand={brand} compact={rail} />
+          <ScrollShadow className={cn('flex-1 pb-4', rail ? 'px-2' : 'px-3')} hideScrollBar>
+            <Navigation compact={rail} pages={visible} current={page} onNavigate={() => setNavOpen(false)} />
+          </ScrollShadow>
+          <AccountBox account={account} compact={rail} onSignOut={onSignOut} />
         </aside>
 
         <Drawer.Backdrop isOpen={navOpen} onOpenChange={setNavOpen}>
@@ -51,6 +55,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-separator bg-background/85 px-3 backdrop-blur-md sm:px-4 lg:px-8">
             <Button isIconOnly aria-label={t('打开导航')} className="lg:hidden" size="sm" variant="ghost" onPress={() => setNavOpen(true)}><Bars /></Button>
+            <Button isIconOnly aria-label={rail ? t('展开侧栏') : t('收起侧栏')} className="hidden lg:inline-flex" size="sm" variant="ghost" onPress={() => setRail((value) => !value)}><LayoutSideContentLeft className="rtl:-scale-x-100" /></Button>
             <div className="flex min-w-0 items-center gap-2 text-sm">
               {page?.section && <span className="hidden text-muted sm:inline">{page.section}</span>}
               {page?.section && <span className="hidden text-muted sm:inline">/</span>}
@@ -81,11 +86,11 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   );
 }
 
-function Brand({ brand }: { brand: ReturnType<typeof useSiteBrand> }) {
+function Brand({ brand, compact = false }: { brand: ReturnType<typeof useSiteBrand>; compact?: boolean }) {
   return (
-    <a className="flex h-14 shrink-0 items-center gap-2.5 px-5" href="/admin/dashboard" onClick={(event) => { event.preventDefault(); navigate('/admin/dashboard'); }}>
+    <a className={cn('flex h-14 shrink-0 items-center gap-2.5', compact ? 'justify-center px-0' : 'px-5')} href="/admin/dashboard" title={compact ? brand.name || 'nice-wiki' : undefined} onClick={(event) => { event.preventDefault(); navigate('/admin/dashboard'); }}>
       <SiteMark brand={brand} className="size-8 shrink-0 rounded-lg text-sm" />
-      <span className="min-w-0">
+      <span className={cn('min-w-0', compact && 'hidden')}>
         <span className="block truncate text-sm font-semibold text-foreground">{brand.name || 'nice-wiki'}</span>
         <span className="block text-xs text-muted">{t('后台管理')}</span>
       </span>
@@ -93,18 +98,18 @@ function Brand({ brand }: { brand: ReturnType<typeof useSiteBrand> }) {
   );
 }
 
-function Navigation({ pages: items, current, onNavigate }: { pages: Page[]; current?: Page; onNavigate: () => void }) {
+function Navigation({ pages: items, current, compact = false, onNavigate }: { pages: Page[]; current?: Page; compact?: boolean; onNavigate: () => void }) {
   const nav = useRef<HTMLElement>(null);
   // 侧栏较长时，让当前页面的条目保持在可见范围内。
   useEffect(() => { nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' }); }, [current?.key]);
   return (
-    <nav ref={nav} aria-label={t('后台页面')} className="flex flex-col gap-4 pt-2">
+    <nav ref={nav} aria-label={t('后台页面')} className={cn('flex flex-col pt-2', compact ? 'gap-2' : 'gap-4')}>
       {sections.map((section) => {
         const group = items.filter((page) => page.navigation && page.section === section);
         if (!group.length) return null;
         return (
           <div key={section || 'top'} className="flex flex-col gap-0.5">
-            {section && <div className="px-3 pb-1 text-xs font-medium text-muted">{section}</div>}
+            {section && (compact ? <Separator className="mx-auto mb-1 w-6" /> : <div className="px-3 pb-1 text-xs font-medium text-muted">{section}</div>)}
             {group.map((page) => {
               const Icon = page.icon;
               const active = current?.key === page.key;
@@ -112,8 +117,10 @@ function Navigation({ pages: items, current, onNavigate }: { pages: Page[]; curr
                 <a
                   key={page.key}
                   aria-current={active ? 'page' : undefined}
-                  className={cn('flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors', active ? 'bg-accent-soft text-accent-soft-foreground' : 'text-muted hover:bg-default hover:text-foreground')}
+                  aria-label={compact ? page.label : undefined}
+                  className={cn('flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-colors', compact ? 'justify-center px-0' : 'px-3', active ? 'bg-accent-soft text-accent-soft-foreground' : 'text-muted hover:bg-default hover:text-foreground')}
                   href={page.path}
+                  title={compact ? page.label : undefined}
                   onClick={(event) => {
                     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
                     event.preventDefault();
@@ -122,7 +129,7 @@ function Navigation({ pages: items, current, onNavigate }: { pages: Page[]; curr
                   }}
                 >
                   <Icon className="size-4 shrink-0" />
-                  <span className="truncate">{page.label}</span>
+                  {!compact && <span className="truncate">{page.label}</span>}
                 </a>
               );
             })}
@@ -133,13 +140,13 @@ function Navigation({ pages: items, current, onNavigate }: { pages: Page[]; curr
   );
 }
 
-function AccountBox({ account, onSignOut }: { account: Account; onSignOut: () => void }) {
+function AccountBox({ account, compact = false, onSignOut }: { account: Account; compact?: boolean; onSignOut: () => void }) {
   return (
-    <div className="shrink-0 border-t border-separator p-3">
+    <div className={cn('shrink-0 border-t border-separator', compact ? 'p-2' : 'p-3')}>
       <Dropdown>
-        <Button className="h-auto w-full justify-start gap-3 px-2 py-2" variant="ghost">
+        <Button aria-label={account.accountName} className={cn('h-auto w-full gap-3 py-2', compact ? 'justify-center px-0' : 'justify-start px-2')} variant="ghost">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-default text-sm font-semibold text-foreground">{account.accountName.slice(0, 1).toUpperCase()}</span>
-          <span className="min-w-0 text-start">
+          <span className={cn('min-w-0 text-start', compact && 'hidden')}>
             <span className="block truncate text-sm font-medium text-foreground">{account.accountName}</span>
             <span className="block text-xs font-normal text-muted">{account.isSuperadmin ? t('超级管理员') : t('子账号')}</span>
           </span>

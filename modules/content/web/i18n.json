@@ -287,22 +287,6 @@
   "id": "Dua kolom",
   "ar": "عمودان"
  },
- "从左侧文档树里选择，或者新建一篇。编辑会自动保存为草稿，点“发布”后访客才能看到。": {
-  "zh-Hant": "從左側文件樹中選擇，或新建一篇。編輯會自動儲存為草稿，點「發布」後訪客才能看到。",
-  "en": "Pick one from the document tree on the left, or create one. Edits are saved as a draft automatically; visitors see them only after you click Publish.",
-  "ja": "左のドキュメントツリーから選ぶか、新しく作成してください。編集内容は自動で下書き保存され、「公開」を押すまで訪問者には見えません。",
-  "ko": "왼쪽 문서 트리에서 고르거나 새로 만드세요. 편집 내용은 초안으로 자동 저장되며 '게시'를 눌러야 방문자에게 보입니다.",
-  "fr": "Choisissez un document dans l'arborescence à gauche ou créez-en un. Les modifications sont enregistrées en brouillon ; les visiteurs ne les voient qu'après « Publier ».",
-  "de": "Wählen Sie links im Dokumentbaum ein Dokument oder erstellen Sie eines. Änderungen werden automatisch als Entwurf gespeichert; Besucher sehen sie erst nach „Veröffentlichen“.",
-  "es": "Elige uno en el árbol de la izquierda o crea uno nuevo. Los cambios se guardan como borrador; los visitantes solo los ven tras pulsar «Publicar».",
-  "pt": "Escolha um na árvore à esquerda ou crie um novo. As edições são salvas como rascunho; os visitantes só veem depois de clicar em \"Publicar\".",
-  "ru": "Выберите документ в дереве слева или создайте новый. Правки автоматически сохраняются как черновик; посетители увидят их после нажатия «Опубликовать».",
-  "it": "Scegline uno dall'albero a sinistra o creane uno. Le modifiche si salvano come bozza; i visitatori le vedono solo dopo «Pubblica».",
-  "vi": "Chọn một tài liệu trong cây bên trái hoặc tạo mới. Chỉnh sửa được tự lưu thành bản nháp; khách chỉ thấy sau khi bấm \"Xuất bản\".",
-  "th": "เลือกจากโครงสร้างเอกสารด้านซ้าย หรือสร้างใหม่ การแก้ไขจะบันทึกเป็นฉบับร่างอัตโนมัติ ผู้เยี่ยมชมจะเห็นหลังกด “เผยแพร่”",
-  "id": "Pilih dari pohon dokumen di kiri, atau buat baru. Suntingan otomatis disimpan sebagai draf; pengunjung baru melihatnya setelah Anda menekan \"Terbitkan\".",
-  "ar": "اختر مستندًا من الشجرة على اليسار أو أنشئ واحدًا. تُحفظ التعديلات تلقائيًا كمسودة، ولا يراها الزوار إلا بعد النقر على «نشر»."
- },
  "代码块": {
   "zh-Hant": "程式碼區塊",
   "en": "Code block",
@@ -382,22 +366,6 @@
   "th": "เช่น E = mc^2 หรือ \\int_0^1 x^2\\,dx",
   "id": "mis. E = mc^2 atau \\int_0^1 x^2\\,dx",
   "ar": "مثل E = mc^2 أو \\int_0^1 x^2\\,dx"
- },
- "例如：快速开始": {
-  "zh-Hant": "例如：快速開始",
-  "en": "e.g. Quick start",
-  "ja": "例：クイックスタート",
-  "ko": "예: 빠른 시작",
-  "fr": "ex. : Démarrage rapide",
-  "de": "z. B. Schnellstart",
-  "es": "p. ej., Inicio rápido",
-  "pt": "ex.: Início rápido",
-  "ru": "например: Быстрый старт",
-  "it": "ad es. Avvio rapido",
-  "vi": "ví dụ: Bắt đầu nhanh",
-  "th": "เช่น เริ่มต้นอย่างรวดเร็ว",
-  "id": "mis.: Mulai cepat",
-  "ar": "مثال: البدء السريع"
  },
  "保存": {
   "zh-Hant": "儲存",
@@ -527,6 +495,22 @@
   "id": "Rumus salah: {0}",
   "ar": "معادلة غير صحيحة: {0}"
  },
+ "共 {0} 篇，已发布 {1} 篇，草稿 {2} 篇。从文档树选择一篇开始编辑。": {
+  "zh-Hant": "共 {0} 篇，已發布 {1} 篇，草稿 {2} 篇。從文件樹選擇一篇開始編輯。",
+  "en": "{0} documents: {1} published, {2} drafts. Pick one from the document tree to start editing.",
+  "ja": "全 {0} 件（公開 {1} 件、下書き {2} 件）。ドキュメントツリーから選んで編集を始めましょう。",
+  "ko": "총 {0}개 문서, 게시 {1}개, 초안 {2}개. 문서 트리에서 하나를 골라 편집을 시작하세요.",
+  "fr": "{0} documents : {1} publiés, {2} brouillons. Choisissez-en un dans l’arborescence pour commencer.",
+  "de": "{0} Dokumente: {1} veröffentlicht, {2} Entwürfe. Wählen Sie eines im Dokumentbaum aus, um mit dem Bearbeiten zu beginnen.",
+  "es": "{0} documentos: {1} publicados y {2} borradores. Elige uno en el árbol de documentos para empezar a editar.",
+  "pt": "{0} documentos: {1} publicados e {2} rascunhos. Escolha um na árvore de documentos para começar a editar.",
+  "ru": "Всего документов: {0}, опубликовано: {1}, черновиков: {2}. Выберите документ в дереве, чтобы начать редактирование.",
+  "it": "{0} documenti: {1} pubblicati, {2} bozze. Scegline uno dall’albero dei documenti per iniziare a modificare.",
+  "vi": "Có {0} tài liệu: {1} đã xuất bản, {2} bản nháp. Chọn một tài liệu trong cây để bắt đầu chỉnh sửa.",
+  "th": "ทั้งหมด {0} เอกสาร เผยแพร่แล้ว {1} ฉบับร่าง {2} เลือกเอกสารจากแผนผังเพื่อเริ่มแก้ไข",
+  "id": "{0} dokumen: {1} terbit, {2} draf. Pilih satu dari pohon dokumen untuk mulai menyunting.",
+  "ar": "{0} مستندات: {1} منشورة و{2} مسودات. اختر مستندًا من شجرة المستندات لبدء التحرير."
+ },
  "关闭": {
   "zh-Hant": "關閉",
   "en": "Close",
@@ -654,22 +638,6 @@
   "th": "รายการ",
   "id": "Daftar",
   "ar": "القوائم"
- },
- "创建": {
-  "zh-Hant": "建立",
-  "en": "Create",
-  "ja": "作成",
-  "ko": "만들기",
-  "fr": "Créer",
-  "de": "Erstellen",
-  "es": "Crear",
-  "pt": "Criar",
-  "ru": "Создать",
-  "it": "Crea",
-  "vi": "Tạo",
-  "th": "สร้าง",
-  "id": "Buat",
-  "ar": "إنشاء"
  },
  "删除": {
   "zh-Hant": "刪除",
@@ -959,22 +927,6 @@
   "id": "Riwayat terbit",
   "ar": "سجل النشر"
  },
- "发布时设置页面路径": {
-  "zh-Hant": "發布時設定頁面路徑",
-  "en": "Set the page path when publishing",
-  "ja": "公開時にページのパスを設定",
-  "ko": "게시할 때 페이지 경로 설정",
-  "fr": "Définir le chemin de la page à la publication",
-  "de": "Seitenpfad beim Veröffentlichen festlegen",
-  "es": "Definir la ruta de la página al publicar",
-  "pt": "Definir o caminho da página ao publicar",
-  "ru": "Задать путь страницы при публикации",
-  "it": "Imposta il percorso della pagina alla pubblicazione",
-  "vi": "Đặt đường dẫn trang khi xuất bản",
-  "th": "ตั้งพาธของหน้าเมื่อเผยแพร่",
-  "id": "Atur jalur halaman saat terbit",
-  "ar": "تعيين مسار الصفحة عند النشر"
- },
  "发布更新": {
   "zh-Hant": "發布更新",
   "en": "Publish update",
@@ -1231,21 +1183,21 @@
   "id": "Daftar berpoin",
   "ar": "قائمة نقطية"
  },
- "在“{0}”下新建": {
-  "zh-Hant": "在「{0}」下新建",
-  "en": "New under \"{0}\"",
-  "ja": "「{0}」の下に作成",
-  "ko": "'{0}' 아래에 새로 만들기",
-  "fr": "Nouveau sous « {0} »",
-  "de": "Neu unter „{0}“",
-  "es": "Nuevo dentro de «{0}»",
-  "pt": "Novo em \"{0}\"",
-  "ru": "Создать в «{0}»",
-  "it": "Nuovo sotto «{0}»",
-  "vi": "Tạo mới trong \"{0}\"",
-  "th": "สร้างใหม่ใต้ “{0}”",
-  "id": "Baru di bawah \"{0}\"",
-  "ar": "جديد تحت «{0}»"
+ "大纲": {
+  "zh-Hant": "大綱",
+  "en": "Outline",
+  "ja": "アウトライン",
+  "ko": "개요",
+  "fr": "Plan",
+  "de": "Gliederung",
+  "es": "Esquema",
+  "pt": "Estrutura",
+  "ru": "Структура",
+  "it": "Struttura",
+  "vi": "Dàn ý",
+  "th": "โครงร่าง",
+  "id": "Kerangka",
+  "ar": "المخطط"
  },
  "如 kotlin、lua": {
   "zh-Hant": "如 kotlin、lua",
@@ -1343,6 +1295,22 @@
   "id": "Judul subbagian",
   "ar": "عنوان فرعي"
  },
+ "尚未发布的草稿": {
+  "zh-Hant": "尚未發布的草稿",
+  "en": "Unpublished drafts",
+  "ja": "未公開の下書き",
+  "ko": "게시하지 않은 초안",
+  "fr": "Brouillons non publiés",
+  "de": "Unveröffentlichte Entwürfe",
+  "es": "Borradores sin publicar",
+  "pt": "Rascunhos não publicados",
+  "ru": "Неопубликованные черновики",
+  "it": "Bozze non pubblicate",
+  "vi": "Bản nháp chưa xuất bản",
+  "th": "ฉบับร่างที่ยังไม่เผยแพร่",
+  "id": "Draf yang belum terbit",
+  "ar": "مسودات غير منشورة"
+ },
  "展开": {
   "zh-Hant": "展開",
   "en": "Expand",
@@ -1359,6 +1327,22 @@
   "id": "Bentangkan",
   "ar": "توسيع"
  },
+ "展开文档树": {
+  "zh-Hant": "展開文件樹",
+  "en": "Show document tree",
+  "ja": "ドキュメントツリーを表示",
+  "ko": "문서 트리 펼치기",
+  "fr": "Afficher l’arborescence",
+  "de": "Dokumentbaum einblenden",
+  "es": "Mostrar el árbol de documentos",
+  "pt": "Mostrar árvore de documentos",
+  "ru": "Показать дерево документов",
+  "it": "Mostra albero dei documenti",
+  "vi": "Hiện cây tài liệu",
+  "th": "แสดงแผนผังเอกสาร",
+  "id": "Tampilkan pohon dokumen",
+  "ar": "إظهار شجرة المستندات"
+ },
  "左侧插入列": {
   "zh-Hant": "左側插入欄",
   "en": "Insert column left",
@@ -1374,6 +1358,22 @@
   "th": "แทรกคอลัมน์ด้านซ้าย",
   "id": "Sisipkan kolom di kiri",
   "ar": "إدراج عمود يسارًا"
+ },
+ "已保存": {
+  "zh-Hant": "已儲存",
+  "en": "Saved",
+  "ja": "保存済み",
+  "ko": "저장됨",
+  "fr": "Enregistré",
+  "de": "Gespeichert",
+  "es": "Guardado",
+  "pt": "Salvo",
+  "ru": "Сохранено",
+  "it": "Salvato",
+  "vi": "Đã lưu",
+  "th": "บันทึกแล้ว",
+  "id": "Tersimpan",
+  "ar": "تم الحفظ"
  },
  "已保存 {0}": {
   "zh-Hant": "已儲存 {0}",
@@ -1807,6 +1807,22 @@
   "id": "Tips",
   "ar": "تلميح"
  },
+ "拖动文档可以调整顺序和层级。": {
+  "zh-Hant": "拖曳文件可以調整順序和層級。",
+  "en": "Drag documents to reorder or nest them.",
+  "ja": "ドラッグで順序と階層を変更できます。",
+  "ko": "문서를 끌어서 순서와 계층을 바꿀 수 있습니다.",
+  "fr": "Faites glisser les documents pour les réordonner ou les imbriquer.",
+  "de": "Dokumente per Ziehen umsortieren oder verschachteln.",
+  "es": "Arrastra los documentos para reordenarlos o anidarlos.",
+  "pt": "Arraste os documentos para reordenar ou aninhar.",
+  "ru": "Перетаскивайте документы, чтобы менять порядок и вложенность.",
+  "it": "Trascina i documenti per riordinarli o annidarli.",
+  "vi": "Kéo tài liệu để sắp xếp lại hoặc lồng vào nhau.",
+  "th": "ลากเอกสารเพื่อจัดลำดับหรือจัดระดับชั้น",
+  "id": "Seret dokumen untuk mengubah urutan atau tingkatannya.",
+  "ar": "اسحب المستندات لإعادة ترتيبها أو تضمينها."
+ },
  "换个关键词试试。": {
   "zh-Hant": "換個關鍵字試試。",
   "en": "Try a different keyword.",
@@ -2063,6 +2079,22 @@
   "id": "Ciutkan",
   "ar": "طي"
  },
+ "收起文档树": {
+  "zh-Hant": "收合文件樹",
+  "en": "Hide document tree",
+  "ja": "ドキュメントツリーを隠す",
+  "ko": "문서 트리 접기",
+  "fr": "Masquer l’arborescence",
+  "de": "Dokumentbaum ausblenden",
+  "es": "Ocultar el árbol de documentos",
+  "pt": "Ocultar árvore de documentos",
+  "ru": "Скрыть дерево документов",
+  "it": "Nascondi albero dei documenti",
+  "vi": "Ẩn cây tài liệu",
+  "th": "ซ่อนแผนผังเอกสาร",
+  "id": "Sembunyikan pohon dokumen",
+  "ar": "إخفاء شجرة المستندات"
+ },
  "放到": {
   "zh-Hant": "放到",
   "en": "Put in",
@@ -2142,6 +2174,22 @@
   "th": "เอกสารจะย้ายไปถังขยะและกู้คืนได้ หน้าที่เผยแพร่จะใช้ไม่ได้ทันที",
   "id": "Dokumen dipindahkan ke sampah dan dapat dipulihkan. Halaman terbitnya langsung tidak berlaku.",
   "ar": "سينتقل المستند إلى سلة المحذوفات ويمكن استعادته، وتتوقف صفحته المنشورة فورًا."
+ },
+ "文档位置": {
+  "zh-Hant": "文件位置",
+  "en": "Document location",
+  "ja": "ドキュメントの場所",
+  "ko": "문서 위치",
+  "fr": "Emplacement du document",
+  "de": "Speicherort des Dokuments",
+  "es": "Ubicación del documento",
+  "pt": "Local do documento",
+  "ru": "Расположение документа",
+  "it": "Posizione del documento",
+  "vi": "Vị trí tài liệu",
+  "th": "ตำแหน่งเอกสาร",
+  "id": "Lokasi dokumen",
+  "ar": "موقع المستند"
  },
  "文档列表": {
   "zh-Hant": "文件列表",
@@ -2319,6 +2367,22 @@
   "id": "Buat dokumen pertama, lalu tekan \"Terbitkan\" setelah selesai agar pengunjung bisa melihatnya.",
   "ar": "أنشئ أول مستند وانقر «نشر» عند الانتهاء ليراه الزوار."
  },
+ "新建第一篇文档，写完点“发布”，访客就能看到。编辑会自动保存为草稿。": {
+  "zh-Hant": "新建第一篇文件，寫完點「發布」，訪客就能看到。編輯會自動儲存為草稿。",
+  "en": "Create your first document and click “Publish” when it’s ready for visitors. Edits are saved as drafts automatically.",
+  "ja": "最初のドキュメントを作成し、書き終えたら「公開」をクリックすると訪問者に表示されます。編集内容は下書きとして自動保存されます。",
+  "ko": "첫 문서를 만들고 다 쓰면 ‘게시’를 눌러 방문자에게 보여 주세요. 편집 내용은 초안으로 자동 저장됩니다.",
+  "fr": "Créez votre premier document, puis cliquez sur « Publier » pour le rendre visible. Les modifications sont enregistrées automatiquement en brouillon.",
+  "de": "Erstellen Sie Ihr erstes Dokument und klicken Sie auf „Veröffentlichen“, damit Besucher es sehen. Änderungen werden automatisch als Entwurf gespeichert.",
+  "es": "Crea tu primer documento y pulsa «Publicar» cuando esté listo para los visitantes. Los cambios se guardan automáticamente como borrador.",
+  "pt": "Crie seu primeiro documento e clique em “Publicar” quando estiver pronto para os visitantes. As edições são salvas automaticamente como rascunho.",
+  "ru": "Создайте первый документ и нажмите «Опубликовать», чтобы его увидели посетители. Изменения автоматически сохраняются как черновик.",
+  "it": "Crea il tuo primo documento e fai clic su «Pubblica» quando è pronto per i visitatori. Le modifiche vengono salvate automaticamente come bozza.",
+  "vi": "Tạo tài liệu đầu tiên rồi nhấn “Xuất bản” để khách truy cập xem được. Nội dung chỉnh sửa được tự động lưu thành bản nháp.",
+  "th": "สร้างเอกสารแรก เขียนเสร็จแล้วกด “เผยแพร่” ผู้เยี่ยมชมก็จะเห็น การแก้ไขจะบันทึกเป็นฉบับร่างโดยอัตโนมัติ",
+  "id": "Buat dokumen pertama, lalu klik “Terbitkan” agar pengunjung dapat melihatnya. Suntingan otomatis disimpan sebagai draf.",
+  "ar": "أنشئ أول مستند وانقر «نشر» عندما يصبح جاهزًا للزوار. تُحفظ التعديلات تلقائيًا كمسودة."
+ },
  "新建顶层文档": {
   "zh-Hant": "新建頂層文件",
   "en": "New top-level document",
@@ -2366,6 +2430,22 @@
   "th": "ไม่มีชื่อ",
   "id": "Tanpa judul",
   "ar": "بلا عنوان"
+ },
+ "无标题文档": {
+  "zh-Hant": "無標題文件",
+  "en": "Untitled document",
+  "ja": "無題のドキュメント",
+  "ko": "제목 없는 문서",
+  "fr": "Document sans titre",
+  "de": "Unbenanntes Dokument",
+  "es": "Documento sin título",
+  "pt": "Documento sem título",
+  "ru": "Документ без названия",
+  "it": "Documento senza titolo",
+  "vi": "Tài liệu không có tiêu đề",
+  "th": "เอกสารไม่มีชื่อ",
+  "id": "Dokumen tanpa judul",
+  "ar": "مستند بلا عنوان"
  },
  "显示在搜索结果和分享卡片里，可以留空。": {
   "zh-Hant": "顯示在搜尋結果和分享卡片中，可以留空。",
@@ -2447,6 +2527,38 @@
   "id": "Satu tingkat lebih kecil",
   "ar": "أصغر بمستوى"
  },
+ "最后发布于 {0}": {
+  "zh-Hant": "最後發布於 {0}",
+  "en": "Last published {0}",
+  "ja": "最終公開：{0}",
+  "ko": "마지막 게시: {0}",
+  "fr": "Dernière publication : {0}",
+  "de": "Zuletzt veröffentlicht: {0}",
+  "es": "Última publicación: {0}",
+  "pt": "Última publicação: {0}",
+  "ru": "Последняя публикация: {0}",
+  "it": "Ultima pubblicazione: {0}",
+  "vi": "Xuất bản lần cuối: {0}",
+  "th": "เผยแพร่ล่าสุด {0}",
+  "id": "Terakhir terbit {0}",
+  "ar": "آخر نشر: {0}"
+ },
+ "最近发布": {
+  "zh-Hant": "最近發布",
+  "en": "Recently published",
+  "ja": "最近の公開",
+  "ko": "최근 게시",
+  "fr": "Publiés récemment",
+  "de": "Zuletzt veröffentlicht",
+  "es": "Publicados recientemente",
+  "pt": "Publicados recentemente",
+  "ru": "Недавно опубликованные",
+  "it": "Pubblicati di recente",
+  "vi": "Xuất bản gần đây",
+  "th": "เผยแพร่ล่าสุด",
+  "id": "Baru diterbitkan",
+  "ar": "المنشورة مؤخرًا"
+ },
  "最近的修改没能保存": {
   "zh-Hant": "最近的修改沒能儲存",
   "en": "Recent changes couldn't be saved",
@@ -2479,22 +2591,6 @@
   "id": "Daftar bernomor",
   "ar": "قائمة مرقّمة"
  },
- "有未保存的修改…": {
-  "zh-Hant": "有未儲存的修改…",
-  "en": "Unsaved changes…",
-  "ja": "未保存の変更があります…",
-  "ko": "저장하지 않은 변경 사항…",
-  "fr": "Modifications non enregistrées…",
-  "de": "Nicht gespeicherte Änderungen…",
-  "es": "Cambios sin guardar…",
-  "pt": "Alterações não salvas…",
-  "ru": "Есть несохранённые изменения…",
-  "it": "Modifiche non salvate…",
-  "vi": "Có thay đổi chưa lưu…",
-  "th": "มีการแก้ไขที่ยังไม่บันทึก…",
-  "id": "Ada perubahan yang belum disimpan…",
-  "ar": "توجد تعديلات غير محفوظة…"
- },
  "有未发布的修改": {
   "zh-Hant": "有未發布的修改",
   "en": "Unpublished changes",
@@ -2511,6 +2607,22 @@
   "id": "Ada perubahan yang belum terbit",
   "ar": "توجد تعديلات غير منشورة"
  },
+ "未保存": {
+  "zh-Hant": "未儲存",
+  "en": "Unsaved",
+  "ja": "未保存",
+  "ko": "저장 안 됨",
+  "fr": "Non enregistré",
+  "de": "Nicht gespeichert",
+  "es": "Sin guardar",
+  "pt": "Não salvo",
+  "ru": "Не сохранено",
+  "it": "Non salvato",
+  "vi": "Chưa lưu",
+  "th": "ยังไม่บันทึก",
+  "id": "Belum disimpan",
+  "ar": "غير محفوظ"
+ },
  "查看公开页": {
   "zh-Hant": "查看公開頁",
   "en": "View public page",
@@ -2526,22 +2638,6 @@
   "th": "ดูหน้าสาธารณะ",
   "id": "Lihat halaman publik",
   "ar": "عرض الصفحة العامة"
- },
- "标题": {
-  "zh-Hant": "標題",
-  "en": "Title",
-  "ja": "タイトル",
-  "ko": "제목",
-  "fr": "Titre",
-  "de": "Titel",
-  "es": "Título",
-  "pt": "Título",
-  "ru": "Заголовок",
-  "it": "Titolo",
-  "vi": "Tiêu đề",
-  "th": "ชื่อเรื่อง",
-  "id": "Judul",
-  "ar": "العنوان"
  },
  "标题 2": {
   "zh-Hant": "標題 2",
@@ -2591,22 +2687,6 @@
   "id": "Judul 4",
   "ar": "عنوان 4"
  },
- "标题随时可以改；页面路径在首次发布时确定。": {
-  "zh-Hant": "標題隨時可以修改；頁面路徑在首次發布時確定。",
-  "en": "You can change the title any time. The page path is set on first publish.",
-  "ja": "タイトルはいつでも変更できます。ページのパスは初回公開時に決まります。",
-  "ko": "제목은 언제든 바꿀 수 있습니다. 페이지 경로는 첫 게시 때 정해집니다.",
-  "fr": "Le titre peut changer à tout moment ; le chemin de la page est fixé à la première publication.",
-  "de": "Der Titel lässt sich jederzeit ändern; der Seitenpfad wird bei der ersten Veröffentlichung festgelegt.",
-  "es": "Puedes cambiar el título cuando quieras; la ruta de la página se fija en la primera publicación.",
-  "pt": "O título pode mudar quando quiser; o caminho da página é definido na primeira publicação.",
-  "ru": "Заголовок можно менять когда угодно; путь страницы задаётся при первой публикации.",
-  "it": "Il titolo si può cambiare quando vuoi; il percorso della pagina si fissa alla prima pubblicazione.",
-  "vi": "Có thể đổi tiêu đề bất cứ lúc nào; đường dẫn trang được xác định khi xuất bản lần đầu.",
-  "th": "แก้ชื่อเรื่องได้ตลอด พาธของหน้าจะกำหนดเมื่อเผยแพร่ครั้งแรก",
-  "id": "Judul bisa diubah kapan saja; jalur halaman ditetapkan saat pertama terbit.",
-  "ar": "يمكن تغيير العنوان في أي وقت، ويُحدد مسار الصفحة عند النشر الأول."
- },
  "格式不对：只能用小写字母、数字和连字符": {
   "zh-Hant": "格式錯誤：只能使用小寫字母、數字和連字號",
   "en": "Wrong format: use only lowercase letters, numbers and hyphens",
@@ -2623,6 +2703,22 @@
   "id": "Format salah: hanya huruf kecil, angka, dan tanda hubung",
   "ar": "تنسيق خاطئ: أحرف صغيرة وأرقام وشرطات فقط"
  },
+ "概览": {
+  "zh-Hant": "概覽",
+  "en": "Overview",
+  "ja": "概要",
+  "ko": "개요",
+  "fr": "Vue d’ensemble",
+  "de": "Übersicht",
+  "es": "Resumen",
+  "pt": "Visão geral",
+  "ru": "Обзор",
+  "it": "Panoramica",
+  "vi": "Tổng quan",
+  "th": "ภาพรวม",
+  "id": "Ikhtisar",
+  "ar": "نظرة عامة"
+ },
  "正在上传{0}": {
   "zh-Hant": "正在上傳{0}",
   "en": "Uploading {0}",
@@ -2638,22 +2734,6 @@
   "th": "กำลังอัปโหลด{0}",
   "id": "Mengunggah {0}",
   "ar": "جارٍ رفع {0}"
- },
- "正在加载文档…": {
-  "zh-Hant": "正在載入文件…",
-  "en": "Loading document…",
-  "ja": "ドキュメントを読み込み中…",
-  "ko": "문서를 불러오는 중…",
-  "fr": "Chargement du document…",
-  "de": "Dokument wird geladen…",
-  "es": "Cargando documento…",
-  "pt": "Carregando documento…",
-  "ru": "Загрузка документа…",
-  "it": "Caricamento documento…",
-  "vi": "Đang tải tài liệu…",
-  "th": "กำลังโหลดเอกสาร…",
-  "id": "Memuat dokumen…",
-  "ar": "جارٍ تحميل المستند…"
  },
  "正在用 AI 生成路径和搜索摘要…": {
   "zh-Hant": "正在用 AI 產生路徑和搜尋摘要…",
@@ -2703,6 +2783,22 @@
   "id": "Isi akan kembali ke versi yang terbit pada {0} dan tayang sebagai terbitan baru. Draf saat ini akan ditimpa.",
   "ar": "سيعود المحتوى إلى ما نُشر في {0} ويُنشر كإصدار جديد، وستُستبدل المسودة الحالية."
  },
+ "正文里的标题会显示在这里。": {
+  "zh-Hant": "正文裡的標題會顯示在這裡。",
+  "en": "Headings in the document appear here.",
+  "ja": "本文の見出しがここに表示されます。",
+  "ko": "본문의 제목이 여기에 표시됩니다.",
+  "fr": "Les titres du document apparaissent ici.",
+  "de": "Überschriften im Text erscheinen hier.",
+  "es": "Aquí aparecerán los encabezados del documento.",
+  "pt": "Os títulos do documento aparecem aqui.",
+  "ru": "Здесь появятся заголовки документа.",
+  "it": "Qui compaiono i titoli del documento.",
+  "vi": "Các tiêu đề trong nội dung sẽ hiện ở đây.",
+  "th": "หัวข้อในเนื้อหาจะแสดงที่นี่",
+  "id": "Judul bagian dalam dokumen akan muncul di sini.",
+  "ar": "تظهر عناوين المستند هنا."
+ },
  "水平分隔": {
   "zh-Hant": "水平分隔",
   "en": "Horizontal divider",
@@ -2750,6 +2846,22 @@
   "th": "ยังไม่มีสรุปสำหรับการค้นหา เพิ่มได้ใน “การตั้งค่าหน้า”",
   "id": "Belum ada ringkasan pencarian; tambahkan di Pengaturan halaman",
   "ar": "لا يوجد ملخص بحث، ويمكنك إضافته من «إعدادات الصفحة»"
+ },
+ "没有未发布的草稿。": {
+  "zh-Hant": "沒有未發布的草稿。",
+  "en": "No unpublished drafts.",
+  "ja": "未公開の下書きはありません。",
+  "ko": "게시하지 않은 초안이 없습니다.",
+  "fr": "Aucun brouillon non publié.",
+  "de": "Keine unveröffentlichten Entwürfe.",
+  "es": "No hay borradores sin publicar.",
+  "pt": "Nenhum rascunho não publicado.",
+  "ru": "Неопубликованных черновиков нет.",
+  "it": "Nessuna bozza non pubblicata.",
+  "vi": "Không có bản nháp chưa xuất bản.",
+  "th": "ไม่มีฉบับร่างที่ยังไม่เผยแพร่",
+  "id": "Tidak ada draf yang belum terbit.",
+  "ar": "لا توجد مسودات غير منشورة."
  },
  "用于公开页语法高亮。": {
   "zh-Hant": "用於公開頁語法高亮。",
@@ -2958,6 +3070,22 @@
   "th": "ย้ายไปที่…",
   "id": "Pindahkan ke…",
   "ar": "نقل إلى…"
+ },
+ "移动失败": {
+  "zh-Hant": "移動失敗",
+  "en": "Move failed",
+  "ja": "移動できませんでした",
+  "ko": "이동 실패",
+  "fr": "Échec du déplacement",
+  "de": "Verschieben fehlgeschlagen",
+  "es": "No se pudo mover",
+  "pt": "Falha ao mover",
+  "ru": "Не удалось переместить",
+  "it": "Spostamento non riuscito",
+  "vi": "Di chuyển thất bại",
+  "th": "ย้ายไม่สำเร็จ",
+  "id": "Gagal memindahkan",
+  "ar": "تعذر النقل"
  },
  "章节标题": {
   "zh-Hant": "章節標題",
@@ -3311,22 +3439,6 @@
   "id": "Gagal mengubah urutan",
   "ar": "تعذّر تغيير الترتيب"
  },
- "路径 /{0}": {
-  "zh-Hant": "路徑 /{0}",
-  "en": "Path /{0}",
-  "ja": "パス /{0}",
-  "ko": "경로 /{0}",
-  "fr": "Chemin /{0}",
-  "de": "Pfad /{0}",
-  "es": "Ruta /{0}",
-  "pt": "Caminho /{0}",
-  "ru": "Путь /{0}",
-  "it": "Percorso /{0}",
-  "vi": "Đường dẫn /{0}",
-  "th": "พาธ /{0}",
-  "id": "Jalur /{0}",
-  "ar": "المسار /{0}"
- },
  "输入正文，或输入 / 插入标题、列表、表格、图片…": {
   "zh-Hant": "輸入內文，或輸入 / 插入標題、清單、表格、圖片…",
   "en": "Type text, or type / to insert headings, lists, tables, images…",
@@ -3391,6 +3503,22 @@
   "id": "Belum ada riwayat terbit",
   "ar": "لا يوجد سجل نشر بعد"
  },
+ "还没有发布过文档。": {
+  "zh-Hant": "還沒有發布過文件。",
+  "en": "Nothing published yet.",
+  "ja": "まだ公開したドキュメントはありません。",
+  "ko": "아직 게시한 문서가 없습니다.",
+  "fr": "Aucun document publié pour l’instant.",
+  "de": "Noch nichts veröffentlicht.",
+  "es": "Todavía no se ha publicado nada.",
+  "pt": "Nenhum documento publicado ainda.",
+  "ru": "Пока ничего не опубликовано.",
+  "it": "Ancora nessun documento pubblicato.",
+  "vi": "Chưa xuất bản tài liệu nào.",
+  "th": "ยังไม่มีเอกสารที่เผยแพร่",
+  "id": "Belum ada dokumen yang terbit.",
+  "ar": "لم يُنشر أي مستند بعد."
+ },
  "还没有发布过：路径会在首次发布时确定，也可以现在先填。": {
   "zh-Hant": "還沒有發布過：路徑會在首次發布時確定，也可以現在先填。",
   "en": "Not published yet: the path is set on first publish, but you can fill it in now.",
@@ -3454,22 +3582,6 @@
   "th": "เอกสารนี้มีเอกสารย่อย ซึ่งจะย้ายไปถังขยะด้วย หน้าที่เผยแพร่จะใช้ไม่ได้ทันที กู้คืนได้จากถังขยะ",
   "id": "Dokumen ini memiliki dokumen anak yang juga akan dipindahkan ke sampah. Halaman terbit langsung tidak berlaku; bisa dipulihkan dari sampah.",
   "ar": "يحتوي هذا المستند على مستندات فرعية ستنتقل معه إلى سلة المحذوفات، وتتوقف الصفحات المنشورة فورًا ويمكن استعادتها من السلة."
- },
- "选择一篇文档开始编辑": {
-  "zh-Hant": "選擇一篇文件開始編輯",
-  "en": "Select a document to start editing",
-  "ja": "編集するドキュメントを選んでください",
-  "ko": "편집할 문서를 선택하세요",
-  "fr": "Sélectionnez un document à modifier",
-  "de": "Wählen Sie ein Dokument zum Bearbeiten",
-  "es": "Elige un documento para empezar a editar",
-  "pt": "Selecione um documento para editar",
-  "ru": "Выберите документ для редактирования",
-  "it": "Seleziona un documento da modificare",
-  "vi": "Chọn một tài liệu để bắt đầu chỉnh sửa",
-  "th": "เลือกเอกสารเพื่อเริ่มแก้ไข",
-  "id": "Pilih dokumen untuk mulai menyunting",
-  "ar": "اختر مستندًا لبدء التحرير"
  },
  "醒目的提示块": {
   "zh-Hant": "醒目的提示區塊",
@@ -3631,6 +3743,22 @@
   "id": "Jalur halaman",
   "ar": "مسار الصفحة"
  },
+ "页面路径 /{0}，发布后生效": {
+  "zh-Hant": "頁面路徑 /{0}，發布後生效",
+  "en": "Page path /{0}, takes effect when published",
+  "ja": "ページパス /{0}（公開後に有効）",
+  "ko": "페이지 경로 /{0}, 게시 후 적용",
+  "fr": "Chemin de page /{0}, actif après publication",
+  "de": "Seitenpfad /{0}, gilt nach dem Veröffentlichen",
+  "es": "Ruta de página /{0}; se aplica al publicar",
+  "pt": "Caminho da página /{0}, vale após publicar",
+  "ru": "Путь страницы /{0}, начнёт работать после публикации",
+  "it": "Percorso pagina /{0}, attivo dopo la pubblicazione",
+  "vi": "Đường dẫn trang /{0}, có hiệu lực sau khi xuất bản",
+  "th": "พาธหน้า /{0} มีผลหลังเผยแพร่",
+  "id": "Jalur halaman /{0}, berlaku setelah terbit",
+  "ar": "مسار الصفحة /{0}، يسري بعد النشر"
+ },
  "顶层（不放在任何文档下）": {
   "zh-Hant": "頂層（不放在任何文件下）",
   "en": "Top level (not under any document)",
@@ -3679,6 +3807,22 @@
   "id": "Pratinjau muncul di sini",
   "ar": "ستظهر المعاينة هنا"
  },
+ "首次发布时设置页面路径": {
+  "zh-Hant": "首次發布時設定頁面路徑",
+  "en": "Page path is set on first publish",
+  "ja": "ページパスは初回公開時に設定します",
+  "ko": "페이지 경로는 처음 게시할 때 정합니다",
+  "fr": "Le chemin de page est défini à la première publication",
+  "de": "Der Seitenpfad wird beim ersten Veröffentlichen festgelegt",
+  "es": "La ruta de la página se define al publicar por primera vez",
+  "pt": "O caminho da página é definido na primeira publicação",
+  "ru": "Путь страницы задаётся при первой публикации",
+  "it": "Il percorso della pagina si imposta alla prima pubblicazione",
+  "vi": "Đường dẫn trang được đặt khi xuất bản lần đầu",
+  "th": "ตั้งพาธหน้าเมื่อเผยแพร่ครั้งแรก",
+  "id": "Jalur halaman ditetapkan saat pertama kali terbit",
+  "ar": "يُحدَّد مسار الصفحة عند النشر الأول"
+ },
  "高亮": {
   "zh-Hant": "醒目提示",
   "en": "Highlight",
@@ -3694,6 +3838,22 @@
   "th": "ไฮไลต์",
   "id": "Sorot",
   "ar": "تمييز"
+ },
+ "（空标题）": {
+  "zh-Hant": "（空標題）",
+  "en": "(empty heading)",
+  "ja": "（空の見出し）",
+  "ko": "(빈 제목)",
+  "fr": "(titre vide)",
+  "de": "(leere Überschrift)",
+  "es": "(encabezado vacío)",
+  "pt": "(título vazio)",
+  "ru": "(пустой заголовок)",
+  "it": "(titolo vuoto)",
+  "vi": "(tiêu đề trống)",
+  "th": "(หัวข้อว่าง)",
+  "id": "(judul kosong)",
+  "ar": "(عنوان فارغ)"
  },
  "；": {
   "zh-Hant": "；",

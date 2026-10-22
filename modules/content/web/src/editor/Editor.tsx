@@ -9,7 +9,7 @@ import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type 
 import StarterKit from '@tiptap/starter-kit';
 import { cn, ScrollShadow, toast } from '@heroui/react';
 import { captureVideoPoster, errorText, uploadAsset, uploadImage, t } from '@ui';
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MutableRefObject, type ReactNode } from 'react';
 import type { JSONNode } from '../convert';
 import { Attachment, Callout, Column, Columns, jsonAttr, MathBlock } from './blocks';
 import { filterCommands, type BlockCommand, type EditorActions } from './commands';
@@ -18,6 +18,7 @@ import { DrawingDialog, type DrawingAttrs } from './DrawingDialog';
 import { StableIds } from './ids';
 import { ImageBlock } from './image';
 import { MathDialog, renderMath } from './MathDialog';
+import { Outline } from './Outline';
 import { EditorToolbar, editLink } from './Toolbar';
 import { VideoBlock } from './video';
 
@@ -50,8 +51,17 @@ const WikiTableHeader = TableHeader.extend({ addAttributes() { return { ...this.
 
 type Slash = { left: number; top: number; query: string };
 
-export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: boolean; onChange: (doc: JSONNode) => void }) {
+// 编辑区：吸顶工具栏 + 居中正文（header 放在正文上方，如标题）+ 宽屏时右侧大纲；滚动容器在这里。
+export function Editor({ doc, editable, toolbar, header, editorRef: exposed, onChange }: {
+  doc: JSONNode;
+  editable: boolean;
+  toolbar: boolean;
+  header?: ReactNode;
+  editorRef?: MutableRefObject<TiptapEditor | null>;
+  onChange: (doc: JSONNode) => void;
+}) {
   const wrapper = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const editableRef = useRef(editable);
@@ -166,10 +176,12 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
       },
     },
     // 文档有变化就通知保存（工具栏按钮、链接/公式对话框、上传完成时编辑器往往不在焦点上，不能以焦点判断）。
-    onUpdate: ({ editor: current }) => onChangeRef.current(current.getJSON() as JSONNode),
+    // 只有插件补出来的变化（补稳定 ID、补末尾段落）不算修改：点进空文档不该触发保存，下次真正编辑时一并存。
+    onUpdate: ({ editor: current, transaction }) => { if (transaction.docChanged) onChangeRef.current(current.getJSON() as JSONNode); },
     onTransaction: ({ editor: current }) => refreshSlash(current),
   });
   editorRef.current = editor;
+  if (exposed) exposed.current = editor;
 
   // 切换只读不是修改：不发 update 事件，避免打开文档就触发一次保存。
   useEffect(() => { editor?.setEditable(editable, false); }, [editor, editable]);
@@ -184,36 +196,42 @@ export function Editor({ doc, editable, onChange }: { doc: JSONNode; editable: b
   const items = slash ? slashState.current.items : [];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="sticky top-0 z-20 border-b border-separator bg-background/90 px-3 py-1.5 backdrop-blur-md sm:px-6">
-        <EditorToolbar actions={actions} editable={editable} editor={editor} />
-      </div>
-      <div ref={wrapper} className="relative mx-auto w-full max-w-3xl px-5 pb-32 pt-6 sm:px-8">
-        <EditorContent editor={editor} />
-        {slash && items.length > 0 && (
-          <div className="absolute z-30 w-72 overflow-hidden rounded-2xl border border-border bg-overlay p-1.5 shadow-overlay" role="listbox" aria-label={t('插入块')} style={{ left: Math.max(0, Math.min(slash.left, (wrapper.current?.clientWidth ?? 600) - 296)), top: slash.top }}>
-            <ScrollShadow className="max-h-80">
-              {items.map((command, index) => (
-                <button
-                  key={command.id}
-                  ref={(node) => { if (node && index === slashIndex) node.scrollIntoView({ block: 'nearest' }); }}
-                  aria-selected={index === slashIndex}
-                  className={cn('flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-start transition-colors', index === slashIndex ? 'bg-default' : 'hover:bg-default/60')}
-                  role="option"
-                  type="button"
-                  onMouseDown={(event) => { event.preventDefault(); runSlash(command); }}
-                  onMouseEnter={() => { slashState.current.index = index; setSlashIndex(index); }}
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-muted"><command.icon className="size-4" /></span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-foreground">{command.label}</span>
-                    <span className="block truncate text-xs text-muted">{command.hint}</span>
-                  </span>
-                </button>
-              ))}
-            </ScrollShadow>
-          </div>
-        )}
+    <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto">
+      {toolbar && (
+        <div className="sticky top-0 z-20 border-b border-separator bg-background/90 px-3 py-1.5 backdrop-blur-md sm:px-6">
+          <div className="mx-auto w-fit max-w-full"><EditorToolbar actions={actions} editable={editable} editor={editor} /></div>
+        </div>
+      )}
+      <div className="flex justify-center gap-10 px-5 sm:px-10">
+        <div ref={wrapper} className="relative w-full min-w-0 max-w-3xl pb-40 pt-10">
+          {header}
+          <EditorContent editor={editor} />
+          {slash && items.length > 0 && (
+            <div className="absolute z-30 w-72 overflow-hidden rounded-2xl border border-border bg-overlay p-1.5 shadow-overlay" role="listbox" aria-label={t('插入块')} style={{ left: Math.max(0, Math.min(slash.left, (wrapper.current?.clientWidth ?? 600) - 296)), top: slash.top }}>
+              <ScrollShadow className="max-h-80">
+                {items.map((command, index) => (
+                  <button
+                    key={command.id}
+                    ref={(node) => { if (node && index === slashIndex) node.scrollIntoView({ block: 'nearest' }); }}
+                    aria-selected={index === slashIndex}
+                    className={cn('flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-start transition-colors', index === slashIndex ? 'bg-default' : 'hover:bg-default/60')}
+                    role="option"
+                    type="button"
+                    onMouseDown={(event) => { event.preventDefault(); runSlash(command); }}
+                    onMouseEnter={() => { slashState.current.index = index; setSlashIndex(index); }}
+                  >
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-muted"><command.icon className="size-4" /></span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-foreground">{command.label}</span>
+                      <span className="block truncate text-xs text-muted">{command.hint}</span>
+                    </span>
+                  </button>
+                ))}
+              </ScrollShadow>
+            </div>
+          )}
+        </div>
+        <Outline editor={editor} scroller={scroller} />
       </div>
       <input ref={imageInput} accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" type="file" onChange={pick('image')} />
       <input ref={videoInput} accept="video/mp4,video/webm" className="hidden" type="file" onChange={pick('video')} />

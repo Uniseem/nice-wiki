@@ -58,3 +58,21 @@ export function useHasGrant(...grants: string[]): boolean {
   const current = useGrants();
   return grants.some((grant) => current.includes(grant));
 }
+
+// 只影响本浏览器显示的界面偏好（侧栏收起、树的展开状态等）：存本地存储，读写失败时退回默认值。
+export function useStoredState<T>(key: string, initial: T): [T, (update: T | ((previous: T) => T)) => void] {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw === null ? initial : (JSON.parse(raw) as T);
+    } catch { return initial; }
+  });
+  const update = useCallback((next: T | ((previous: T) => T)) => {
+    setValue((previous) => {
+      const resolved = typeof next === 'function' ? (next as (previous: T) => T)(previous) : next;
+      try { localStorage.setItem(key, JSON.stringify(resolved)); } catch { /* 隐私模式下只在本页生效 */ }
+      return resolved;
+    });
+  }, [key]);
+  return [value, update];
+}
