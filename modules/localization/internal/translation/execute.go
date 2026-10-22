@@ -193,17 +193,28 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 	if err := flush(); err != nil {
 		return err
 	}
-	// 标题单独走一个单元的翻译批次；失败只是没有标题译文，不影响正文译文交付。
-	title := ""
-	if strings.TrimSpace(source.Title) != "" {
-		sourceTitle := source.Title
-		titleUnit := gen.TranslationUnit{UnitId: "title." + platform.HashBytes([]byte(sourceTitle))[:16], SourceText: &sourceTitle, SourceHash: platform.HashBytes([]byte(sourceTitle))}
-		done, titleErr := dispatch([]gen.TranslationUnit{titleUnit})
-		if errors.Is(titleErr, errTranslationCancelled) {
-			return titleErr
+	// 标题和搜索摘要合成一个小批次单独翻译；失败只是没有标题或摘要译文（公开页沿用原文），不影响正文译文交付。
+	title, description := "", ""
+	extra := []gen.TranslationUnit{}
+	for _, field := range []struct{ prefix, text string }{{"title.", source.Title}, {"description.", source.Description}} {
+		if text := field.text; strings.TrimSpace(text) != "" {
+			extra = append(extra, gen.TranslationUnit{UnitId: field.prefix + platform.HashBytes([]byte(text))[:16], SourceText: &text, SourceHash: platform.HashBytes([]byte(text))})
 		}
-		if titleErr == nil && len(done) == 1 {
-			title = strings.TrimSpace(done[0].TargetText)
+	}
+	if len(extra) > 0 {
+		done, extraErr := dispatch(extra)
+		if errors.Is(extraErr, errTranslationCancelled) {
+			return extraErr
+		}
+		for _, unit := range done {
+			if extraErr != nil || unit.Status == "fallback" {
+				continue
+			}
+			if strings.HasPrefix(unit.UnitId, "title.") {
+				title = strings.TrimSpace(unit.TargetText)
+			} else {
+				description = strings.TrimSpace(unit.TargetText)
+			}
 		}
 	}
 	return language.WriteData(ctx, op, func(tx *sql.Tx) error {
@@ -222,7 +233,7 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 				break
 			}
 		}
-		object := TranslationObject{Title: title,
+		object := TranslationObject{Title: title, Description: description,
 			Translation: gen.Translation{TranslationId: translationID, Document: document, TargetLanguage: target, State: gen.TranslationState(finished), Total: len(translated), Completed: len(translated), MemoryVersionHash: memory.VersionHash},
 			SourceTree:  split.SourceTree, Units: translated,
 		}

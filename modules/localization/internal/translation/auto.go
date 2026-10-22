@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -80,7 +82,55 @@ func AutoTranslate(ctx context.Context, op OperationContext) error {
 			running++
 		}
 	}
+	// 搜索摘要补译：早期译文没有翻译摘要（公开页的 meta description 还是原文）。补译时正文单元沿用上一份译文，
+	// 只把标题和摘要交给模型；本进程内每个（发布修订, 语言）最多补一次，补不成也不反复重来。
+	for _, document := range tree.Documents {
+		for _, tag := range languages {
+			if running >= maximumRunningTranslations {
+				return firstErr
+			}
+			key := tag + ":" + document.Reference.PublishedRevisionId
+			if _, seen := describedOnce.LoadOrStore(key, true); seen {
+				continue
+			}
+			if missing, err := missingDescription(ctx, op, document, tag); err != nil || !missing {
+				continue
+			}
+			if _, err := createTranslation(ctx, op, gen.CreateTranslationInput{Document: document.Reference, TargetLanguage: tag, IdempotencyKey: "describe." + platform.HashBytes([]byte(key))}); err == nil {
+				running++
+			}
+		}
+	}
 	return firstErr
+}
+
+var describedOnce sync.Map
+
+// missingDescription 判断这门语言当前修订的已完成译文是否缺摘要译文，而原文其实有摘要；有在排队或在翻的译文时不算缺。
+func missingDescription(ctx context.Context, op OperationContext, document localizationruntime.PublicTreeDocument, tag string) (bool, error) {
+	var object TranslationObject
+	found := false
+	err := language.ReadData(ctx, op, func(tx *sql.Tx) error {
+		var live int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM translation_manifests WHERE state IN('queued','running') AND target_language=? AND data_epoch=? AND json_extract(publication_ref,'$.documentId')=?`, tag, op.DataEpoch, document.DocumentID).Scan(&live); err != nil || live > 0 {
+			return language.StorageError(err)
+		}
+		latest, ok, err := LatestManifest(ctx, tx, op, document.DocumentID, tag, true)
+		if err != nil || !ok {
+			return err
+		}
+		object, err = ReadObject(ctx, tx, op, latest.ID)
+		found = err == nil
+		return err
+	})
+	if err != nil || !found || object.Description != "" || object.Translation.Document.PublishedRevisionId != document.Reference.PublishedRevisionId {
+		return false, err
+	}
+	source, err := localizationruntime.FetchPublishedSnapshot(ctx, op, document.Reference)
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(source.Description) != "", nil
 }
 
 // nextAttempt 判断这门语言是否该为这次发布修订（再）建译文：已有可用或在翻的译文就不用；

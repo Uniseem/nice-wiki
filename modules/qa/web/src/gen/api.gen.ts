@@ -2846,6 +2846,8 @@ export interface components {
             noticeKey?: string;
             /** @description 目标语言的文档标题；缺失表示该译文没有标题译文，公开页沿用原文标题 */
             title?: string;
+            /** @description 目标语言的搜索摘要（文档 seoDescription 的译文）；缺失表示没有摘要译文，公开页沿用原文摘要 */
+            description?: string;
             /** @description 完整还原目标树，source publication/targetLanguage/generation在translation中；始终由服务新实现写出，兼容字段 */
             body?: components["schemas"]["DocumentBody"];
             /** @description canonical目标body SHA256，不等于source publication contentHash */

@@ -13,6 +13,7 @@ type PublishedSnapshot struct {
 	Body               json.RawMessage
 	SourceLanguage     string
 	Title              string
+	Description        string // 搜索摘要（seoDescription），没有时为空
 	VisibilityRevision int
 }
 
@@ -115,9 +116,10 @@ func readPublishedSnapshot(ctx context.Context, op OperationContext, documentID 
 	}
 	var response struct {
 		Metadata struct {
-			SiteId         string `json:"siteId"`
-			SourceLanguage string `json:"sourceLanguage"`
-			Title          string `json:"title"`
+			SiteId         string  `json:"siteId"`
+			SourceLanguage string  `json:"sourceLanguage"`
+			Title          string  `json:"title"`
+			SEODescription *string `json:"seoDescription"`
 		} `json:"metadata"`
 		Reference          gen.PublishedRevisionRef `json:"reference"`
 		Body               json.RawMessage          `json:"body"`
@@ -133,7 +135,11 @@ func readPublishedSnapshot(ctx context.Context, op OperationContext, documentID 
 	if err != nil || platform.HashBytes(canonical) != response.Reference.ContentHash {
 		return PublishedSnapshot{}, platform.NewError(platform.CodeIntegrityError, false, "权威源正文摘要不匹配")
 	}
-	return PublishedSnapshot{Reference: response.Reference, Body: canonical, SourceLanguage: response.Metadata.SourceLanguage, Title: response.Metadata.Title, VisibilityRevision: response.VisibilityRevision}, nil
+	snapshot := PublishedSnapshot{Reference: response.Reference, Body: canonical, SourceLanguage: response.Metadata.SourceLanguage, Title: response.Metadata.Title, VisibilityRevision: response.VisibilityRevision}
+	if response.Metadata.SEODescription != nil {
+		snapshot.Description = *response.Metadata.SEODescription
+	}
+	return snapshot, nil
 }
 func CheckPublication(ctx context.Context, op OperationContext, document gen.PublishedRevisionRef, expectedVisibility *int) (int, error) {
 	store, _ := LanguageGateway()

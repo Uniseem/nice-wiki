@@ -74,9 +74,10 @@ func LoadPublishedBundle(ctx context.Context, op platform.OperationContext, in L
 					Document       gen.PublishedRevisionRef `json:"document"`
 					TargetLanguage string                   `json:"targetLanguage"`
 				} `json:"translation"`
-				Title *string         `json:"title"`
-				Body  json.RawMessage `json:"body"`
-				Units []struct {
+				Title       *string         `json:"title"`
+				Description *string         `json:"description"`
+				Body        json.RawMessage `json:"body"`
+				Units       []struct {
 					UnitID             string                   `json:"unitId"`
 					Document           gen.PublishedRevisionRef `json:"document"`
 					TargetLanguage     string                   `json:"targetLanguage"`
@@ -91,6 +92,9 @@ func LoadPublishedBundle(ctx context.Context, op platform.OperationContext, in L
 			}
 			if payload.Title != nil && strings.TrimSpace(*payload.Title) != "" {
 				result.Title = *payload.Title // 译文带标题就用译文标题，否则沿用原文标题
+			}
+			if payload.Description != nil && strings.TrimSpace(*payload.Description) != "" {
+				result.Description = *payload.Description // 搜索摘要同理
 			}
 			translatedBody := payload.Body
 			for _, unit := range payload.Units {
