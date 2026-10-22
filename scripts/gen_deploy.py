@@ -12,7 +12,7 @@ SERVICES = {  # slug: 端口
 STATELESS = {"portal", "public-site"}  # 不存业务数据，在线备份里没有它们的目录，恢复时不动它们的卷
 WEB_MODULES = ["portal", "content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection", "public-site"]
 SUBNET = "198.51.100.0/24"  # 文档保留地址段，仅作内部桥接网络的子网
-IMAGES = "ghcr.io/uniseem/nice-wiki"  # 发版流程推送的镜像：{IMAGES}-{slug}:{版本}
+IMAGES = "ghcr.io/uniseem/nice-wiki"  # 发版流程（scripts/release.sh）推送的镜像：{IMAGES}-{slug}:{版本}
 
 
 def write(path, text):
@@ -50,13 +50,6 @@ WORKDIR /src/modules/{slug}
 RUN CGO_ENABLED=0 go build -trimpath -o /out/{slug} ./cmd/{slug}
 
 {runtime_stage(slug, port, f"COPY --from=build /out/{slug} /usr/local/bin/{slug}", copy_web)}"""
-
-
-def release_dockerfile(slug, port):
-    copy_web = "COPY release/web /web\nCOPY modules/portal/config/routes.json /config/routes.json\nENV NW_WEB_DIR=/web\n" if slug == "portal" else ""
-    return f"""# {slug} 发布镜像：直接打包发版流程已编译好的二进制（release/linux-<架构>/），不在镜像里再编译。
-# 构建上下文为仓库根，由 .github/workflows/release.yml 按 amd64/arm64 构建。由 scripts/gen_deploy.py 生成。
-{runtime_stage(slug, port, f"ARG TARGETARCH\nCOPY release/linux-${{TARGETARCH}}/{slug} /usr/local/bin/{slug}", copy_web)}"""
 
 
 def runtime_stage(slug, port, copy_binary, copy_web):
@@ -170,10 +163,11 @@ docker compose -f deploy/docker-compose.yml up -d
 def main():
     for slug, port in SERVICES.items():
         write(f"modules/{slug}/Dockerfile", dockerfile(slug, port))
-        write(f"modules/{slug}/Dockerfile.release", release_dockerfile(slug, port))
         write(f"deploy/config/{slug}.json", json.dumps(service_config(slug, port), indent=2, ensure_ascii=False) + "\n")
     write("deploy/docker-compose.yml", compose())
     write("deploy/release/docker-compose.yml", compose(release=True))
+    # 发布镜像的规格（scripts/release.sh images 读取）：与上面源码镜像的运行阶段一致——同一 uid、端口和工作目录。
+    write("deploy/release/images.tsv", "".join(f"{slug}\t{10000 + i}\t{port}\t{'/' if slug == 'portal' else '/config'}\n" for i, (slug, port) in enumerate(SERVICES.items())))
     write("deploy/release/README.md", RELEASE_README)
     write("deploy/caddy/Caddyfile", """# 只有 portal 对外：访客页面、后台和接口都经它代理到各服务。
 # 部署相关的定制（例如放在 Cloudflare 后面：源站证书、只放行 Cloudflare 回源、取真实访客 IP）

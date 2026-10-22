@@ -1,6 +1,7 @@
 stages:
   - generate
   - build
+  - release
 
 default:
   image: golang:1.25.5-bookworm
@@ -112,3 +113,35 @@ variables:
     expire_in: 7 days
     paths:
       - web-dist/
+
+# 推送 v* 标签时发版：在这里交叉编译、把 15 个服务的 amd64/arm64 镜像推到 ghcr.io、打发布包，再发布到 GitHub Releases。
+# 镜像用 crane 直接在仓库里组装，不需要 docker 守护进程，也不模拟 arm64。等 build 阶段的检查全部通过才运行。
+# 需要在 GitLab 的 CI/CD 变量里设置 GITHUB_TOKEN（GitHub 令牌：仓库内容可写 + 可写 packages，设为 masked）；标签要同时推到 GitHub。
+发版:
+  stage: release
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  dependencies:
+    - 生成与格式
+    - 前端构建与类型检查
+  variables:
+    GITHUB_USER: uniseem
+  cache:
+    key: go1255-release
+    paths:
+      - .cache/
+  script:
+    - if test -s generated.patch; then git apply generated.patch; fi
+    - test -f web-dist/index.html
+    - test -n "${GITHUB_TOKEN:-}" || { echo "缺少 CI/CD 变量 GITHUB_TOKEN"; exit 1; }
+    - GOBIN="$CI_PROJECT_DIR/.cache/bin" go install github.com/google/go-containerregistry/cmd/crane@v0.20.6
+    - export PATH="$CI_PROJECT_DIR/.cache/bin:$PATH"
+    - printf '%s' "$GITHUB_TOKEN" | crane auth login ghcr.io -u "$GITHUB_USER" --password-stdin
+    - scripts/release.sh build "$CI_COMMIT_TAG"
+    - scripts/release.sh images "$CI_COMMIT_TAG"
+    - scripts/release.sh package "$CI_COMMIT_TAG"
+    - scripts/release.sh publish "$CI_COMMIT_TAG"
+  artifacts:
+    expire_in: 30 days
+    paths:
+      - dist/
