@@ -1,12 +1,13 @@
-import { ArrowRotateLeft, ArrowUpRightFromSquare, ChevronRight, CircleCheck, CircleExclamation, ClockArrowRotateLeft, Ellipsis, Eye, FolderArrowRight, Gear, Lock, PaperPlane, TrashBin, ArrowUturnCcwLeft as Withdraw } from '@gravity-ui/icons';
+import { ArrowRotateLeft, ArrowsExpandHorizontal, ArrowUpRightFromSquare, ChevronRight, CircleCheck, CircleExclamation, ClockArrowRotateLeft, Ellipsis, Eye, FolderArrowRight, Gear, Lock, PaperPlane, TrashBin, ArrowUturnCcwLeft as Withdraw } from '@gravity-ui/icons';
 import { Button, Chip, Dropdown, Label, Separator, Spinner } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import type { Editor as TiptapEditor } from '@tiptap/react';
-import { api, ApiError, confirmAction, errorText, fmtDateTime, fmtRelative, fmtTime, newKey, notify, Notice, setNavigationGuard, useHasGrant, t } from '@ui';
+import { api, ApiError, confirmAction, errorText, fmtDateTime, fmtRelative, fmtTime, newKey, notify, Notice, setNavigationGuard, useHasGrant, useStoredState, t } from '@ui';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { fromBody, toBody, type JSONNode } from './convert';
 import { HistoryDrawer, MoveDialog, PublishDialog, SettingsDialog } from './dialogs';
 import { Editor } from './editor/Editor';
+import { WordCount } from './editor/WordCount';
 import { PreviewDialog } from './PreviewDialog';
 import { ancestors, type Draft, type DraftRead, type HistoryEntry, type Lease, type Meta } from './types';
 
@@ -53,6 +54,8 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
   const timers = useRef<{ save?: number; heartbeat?: number }>({});
   const saving = useRef<Promise<boolean> | null>(null);
   const editorRef = useRef<TiptapEditor | null>(null);
+  // 编辑区宽度是本机偏好（宽表格、多栏时更好用），不影响公开页。
+  const [wide, setWide] = useStoredState('nw-editor-wide', false);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const editingTitle = useRef(false);
   const cancelTitle = useRef(false);
@@ -381,7 +384,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
   // 草稿正文与线上版本一致（且没有待保存的输入）时，无需再发布。
   const upToDate = meta.state === 'published' && (save.kind === 'idle' || save.kind === 'saved') && draftHash === meta.publishedReference?.contentHash;
   const trail = ancestors(docs, documentId);
-  const header = (
+  const header = (editor: TiptapEditor) => (
     <div className="mb-8">
       {conflict && (
         <Notice className="mb-6" status="danger" title={t('这篇文档在别处保存了更新的内容')}>
@@ -423,6 +426,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
           </a>
         ) : <span>{meta.pathSegment ? t('页面路径 /{0}，发布后生效', meta.pathSegment) : t('首次发布时设置页面路径')}</span>}
         {meta.lastPublishedAt && <span title={fmtDateTime(meta.lastPublishedAt)}>{t('最后发布于 {0}', fmtRelative(meta.lastPublishedAt))}</span>}
+        <WordCount editor={editor} />
         {/* 标题属于元数据，不走草稿：已发布文档改标题后公开页立即更新。 */}
         {titleFocus && meta.state === 'published' && <span className="text-warning">{t('已发布文档的标题修改后会立即更新公开页')}</span>}
       </div>
@@ -461,6 +465,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
                 onAction={(key: Key) => {
                   if (key === 'open' && link) window.open(link, '_blank', 'noopener');
                   if (key === 'settings') setDialog('settings');
+                  if (key === 'wide') setWide((value) => !value);
                   if (key === 'move') setDialog('move');
                   if (key === 'history') setDialog('history');
                   if (key === 'withdraw') void withdraw();
@@ -471,6 +476,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
                 {link ? <Dropdown.Item id="open" textValue={t('查看公开页')}><ArrowUpRightFromSquare className="size-4 text-muted" /><Label>{t('查看公开页')}</Label></Dropdown.Item> : null}
                 <Dropdown.Item id="settings" textValue={t('页面设置')}><Gear className="size-4 text-muted" /><Label>{t('页面设置')}</Label></Dropdown.Item>
                 <Dropdown.Item id="move" textValue={t('移动到')}><FolderArrowRight className="size-4 text-muted" /><Label>{t('移动到…')}</Label></Dropdown.Item>
+                <Dropdown.Item id="wide" textValue={wide ? t('标准宽度') : t('加宽编辑区')}><ArrowsExpandHorizontal className="size-4 text-muted" /><Label>{wide ? t('标准宽度') : t('加宽编辑区')}</Label></Dropdown.Item>
                 {canPublish ? <Dropdown.Item id="history" textValue={t('发布历史')}><ClockArrowRotateLeft className="size-4 text-muted" /><Label>{t('发布历史')}</Label></Dropdown.Item> : null}
                 {canPublish && meta.state === 'published' && !upToDate ? <Dropdown.Item id="discard" textValue={t('放弃未发布的修改')}><ArrowRotateLeft className="size-4 text-muted" /><Label>{t('放弃未发布的修改')}</Label></Dropdown.Item> : null}
                 {canPublish && meta.state === 'published' ? <Dropdown.Item id="withdraw" textValue={t('撤回发布')}><Withdraw className="size-4 text-muted" /><Label>{t('撤回发布')}</Label></Dropdown.Item> : null}
@@ -480,7 +486,7 @@ export function DocumentEditor({ documentId, docs, treeRevision, fresh, leading,
           </Dropdown>
         </div>
       </header>
-      <Editor doc={initial} docs={docs} documentId={documentId} editable={writable} editorRef={editorRef} header={header} toolbar={lock !== 'readonly'} onChange={onChange} />
+      <Editor doc={initial} docs={docs} documentId={documentId} editable={writable} editorRef={editorRef} header={header} toolbar={lock !== 'readonly'} wide={wide} onChange={onChange} />
       {previewURL && <PreviewDialog title={title.trim() || meta.title} url={previewURL} onClose={() => setPreviewURL(null)} />}
       {dialog === 'publish' && <PublishDialog docs={docs} meta={meta} draftRevisionId={publishDraft} onClose={() => setDialog(null)} onPublish={async (path, seo) => { if (await publish(path, seo)) setDialog(null); }} />}
       {dialog === 'settings' && <SettingsDialog meta={meta} onClose={() => setDialog(null)} onSaved={async () => { await refreshMeta(); setDialog(null); }} />}

@@ -47,6 +47,22 @@
   "id": "Rumus matematika LaTeX",
   "ar": "معادلة رياضية LaTeX"
  },
+ "{0} 字": {
+  "zh-Hant": "{0} 字",
+  "en": "{0} words",
+  "ja": "{0} 文字",
+  "ko": "{0}자",
+  "fr": "{0} mots",
+  "de": "{0} Wörter",
+  "es": "{0} palabras",
+  "pt": "{0} palavras",
+  "ru": "Слов: {0}",
+  "it": "{0} parole",
+  "vi": "{0} từ",
+  "th": "{0} คำ",
+  "id": "{0} kata",
+  "ar": "{0} كلمة"
+ },
  "{0} 尚未保存的修改可能会丢失。只在对方确实已经离开时使用。": {
   "zh-Hant": "{0} 尚未儲存的修改可能會遺失。只在對方確實已離開時使用。",
   "en": "{0}'s unsaved changes may be lost. Only do this if they've really left.",
@@ -974,6 +990,22 @@
   "th": "ลบตาราง",
   "id": "Hapus tabel",
   "ar": "حذف الجدول"
+ },
+ "加宽编辑区": {
+  "zh-Hant": "加寬編輯區",
+  "en": "Wide editor",
+  "ja": "編集エリアを広げる",
+  "ko": "편집 영역 넓히기",
+  "fr": "Élargir l’éditeur",
+  "de": "Editor verbreitern",
+  "es": "Ampliar el editor",
+  "pt": "Ampliar o editor",
+  "ru": "Широкий редактор",
+  "it": "Allarga l’editor",
+  "vi": "Mở rộng vùng soạn thảo",
+  "th": "ขยายพื้นที่แก้ไข",
+  "id": "Lebarkan editor",
+  "ar": "توسيع منطقة التحرير"
  },
  "加粗": {
   "zh-Hant": "粗體",
@@ -3246,6 +3278,22 @@
   "th": "ดูหน้าสาธารณะ",
   "id": "Lihat halaman publik",
   "ar": "عرض الصفحة العامة"
+ },
+ "标准宽度": {
+  "zh-Hant": "標準寬度",
+  "en": "Standard width",
+  "ja": "標準の幅",
+  "ko": "기본 너비",
+  "fr": "Largeur standard",
+  "de": "Standardbreite",
+  "es": "Ancho estándar",
+  "pt": "Largura padrão",
+  "ru": "Обычная ширина",
+  "it": "Larghezza standard",
+  "vi": "Độ rộng tiêu chuẩn",
+  "th": "ความกว้างมาตรฐาน",
+  "id": "Lebar standar",
+  "ar": "العرض القياسي"
  },
  "标题 2": {
   "zh-Hant": "標題 2",

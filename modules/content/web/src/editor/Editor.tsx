@@ -14,6 +14,7 @@ import { internalHref, type JSONNode } from '../convert';
 import type { Meta } from '../types';
 import { Attachment, Callout, Column, Columns, jsonAttr, MathBlock } from './blocks';
 import { BlockHandle } from './BlockHandle';
+import { SelectionMenu } from './SelectionMenu';
 import { filterCommands, insertBlock, type BlockCommand, type EditorActions } from './commands';
 import { Drawing } from './drawing';
 import { DrawingDialog, type DrawingAttrs } from './DrawingDialog';
@@ -67,13 +68,14 @@ export function documentExtensions(): Extensions {
 type Slash = { left: number; top: number; query: string };
 
 // 编辑区：吸顶工具栏 + 居中正文（header 放在正文上方，如标题）+ 宽屏时右侧大纲；滚动容器在这里。
-export function Editor({ doc, docs, documentId, editable, toolbar, header, editorRef: exposed, onChange }: {
+export function Editor({ doc, docs, documentId, editable, toolbar, header, wide = false, editorRef: exposed, onChange }: {
   doc: JSONNode;
   docs: Meta[];
   documentId: string;
   editable: boolean;
   toolbar: boolean;
-  header?: ReactNode;
+  header?: ReactNode | ((editor: TiptapEditor) => ReactNode);
+  wide?: boolean;
   editorRef?: MutableRefObject<TiptapEditor | null>;
   onChange: (doc: JSONNode) => void;
 }) {
@@ -238,10 +240,11 @@ export function Editor({ doc, docs, documentId, editable, toolbar, header, edito
         </div>
       )}
       <div className="flex justify-center gap-10 px-5 sm:px-10">
-        <div ref={wrapper} className="relative w-full min-w-0 max-w-3xl pb-40 pt-10">
-          {header}
+        <div ref={wrapper} className={cn('relative w-full min-w-0 pb-40 pt-10', wide ? 'max-w-5xl' : 'max-w-3xl')}>
+          {typeof header === 'function' ? header(editor) : header}
           <EditorContent editor={editor} />
           {editable && <BlockHandle editor={editor} host={wrapper} />}
+          {editable && <SelectionMenu actions={actions} editor={editor} />}
           {slash && items.length > 0 && (
             <div className="absolute z-30 w-72 overflow-hidden rounded-2xl border border-border bg-overlay p-1.5 shadow-overlay" role="listbox" aria-label={t('插入块')} style={{ left: Math.max(0, Math.min(slash.left, (wrapper.current?.clientWidth ?? 600) - 296)), top: slash.top }}>
               <ScrollShadow className="max-h-80">

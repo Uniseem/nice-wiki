@@ -253,7 +253,7 @@ function Tool({ label, shortcut, isDisabled, onPress, children }: { label: strin
   );
 }
 
-function Toggle({ label, shortcut, isDisabled, isSelected, onPress, children }: { label: string; shortcut?: string; isDisabled?: boolean; isSelected: boolean; onPress: () => void; children: ReactNode }) {
+export function Toggle({ label, shortcut, isDisabled, isSelected, onPress, children }: { label: string; shortcut?: string; isDisabled?: boolean; isSelected: boolean; onPress: () => void; children: ReactNode }) {
   return (
     <Tooltip delay={400}>
       <ToggleButton isIconOnly aria-label={label} isDisabled={isDisabled} isSelected={isSelected} size="sm" variant="ghost" onPress={onPress}>{children}</ToggleButton>
