@@ -751,21 +751,21 @@
   "id": "Aktifkan pencadangan otomatis",
   "ar": "تشغيل النسخ التلقائي"
  },
- "当前浏览器不支持流式保存大文件，请使用 Chrome 或 Edge。": {
-  "zh-Hant": "目前瀏覽器不支援串流儲存大型檔案，請使用 Chrome 或 Edge。",
-  "en": "This browser can't stream large files to disk. Please use Chrome or Edge.",
-  "ja": "このブラウザは大きなファイルのストリーム保存に対応していません。Chrome または Edge を使ってください。",
-  "ko": "이 브라우저는 큰 파일의 스트리밍 저장을 지원하지 않습니다. Chrome 또는 Edge를 사용하세요.",
-  "fr": "Ce navigateur ne peut pas enregistrer de gros fichiers en flux. Utilisez Chrome ou Edge.",
-  "de": "Dieser Browser kann große Dateien nicht per Stream speichern. Bitte Chrome oder Edge verwenden.",
-  "es": "Este navegador no puede guardar archivos grandes en flujo. Usa Chrome o Edge.",
-  "pt": "Este navegador não salva arquivos grandes por streaming. Use Chrome ou Edge.",
-  "ru": "Этот браузер не умеет сохранять большие файлы потоком. Используйте Chrome или Edge.",
-  "it": "Questo browser non può salvare file grandi in streaming. Usa Chrome o Edge.",
-  "vi": "Trình duyệt này không hỗ trợ lưu tệp lớn theo luồng. Hãy dùng Chrome hoặc Edge.",
-  "th": "เบราว์เซอร์นี้บันทึกไฟล์ขนาดใหญ่แบบสตรีมไม่ได้ โปรดใช้ Chrome หรือ Edge",
-  "id": "Browser ini tidak dapat menyimpan berkas besar secara streaming. Gunakan Chrome atau Edge.",
-  "ar": "لا يدعم هذا المتصفح حفظ الملفات الكبيرة بالتدفق، استخدم Chrome أو Edge."
+ "当前浏览器不支持边下边存，备份会先完整读入内存再保存；很大的备份建议用 Chrome 或 Edge 下载。": {
+  "zh-Hant": "目前瀏覽器不支援邊下邊存，備份會先完整讀入記憶體再儲存；很大的備份建議用 Chrome 或 Edge 下載。",
+  "en": "This browser can’t stream downloads to disk, so the backup is loaded into memory first and then saved. For very large backups, use Chrome or Edge.",
+  "ja": "このブラウザはディスクへの逐次保存に対応していないため、バックアップをいったんメモリに読み込んでから保存します。非常に大きなバックアップは Chrome か Edge で取得してください。",
+  "ko": "이 브라우저는 디스크에 바로 저장하는 다운로드를 지원하지 않아 백업을 메모리에 모두 읽은 뒤 저장합니다. 매우 큰 백업은 Chrome이나 Edge로 받으세요.",
+  "fr": "Ce navigateur ne peut pas écrire le téléchargement au fil de l’eau : la sauvegarde est d’abord chargée en mémoire puis enregistrée. Pour les très grosses sauvegardes, utilisez Chrome ou Edge.",
+  "de": "Dieser Browser kann Downloads nicht direkt auf die Festplatte streamen; die Sicherung wird erst in den Speicher geladen und dann gespeichert. Für sehr große Sicherungen Chrome oder Edge verwenden.",
+  "es": "Este navegador no puede guardar la descarga mientras se transfiere: la copia se carga primero en memoria y luego se guarda. Para copias muy grandes, usa Chrome o Edge.",
+  "pt": "Este navegador não grava o download enquanto baixa: o backup é carregado na memória antes de ser salvo. Para backups muito grandes, use Chrome ou Edge.",
+  "ru": "Этот браузер не умеет сохранять загрузку на диск по ходу, поэтому копия сначала целиком загружается в память. Для очень больших копий используйте Chrome или Edge.",
+  "it": "Questo browser non salva il download man mano: il backup viene caricato prima in memoria e poi salvato. Per backup molto grandi usa Chrome o Edge.",
+  "vi": "Trình duyệt này không lưu trực tiếp khi tải, bản sao lưu sẽ được đọc hết vào bộ nhớ rồi mới lưu; bản sao lưu rất lớn nên tải bằng Chrome hoặc Edge.",
+  "th": "เบราว์เซอร์นี้บันทึกลงดิสก์ระหว่างดาวน์โหลดไม่ได้ จะโหลดข้อมูลสำรองเข้าหน่วยความจำทั้งหมดก่อนแล้วจึงบันทึก ข้อมูลสำรองขนาดใหญ่มากแนะนำให้ใช้ Chrome หรือ Edge",
+  "id": "Peramban ini tidak bisa menyimpan unduhan sambil berjalan, jadi cadangan dimuat dulu ke memori lalu disimpan. Untuk cadangan yang sangat besar, gunakan Chrome atau Edge.",
+  "ar": "لا يدعم هذا المتصفح الحفظ أثناء التنزيل، لذا تُحمَّل النسخة الاحتياطية في الذاكرة أولًا ثم تُحفظ. للنسخ الكبيرة جدًا استخدم Chrome أو Edge."
  },
  "恢复会替换全站数据，需要在服务器上停服务后进行，目前不能在后台直接恢复。": {
   "zh-Hant": "還原會取代全站資料，需要在伺服器上停止服務後進行，目前無法在後台直接還原。",

@@ -165,18 +165,26 @@ function DownloadDialog({ backup, onClose }: { backup: Backup; onClose: () => vo
   const tooShort = passphrase !== '' && passphrase.length < 12;
   const picker = (window as Window & { showSaveFilePicker?: (options: { suggestedName: string }) => Promise<{ createWritable(): Promise<WritableStream<Uint8Array>> }> }).showSaveFilePicker;
 
+  // 支持文件流保存的浏览器（Chrome、Edge）边下边写盘；其他浏览器（Safari、Firefox）先整包读进内存再按普通下载保存。
   const download = async () => {
-    if (!picker) return;
     setBusy(true);
     let output: WritableStream<Uint8Array> | undefined;
     try {
-      const handle = await picker.call(window, { suggestedName: `backup-${backup.backupId}.tar.gz${passphrase ? '.enc' : ''}` });
+      const name = `backup-${backup.backupId}.tar.gz${passphrase ? '.enc' : ''}`;
+      const handle = picker ? await picker.call(window, { suggestedName: name }) : null;
       const authorization = await api<components['schemas']['AuthorizeBackupDownloadResult']>(`/v1/backups/${encodeURIComponent(backup.backupId)}:download`, { method: 'POST', body: {}, idempotencyKey: newKey() });
       const response = await api<Response>(`/v1/backups/${encodeURIComponent(backup.backupId)}/download`, { responseType: 'stream', backupDownloadToken: authorization.downloadToken, backupPassphrase: passphrase || undefined });
       if (!response.ok || !response.body) throw new Error(t('备份数据流不可用'));
-      output = await handle.createWritable();
-      await response.body.pipeTo(output);
-      output = undefined;
+      if (handle) {
+        output = await handle.createWritable();
+        await response.body.pipeTo(output);
+        output = undefined;
+      } else {
+        const url = URL.createObjectURL(await response.blob());
+        const link = Object.assign(document.createElement('a'), { href: url, download: name });
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
       notify.success(t('备份已保存'), passphrase ? t('已用口令加密，请妥善保管口令。') : t('请妥善保管。'));
       onClose();
     } catch (problem) {
@@ -193,7 +201,7 @@ function DownloadDialog({ backup, onClose }: { backup: Backup; onClose: () => vo
           <Modal.Header><Modal.Heading>{t('下载备份')}</Modal.Heading></Modal.Header>
           <Modal.Body className="flex flex-col gap-4">
             <Details items={[[t('创建时间'), fmtDateTime(manifest.createdAt)], [t('大小'), fmtBytes(manifest.byteSize)], [t('含密钥'), required ? t('是') : t('否')]]} />
-            {!picker && <Notice status="warning">{t('当前浏览器不支持流式保存大文件，请使用 Chrome 或 Edge。')}</Notice>}
+            {!picker && <Notice status="default">{t('当前浏览器不支持边下边存，备份会先完整读入内存再保存；很大的备份建议用 Chrome 或 Edge 下载。')}</Notice>}
             <TextInput
               autoComplete="new-password"
               description={<>{t('可选；{0}至少 12 个字符。解密：', required ? t('这份备份含密钥，必须设口令。') : '')}<Mono>openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000</Mono></>}
@@ -217,7 +225,7 @@ function DownloadDialog({ backup, onClose }: { backup: Backup; onClose: () => vo
           </Modal.Body>
           <Modal.Footer>
             <Button variant="tertiary" onPress={onClose}>{t('取消')}</Button>
-            <Button isDisabled={!picker || tooShort || (required && !passphrase)} isPending={busy} onPress={download}><ArrowDownToLine />{t('选择位置并下载')}</Button>
+            <Button isDisabled={tooShort || (required && !passphrase)} isPending={busy} onPress={download}><ArrowDownToLine />{picker ? t('选择位置并下载') : t('下载')}</Button>
           </Modal.Footer>
         </Modal.Dialog>
       </Modal.Container>
