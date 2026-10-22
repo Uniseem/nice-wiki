@@ -1219,7 +1219,10 @@ export interface components {
         };
         /** @description Tiptap paragraph节点 */
         ParagraphBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "paragraph";
             /** @description 完整块属性 */
             attrs: {
@@ -1231,7 +1234,10 @@ export interface components {
         };
         /** @description Tiptap heading节点 */
         HeadingBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "heading";
             /** @description 完整块属性 */
             attrs: {
@@ -1248,7 +1254,10 @@ export interface components {
         };
         /** @description Tiptap blockquote节点 */
         QuoteBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "blockquote";
             /** @description 完整块属性 */
             attrs: {
@@ -1260,7 +1269,10 @@ export interface components {
         };
         /** @description Tiptap horizontalRule节点 */
         DividerBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "horizontalRule";
             /** @description 完整块属性 */
             attrs: {
@@ -1282,7 +1294,10 @@ export interface components {
         };
         /** @description Tiptap bulletList节点 */
         BulletListBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "bulletList";
             /** @description 完整块属性 */
             attrs: {
@@ -1294,7 +1309,10 @@ export interface components {
         };
         /** @description Tiptap orderedList节点 */
         OrderedListBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "orderedList";
             /** @description 完整块属性 */
             attrs: {
@@ -1322,7 +1340,10 @@ export interface components {
         };
         /** @description Tiptap taskList节点 */
         TaskListBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "taskList";
             /** @description 完整块属性 */
             attrs: {
@@ -1369,7 +1390,10 @@ export interface components {
         };
         /** @description Tiptap table节点 */
         TableBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "table";
             /** @description 完整块属性 */
             attrs: {
@@ -1381,7 +1405,10 @@ export interface components {
         };
         /** @description Tiptap codeBlock节点 */
         CodeBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "codeBlock";
             /** @description 完整块属性 */
             attrs: {
@@ -1400,7 +1427,10 @@ export interface components {
         };
         /** @description Tiptap mathBlock节点 */
         MathBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "mathBlock";
             /** @description 完整块属性 */
             attrs: {
@@ -1412,7 +1442,10 @@ export interface components {
         };
         /** @description Tiptap callout节点 */
         CalloutBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "callout";
             /** @description 完整块属性 */
             attrs: {
@@ -1429,7 +1462,10 @@ export interface components {
         };
         /** @description Tiptap image节点 */
         ImageBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "image";
             /** @description 完整块属性 */
             attrs: {
@@ -1451,7 +1487,10 @@ export interface components {
         };
         /** @description Tiptap attachment节点 */
         AttachmentBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "attachment";
             /** @description 完整块属性 */
             attrs: {
@@ -1464,7 +1503,10 @@ export interface components {
         };
         /** @description Tiptap drawing节点 */
         DrawingBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "drawing";
             /** @description 完整块属性 */
             attrs: {
@@ -1531,7 +1573,10 @@ export interface components {
         };
         /** @description Tiptap video节点 */
         VideoBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "video";
             /** @description 完整块属性 */
             attrs: {
@@ -1563,7 +1608,10 @@ export interface components {
         };
         /** @description Tiptap columns节点 */
         ColumnsBlock: {
-            /** @constant */
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
             type: "columns";
             /** @description 完整块属性 */
             attrs: {

@@ -331,20 +331,24 @@ def bundle_spec(spec_path, initial=None):
         schemas[final] = rewrite(defs[name], target)
         return final
 
+    def rewrite_ref(ref, base):
+        if ref.startswith("#/components/") or ref.startswith(("http://", "https://")):
+            return ref
+        if ref.startswith("#"):
+            return "#/components/schemas/" + register(base, ref.rstrip("/").split("/")[-1])
+        file_part, _, pointer = ref.partition("#")
+        target = (base.parent / file_part).resolve()
+        return "#/components/schemas/" + register(target, pointer.rstrip("/").split("/")[-1])
+
     def rewrite(node, base):
         if isinstance(node, dict):
             ref = node.get("$ref")
             if isinstance(ref, str):
-                if ref.startswith("#/components/"):
-                    pass
-                elif ref.startswith("#"):
-                    name = ref.rstrip("/").split("/")[-1]
-                    node["$ref"] = "#/components/schemas/" + register(base, name)
-                elif not ref.startswith(("http://", "https://")):
-                    file_part, _, pointer = ref.partition("#")
-                    target = (base.parent / file_part).resolve()
-                    name = pointer.rstrip("/").split("/")[-1]
-                    node["$ref"] = "#/components/schemas/" + register(target, name)
+                node["$ref"] = rewrite_ref(ref, base)
+            # oneOf 的 discriminator 映射与分支 $ref 同步改写，校验器才能按判别字段只校验对应分支。
+            discriminator = node.get("discriminator")
+            if isinstance(discriminator, dict) and isinstance(discriminator.get("mapping"), dict):
+                discriminator["mapping"] = {key: rewrite_ref(value, base) for key, value in discriminator["mapping"].items()}
             for key in list(node):
                 rewrite(node[key], base)
         elif isinstance(node, list):

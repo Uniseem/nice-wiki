@@ -1484,7 +1484,28 @@
           "description": "ColumnsBlock"
         }
       ],
-      "description": "16类Tiptap块完整联合体；schema版本在DocumentBody，不含未知attrs/原始HTML"
+      "description": "16类Tiptap块完整联合体；schema版本在DocumentBody，不含未知attrs/原始HTML",
+      "discriminator": {
+        "propertyName": "type",
+        "mapping": {
+          "paragraph": "#/$defs/ParagraphBlock",
+          "heading": "#/$defs/HeadingBlock",
+          "blockquote": "#/$defs/QuoteBlock",
+          "horizontalRule": "#/$defs/DividerBlock",
+          "bulletList": "#/$defs/BulletListBlock",
+          "orderedList": "#/$defs/OrderedListBlock",
+          "taskList": "#/$defs/TaskListBlock",
+          "table": "#/$defs/TableBlock",
+          "codeBlock": "#/$defs/CodeBlock",
+          "mathBlock": "#/$defs/MathBlock",
+          "callout": "#/$defs/CalloutBlock",
+          "image": "#/$defs/ImageBlock",
+          "attachment": "#/$defs/AttachmentBlock",
+          "drawing": "#/$defs/DrawingBlock",
+          "video": "#/$defs/VideoBlock",
+          "columns": "#/$defs/ColumnsBlock"
+        }
+      }
     },
     "DocumentBody": {
       "type": "object",
