@@ -2015,6 +2015,22 @@
   "id": "Tips",
   "ar": "تلميح"
  },
+ "拖动以移动，点击选中整块": {
+  "zh-Hant": "拖曳以移動，點擊選取整塊",
+  "en": "Drag to move, click to select the block",
+  "ja": "ドラッグで移動、クリックでブロックを選択",
+  "ko": "끌어서 이동, 클릭하면 블록 전체 선택",
+  "fr": "Glisser pour déplacer, cliquer pour sélectionner le bloc",
+  "de": "Ziehen zum Verschieben, klicken zum Auswählen des Blocks",
+  "es": "Arrastra para mover, haz clic para seleccionar el bloque",
+  "pt": "Arraste para mover, clique para selecionar o bloco",
+  "ru": "Перетащите, чтобы переместить; щёлкните, чтобы выделить блок",
+  "it": "Trascina per spostare, fai clic per selezionare il blocco",
+  "vi": "Kéo để di chuyển, bấm để chọn cả khối",
+  "th": "ลากเพื่อย้าย คลิกเพื่อเลือกทั้งบล็อก",
+  "id": "Seret untuk memindahkan, klik untuk memilih blok",
+  "ar": "اسحب للنقل، وانقر لتحديد الكتلة"
+ },
  "拖动文档可以调整顺序和层级。": {
   "zh-Hant": "拖曳文件可以調整順序和層級。",
   "en": "Drag documents to reorder or nest them.",

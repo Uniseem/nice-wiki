@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, ty
 import { internalHref, type JSONNode } from '../convert';
 import type { Meta } from '../types';
 import { Attachment, Callout, Column, Columns, jsonAttr, MathBlock } from './blocks';
+import { BlockHandle } from './BlockHandle';
 import { filterCommands, type BlockCommand, type EditorActions } from './commands';
 import { Drawing } from './drawing';
 import { DrawingDialog, type DrawingAttrs } from './DrawingDialog';
@@ -233,6 +234,7 @@ export function Editor({ doc, docs, documentId, editable, toolbar, header, edito
         <div ref={wrapper} className="relative w-full min-w-0 max-w-3xl pb-40 pt-10">
           {header}
           <EditorContent editor={editor} />
+          {editable && <BlockHandle editor={editor} host={wrapper} />}
           {slash && items.length > 0 && (
             <div className="absolute z-30 w-72 overflow-hidden rounded-2xl border border-border bg-overlay p-1.5 shadow-overlay" role="listbox" aria-label={t('插入块')} style={{ left: Math.max(0, Math.min(slash.left, (wrapper.current?.clientWidth ?? 600) - 296)), top: slash.top }}>
               <ScrollShadow className="max-h-80">
