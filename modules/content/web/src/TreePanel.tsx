@@ -103,9 +103,11 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
   // 拖动：落在一行的上沿/下沿表示放到它前面/后面，落在中间表示成为它的最后一个子文档；不能拖进自己的子树。
   const banned = useMemo(() => dragging ? subtree(docs, dragging) : new Set<string>(), [docs, dragging]);
   const dragOver = (event: DragEvent<HTMLElement>, doc: Meta | null) => {
-    if (!dragging || (doc && banned.has(doc.documentId))) return;
-    event.preventDefault();
+    if (!dragging) return;
     event.stopPropagation();
+    // 自己或自己的子文档上不能放：不接收，也不让外层当成“放到顶层”。
+    if (doc && banned.has(doc.documentId)) { if (drop) setDrop(null); return; }
+    event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     let position: Drop['position'] = 'inside';
     if (doc) {
@@ -123,7 +125,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
     const target = drop;
     setDragging(null);
     setDrop(null);
-    if (!source || !target) return;
+    if (!source || !target || target.id !== (doc?.documentId ?? null)) return;
     if (!doc) { void move(source, null, null); return; }
     if (target.position === 'inside') { void move(source, doc.documentId, null); return; }
     const parentId = doc.parentId ?? null;
