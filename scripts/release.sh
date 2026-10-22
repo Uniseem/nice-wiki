@@ -28,14 +28,20 @@ mktar() {
 
 case "$step" in
 build)
-	# 32 个程序互不依赖：按 CPU 数并行编译（共用 Go 构建缓存），任一失败整步失败。
+	# 32 个程序互不依赖，但共用大量依赖（platform、SQLite 等）：每种架构先编一个服务，把共用依赖放进构建缓存，
+	# 再按 CPU 数并行编其余的。直接全部并行时每个进程都会各自重编一遍共用依赖，反而更慢。任一失败整步失败。
 	export ROOT="$PWD"
+	one='cd "$ROOT/${1%/cmd/*}" && CGO_ENABLED=0 GOOS=linux GOARCH="$0" go build -trimpath -ldflags "-s -w" -o "$ROOT/release/linux-$0/${1##*/}" "./cmd/${1##*/}"'
+	first=modules/content/cmd/content
 	for arch in $arches; do
 		mkdir -p "release/linux-$arch"
+		echo "$arch $first"
+	done | xargs -P 2 -n 2 sh -c "$one"
+	for arch in $arches; do
 		for cmd in modules/*/cmd/* libs/platform/cmd/nw-keys; do
-			echo "$arch $cmd"
+			[ "$cmd" = "$first" ] || echo "$arch $cmd"
 		done
-	done | xargs -P "$(getconf _NPROCESSORS_ONLN)" -n 2 sh -c 'cd "${1%/cmd/*}" && CGO_ENABLED=0 GOOS=linux GOARCH="$0" go build -trimpath -ldflags "-s -w" -o "$ROOT/release/linux-$0/${1##*/}" "./cmd/${1##*/}"'
+	done | xargs -P "$(getconf _NPROCESSORS_ONLN)" -n 2 sh -c "$one"
 	;;
 images)
 	# 镜像 = alpine 基础层 + 程序文件层（root 所有）+ 数据目录层（服务 uid 所有）；规格见 deploy/release/images.tsv。
