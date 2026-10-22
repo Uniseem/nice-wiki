@@ -1,4 +1,4 @@
-import { LayoutSideContentLeft } from '@gravity-ui/icons';
+import { FolderTree } from '@gravity-ui/icons';
 import { Button, Drawer } from '@heroui/react';
 import { api, confirmLeave, ErrorBlock, errorText, notify, useSearch, useStoredState, t } from '@ui';
 import { useCallback, useEffect, useState } from 'react';
@@ -72,9 +72,9 @@ export default function ContentPage() {
   // 宽屏切换侧边文档树，窄屏打开抽屉。
   const toggle = (
     <>
-      <Button isIconOnly aria-label={t('文档列表')} className="md:hidden" size="sm" variant="ghost" onPress={() => setListOpen(true)}><LayoutSideContentLeft className="rtl:-scale-x-100" /></Button>
+      <Button isIconOnly aria-label={t('文档列表')} className="md:hidden" size="sm" variant="ghost" onPress={() => setListOpen(true)}><FolderTree className="rtl:-scale-x-100" /></Button>
       <Button isIconOnly aria-label={treeOpen ? t('收起文档树') : t('展开文档树')} className="hidden md:inline-flex" size="sm" variant="ghost" onPress={() => setTreeOpen((value) => !value)}>
-        <LayoutSideContentLeft className="rtl:-scale-x-100" />
+        <FolderTree className="rtl:-scale-x-100" />
       </Button>
     </>
   );
