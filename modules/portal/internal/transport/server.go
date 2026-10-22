@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -140,10 +141,21 @@ func (a *Application) MountWeb(dir string) {
 		files.ServeHTTP(w, r)
 	})
 	// 公开页的样式表、交互岛脚本和 KaTeX：前端构建产出在 site/ 子目录。
-	site := http.StripPrefix("/_site/", http.FileServer(http.Dir(filepath.Join(dir, "site"))))
+	// 公开页按 /_site/v/<版本>/site.js 引用（版本随发版变化），去掉版本段后是同一批文件，可以长期缓存。
+	site := http.FileServer(http.Dir(filepath.Join(dir, "site")))
 	mux.HandleFunc("GET /_site/", func(w http.ResponseWriter, r *http.Request) {
+		name := strings.TrimPrefix(r.URL.Path, "/_site/")
 		w.Header().Set("Cache-Control", "no-cache")
-		site.ServeHTTP(w, r)
+		if rest, ok := strings.CutPrefix(name, "v/"); ok {
+			if _, file, found := strings.Cut(rest, "/"); found {
+				name = file
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			}
+		}
+		request := r.Clone(r.Context())
+		request.URL.Path = "/" + name
+		request.URL.RawPath = ""
+		site.ServeHTTP(w, request)
 	})
 	// worker-src 放行 blob：登录页的人机验证在 blob 创建的 Web Worker 里算工作量证明。
 	shell := func(w http.ResponseWriter, r *http.Request) {

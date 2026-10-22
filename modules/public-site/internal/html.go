@@ -25,7 +25,8 @@ var templateFS embed.FS
 var pageTemplates = template.Must(template.New("").Funcs(template.FuncMap{"asset": assetURL}).ParseFS(templateFS, "templates/*.html"))
 
 // assetVersion 区分每次发版的前端产物：/_site/ 下的 site.css、site.js 文件名固定，CDN 和浏览器会按 URL 缓存几个小时，
-// 带上版本参数后升级立刻生效。取二进制里嵌入的提交号（发版时每个服务都重新编译），没有时用启动时间。
+// 地址里带上版本段（/_site/v/<版本>/site.js，portal 去掉版本段再找文件）后升级立刻生效。版本放在路径里而不是查询参数：
+// 懒加载块按相对路径引用 site.js，查询参数会让同一个模块按两个地址各加载一次。取二进制里嵌入的提交号（发版时每个服务都重新编译），没有时用启动时间。
 var assetVersion = func() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
@@ -37,7 +38,7 @@ var assetVersion = func() string {
 	return strconv.FormatInt(time.Now().Unix(), 36)
 }()
 
-func assetURL(name string) string { return "/_site/" + name + "?v=" + assetVersion }
+func assetURL(name string) string { return "/_site/v/" + assetVersion + "/" + name }
 
 type ComposeHTMLInput struct {
 	SafeHTML      string

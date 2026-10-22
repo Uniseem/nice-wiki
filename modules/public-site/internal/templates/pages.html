@@ -116,8 +116,8 @@
   </section>
   {{if .Sections}}<section class="mx-auto w-full max-w-[1200px] px-4 py-16 sm:px-6">
     <h2 class="text-2xl font-semibold tracking-tight text-foreground">{{.T "文档"}}</h2>
-    <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{{range .Sections}}
-      <a class="card card--default group/card gap-2 p-5 transition-shadow hover:shadow-overlay" href="{{.URL}}">
+    <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{{range .Sections}}
+      <a class="card card--default group/card min-w-0 gap-2 p-5 transition-shadow hover:shadow-overlay" href="{{.URL}}">
         <span class="flex items-center justify-between gap-3"><span class="text-base font-semibold text-foreground group-hover/card:text-accent">{{.Title}}</span><span class="text-muted transition-transform group-hover/card:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover/card:-translate-x-0.5" aria-hidden="true">→</span></span>
         {{if .Children}}<span class="flex flex-col gap-1 text-sm text-muted">{{range .Children}}<span class="truncate">{{.}}</span>{{end}}</span>{{end}}
       </a>{{end}}

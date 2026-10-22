@@ -6,7 +6,9 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 // 公开页的样式表与交互岛：输出到 web-dist/site（或 NW_WEB_OUT/site），portal 以 /_site/ 提供。
-// 文件名固定（site.css / site.js），Go 输出的页面直接引用；拆出的懒加载块带哈希。
+// 文件名固定（site.css / site.js），Go 输出的页面按 /_site/v/<提交号>/site.js 引用（portal 去掉版本段再找文件），
+// 升级后 CDN 和浏览器缓存立即失效；拆出的懒加载块带哈希。base 用相对路径，懒加载块和预加载都相对 site.js 解析，
+// 保证整张模块图都在同一个带版本的路径下（混用带版本与不带版本的地址会加载出两份 React）。
 const here = fileURLToPath(new URL('.', import.meta.url));
 const root = resolve(here, '../../..');
 const out = resolve(process.env.NW_WEB_OUT ? resolve(process.env.NW_WEB_OUT) : resolve(root, 'web-dist'), 'site');
@@ -23,7 +25,7 @@ const katexAssets = () => ({
 
 export default defineConfig({
   root: here,
-  base: '/_site/',
+  base: './',
   publicDir: false,
   plugins: [react(), tailwindcss(), katexAssets()],
   resolve: {
