@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 126 个函数：约束 33 个，参考 93 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 127 个函数：约束 34 个，参考 93 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -4635,3 +4635,41 @@ export default function AnalyticsPage(): React.JSX.Element
 - 并发：单页面实例；切换页面时取消未完成的读取
 - 幂等：写操作带 Idempotency-Key 与版本前提
 - 依赖：无
+
+## analytics.ReadJobRecovery
+
+- 级别：约束
+- 文件：`modules/analytics/internal/job_recovery.go`
+- 作用：只jobs服务核原聚合任务输入及失效租约后给safeToRetry/pending真实证明
+
+```go
+func ReadJobRecovery(ctx context.Context,op OperationContext,input ReadJobRecoveryInput)(ReadJobRecoveryResult,error)
+```
+
+**输入**
+
+无
+
+**输出**
+
+无
+
+**步骤**
+
+1. 仅jobs纯服务、本站当前代次；path/body jobId一致，owner固定analytics
+2. 按inputRef.objectId读原聚合任务行，核inputRef、root、jobId与原登记一致，缺行或不一致为INTEGRITY_ERROR
+3. 本地镜像租约仍有效返回pending；聚合按水位重算整段、无付费调用，否则返回safeToRetry，paidResultRefs为空数组
+
+**错误**
+
+- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
+- `VALIDATION` / HTTP 400：（不可重试）
+- `FORBIDDEN` / HTTP 403：（不可重试）
+- `STALE_RESULT` / HTTP 409：（不可重试）
+- `INTERNAL` / HTTP 500：（不可重试）
+
+- 副作用：无
+- 授权：permission：service；rule：仅jobs纯服务、本站同代；path/body jobId相同，input.owner固定analytics
+- 并发：只读固定快照
+- 幂等：只读，同输入同证明
+- 依赖：`analytics.runtimeFrom`

@@ -83,6 +83,9 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	}
 	callers["ingestTrustedBeacon"] = []string{"portal"}
 	services["ingestTrustedBeacon"] = callers["ingestTrustedBeacon"]
+	callers["readJobRecovery"] = []string{"jobs"}
+	services["readJobRecovery"] = callers["readJobRecovery"]
+	maintenance["readJobRecovery"] = true
 	callers["recordCrawlerAccess"] = []string{"public-site"}
 	services["recordCrawlerAccess"] = callers["recordCrawlerAccess"]
 	callers["appendAudit"] = []string{"identity", "site-config", "jobs", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "analytics", "data-protection", "portal"}
@@ -363,6 +366,28 @@ func (s *server) IngestTrustedBeacon(w http.ResponseWriter, r *http.Request, par
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// ReadJobRecovery 只供 jobs 读取原聚合任务的恢复证明。
+func (s *server) ReadJobRecovery(w http.ResponseWriter, r *http.Request, jobId gen.Identifier) {
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	var input analytics.ReadJobRecoveryInput
+	if json.NewDecoder(r.Body).Decode(&input) != nil || input.JobID != string(jobId) {
+		writeProblem(w, r, platform.NewError(platform.CodeValidation, false, "恢复路径与原任务不一致"))
+		return
+	}
+	result, err := analytics.ReadJobRecovery(analytics.WithRuntime(r.Context(), s.app.storage), op, input)
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (s *server) DiscardSnapshot(w http.ResponseWriter, r *http.Request, params gen.DiscardSnapshotParams) {

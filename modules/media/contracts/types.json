@@ -5916,6 +5916,12 @@
       "required": [
         "plans"
       ]
+    },
+    "ReadJobRecoveryInput": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryRequest"
+    },
+    "ReadJobRecoveryResult": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryResult"
     }
   }
 }

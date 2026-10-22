@@ -8549,6 +8549,71 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/media/internal/job_recovery.go",
+      "kind": "handwritten",
+      "purpose": "只jobs服务核原清理批准与任务绑定后给completed/safeToRetry真实证明",
+      "functions": [
+        {
+          "id": "media.ReadJobRecovery",
+          "name": "ReadJobRecovery",
+          "signature": "func ReadJobRecovery(ctx context.Context,op OperationContext,input ReadJobRecoveryInput)(ReadJobRecoveryResult,error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "只jobs服务核原清理批准与任务绑定后给completed/safeToRetry真实证明",
+          "steps": [
+            "仅jobs纯服务、本站当前代次；path/body jobId一致，owner固定media",
+            "按inputRef.objectId读原人工批准，核任务输入引用、root与原waiting回执jobId精确绑定",
+            "已有完整删除结果返回completed；否则原执行决定可续做或尚未决定，返回safeToRetry；无付费调用，paidResultRefs为空数组"
+          ],
+          "errors": [
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "service",
+            "rule": "仅jobs纯服务、本站同代；path/body jobId相同，input.owner固定media"
+          },
+          "concurrency": "只读固定快照",
+          "idempotency": "只读，同输入同证明",
+          "dependencies": [
+            "media.loadCleanupApproval",
+            "media.readCleanupExecution"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
     }
   ],
   "jobTypes": [

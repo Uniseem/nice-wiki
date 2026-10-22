@@ -7723,7 +7723,9 @@
             "jobs.TickSchedules",
             "jobs.registerActivation",
             "jobs.restoreOpenedDataEpoch",
+            "analytics:readJobRecovery",
             "knowledge:readJobRecovery",
+            "media:readJobRecovery",
             "platform.ApplyRestoreSwap",
             "platform.NewIdentityAuthorizer",
             "platform.NewRequestValidator",
@@ -10084,7 +10086,9 @@
           "concurrency": "沿已有单连接短事务与当前运行窗口；HTTP每请求独立绑定",
           "idempotency": "显式延迟属于去重材料，原成功不重新分配时刻",
           "dependencies": [
+            "analytics:readJobRecovery",
             "knowledge:readJobRecovery",
+            "media:readJobRecovery",
             "site-config:readSiteConfig",
             "platform.NewPayloadValidator"
           ],

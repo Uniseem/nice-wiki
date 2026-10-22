@@ -38,5 +38,6 @@
 | POST `/v1/snapshots:stage` | `stageSnapshot` | `media.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `media.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `media.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
+| POST `/v1/jobs/{jobId}/recovery` | `readJobRecovery` | `media.ReadJobRecovery` | `service` | `ReadJobRecoveryInput` → 200 `ReadJobRecoveryResult` | 读取原资源清理任务恢复证明 | `HTTP default` |
 <!-- openapi:end -->
 

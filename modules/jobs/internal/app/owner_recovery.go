@@ -46,15 +46,23 @@ func NewOwnerRecoveryChecker(config platform.ServiceConfig, key platform.Signing
 	if err != nil {
 		return nil, err
 	}
-	var knowledge *gen.KnowledgeClient
-	if config.Dependencies["knowledge"] != "" {
-		knowledge = gen.NewKnowledgeClient(config.Dependencies["knowledge"], ModuleSlug, key)
+	// 各任务所属服务提供同一形状的恢复证明接口（结果都是公共 OwnerRecoveryResult）。
+	owners := map[string]func(context.Context, string, any) (json.RawMessage, error){}
+	if url := config.Dependencies["knowledge"]; url != "" {
+		owners["knowledge"] = gen.NewKnowledgeClient(url, ModuleSlug, key).ReadJobRecovery
+	}
+	if url := config.Dependencies["analytics"]; url != "" {
+		owners["analytics"] = gen.NewAnalyticsClient(url, ModuleSlug, key).ReadJobRecovery
+	}
+	if url := config.Dependencies["media"]; url != "" {
+		owners["media"] = gen.NewMediaClient(url, ModuleSlug, key).ReadJobRecovery
 	}
 	return func(ctx context.Context, original platform.OperationContext, input jobs.OwnerRecoveryRequest) (jobs.OwnerRecoveryResult, error) {
 		// 管理员人工重试时 ctx 带着其委托证明；恢复证明只以 jobs 服务身份读取。
 		ctx = platform.WithPortalProof(ctx, "")
 		result := jobs.OwnerRecoveryResult{Status: "unknown", PaidResultRefs: []string{}}
-		if knowledge == nil || input.Owner != "knowledge" {
+		readRecovery := owners[input.Owner]
+		if readRecovery == nil {
 			return result, platform.NewError(platform.CodeDependencyUnavailable, true, "任务所属域恢复读取尚未装配")
 		}
 		if input.DataEpoch != original.DataEpoch {
@@ -76,7 +84,7 @@ func NewOwnerRecoveryChecker(config platform.ServiceConfig, key platform.Signing
 		id := platform.NewIdentifier()
 		expires := deadline.UTC().Format(time.RFC3339Nano)
 		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: input.RootOperationID, CallerService: ModuleSlug, DataEpoch: input.DataEpoch, Deadline: expires, Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: currentSiteID, ExpiresAt: expires}}
-		raw, err := knowledge.ReadJobRecovery(platform.WithOperationContext(work, op), input.JobID, input)
+		raw, err := readRecovery(platform.WithOperationContext(work, op), input.JobID, input)
 		if err != nil {
 			return result, err
 		}

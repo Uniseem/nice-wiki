@@ -419,6 +419,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/jobs/{jobId}/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 读取原统计聚合任务恢复证明
+         * @description 仅jobs纯服务。path/body jobId一致；核原输入/root/epoch/fence；聚合按水位重算整段幂等，本地租约过期即可安全重排。
+         */
+        post: operations["readJobRecovery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -998,6 +1018,29 @@ export interface components {
             /** @description RFC3339 UTC 时间；不含 null */
             to: components["schemas"]["Timestamp"];
         };
+        /** @description jobs从自己持久任务与失效租约读取，只读owner恢复证明；不得浏览器自报或新建dedupeKey绕过孤立。 */
+        OwnerRecoveryRequest: {
+            jobId: components["schemas"]["Identifier"];
+            /** @enum {string} */
+            owner: "memory" | "qa" | "knowledge" | "public-site" | "data-protection" | "localization" | "analytics" | "media";
+            type: string;
+            inputRef: components["schemas"]["ObjectRef"];
+            rootOperationId: components["schemas"]["Identifier"];
+            dataEpoch: components["schemas"]["Identifier"];
+            expiredFence: number;
+            workerId: "" | components["schemas"]["Identifier"];
+            attempt: number;
+            cancelRequested: boolean;
+        };
+        ReadJobRecoveryInput: components["schemas"]["OwnerRecoveryRequest"];
+        /** @description owner以精确inputRef/root/epoch/fence/attempt匹配原持久事实；不能证明安全则pending/unknown。completed只交原结果，safeToRetry必须能复用原hash/checkpoint/付费结果且无未决派发费用；未知绝不作0或重算。 */
+        OwnerRecoveryResult: {
+            /** @enum {string} */
+            status: "completed" | "safeToRetry" | "pending" | "unknown";
+            resultRef?: components["schemas"]["ObjectRef"];
+            paidResultRefs: components["schemas"]["Identifier"][];
+        };
+        ReadJobRecoveryResult: components["schemas"]["OwnerRecoveryResult"];
         /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
         "common.schema_AssetVersionRef": {
             /** @description 逻辑资源ID */
@@ -2635,6 +2678,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    readJobRecovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadJobRecoveryInput"];
+            };
+        };
+        responses: {
+            /** @description 真实原任务证明，paidResultRefs始终为完整数组 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadJobRecoveryResult"];
+                };
+            };
+            /** @description 公共Problem */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
         };
     };

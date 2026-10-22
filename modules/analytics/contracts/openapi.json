@@ -1794,6 +1794,63 @@
         },
         "x-internal-only": true
       }
+    },
+    "/v1/jobs/{jobId}/recovery": {
+      "post": {
+        "operationId": "readJobRecovery",
+        "summary": "读取原统计聚合任务恢复证明",
+        "x-handler": "analytics.ReadJobRecovery",
+        "x-permission": "service",
+        "x-timeout-ms": 5000,
+        "description": "仅jobs纯服务。path/body jobId一致；核原输入/root/epoch/fence；聚合按水位重算整段幂等，本地租约过期即可安全重排。",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/ReadJobRecoveryInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "真实原任务证明，paidResultRefs始终为完整数组",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ReadJobRecoveryResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
