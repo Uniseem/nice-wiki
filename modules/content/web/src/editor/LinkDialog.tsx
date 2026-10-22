@@ -21,6 +21,7 @@ export function LinkDialog({ docs, currentId, initial, editing, onSubmit, onRemo
   const [query, setQuery] = useState(initial.href);
   const [picked, setPicked] = useState<string | null>(initial.documentId);
   const [index, setIndex] = useState(0);
+  const [stepped, setStepped] = useState(false);
   const isURL = external.test(query.trim());
   const matches = useMemo(() => {
     if (isURL) return [];
@@ -33,8 +34,10 @@ export function LinkDialog({ docs, currentId, initial, editing, onSubmit, onRemo
   const target = docs.find((doc) => doc.documentId === picked);
   const invalid = query.trim() !== '' && !isURL && !matches.length && !target;
 
+  // 什么都没输入时只能点列表里的文档或保留原目标，回车不会随手链到列表第一篇。
+  const typed = query.trim() !== '' || stepped;
   const submit = (doc?: Meta) => {
-    const chosen = doc ?? (isURL ? undefined : matches[index] ?? target);
+    const chosen = doc ?? (isURL ? undefined : typed ? matches[index] : target);
     if (isURL) onSubmit({ kind: 'external', href: query.trim() });
     else if (chosen) onSubmit({ kind: 'internal', documentId: chosen.documentId, title: chosen.title });
   };
@@ -53,8 +56,8 @@ export function LinkDialog({ docs, currentId, initial, editing, onSubmit, onRemo
                 placeholder={t('粘贴 https:// 地址，或输入标题搜索站内文档')}
                 variant="secondary"
                 onKeyDown={(event) => {
-                  if (event.key === 'ArrowDown' && matches.length) { event.preventDefault(); setIndex((value) => (value + 1) % matches.length); }
-                  if (event.key === 'ArrowUp' && matches.length) { event.preventDefault(); setIndex((value) => (value + matches.length - 1) % matches.length); }
+                  if (event.key === 'ArrowDown' && matches.length) { event.preventDefault(); setStepped(true); setIndex((value) => (value + 1) % matches.length); }
+                  if (event.key === 'ArrowUp' && matches.length) { event.preventDefault(); setStepped(true); setIndex((value) => (value + matches.length - 1) % matches.length); }
                   if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); submit(); }
                 }}
               />
@@ -90,7 +93,7 @@ export function LinkDialog({ docs, currentId, initial, editing, onSubmit, onRemo
           <Modal.Footer>
             {editing && <Button className="me-auto" variant="danger-soft" onPress={onRemove}>{t('移除链接')}</Button>}
             <Button variant="tertiary" onPress={onClose}>{t('取消')}</Button>
-            <Button isDisabled={!isURL && !matches[index] && !target} onPress={() => submit()}>{t('确定')}</Button>
+            <Button isDisabled={!isURL && !(typed ? matches[index] : target)} onPress={() => submit()}>{t('确定')}</Button>
           </Modal.Footer>
         </Modal.Dialog>
       </Modal.Container>
