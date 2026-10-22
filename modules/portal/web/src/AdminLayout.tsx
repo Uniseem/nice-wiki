@@ -105,7 +105,8 @@ function Navigation({ pages: items, current, compact = false, onNavigate }: { pa
   return (
     <nav ref={nav} aria-label={t('后台页面')} className={cn('flex flex-col pt-2', compact ? 'gap-2' : 'gap-4')}>
       {sections.map((section) => {
-        const group = items.filter((page) => page.navigation && page.section === section);
+        // 必须先改口令时只剩“个人设置”一页（它平时不在导航里），也显示出来，免得侧栏空着。
+        const group = items.filter((page) => (page.navigation || items.length === 1) && page.section === section);
         if (!group.length) return null;
         return (
           <div key={section || 'top'} className="flex flex-col gap-0.5">
