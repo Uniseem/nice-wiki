@@ -69,9 +69,9 @@ export function LinkDialog({ docs, currentId, initial, editing, onSubmit, onRemo
                 {matches.map((doc, position) => {
                   const trail = ancestors(docs, doc.documentId).map((item) => item.title).join(' / ');
                   return (
-                    <li key={doc.documentId} aria-selected={position === index} role="option">
+                    <li key={doc.documentId} aria-selected={position === index && (typed || !!target)} role="option">
                       <button
-                        className={cn('flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-start transition-colors', position === index ? 'bg-default' : 'hover:bg-default/60')}
+                        className={cn('flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-start transition-colors', position === index && (typed || target) ? 'bg-default' : 'hover:bg-default/60')}
                         type="button"
                         onClick={() => submit(doc)}
                         onMouseEnter={() => setIndex(position)}
