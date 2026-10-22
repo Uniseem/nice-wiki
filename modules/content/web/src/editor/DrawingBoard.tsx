@@ -36,11 +36,13 @@ function cleanSvg(svg: SVGSVGElement, dark: boolean): string {
 }
 
 export type BoardResult = { scene: string; lightSVG: string; darkSVG: string };
-export type BoardHandle = { snapshot(): Promise<BoardResult | null> };
+export type BoardHandle = { snapshot(): Promise<BoardResult | null>; changed(): boolean };
 type Scene = { elements?: any[]; appState?: { viewBackgroundColor?: string }; files?: Record<string, any> } | null;
 
 export default function DrawingBoard({ initial, onReady }: { initial: Scene; onReady: (handle: BoardHandle) => void }) {
   const apiRef = useRef<any>(null);
+  // 元素版本号之和：第一次 onChange（载入初始场景）记为基准，之后不同就是改过。
+  const versions = useRef<{ base: number | null; latest: number }>({ base: null, latest: 0 });
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
@@ -59,13 +61,21 @@ export default function DrawingBoard({ initial, onReady }: { initial: Scene; onR
         }), dark);
         return { scene: JSON.stringify(scene), lightSVG: await svg(false), darkSVG: await svg(true) };
       },
+      changed: () => versions.current.base !== null && versions.current.latest !== versions.current.base,
     });
   }, [onReady]);
 
   const data = initial ? { elements: initial.elements ?? [], appState: { viewBackgroundColor: initial.appState?.viewBackgroundColor ?? '#ffffff' }, files: initial.files ?? {} } : undefined;
   return (
     <div className="h-full w-full">
-      <Excalidraw excalidrawAPI={(api: any) => { apiRef.current = api; }} initialData={data as any} langCode={excalidrawLanguages[adminLanguage()] ?? 'en'} theme={resolvedTheme === 'dark' ? 'dark' : 'light'} />
+      <Excalidraw
+        excalidrawAPI={(api: any) => { apiRef.current = api; }}
+        initialData={data as any}
+        onChange={(elements: readonly any[]) => {
+          const sum = elements.reduce((total, element) => total + (element.version ?? 0), 0);
+          if (versions.current.base === null) versions.current.base = sum;
+          versions.current.latest = sum;
+        }} langCode={excalidrawLanguages[adminLanguage()] ?? 'en'} theme={resolvedTheme === 'dark' ? 'dark' : 'light'} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Brush } from '@gravity-ui/icons';
 import { Button, Modal, Spinner } from '@heroui/react';
-import { assetURL, errorText, uploadAsset, type AssetRef, t } from '@ui';
+import { assetURL, confirmAction, errorText, uploadAsset, type AssetRef, t } from '@ui';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { BoardHandle } from './DrawingBoard';
 
@@ -22,6 +22,12 @@ export function DrawingDialog({ initial, onSave, onClose }: { initial: DrawingAt
     if (!initial) { setScene(null); return; }
     fetch(assetURL(initial.scene)).then((response) => response.json()).then(setScene).catch((problem) => { setError(t('画板读取失败：{0}', errorText(problem))); setScene(null); });
   }, [initial]);
+
+  // 画过东西还没插入就关闭时先确认，免得误点“取消”丢掉整幅画。
+  async function close() {
+    if (board.current?.changed() && !(await confirmAction({ title: t('放弃这次绘制？'), body: t('还没有插入到文档，关闭后这些修改会丢失。'), confirmLabel: t('放弃并关闭'), tone: 'danger' }))) return;
+    onClose();
+  }
 
   async function save() {
     if (!board.current || busy) return;
@@ -50,7 +56,7 @@ export function DrawingDialog({ initial, onSave, onClose }: { initial: DrawingAt
             <strong className="text-sm font-semibold">{t('画板')}</strong>
             {error && <span className="text-sm text-danger">{error}</span>}
             <span className="flex-1" />
-            <Button isDisabled={busy} size="sm" variant="tertiary" onPress={onClose}>{t('取消')}</Button>
+            <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => void close()}>{t('取消')}</Button>
             <Button isPending={busy} size="sm" onPress={save}>{busy ? <Spinner color="current" size="sm" /> : null}{t('完成并插入')}</Button>
           </div>
           <div className="drawing-host min-h-0 flex-1">

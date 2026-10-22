@@ -2415,6 +2415,22 @@
   "id": "Buang perubahan dan keluar",
   "ar": "تجاهل التغييرات والمغادرة"
  },
+ "放弃并关闭": {
+  "zh-Hant": "放棄並關閉",
+  "en": "Discard and close",
+  "ja": "破棄して閉じる",
+  "ko": "버리고 닫기",
+  "fr": "Abandonner et fermer",
+  "de": "Verwerfen und schließen",
+  "es": "Descartar y cerrar",
+  "pt": "Descartar e fechar",
+  "ru": "Отменить и закрыть",
+  "it": "Scarta e chiudi",
+  "vi": "Bỏ và đóng",
+  "th": "ละทิ้งและปิด",
+  "id": "Buang dan tutup",
+  "ar": "تجاهل وإغلاق"
+ },
  "放弃未发布的修改": {
   "zh-Hant": "放棄未發布的修改",
   "en": "Discard unpublished changes",
@@ -2446,6 +2462,22 @@
   "th": "ละทิ้งการแก้ไขที่ยังไม่เผยแพร่ใช่ไหม",
   "id": "Buang perubahan yang belum terbit?",
   "ar": "تجاهل التغييرات غير المنشورة؟"
+ },
+ "放弃这次绘制？": {
+  "zh-Hant": "放棄這次繪製？",
+  "en": "Discard this drawing?",
+  "ja": "この描画を破棄しますか？",
+  "ko": "이번 그림을 버릴까요?",
+  "fr": "Abandonner ce dessin ?",
+  "de": "Diese Zeichnung verwerfen?",
+  "es": "¿Descartar este dibujo?",
+  "pt": "Descartar este desenho?",
+  "ru": "Отменить этот рисунок?",
+  "it": "Scartare questo disegno?",
+  "vi": "Bỏ bản vẽ này?",
+  "th": "ละทิ้งภาพวาดนี้ใช่ไหม",
+  "id": "Buang gambar ini?",
+  "ar": "تجاهل هذا الرسم؟"
  },
  "文本": {
   "zh-Hant": "文字",
@@ -4126,6 +4158,22 @@
   "th": "ยังไม่เคยเผยแพร่ พาธจะกำหนดเมื่อเผยแพร่ครั้งแรก หรือจะกรอกไว้ก่อนก็ได้",
   "id": "Belum terbit: jalur ditetapkan saat pertama terbit, tetapi bisa diisi sekarang.",
   "ar": "لم يُنشر بعد: يُحدد المسار عند النشر الأول، ويمكنك تعبئته الآن."
+ },
+ "还没有插入到文档，关闭后这些修改会丢失。": {
+  "zh-Hant": "還沒有插入到文件，關閉後這些修改會遺失。",
+  "en": "It hasn’t been inserted into the document yet. Closing will lose these changes.",
+  "ja": "まだドキュメントに挿入されていません。閉じるとこの変更は失われます。",
+  "ko": "아직 문서에 삽입하지 않았습니다. 닫으면 변경 사항이 사라집니다.",
+  "fr": "Il n’a pas encore été inséré dans le document. Fermer fera perdre ces modifications.",
+  "de": "Noch nicht ins Dokument eingefügt. Beim Schließen gehen die Änderungen verloren.",
+  "es": "Aún no se ha insertado en el documento. Si cierras, se perderán estos cambios.",
+  "pt": "Ainda não foi inserido no documento. Fechar vai perder estas alterações.",
+  "ru": "Рисунок ещё не вставлен в документ. При закрытии изменения пропадут.",
+  "it": "Non è ancora stato inserito nel documento. Chiudendo perderai queste modifiche.",
+  "vi": "Chưa chèn vào tài liệu, đóng lại sẽ mất các thay đổi này.",
+  "th": "ยังไม่ได้แทรกลงในเอกสาร ปิดแล้วการแก้ไขเหล่านี้จะหายไป",
+  "id": "Belum disisipkan ke dokumen. Menutup akan menghilangkan perubahan ini.",
+  "ar": "لم يُدرج في المستند بعد. سيؤدي الإغلاق إلى فقدان هذه التغييرات."
  },
  "还没有文档": {
   "zh-Hant": "還沒有文件",
