@@ -53,8 +53,12 @@
   /* 提示框：左侧按类型显示图标（SVG 蒙版，颜色跟随主题）。 */
   /* 问答回答（访客问答与后台调试台）的排版比正文紧凑一些。 */
   .nw-prose.nw-answer { @apply text-sm leading-6; }
-  .nw-prose.nw-answer :is(p, ul, ol, pre) { @apply my-2; }
+  .nw-prose.nw-answer :is(p, ul, ol, pre, blockquote, .overflow-x-auto) { @apply my-2; }
+  .nw-prose.nw-answer > :first-child { @apply mt-0; }
+  .nw-prose.nw-answer > :last-child { @apply mb-0; }
+  .nw-prose.nw-answer li > :is(p, ul, ol, pre) { @apply my-1; }
   .nw-prose.nw-answer pre { @apply p-3 text-xs; }
+  .nw-prose.nw-answer table { @apply text-xs; }
 
   /* 问答回答里的引用编号（上标，点击跳到对应段落）。 */
   .nw-prose sup .nw-cite { @apply ms-0.5 rounded px-1 font-medium text-accent no-underline hover:bg-accent-soft; }

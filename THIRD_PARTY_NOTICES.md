@@ -16,6 +16,7 @@
   - tailwindcss、@tailwindcss/vite 4.3.3（MIT，Copyright Tailwind Labs, Inc.）与 tw-animate-css 1.4.0（MIT）：样式构建。
   - @gravity-ui/icons 2.22.0（MIT，Copyright (c) 2022 YANDEX LLC）：界面图标，来源 https://github.com/gravity-ui/icons 。
   - Tiptap 3.32.0（MIT，Copyright Tiptap GmbH）：@tiptap/core、react、starter-kit、extensions、extension-link、extension-table、extension-task-list、extension-task-item、extension-highlight、pm；文档编辑器。
+  - react-markdown 10.1.0（MIT，Copyright (c) Espen Hovlandsdal）与 remark-gfm 4.0.1（MIT，Copyright (c) Titus Wormer）：公开页 AI 问答回答的 Markdown 渲染（含表格），不渲染 HTML，来源 https://github.com/remarkjs/react-markdown 、https://github.com/remarkjs/remark-gfm 。
   - vite 7.3.7、@vitejs/plugin-react 5.2.0（MIT）与 typescript 6.0.3（Apache-2.0，Microsoft）：构建与类型检查，只在构建时使用。
 
 OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设计提及Go/Vue等技术不代表已安装依赖；实施前逐项确认版本、许可、版权与复制范围，新增借用项目取得用户确认，再记录到本文件。GPL代码只参考，不复制；Docmost社区版编辑器扩展是唯一例外（AGENTS与ADR0005）。
