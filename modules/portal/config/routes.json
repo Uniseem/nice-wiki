@@ -1222,6 +1222,16 @@
       "streaming": false
     },
     {
+      "method": "GET",
+      "path": "/v1/documents/{documentId}/history/{historyId}",
+      "owner": "content",
+      "operationId": "readHistoricalRevision",
+      "permission": "content.publish",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
       "method": "POST",
       "path": "/v1/documents/{documentId}/history:diff",
       "owner": "content",

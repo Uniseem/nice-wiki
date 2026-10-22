@@ -420,6 +420,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/documents/{documentId}/history/{historyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 查看某次发布的正文
+         * @description 调用函数 content.ReadHistoricalRevision；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
+         */
+        get: operations["readHistoricalRevision"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/documents/{documentId}/history:diff": {
         parameters: {
             query?: never;
@@ -1853,6 +1873,13 @@ export interface components {
             history: components["schemas"]["HistoryEntry"][];
             /** @description PageInfo */
             pageInfo: components["schemas"]["PageInfo"];
+        };
+        /** @description 读取某次发布历史正文的结果 */
+        ReadHistoricalRevisionResult: {
+            /** @description HistoryEntry */
+            entry: components["schemas"]["HistoryEntry"];
+            /** @description 那次发布的完整正文 */
+            body: components["schemas"]["DocumentBody"];
         };
         /** @description 按稳定块ID对比历史版本的结果 */
         DiffRevisionsResult: {
@@ -4159,6 +4186,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadRevisionHistoryResult"];
+                };
+            };
+            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND：资源不存在或在当前主体作用域中不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readHistoricalRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 路径中的documentId；合并到 handler input，不能跨站点 */
+                documentId: components["schemas"]["Identifier"];
+                /** @description 路径中的historyId；只能是本文档的发布历史 */
+                historyId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查看某次发布的正文的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadHistoricalRevisionResult"];
                 };
             };
             /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */

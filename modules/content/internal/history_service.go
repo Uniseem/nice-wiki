@@ -23,6 +23,11 @@ type DiffRevisionsInput struct {
 	RightRevisionId string `json:"rightRevisionId"`
 }
 type DiffRevisionsResult = gen.DiffRevisionsResult
+type ReadHistoricalRevisionInput struct {
+	DocumentId string `json:"documentId"`
+	HistoryId  string `json:"historyId"`
+}
+type ReadHistoricalRevisionResult = gen.ReadHistoricalRevisionResult
 type historyCursor struct {
 	Watermark int64 `json:"watermark"`
 	Offset    int   `json:"offset"`
@@ -126,6 +131,46 @@ func ReadRevisionHistory(ctx context.Context, op OperationContext, input ReadRev
 	}
 	return result, nil
 }
+
+// ReadHistoricalRevision 读取某条发布历史当时的正文，供后台查看历史版本、与当前版本对比；只读。
+func ReadHistoricalRevision(ctx context.Context, op OperationContext, input ReadHistoricalRevisionInput) (ReadHistoricalRevisionResult, error) {
+	runtime, err := treeRuntimeFromContext(ctx)
+	if err != nil {
+		return ReadHistoricalRevisionResult{}, err
+	}
+	if err = authorizeTree(ctx, op, runtime, "content.publish", "readHistoricalRevision"); err != nil {
+		return ReadHistoricalRevisionResult{}, err
+	}
+	var entry gen.HistoryEntry
+	var raw []byte
+	var when, mirror, operation string
+	var commit sql.NullString
+	err = runtime.Reference.Store.db.QueryRowContext(ctx, `SELECT history_id,reference_json,author_account_id,author_account_name,created_at,commit_mirror_state,git_commit_id,operation FROM publication_history WHERE site_id=? AND document_id=? AND history_id=?`, op.Actor.SiteID, input.DocumentId, input.HistoryId).
+		Scan(&entry.HistoryId, &raw, &entry.AuthorAccountId, &entry.AuthorAccountName, &when, &mirror, &commit, &operation)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ReadHistoricalRevisionResult{}, platform.NewError(platform.CodeNotFound, false, "指定发布历史不存在")
+	}
+	if err != nil {
+		return ReadHistoricalRevisionResult{}, contentStorageError()
+	}
+	if json.Unmarshal(raw, &entry.Reference) != nil || entry.Reference.DocumentId != input.DocumentId {
+		return ReadHistoricalRevisionResult{}, platform.NewError(platform.CodeIntegrityError, false, "原发布历史引用损坏")
+	}
+	if entry.CreatedAt, err = platform.ParseTimestamp(when); err != nil {
+		return ReadHistoricalRevisionResult{}, platform.NewError(platform.CodeIntegrityError, false, "原发布时间损坏")
+	}
+	entry.CommitMirrorState = gen.HistoryEntryCommitMirrorState(mirror)
+	entry.Operation = gen.HistoryEntryOperation(operation)
+	if commit.Valid {
+		entry.GitCommitId = &commit.String
+	}
+	body, err := readHistoricalBody(ctx, op, runtime, input.DocumentId, string(entry.Reference.PublishedRevisionId))
+	if err != nil {
+		return ReadHistoricalRevisionResult{}, err
+	}
+	return ReadHistoricalRevisionResult{Entry: entry, Body: body}, nil
+}
+
 func readHistoricalBody(ctx context.Context, op OperationContext, runtime TreeRuntime, documentID, publishedID string) (DocumentBody, error) {
 	tx, err := beginTreeRead(ctx, op, runtime)
 	if err != nil {

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 254 个函数：约束 44 个，参考 210 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 255 个函数：约束 45 个，参考 210 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -5456,6 +5456,48 @@ func DiffRevisions(ctx context.Context, op OperationContext, input DiffRevisions
 - 幂等：确定性
 - 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.beginTreeRead`、`content.ReadRevisionBody`、`content.readHistoricalBody`、`content.historyBlockMap`
 
+## content.ReadHistoricalRevision
+
+- 级别：约束
+- 文件：`modules/content/internal/history_service.go`
+- 作用：查看某次发布的正文，供后台查看历史版本与对比
+
+```go
+func ReadHistoricalRevision(ctx context.Context, op OperationContext, input ReadHistoricalRevisionInput) (ReadHistoricalRevisionResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `ReadHistoricalRevisionInput` | 查看某次发布的正文的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadHistoricalRevisionResult` | 查看某次发布的正文的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；NOT_FOUND: 资源不存在或在当前主体作用域中不可见；INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布 |
+
+**步骤**
+
+1. 当前content.publish授权，按真实site/doc读取该条发布历史与对应发布快照正文（同readHistoricalBody核对哈希与代次）。
+2. 只读，不改草稿与发布；历史条目不属于该文档时NOT_FOUND。
+
+**错误**
+
+- `FORBIDDEN`：主体没有所需操作权限，或站点/资源作用域不匹配（不可重试）
+- `NOT_FOUND`：资源不存在或在当前主体作用域中不可见（不可重试）
+- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
+
+- 副作用：无
+- 授权：content.publish
+- 并发：服务私有事务；检查 expectedRevision 或单调版本；恢复屏障期间拒绝业务写入
+- 幂等：只读
+- 依赖：`content.treeRuntimeFromContext`、`content.authorizeTree`、`content.readHistoricalBody`
+
 ## content.RollbackPublishedRevision
 
 - 级别：约束
@@ -6877,7 +6919,7 @@ func RegisterPublicationRoutes(app *Application, runtime TreeRuntime, anchors pl
 - 授权：受信启动装配；业务权限由发布入口或服务边界执行
 - 并发：装配时不持业务事务
 - 幂等：重复装配同一进程只注册一次路由表
-- 依赖：`content.PublishDocument`、`content.WithdrawDocument`、`content.ValidatePublications`、`content.ReadPublishedRevision`、`platform.NewServiceHandler`、`content.ReadPublicTree`、`content.ResolvePublicPath`、`content.ReadRevisionHistory`、`content.DiffRevisions`
+- 依赖：`content.PublishDocument`、`content.WithdrawDocument`、`content.ValidatePublications`、`content.ReadPublishedRevision`、`platform.NewServiceHandler`、`content.ReadPublicTree`、`content.ResolvePublicPath`、`content.ReadRevisionHistory`、`content.DiffRevisions`、`content.ReadHistoricalRevision`
 
 ## content.InvokeModel
 

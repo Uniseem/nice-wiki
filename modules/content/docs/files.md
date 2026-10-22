@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 59 个：手写 48、UI 1、生成 4、配置 6。函数 254 个：约束 44，参考 210。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 59 个：手写 48、UI 1、生成 4、配置 6。函数 255 个：约束 45，参考 210。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -27,7 +27,7 @@
 | `modules/content/internal/visibility_service.go` | 手写 | 同步核公开引用是否仍可见且当前 | `content.ValidatePublications`、`content.readPublicationSnapshot`（参考）、`content.validatePublicationRef`（参考） |
 | `modules/content/internal/publication_reader.go` | 手写 | 获取仍公开的精确正文快照 | `content.ReadPublishedRevision`、`content.loadVisiblePublication`（参考） |
 | `modules/content/internal/trash_service.go` | 手写 | 删除进回收站，可选旧URL替代跳转 | `content.TrashDocument`、`content.RestoreDocument`、`content.PurgeDocuments` |
-| `modules/content/internal/history_service.go` | 手写 | 查看署名发布/git版本历史 | `content.ReadRevisionHistory`、`content.DiffRevisions`、`content.RollbackPublishedRevision`、`content.readHistoricalBody`（参考）、`content.historyBlockMap`（参考） |
+| `modules/content/internal/history_service.go` | 手写 | 查看署名发布/git版本历史 | `content.ReadRevisionHistory`、`content.DiffRevisions`、`content.ReadHistoricalRevision`、`content.RollbackPublishedRevision`、`content.readHistoricalBody`（参考）、`content.historyBlockMap`（参考） |
 | `modules/content/internal/preview_service.go` | 手写 | 管理员预览草稿公开样式 | `content.CreatePreviewGrant`、`content.ValidatePreviewGrant` |
 | `modules/content/internal/reference_reader.go` | 手写 | 向资源库列出哪些文档引用文件 | `content.ListResourceReferences`、`content.NewReferenceRuntime`（参考）、`content.WithReferenceRuntime`（参考）、`content.referenceRuntimeFromContext`（参考）、`content.readReferenceCursor`（参考）、`content.validateReferenceCoverage`（参考）、`content.readReferenceSources`（参考）、`content.readPublicationReferences`（参考）、`content.readCommittedReferenceSource`（参考）、`content.referenceSortKey`（参考） |
 | `modules/content/internal/object_reader.go` | 手写 | 经对象API读取私有文件而不共享目录 | `content.ReadContentObject` |

@@ -6807,6 +6807,44 @@
         "pathSegment",
         "seoDescription"
       ]
+    },
+    "ReadHistoricalRevisionInput": {
+      "type": "object",
+      "description": "读取某次发布历史正文的输入",
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "文档"
+        },
+        "historyId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "发布历史条目"
+        }
+      },
+      "required": [
+        "documentId",
+        "historyId"
+      ]
+    },
+    "ReadHistoricalRevisionResult": {
+      "type": "object",
+      "description": "读取某次发布历史正文的结果",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/HistoryEntry",
+          "description": "HistoryEntry"
+        },
+        "body": {
+          "$ref": "#/$defs/DocumentBody",
+          "description": "那次发布的完整正文"
+        }
+      },
+      "required": [
+        "entry",
+        "body"
+      ]
     }
   }
 }

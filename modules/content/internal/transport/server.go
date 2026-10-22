@@ -405,7 +405,7 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 		"/v1/documents/{documentId}:withdraw":            true,
 		"/v1/publications:validate":                      true,
 		"/v1/public-tree":                                true, "/v1/public-path:resolve": true,
-		"/v1/documents/{documentId}/history": true, "/v1/documents/{documentId}/history:diff": true,
+		"/v1/documents/{documentId}/history": true, "/v1/documents/{documentId}/history/{historyId}": true, "/v1/documents/{documentId}/history:diff": true,
 		"/v1/documents/{documentId}/published": true,
 		"/v1/documents/{documentId}:trash":     true, "/v1/documents/{documentId}:restore": true, "/v1/trash:purge": true,
 	}
@@ -516,13 +516,24 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 			}
 			writeJSON(w, http.StatusOK, result)
 		}),
-		"diffRevisions": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		"readHistoricalRevision": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
-			var input content.DiffRevisionsInput
-			if json.NewDecoder(r.Body).Decode(&input) != nil || input.DocumentId != r.PathValue("documentId") {
-				writeProblem(w, platform.NewError(platform.CodeValidation, false, "历史对比路径与正文不一致"))
+			result, err := content.ReadHistoricalRevision(content.WithTreeRuntime(r.Context(), runtime), op, content.ReadHistoricalRevisionInput{DocumentId: r.PathValue("documentId"), HistoryId: r.PathValue("historyId")})
+			if err != nil {
+				writeProblem(w, err)
 				return
 			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"diffRevisions": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			// 请求体只有左右两个发布修订（schema 已校验），文档取自路径。
+			var input content.DiffRevisionsInput
+			if json.NewDecoder(r.Body).Decode(&input) != nil {
+				writeProblem(w, platform.NewError(platform.CodeValidation, false, "历史对比请求不可读"))
+				return
+			}
+			input.DocumentId = r.PathValue("documentId")
 			result, err := content.DiffRevisions(content.WithTreeRuntime(r.Context(), runtime), op, input)
 			if err != nil {
 				writeProblem(w, err)
@@ -581,7 +592,7 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 	}
 	authorize := func(ctx context.Context, op platform.OperationContext, permission, action string) error {
 		switch action {
-		case "content:publishDocument", "content:suggestPublicationMetadata", "content:withdrawDocument", "content:readRevisionHistory", "content:diffRevisions", "content:trashDocument", "content:restoreDocument", "content:purgeDocuments":
+		case "content:publishDocument", "content:suggestPublicationMetadata", "content:withdrawDocument", "content:readRevisionHistory", "content:readHistoricalRevision", "content:diffRevisions", "content:trashDocument", "content:restoreDocument", "content:purgeDocuments":
 			return nil
 		}
 		return platform.NewError(platform.CodeForbidden, false, "发布路由没有该操作的用户授权")
@@ -589,7 +600,7 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch), Authorize: authorize,
 		AllowedCallers: map[string][]string{
 			"publishDocument": {"portal"}, "suggestPublicationMetadata": {"portal"},
-			"readRevisionHistory": {"portal"}, "diffRevisions": {"portal"},
+			"readRevisionHistory": {"portal"}, "readHistoricalRevision": {"portal"}, "diffRevisions": {"portal"},
 			"withdrawDocument": {"portal"}, "trashDocument": {"portal"}, "restoreDocument": {"portal"}, "purgeDocuments": {"portal"},
 			"validatePublications": {"public-site", "knowledge", "qa", "localization", "site-config", "memory"},
 			"readPublicTree":       {"public-site", "knowledge", "qa", "localization", "site-config", "memory"}, "resolvePublicPath": {"public-site", "knowledge", "qa", "localization", "site-config", "memory"},
@@ -608,6 +619,7 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 	app.router.Handle("POST", "/v1/publications:validate", handler)
 	app.router.Handle("GET", "/v1/documents/{documentId}/published", handler)
 	app.router.Handle("GET", "/v1/documents/{documentId}/history", handler)
+	app.router.Handle("GET", "/v1/documents/{documentId}/history/{historyId}", handler)
 	app.router.Handle("POST", "/v1/documents/{documentId}/history:diff", handler)
 	app.router.Handle("GET", "/v1/public-tree", handler)
 	app.router.Handle("GET", "/v1/public-path:resolve", handler)
