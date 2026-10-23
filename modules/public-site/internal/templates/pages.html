@@ -74,15 +74,17 @@
         {{if .Updated}}<span class="ms-auto text-xs text-muted">{{.T "最后更新"}} <time datetime="{{.UpdatedISO}}">{{.Updated}}</time></span>{{end}}
       </div>{{end}}
       {{if or .Previous .Next}}<nav class="mt-8 grid gap-4 sm:grid-cols-2" aria-label="{{.T "相邻文档"}}">
-        {{with .Previous}}<a class="card card--default group/nb gap-1 p-4 transition-colors hover:bg-surface-secondary" href="{{.URL}}"><span class="text-xs text-muted"><span class="inline-block rtl:-scale-x-100" aria-hidden="true">←</span> {{$.T "上一篇"}}</span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{else}}<span class="hidden sm:block"></span>{{end}}
-        {{with .Next}}<a class="card card--default group/nb items-end gap-1 p-4 text-end transition-colors hover:bg-surface-secondary" href="{{.URL}}"><span class="text-xs text-muted">{{$.T "下一篇"}} <span class="inline-block rtl:-scale-x-100" aria-hidden="true">→</span></span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{end}}
+        {{with .Previous}}<a class="card card--default group/nb gap-1 p-4 transition-colors hover:bg-surface-secondary" data-prefetch href="{{.URL}}"><span class="text-xs text-muted"><span class="inline-block rtl:-scale-x-100" aria-hidden="true">←</span> {{$.T "上一篇"}}</span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{else}}<span class="hidden sm:block"></span>{{end}}
+        {{with .Next}}<a class="card card--default group/nb items-end gap-1 p-4 text-end transition-colors hover:bg-surface-secondary" data-prefetch href="{{.URL}}"><span class="text-xs text-muted">{{$.T "下一篇"}} <span class="inline-block rtl:-scale-x-100" aria-hidden="true">→</span></span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{end}}
       </nav>{{end}}
     </article>
   </main>
-  {{if .TOC}}<aside class="sticky top-16 hidden max-h-[calc(100dvh-4rem)] w-56 shrink-0 overflow-y-auto py-12 xl:block">
-    <p class="mb-3 text-xs font-semibold tracking-wide text-muted">{{.T "本页目录"}}</p>
-    <nav class="nw-toc flex flex-col border-s border-separator text-sm" data-toc aria-label="{{.T "本页目录"}}">{{range .TOC}}<a class="nw-toc-link {{.Indent}}" href="#{{.Anchor}}">{{.Label}}</a>{{end}}</nav>
-  </aside>{{else}}<div class="hidden w-56 shrink-0 xl:block"></div>{{end}}
+  {{if .TOC}}<aside class="sticky top-16 hidden max-h-[calc(100dvh-4rem)] w-60 shrink-0 flex-col py-8 xl:flex" id="nw-toc">
+    <div class="nw-glass flex min-h-0 flex-col rounded-3xl p-2">
+      <p class="px-3 pb-1.5 pt-2 text-xs font-semibold tracking-wide text-muted">{{.T "本页目录"}}</p>
+      <nav class="nw-toc relative flex min-h-0 flex-col overflow-y-auto overscroll-contain text-sm" data-toc aria-label="{{.T "本页目录"}}"><span class="nw-toc-pill" aria-hidden="true"></span>{{range .TOC}}<a class="nw-toc-link {{.Indent}}" href="#{{.Anchor}}">{{.Label}}</a>{{end}}</nav>
+    </div>
+  </aside>{{else}}<div class="hidden w-60 shrink-0 xl:block" id="nw-toc"></div>{{end}}
 </div>
 {{template "foot" .}}{{end}}
 

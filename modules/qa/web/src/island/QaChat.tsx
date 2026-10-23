@@ -1,6 +1,6 @@
-import { ArrowUp, ChevronDown, FileText, Plus, Sparkles, Stop, ThumbsDown, ThumbsUp } from '@gravity-ui/icons';
+import { ArrowDown, ArrowUp, ChevronDown, FileText, Plus, Sparkles, Stop, ThumbsDown, ThumbsUp } from '@gravity-ui/icons';
 import { Button, cn, ScrollShadow, Spinner, TextArea, Tooltip } from '@heroui/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, startTurn, type Citation, type Step, type TurnInfo } from './client';
 import { Markdown } from './markdown';
 
@@ -15,6 +15,7 @@ type Message = {
   steps?: StepView[];
   turn?: TurnInfo;
   feedback?: 'helpful' | 'unhelpful';
+  live?: boolean; // 本次打开后新提问得到的回答：逐字写出（命中缓存时整段答案一次到达，也照样逐字写）
 };
 
 // 对话记录和会话一样按语言分开保存。
@@ -23,7 +24,7 @@ const logKey = (locale: string) => `nw-qa-log:${locale}`;
 function loadLog(locale: string): Message[] {
   try {
     const saved = JSON.parse(sessionStorage.getItem(logKey(locale)) ?? '[]') as Message[];
-    return saved.map((message) => message.status === 'streaming' ? { ...message, status: 'cancelled' } : message);
+    return saved.map((message) => ({ ...message, live: false, status: message.status === 'streaming' ? 'cancelled' : message.status }));
   } catch { return []; }
 }
 
@@ -39,21 +40,60 @@ function failure(t: Translate, problem: unknown): string {
 
 // 同一浏览器标签里，同一语言的文档页右下角面板和独立问答页共用一个会话和对话记录。
 // documentId 是访客所在页面：每次提问都带上，AI 会先读这一页全文再回答。
+// 滚动只发生在对话区里，从不滚动页面：提问后把这一轮滚到对话区顶部，回答逐字写出时不自动往下滚，
+// 访客可以从头读；最新内容在可视范围外时显示“回到最新”。
 export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string }) {
   const [messages, setMessages] = useState<Message[]>(() => loadLog(locale));
   const [question, setQuestion] = useState('');
   const [running, setRunning] = useState<{ turnId?: string; controller: AbortController } | null>(null);
-  const bottom = useRef<HTMLDivElement>(null);
+  // pinned 是本次打开后最新提问的那一轮：它至少占满对话区可视高度，问题才能滚到顶部、回答在下方展开。
+  const [pinned, setPinned] = useState('');
+  const [view, setView] = useState(0);
+  const [behind, setBehind] = useState(false);
+  const scroller = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLOListElement>(null);
+  const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     try { sessionStorage.setItem(logKey(locale), JSON.stringify(messages.slice(-30))); } catch { /* 隐私模式 */ }
-    bottom.current?.scrollIntoView({ block: 'end' });
   }, [messages, locale]);
 
-  useEffect(() => { if (autoFocus) input.current?.focus(); }, [autoFocus]);
+  // 最新回答的末尾在可视范围之下时显示“回到最新”。
+  const check = () => {
+    const box = scroller.current;
+    const mark = end.current;
+    setBehind(!!box && !!mark && mark.getBoundingClientRect().top > box.getBoundingClientRect().bottom + 1);
+  };
+
+  // 打开时停在对话末尾；之后跟踪对话区高度（新一轮的最小高度）和内容变化（逐字输出时更新“回到最新”）。
+  useLayoutEffect(() => {
+    const box = scroller.current;
+    if (!box) return;
+    box.scrollTop = box.scrollHeight;
+    const observer = new ResizeObserver(() => { setView(box.clientHeight); check(); });
+    observer.observe(box);
+    if (list.current) observer.observe(list.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // 提问后把这一轮平滑滚到对话区顶部。
+  useLayoutEffect(() => {
+    const box = scroller.current;
+    const turn = pinned ? box?.querySelector<HTMLElement>(`[data-turn="${pinned}"]`) : null;
+    if (!box || !turn) return;
+    box.scrollTo({ top: box.scrollTop + turn.getBoundingClientRect().top - box.getBoundingClientRect().top - 16, behavior: 'smooth' });
+  }, [pinned]);
+
+  useEffect(() => { if (autoFocus) input.current?.focus({ preventScroll: true }); }, [autoFocus]);
 
   const patch = (id: string, update: (message: Message) => Message) => setMessages((current) => current.map((message) => message.id === id ? update(message) : message));
+
+  function latest() {
+    const box = scroller.current;
+    const mark = end.current;
+    if (box && mark) box.scrollTo({ top: box.scrollTop + mark.getBoundingClientRect().top - box.getBoundingClientRect().bottom + 24, behavior: 'smooth' });
+  }
 
   async function ask() {
     const text = question.trim();
@@ -62,7 +102,8 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
     const controller = new AbortController();
     setQuestion('');
     setRunning({ controller });
-    setMessages((current) => [...current, { id: `${id}-q`, role: 'user', text, status: 'done', citations: [] }, { id, role: 'assistant', text: '', status: 'streaming', citations: [] }]);
+    setPinned(id);
+    setMessages((current) => [...current, { id: `${id}-q`, role: 'user', text, status: 'done', citations: [] }, { id, role: 'assistant', text: '', status: 'streaming', citations: [], live: true }]);
     try {
       const started = await startTurn(text, locale, documentId);
       setRunning({ controller, turnId: started.turn.turnId });
@@ -81,7 +122,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
       else patch(id, (message) => ({ ...message, status: 'cancelled' }));
     } finally {
       setRunning(null);
-      input.current?.focus();
+      input.current?.focus({ preventScroll: true });
     }
   }
 
@@ -95,7 +136,8 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
     running?.controller.abort();
     resetConversation(locale);
     setMessages([]);
-    input.current?.focus();
+    setPinned('');
+    input.current?.focus({ preventScroll: true });
   }
 
   async function rate(message: Message, value: 'helpful' | 'unhelpful') {
@@ -104,86 +146,133 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
     await sendFeedback(message.turn, value).catch(() => patch(message.id, (current) => ({ ...current, feedback: undefined })));
   }
 
+  const rounds = group(messages);
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
-      <ScrollShadow className="min-h-0 flex-1 px-4 py-4" hideScrollBar>
-        {!messages.length ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-foreground"><Sparkles className="size-5" /></span>
-            <p className="max-w-64 text-sm text-muted">{t('问问这个站点的文档…')}</p>
-          </div>
-        ) : (
-          <ol className="flex flex-col gap-4">
-            {messages.map((message) => message.role === 'user' ? (
-              <li key={message.id} className="ms-10 self-end whitespace-pre-wrap break-words rounded-2xl rounded-ee-md bg-accent px-3.5 py-2 text-sm leading-6 text-accent-foreground">{message.text}</li>
-            ) : (
-              <li key={message.id} className="me-6 flex flex-col gap-2">
-                {!!message.steps?.length && <Steps active={message.status === 'streaming'} steps={message.steps} t={t} />}
-                <div className={cn('rounded-2xl rounded-es-md px-3.5 py-2.5 text-sm', message.status === 'error' ? 'bg-danger-soft text-danger-soft-foreground' : 'bg-surface-secondary text-foreground', message.status === 'streaming' && !message.text && message.steps?.length && 'hidden')}>
-                  {message.status === 'streaming' && !message.text ? (
-                    <span className="flex items-center gap-2 text-muted"><Spinner color="current" size="sm" />{t('思考中…')}</span>
-                  ) : message.status === 'error' ? message.text : <Markdown citations={message.citations} text={message.text} />}
-                </div>
-                {message.citations.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 ps-1">
-                    {unique(message.citations).map((citation) => (
-                      <a key={citation.href} className="chip chip--default chip--soft chip--sm max-w-full truncate no-underline hover:bg-default-hover" href={citation.href}>{citation.title || citation.href}</a>
-                    ))}
-                  </div>
-                )}
-                {message.status === 'done' && message.turn && (
-                  <div className="flex items-center gap-1 ps-1 text-xs text-muted">
-                    {message.feedback ? <span>{t('感谢反馈')}</span> : (
-                      <>
-                        <Tooltip delay={300}>
-                          <Button isIconOnly aria-label={t('有帮助')} size="sm" variant="ghost" onPress={() => rate(message, 'helpful')}><ThumbsUp /></Button>
-                          <Tooltip.Content>{t('有帮助')}</Tooltip.Content>
-                        </Tooltip>
-                        <Tooltip delay={300}>
-                          <Button isIconOnly aria-label={t('没帮助')} size="sm" variant="ghost" onPress={() => rate(message, 'unhelpful')}><ThumbsDown /></Button>
-                          <Tooltip.Content>{t('没帮助')}</Tooltip.Content>
-                        </Tooltip>
-                      </>
-                    )}
-                  </div>
-                )}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <ScrollShadow ref={scroller} className="min-h-0 flex-1 px-4 py-4" onScroll={check}>
+          {!messages.length && (
+            <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
+              <span className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-foreground"><Sparkles className="size-5" /></span>
+              <p className="max-w-64 text-sm text-muted">{t('问问这个站点的文档…')}</p>
+            </div>
+          )}
+          <ol ref={list} className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+            {rounds.map((round, index) => (
+              <li key={round.id} className="flex flex-col gap-4" data-turn={round.id} style={round.id === pinned && view ? { minHeight: view - 32 } : undefined}>
+                {round.question && <div className="ms-10 self-end whitespace-pre-wrap break-words rounded-2xl rounded-ee-md bg-accent px-3.5 py-2 text-sm leading-6 text-accent-foreground">{round.question.text}</div>}
+                {round.answer && <Answer last={index === rounds.length - 1} message={round.answer} t={t} end={end} onRate={rate} />}
               </li>
             ))}
           </ol>
+        </ScrollShadow>
+        {behind && (
+          <Button className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full shadow-overlay" size="sm" variant="tertiary" onPress={latest}>
+            <ArrowDown />{t('回到最新')}
+          </Button>
         )}
-        <div ref={bottom} />
-      </ScrollShadow>
+      </div>
       <form className="border-t border-separator p-3" onSubmit={(event) => { event.preventDefault(); void ask(); }}>
-        {documentId && pageTitle && (
-          <div className="mb-2 flex min-w-0 items-center gap-1.5 px-1 text-xs text-muted">
-            <FileText className="size-3.5 shrink-0" />
-            <span className="shrink-0">{t('当前页面')}</span>
-            <span className="truncate font-medium text-foreground/80">{pageTitle}</span>
-          </div>
-        )}
-        <div className="flex items-end gap-2 rounded-2xl border border-border bg-field p-1.5 shadow-field focus-within:border-field-border-focus">
-          <TextArea
-            ref={input}
-            aria-label={t('问问这个站点的文档…')}
-            className="max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-2 py-1.5 shadow-none outline-none focus:ring-0"
-            maxLength={500}
-            placeholder={t('问问这个站点的文档…')}
-            rows={1}
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(); } }}
-          />
-          {running ? (
-            <Button isIconOnly aria-label={t('停止')} size="sm" variant="secondary" onPress={stop}><Stop /></Button>
-          ) : (
-            <Button isIconOnly aria-label={t('发送')} isDisabled={!question.trim()} size="sm" type="submit"><ArrowUp /></Button>
+        <div className="mx-auto w-full max-w-3xl">
+          {documentId && pageTitle && (
+            <div className="mb-2 flex min-w-0 items-center gap-1.5 px-1 text-xs text-muted">
+              <FileText className="size-3.5 shrink-0" />
+              <span className="shrink-0">{t('当前页面')}</span>
+              <span className="truncate font-medium text-foreground/80">{pageTitle}</span>
+            </div>
           )}
-        </div>
-        <div className="mt-2 flex items-center justify-between gap-2 px-1">
-          <span className="text-[11px] leading-4 text-muted">{t('回答由 AI 生成，可能有误，请以文档原文为准。')}</span>
-          {messages.length > 0 && <Button className="shrink-0" size="sm" variant="ghost" onPress={restart}><Plus />{t('新对话')}</Button>}
+          <div className="flex items-end gap-2 rounded-2xl border border-border bg-field p-1.5 shadow-field focus-within:border-field-border-focus">
+            <TextArea
+              ref={input}
+              aria-label={t('问问这个站点的文档…')}
+              className="max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-2 py-1.5 shadow-none outline-none focus:ring-0"
+              maxLength={500}
+              placeholder={t('问问这个站点的文档…')}
+              rows={1}
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(); } }}
+            />
+            {running ? (
+              <Button isIconOnly aria-label={t('停止')} size="sm" variant="secondary" onPress={stop}><Stop /></Button>
+            ) : (
+              <Button isIconOnly aria-label={t('发送')} isDisabled={!question.trim()} size="sm" type="submit"><ArrowUp /></Button>
+            )}
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-2 px-1">
+            <span className="text-[11px] leading-4 text-muted">{t('回答由 AI 生成，可能有误，请以文档原文为准。')}</span>
+            {messages.length > 0 && <Button className="shrink-0" size="sm" variant="ghost" onPress={restart}><Plus />{t('新对话')}</Button>}
+          </div>
         </div>
       </form>
+    </div>
+  );
+}
+
+// 一轮对话：访客的问题（ID 为回答 ID 加 -q）和对应的回答。
+function group(messages: Message[]): { id: string; question?: Message; answer?: Message }[] {
+  const rounds: { id: string; question?: Message; answer?: Message }[] = [];
+  for (const message of messages) {
+    const last = rounds[rounds.length - 1];
+    if (message.role === 'assistant' && last && !last.answer) last.answer = message;
+    else rounds.push(message.role === 'user' ? { id: message.id.replace(/-q$/, ''), question: message } : { id: message.id, answer: message });
+  }
+  return rounds;
+}
+
+// 一条回答：思考过程、正文（流式时逐字写出）、引用和反馈；最后一条回答末尾放一个标记，用来判断最新内容是否可见。
+function Answer({ message, last, end, t, onRate }: { message: Message; last: boolean; end: RefObject<HTMLDivElement | null>; t: Translate; onRate: (message: Message, value: 'helpful' | 'unhelpful') => void }) {
+  return (
+    <div className="me-6 flex flex-col gap-2">
+      {!!message.steps?.length && <Steps active={message.status === 'streaming'} steps={message.steps} t={t} />}
+      <div className={cn('rounded-2xl rounded-es-md px-3.5 py-2.5 text-sm', message.status === 'error' ? 'bg-danger-soft text-danger-soft-foreground' : 'bg-surface-secondary text-foreground', message.status === 'streaming' && !message.text && message.steps?.length && 'hidden')}>
+        {message.status === 'streaming' && !message.text ? (
+          <span className="flex items-center gap-2 text-muted"><Spinner color="current" size="sm" />{t('思考中…')}</span>
+        ) : message.status === 'error' ? message.text : <Typed message={message} />}
+      </div>
+      {message.citations.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 ps-1">
+          {unique(message.citations).map((citation) => (
+            <a key={citation.href} className="chip chip--default chip--soft chip--sm max-w-full truncate no-underline hover:bg-default-hover" href={citation.href}>{citation.title || citation.href}</a>
+          ))}
+        </div>
+      )}
+      {message.status === 'done' && message.turn && (
+        <div className="flex items-center gap-1 ps-1 text-xs text-muted">
+          {message.feedback ? <span>{t('感谢反馈')}</span> : (
+            <>
+              <Tooltip delay={300}>
+                <Button isIconOnly aria-label={t('有帮助')} size="sm" variant="ghost" onPress={() => onRate(message, 'helpful')}><ThumbsUp /></Button>
+                <Tooltip.Content>{t('有帮助')}</Tooltip.Content>
+              </Tooltip>
+              <Tooltip delay={300}>
+                <Button isIconOnly aria-label={t('没帮助')} size="sm" variant="ghost" onPress={() => onRate(message, 'unhelpful')}><ThumbsDown /></Button>
+                <Tooltip.Content>{t('没帮助')}</Tooltip.Content>
+              </Tooltip>
+            </>
+          )}
+        </div>
+      )}
+      {last && <div ref={end} />}
+    </div>
+  );
+}
+
+// 打字效果：流式收到的文字先进缓冲，每 32 毫秒放出一段，积压越多放得越快（大约落后 0.3 秒，最快每秒约 500 字），
+// 命中缓存时整段答案一次到达，也照样逐字写出；之前的对话记录直接整段显示。
+function Typed({ message }: { message: Message }) {
+  const [shown, setShown] = useState(message.live ? 0 : message.text.length);
+  const length = message.text.length;
+  useEffect(() => {
+    if (shown > length) { setShown(length); return; }
+    if (shown === length) return;
+    const timer = window.setTimeout(() => setShown((count) => Math.min(length, count + Math.min(16, Math.max(2, Math.ceil((length - count) / 10))))), 32);
+    return () => window.clearTimeout(timer);
+  }, [shown, length]);
+  const typing = message.status === 'streaming' || shown < length;
+  return (
+    <div className={cn(typing && 'nw-typing')}>
+      <Markdown citations={message.citations} text={message.text.slice(0, shown)} />
     </div>
   );
 }

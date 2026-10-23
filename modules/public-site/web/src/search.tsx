@@ -2,6 +2,7 @@ import { FileText, Magnifier } from '@gravity-ui/icons';
 import { Modal } from '@heroui/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Translate } from './islands';
+import { visit } from './navigate';
 
 type NavNode = { documentId: string; parentId: string | null; title: string; canonicalPath: string; seoDescription?: string | null };
 type Hit = { node: NavNode; trail: string; score: number };
@@ -39,7 +40,7 @@ export default function Search({ open, locale, t, onOpenChange }: { open: boolea
   }, [nodes, query]);
 
   useEffect(() => { list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' }); }, [index]);
-  const go = (hit?: Hit) => { if (hit) location.href = hit.node.canonicalPath; };
+  const go = (hit?: Hit) => { if (hit) visit(hit.node.canonicalPath); };
 
   return (
     <Modal.Backdrop isOpen={open} onOpenChange={onOpenChange}>

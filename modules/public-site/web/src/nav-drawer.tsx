@@ -1,10 +1,10 @@
 import { Drawer } from '@heroui/react';
-import { useState } from 'react';
 import type { Translate } from './islands';
 
 // 窄屏的文档树（按需加载）：复用服务端已经输出的导航（同一份 HTML），放进左侧抽屉。
+// 每次渲染都重新取，站内换页后当前项跟着变。
 export default function MobileNav({ open, onOpenChange, t }: { open: boolean; onOpenChange: (open: boolean) => void; t: Translate }) {
-  const [html] = useState(() => document.getElementById('nw-tree')?.innerHTML ?? '');
+  const html = document.getElementById('nw-tree')?.innerHTML ?? '';
   if (!html) return null;
   return (
     <Drawer.Backdrop isOpen={open} onOpenChange={onOpenChange}>

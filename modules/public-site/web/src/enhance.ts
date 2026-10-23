@@ -39,24 +39,61 @@ function headingAnchors() {
   });
 }
 
-// 本页目录：按滚动位置高亮当前小节。
-function tocSpy() {
-  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-toc] a[href^="#"]'));
-  if (!links.length || !('IntersectionObserver' in window)) return;
-  const targets = links.map((link) => document.getElementById(decodeURIComponent(link.hash.slice(1)))).filter((el): el is HTMLElement => !!el);
-  const visible = new Set<Element>();
-  const update = () => {
-    const first = targets.find((target) => visible.has(target)) ?? [...targets].reverse().find((target) => target.getBoundingClientRect().top < 120);
-    links.forEach((link) => link.toggleAttribute('data-active', !!first && decodeURIComponent(link.hash.slice(1)) === first.id));
-  };
-  const observer = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) visible.add(entry.target);
-      else visible.delete(entry.target);
+// 本页目录：按滚动位置高亮当前小节，玻璃高亮块滑到当前项；目录比屏幕长时，目录自己滚动让当前项保持在中间附近
+// （只滚目录这一栏，不动页面）。返回清理函数，站内跳转换页时先清掉上一页的监听。
+function tocSpy(): () => void {
+  const nav = document.querySelector<HTMLElement>('[data-toc]');
+  const links = nav ? Array.from(nav.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) : [];
+  if (!nav || !links.length) return () => {};
+  const pill = nav.querySelector<HTMLElement>('.nw-toc-pill');
+  const pairs = links.map((link) => ({ link, target: document.getElementById(decodeURIComponent(link.hash.slice(1))) })).filter((pair): pair is { link: HTMLAnchorElement; target: HTMLElement } => !!pair.target);
+  let current: HTMLAnchorElement | undefined;
+  let frame = 0;
+  const update = (force = false) => {
+    frame = 0;
+    // 当前小节：标题已经滚到页头下方的最后一节；滚到页面底部时取最后一节。
+    const atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+    let active = atEnd ? pairs[pairs.length - 1] : pairs[0];
+    if (!atEnd) for (const pair of pairs) { if (pair.target.getBoundingClientRect().top <= 96) active = pair; else break; }
+    if (!active || (active.link === current && !force)) return;
+    current = active.link;
+    links.forEach((link) => link.toggleAttribute('data-active', link === current));
+    if (pill) {
+      pill.style.transform = `translateY(${current.offsetTop}px)`;
+      pill.style.height = `${current.offsetHeight}px`;
+      pill.style.insetInlineStart = getComputedStyle(current).marginInlineStart;
+      pill.style.opacity = '1';
     }
-    update();
-  }, { rootMargin: '-72px 0px -60% 0px' });
-  targets.forEach((target) => observer.observe(target));
+    const top = current.offsetTop;
+    const bottom = top + current.offsetHeight;
+    if (top < nav.scrollTop + 32 || bottom > nav.scrollTop + nav.clientHeight - 32) {
+      nav.scrollTo({ top: top - (nav.clientHeight - current.offsetHeight) / 2, behavior: force ? 'instant' : 'smooth' });
+    }
+  };
+  const schedule = () => { if (!frame) frame = requestAnimationFrame(() => update()); };
+  const resize = () => update(true);
+  // 第一次定位不要动画，高亮块直接出现在当前项上。
+  if (pill) pill.style.transition = 'none';
+  update(true);
+  requestAnimationFrame(() => { if (pill) pill.style.transition = ''; });
+  window.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener('resize', resize);
+  return () => {
+    cancelAnimationFrame(frame);
+    window.removeEventListener('scroll', schedule);
+    window.removeEventListener('resize', resize);
+  };
+}
+
+// 文档树里的当前项不在左栏可视范围内时，把左栏滚到它（只滚左栏）。
+export function revealCurrent(behavior: ScrollBehavior = 'instant') {
+  const item = document.querySelector<HTMLElement>('#nw-tree .nw-current');
+  const box = item?.closest<HTMLElement>('.nw-sidebar');
+  if (!item || !box) return;
+  const top = item.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+  if (top < box.scrollTop + 16 || top + item.offsetHeight > box.scrollTop + box.clientHeight - 16) {
+    box.scrollTo({ top: top - box.clientHeight / 3, behavior });
+  }
 }
 
 // 复制整页 Markdown。
@@ -107,33 +144,38 @@ function embeds(t: Translate) {
   });
 }
 
-// 公式：页面里有公式时才加载 KaTeX；失败时保留 LaTeX 源码。
+// 公式：页面里有公式时才加载 KaTeX（整个标签页只加载一次）；失败时保留 LaTeX 源码。
+type Katex = { render(source: string, element: HTMLElement, options: object): void };
+let katex: Promise<Katex | undefined> | undefined;
 function math() {
   const nodes = document.querySelectorAll<HTMLElement>('.math-source');
   if (!nodes.length) return;
-  const style = document.createElement('link');
-  style.rel = 'stylesheet';
-  style.href = '/_site/katex/katex.min.css';
-  document.head.append(style);
-  const script = document.createElement('script');
-  script.src = '/_site/katex/katex.min.js';
-  script.onload = () => {
-    const katex = (window as unknown as { katex?: { render(source: string, element: HTMLElement, options: object): void } }).katex;
-    nodes.forEach((node) => { try { katex?.render(node.textContent ?? '', node, { displayMode: node.tagName === 'DIV', throwOnError: false }); } catch { /* 保留源码 */ } });
-  };
-  document.head.append(script);
+  katex ??= new Promise((resolve) => {
+    const style = document.createElement('link');
+    style.rel = 'stylesheet';
+    style.href = '/_site/katex/katex.min.css';
+    document.head.append(style);
+    const script = document.createElement('script');
+    script.src = '/_site/katex/katex.min.js';
+    script.onload = () => resolve((window as unknown as { katex?: Katex }).katex);
+    script.onerror = () => resolve(undefined);
+    document.head.append(script);
+  });
+  void katex.then((engine) => {
+    nodes.forEach((node) => { try { engine?.render(node.textContent ?? '', node, { displayMode: node.tagName === 'DIV', throwOnError: false }); } catch { /* 保留源码 */ } });
+  });
 }
 
-// 访问统计信标：只报文档、语言、来源域名，不报完整地址。
-function beacon() {
+// 访问统计信标：只报文档、语言、来源域名，不报完整地址。站内无刷新跳转时来源是本站，耗时是这次换页用的时间。
+function beacon(from?: { referrer: string; elapsedMs: number }) {
   const documentId = document.body.dataset.doc;
   if (!documentId) return;
-  let referrer = '';
-  try { referrer = new URL(document.referrer).hostname; } catch { /* 无来源 */ }
+  let referrer = from?.referrer ?? '';
+  if (!from) try { referrer = new URL(document.referrer).hostname; } catch { /* 无来源 */ }
   if (/^[0-9.]+$/.test(referrer) || referrer.includes(':')) referrer = '';
   const payload = {
     beaconId: crypto.randomUUID().split('-').join(''), documentId, locale: document.body.dataset.locale, eventType: 'page-view', status: 200,
-    elapsedMs: Math.min(60000, Math.round(performance.now())), referrerDomain: referrer, userAgent: navigator.userAgent.slice(0, 1000),
+    elapsedMs: Math.min(60000, Math.round(from?.elapsedMs ?? performance.now())), referrerDomain: referrer, userAgent: navigator.userAgent.slice(0, 1000),
   };
   fetch('/v1/beacons', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', 'Idempotency-Key': payload.beaconId }, body: JSON.stringify(payload) }).catch(() => {});
 }
@@ -199,13 +241,21 @@ export function languageHint(target: Language) {
   document.body.prepend(bar);
 }
 
-export function enhance(t: Translate) {
+// 每一页正文上的增强：首次加载和站内无刷新跳转换页后都要跑一遍。
+let stopTocSpy = () => {};
+export function enhancePage(t: Translate, from?: { referrer: string; elapsedMs: number }) {
+  stopTocSpy();
   codeCopy(t);
   headingAnchors();
-  tocSpy();
+  stopTocSpy = tocSpy();
   copyMarkdown(t);
-  announcement();
   embeds(t);
   math();
-  beacon();
+  revealCurrent(from ? 'smooth' : 'instant');
+  beacon(from);
+}
+
+export function enhance(t: Translate) {
+  announcement();
+  enhancePage(t);
 }

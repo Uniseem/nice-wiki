@@ -5,24 +5,28 @@ import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { enhance, languageHint, suggestLanguage } from './enhance';
 import { HeaderActions, LanguageSuggestion, type Config, type Language } from './islands';
+import { startNavigation } from './navigate';
 import './site.css';
 
 // 公开页的交互岛：页面由 Go 完整输出，这里用一个 React 根，通过 portal 接管页头操作区与问答区，
 // 页头、文档树抽屉、问答面板之间因此能共享状态（比如页头按钮直接打开问答面板）。
 // 抽屉类部件（问答面板、窄屏文档树）第一次打开时才下载，首屏只带页头按钮和菜单。
+// 文档页之间站内跳转不刷新页面（navigate.ts），换页后新页面的配置经 nw:navigate 事件传进来。
 
-const config: Config = (() => {
+const initialConfig: Config = (() => {
   try { return JSON.parse(document.getElementById('nw-islands')?.dataset.config ?? '{}') as Config; } catch { return {} as Config; }
 })();
-const t = (key: string) => config.ui?.[key] ?? key;
+// 站内跳转只在同语言的页面之间发生，界面文字不随换页变化。
+const t = (key: string) => initialConfig.ui?.[key] ?? key;
 // 当前文档页的标题（问答窗口里提示 AI 正在读哪一页）；首页、问答页等没有文档时为空。
-const pageTitle = () => (config.documentId ? document.querySelector('main h1, article h1, h1')?.textContent?.trim() || undefined : undefined);
+const pageTitle = (config: Config) => (config.documentId ? document.querySelector('main h1, article h1, h1')?.textContent?.trim() || undefined : undefined);
 const loadNav = () => import('./nav-drawer');
 const MobileNav = lazy(loadNav);
 const loadSearch = () => import('./search');
 const Search = lazy(loadSearch);
 
 function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement | null }) {
+  const [config, setConfig] = useState(initialConfig);
   const [askOpen, setAskOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [navUsed, setNavUsed] = useState(false);
@@ -31,6 +35,17 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
   const [searchUsed, setSearchUsed] = useState(false);
   if (navOpen && !navUsed) setNavUsed(true);
   if (searchOpen && !searchUsed) setSearchUsed(true);
+
+  // 站内换页：换成新页面的配置（当前文档、语言菜单的链接），关掉文档树抽屉和搜索；问答面板保持打开。
+  useEffect(() => {
+    const onNavigate = (event: Event) => {
+      setConfig({ ...initialConfig, ...(event as CustomEvent<Config>).detail });
+      setNavOpen(false);
+      setSearchOpen(false);
+    };
+    window.addEventListener('nw:navigate', onNavigate);
+    return () => window.removeEventListener('nw:navigate', onNavigate);
+  }, []);
 
   // ⌘K / Ctrl+K 打开快速搜索（常见文档站的习惯）。
   useEffect(() => {
@@ -43,7 +58,7 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
 
   // 语言建议：决策模型判断的用居中弹窗，规则判断的用页首提示条。
   useEffect(() => {
-    void suggestLanguage(config).then((result) => {
+    void suggestLanguage(initialConfig).then((result) => {
       if (result?.reason === 'model') setSuggested(result.language);
       else if (result) languageHint(result.language);
     });
@@ -77,7 +92,7 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
       {header && createPortal(<HeaderActions config={config} t={t} onAsk={onAsk} onAskIntent={ask ? undefined : preloadQa} onSearch={() => setSearchOpen(true)} onSearchIntent={() => { void loadSearch(); }} />, header)}
       {searchUsed && <Suspense fallback={null}><Search locale={config.locale || document.documentElement.lang} open={searchOpen} t={t} onOpenChange={setSearchOpen} /></Suspense>}
       {navUsed && <Suspense fallback={null}><MobileNav open={navOpen} t={t} onOpenChange={setNavOpen} /></Suspense>}
-      {config.aiEnabled && !ask && <QaFloating documentId={config.documentId || undefined} locale={config.locale} open={askOpen} pageTitle={pageTitle()} t={t} onOpenChange={setAskOpen} />}
+      {config.aiEnabled && !ask && <QaFloating documentId={config.documentId || undefined} locale={config.locale} open={askOpen} pageTitle={pageTitle(config)} t={t} onOpenChange={setAskOpen} />}
       {config.aiEnabled && ask && createPortal(<QaInline locale={config.locale} t={t} />, ask)}
       {suggested && <LanguageSuggestion config={config} t={t} target={suggested} onClose={() => setSuggested(null)} />}
     </I18nProvider>
@@ -94,3 +109,4 @@ host.id = 'nw-qa-root';
 document.body.append(host);
 createRoot(host).render(<Islands ask={ask} header={header} />);
 enhance(t);
+startNavigation(t);

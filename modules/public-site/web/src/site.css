@@ -15,7 +15,7 @@
 @source "../../../qa/web/src/island";
 @source "../../../../libs/platform/web/ui";
 /* 模板里由条件拼出的类名，扫描不一定能完整识别，显式列出。 */
-@source inline("pb-8 pb-24 ps-6 ps-9 text-accent text-white text-[#172033]");
+@source inline("pb-8 pb-24 ms-3 ms-6 text-accent text-white text-[#172033]");
 
 @theme {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
@@ -27,8 +27,17 @@
     @apply bg-background text-foreground;
     scroll-padding-top: 5rem;
   }
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
   body {
     font-family: var(--font-sans);
+  }
+  /* 站内换页后焦点移到新标题上（读屏软件从这里读起），不画焦点框。 */
+  #nw-main h1[tabindex="-1"]:focus {
+    outline: none;
   }
 }
 
@@ -67,15 +76,114 @@
     @apply rotate-90 rtl:-rotate-90;
   }
 
-  /* 本页目录：当前小节高亮（由脚本按滚动位置切换 data-active）。 */
+  /* 液态玻璃卡片（参考 Apple 的 Liquid Glass）：半透明渐变底、背景模糊增饱和、顶部高光描边和柔和投影。 */
+  .nw-glass {
+    background: linear-gradient(180deg, color-mix(in oklab, var(--surface) 78%, transparent), color-mix(in oklab, var(--surface) 46%, transparent));
+    border: 1px solid color-mix(in oklab, var(--foreground) 7%, transparent);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.65),
+      inset 0 -1px 0 rgb(255 255 255 / 0.15),
+      0 12px 32px -14px rgb(15 23 42 / 0.2),
+      0 2px 6px -2px rgb(15 23 42 / 0.06);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+  }
+  :is(.dark, [data-theme="dark"]) .nw-glass {
+    border-color: rgb(255 255 255 / 0.08);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      0 12px 32px -14px rgb(0 0 0 / 0.65);
+  }
+
+  /* 本页目录：当前小节高亮（由脚本按滚动位置切换 data-active），玻璃质感的高亮块带回弹地滑到当前项。 */
+  .nw-toc {
+    scrollbar-width: thin;
+  }
   .nw-toc-link {
-    @apply -ms-px block border-s-2 border-transparent py-1 ps-3 text-muted transition-colors hover:text-foreground;
+    @apply relative block rounded-xl px-3 py-1.5 leading-5 text-muted transition-colors duration-200 hover:text-foreground;
   }
   .nw-toc-mobile .nw-toc-link {
-    @apply ms-0 rounded-lg border-0 py-1.5 hover:bg-default;
+    @apply rounded-lg hover:bg-default;
   }
   .nw-toc-link[data-active] {
-    @apply border-accent font-medium text-accent;
+    @apply font-medium text-accent;
+  }
+  .nw-toc-pill {
+    @apply pointer-events-none absolute inset-x-0 top-0 rounded-xl opacity-0;
+    background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 16%, transparent), color-mix(in oklab, var(--accent) 9%, transparent));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.55),
+      inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent),
+      0 6px 16px -8px color-mix(in oklab, var(--accent) 55%, transparent);
+    transition: transform 0.5s cubic-bezier(0.34, 1.3, 0.64, 1), height 0.5s cubic-bezier(0.34, 1.3, 0.64, 1), inset-inline-start 0.5s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.2s;
+  }
+  :is(.dark, [data-theme="dark"]) .nw-toc-pill {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent),
+      0 6px 16px -8px color-mix(in oklab, var(--accent) 40%, transparent);
+  }
+
+  /* 右下角的 AI 问答入口：品牌色渐变胶囊、柔光投影、呼吸光圈；悬停微微浮起。 */
+  .button.nw-qa-launcher {
+    --nw-glow: color-mix(in oklab, var(--accent) 60%, transparent);
+    background-image: linear-gradient(135deg, var(--accent) 0%, color-mix(in oklch, var(--accent), #d946ef 42%) 100%);
+    color: var(--accent-foreground);
+    box-shadow:
+      0 14px 34px -10px var(--nw-glow),
+      0 4px 12px -4px rgb(15 23 42 / 0.2),
+      inset 0 1px 0 rgb(255 255 255 / 0.35);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  }
+  @media (hover: hover) {
+    .button.nw-qa-launcher:is(:hover, [data-hovered="true"]) {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow:
+        0 20px 40px -10px var(--nw-glow),
+        0 6px 14px -4px rgb(15 23 42 / 0.22),
+        inset 0 1px 0 rgb(255 255 255 / 0.4);
+    }
+  }
+  .nw-qa-launcher::before {
+    @apply pointer-events-none absolute inset-0 -z-10 rounded-full;
+    content: "";
+    animation: nw-ring 2.6s ease-out infinite;
+  }
+  .button.nw-qa-launcher .nw-qa-launcher-icon {
+    background: rgb(255 255 255 / 0.2);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35);
+  }
+  .button.nw-qa-launcher .nw-qa-launcher-icon svg {
+    @apply size-5;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nw-qa-launcher::before {
+      animation: none;
+    }
+  }
+
+  /* 问答回答逐字写出时，末尾闪烁的光标。 */
+  .nw-typing .nw-answer > :last-child:not(ul, ol, pre, table, div)::after,
+  .nw-typing .nw-answer > :is(ul, ol):last-child > li:last-child::after,
+  .nw-typing .nw-answer:empty::after {
+    @apply ms-0.5 inline-block h-[1.1em] w-[0.45em] rounded-[2px] bg-accent align-text-bottom;
+    content: "";
+    animation: nw-caret 1s steps(1) infinite;
+  }
+
+  /* 站内无刷新跳转：新正文淡入并轻微上移；页面顶部的细进度条在加载稍慢时出现。 */
+  .nw-enter {
+    animation: nw-enter 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .nw-progress {
+    @apply pointer-events-none fixed inset-x-0 top-0 z-[60] h-0.5 origin-left bg-accent rtl:origin-right;
+    animation: nw-progress 8s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+    box-shadow: 0 0 8px var(--accent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nw-enter {
+      animation: none;
+    }
   }
 
   /* 标题旁的锚点链接，悬停时出现。 */
@@ -165,6 +273,21 @@
   }
 }
 
+@keyframes nw-ring {
+  0% { box-shadow: 0 0 0 0 var(--nw-glow); }
+  70%, 100% { box-shadow: 0 0 0 14px transparent; }
+}
+@keyframes nw-caret {
+  50% { opacity: 0; }
+}
+@keyframes nw-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nw-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(0.9); }
+}
 @keyframes nw-hero-scene {
   0% { opacity: 0; }
   5% { opacity: 1; }
