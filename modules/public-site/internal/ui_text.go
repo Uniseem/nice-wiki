@@ -20,6 +20,7 @@ var englishUI = strings.NewReplacer(
 	"需要启用 JavaScript 才能使用 AI 问答。", "JavaScript is required for Ask AI.",
 	"地址可能有误，或这篇文档还没有发布。", "The address may be wrong, or this page is not published yet.",
 	"复制失败，请打开 Markdown 版本", "Copy failed; open the Markdown version",
+	"服务正在更新，请稍后再试。", "The service is updating. Please try again in a moment.",
 	"公开问答暂未开放。", "Ask AI is not available yet.", "这篇文档已经被删除。", "This page has been deleted.",
 	"页面暂时无法访问", "Page temporarily unavailable", "请稍后刷新重试。", "Please refresh and try again later.",
 	"页面不存在", "Page not found", "页面已删除", "Page deleted", "回到首页", "Back to home",

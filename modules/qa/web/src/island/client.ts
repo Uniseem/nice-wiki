@@ -1,6 +1,7 @@
 import { solveChallenge } from '@ui/pow';
 
 // 访客问答的同源接口：会话 ID 与准入令牌只放会话存储；需要人机验证时先做一次工作量证明再重试。
+// 服务暂时不可用（发版重启、依赖还没起来）时自动退避重试，约 20 秒内恢复就不打扰访客。
 
 export type Citation = { citationId?: string; title?: string; href?: string };
 export type TurnInfo = { turnId: string; answerRevision?: number };
@@ -33,16 +34,39 @@ function guard(): string {
   try { return store.getItem(keys.guard) ?? ''; } catch { return ''; }
 }
 
+// 暂时不可用：入口或依赖服务正在重启（503 DEPENDENCY_UNAVAILABLE、反向代理的 502/504、Cloudflare 的 520–524）或网络断开。
+const busyStatus = (status: number) => status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 524);
+export function transient(problem: unknown): boolean {
+  return problem instanceof QaError && (problem.code === 'DEPENDENCY_UNAVAILABLE' || problem.code === 'NETWORK' || busyStatus(problem.status));
+}
+
+// 退避间隔：1、2、4、6、8 秒，合计约 20 秒，盖住一次发版重启。
+const backoff = [1000, 2000, 4000, 6000, 8000];
+function wait(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => { window.clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
+  });
+}
+
+// 重试沿用同一个幂等键，服务端不会把同一次提问、同一次建会话算成两次。
 async function raw<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (method !== 'GET') headers['Idempotency-Key'] = (body?.idempotencyKey as string | undefined) ?? key();
   if (guard()) headers['X-Guard-Session'] = guard();
-  const response = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
-  const text = await response.text();
-  let json: Record<string, unknown> = {};
-  try { json = JSON.parse(text); } catch { /* 非 JSON 响应 */ }
-  if (!response.ok) throw new QaError(String(json.code ?? ''), String(json.detail ?? ''), response.status);
-  return json as T;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const response = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined }).catch(() => { throw new QaError('NETWORK', ''); });
+      const text = await response.text();
+      let json: Record<string, unknown> = {};
+      try { json = JSON.parse(text); } catch { /* 非 JSON 响应 */ }
+      if (!response.ok) throw new QaError(String(json.code ?? ''), String(json.detail ?? ''), response.status);
+      return json as T;
+    } catch (problem) {
+      if (!transient(problem) || attempt >= backoff.length) throw problem;
+      await wait(backoff[attempt]);
+    }
+  }
 }
 
 async function challenge(): Promise<void> {
@@ -97,45 +121,62 @@ export async function startTurn(question: string, language: string, documentId?:
   }
 }
 
-// 跟随回答流（SSE）：断开后从最后一个序号续读，直到完成、失败或取消。
+// 跟随回答流（SSE）：断开后从最后一个序号续读，直到完成、失败或取消；服务暂时不可用或中途断网时退避后再续读。
 export async function followTurn(started: StartedTurn, onEvent: (event: StreamEvent) => void, signal: AbortSignal): Promise<void> {
   let last = 0;
+  let retries = 0;
   for (;;) {
-    const headers: Record<string, string> = guard() ? { 'X-Guard-Session': guard() } : {};
-    const response = await fetch(`${started.streamPath}?afterSequence=${last}&limit=100`, { headers, signal });
-    if (!response.ok || !response.body) throw new QaError('STREAM', '', response.status);
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
     let ended = false;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
-      const parts = buffer.split('\n\n');
-      buffer = parts.pop() ?? '';
-      for (const part of parts) {
-        let event = '', data = '', id = '';
-        for (const line of part.split('\n')) {
-          if (line.startsWith('event:')) event = line.slice(6).trim();
-          else if (line.startsWith('data:')) data += line.slice(5).trim();
-          else if (line.startsWith('id:')) id = line.slice(3).trim();
-        }
-        if (id) last = Number.parseInt(id, 10) || last;
-        if (!data) continue;
-        let payload: { delta?: string; citation?: Citation; code?: string; turn?: TurnInfo; step?: Step };
-        try { payload = JSON.parse(data); } catch { continue; }
-        if (event === 'step' && payload.step) onEvent({ kind: 'step', step: payload.step });
-        else if (event === 'delta' && payload.delta) onEvent({ kind: 'delta', text: payload.delta });
-        else if (event === 'invalidate') onEvent({ kind: 'reset' });
-        else if (event === 'citation' && payload.citation) onEvent({ kind: 'citation', citation: payload.citation });
-        else if (event === 'failed') { onEvent({ kind: 'failed', code: payload.code ?? '' }); ended = true; }
-        else if (event === 'cancelled') { onEvent({ kind: 'cancelled' }); ended = true; }
-        else if (event === 'completed') { onEvent({ kind: 'done', turn: payload.turn }); ended = true; }
-      }
+    try {
+      ended = await readStream(started, last, onEvent, signal, (sequence) => { last = sequence; retries = 0; });
+    } catch (problem) {
+      if (signal.aborted) throw problem;
+      const failure = problem instanceof QaError ? problem : new QaError('NETWORK', '');
+      if (!transient(failure) || retries >= backoff.length) throw failure;
+      await wait(backoff[retries++], signal);
+      continue;
     }
     if (ended || signal.aborted) return;
   }
+}
+
+// 读一次回答流，返回这一轮是否已经结束；每收到带序号的事件就回报序号，断线后从这里续读。
+async function readStream(started: StartedTurn, after: number, onEvent: (event: StreamEvent) => void, signal: AbortSignal, onSequence: (sequence: number) => void): Promise<boolean> {
+  let last = after;
+  const headers: Record<string, string> = guard() ? { 'X-Guard-Session': guard() } : {};
+  const response = await fetch(`${started.streamPath}?afterSequence=${last}&limit=100`, { headers, signal });
+  if (!response.ok || !response.body) throw new QaError('STREAM', '', response.status);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let ended = false;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+    const parts = buffer.split('\n\n');
+    buffer = parts.pop() ?? '';
+    for (const part of parts) {
+      let event = '', data = '', id = '';
+      for (const line of part.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        else if (line.startsWith('data:')) data += line.slice(5).trim();
+        else if (line.startsWith('id:')) id = line.slice(3).trim();
+      }
+      if (id) { last = Number.parseInt(id, 10) || last; onSequence(last); }
+      if (!data) continue;
+      let payload: { delta?: string; citation?: Citation; code?: string; turn?: TurnInfo; step?: Step };
+      try { payload = JSON.parse(data); } catch { continue; }
+      if (event === 'step' && payload.step) onEvent({ kind: 'step', step: payload.step });
+      else if (event === 'delta' && payload.delta) onEvent({ kind: 'delta', text: payload.delta });
+      else if (event === 'invalidate') onEvent({ kind: 'reset' });
+      else if (event === 'citation' && payload.citation) onEvent({ kind: 'citation', citation: payload.citation });
+      else if (event === 'failed') { onEvent({ kind: 'failed', code: payload.code ?? '' }); ended = true; }
+      else if (event === 'cancelled') { onEvent({ kind: 'cancelled' }); ended = true; }
+      else if (event === 'completed') { onEvent({ kind: 'done', turn: payload.turn }); ended = true; }
+    }
+  }
+  return ended;
 }
 
 export async function cancelTurn(turnId: string): Promise<void> {

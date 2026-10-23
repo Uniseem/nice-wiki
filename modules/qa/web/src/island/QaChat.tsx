@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, ChevronDown, FileText, Plus, Sparkles, Stop, ThumbsDown, ThumbsUp } from '@gravity-ui/icons';
 import { Button, cn, ScrollShadow, Spinner, TextArea, Tooltip } from '@heroui/react';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, startTurn, type Citation, type Step, type TurnInfo } from './client';
+import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, startTurn, transient, type Citation, type Step, type TurnInfo } from './client';
 import { Markdown } from './markdown';
 
 export type Translate = (key: string) => string;
@@ -32,7 +32,11 @@ function loadLog(locale: string): Message[] {
   } catch { return []; }
 }
 
+// 服务暂时不可用（发版重启等）时客户端已经自动重试过一阵，仍不行就给一句友好提示，不显示错误码。
+const busy = (t: Translate) => t('服务正在更新，请稍后再试。');
+
 function failure(t: Translate, problem: unknown): string {
+  if (transient(problem)) return busy(t);
   if (problem instanceof QaError) {
     if (problem.code === 'challenge-failed') return t('人机验证没有完成');
     if (problem.code === 'challenge-unsupported') return t('人机验证无法在此浏览器运行');
@@ -121,7 +125,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
         else if (event.kind === 'citation') patch(id, (message) => ({ ...message, citations: [...message.citations, event.citation] }));
         else if (event.kind === 'done') patch(id, (message) => ({ ...message, status: 'done', turn: event.turn?.turnId ? event.turn : message.turn }));
         else if (event.kind === 'cancelled') patch(id, (message) => ({ ...message, status: 'cancelled' }));
-        else patch(id, (message) => ({ ...message, status: 'error', text: `${t('这次没有回答成功（')}${event.code || 'error'}${t('），请稍后再试。')}` }));
+        else patch(id, (message) => ({ ...message, status: 'error', text: event.code === 'DEPENDENCY_UNAVAILABLE' ? busy(t) : `${t('这次没有回答成功（')}${event.code || 'error'}${t('），请稍后再试。')}` }));
       }, controller.signal);
     } catch (problem) {
       if (!controller.signal.aborted) patch(id, (message) => ({ ...message, status: 'error', text: failure(t, problem) }));
