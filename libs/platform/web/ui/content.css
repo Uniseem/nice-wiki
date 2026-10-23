@@ -9,6 +9,8 @@
 
   .nw-prose > :first-child { margin-top: 0; }
   .nw-prose > :last-child { margin-bottom: 0; }
+  /* 表格、图注和附件属于数据或操作界面，沿用无衬线字体，不跟正文切换成衬线。 */
+  .nw-prose :is(table, figcaption, .attachment, .media-unavailable) { font-family: var(--font-sans); }
 
   .nw-prose h1 { @apply mt-10 mb-4 text-3xl font-semibold tracking-tight; }
   .nw-prose h2 { @apply mt-14 mb-5 text-[28px] font-semibold leading-9 tracking-tight; }
