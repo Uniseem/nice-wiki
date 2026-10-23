@@ -2062,5 +2062,21 @@
   "th": "กรอกคีย์ OpenRouter ใน “เชื่อมต่อโมเดล” เพื่อตั้งค่าในคลิกเดียว ถามตอบ AI การแปล และดัชนีล้วนต้องใช้",
   "id": "Masukkan kunci OpenRouter di Model untuk penyiapan sekali klik. Tanya jawab AI, penerjemahan, dan pengindeksan bergantung padanya.",
   "ar": "أدخل مفتاح OpenRouter في «النماذج» للإعداد بنقرة واحدة. تعتمد عليه أسئلة الذكاء الاصطناعي والترجمة والفهرسة."
+ },
+ "调整侧栏宽度": {
+  "zh-Hant": "調整側欄寬度",
+  "en": "Resize sidebar",
+  "ja": "サイドバーの幅を調整",
+  "ko": "사이드바 너비 조정",
+  "fr": "Redimensionner la barre latérale",
+  "de": "Seitenleistenbreite anpassen",
+  "es": "Cambiar el ancho de la barra lateral",
+  "pt": "Ajustar largura da barra lateral",
+  "ru": "Изменить ширину боковой панели",
+  "it": "Ridimensiona barra laterale",
+  "vi": "Điều chỉnh độ rộng thanh bên",
+  "th": "ปรับความกว้างแถบด้านข้าง",
+  "id": "Ubah lebar bilah samping",
+  "ar": "تغيير عرض الشريط الجانبي"
  }
 }

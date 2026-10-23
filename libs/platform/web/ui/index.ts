@@ -8,6 +8,7 @@ export * from './hooks';
 export * from './i18n';
 export * from './languages';
 export * from './layout';
+export * from './resize';
 export * from './router';
 export * from './theme';
 export * from './upload';

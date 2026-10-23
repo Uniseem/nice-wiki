@@ -1,6 +1,6 @@
 import { FolderTree } from '@gravity-ui/icons';
 import { Button, Drawer } from '@heroui/react';
-import { api, confirmLeave, ErrorBlock, errorText, notify, useSearch, useStoredState, t } from '@ui';
+import { api, confirmLeave, ErrorBlock, errorText, notify, ResizeHandle, useResizablePane, useSearch, useStoredState, t } from '@ui';
 import { useCallback, useEffect, useState } from 'react';
 import { DocumentEditor } from './DocumentEditor';
 import { Overview } from './Overview';
@@ -16,6 +16,8 @@ export default function ContentPage() {
   const [session, setSession] = useState(0);
   const [listOpen, setListOpen] = useState(false);
   const [treeOpen, setTreeOpen] = useStoredState('nw-content-tree-open', true);
+  // 文档树边缘可以拖动改宽度，往里拖过阈值就整个收起（用工具栏的按钮重新展开）。
+  const treePane = useResizablePane({ widthKey: 'nw-content-tree-width', initial: 288, min: 220, max: 480, collapsedWidth: 0, collapsed: !treeOpen, onCollapsedChange: (collapsed) => setTreeOpen(!collapsed) });
   // 刚新建的文档：打开后聚焦并选中标题，方便直接改名。
   const [fresh, setFresh] = useState<string | null>(null);
 
@@ -81,7 +83,12 @@ export default function ContentPage() {
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0">
-      {treeOpen && <aside className="hidden w-72 shrink-0 flex-col border-e border-separator bg-surface md:flex">{panel}</aside>}
+      {treeOpen && (
+        <aside className="relative hidden shrink-0 flex-col border-e border-separator bg-surface md:flex" style={{ width: treePane.width }}>
+          {panel}
+          <ResizeHandle label={t('调整文档树宽度')} pane={treePane} />
+        </aside>
+      )}
       <Drawer.Backdrop isOpen={listOpen} onOpenChange={setListOpen}>
         <Drawer.Content placement="left">
           <Drawer.Dialog aria-label={t('文档列表')} className="h-full w-80 max-w-[90vw] p-0">{panel}</Drawer.Dialog>

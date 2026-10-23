@@ -1,7 +1,7 @@
 import { ArrowRightFromSquare, ArrowUpRightFromSquare, Bars, LayoutSideContentLeft, Person } from '@gravity-ui/icons';
 import { Button, buttonVariants, cn, Drawer, Dropdown, Label, ScrollShadow, Separator } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { CenteredSpinner, ErrorBlock, HeaderSlotContext, LanguageMenu, navigate, Notice, ThemeMenu, useGrants, usePath, useStoredState, t } from '@ui';
+import { CenteredSpinner, ErrorBlock, HeaderSlotContext, LanguageMenu, navigate, Notice, ResizeHandle, ThemeMenu, useGrants, usePath, useResizablePane, useStoredState, t } from '@ui';
 import { Component, createContext, Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Account } from './App';
 import { canOpen, legacyPath, pageFor, pages, sections, type Page } from './routes';
@@ -28,6 +28,8 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   const [railDocuments, setRailDocuments] = useStoredState('nw-admin-rail-documents', true);
   const rail = documents ? railDocuments : railOther;
   const setRail = documents ? setRailDocuments : setRailOther;
+  // 侧栏边缘可以拖动改宽度，往里拖过阈值就收成图标窄栏，从窄栏往外拖又展开。
+  const sidebar = useResizablePane({ widthKey: 'nw-admin-sidebar-width', initial: 256, min: 200, max: 360, collapsedWidth: 64, collapsed: rail, onCollapsedChange: setRail });
 
   useEffect(() => {
     const moved = legacyPath(path);
@@ -44,12 +46,13 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   return (
     <AccountContext.Provider value={account}>
       <div className="flex min-h-dvh bg-background">
-        <aside className={cn('sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-separator bg-surface transition-[width] duration-200 lg:flex', rail ? 'w-16' : 'w-64')}>
+        <aside className={cn('sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-separator bg-surface lg:flex', !sidebar.dragging && 'transition-[width] duration-200')} style={{ width: sidebar.width }}>
           <Brand brand={brand} compact={rail} />
           <ScrollShadow className={cn('flex-1 pb-4', rail ? 'px-2' : 'px-3')} hideScrollBar>
             <Navigation compact={rail} pages={visible} current={page} onNavigate={() => setNavOpen(false)} />
           </ScrollShadow>
           <AccountBox account={account} compact={rail} onSignOut={onSignOut} />
+          <ResizeHandle label={t('调整侧栏宽度')} pane={sidebar} />
         </aside>
 
         <Drawer.Backdrop isOpen={navOpen} onOpenChange={setNavOpen}>
@@ -135,7 +138,7 @@ function Navigation({ pages: items, current, compact = false, onNavigate }: { pa
                   key={page.key}
                   aria-current={active ? 'page' : undefined}
                   aria-label={compact ? page.label : undefined}
-                  className={cn('flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-colors', compact ? 'justify-center px-0' : 'px-3', active ? 'bg-accent-soft text-accent-soft-foreground' : 'text-muted hover:bg-default hover:text-foreground')}
+                  className={cn('flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-colors', compact ? 'justify-center px-0' : 'px-3', active ? 'bg-default text-foreground' : 'text-muted hover:bg-default/70 hover:text-foreground')}
                   href={page.path}
                   title={compact ? page.label : undefined}
                   onClick={(event) => {

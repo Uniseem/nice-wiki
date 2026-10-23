@@ -5022,5 +5022,21 @@
   "th": "AI จะสร้างพาธเมื่อเผยแพร่ครั้งแรก",
   "id": "AI membuat jalur saat pertama terbit",
   "ar": "يُنشئ الذكاء الاصطناعي المسار عند النشر الأول"
+ },
+ "调整文档树宽度": {
+  "zh-Hant": "調整文件樹寬度",
+  "en": "Resize document tree",
+  "ja": "ドキュメントツリーの幅を調整",
+  "ko": "문서 트리 너비 조정",
+  "fr": "Redimensionner l’arborescence des documents",
+  "de": "Breite des Dokumentbaums anpassen",
+  "es": "Cambiar el ancho del árbol de documentos",
+  "pt": "Ajustar largura da árvore de documentos",
+  "ru": "Изменить ширину дерева документов",
+  "it": "Ridimensiona albero dei documenti",
+  "vi": "Điều chỉnh độ rộng cây tài liệu",
+  "th": "ปรับความกว้างแผนผังเอกสาร",
+  "id": "Ubah lebar pohon dokumen",
+  "ar": "تغيير عرض شجرة المستندات"
  }
 }

@@ -8,6 +8,7 @@
 @import "@heroui/styles/themes/default/index.css" layer(theme);
 @import "@heroui/styles/utilities";
 @import "@heroui/styles/variants";
+@import "../../../../libs/platform/web/ui/palette.css";
 @import "../../../../libs/platform/web/ui/content.css";
 
 @source "./";
@@ -22,49 +23,12 @@
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
-/* 配色参照 Grok：暖白 / 暖黑两套底色，全站单色——强调色就是前景色（主按钮、当前项、链接都用它），
-   只用极淡的细边区分层次，不用渐变和彩色光晕。站点主题色只用在站标的字母块上（--nw-brand，页头按站点设置写入）。 */
+/* 配色见 palette.css（与后台共用）。站点主题色只用在站标上（--nw-brand，页头按站点设置写入）。 */
 @layer base {
   :root,
   [data-theme="light"] {
     --nw-brand: var(--foreground);
     --nw-brand-foreground: var(--background);
-    --background: #f9f8f7;
-    --foreground: #050505;
-    --surface: #ffffff;
-    --surface-secondary: #f3f2f0;
-    --surface-tertiary: #eceae7;
-    --overlay: #ffffff;
-    --muted: #6f6c68;
-    --default: #f0efed;
-    --default-foreground: #050505;
-    --field-background: #ffffff;
-    --border: #e6e5e3;
-    --separator: #ecebe9;
-    --accent: #050505;
-    --accent-foreground: #fcfcfc;
-    --focus: #050505;
-    --surface-shadow: none;
-    --field-shadow: none;
-    --overlay-shadow: 0 1px 2px rgb(5 5 5 / 0.04), 0 16px 40px -16px rgb(5 5 5 / 0.18);
-  }
-  :is(.dark, [data-theme="dark"]) {
-    --background: #131211;
-    --foreground: #fcfcfc;
-    --surface: #1b1a18;
-    --surface-secondary: #232220;
-    --surface-tertiary: #2a2927;
-    --overlay: #201f1d;
-    --muted: #9d9a95;
-    --default: #252422;
-    --default-foreground: #fcfcfc;
-    --field-background: #201f1d;
-    --border: rgb(252 252 252 / 0.09);
-    --separator: rgb(252 252 252 / 0.06);
-    --accent: #fcfcfc;
-    --accent-foreground: #050505;
-    --focus: #fcfcfc;
-    --overlay-shadow: 0 0 0 1px rgb(252 252 252 / 0.06), 0 16px 40px -16px rgb(0 0 0 / 0.6);
   }
 
   /* 锚点跳转后停在页头（4rem）下方留一点空。始终显示滚动条轨道：鼠标用户的滚动条占宽度，短页面和长页面之间

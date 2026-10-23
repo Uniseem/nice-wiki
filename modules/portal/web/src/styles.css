@@ -8,6 +8,7 @@
 @import "@heroui/styles/themes/default/index.css" layer(theme);
 @import "@heroui/styles/utilities";
 @import "@heroui/styles/variants";
+@import "../../../../libs/platform/web/ui/palette.css";
 @import "../../../../libs/platform/web/ui/content.css";
 
 /* 逐个列出各域页面源码目录（目录通配不会被扫描）。 */
@@ -28,7 +29,7 @@
 @source "../../../../libs/platform/web/ui";
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
@@ -40,9 +41,23 @@
   body {
     font-family: var(--font-sans);
   }
+  /* 拖动侧栏宽度时整页保持左右箭头光标，也不选中文字。 */
+  html.nw-resizing,
+  html.nw-resizing * {
+    cursor: col-resize !important;
+    user-select: none !important;
+  }
 }
 
 @layer components {
+  /* 与公开站同一套样式：按钮是胶囊形、字重 500，卡片用 16px 圆角。 */
+  .button {
+    @apply rounded-full font-medium;
+  }
+  .card {
+    @apply rounded-2xl;
+  }
+
   /* —— 编辑器（Tiptap / ProseMirror）—— */
   .ProseMirror {
     @apply min-h-[60vh] outline-none;
