@@ -115,9 +115,10 @@ type heroButton struct {
 
 // homeSection 是首页的一张文档卡片：有子文档时列出前几篇，没有时显示这篇的搜索摘要。
 type homeSection struct {
-	Title, URL, Description string
-	Children                []string
+	Number, Title, URL, Description string
+	Children                        []homeLink
 }
+type homeLink struct{ Title, URL string }
 type homePage struct {
 	shell
 	HeroTitle, HeroSubtitle, HeroBackgroundText string
@@ -221,16 +222,17 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 		page.HeroBackground, page.HeroCustomColor = template.CSS(home.Background.Color), true
 		page.HeroOverlay = template.CSS(fmt.Sprintf("rgb(0 0 0 / %d%%)", home.OverlayPercent))
 	}
-	// 首页下方：顶层文档各一张卡片，列出前几篇子文档。
-	children := map[string][]string{}
+	// 首页下方：顶层文档按顺序编号，各列出前几篇子文档的链接。
+	children := map[string][]homeLink{}
 	for _, node := range nodes {
-		if node.ParentID != nil && len(children[*node.ParentID]) < 4 {
-			children[*node.ParentID] = append(children[*node.ParentID], node.Title)
+		if node.ParentID != nil && len(children[*node.ParentID]) < 5 {
+			children[*node.ParentID] = append(children[*node.ParentID], homeLink{node.Title, node.CanonicalPath})
 		}
 	}
 	for _, node := range nodes {
 		if node.ParentID == nil {
-			page.Sections = append(page.Sections, homeSection{Title: node.Title, URL: node.CanonicalPath, Description: node.SEODescription, Children: children[node.DocumentID]})
+			number := fmt.Sprintf("%02d", len(page.Sections)+1)
+			page.Sections = append(page.Sections, homeSection{Number: number, Title: node.Title, URL: node.CanonicalPath, Description: node.SEODescription, Children: children[node.DocumentID]})
 		}
 	}
 	rendered, err := render("home", page)

@@ -103,41 +103,39 @@
 </div>
 {{template "foot" .}}{{end}}
 
-{{/* 首页：一屏高的主视觉居中放站标、大标题、副标题和“问问 AI”大输入框（可多轮对话；问答没开启时是搜索框），下面是首页按钮。
-     默认背景跟随主题：顶部一圈很淡的主题色光晕，叠一层向四周淡出的点阵；站点配置了纯色背景时用该色、遮罩和指定文字颜色。
-     再往下每个顶层文档一张卡片（有子文档的列出前几篇）。 */}}
+{{/* 首页按编辑排版的文档门户来做，不用光晕、阴影和渐变：左对齐的大标题和副标题，下面一行“问问 AI”输入框
+     （提问后原地展开成多轮对话；问答没开启时是搜索框）和首页按钮。站点配置了纯色背景时这一段用该色、遮罩和指定文字颜色。
+     再往下是目录式的文档索引：一道细黑线下顶层文档按顺序编号分栏，列出前几篇子文档的链接。 */}}
 {{define "home"}}{{template "head" .}}
 <main class="flex flex-1 flex-col" id="nw-main">
-  <section class="relative overflow-hidden px-4 sm:px-6{{if .HeroCustomColor}} {{if .HeroDark}}text-[#172033]{{else}}text-white{{end}}{{end}}"{{if .HeroCustomColor}} style="background: {{.HeroBackground}}"{{end}}>
-    {{if .HeroCustomColor}}<div class="absolute inset-0" style="background: {{.HeroOverlay}}"></div>{{else}}<div class="nw-home-backdrop" aria-hidden="true"></div>{{end}}
-    <div class="relative mx-auto flex min-h-[min(80svh,48rem)] w-full max-w-3xl flex-col items-center justify-center py-20 text-center sm:py-24">
-      {{if .LogoURL}}<img src="{{.LogoURL}}" alt="" class="mb-8 h-16 w-auto max-w-48 object-contain">{{else}}<img src="{{.Mark}}" alt="" class="nw-home-mark mb-8 size-16">{{end}}
-      {{if .HeroBackgroundText}}<p class="mb-3 text-sm font-medium tracking-wide {{if .HeroCustomColor}}opacity-70{{else}}text-muted{{end}}">{{.HeroBackgroundText}}</p>{{end}}
+  <section class="relative px-4 sm:px-6{{if .HeroCustomColor}} {{if .HeroDark}}text-[#172033]{{else}}text-white{{end}}{{end}}"{{if .HeroCustomColor}} style="background: {{.HeroBackground}}"{{end}}>
+    {{if .HeroCustomColor}}<div class="absolute inset-0" style="background: {{.HeroOverlay}}"></div>{{end}}
+    <div class="relative mx-auto w-full max-w-[1120px] pb-16 pt-16 sm:pb-24 sm:pt-28">
+      {{if .HeroBackgroundText}}<p class="mb-4 text-[15px] font-medium {{if .HeroCustomColor}}opacity-70{{else}}text-muted{{end}}">{{.HeroBackgroundText}}</p>{{end}}
       <h1 class="nw-home-title{{if not .HeroCustomColor}} text-foreground{{end}}">{{.HeroTitle}}</h1>
-      {{if .HeroSubtitle}}<p class="mt-5 max-w-2xl text-pretty text-base leading-7 sm:text-lg sm:leading-8 {{if .HeroCustomColor}}opacity-80{{else}}text-muted{{end}}">{{.HeroSubtitle}}</p>{{end}}
-      {{if .AIEnabled}}<div class="mt-10 w-full max-w-2xl text-start" id="nw-home-ask"><a class="nw-ask-box flex min-h-[7.25rem] flex-col justify-between rounded-3xl border border-border bg-field p-4 ps-5 text-[15px] text-muted" href="{{.AskURL}}">{{.T "问问这个站点的文档…"}}<span class="ms-auto flex size-9 items-center justify-center rounded-full bg-foreground text-background"><span class="size-4 [&>svg]:size-full">{{template "icon-arrow-up"}}</span></span></a></div>
-      {{else}}<button class="nw-ask-box mt-10 flex h-14 w-full max-w-2xl cursor-pointer items-center gap-3 rounded-3xl border border-border bg-field px-5 text-start text-muted transition-colors hover:border-foreground/25" data-open-search type="button">
-        <span class="size-5 shrink-0 [&>svg]:size-full">{{template "icon-search"}}</span>
-        <span class="min-w-0 flex-1 truncate">{{.T "搜索文档标题…"}}</span>
-        <kbd class="hidden rounded-md border border-border px-1.5 font-sans text-xs leading-5 sm:block" data-shortcut>⌘K</kbd>
-      </button>{{end}}
-      {{if .HeroButtons}}<nav class="mt-6 flex flex-wrap items-center justify-center gap-2.5" aria-label="{{.T "首页"}}">{{range .HeroButtons}}<a class="button {{if .Primary}}{{if and $.HeroCustomColor (not $.HeroDark)}}nw-hero-primary{{else}}button--primary{{end}}{{else}}{{if $.HeroCustomColor}}nw-hero-secondary{{else}}button--outline{{end}}{{end}}" href="{{.URL}}">{{.Label}}</a>{{end}}</nav>{{end}}
+      {{if .HeroSubtitle}}<p class="mt-6 max-w-2xl text-pretty text-lg leading-8 {{if .HeroCustomColor}}opacity-80{{else}}text-muted{{end}}">{{.HeroSubtitle}}</p>{{end}}
+      <div class="mt-10 flex max-w-2xl flex-col gap-5">
+        {{if .AIEnabled}}<div id="nw-home-ask"><a class="flex h-14 items-center justify-between gap-3 rounded-2xl border border-border bg-field pe-2 ps-5 text-[15px] text-muted" href="{{.AskURL}}">{{.T "问问这个站点的文档…"}}<span class="flex size-10 items-center justify-center rounded-full bg-foreground text-background"><span class="size-4 [&>svg]:size-full">{{template "icon-arrow-up"}}</span></span></a></div>
+        {{else}}<button class="flex h-14 w-full cursor-pointer items-center gap-3 rounded-2xl border border-border bg-field px-5 text-start text-muted transition-colors hover:border-foreground/25" data-open-search type="button">
+          <span class="size-5 shrink-0 [&>svg]:size-full">{{template "icon-search"}}</span>
+          <span class="min-w-0 flex-1 truncate">{{.T "搜索文档标题…"}}</span>
+          <kbd class="hidden rounded-md border border-border px-1.5 font-sans text-xs leading-5 sm:block" data-shortcut>⌘K</kbd>
+        </button>{{end}}
+        {{if .HeroButtons}}<nav class="flex flex-wrap items-center gap-3" aria-label="{{.T "首页"}}">{{range .HeroButtons}}<a class="button {{if .Primary}}{{if and $.HeroCustomColor (not $.HeroDark)}}nw-hero-primary{{else}}button--primary{{end}}{{else}}{{if $.HeroCustomColor}}nw-hero-secondary{{else}}button--outline{{end}}{{end}}" href="{{.URL}}">{{.Label}}</a>{{end}}</nav>{{end}}
+      </div>
     </div>
   </section>
-  {{if .Sections}}<section class="mx-auto w-full max-w-[1120px] px-4 pb-24 sm:px-6{{if .HeroCustomColor}} pt-14{{end}}">
-    <h2 class="mb-6 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{{.T "文档"}}</h2>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{{range .Sections}}
-      <a class="nw-home-card group/card" href="{{.URL}}">
-        <span class="flex items-start justify-between gap-3">
-          <span class="nw-home-card-icon" aria-hidden="true">{{if .Children}}{{template "icon-book"}}{{else}}{{template "icon-file"}}{{end}}</span>
-          <span class="text-muted transition-transform group-hover/card:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover/card:-translate-x-0.5" aria-hidden="true">→</span>
-        </span>
-        <span class="mt-5 min-w-0 text-lg font-semibold leading-7 tracking-tight text-foreground">{{.Title}}</span>
-        {{if .Children}}<span class="mt-3 flex flex-col gap-2 text-sm text-muted">{{range .Children}}<span class="nw-home-card-item truncate">{{.}}</span>{{end}}</span>
-        {{else if .Description}}<span class="mt-2 line-clamp-3 text-sm leading-6 text-muted">{{.Description}}</span>{{end}}
-      </a>{{end}}
+  {{if .Sections}}<section class="px-4 pb-24 sm:px-6{{if .HeroCustomColor}} pt-16{{end}}"><div class="mx-auto w-full max-w-[1120px]">
+    <h2 class="border-t border-foreground pt-4 text-sm font-semibold text-foreground">{{.T "文档"}}</h2>
+    <div class="mt-10 grid grid-cols-1 gap-x-12 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">{{range .Sections}}
+      <div class="min-w-0">
+        <span class="font-mono text-xs tabular-nums text-muted">{{.Number}}</span>
+        <a class="mt-3 block text-xl font-semibold leading-7 tracking-tight text-foreground decoration-1 underline-offset-4 hover:underline" href="{{.URL}}">{{.Title}}</a>
+        {{if .Description}}<p class="mt-2 line-clamp-3 text-sm leading-6 text-muted">{{.Description}}</p>{{end}}
+        {{if .Children}}<ul class="mt-4">{{range .Children}}<li><a class="nw-home-link" href="{{.URL}}"><span class="truncate">{{.Title}}</span><span aria-hidden="true" class="rtl:-scale-x-100">→</span></a></li>{{end}}</ul>{{end}}
+      </div>{{end}}
     </div>
-  </section>{{end}}
+  </div></section>{{end}}
 </main>
 {{template "foot" .}}{{end}}
 
@@ -162,6 +160,5 @@
 {{define "icon-arrow-up"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>{{end}}
 {{define "icon-search"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.75"/><path d="m10.5 10.5 3.25 3.25"/></svg>{{end}}
 {{define "icon-code"}}<svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg>{{end}}
-{{define "icon-book"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M8 4.25C6.75 3.2 5 2.75 2.25 2.75v9.5C5 12.25 6.75 12.7 8 13.75c1.25-1.05 3-1.5 5.75-1.5v-9.5C11 2.75 9.25 3.2 8 4.25Z"/><path d="M8 4.25v9.5"/></svg>{{end}}
 {{define "icon-file"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M9 1.75H4.5A1.75 1.75 0 0 0 2.75 3.5v9c0 .97.78 1.75 1.75 1.75h7c.97 0 1.75-.78 1.75-1.75V6L9 1.75Z"/><path d="M9 1.75V6h4.25"/></svg>{{end}}
 {{define "icon-copy"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.25" y="5.25" width="8.5" height="8.5" rx="1.75"/><path d="M10.75 5.25V3.5a1.75 1.75 0 0 0-1.75-1.75H3.5A1.75 1.75 0 0 0 1.75 3.5V9c0 .97.78 1.75 1.75 1.75h1.75"/></svg>{{end}}

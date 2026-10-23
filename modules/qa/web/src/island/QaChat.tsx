@@ -202,12 +202,12 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
               <span className="truncate font-medium text-foreground/80">{pageTitle}</span>
             </div>
           )}
-          {/* 首页（compact 且还没提问）是 Grok 式的两行大输入框：上面写问题，右下角圆形发送键。 */}
-          <div className={cn('flex items-end gap-2 border border-border bg-field focus-within:border-foreground/30', idle ? 'nw-ask-box flex-wrap rounded-3xl p-3 ps-4' : 'rounded-3xl p-1.5 ps-2.5')}>
+          {/* 首页（compact 且还没提问）是一行高的输入框，和服务端输出的占位框同样大小，右侧圆形发送键。 */}
+          <div className={cn('flex items-end gap-2 border border-border bg-field focus-within:border-foreground/30', idle ? 'min-h-14 items-center rounded-2xl py-2 pe-2 ps-4' : 'rounded-3xl p-1.5 ps-2.5')}>
             <TextArea
               ref={input}
               aria-label={t('问问这个站点的文档…')}
-              className={cn('max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 shadow-none outline-none focus:ring-0', idle && 'min-h-12 basis-full text-[15px]')}
+              className={cn('max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 shadow-none outline-none focus:ring-0', idle && 'text-[15px]')}
               maxLength={500}
               placeholder={t('问问这个站点的文档…')}
               rows={1}
@@ -218,7 +218,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
             {running ? (
               <Button isIconOnly aria-label={t('停止')} size="sm" variant="secondary" onPress={stop}><Stop /></Button>
             ) : (
-              <Button isIconOnly aria-label={t('发送')} className={cn(idle && 'ms-auto')} isDisabled={!question.trim()} size={idle ? 'md' : 'sm'} type="submit"><ArrowUp /></Button>
+              <Button isIconOnly aria-label={t('发送')} isDisabled={!question.trim()} size={idle ? 'md' : 'sm'} type="submit"><ArrowUp /></Button>
             )}
           </div>
           <div className={cn('mt-2 flex items-center justify-between gap-2 px-1', idle && 'hidden')}>

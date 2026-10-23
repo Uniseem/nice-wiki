@@ -229,55 +229,19 @@
     @apply opacity-0;
   }
 
-  /* 首页主视觉的默认背景（跟随主题）：顶部一圈很淡的主题色光晕，叠一层只在中间可见、向四周淡出的点阵。 */
-  .nw-home-backdrop {
-    @apply pointer-events-none absolute inset-0;
-    background: radial-gradient(ellipse 70% 55% at 50% -8%, color-mix(in oklab, var(--nw-brand) 13%, transparent), transparent 72%);
-  }
-  .nw-home-backdrop::before {
-    @apply absolute inset-0;
-    content: "";
-    background-image: radial-gradient(color-mix(in oklab, var(--foreground) 15%, transparent) 1px, transparent 1.2px);
-    background-size: 22px 22px;
-    mask-image: radial-gradient(ellipse 62% 58% at 50% 42%, #000 15%, transparent 72%);
-  }
-  :is(.dark, [data-theme="dark"]) .nw-home-backdrop {
-    background: radial-gradient(ellipse 70% 55% at 50% -8%, color-mix(in oklab, var(--nw-brand) 20%, transparent), transparent 72%);
-  }
-  .nw-home-mark {
-    @apply rounded-2xl;
-    box-shadow: 0 12px 32px -12px color-mix(in oklab, var(--nw-brand) 55%, transparent), 0 0 0 1px rgb(5 5 5 / 0.04);
-  }
+  /* 首页大标题：左对齐、字距收紧，长标题自动均衡换行。 */
   .nw-home-title {
-    @apply text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-balance sm:text-6xl;
+    @apply max-w-4xl text-5xl font-semibold leading-[1.05] tracking-[-0.035em] text-balance sm:text-7xl;
   }
-  /* 首页的大输入框：浮在背景上，一层柔和的投影。 */
-  #nw-home-ask .nw-ask-box,
-  button.nw-ask-box {
-    box-shadow: 0 1px 2px rgb(5 5 5 / 0.04), 0 18px 48px -20px rgb(5 5 5 / 0.22);
+  /* 首页文档索引里的子文档：一行一条，细线分隔，悬停时文字变深、箭头出现。 */
+  .nw-home-link {
+    @apply flex items-center justify-between gap-3 border-b border-separator py-2.5 text-sm text-muted transition-colors hover:text-foreground;
   }
-  :is(.dark, [data-theme="dark"]) :is(#nw-home-ask .nw-ask-box, button.nw-ask-box) {
-    box-shadow: 0 0 0 1px rgb(252 252 252 / 0.04), 0 18px 48px -20px rgb(0 0 0 / 0.7);
+  .nw-home-link > span:last-child {
+    @apply opacity-0 transition-opacity;
   }
-
-  /* 首页文档卡片：白底细边的大圆角卡片，左上一个图标块；悬停时描边加深、轻轻上移。 */
-  .nw-home-card {
-    @apply relative flex min-h-48 min-w-0 flex-col rounded-3xl border border-border bg-surface p-6 transition-[border-color,transform,box-shadow] duration-200;
-  }
-  .nw-home-card:hover {
-    border-color: color-mix(in oklab, var(--foreground) 22%, var(--border));
-    box-shadow: 0 16px 40px -24px rgb(5 5 5 / 0.25);
-    transform: translateY(-2px);
-  }
-  .nw-home-card-icon {
-    @apply flex size-10 items-center justify-center rounded-2xl bg-default text-foreground [&>svg]:size-[18px];
-  }
-  .nw-home-card-item {
-    @apply relative ps-3.5;
-  }
-  .nw-home-card-item::before {
-    @apply absolute start-0 top-1/2 size-1 -translate-y-1/2 rounded-full bg-current opacity-50;
-    content: "";
+  .nw-home-link:hover > span:last-child {
+    @apply opacity-100;
   }
 
   /* 站点配置了主视觉背景色时用的按钮（深色背景上用反色）。 */
