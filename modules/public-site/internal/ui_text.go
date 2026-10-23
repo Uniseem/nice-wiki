@@ -27,7 +27,7 @@ var englishUI = strings.NewReplacer(
 	"本页目录", "On this page", "文档树", "Navigation", "相邻文档", "Adjacent pages", "面包屑", "Breadcrumb",
 	"AI 未启用", "AI unavailable", "AI 问答", "Ask AI", "亮 / 暗", "Light / Dark", "跟随系统", "System", "浅色", "Light", "深色", "Dark",
 	"复制为 Markdown", "Copy as Markdown", "Markdown 版本", "Markdown version", "复制代码", "Copy code", "已复制", "Copied",
-	"思考过程", "How I got here", "理解问题", "Understanding the question", "阅读当前页面", "Reading this page", "检索相关文档", "Searching the docs", "整理回答", "Writing the answer", "当前页面", "This page",
+	"思考过程", "How I got here", "理解问题", "Understanding the question", "阅读当前页面", "Reading this page", "查找已有回答", "Looking for an existing answer", "命中缓存", "Reused an earlier answer", "检索相关文档", "Searching the docs", "整理回答", "Writing the answer", "当前页面", "This page",
 	"跳到正文", "Skip to content", "开始阅读", "Start reading", "思考中…", "Thinking…", "感谢反馈", "Thanks for the feedback",
 	"有帮助", "Helpful", "没帮助", "Not helpful", "停止", "Stop",
 	"草稿预览：访客看不到这个页面，发布后才会公开。", "Draft preview: visitors can’t see this page until it is published.",

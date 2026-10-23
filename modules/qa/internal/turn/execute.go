@@ -21,7 +21,7 @@ import (
 	"nice-wiki/modules/qa/internal/stream"
 )
 
-// ExecuteTurn 在本进程里跑完一轮回答：理解问题 → 读当前页 → 混合检索 → 流式生成 → 校验引用并落终态；
+// ExecuteTurn 在本进程里跑完一轮回答：读当前页 → 理解问题 → 复用已有回答 → 混合检索 → 流式生成 → 校验引用并落终态；
 // 任何失败都落 failed 终态并释放准入。currentDocument 是访客提问时所在页面（可为空）。
 func ExecuteTurn(ctx context.Context, op OperationContext, turnID, currentDocument string) {
 	work, cancel := context.WithDeadline(ctx, mustDeadline(op))
@@ -120,9 +120,27 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	step := func(key gen.AnswerStepKey, status gen.AnswerStepStatus, title, detail string, items []string) {
 		emitStep(ctx, op, turnID, lease, key, status, title, detail, items)
 	}
-	// 理解问题：前置改写结合整段对话把追问补成独立问题（检索用它，也展示给访客），同时分类并上报风险；前置不可用时退回访客原话。
+	task, profile := "qa.answer", string(resolved.Policy.ProfileId)
+	if routed, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer"); err == nil {
+		profile = routed
+	}
+	budget := materialBudget(ctx, op, resolved.Policy, task)
+	// 当前页：访客在哪一页打开问答，就把那一页全文交给回答模型；标题交给前置改写，把“这页”“这里”写明成具体文档。读不到不影响本轮。
+	page := answer.RetrieveEvidenceResult{Citations: []gen.Citation{}, EvidenceText: "[]"}
+	pageTitle := ""
+	if currentDocument != "" {
+		step(gen.Page, gen.Running, "阅读当前页面", "", nil)
+		read, title, err := answer.ReadCurrentPage(ctx, op, answer.ReadDocumentsInput{TurnID: turnID, DocumentIDs: []string{currentDocument}, Language: record.Language, MaximumTokens: budget})
+		if err == nil {
+			page, pageTitle = read, title
+			step(gen.Page, gen.Done, "阅读当前页面", "", []string{title})
+		} else {
+			step(gen.Page, gen.Skipped, "阅读当前页面", "", nil)
+		}
+	}
+	// 理解问题：前置改写结合整段对话和当前页标题把追问补成独立问题（检索和缓存都用它，也展示给访客），同时分类并上报风险；前置不可用时退回访客原话。
 	step(gen.Understand, gen.Running, "理解问题", "", nil)
-	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, conversation.Summary, conversation.Messages)
+	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, conversation.Summary, conversation.Messages, pageTitle)
 	if err != nil {
 		return err
 	}
@@ -137,28 +155,11 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 		query = canonical.Normalized
 	}
 	step(gen.Understand, gen.Done, "理解问题", query, nil)
-	// 回答和当前页有关时缓存的答案不一定对得上，带了当前页的提问不读也不写缓存。
-	cacheable := planned != nil && planned.cacheable && resolved.Policy.CacheEnabled && currentDocument == ""
+	// 复用已有回答：可共享的问题（完整、不依赖访客私人上下文，“这页”已写明成具体文档）先查缓存，精确匹配不到再由 Jev 判断，文档页也一样。
+	cacheable := planned != nil && planned.cacheable && resolved.Policy.CacheEnabled
 	if cacheable {
-		if hit, err := answerFromCache(ctx, op, turnID, lease, record, resolved, planned, conversation.Summary == "" && len(conversation.Messages) == 0); err != nil || hit {
+		if hit, err := reuseAnswer(ctx, op, turnID, lease, record, resolved, planned, conversation.Summary == "" && len(conversation.Messages) == 0, step); err != nil || hit {
 			return err
-		}
-	}
-	task, profile := "qa.answer", string(resolved.Policy.ProfileId)
-	if routed, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer"); err == nil {
-		profile = routed
-	}
-	budget := materialBudget(ctx, op, resolved.Policy, task)
-	// 当前页：访客在哪一页打开问答，就把那一页全文交给回答模型（问题常常指“这里”“这个功能”）。读不到不影响本轮。
-	page := answer.RetrieveEvidenceResult{Citations: []gen.Citation{}, EvidenceText: "[]"}
-	if currentDocument != "" {
-		step(gen.Page, gen.Running, "阅读当前页面", "", nil)
-		read, title, err := answer.ReadCurrentPage(ctx, op, answer.ReadDocumentsInput{TurnID: turnID, DocumentIDs: []string{currentDocument}, Language: record.Language, MaximumTokens: budget})
-		if err == nil {
-			page = read
-			step(gen.Page, gen.Done, "阅读当前页面", "", []string{title})
-		} else {
-			step(gen.Page, gen.Skipped, "阅读当前页面", "", nil)
 		}
 	}
 	// 检索：混合检索（关键词 BM25 + 向量，按排名融合后重排），找全站相关片段。
@@ -377,6 +378,9 @@ func saveModelText(ctx context.Context, op OperationContext, turnID, text string
 	}
 	return tx.Commit()
 }
+
+// stepFunc 推送回答过程的一步（思考过程展示）。
+type stepFunc func(key gen.AnswerStepKey, status gen.AnswerStepStatus, title, detail string, items []string)
 
 // emitStep 把回答过程的一步推给访客界面（思考过程展示）；推送失败不影响回答。
 func emitStep(ctx context.Context, op OperationContext, turnID, lease string, key gen.AnswerStepKey, status gen.AnswerStepStatus, title, detail string, items []string) {

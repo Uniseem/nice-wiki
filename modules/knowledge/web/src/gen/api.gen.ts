@@ -1051,6 +1051,8 @@ export interface components {
             originalQuestion: string;
             /** @description 完整基准语言问题 */
             canonicalQuestion: string;
+            /** @description canonicalQuestion 的英文译文，给只读英文的决策模型（Jev）判断能否复用缓存答案；前置没给出时缺省 */
+            englishQuestion?: string;
             /** @description 回答语言 */
             visitorLanguage: string;
             /** @description 意思完整且无需缺失指代 */

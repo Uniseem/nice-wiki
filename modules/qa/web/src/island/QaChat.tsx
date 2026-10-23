@@ -225,12 +225,14 @@ function Steps({ steps, active, t }: { steps: StepView[]; active: boolean; t: Tr
     setWasActive(active);
     if (!active) setOpen(false);
   }
-  const labels: Record<Step['key'], string> = { understand: t('理解问题'), page: t('阅读当前页面'), search: t('检索相关文档'), answer: t('整理回答') };
+  const labels: Record<Step['key'], string> = { understand: t('理解问题'), page: t('阅读当前页面'), cache: t('查找已有回答'), search: t('检索相关文档'), answer: t('整理回答') };
+  // 复用已有回答这一步命中时改叫“命中缓存”，答案直接来自之前的回答。
+  const label = (step: StepView) => (step.key === 'cache' && step.status === 'done' ? t('命中缓存') : labels[step.key]);
   return (
     <div className="nw-qa-steps rounded-xl border border-border/70 bg-surface px-3 py-2 text-xs">
       <button aria-expanded={open} className="flex w-full items-center gap-2 text-start text-muted" type="button" onClick={() => setOpen(!open)}>
         {active ? <Spinner color="current" size="sm" /> : <Sparkles className="size-3.5 text-accent" />}
-        <span className="flex-1 font-medium">{active ? labels[steps[steps.length - 1].key] : t('思考过程')}</span>
+        <span className="flex-1 font-medium">{active ? label(steps[steps.length - 1]) : t('思考过程')}</span>
         {!active && <span className="tabular-nums text-muted">{seconds(steps.reduce((total, step) => total + (step.ms ?? 0), 0))}</span>}
         <ChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
       </button>
@@ -240,7 +242,7 @@ function Steps({ steps, active, t }: { steps: StepView[]; active: boolean; t: Tr
             <li key={step.key} className="nw-qa-step relative flex flex-col gap-1">
               <span className={cn('absolute -start-[17px] top-1 size-2 rounded-full ring-2 ring-surface', step.status === 'running' ? 'animate-pulse bg-accent' : step.status === 'done' ? 'bg-success' : 'bg-default')} />
               <span className="flex items-baseline gap-2">
-                <span className={cn('flex-1 font-medium', step.status === 'skipped' ? 'text-muted line-through' : 'text-foreground')}>{labels[step.key]}</span>
+                <span className={cn('flex-1 font-medium', step.status === 'skipped' ? 'text-muted line-through' : 'text-foreground')}>{label(step)}</span>
                 <span className="tabular-nums text-muted">{seconds(step.ms)}</span>
               </span>
               {step.detail && step.key !== 'answer' && <span className="line-clamp-2 break-words text-muted">{step.detail}</span>}

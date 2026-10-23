@@ -777,6 +777,7 @@ type QueryEmbedding struct {
 type QuestionPlan struct {
 	OriginalQuestion   string        `json:"originalQuestion"`
 	CanonicalQuestion  string        `json:"canonicalQuestion"`
+	EnglishQuestion    string        `json:"englishQuestion,omitempty"` // 给只读英文的 Jev 判断缓存复用
 	VisitorLanguage    string        `json:"visitorLanguage"`
 	Complete           bool          `json:"complete"`
 	CacheEligible      bool          `json:"cacheEligible"`

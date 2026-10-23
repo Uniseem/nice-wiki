@@ -4,8 +4,8 @@ import { solveChallenge } from '@ui/pow';
 
 export type Citation = { citationId?: string; title?: string; href?: string };
 export type TurnInfo = { turnId: string; answerRevision?: number };
-// 回答过程中的一步（读取当前页、检索、生成），给访客看 AI 在做什么。
-export type Step = { key: 'understand' | 'page' | 'search' | 'answer'; status: 'running' | 'done' | 'skipped'; title: string; detail?: string; items?: string[] };
+// 回答过程中的一步（读取当前页、理解问题、复用已有回答、检索、生成），给访客看 AI 在做什么。
+export type Step = { key: 'understand' | 'page' | 'cache' | 'search' | 'answer'; status: 'running' | 'done' | 'skipped'; title: string; detail?: string; items?: string[] };
 export type StreamEvent =
   | { kind: 'step'; step: Step }
   | { kind: 'delta'; text: string }

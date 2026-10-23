@@ -1080,7 +1080,7 @@ export interface components {
              * @description 步骤
              * @enum {string}
              */
-            key: "understand" | "page" | "search" | "answer";
+            key: "understand" | "page" | "cache" | "search" | "answer";
             /**
              * @description 状态
              * @enum {string}
@@ -2570,6 +2570,8 @@ export interface components {
         PlannerDecision: {
             /** @description 完整基准语言问题 */
             canonicalQuestion: string;
+            /** @description canonicalQuestion 的英文译文，给只读英文的决策模型（Jev）判断能否复用缓存答案；为空时本轮不做复用判断 */
+            englishQuestion?: string;
             /** @description 意思完整且无需缺失指代 */
             complete: boolean;
             /** @description 完整非个人化且非敏感动态问题 */
@@ -2636,6 +2638,8 @@ export interface components {
             originalQuestion: string;
             /** @description 完整基准语言问题 */
             canonicalQuestion: string;
+            /** @description canonicalQuestion 的英文译文，给只读英文的决策模型（Jev）判断能否复用缓存答案；前置没给出时缺省 */
+            englishQuestion?: string;
             /** @description 回答语言 */
             visitorLanguage: string;
             /** @description 意思完整且无需缺失指代 */
