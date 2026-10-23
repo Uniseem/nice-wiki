@@ -82,14 +82,15 @@ type languageItem struct {
 
 // shell 是所有公开页共用的外壳数据；T 把中文界面文字换成当前语言。
 type shell struct {
-	Locale, Dir, Kind, DocumentID                          string
-	Head, ExtraHead, Announcement, Footer                  template.HTML
-	Accent                                                 template.CSS
-	SiteName, Initial, LogoURL, HomeURL, AskURL, SourceURL string
-	AIEnabled, HasNav                                      bool
-	Languages                                              []languageItem
-	Config                                                 string
-	catalog                                                map[string]string
+	Locale, Dir, Kind, DocumentID                 string
+	Head, ExtraHead, Announcement, Footer         template.HTML
+	Accent                                        template.CSS
+	Mark                                          template.URL
+	SiteName, LogoURL, HomeURL, AskURL, SourceURL string
+	AIEnabled, HasNav                             bool
+	Languages                                     []languageItem
+	Config                                        string
+	catalog                                       map[string]string
 }
 
 func (s shell) T(key string) string { return uiText(s.Locale, s.catalog, key) }
@@ -155,7 +156,7 @@ func newShell(in ComposeHTMLInput, kind string) shell {
 	if s.SiteName == "" {
 		s.SiteName = s.T("文档")
 	}
-	s.Initial = strings.ToUpper(string([]rune(s.SiteName)[:1]))
+	s.Mark = template.URL(siteMark(in.ThemeColor))
 	if s.SourceURL == "" {
 		s.SourceURL = defaultSourceCodeURL
 	}

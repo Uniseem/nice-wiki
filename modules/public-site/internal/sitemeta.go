@@ -100,6 +100,8 @@ func (m siteMeta) headTags(pageTitle, description, canonicalURL, baseURL string)
 	}
 	if icon := m.Favicon.url(); icon != "" {
 		out.WriteString("<link rel=\"icon\" href=\"" + html.EscapeString(icon) + "\">")
+	} else {
+		out.WriteString("<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + html.EscapeString(siteMark(m.ThemeColor)) + "\">")
 	}
 	out.WriteString("<meta property=\"og:type\" content=\"article\"><meta property=\"og:title\" content=\"" + html.EscapeString(pageTitle) + "\">")
 	if description != "" {
