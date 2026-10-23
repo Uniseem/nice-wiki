@@ -1516,6 +1516,9 @@ export interface components {
             kind: "video";
             asset: components["schemas"]["AssetVersionRef"];
             poster: components["schemas"]["AssetVersionRef"];
+        } | {
+            /** @constant */
+            kind: "theme";
         };
         /** @description 仅全屏一屏hero；下方无卡片/精选/其他内容 */
         HomeConfig: {

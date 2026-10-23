@@ -2076,6 +2076,19 @@
             "asset",
             "poster"
           ]
+        },
+        {
+          "type": "object",
+          "description": "跟随站点主题（新站点默认）：公开站用主题色光晕，随浅色/深色切换",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "theme"
+            }
+          },
+          "required": [
+            "kind"
+          ]
         }
       ],
       "description": "首页背景完整联合体"

@@ -2740,7 +2740,7 @@ func PrepareDefaultConfig(input PrepareDefaultConfigInput) (PrepareDefaultConfig
 **步骤**
 
 1. baseLanguage缺省或空串为zh-Hans；显式标签规范化；updatedAt使用input.preparedAt，revision/home.revision=0且initialized=false
-2. 站名为mainTitle；Welcome To不翻译，空subtitle和按钮，纯色背景#0F172A、overlayPercent=0、textColor=light；不制造示例文档或调用模型
+2. 站名为mainTitle；Welcome To不翻译，空subtitle和按钮，背景跟随站点主题、overlayPercent=0、textColor=light；不制造示例文档或调用模型
 3. themeColor=#2563EB；titleTemplate={title} | {site}、description空、indexingEnabled=true；logo/favicon/defaultShareImage/banner为null
 4. footer版权和links为空、备案为null、sourceCodeURL=https://github.com/Uniseem/nice-wiki；资源默认doc16MiB/upload128MiB/site10GiB/上传并发4；安全默认previewTTL900s/sessionAbsoluteTTL604800s
 5. publicBaseURL保持可信调用方显式输入；不从请求Host推断部署地址

@@ -216,7 +216,7 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 		buttons = []heroButton{{Label: page.T("开始阅读"), URL: nodes[0].CanonicalPath, Primary: true}}
 	}
 	page.HeroButtons = buttons
-	// 没设背景色时主视觉跟随站点主题（柔和的主题色光晕）；设了背景色才用它、遮罩和指定的文字颜色。
+	// 背景“跟随主题”（新站点默认）时主视觉用柔和的主题色光晕，随浅色/深色切换；纯色背景才用该色、遮罩和指定的文字颜色。
 	if home.Background.Kind == "color" && hexColor.MatchString(home.Background.Color) {
 		page.HeroBackground, page.HeroCustomColor = template.CSS(home.Background.Color), true
 		page.HeroOverlay = template.CSS(fmt.Sprintf("rgb(0 0 0 / %d%%)", home.OverlayPercent))

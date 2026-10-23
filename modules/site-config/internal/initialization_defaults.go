@@ -32,7 +32,7 @@ func PrepareDefaultConfig(input PrepareDefaultConfigInput) (PrepareDefaultConfig
 		return PrepareDefaultConfigResult{}, err
 	}
 	var background gen.HeroBackground
-	if err := background.FromHeroBackground0(gen.HeroBackground0{Kind: "color", Color: "#0F172A"}); err != nil {
+	if err := background.FromHeroBackground3(gen.HeroBackground3{Kind: "theme"}); err != nil {
 		return PrepareDefaultConfigResult{}, err
 	}
 	return PrepareDefaultConfigResult{Config: gen.SiteConfig{

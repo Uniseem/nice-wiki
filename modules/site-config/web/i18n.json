@@ -143,22 +143,6 @@
   "id": "Judul utama",
   "ar": "العنوان الرئيسي"
  },
- "主标题背后淡淡的大号装饰文字，可以留空。": {
-  "zh-Hant": "主標題後方淡淡的大型裝飾文字，可以留空。",
-  "en": "Large, faint decorative text behind the main title. Optional.",
-  "ja": "メインタイトルの背後に薄く表示する大きな装飾テキスト。空欄でも構いません。",
-  "ko": "주 제목 뒤에 흐리게 표시되는 큰 장식 문구입니다. 비워 둘 수 있습니다.",
-  "fr": "Grand texte décoratif estompé derrière le titre principal. Facultatif.",
-  "de": "Großer, blasser Ziertext hinter dem Haupttitel. Optional.",
-  "es": "Texto decorativo grande y tenue detrás del título principal. Opcional.",
-  "pt": "Texto decorativo grande e suave atrás do título principal. Opcional.",
-  "ru": "Крупный бледный декоративный текст за главным заголовком. Необязательно.",
-  "it": "Grande testo decorativo tenue dietro il titolo principale. Facoltativo.",
-  "vi": "Chữ trang trí lớn, mờ phía sau tiêu đề chính. Có thể để trống.",
-  "th": "ข้อความตกแต่งขนาดใหญ่จาง ๆ หลังหัวข้อหลัก เว้นว่างได้",
-  "id": "Teks dekoratif besar dan samar di belakang judul utama. Opsional.",
-  "ar": "نص زخرفي كبير وباهت خلف العنوان الرئيسي، ويمكن تركه فارغًا."
- },
  "主要": {
   "zh-Hant": "主要",
   "en": "Primary",
@@ -190,6 +174,22 @@
   "th": "สีธีม",
   "id": "Warna tema",
   "ar": "لون السمة"
+ },
+ "主题色的柔和光晕，随访客的浅色/深色模式切换。": {
+  "zh-Hant": "主題色的柔和光暈，隨訪客的淺色/深色模式切換。",
+  "en": "A soft glow in the theme color that follows the visitor's light or dark mode.",
+  "ja": "テーマカラーのやわらかな光。訪問者のライト/ダークモードに合わせて切り替わります。",
+  "ko": "테마 색상의 부드러운 빛 효과로, 방문자의 라이트/다크 모드에 맞춰 바뀝니다.",
+  "fr": "Un halo doux aux couleurs du thème, qui suit le mode clair ou sombre du visiteur.",
+  "de": "Ein sanfter Schimmer in der Designfarbe, der dem hellen oder dunklen Modus des Besuchers folgt.",
+  "es": "Un halo suave en el color del tema que sigue el modo claro u oscuro del visitante.",
+  "pt": "Um brilho suave na cor do tema que acompanha o modo claro ou escuro do visitante.",
+  "ru": "Мягкое свечение в цвете темы, которое следует светлому или тёмному режиму посетителя.",
+  "it": "Un alone tenue nel colore del tema che segue la modalità chiara o scura del visitatore.",
+  "vi": "Quầng sáng dịu theo màu chủ đề, tự đổi theo chế độ sáng/tối của khách truy cập.",
+  "th": "แสงเรืองนุ่มนวลในสีธีม ที่เปลี่ยนตามโหมดสว่าง/มืดของผู้เยี่ยมชม",
+  "id": "Pendar lembut dalam warna tema yang mengikuti mode terang atau gelap pengunjung.",
+  "ar": "توهج ناعم بلون السمة يتبع الوضع الفاتح أو الداكن لدى الزائر."
  },
  "以 https:// 开头。": {
   "zh-Hant": "以 https:// 開頭。",
@@ -702,6 +702,22 @@
   "th": "รหัสเอกสาร",
   "id": "ID dokumen",
   "ar": "معرّف المستند"
+ },
+ "显示在主标题上方的小标签，可以留空。": {
+  "zh-Hant": "顯示在主標題上方的小標籤，可以留空。",
+  "en": "A small label shown above the main title. Optional.",
+  "ja": "メインタイトルの上に表示する小さなラベル。空欄でもかまいません。",
+  "ko": "메인 제목 위에 표시되는 작은 라벨입니다. 비워 둘 수 있습니다.",
+  "fr": "Petite étiquette affichée au-dessus du titre principal. Facultatif.",
+  "de": "Kleines Label über dem Haupttitel. Optional.",
+  "es": "Etiqueta pequeña que se muestra sobre el título principal. Opcional.",
+  "pt": "Pequena etiqueta exibida acima do título principal. Opcional.",
+  "ru": "Небольшая метка над основным заголовком. Можно оставить пустой.",
+  "it": "Piccola etichetta mostrata sopra il titolo principale. Facoltativa.",
+  "vi": "Nhãn nhỏ hiển thị phía trên tiêu đề chính, có thể để trống.",
+  "th": "ป้ายเล็กที่แสดงเหนือหัวข้อหลัก เว้นว่างได้",
+  "id": "Label kecil yang tampil di atas judul utama. Boleh dikosongkan.",
+  "ar": "تسمية صغيرة تظهر فوق العنوان الرئيسي، ويمكن تركها فارغة."
  },
  "显示在公开站每个页面底部。": {
   "zh-Hant": "顯示在公開網站每個頁面底部。",
@@ -1231,6 +1247,38 @@
   "id": "Pengaturan situs",
   "ar": "إعدادات الموقع"
  },
+ "纯色": {
+  "zh-Hant": "純色",
+  "en": "Solid color",
+  "ja": "単色",
+  "ko": "단색",
+  "fr": "Couleur unie",
+  "de": "Volltonfarbe",
+  "es": "Color sólido",
+  "pt": "Cor sólida",
+  "ru": "Сплошной цвет",
+  "it": "Tinta unita",
+  "vi": "Màu đơn",
+  "th": "สีพื้น",
+  "id": "Warna solid",
+  "ar": "لون واحد"
+ },
+ "背景": {
+  "zh-Hant": "背景",
+  "en": "Background",
+  "ja": "背景",
+  "ko": "배경",
+  "fr": "Arrière-plan",
+  "de": "Hintergrund",
+  "es": "Fondo",
+  "pt": "Fundo",
+  "ru": "Фон",
+  "it": "Sfondo",
+  "vi": "Nền",
+  "th": "พื้นหลัง",
+  "id": "Latar",
+  "ar": "الخلفية"
+ },
  "背景文字": {
   "zh-Hant": "背景文字",
   "en": "Background text",
@@ -1310,6 +1358,22 @@
   "th": "หน้าจอแรกที่ผู้เยี่ยมชมเห็นเมื่อเปิดหน้าแรก",
   "id": "Layar pertama yang dilihat pengunjung di beranda.",
   "ar": "أول شاشة يراها الزوار في الصفحة الرئيسية."
+ },
+ "跟随主题": {
+  "zh-Hant": "跟隨主題",
+  "en": "Follow theme",
+  "ja": "テーマに合わせる",
+  "ko": "테마 따르기",
+  "fr": "Suivre le thème",
+  "de": "Design folgen",
+  "es": "Seguir el tema",
+  "pt": "Seguir o tema",
+  "ru": "Как в теме",
+  "it": "Segui il tema",
+  "vi": "Theo giao diện",
+  "th": "ตามธีม",
+  "id": "Ikuti tema",
+  "ar": "اتباع السمة"
  },
  "还没有可选的已发布文档时，可以先填文档 ID。": {
   "zh-Hant": "還沒有可選的已發布文件時，可以先填文件 ID。",

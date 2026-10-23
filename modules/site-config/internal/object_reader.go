@@ -91,7 +91,7 @@ func (s *ActiveStore) readIndexedConfig(ctx context.Context, tx *sql.Tx, objectI
 	if err != nil {
 		return gen.SiteConfig{}, record, nil, err
 	}
-	config, err := decodeConfigDocument(raw, expected)
+	config, err := decodeCommittedConfig(raw, expected)
 	if err != nil {
 		return config, record, nil, err
 	}

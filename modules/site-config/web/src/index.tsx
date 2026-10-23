@@ -134,6 +134,8 @@ function BrandTab({ config, onSaved }: TabProps) {
 function HomeTab({ config, onSaved }: TabProps) {
   const fromConfig = () => ({
     mainTitle: config.home.mainTitle, subtitle: config.home.subtitle, backgroundText: config.home.backgroundText,
+    // 背景：跟随主题、纯色，或者早先设的图片/视频（这里不能改成图片/视频，只能换成前两种）。
+    mode: (config.home.background?.kind === 'theme' ? 'theme' : config.home.background?.kind === 'color' ? 'color' : 'media') as 'theme' | 'color' | 'media',
     color: config.home.background?.kind === 'color' ? config.home.background.color ?? '' : '', overlayPercent: config.home.overlayPercent, textColor: config.home.textColor as 'light' | 'dark',
     buttons: config.home.buttons.map((b): Button_ => ({ buttonId: b.buttonId, text: b.text, style: b.style, kind: b.target.kind, value: b.target.kind === 'external' ? b.target.url : b.target.kind === 'document' ? b.target.documentId : '' })),
   });
@@ -153,7 +155,7 @@ function HomeTab({ config, onSaved }: TabProps) {
         home: {
           ...config.home, mainTitle: form.mainTitle, subtitle: form.subtitle, backgroundText: form.backgroundText,
           overlayPercent: form.overlayPercent, textColor: form.textColor,
-          background: form.color ? { kind: 'color', color: form.color } : config.home.background,
+          background: form.mode === 'theme' ? { kind: 'theme' } : form.color ? { kind: 'color', color: form.color } : config.home.background,
           buttons: form.buttons.map((b) => ({ buttonId: b.buttonId, text: b.text, style: b.style, target: target(b) })),
         },
         expectedRevision: config.revision, expectedHomeRevision: config.home.revision,
@@ -163,19 +165,26 @@ function HomeTab({ config, onSaved }: TabProps) {
   }, t('首页已保存'));
 
   const dark = form.textColor === 'dark';
+  const themed = form.mode === 'theme';
   return (
     <div className="grid gap-6 xl:grid-cols-5">
       <Panel className="xl:col-span-3" title={t('首页主视觉')} description={t('访客打开站点首页时看到的一屏。')}>
         <Form className="flex flex-col gap-5" onSubmit={(event) => { event.preventDefault(); void save(); }}>
           <TextInput isRequired label={t('主标题')} value={form.mainTitle} onChange={(mainTitle) => setForm({ ...form, mainTitle })} />
           <TextInput label={t('副标题')} value={form.subtitle} onChange={(subtitle) => setForm({ ...form, subtitle })} />
-          <TextInput description={t('主标题背后淡淡的大号装饰文字，可以留空。')} label={t('背景文字')} value={form.backgroundText} onChange={(backgroundText) => setForm({ ...form, backgroundText })} />
-          <FormGrid>
-            {/* 背景没有“默认”一说：纯色背景时颜色必填；图片/视频背景只能在这里改成纯色，留空则原样保留。 */}
-            <ColorInput description={config.home.background?.kind === 'color' ? undefined : t('当前是图片或视频背景；填写颜色会改为纯色背景，留空则保持不变。')} isRequired={config.home.background?.kind === 'color'} label={t('背景颜色')} placeholder="#0F172A" value={form.color} onChange={(color) => setForm({ ...form, color })} />
-            <NumberInput description={t('0 为不加遮罩，数值越大背景越暗。')} label={t('遮罩浓度（%）')} maxValue={100} minValue={0} value={form.overlayPercent} onChange={(overlayPercent) => setForm({ ...form, overlayPercent })} />
-          </FormGrid>
-          <RadioInput label={t('文字颜色')} options={[{ value: 'light', label: t('浅色（深色背景用）') }, { value: 'dark', label: t('深色（浅色背景用）') }]} value={form.textColor} onChange={(textColor) => setForm({ ...form, textColor })} />
+          <TextInput description={t('显示在主标题上方的小标签，可以留空。')} label={t('背景文字')} value={form.backgroundText} onChange={(backgroundText) => setForm({ ...form, backgroundText })} />
+          {/* 跟随主题时首页用主题色光晕、随访客的浅色/深色模式切换，颜色、遮罩和文字颜色都用不上；
+              选纯色时颜色必填（先填上原来的默认色）；图片/视频背景在这里留空颜色则原样保留。 */}
+          <RadioInput description={themed ? t('主题色的柔和光晕，随访客的浅色/深色模式切换。') : undefined} label={t('背景')} options={[{ value: 'theme', label: t('跟随主题') }, { value: 'color', label: t('纯色') }]} value={form.mode} onChange={(mode) => setForm({ ...form, mode, color: mode === 'color' && !form.color ? '#0F172A' : form.color })} />
+          {!themed && (
+            <>
+              <FormGrid>
+                <ColorInput description={form.mode === 'media' ? t('当前是图片或视频背景；填写颜色会改为纯色背景，留空则保持不变。') : undefined} isRequired={form.mode === 'color'} label={t('背景颜色')} placeholder="#0F172A" value={form.color} onChange={(color) => setForm({ ...form, color })} />
+                <NumberInput description={t('0 为不加遮罩，数值越大背景越暗。')} label={t('遮罩浓度（%）')} maxValue={100} minValue={0} value={form.overlayPercent} onChange={(overlayPercent) => setForm({ ...form, overlayPercent })} />
+              </FormGrid>
+              <RadioInput label={t('文字颜色')} options={[{ value: 'light', label: t('浅色（深色背景用）') }, { value: 'dark', label: t('深色（浅色背景用）') }]} value={form.textColor} onChange={(textColor) => setForm({ ...form, textColor })} />
+            </>
+          )}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-foreground">{t('按钮（最多 3 个）')}</span>
@@ -205,15 +214,15 @@ function HomeTab({ config, onSaved }: TabProps) {
       <div className="xl:col-span-2">
         <div className="sticky top-20 flex flex-col gap-2">
           <span className="text-sm font-medium text-muted">{t('预览')}</span>
-          <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-2xl border border-border" style={{ background: form.color || (dark ? '#F5F7FA' : '#172033') }}>
-            <div className="absolute inset-0" style={{ background: `rgb(0 0 0 / ${form.overlayPercent}%)` }} />
-            <div className={`relative px-6 text-center ${dark ? 'text-[#172033]' : 'text-white'}`}>
-              {form.backgroundText && <div className="pointer-events-none absolute inset-x-0 -top-8 whitespace-nowrap text-5xl font-bold opacity-15">{form.backgroundText}</div>}
+          <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-2xl border border-border" style={{ background: themed ? 'radial-gradient(90% 80% at 50% 0%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 75%), var(--background)' : form.color || (dark ? '#F5F7FA' : '#172033') }}>
+            {!themed && <div className="absolute inset-0" style={{ background: `rgb(0 0 0 / ${form.overlayPercent}%)` }} />}
+            <div className={`relative flex flex-col items-center px-6 text-center ${themed ? 'text-foreground' : dark ? 'text-[#172033]' : 'text-white'}`}>
+              {form.backgroundText && <div className="mb-3 rounded-full border border-current/20 px-2.5 py-0.5 text-[11px] font-medium opacity-80">{form.backgroundText}</div>}
               <div className="text-2xl font-semibold tracking-tight">{form.mainTitle || t('主标题')}</div>
               {form.subtitle && <div className="mt-2 text-sm opacity-80">{form.subtitle}</div>}
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {(form.buttons.length ? form.buttons : [{ buttonId: 'start', text: t('开始阅读'), style: 'primary' as const }]).map((b) => (
-                  <span key={b.buttonId} className={`rounded-full px-4 py-1.5 text-xs font-medium ${b.style === 'primary' ? (dark ? 'bg-[#172033] text-white' : 'bg-white text-[#172033]') : 'border border-current'}`}>{b.text || t('按钮')}</span>
+                  <span key={b.buttonId} className={`rounded-full px-4 py-1.5 text-xs font-medium ${b.style === 'primary' ? (themed ? 'bg-accent text-accent-foreground' : dark ? 'bg-[#172033] text-white' : 'bg-white text-[#172033]') : 'border border-current'}`}>{b.text || t('按钮')}</span>
                 ))}
               </div>
             </div>

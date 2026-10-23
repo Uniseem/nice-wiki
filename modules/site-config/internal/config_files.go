@@ -20,7 +20,12 @@ import (
 	"nice-wiki/modules/site-config/internal/gen"
 )
 
-const configSchemaVersion = 1
+// 配置文件格式版本。v2 起首页背景可以是“跟随主题”；v1 文件仍可读，读取已提交修订时由 migrateConfigV1 升级。
+// journal/head 记录的格式没变，版本仍为 1。
+const (
+	configSchemaVersion       = 2
+	configRecordSchemaVersion = 1
+)
 
 // 配置入口总界同样适用于本域持久JSON，损坏文件不能无限读入内存。
 const maxConfigFileBytes = 16 << 20
@@ -101,7 +106,7 @@ func WriteConfigRevision(ctx context.Context, op platform.OperationContext, inpu
 	if err := writeConfigFile(configObjectPath(store.activeRoot, input.Config.SiteId, input.RevisionId), raw, true); err != nil {
 		return WriteConfigRevisionResult{}, err
 	}
-	prepared := configJournalRecord{SchemaVersion: configSchemaVersion, State: "PREPARED", SiteID: input.Config.SiteId,
+	prepared := configJournalRecord{SchemaVersion: configRecordSchemaVersion, State: "PREPARED", SiteID: input.Config.SiteId,
 		RevisionID: input.RevisionId, Object: object}
 	if err := writeConfigRecord(store.activeRoot, prepared); err != nil {
 		return WriteConfigRevisionResult{}, err
@@ -477,7 +482,7 @@ func readConfigDocument(root string, record configJournalRecord) (gen.SiteConfig
 	if err != nil {
 		return gen.SiteConfig{}, platform.NewError(platform.CodeIntegrityError, false, "配置权威对象缺失")
 	}
-	config, err := decodeConfigDocument(raw, record.Object)
+	config, err := decodeCommittedConfig(raw, record.Object)
 	if err != nil {
 		return gen.SiteConfig{}, err
 	}
@@ -485,6 +490,33 @@ func readConfigDocument(root string, record configJournalRecord) (gen.SiteConfig
 		return gen.SiteConfig{}, platform.NewError(platform.CodeIntegrityError, false, "配置对象站点不一致")
 	}
 	return config, nil
+}
+
+// decodeCommittedConfig 读取已落盘的配置修订：v1 文件在这里升级到当前格式（文件本身不改，hash 仍按原文校验）。
+// 进行中操作的候选材料不走这里，保持与已存 hash 一致。
+func decodeCommittedConfig(raw []byte, object gen.ObjectRef) (gen.SiteConfig, error) {
+	config, err := decodeConfigDocument(raw, object)
+	if err != nil {
+		return config, err
+	}
+	var version struct {
+		SchemaVersion int `json:"schemaVersion"`
+	}
+	if json.Unmarshal(raw, &version) == nil && version.SchemaVersion == 1 {
+		config = migrateConfigV1(config)
+	}
+	return config, nil
+}
+
+// migrateConfigV1 把 v1 配置里仍是初始化默认值的首页背景（纯色 #0F172A、遮罩 0、浅色文字）换成跟随主题：
+// v1 没有“跟随主题”，这组值就是从没改过的默认；v2 起保存的纯色背景按原样保留。
+func migrateConfigV1(config gen.SiteConfig) gen.SiteConfig {
+	background, err := config.Home.Background.AsHeroBackground0()
+	if err != nil || background.Kind != "color" || !strings.EqualFold(background.Color, "#0F172A") || config.Home.OverlayPercent != 0 || config.Home.TextColor != gen.HomeConfigTextColorLight {
+		return config
+	}
+	_ = config.Home.Background.FromHeroBackground3(gen.HeroBackground3{Kind: "theme"})
+	return config
 }
 
 func decodeConfigDocument(raw []byte, object gen.ObjectRef) (gen.SiteConfig, error) {
@@ -495,7 +527,7 @@ func decodeConfigDocument(raw []byte, object gen.ObjectRef) (gen.SiteConfig, err
 	if err := decodeConfigJSON(raw, &document); err != nil {
 		return gen.SiteConfig{}, err
 	}
-	if document.SchemaVersion != configSchemaVersion {
+	if document.SchemaVersion != 1 && document.SchemaVersion != configSchemaVersion {
 		return gen.SiteConfig{}, platform.NewError(platform.CodeIntegrityError, false, "配置文件schema版本不支持")
 	}
 	configSchema.Do(func() {
@@ -539,7 +571,7 @@ func readConfigRecord(path string) (configJournalRecord, error) {
 	if !bytes.Equal(raw, canonical) {
 		return record, platform.NewError(platform.CodeIntegrityError, false, "配置journal不是完整规范记录")
 	}
-	if record.SchemaVersion != configSchemaVersion || (record.State != "PREPARED" && record.State != "COMMITTED") || !configPathID(record.SiteID) || !configPathID(record.RevisionID) || record.Object.ObjectId != record.RevisionID || record.Object.Owner != "site-config" || !platform.ValidHash(record.Object.Sha256) || record.Object.ByteSize < 1 || record.Object.Version < 1 {
+	if record.SchemaVersion != configRecordSchemaVersion || (record.State != "PREPARED" && record.State != "COMMITTED") || !configPathID(record.SiteID) || !configPathID(record.RevisionID) || record.Object.ObjectId != record.RevisionID || record.Object.Owner != "site-config" || !platform.ValidHash(record.Object.Sha256) || record.Object.ByteSize < 1 || record.Object.Version < 1 {
 		return record, platform.NewError(platform.CodeIntegrityError, false, "配置journal字段不合法")
 	}
 	if record.State == "COMMITTED" && (!platform.ValidIdentifier(record.OperationID) || !platform.ValidIdentifier(record.ActorID) || !platform.ValidHash(record.RequestHash) || !platform.ValidIdentifier(record.DataEpoch) || record.ExpectedRevision+1 != record.Object.Version || len(record.ChangedSections) == 0 || len(record.ChangedSections) > 9) {
