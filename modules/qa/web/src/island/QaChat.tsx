@@ -203,7 +203,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
             </div>
           )}
           {/* 首页（compact 且还没提问）是 Grok 式的两行大输入框：上面写问题，右下角圆形发送键。 */}
-          <div className={cn('flex items-end gap-2 border border-border bg-field focus-within:border-foreground/30', idle ? 'flex-wrap rounded-3xl p-3 ps-4' : 'rounded-3xl p-1.5 ps-2.5')}>
+          <div className={cn('flex items-end gap-2 border border-border bg-field focus-within:border-foreground/30', idle ? 'nw-ask-box flex-wrap rounded-3xl p-3 ps-4' : 'rounded-3xl p-1.5 ps-2.5')}>
             <TextArea
               ref={input}
               aria-label={t('问问这个站点的文档…')}

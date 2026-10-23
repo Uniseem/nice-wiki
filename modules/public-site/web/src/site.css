@@ -229,22 +229,55 @@
     @apply opacity-0;
   }
 
-  /* 首页标题下的细线（Grok 全站唯一的一抹颜色）：两端是淡淡的前景色，中间一小段彩色。 */
-  .nw-home-title {
-    @apply relative inline-block pb-3 text-3xl font-semibold tracking-tight sm:text-[2.5rem] sm:leading-tight;
+  /* 首页主视觉的默认背景（跟随主题）：顶部一圈很淡的主题色光晕，叠一层只在中间可见、向四周淡出的点阵。 */
+  .nw-home-backdrop {
+    @apply pointer-events-none absolute inset-0;
+    background: radial-gradient(ellipse 70% 55% at 50% -8%, color-mix(in oklab, var(--nw-brand) 13%, transparent), transparent 72%);
   }
-  .nw-home-title::after {
-    @apply absolute inset-x-[18%] bottom-0 h-px;
+  .nw-home-backdrop::before {
+    @apply absolute inset-0;
     content: "";
-    background: linear-gradient(90deg, color-mix(in oklab, currentColor 22%, transparent) 0 35%, #6366f1 40%, #a855f7 45%, #ec4899 50%, #f97316 55%, #eab308 60%, color-mix(in oklab, currentColor 22%, transparent) 65% 100%);
+    background-image: radial-gradient(color-mix(in oklab, var(--foreground) 15%, transparent) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(ellipse 62% 58% at 50% 42%, #000 15%, transparent 72%);
+  }
+  :is(.dark, [data-theme="dark"]) .nw-home-backdrop {
+    background: radial-gradient(ellipse 70% 55% at 50% -8%, color-mix(in oklab, var(--nw-brand) 20%, transparent), transparent 72%);
+  }
+  .nw-home-mark {
+    @apply rounded-2xl;
+    box-shadow: 0 12px 32px -12px color-mix(in oklab, var(--nw-brand) 55%, transparent), 0 0 0 1px rgb(5 5 5 / 0.04);
+  }
+  .nw-home-title {
+    @apply text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-balance sm:text-6xl;
+  }
+  /* 首页的大输入框：浮在背景上，一层柔和的投影。 */
+  #nw-home-ask .nw-ask-box,
+  button.nw-ask-box {
+    box-shadow: 0 1px 2px rgb(5 5 5 / 0.04), 0 18px 48px -20px rgb(5 5 5 / 0.22);
+  }
+  :is(.dark, [data-theme="dark"]) :is(#nw-home-ask .nw-ask-box, button.nw-ask-box) {
+    box-shadow: 0 0 0 1px rgb(252 252 252 / 0.04), 0 18px 48px -20px rgb(0 0 0 / 0.7);
   }
 
-  /* 首页文档卡片：白底细边的大圆角卡片，悬停时描边加深，不浮起、不发光。 */
+  /* 首页文档卡片：白底细边的大圆角卡片，左上一个图标块；悬停时描边加深、轻轻上移。 */
   .nw-home-card {
-    @apply relative flex min-w-0 flex-col rounded-3xl border border-border bg-surface p-5 transition-colors duration-200;
+    @apply relative flex min-h-48 min-w-0 flex-col rounded-3xl border border-border bg-surface p-6 transition-[border-color,transform,box-shadow] duration-200;
   }
   .nw-home-card:hover {
-    border-color: color-mix(in oklab, var(--foreground) 24%, var(--border));
+    border-color: color-mix(in oklab, var(--foreground) 22%, var(--border));
+    box-shadow: 0 16px 40px -24px rgb(5 5 5 / 0.25);
+    transform: translateY(-2px);
+  }
+  .nw-home-card-icon {
+    @apply flex size-10 items-center justify-center rounded-2xl bg-default text-foreground [&>svg]:size-[18px];
+  }
+  .nw-home-card-item {
+    @apply relative ps-3.5;
+  }
+  .nw-home-card-item::before {
+    @apply absolute start-0 top-1/2 size-1 -translate-y-1/2 rounded-full bg-current opacity-50;
+    content: "";
   }
 
   /* 站点配置了主视觉背景色时用的按钮（深色背景上用反色）。 */
