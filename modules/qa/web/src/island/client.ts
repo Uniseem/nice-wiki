@@ -81,7 +81,8 @@ export function resetConversation(language: string): void {
 
 export type StartedTurn = { turn: TurnInfo; streamPath: string };
 
-// 提问：带上访客所在页面（AI 会把这一页全文作为预读材料）；会话已过期（GONE）或已不存在（NOT_FOUND）时换一个新会话再试一次。
+// 提问：带上访客所在页面（AI 会把这一页全文作为预读材料）；会话已过期（GONE）、已不存在（NOT_FOUND），
+// 或已不属于当前访客（FORBIDDEN：访客身份由人机验证通过证明决定，证明过期、重新验证后身份就变了）时，换一个新会话再试一次。
 export async function startTurn(question: string, language: string, documentId?: string): Promise<StartedTurn> {
   for (let attempt = 0; ; attempt++) {
     const id = await conversation(language);
@@ -90,7 +91,7 @@ export async function startTurn(question: string, language: string, documentId?:
       if (documentId && /^[A-Za-z0-9._:-]{1,128}$/.test(documentId)) body.currentDocumentId = documentId;
       return await call<StartedTurn>('POST', '/v1/turns', body);
     } catch (problem) {
-      if (attempt === 0 && problem instanceof QaError && (problem.code === 'GONE' || problem.code === 'NOT_FOUND')) { resetConversation(language); continue; }
+      if (attempt === 0 && problem instanceof QaError && ['GONE', 'NOT_FOUND', 'FORBIDDEN'].includes(problem.code)) { resetConversation(language); continue; }
       throw problem;
     }
   }
