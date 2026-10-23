@@ -44,7 +44,9 @@ docker compose -f deploy/docker-compose.yml up -d
 
 在部署机的 `deploy/caddy/conf.d/` 下放两个本地文件（不进 git），并把 Cloudflare 源站证书放到 `deploy/secrets/tls/origin.pem`、`origin.key`：
 
-- `global-cloudflare.caddy`：`servers { trusted_proxies static <Cloudflare 的 IP 段> ; client_ip_headers CF-Connecting-IP }`，让 portal 拿到真实访客 IP（防滥用按它计数）。
+- `global-cloudflare.caddy`：`servers { trusted_proxies static <Cloudflare 的 IP 段> ; client_ip_headers CF-Connecting-IP }`，让 Caddy 算出真实访客 IP；自带的 Caddyfile 再用 `header_up X-Forwarded-For {client_ip}` 只把这个 IP 交给 portal（防滥用计数和问答的匿名访客身份都按它）。
 - `site-cloudflare.caddy`：`tls /run/tls/origin.pem /run/tls/origin.key`，再用 `@notcf not remote_ip <Cloudflare 的 IP 段>` + `respond @notcf 403` 只放行 Cloudflare 回源。
 
 Cloudflare 的 SSL 模式用“完全（Full）”。`deploy/.env` 里 `SITE_DOMAIN` 填域名，`NW_BIND=0.0.0.0`。
+
+用自己的反向代理（不用自带 Caddy）时同理：转给 portal 的 `X-Forwarded-For` 只放真实访客 IP。如果末尾是 Cloudflare 边缘 IP，访客身份会随边缘轮换而变，人机验证和问答会报 FORBIDDEN。
