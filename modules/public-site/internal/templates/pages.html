@@ -103,25 +103,26 @@
 </div>
 {{template "foot" .}}{{end}}
 
-{{/* 首页：主视觉默认跟随站点主题（主题色光晕加淡网格，标题渐隐），站点配置了背景色时改用该色、遮罩和指定文字颜色；
-     背景文字作为标题上方的小标签。主视觉里有大号搜索框（打开 ⌘K 搜索）和按钮；下面每个顶层文档一张卡片。 */}}
+{{/* 首页：左边是小标签、标题、副标题、“问问 AI”（可多轮对话，问答没开启时换成搜索框）和按钮，右边是站点风格的 SVG 动图；
+     站点配置了纯色背景时用该色、遮罩和指定文字颜色。下面每个顶层文档一张卡片。 */}}
 {{define "home"}}{{template "head" .}}
 <main class="flex flex-1 flex-col" id="nw-main">
-  <section class="nw-home-hero relative isolate overflow-hidden px-4 pb-20 pt-20 sm:px-6 sm:pb-28 sm:pt-28{{if .HeroCustomColor}} {{if .HeroDark}}text-[#172033]{{else}}text-white{{end}}{{end}}"{{if .HeroCustomColor}} style="background: {{.HeroBackground}}; --nw-ink: {{if .HeroDark}}#172033{{else}}#fff{{end}}"{{end}}>
-    {{if .HeroCustomColor}}<div class="absolute inset-0 -z-10" style="background: {{.HeroOverlay}}"></div>{{else}}{{template "hero-art"}}{{end}}
-    <div class="relative mx-auto flex max-w-3xl flex-col items-center text-center">
-      {{if .HeroBackgroundText}}<p class="nw-home-eyebrow nw-glass"><span class="nw-home-eyebrow-dot" aria-hidden="true"></span>{{.HeroBackgroundText}}</p>{{end}}
-      <h1 class="nw-home-title">{{.HeroTitle}}</h1>
-      {{if .HeroSubtitle}}<p class="mt-6 max-w-2xl text-pretty text-lg leading-8 opacity-70 sm:text-xl sm:leading-9">{{.HeroSubtitle}}</p>{{end}}
-      <button class="nw-home-search nw-glass" data-open-search type="button">
-        <span class="size-5 shrink-0 text-muted [&>svg]:size-full">{{template "icon-search"}}</span>
-        <span class="min-w-0 flex-1 truncate text-start text-muted">{{.T "搜索文档标题…"}}</span>
-        <kbd class="hidden rounded-md border border-border px-1.5 font-sans text-xs leading-5 text-muted sm:block" data-shortcut>⌘K</kbd>
-      </button>
-      {{if or .HeroButtons .AIEnabled}}<nav class="mt-6 flex flex-wrap items-center justify-center gap-3" aria-label="{{.T "首页"}}">
-        {{range .HeroButtons}}<a class="button button--lg rounded-full px-6 {{if .Primary}}{{if and $.HeroCustomColor (not $.HeroDark)}}nw-hero-primary{{else}}button--primary nw-home-primary{{end}}{{else}}{{if $.HeroCustomColor}}nw-hero-secondary{{else}}nw-home-secondary nw-glass{{end}}{{end}}" href="{{.URL}}">{{.Label}}{{if .Primary}}<span class="inline-block transition-transform rtl:-scale-x-100" aria-hidden="true">→</span>{{end}}</a>{{end}}
-        {{if .AIEnabled}}<a class="button button--lg rounded-full px-6 {{if $.HeroCustomColor}}nw-hero-secondary{{else}}nw-home-secondary nw-glass{{end}}" data-open-ask href="{{.AskURL}}">{{template "icon-sparkles"}}{{.T "AI 问答"}}</a>{{end}}
-      </nav>{{end}}
+  <section class="nw-home-hero relative overflow-hidden px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16{{if .HeroCustomColor}} {{if .HeroDark}}text-[#172033]{{else}}text-white{{end}}{{end}}"{{if .HeroCustomColor}} style="background: {{.HeroBackground}}"{{end}}>
+    {{if .HeroCustomColor}}<div class="absolute inset-0" style="background: {{.HeroOverlay}}"></div>{{end}}
+    <div class="relative mx-auto grid w-full max-w-[1200px] items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:gap-16">
+      <div class="flex min-w-0 flex-col items-start">
+        {{if .HeroBackgroundText}}<span class="chip chip--accent chip--md">{{.HeroBackgroundText}}</span>{{end}}
+        <h1 class="mt-5 text-balance text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl{{if not .HeroCustomColor}} text-foreground{{end}}">{{.HeroTitle}}</h1>
+        {{if .HeroSubtitle}}<p class="mt-5 max-w-xl text-pretty text-lg leading-8 {{if .HeroCustomColor}}opacity-80{{else}}text-muted{{end}}">{{.HeroSubtitle}}</p>{{end}}
+        {{if .AIEnabled}}<div class="mt-8 w-full max-w-xl" id="nw-home-ask"><a class="flex h-[3.75rem] items-center gap-3 rounded-full border border-border bg-field px-4 text-sm text-muted shadow-field" href="{{.AskURL}}"><span class="size-5 shrink-0 text-accent [&>svg]:size-full">{{template "icon-sparkles"}}</span>{{.T "问问这个站点的文档…"}}</a></div>
+        {{else}}<button class="mt-8 flex h-14 w-full max-w-xl cursor-pointer items-center gap-3 rounded-full border border-border bg-field px-5 text-start text-muted shadow-field transition-colors hover:border-field-border-focus" data-open-search type="button">
+          <span class="size-5 shrink-0 [&>svg]:size-full">{{template "icon-search"}}</span>
+          <span class="min-w-0 flex-1 truncate">{{.T "搜索文档标题…"}}</span>
+          <kbd class="hidden rounded-md border border-border px-1.5 font-sans text-xs leading-5 sm:block" data-shortcut>⌘K</kbd>
+        </button>{{end}}
+        {{if .HeroButtons}}<nav class="mt-6 flex flex-wrap items-center gap-3" aria-label="{{.T "首页"}}">{{range .HeroButtons}}<a class="button button--lg {{if .Primary}}{{if and $.HeroCustomColor (not $.HeroDark)}}nw-hero-primary{{else}}button--primary{{end}}{{else}}{{if $.HeroCustomColor}}nw-hero-secondary{{else}}button--tertiary{{end}}{{end}}" href="{{.URL}}">{{.Label}}{{if .Primary}}<span class="inline-block rtl:-scale-x-100" aria-hidden="true">→</span>{{end}}</a>{{end}}</nav>{{end}}
+      </div>
+      <div class="order-first mx-auto w-full max-w-xs sm:max-w-sm lg:order-none lg:max-w-none">{{template "hero-art"}}</div>
     </div>
   </section>
   {{if .Sections}}<section class="mx-auto w-full max-w-[1200px] px-4 pb-20 sm:px-6{{if .HeroCustomColor}} pt-12{{end}}">
@@ -164,5 +165,67 @@
 {{define "icon-file"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M9 1.75H4.5A1.75 1.75 0 0 0 2.75 3.5v9c0 .97.78 1.75 1.75 1.75h7c.97 0 1.75-.78 1.75-1.75V6L9 1.75Z"/><path d="M9 1.75V6h4.25"/></svg>{{end}}
 {{define "icon-copy"}}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.25" y="5.25" width="8.5" height="8.5" rx="1.75"/><path d="M10.75 5.25V3.5a1.75 1.75 0 0 0-1.75-1.75H3.5A1.75 1.75 0 0 0 1.75 3.5V9c0 .97.78 1.75 1.75 1.75h1.75"/></svg>{{end}}
 
-{{/* 首页主视觉背景：三团缓慢漂移的主题色光晕，叠一层向下淡出的细网格；纯装饰、不可聚焦，系统要求减少动态效果时静止。 */}}
-{{define "hero-art"}}<div aria-hidden="true" class="nw-home-aurora"><span class="nw-home-blob"></span><span class="nw-home-blob"></span><span class="nw-home-blob"></span></div>{{end}}
+{{/* 首页主视觉的 SVG 动图：两张文档卡片缓缓浮动，高亮条在正文行间扫过；AI 气泡里三个点在“打字”，
+     回答卡片逐行写出并带引用标记，文档和回答之间是流动的虚线。颜色全部取站点主题变量，浅色/深色自动适配；
+     纯装饰、不可聚焦，系统要求减少动态效果时静止。 */}}
+{{define "hero-art"}}<svg aria-hidden="true" class="nw-art h-auto w-full" fill="none" viewBox="0 0 520 440">
+  <defs>
+    <filter id="nw-art-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0f172a" flood-opacity=".12"/></filter>
+  </defs>
+  <circle cx="260" cy="220" r="190" fill="var(--accent)" opacity=".05"/>
+  <circle class="nw-art-spin" cx="260" cy="220" r="150" stroke="var(--accent)" stroke-opacity=".22" stroke-dasharray="3 9" stroke-linecap="round"/>
+  <g class="nw-art-float nw-art-late">
+    <g transform="rotate(-7 150 250)" filter="url(#nw-art-shadow)">
+      <rect x="52" y="128" width="190" height="236" rx="22" fill="var(--surface)" stroke="var(--border)"/>
+      <rect x="76" y="156" width="78" height="10" rx="5" fill="var(--foreground)" opacity=".2"/>
+      <rect x="76" y="184" width="140" height="7" rx="3.5" fill="var(--foreground)" opacity=".09"/>
+      <rect x="76" y="202" width="122" height="7" rx="3.5" fill="var(--foreground)" opacity=".09"/>
+      <rect x="76" y="220" width="132" height="7" rx="3.5" fill="var(--foreground)" opacity=".09"/>
+      <rect x="76" y="248" width="142" height="62" rx="12" fill="var(--foreground)" opacity=".05"/>
+      <rect x="90" y="264" width="64" height="6" rx="3" fill="var(--accent)" opacity=".45"/>
+      <rect x="90" y="280" width="96" height="6" rx="3" fill="var(--foreground)" opacity=".12"/>
+    </g>
+  </g>
+  <g class="nw-art-float">
+    <g filter="url(#nw-art-shadow)">
+      <rect x="168" y="86" width="226" height="276" rx="24" fill="var(--surface)" stroke="var(--border)"/>
+    </g>
+    <rect x="192" y="112" width="30" height="30" rx="10" fill="var(--accent)" opacity=".14"/>
+    <path d="M202 120.5h7l4.5 4.5v8.5a1.5 1.5 0 0 1-1.5 1.5h-10a1.5 1.5 0 0 1-1.5-1.5v-11.5a1.5 1.5 0 0 1 1.5-1.5Z" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round"/>
+    <rect x="232" y="116" width="96" height="9" rx="4.5" fill="var(--foreground)" opacity=".22"/>
+    <rect x="232" y="131" width="58" height="7" rx="3.5" fill="var(--foreground)" opacity=".1"/>
+    <rect class="nw-art-scan" x="184" y="160" width="194" height="20" rx="8" fill="var(--accent)" opacity=".12"/>
+    <rect x="192" y="166" width="164" height="8" rx="4" fill="var(--foreground)" opacity=".1"/>
+    <rect x="192" y="190" width="144" height="8" rx="4" fill="var(--foreground)" opacity=".1"/>
+    <rect x="192" y="214" width="158" height="8" rx="4" fill="var(--foreground)" opacity=".1"/>
+    <rect x="192" y="238" width="120" height="8" rx="4" fill="var(--foreground)" opacity=".1"/>
+    <rect x="192" y="266" width="178" height="70" rx="14" fill="var(--foreground)" opacity=".045"/>
+    <rect x="208" y="282" width="54" height="7" rx="3.5" fill="var(--accent)" opacity=".5"/>
+    <rect x="268" y="282" width="40" height="7" rx="3.5" fill="var(--foreground)" opacity=".14"/>
+    <rect x="208" y="298" width="90" height="7" rx="3.5" fill="var(--foreground)" opacity=".14"/>
+    <rect x="208" y="314" width="70" height="7" rx="3.5" fill="var(--foreground)" opacity=".14"/>
+  </g>
+  <path class="nw-art-dash" d="M392 216 C 448 226, 462 268, 438 304" stroke="var(--accent)" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
+  <g class="nw-art-float nw-art-slow">
+    <g filter="url(#nw-art-shadow)">
+      <path d="M338 44h132a22 22 0 0 1 22 22v20a22 22 0 0 1-22 22h-96l-16 14v-14h-20a22 22 0 0 1-22-22V66a22 22 0 0 1 22-22Z" fill="var(--accent)"/>
+    </g>
+    <path d="M346 66.5 348.4 73.1a2.6 2.6 0 0 0 1.5 1.5l6.6 2.4-6.6 2.4a2.6 2.6 0 0 0-1.5 1.5L346 87.5l-2.4-6.6a2.6 2.6 0 0 0-1.5-1.5L335.5 77l6.6-2.4a2.6 2.6 0 0 0 1.5-1.5Z" fill="var(--accent-foreground)"/>
+    <circle class="nw-art-dot" cx="382" cy="77" r="5" fill="var(--accent-foreground)"/>
+    <circle class="nw-art-dot" cx="400" cy="77" r="5" fill="var(--accent-foreground)" style="animation-delay:.18s"/>
+    <circle class="nw-art-dot" cx="418" cy="77" r="5" fill="var(--accent-foreground)" style="animation-delay:.36s"/>
+  </g>
+  <g class="nw-art-float nw-art-late nw-art-slow">
+    <g filter="url(#nw-art-shadow)">
+      <rect x="292" y="300" width="192" height="96" rx="22" fill="var(--surface)" stroke="var(--border)"/>
+    </g>
+    <rect class="nw-art-type" x="314" y="322" width="132" height="8" rx="4" fill="var(--foreground)" opacity=".16"/>
+    <rect class="nw-art-type" x="314" y="340" width="112" height="8" rx="4" fill="var(--foreground)" opacity=".16" style="animation-delay:.4s"/>
+    <rect class="nw-art-type" x="314" y="358" width="70" height="8" rx="4" fill="var(--foreground)" opacity=".16" style="animation-delay:.8s"/>
+    <rect x="392" y="355" width="30" height="16" rx="8" fill="var(--accent)" opacity=".16"/>
+    <rect x="401" y="361" width="12" height="4" rx="2" fill="var(--accent)"/>
+  </g>
+  <path class="nw-art-twinkle" d="M118 74 121 82.5a3 3 0 0 0 1.8 1.8L131.3 87l-8.5 3a3 3 0 0 0-1.8 1.8L118 100.3l-3-8.5a3 3 0 0 0-1.8-1.8L104.7 87l8.5-3a3 3 0 0 0 1.8-1.8Z" fill="var(--accent)"/>
+  <path class="nw-art-twinkle" d="M470 168 471.8 173a2 2 0 0 0 1.2 1.2l5 1.8-5 1.8a2 2 0 0 0-1.2 1.2l-1.8 5-1.8-5a2 2 0 0 0-1.2-1.2l-5-1.8 5-1.8a2 2 0 0 0 1.2-1.2Z" fill="var(--accent)" opacity=".7" style="animation-delay:1.1s"/>
+  <circle class="nw-art-twinkle" cx="96" cy="388" r="4" fill="var(--accent)" opacity=".5" style="animation-delay:.6s"/>
+</svg>{{end}}

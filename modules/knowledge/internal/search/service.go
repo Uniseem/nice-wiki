@@ -159,7 +159,8 @@ func Retrieve(ctx context.Context, op OperationContext, input RetrieveInput) (Re
 		return RetrieveResult{}, err
 	}
 	candidates := visible.Candidates
-	if len(candidates) > 0 && runtime.RerankEnabled {
+	// 访客全文搜索要求不重排（SkipRerank）：按关键词与向量融合后的排名直接选材，省一次模型调用。
+	if len(candidates) > 0 && runtime.RerankEnabled && (input.SkipRerank == nil || !*input.SkipRerank) {
 		reranked, err := RerankCandidates(ctx, op, RerankCandidatesInput{Query: query.Normalized, Candidates: candidates, ProfileID: runtime.RerankProfileID})
 		if err != nil {
 			return RetrieveResult{}, err

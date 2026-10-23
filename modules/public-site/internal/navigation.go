@@ -88,13 +88,16 @@ func BuildNavigation(ctx context.Context, op platform.OperationContext, in Build
 		nodes = append(nodes, NavigationNode{node.DocumentID, node.ParentID, node.Title, href, node.OrderKey, node.Reference, node.LastPublishedAt, summary})
 		refs = append(refs, node.Reference)
 	}
-	// 非基准语言：有标题译文且对应的发布修订没变的文档，导航里显示译文标题。
+	// 非基准语言：有标题译文且对应的发布修订没变的文档，导航里显示译文标题和搜索摘要译文；
+	// 摘要还没译出时不显示原文摘要（首页卡片、llms 摘要宁可留空也不混入另一种语言）。
 	if in.Locale != site.baseLanguage {
-		for i, translated := range loadTranslatedTitles(ctx, in.Locale) {
-			for j := range nodes {
-				if nodes[j].DocumentID == i && string(nodes[j].Publication.PublishedRevisionId) == translated.revision {
-					nodes[j].Title = translated.title
-				}
+		translations := loadTranslatedTitles(ctx, in.Locale)
+		for j := range nodes {
+			translated, ok := translations[nodes[j].DocumentID]
+			if ok && string(nodes[j].Publication.PublishedRevisionId) == translated.revision {
+				nodes[j].Title, nodes[j].SEODescription = translated.title, translated.description
+			} else {
+				nodes[j].SEODescription = ""
 			}
 		}
 	}

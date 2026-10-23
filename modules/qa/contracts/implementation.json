@@ -4314,6 +4314,128 @@
       ]
     },
     {
+      "path": "modules/qa/internal/answer/search.go",
+      "kind": "handwritten",
+      "purpose": "访客全文搜索所属实现文件；Go包，禁止直接访问其他域私有存储。",
+      "functions": [
+        {
+          "id": "qa.SearchDocuments",
+          "name": "SearchDocuments",
+          "signature": "func SearchDocuments(ctx context.Context, op OperationContext, input SearchDocumentsInput) (SearchDocumentsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "SearchDocumentsInput",
+              "description": "封闭业务输入；逐字段见types $defs/SearchDocumentsInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "SearchDocumentsResult",
+              "description": "成功结果；逐字段见types $defs/SearchDocumentsResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "访客全文搜索（关键词与向量混合检索，不重排）",
+          "steps": [
+            "1 问答已开启且query≤200Unicode字符，否则释放portal附带的准入并拒绝",
+            "2 ValidateAdmission核验并消费qa.ask准入，本次检索的向量与检索调用都带这份已签名许可",
+            "3 复用问答查询向量缓存，在知识索引上做关键词+向量融合检索，跳过重排模型",
+            "4 逐段核对公开可见性并生成访客语言的公开链接，返回标题、链接和节选；结束时释放准入并发占位"
+          ],
+          "errors": [
+            {
+              "code": "RATE_LIMITED",
+              "httpStatus": 429,
+              "meaning": "guard准入或本服务供应方并发槽位达到上限。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "幂等键不同请求、状态迁移或唯一约束冲突，返回原状态证据。",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "消费并释放一次qa.ask准入；可能生成并缓存查询向量（发模型前固定可信costClass=qa）；不写问答会话"
+          ],
+          "authorization": "权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "只读固定快照；截止=min(ctx deadline,op.deadline,本函数15000ms)，每一外部调用前检查取消。",
+          "idempotency": "纯检索，可重复；准入按portal根操作复用，查询向量按规范查询哈希复用。",
+          "dependencies": [
+            "jobs:createJob",
+            "qa.ValidateAdmission",
+            "traffic-guard:queueSessionAdmission"
+          ],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
       "path": "modules/qa/internal/answer/prompt.go",
       "kind": "handwritten",
       "purpose": "构造有界回答提示所属未来实现文件；Go包，禁止直接访问其他域私有存储。",

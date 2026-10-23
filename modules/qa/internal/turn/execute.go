@@ -226,7 +226,7 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	if _, err = CompleteTurn(ctx, op, CompleteTurnInput{TurnID: turnID, Answer: text, Citations: citations, LeaseID: lease, AnswerKind: kind, TokenCount: len(text)/4 + 1}); err != nil {
 		return err
 	}
-	if cacheable && kind == "answered" {
+	if cacheable && kind == "answered" && assessment.intent != "injection" {
 		writeCache(ctx, op, turnID, planned, text, resolved.Memory.VersionHash, currentDocument)
 	}
 	return nil

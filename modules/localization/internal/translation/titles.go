@@ -16,17 +16,19 @@ type ListTranslationTitlesInput struct {
 }
 type ListTranslationTitlesResult = gen.ListTranslationTitlesResult
 
-// ListTranslationTitles 列出某语言各文档最新已完成译文的标题（连同它对应的发布修订），供公开站点在导航和面包屑里显示译文标题。
-// 只返回有标题译文的文档；调用方要核对发布修订，修订不一致就沿用原文标题。
+// ListTranslationTitles 列出某语言各文档最新已完成译文的标题和搜索摘要（连同它对应的发布修订），
+// 供公开站点在导航、面包屑和首页卡片里显示译文。只返回有标题译文的文档；调用方要核对发布修订，修订不一致就沿用原文。
 func ListTranslationTitles(ctx context.Context, op OperationContext, input ListTranslationTitlesInput) (ListTranslationTitlesResult, error) {
 	if op.CallerService != "public-site" || op.Actor.Kind != "service" || op.Actor.SubjectID != "public-site" {
 		return ListTranslationTitlesResult{}, platform.NewError(platform.CodeForbidden, false, "译文标题只接受公开站点服务读取")
 	}
-	result := ListTranslationTitlesResult{Titles: []struct {
+	type titleItem = struct {
+		Description         *string        `json:"description,omitempty"`
 		DocumentId          gen.Identifier `json:"documentId"`
 		PublishedRevisionId gen.Identifier `json:"publishedRevisionId"`
 		Title               string         `json:"title"`
-	}{}}
+	}
+	result := ListTranslationTitlesResult{Titles: []titleItem{}}
 	err := language.ReadData(ctx, op, func(tx *sql.Tx) error {
 		target, err := interfacecatalog.EnabledLanguage(ctx, tx, input.TargetLanguage)
 		if err != nil {
@@ -58,11 +60,12 @@ func ListTranslationTitles(ctx context.Context, op OperationContext, input ListT
 			if err != nil || object.Title == "" {
 				continue
 			}
-			result.Titles = append(result.Titles, struct {
-				DocumentId          gen.Identifier `json:"documentId"`
-				PublishedRevisionId gen.Identifier `json:"publishedRevisionId"`
-				Title               string         `json:"title"`
-			}{ref.DocumentId, ref.PublishedRevisionId, object.Title})
+			item := titleItem{DocumentId: ref.DocumentId, PublishedRevisionId: ref.PublishedRevisionId, Title: object.Title}
+			if object.Description != "" {
+				description := object.Description
+				item.Description = &description
+			}
+			result.Titles = append(result.Titles, item)
 			if len(result.Titles) >= 1000 {
 				break
 			}

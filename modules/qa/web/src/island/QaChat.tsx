@@ -50,7 +50,8 @@ function failure(t: Translate, problem: unknown): string {
 // documentId 是访客所在页面：每次提问都带上，AI 会先读这一页全文再回答。
 // 滚动只发生在对话区里，从不滚动页面：提问后把这一轮滚到对话区顶部，回答逐字写出时不自动往下滚，
 // 访客可以从头读；最新内容在可视范围外时显示“回到最新”。
-export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string }) {
+// compact（首页的“问问 AI”）：还没有对话时只显示一个输入框；开始提问后和面板一样显示对话区，由外层给出高度。
+export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle, compact }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string; compact?: boolean }) {
   const [messages, setMessages] = useState<Message[]>(() => loadLog(locale));
   const [question, setQuestion] = useState('');
   const [running, setRunning] = useState<{ turnId?: string; controller: AbortController } | null>(null);
@@ -74,7 +75,10 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
     setBehind(!!box && !!mark && mark.getBoundingClientRect().top > box.getBoundingClientRect().bottom + 1);
   };
 
+  const idle = !!compact && !messages.length;
+
   // 打开时停在对话末尾；之后跟踪对话区高度（新一轮的最小高度）和内容变化（逐字输出时更新“回到最新”）。
+  // compact 形态的对话区在第一次提问后才出现，那时再挂上。
   useLayoutEffect(() => {
     const box = scroller.current;
     if (!box) return;
@@ -83,7 +87,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
     observer.observe(box);
     if (list.current) observer.observe(list.current);
     return () => observer.disconnect();
-  }, []);
+  }, [idle]);
 
   // 提问后把这一轮平滑滚到对话区顶部。
   useLayoutEffect(() => {
@@ -159,7 +163,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
   const rounds = group(messages);
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      {!idle && <div className="relative flex min-h-0 flex-1 flex-col">
         <ScrollShadow ref={scroller} className="min-h-0 flex-1 px-4 py-4" onScroll={check}>
           {!messages.length && (
             <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
@@ -181,8 +185,8 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
             <ArrowDown />{t('回到最新')}
           </Button>
         )}
-      </div>
-      <form className="border-t border-separator p-3" onSubmit={(event) => { event.preventDefault(); void ask(); }}>
+      </div>}
+      <form className={idle ? '' : 'border-t border-separator p-3'} onSubmit={(event) => { event.preventDefault(); void ask(); }}>
         <div className="mx-auto w-full max-w-3xl">
           {documentId && pageTitle && (
             <div className="mb-2 flex min-w-0 items-center gap-1.5 px-1 text-xs text-muted">
@@ -191,7 +195,8 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
               <span className="truncate font-medium text-foreground/80">{pageTitle}</span>
             </div>
           )}
-          <div className="flex items-end gap-2 rounded-2xl border border-border bg-field p-1.5 shadow-field focus-within:border-field-border-focus">
+          <div className={cn('flex items-end gap-2 border border-border bg-field shadow-field focus-within:border-field-border-focus', idle ? 'items-center rounded-full py-2 pe-2 ps-4' : 'rounded-2xl p-1.5')}>
+            {idle && <Sparkles className="size-5 shrink-0 text-accent" />}
             <TextArea
               ref={input}
               aria-label={t('问问这个站点的文档…')}
@@ -206,10 +211,10 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
             {running ? (
               <Button isIconOnly aria-label={t('停止')} size="sm" variant="secondary" onPress={stop}><Stop /></Button>
             ) : (
-              <Button isIconOnly aria-label={t('发送')} isDisabled={!question.trim()} size="sm" type="submit"><ArrowUp /></Button>
+              <Button isIconOnly aria-label={t('发送')} className={cn(idle && 'rounded-full')} isDisabled={!question.trim()} size={idle ? 'md' : 'sm'} type="submit"><ArrowUp /></Button>
             )}
           </div>
-          <div className="mt-2 flex items-center justify-between gap-2 px-1">
+          <div className={cn('mt-2 flex items-center justify-between gap-2 px-1', idle && 'hidden')}>
             <span className="text-[11px] leading-4 text-muted">{t('回答由 AI 生成，可能有误，请以文档原文为准。')}</span>
             {messages.length > 0 && <Button className="shrink-0" size="sm" variant="ghost" onPress={restart}><Plus />{t('新对话')}</Button>}
           </div>

@@ -1,5 +1,5 @@
 import { I18nProvider } from '@heroui/react';
-import { preloadQa, QaFloating, QaInline } from '@modules/qa/web/src/island';
+import { preloadQa, QaFloating, QaHome, QaInline } from '@modules/qa/web/src/island';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
@@ -25,7 +25,7 @@ const MobileNav = lazy(loadNav);
 const loadSearch = () => import('./search');
 const Search = lazy(loadSearch);
 
-function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement | null }) {
+function Islands({ header, ask, homeAsk }: { header: HTMLElement | null; ask: HTMLElement | null; homeAsk: HTMLElement | null }) {
   const [config, setConfig] = useState(initialConfig);
   const [askOpen, setAskOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -82,16 +82,13 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
     };
   }, []);
 
-  // 首页主视觉里的搜索框和“AI 问答”按钮由服务端输出：搜索框打开 ⌘K 搜索，按钮打开问答面板（无脚本时是去问答页的链接）；
-  // 指针移上去就预取对应代码。非 Mac 上快捷键提示改成 Ctrl K。
+  // 首页主视觉在问答没开启时放一个搜索框（服务端输出），点开 ⌘K 搜索，指针移上去就预取搜索代码；非 Mac 上快捷键提示改成 Ctrl K。
   useEffect(() => {
     if (!/Mac|iPhone|iPad/.test(navigator.platform)) document.querySelectorAll('[data-shortcut]').forEach((node) => { node.textContent = 'Ctrl K'; });
     const search = () => setSearchOpen(true);
     const preloadSearch = () => { void loadSearch(); };
-    const askHere = (event: Event) => { event.preventDefault(); setAskOpen(true); };
     const bindings: [Element, string, EventListener][] = [];
     for (const node of document.querySelectorAll('[data-open-search]')) bindings.push([node, 'click', search], [node, 'pointerenter', preloadSearch], [node, 'focus', preloadSearch]);
-    if (!ask) for (const node of document.querySelectorAll('[data-open-ask]')) bindings.push([node, 'click', askHere], [node, 'pointerenter', preloadQa], [node, 'focus', preloadQa]);
     bindings.forEach(([node, name, listener]) => node.addEventListener(name, listener));
     return () => bindings.forEach(([node, name, listener]) => node.removeEventListener(name, listener));
   }, []);
@@ -104,10 +101,11 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
   return (
     <I18nProvider locale={config.locale || document.documentElement.lang}>
       {header && createPortal(<HeaderActions config={config} t={t} onAsk={onAsk} onAskIntent={ask ? undefined : preloadQa} onSearch={() => setSearchOpen(true)} onSearchIntent={() => { void loadSearch(); }} />, header)}
-      {searchUsed && <Suspense fallback={null}><Search locale={config.locale || document.documentElement.lang} open={searchOpen} t={t} onOpenChange={setSearchOpen} /></Suspense>}
+      {searchUsed && <Suspense fallback={null}><Search deep={config.aiEnabled} locale={config.locale || document.documentElement.lang} open={searchOpen} t={t} onOpenChange={setSearchOpen} /></Suspense>}
       {navUsed && <Suspense fallback={null}><MobileNav open={navOpen} t={t} onOpenChange={setNavOpen} /></Suspense>}
       {config.aiEnabled && !ask && <QaFloating documentId={config.documentId || undefined} locale={config.locale} open={askOpen} pageTitle={pageTitle(config)} t={t} onOpenChange={setAskOpen} />}
       {config.aiEnabled && ask && createPortal(<QaInline locale={config.locale} t={t} />, ask)}
+      {config.aiEnabled && homeAsk && createPortal(<QaHome locale={config.locale} t={t} />, homeAsk)}
       {suggested && <LanguageSuggestion config={config} t={t} target={suggested} onClose={() => setSuggested(null)} />}
     </I18nProvider>
   );
@@ -115,12 +113,14 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
 
 const header = document.getElementById('nw-header');
 const ask = document.getElementById('nw-ask');
-// 服务端放在这两处的是无脚本时的退路内容，由 React 接管后清掉。
+const homeAsk = document.getElementById('nw-home-ask');
+// 服务端放在这几处的是无脚本时的退路内容，由 React 接管后清掉。
 header?.replaceChildren();
 ask?.replaceChildren();
+homeAsk?.replaceChildren();
 const host = document.createElement('div');
 host.id = 'nw-qa-root';
 document.body.append(host);
-createRoot(host).render(<Islands ask={ask} header={header} />);
+createRoot(host).render(<Islands ask={ask} header={header} homeAsk={homeAsk} />);
 enhance(t);
 startNavigation(t);

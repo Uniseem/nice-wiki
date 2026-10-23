@@ -4464,6 +4464,78 @@
         "status",
         "title"
       ]
+    },
+    "SearchDocumentsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "description": "访客输入的搜索词；≤200Unicode字符"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 35,
+          "description": "访客当前语言，结果链接按它生成"
+        },
+        "admission": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
+          "description": "准入"
+        }
+      },
+      "required": [
+        "query",
+        "language",
+        "admission"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "SearchDocumentsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "results": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "文档标题"
+              },
+              "href": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096,
+                "description": "公开链接（带段落锚点）"
+              },
+              "excerpt": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 2000,
+                "description": "命中段落的节选"
+              }
+            },
+            "required": [
+              "title",
+              "href",
+              "excerpt"
+            ]
+          },
+          "description": "按相关度排列的命中段落"
+        }
+      },
+      "required": [
+        "results"
+      ],
+      "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     }
   }
 }

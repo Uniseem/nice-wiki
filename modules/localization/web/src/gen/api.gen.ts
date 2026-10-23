@@ -2155,7 +2155,7 @@ export interface components {
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         ListTranslationTitlesResult: {
-            /** @description 各文档的标题译文 */
+            /** @description 各文档的标题与搜索摘要译文 */
             titles: {
                 /** @description 文档 */
                 documentId: components["schemas"]["Identifier"];
@@ -2163,6 +2163,8 @@ export interface components {
                 publishedRevisionId: components["schemas"]["Identifier"];
                 /** @description 译文标题 */
                 title: string;
+                /** @description 搜索摘要译文；原文没有摘要或还没译出时不提供 */
+                description?: string;
             }[];
         };
         /**

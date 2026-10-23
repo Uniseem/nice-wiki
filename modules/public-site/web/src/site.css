@@ -243,102 +243,22 @@
     @apply opacity-0;
   }
 
-  /* 首页主视觉：默认跟随站点主题。--nw-ink 是主视觉的文字色（配置了背景色时由模板按文字颜色写入），
-     标题用它从实到半透明的渐变，向下渐隐。 */
-  .nw-home-hero {
-    --nw-ink: var(--foreground);
+  /* 首页主视觉的 SVG 动图：卡片缓缓浮动、高亮条在正文行间扫过、气泡里三个点打字、回答逐行写出、虚线流动、星点闪烁。
+     group 元素按自身包围盒变换；系统要求减少动态效果时全部静止。 */
+  .nw-art :is(.nw-art-dot, .nw-art-type, .nw-art-twinkle) {
+    transform-box: fill-box;
   }
-  .nw-home-title {
-    @apply mt-6 text-balance pb-2 text-[clamp(2.6rem,7vw,4.75rem)] font-semibold leading-[1.06] tracking-tight;
-    background-image: linear-gradient(180deg, var(--nw-ink) 35%, color-mix(in oklab, var(--nw-ink) 58%, transparent));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  /* 小标签是玻璃底，文字始终用前景色（配置了深色背景、白字时也看得清）。 */
-  .nw-home-eyebrow {
-    @apply inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-sm font-medium text-foreground;
-  }
-  .nw-home-eyebrow-dot {
-    @apply size-1.5 rounded-full bg-accent;
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
-  }
-  /* 大号搜索框：点开 ⌘K 搜索。 */
-  .nw-home-search {
-    @apply mt-10 flex h-14 w-full max-w-xl cursor-pointer items-center gap-3 rounded-full px-5 text-base transition-[transform,box-shadow] duration-300;
-  }
-  .nw-home-search:hover {
-    transform: translateY(-1px);
-  }
-  .nw-home-search:focus-visible {
-    @apply outline-2 outline-offset-2 outline-focus;
-  }
-  .button.nw-home-primary {
-    box-shadow: 0 10px 28px -10px color-mix(in oklab, var(--accent) 70%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.25);
-  }
-  .button.nw-home-primary:hover > span {
-    transform: translateX(2px);
-  }
-  .button.nw-home-secondary {
-    @apply text-foreground;
-  }
-
-  /* 首页主视觉的背景：三团主题色光晕缓慢漂移（模糊后叠在一起），上面一层从顶部向下淡出的细网格。 */
-  .nw-home-aurora {
-    @apply pointer-events-none absolute inset-0 -z-10 overflow-hidden;
-  }
-  .nw-home-aurora::after {
-    @apply absolute inset-0;
-    content: "";
-    background-image:
-      linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px);
-    background-size: 44px 44px;
-    background-position: center top;
-    mask-image: radial-gradient(ellipse 75% 70% at 50% 0%, black 25%, transparent 75%);
-  }
-  .nw-home-blob {
-    @apply absolute rounded-full;
-    filter: blur(90px);
-    opacity: 0.32;
-    animation: nw-blob 26s ease-in-out infinite alternate;
-  }
-  .nw-home-blob:nth-child(1) {
-    width: min(44rem, 90vw);
-    height: 26rem;
-    top: -13rem;
-    left: calc(50% - min(30rem, 62vw));
-    background: var(--accent);
-  }
-  .nw-home-blob:nth-child(2) {
-    width: min(34rem, 75vw);
-    height: 24rem;
-    top: -9rem;
-    left: calc(50% - min(4rem, 10vw));
-    background: color-mix(in oklch, var(--accent), #d946ef 55%);
-    animation-duration: 32s;
-    animation-delay: -10s;
-  }
-  .nw-home-blob:nth-child(3) {
-    width: min(30rem, 70vw);
-    height: 18rem;
-    top: 8rem;
-    left: calc(50% - min(14rem, 35vw));
-    background: color-mix(in oklch, var(--accent), #22d3ee 50%);
-    opacity: 0.2;
-    animation-duration: 38s;
-    animation-delay: -20s;
-  }
-  :is(.dark, [data-theme="dark"]) .nw-home-blob {
-    opacity: 0.26;
-  }
-  :is(.dark, [data-theme="dark"]) .nw-home-blob:nth-child(3) {
-    opacity: 0.14;
-  }
+  .nw-art-float { animation: nw-art-float 7s ease-in-out infinite alternate; }
+  .nw-art-late { animation-delay: -3.5s; }
+  .nw-art-slow { animation-duration: 9s; }
+  .nw-art-spin { animation: nw-spin 80s linear infinite; transform-origin: 260px 220px; }
+  .nw-art-scan { animation: nw-art-scan 6s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+  .nw-art-dash { animation: nw-art-dash 1.4s linear infinite; }
+  .nw-art-dot { transform-origin: center; animation: nw-art-dot 1.3s ease-in-out infinite; }
+  .nw-art-type { transform-origin: left center; animation: nw-art-type 4.8s ease-out infinite; }
+  .nw-art-twinkle { transform-origin: center; animation: nw-art-twinkle 2.6s ease-in-out infinite; }
   @media (prefers-reduced-motion: reduce) {
-    .nw-home-blob {
-      animation: none;
-    }
+    .nw-art * { animation: none !important; }
   }
 
   /* 首页文档卡片：圆角卡片，悬停时微微浮起、描边染上主题色，顶部透出一点主题色光。 */
@@ -413,9 +333,34 @@
   from { transform: scaleX(0); }
   to { transform: scaleX(0.9); }
 }
-@keyframes nw-blob {
-  from { transform: translate(-4%, -3%) scale(1); }
-  50% { transform: translate(5%, 4%) scale(1.08); }
-  to { transform: translate(-2%, 6%) scale(0.96); }
+@keyframes nw-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes nw-art-float {
+  from { transform: translateY(6px); }
+  to { transform: translateY(-8px); }
+}
+@keyframes nw-art-scan {
+  0%, 12% { transform: translateY(0); }
+  25%, 37% { transform: translateY(24px); }
+  50%, 62% { transform: translateY(48px); }
+  75%, 87% { transform: translateY(72px); }
+  100% { transform: translateY(0); }
+}
+@keyframes nw-art-dash {
+  to { stroke-dashoffset: -20; }
+}
+@keyframes nw-art-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.55; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+@keyframes nw-art-type {
+  0% { transform: scaleX(0); }
+  25%, 85% { transform: scaleX(1); }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+@keyframes nw-art-twinkle {
+  0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.35; }
+  50% { transform: scale(1.1) rotate(20deg); opacity: 1; }
 }
 

@@ -11,6 +11,7 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/qa/internal/admin"
+	"nice-wiki/modules/qa/internal/answer"
 	"nice-wiki/modules/qa/internal/cache"
 	"nice-wiki/modules/qa/internal/conversation"
 	qadebug "nice-wiki/modules/qa/internal/debug"
@@ -59,6 +60,7 @@ func NewOperationHandlers(bind func(context.Context) context.Context) map[string
 		}),
 		"createConversation": jsonOperation(bind, http.StatusCreated, conversation.CreateConversation, nil),
 		"startTurn":          jsonOperation(bind, http.StatusAccepted, turn.StartTurn, nil),
+		"searchDocuments":    jsonOperation(bind, http.StatusOK, answer.SearchDocuments, nil),
 		"createDebugTurn":    jsonOperation(bind, http.StatusAccepted, qadebug.CreateDebugTurn, nil),
 		"recordFeedback": jsonOperation(bind, http.StatusOK, feedback.RecordFeedback, func(r *http.Request, input *gen.RecordFeedbackInput) error {
 			if input.TurnId != r.PathValue("turnId") {

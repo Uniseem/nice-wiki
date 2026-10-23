@@ -10,6 +10,7 @@ export type { Translate };
 const loadPanel = () => import('./panel');
 const QaPanel = lazy(() => loadPanel().then((module) => ({ default: module.QaPanel })));
 const QaInlineChat = lazy(() => loadPanel().then((module) => ({ default: module.QaInlineChat })));
+const QaHomeChat = lazy(() => loadPanel().then((module) => ({ default: module.QaHomeChat })));
 
 export function preloadQa() {
   void loadPanel();
@@ -50,6 +51,15 @@ export function QaInline({ locale, t }: { locale: string; t: Translate }) {
   return (
     <Suspense fallback={<Card className="flex min-h-[32rem] flex-1 items-center justify-center"><Spinner /></Card>}>
       <QaInlineChat locale={locale} t={t} />
+    </Suspense>
+  );
+}
+
+// 首页的“问问 AI”：面板代码下载完之前先放一个同样大小的输入框占位，下载完换成可以多轮对话的输入框。
+export function QaHome({ locale, t }: { locale: string; t: Translate }) {
+  return (
+    <Suspense fallback={<div className="flex h-[3.75rem] items-center gap-3 rounded-full border border-border bg-field px-4 text-muted shadow-field"><Sparkles className="size-5 text-accent" /><span className="text-sm">{t('问问这个站点的文档…')}</span></div>}>
+      <QaHomeChat locale={locale} t={t} />
     </Suspense>
   );
 }

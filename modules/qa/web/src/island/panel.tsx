@@ -77,6 +77,16 @@ function BottomSheet({ open, onOpenChange, locale, t, documentId, pageTitle }: P
   );
 }
 
+// 首页主视觉里的“问问 AI”：还没提问时只是一个输入框；开始提问后原地展开成对话卡片（多轮，和面板、问答页共用会话），
+// 对话在卡片里滚动。卡片高度由 :has() 按是否已有对话切换。
+export function QaHomeChat({ locale, t }: { locale: string; t: Translate }) {
+  return (
+    <div className="nw-home-ask-card flex flex-col overflow-hidden has-[ol>li]:h-[min(34rem,72dvh)] has-[ol>li]:rounded-3xl has-[ol>li]:border has-[ol>li]:border-border has-[ol>li]:bg-overlay has-[ol>li]:shadow-overlay">
+      <QaChat compact locale={locale} t={t} />
+    </div>
+  );
+}
+
 // 独立问答页里的内嵌形态，和面板共用同一个会话；高度固定在一屏之内，对话在卡片里滚动，页面本身不跟着动。
 export function QaInlineChat({ locale, t }: { locale: string; t: Translate }) {
   return (

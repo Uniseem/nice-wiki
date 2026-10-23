@@ -15,6 +15,8 @@ type RetrieveEvidenceInput struct {
 	Policy     gen.TypesQaPolicy         `json:"policy"`
 	Embedding  *qaruntime.QueryEmbedding `json:"embedding,omitempty"`
 	Language   string                    `json:"language"`
+	// SkipRerank 为真时知识检索不调用重排模型（访客全文搜索），按关键词与向量融合后的排名选材。
+	SkipRerank bool `json:"skipRerank,omitempty"`
 	// Select 是材料筛选：给出候选片段，返回要保留的片段 ID；nil 表示原样使用。
 	Select func([]EvidenceCandidate) []string `json:"-"`
 }
@@ -65,6 +67,9 @@ func RetrieveEvidence(ctx context.Context, op OperationContext, input RetrieveEv
 		request := map[string]any{"query": input.Normalized, "language": runtime.BaseLanguage, "space": input.Policy.RetrievalSpace, "maximumTokens": min(4096, input.Policy.MaximumContextTokens), "lexicalOnly": false, "embedding": embedding}
 		if permit := runtime.Permit(); permit != nil {
 			request["admissionPermit"] = permit
+		}
+		if input.SkipRerank {
+			request["skipRerank"] = true
 		}
 		raw, err := runtime.Knowledge.SearchKnowledge(qaruntime.ServiceReadContext(ctx, op), request)
 		if err != nil {

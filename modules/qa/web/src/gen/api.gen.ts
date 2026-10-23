@@ -507,6 +507,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 访客全文搜索（关键词与向量混合检索）
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 消费一次qa.ask准入，复用问答查询向量缓存，在知识索引上做关键词+向量混合检索，不调用重排模型。
+         */
+        post: operations["searchDocuments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1422,6 +1442,27 @@ export interface components {
             question: string;
             answer: string;
             sourceLanguage: string;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        SearchDocumentsResult: {
+            /** @description 按相关度排列的命中段落 */
+            results: {
+                /** @description 文档标题 */
+                title: string;
+                /** @description 公开链接（带段落锚点） */
+                href: string;
+                /** @description 命中段落的节选 */
+                excerpt: string;
+            }[];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        SearchDocumentsInput: {
+            /** @description 访客输入的搜索词；≤200Unicode字符 */
+            query: string;
+            /** @description 访客当前语言，结果链接按它生成 */
+            language: string;
+            /** @description 准入 */
+            admission: components["schemas"]["AdmissionPermit"];
         };
         /** @description 消费前验证租约成功结果；失败不返回半成功结果 */
         ValidatePermitResult: {
@@ -5064,6 +5105,107 @@ export interface operations {
             };
             /** @description 安全错误 */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    searchDocuments: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 若输入schema含idempotencyKey必须一致；同键不同hash为409。 */
+                "Idempotency-Key"?: string;
+                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
+                "X-Request-Id": components["schemas"]["Identifier"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchDocumentsInput"];
+            };
+        };
+        responses: {
+            /** @description 检索完成 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchDocumentsResult"];
+                };
+            };
+            /** @description 输入字段、范围、字节预算或声明配置不合法，业务事务不提交。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 幂等键不同请求、状态迁移或唯一约束冲突，返回原状态证据。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description guard准入或本服务供应方并发槽位达到上限。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共Problem；错误code必须来自处理函数集合。 */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };

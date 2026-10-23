@@ -861,6 +861,8 @@ export interface components {
             maximumTokens: number;
             /** @description 显式词项 */
             lexicalOnly: boolean;
+            /** @description 访客全文搜索：不调用重排模型，按关键词与向量融合后的排名返回；省略时照常重排 */
+            skipRerank?: boolean;
             /** @description 问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。 */
             admissionPermit?: components["schemas"]["AdmissionPermit"];
             /** @description 只在这些文档里检索（问答按文档路由选出）；省略时全站检索 */

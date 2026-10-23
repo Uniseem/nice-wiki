@@ -2053,6 +2053,10 @@
           "type": "boolean",
           "description": "显式词项"
         },
+        "skipRerank": {
+          "type": "boolean",
+          "description": "访客全文搜索：不调用重排模型，按关键词与向量融合后的排名返回；省略时照常重排"
+        },
         "admissionPermit": {
           "$ref": "../../../contracts/common.schema.json#/$defs/AdmissionPermit",
           "description": "问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。"

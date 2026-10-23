@@ -3160,6 +3160,147 @@
         ],
         "x-internal-only": true
       }
+    },
+    "/v1/search": {
+      "post": {
+        "operationId": "searchDocuments",
+        "summary": "访客全文搜索（关键词与向量混合检索）",
+        "x-handler": "qa.SearchDocuments",
+        "x-permission": "anonymous",
+        "x-timeout-ms": 15000,
+        "description": "可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 消费一次qa.ask准入，复用问答查询向量缓存，在知识索引上做关键词+向量混合检索，不调用重排模型。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "若输入schema含idempotencyKey必须一致；同键不同hash为409。"
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "检索完成",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/SearchDocumentsResult"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "guard准入或本服务供应方并发槽位达到上限。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "身份、租户、对象拥有者或登记权限不满足。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "幂等键不同请求、状态迁移或唯一约束冲突，返回原状态证据。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "服务凭证、访客凭证或管理会话缺失/过期。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "本服务内部错误，事务回滚且记录脱敏requestId。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "公共Problem；错误code必须来自处理函数集合。",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "serviceAssertion": [],
+            "visitorSession": [],
+            "admissionPermit": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/SearchDocumentsInput"
+              }
+            }
+          }
+        },
+        "x-admission": "qa.ask"
+      }
     }
   },
   "components": {

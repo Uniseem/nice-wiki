@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 66 个：手写 53、UI 2、生成 4、配置 6、迁移 1。函数 120 个：约束 42，参考 78。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 67 个：手写 54、UI 2、生成 4、配置 6、迁移 1。函数 121 个：约束 43，参考 78。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -18,6 +18,7 @@
 | `modules/qa/internal/cache/semantic.go` | 手写 | 保守查询语义缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.LookupSemanticCache`（参考）、`qa.cosineSimilarity`（参考） |
 | `modules/qa/internal/cache/validate.go` | 手写 | 验证缓存仍可公开交付所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ValidateCachedAnswer`（参考） |
 | `modules/qa/internal/answer/retrieve.go` | 手写 | 取有源可见证据所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.RetrieveEvidence`（参考） |
+| `modules/qa/internal/answer/search.go` | 手写 | 访客全文搜索所属实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.SearchDocuments` |
 | `modules/qa/internal/answer/prompt.go` | 手写 | 构造有界回答提示所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.BuildAnswerPrompt`（参考） |
 | `modules/qa/internal/answer/generate.go` | 手写 | 执行流式答案调用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.GenerateAnswer`（参考） |
 | `modules/qa/internal/answer/citation.go` | 手写 | 逐条保护引用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ValidateCitation`（参考） |

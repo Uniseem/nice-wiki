@@ -21,6 +21,9 @@ var englishUI = strings.NewReplacer(
 	"地址可能有误，或这篇文档还没有发布。", "The address may be wrong, or this page is not published yet.",
 	"复制失败，请打开 Markdown 版本", "Copy failed; open the Markdown version",
 	"服务正在更新，请稍后再试。", "The service is updating. Please try again in a moment.",
+	"全文检索暂时不可用，请稍后再试。", "Full-text search is unavailable right now. Please try again later.",
+	"全文中没有找到相关内容", "No matching passages found", "正在检索全文…", "Searching the full text…",
+	"检索全文", "Search full text", "全文检索", "Full-text results", "标题匹配", "Title matches",
 	"公开问答暂未开放。", "Ask AI is not available yet.", "这篇文档已经被删除。", "This page has been deleted.",
 	"页面暂时无法访问", "Page temporarily unavailable", "请稍后刷新重试。", "Please refresh and try again later.",
 	"页面不存在", "Page not found", "页面已删除", "Page deleted", "回到首页", "Back to home",
@@ -106,7 +109,8 @@ func loadUIStrings(ctx context.Context, locale string) map[string]string {
 	return result
 }
 
-type translatedTitle struct{ revision, title string }
+// translatedTitle 是一篇文档在某语言下的标题译文和搜索摘要译文（摘要还没译出时为空），对应发布修订 revision。
+type translatedTitle struct{ revision, title, description string }
 
 var titleCache = struct {
 	sync.Mutex
@@ -118,7 +122,7 @@ type titleCacheEntry struct {
 	expires time.Time
 }
 
-// loadTranslatedTitles 读取某语言各文档的标题译文（文档 ID → 对应发布修订与译文标题），缓存一分钟；读不到就当没有，页面沿用原文标题。
+// loadTranslatedTitles 读取某语言各文档的标题和摘要译文（文档 ID → 对应发布修订与译文），缓存一分钟；读不到就当没有，页面沿用原文标题。
 func loadTranslatedTitles(ctx context.Context, locale string) map[string]translatedTitle {
 	titleCache.Lock()
 	if entry, ok := titleCache.entries[locale]; ok && time.Now().Before(entry.expires) {
@@ -134,11 +138,12 @@ func loadTranslatedTitles(ctx context.Context, locale string) map[string]transla
 					DocumentID          string `json:"documentId"`
 					PublishedRevisionID string `json:"publishedRevisionId"`
 					Title               string `json:"title"`
+					Description         string `json:"description"`
 				} `json:"titles"`
 			}
 			if json.Unmarshal(raw, &reply) == nil {
 				for _, item := range reply.Titles {
-					result[item.DocumentID] = translatedTitle{item.PublishedRevisionID, item.Title}
+					result[item.DocumentID] = translatedTitle{item.PublishedRevisionID, item.Title, item.Description}
 				}
 			}
 		}

@@ -2152,6 +2152,16 @@
       "streaming": false
     },
     {
+      "method": "POST",
+      "path": "/v1/search",
+      "owner": "qa",
+      "operationId": "searchDocuments",
+      "permission": "anonymous",
+      "admission": "qa.ask",
+      "timeoutMs": 15000,
+      "streaming": false
+    },
+    {
       "method": "GET",
       "path": "/v1/self",
       "owner": "identity",

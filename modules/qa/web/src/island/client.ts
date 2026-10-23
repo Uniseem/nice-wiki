@@ -49,12 +49,13 @@ function wait(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-// 重试沿用同一个幂等键，服务端不会把同一次提问、同一次建会话算成两次。
+// 正文带幂等键的写操作重试时沿用它，服务端不会把同一次提问、同一次建会话算成两次；
+// 不带的（人机验证、全文搜索这类只读或一次性的请求）每次重试换新键，入口会领新的准入。
 async function raw<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (method !== 'GET') headers['Idempotency-Key'] = (body?.idempotencyKey as string | undefined) ?? key();
   if (guard()) headers['X-Guard-Session'] = guard();
   for (let attempt = 0; ; attempt++) {
+    if (method !== 'GET') headers['Idempotency-Key'] = (body?.idempotencyKey as string | undefined) ?? key();
     try {
       const response = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined }).catch(() => { throw new QaError('NETWORK', ''); });
       const text = await response.text();
@@ -177,6 +178,14 @@ async function readStream(started: StartedTurn, after: number, onEvent: (event: 
     }
   }
   return ended;
+}
+
+export type SearchHit = { title: string; href: string; excerpt: string };
+
+// 全文搜索（⌘K 里按回车）：在知识索引上做关键词 + 向量混合检索，返回命中段落；每次算访客一次问答次数。
+export async function searchDocuments(query: string, language: string): Promise<SearchHit[]> {
+  const found = await call<{ results: SearchHit[] }>('POST', '/v1/search', { query, language });
+  return found.results;
 }
 
 export async function cancelTurn(turnId: string): Promise<void> {
