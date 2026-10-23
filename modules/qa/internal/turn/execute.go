@@ -120,9 +120,9 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	step := func(key gen.AnswerStepKey, status gen.AnswerStepStatus, title, detail string, items []string) {
 		emitStep(ctx, op, turnID, lease, key, status, title, detail, items)
 	}
-	// 理解问题：前置改写把追问补成独立问题（检索用它），同时分类并上报风险；前置不可用时退回访客原话。
+	// 理解问题：前置改写结合整段对话把追问补成独立问题（检索用它，也展示给访客），同时分类并上报风险；前置不可用时退回访客原话。
 	step(gen.Understand, gen.Running, "理解问题", "", nil)
-	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, conversation.Summary, conversation.Recent(6))
+	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, conversation.Summary, conversation.Messages)
 	if err != nil {
 		return err
 	}
@@ -176,6 +176,10 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	step(gen.Answer, gen.Running, "生成回答", "", nil)
 	prompt, err := answerPrompt(ctx, op, record, resolved, answer.Materials{Overview: overview, Page: page.EvidenceText, Evidence: evidence.EvidenceText}, conversation, task)
 	if err != nil {
+		return err
+	}
+	// 记下本轮实际发出的访客消息（资料 + 问题），后续轮次原样重放。
+	if err := saveModelText(ctx, op, turnID, prompt.Messages[len(prompt.Messages)-1].Content); err != nil {
 		return err
 	}
 	outcome, err := qaruntime.InvokeModel(ctx, op, qaruntime.InvokeModelInput{Stream: true, Request: platform.CreateInvocationInput{TaskID: task, ProfileID: profile, Capability: platform.CapabilityChat, Messages: prompt.Messages, MaximumOutputTokens: int64(min(prompt.MaximumOutputTokens, resolved.Policy.MaximumOutputTokens)), IDempotencyKey: "answer"}})
@@ -323,7 +327,7 @@ const summaryRoom = 4000
 // 后台关闭压缩时改为丢掉最早的消息。估算和网关核对窗口用同一口径。
 func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, materials answer.Materials, conversation history.Conversation, task string) (answer.BuildAnswerPromptResult, error) {
 	build := func() (answer.BuildAnswerPromptResult, error) {
-		return answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, Materials: materials, Summary: conversation.Summary, History: conversation.Messages})
+		return answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, Materials: materials, Summary: conversation.Summary, History: conversation.ForModel()})
 	}
 	prompt, err := build()
 	if err != nil {
@@ -359,6 +363,19 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 		return prompt, err
 	}
 	return build()
+}
+
+// saveModelText 保存本轮访客问题实际发给回答模型的内容（含当轮资料），供后续轮次原样重放。
+func saveModelText(ctx context.Context, op OperationContext, turnID, text string) error {
+	tx, err := qaruntime.BeginWrite(ctx, op)
+	if err != nil {
+		return err
+	}
+	defer tx.Close()
+	if _, err := tx.Tx.ExecContext(tx.Context, `UPDATE messages SET model_text=? WHERE message_id=?`, text, "question."+turnID); err != nil {
+		return qaruntime.StorageError(err)
+	}
+	return tx.Commit()
 }
 
 // emitStep 把回答过程的一步推给访客界面（思考过程展示）；推送失败不影响回答。

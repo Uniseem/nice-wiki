@@ -21,13 +21,23 @@ type Conversation struct {
 	SummaryUntil int
 	Generation   int
 	Messages     []gen.Message
+	// ModelTexts 是访客问题当时实际发给回答模型的内容（含当轮资料），按消息 ID；回答时原样重放，
+	// 每轮请求都是上一轮的延长，前缀不变才能命中供应方缓存。
+	ModelTexts map[string]string
 	// EnglishQuestions 是此前最近几轮提问的英文译文（按时间顺序），只给决策模型看。
 	EnglishQuestions []string
 }
 
-// Recent 返回最近 n 条原样消息。
-func (c Conversation) Recent(n int) []gen.Message {
-	return c.Messages[max(0, len(c.Messages)-n):]
+// ForModel 返回交给回答模型的历史：访客问题换成当时实际发送的内容（带当轮资料），回答原样。
+func (c Conversation) ForModel() []gen.Message {
+	result := make([]gen.Message, len(c.Messages))
+	for i, message := range c.Messages {
+		if text := c.ModelTexts[message.MessageId]; text != "" {
+			message.Text = text
+		}
+		result[i] = message
+	}
+	return result
 }
 
 // citationMarker 匹配回答里各种写法的引用标识；历史回答去掉它们，免得模型把旧轮次的引用抄进新回答。
@@ -40,21 +50,25 @@ func LoadConversation(ctx context.Context, op OperationContext, conversationID, 
 		return Conversation{}, err
 	}
 	defer tx.Close()
-	conversation := Conversation{ID: conversationID}
+	conversation := Conversation{ID: conversationID, ModelTexts: map[string]string{}}
 	if err := tx.Tx.QueryRowContext(tx.Context, `SELECT summary,summary_hash,summary_until,history_generation FROM conversations WHERE conversation_id=?`, conversationID).Scan(&conversation.Summary, &conversation.SummaryHash, &conversation.SummaryUntil, &conversation.Generation); err != nil {
 		return Conversation{}, qaruntime.StorageError(err)
 	}
-	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT message_id,ordinal,role,text,turn_id,revision FROM messages WHERE conversation_id=? AND turn_id<>? AND ordinal>=? ORDER BY ordinal`, conversationID, turnID, conversation.SummaryUntil)
+	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT message_id,ordinal,role,text,turn_id,revision,model_text FROM messages WHERE conversation_id=? AND turn_id<>? AND ordinal>=? ORDER BY ordinal`, conversationID, turnID, conversation.SummaryUntil)
 	if err != nil {
 		return Conversation{}, qaruntime.StorageError(err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var message gen.Message
-		if err := rows.Scan(&message.MessageId, &message.Ordinal, &message.Role, &message.Text, &message.TurnId, &message.Revision); err != nil {
+		var modelText string
+		if err := rows.Scan(&message.MessageId, &message.Ordinal, &message.Role, &message.Text, &message.TurnId, &message.Revision, &modelText); err != nil {
 			return Conversation{}, qaruntime.StorageError(err)
 		}
 		message.Text = citationMarker.ReplaceAllString(message.Text, "")
+		if modelText != "" {
+			conversation.ModelTexts[message.MessageId] = modelText
+		}
 		conversation.Messages = append(conversation.Messages, message)
 	}
 	if err := rows.Err(); err != nil {
@@ -93,7 +107,12 @@ func Compact(ctx context.Context, op OperationContext, input CompactInput) (Conv
 	conversation := input.Conversation
 	split, kept := len(conversation.Messages), 0
 	for split > 0 {
-		cost := platform.EstimateInputTokens(len(conversation.Messages[split-1].Text), 1)
+		message := conversation.Messages[split-1]
+		text := message.Text
+		if replayed := conversation.ModelTexts[message.MessageId]; replayed != "" {
+			text = replayed // 保留窗口按实际发给模型的长度算
+		}
+		cost := platform.EstimateInputTokens(len(text), 1)
 		if kept+cost > input.KeepTokens {
 			break
 		}
@@ -167,5 +186,5 @@ func Compact(ctx context.Context, op OperationContext, input CompactInput) (Conv
 	if !committed.Committed {
 		return conversation, platform.NewError(platform.CodeStaleResult, false, "压缩期间对话历史已变化")
 	}
-	return Conversation{ID: conversation.ID, Summary: summary, SummaryHash: compaction.SummaryHash, SummaryUntil: end, Generation: committed.CurrentGeneration, Messages: conversation.Messages[split:]}, nil
+	return Conversation{ID: conversation.ID, Summary: summary, SummaryHash: compaction.SummaryHash, SummaryUntil: end, Generation: committed.CurrentGeneration, Messages: conversation.Messages[split:], ModelTexts: conversation.ModelTexts}, nil
 }
