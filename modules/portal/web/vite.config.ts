@@ -16,6 +16,7 @@ const excalidrawFonts = () => ({
   name: 'excalidraw-fonts',
   closeBundle() {
     cpSync(resolve(root, 'node_modules/@excalidraw/excalidraw/dist/prod/fonts'), resolve(out, 'excalidraw/fonts'), { recursive: true });
+    cpSync(resolve(root, 'docs/licenses/lora-OFL.txt'), resolve(out, 'lora-OFL.txt'));
   },
 });
 

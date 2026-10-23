@@ -1,6 +1,6 @@
 # 第三方声明
 
-- Lora 网页字体（Google Fonts 发行 v37，SIL OFL 1.1，Copyright 2011 The Lora Project Authors，保留字体名 Lora）：来源 [Google Fonts 官方目录](https://github.com/google/fonts/tree/main/ofl/lora)，保留其 Latin / Latin Extended WOFF2 子集，以 CSS 内嵌方式随公开站和后台分发；未修改字体。原许可随仓库保留在 [Lora OFL](docs/licenses/lora-OFL.txt)，字体元数据也保留版权与许可。
+- Lora 网页字体（Google Fonts 发行 v37，SIL OFL 1.1，Copyright 2011 The Lora Project Authors，保留字体名 Lora）：来源 [Google Fonts 官方目录](https://github.com/google/fonts/tree/main/ofl/lora)，保留其 Latin / Latin Extended WOFF2 子集，以 CSS 内嵌方式随公开站和后台分发；未修改字体。原许可随仓库保留在 [Lora OFL](docs/licenses/lora-OFL.txt)，字体元数据也保留版权与许可；构建后完整许可另随公开站与后台资源分发为 `lora-OFL.txt`。
 
 新main的R1起开始使用以下第三方依赖，选型与许可经ADR0005确认；未复制其源码进仓库。
 

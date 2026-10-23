@@ -17,6 +17,7 @@ const out = resolve(process.env.NW_WEB_OUT ? resolve(process.env.NW_WEB_OUT) : r
 const katexAssets = () => ({
   name: 'katex-assets',
   closeBundle() {
+    cpSync(resolve(root, 'docs/licenses/lora-OFL.txt'), resolve(out, 'lora-OFL.txt'));
     for (const name of ['katex.min.js', 'katex.min.css', 'fonts']) {
       cpSync(resolve(root, 'node_modules/katex/dist', name), resolve(out, 'katex', name), { recursive: true });
     }
