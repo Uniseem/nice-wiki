@@ -23,9 +23,12 @@
 }
 
 @layer base {
+  /* 锚点跳转后停在页头（4rem）下方留一点空。始终显示滚动条轨道：鼠标用户的滚动条占宽度，短页面和长页面之间
+     切换时页面不再因滚动条出现、消失而左右移动（根元素上的 scrollbar-gutter 并非处处生效）；触控板的悬浮滚动条不受影响。 */
   html {
     @apply bg-background text-foreground;
-    scroll-padding-top: 5rem;
+    scroll-padding-top: 5.5rem;
+    overflow-y: scroll;
   }
   @media (prefers-reduced-motion: no-preference) {
     html {
@@ -95,9 +98,23 @@
       0 12px 32px -14px rgb(0 0 0 / 0.65);
   }
 
-  /* 本页目录：当前小节高亮（由脚本按滚动位置切换 data-active），玻璃质感的高亮块带回弹地滑到当前项。 */
+  /* 正文标题跳转只按页面的 scroll-padding-top 留出页头，不再叠加正文样式里的 scroll-margin（两者相加会停得太低）。 */
+  #nw-content :is(h1, h2, h3, h4) {
+    scroll-margin-top: 0;
+  }
+
+  /* 本页目录：当前小节高亮（由脚本按滚动位置切换 data-active），玻璃质感的高亮块带回弹地滑到当前项；
+     下级标题展开时轻轻淡入。 */
   .nw-toc {
     scrollbar-width: thin;
+  }
+  .nw-toc-in {
+    animation: nw-toc-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nw-toc-in {
+      animation: none;
+    }
   }
   .nw-toc-link {
     @apply relative block rounded-xl px-3 py-1.5 leading-5 text-muted transition-colors duration-200 hover:text-foreground;
@@ -226,43 +243,134 @@
     @apply opacity-0;
   }
 
-  /* 首页主视觉的按钮（深色背景上用反色）。 */
+  /* 首页主视觉：默认跟随站点主题。--nw-ink 是主视觉的文字色（配置了背景色时由模板按文字颜色写入），
+     标题用它从实到半透明的渐变，向下渐隐。 */
+  .nw-home-hero {
+    --nw-ink: var(--foreground);
+  }
+  .nw-home-title {
+    @apply mt-6 text-balance pb-2 text-[clamp(2.6rem,7vw,4.75rem)] font-semibold leading-[1.06] tracking-tight;
+    background-image: linear-gradient(180deg, var(--nw-ink) 35%, color-mix(in oklab, var(--nw-ink) 58%, transparent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* 小标签是玻璃底，文字始终用前景色（配置了深色背景、白字时也看得清）。 */
+  .nw-home-eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-sm font-medium text-foreground;
+  }
+  .nw-home-eyebrow-dot {
+    @apply size-1.5 rounded-full bg-accent;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+  }
+  /* 大号搜索框：点开 ⌘K 搜索。 */
+  .nw-home-search {
+    @apply mt-10 flex h-14 w-full max-w-xl cursor-pointer items-center gap-3 rounded-full px-5 text-base transition-[transform,box-shadow] duration-300;
+  }
+  .nw-home-search:hover {
+    transform: translateY(-1px);
+  }
+  .nw-home-search:focus-visible {
+    @apply outline-2 outline-offset-2 outline-focus;
+  }
+  .button.nw-home-primary {
+    box-shadow: 0 10px 28px -10px color-mix(in oklab, var(--accent) 70%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.25);
+  }
+  .button.nw-home-primary:hover > span {
+    transform: translateX(2px);
+  }
+  .button.nw-home-secondary {
+    @apply text-foreground;
+  }
+
+  /* 首页主视觉的背景：三团主题色光晕缓慢漂移（模糊后叠在一起），上面一层从顶部向下淡出的细网格。 */
+  .nw-home-aurora {
+    @apply pointer-events-none absolute inset-0 -z-10 overflow-hidden;
+  }
+  .nw-home-aurora::after {
+    @apply absolute inset-0;
+    content: "";
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px);
+    background-size: 44px 44px;
+    background-position: center top;
+    mask-image: radial-gradient(ellipse 75% 70% at 50% 0%, black 25%, transparent 75%);
+  }
+  .nw-home-blob {
+    @apply absolute rounded-full;
+    filter: blur(90px);
+    opacity: 0.32;
+    animation: nw-blob 26s ease-in-out infinite alternate;
+  }
+  .nw-home-blob:nth-child(1) {
+    width: min(44rem, 90vw);
+    height: 26rem;
+    top: -13rem;
+    left: calc(50% - min(30rem, 62vw));
+    background: var(--accent);
+  }
+  .nw-home-blob:nth-child(2) {
+    width: min(34rem, 75vw);
+    height: 24rem;
+    top: -9rem;
+    left: calc(50% - min(4rem, 10vw));
+    background: color-mix(in oklch, var(--accent), #d946ef 55%);
+    animation-duration: 32s;
+    animation-delay: -10s;
+  }
+  .nw-home-blob:nth-child(3) {
+    width: min(30rem, 70vw);
+    height: 18rem;
+    top: 8rem;
+    left: calc(50% - min(14rem, 35vw));
+    background: color-mix(in oklch, var(--accent), #22d3ee 50%);
+    opacity: 0.2;
+    animation-duration: 38s;
+    animation-delay: -20s;
+  }
+  :is(.dark, [data-theme="dark"]) .nw-home-blob {
+    opacity: 0.26;
+  }
+  :is(.dark, [data-theme="dark"]) .nw-home-blob:nth-child(3) {
+    opacity: 0.14;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nw-home-blob {
+      animation: none;
+    }
+  }
+
+  /* 首页文档卡片：圆角卡片，悬停时微微浮起、描边染上主题色，顶部透出一点主题色光。 */
+  .nw-home-card {
+    @apply relative flex min-w-0 flex-col overflow-hidden rounded-3xl border border-border bg-surface p-5 shadow-surface transition-[transform,box-shadow,border-color] duration-300;
+  }
+  .nw-home-card::before {
+    @apply pointer-events-none absolute inset-x-0 top-0 h-24 opacity-0 transition-opacity duration-300;
+    content: "";
+    background: radial-gradient(60% 100% at 20% 0%, color-mix(in oklab, var(--accent) 14%, transparent), transparent);
+  }
+  .nw-home-card:hover {
+    @apply shadow-overlay;
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--accent) 35%, var(--border));
+  }
+  .nw-home-card:hover::before {
+    @apply opacity-100;
+  }
+  .nw-home-card-icon {
+    @apply flex size-10 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-foreground;
+  }
+  .nw-home-card-icon svg {
+    @apply size-5;
+  }
+
+  /* 站点配置了主视觉背景色时用的按钮（深色背景上用反色）。 */
   .nw-hero-primary {
     @apply bg-white text-[#0B1220] hover:bg-white/90;
   }
   .nw-hero-secondary {
     @apply border border-current bg-transparent text-current hover:bg-white/10;
-  }
-
-  /* 首页主视觉的解构主义背景：4 幅构图每 12 秒交叉淡入淡出（48 秒一轮），构图里的元素缓慢漂移、旋转。 */
-  .nw-hero-art {
-    @apply pointer-events-none absolute inset-0 -z-10 overflow-hidden;
-  }
-  .nw-hero-scene {
-    @apply absolute inset-0 size-full opacity-0;
-    animation: nw-hero-scene 48s linear infinite;
-  }
-  .nw-hero-scene:nth-child(1) { animation-delay: -2.4s; }
-  .nw-hero-scene:nth-child(2) { animation-delay: 9.6s; }
-  .nw-hero-scene:nth-child(3) { animation-delay: 21.6s; }
-  .nw-hero-scene:nth-child(4) { animation-delay: 33.6s; }
-  .nw-hero-scene :is(.nw-drift, .nw-spin, .nw-float, .nw-pulse) {
-    transform-box: fill-box;
-    transform-origin: center;
-  }
-  .nw-drift { animation: nw-drift 16s ease-in-out infinite alternate; }
-  .nw-spin { animation: nw-spin 70s linear infinite; }
-  .nw-float { animation: nw-float 11s ease-in-out infinite alternate; }
-  .nw-pulse { animation: nw-pulse 3.2s ease-in-out infinite; }
-  .nw-dash { stroke-dasharray: 8 14; animation: nw-dash 9s linear infinite; }
-  .nw-hero-scene .nw-reverse { animation-direction: alternate-reverse; }
-  .nw-hero-scene .nw-spin.nw-reverse, .nw-hero-scene .nw-dash.nw-reverse { animation-direction: reverse; }
-  .nw-hero-scene .nw-slow { animation-duration: 26s; }
-  .nw-hero-scene .nw-spin.nw-slow { animation-duration: 110s; }
-  .nw-hero-scene .nw-late { animation-delay: -4s; }
-  @media (prefers-reduced-motion: reduce) {
-    .nw-hero-scene, .nw-hero-scene * { animation: none !important; }
-    .nw-hero-scene:first-child { opacity: 1; }
   }
 
   /* 平台视频的“点击播放”入口。 */
@@ -294,6 +402,9 @@
 @keyframes nw-caret {
   50% { opacity: 0; }
 }
+@keyframes nw-toc-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
 @keyframes nw-enter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
@@ -302,28 +413,9 @@
   from { transform: scaleX(0); }
   to { transform: scaleX(0.9); }
 }
-@keyframes nw-hero-scene {
-  0% { opacity: 0; }
-  5% { opacity: 1; }
-  25% { opacity: 1; }
-  30% { opacity: 0; }
-  100% { opacity: 0; }
+@keyframes nw-blob {
+  from { transform: translate(-4%, -3%) scale(1); }
+  50% { transform: translate(5%, 4%) scale(1.08); }
+  to { transform: translate(-2%, 6%) scale(0.96); }
 }
-@keyframes nw-drift {
-  from { transform: translate(-1.5%, 1.2%) rotate(-3deg); }
-  to { transform: translate(2.5%, -1.8%) rotate(4deg); }
-}
-@keyframes nw-spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes nw-float {
-  from { transform: translateY(14px) rotate(-6deg); }
-  to { transform: translateY(-18px) rotate(8deg); }
-}
-@keyframes nw-pulse {
-  0%, 100% { transform: scale(1); opacity: .9; }
-  50% { transform: scale(1.8); opacity: .35; }
-}
-@keyframes nw-dash {
-  to { stroke-dashoffset: -220; }
-}
+

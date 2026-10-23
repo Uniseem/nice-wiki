@@ -100,7 +100,13 @@ type treeNode struct {
 	Children      []treeNode
 }
 
-type tocLink struct{ Label, Anchor, Indent string }
+// tocLink 是本页目录的一项。Collapsed 的项在右侧目录里先收起：只常显最高一级标题，
+// 下级标题只展开第一个一级小节的（页面刚打开时正在读它），之后由脚本按阅读位置展开当前小节。
+type tocLink struct {
+	Label, Anchor, Indent string
+	Level                 int
+	Collapsed             bool
+}
 type crumb struct {
 	Label, URL string
 	Current    bool
@@ -248,6 +254,12 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 	if strings.Contains(in.SafeHTML, "class=\"code-block\"") {
 		page.ExtraHead += template.HTML(codeHighlightCSS)
 	}
+	top, groups := 0, 0
+	for _, item := range in.TOC {
+		if top == 0 || item.Level < top {
+			top = item.Level
+		}
+	}
 	for _, item := range in.TOC {
 		indent := ""
 		switch item.Level {
@@ -256,7 +268,10 @@ func ComposeHTML(ctx context.Context, op platform.OperationContext, in ComposeHT
 		case 4:
 			indent = "ms-6"
 		}
-		page.TOC = append(page.TOC, tocLink{Label: item.Label, Anchor: item.Anchor, Indent: indent})
+		if item.Level == top {
+			groups++
+		}
+		page.TOC = append(page.TOC, tocLink{Label: item.Label, Anchor: item.Anchor, Indent: indent, Level: item.Level, Collapsed: item.Level > top && groups > 1})
 	}
 	for i, item := range in.Breadcrumbs {
 		label := item.Label

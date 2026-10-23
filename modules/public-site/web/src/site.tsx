@@ -82,6 +82,20 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
     };
   }, []);
 
+  // 首页主视觉里的搜索框和“AI 问答”按钮由服务端输出：搜索框打开 ⌘K 搜索，按钮打开问答面板（无脚本时是去问答页的链接）；
+  // 指针移上去就预取对应代码。非 Mac 上快捷键提示改成 Ctrl K。
+  useEffect(() => {
+    if (!/Mac|iPhone|iPad/.test(navigator.platform)) document.querySelectorAll('[data-shortcut]').forEach((node) => { node.textContent = 'Ctrl K'; });
+    const search = () => setSearchOpen(true);
+    const preloadSearch = () => { void loadSearch(); };
+    const askHere = (event: Event) => { event.preventDefault(); setAskOpen(true); };
+    const bindings: [Element, string, EventListener][] = [];
+    for (const node of document.querySelectorAll('[data-open-search]')) bindings.push([node, 'click', search], [node, 'pointerenter', preloadSearch], [node, 'focus', preloadSearch]);
+    if (!ask) for (const node of document.querySelectorAll('[data-open-ask]')) bindings.push([node, 'click', askHere], [node, 'pointerenter', preloadQa], [node, 'focus', preloadQa]);
+    bindings.forEach(([node, name, listener]) => node.addEventListener(name, listener));
+    return () => bindings.forEach(([node, name, listener]) => node.removeEventListener(name, listener));
+  }, []);
+
   const onAsk = () => {
     if (ask) ask.querySelector('textarea')?.focus();
     else setAskOpen(true);

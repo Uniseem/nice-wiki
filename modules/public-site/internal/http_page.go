@@ -112,9 +112,11 @@ type heroButton struct {
 	Label, URL string
 	Primary    bool
 }
+
+// homeSection 是首页的一张文档卡片：有子文档时列出前几篇，没有时显示这篇的搜索摘要。
 type homeSection struct {
-	Title, URL string
-	Children   []string
+	Title, URL, Description string
+	Children                []string
 }
 type homePage struct {
 	shell
@@ -214,15 +216,11 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 		buttons = []heroButton{{Label: page.T("开始阅读"), URL: nodes[0].CanonicalPath, Primary: true}}
 	}
 	page.HeroButtons = buttons
-	switch {
-	case home.Background.Kind == "color" && hexColor.MatchString(home.Background.Color):
+	// 没设背景色时主视觉跟随站点主题（柔和的主题色光晕）；设了背景色才用它、遮罩和指定的文字颜色。
+	if home.Background.Kind == "color" && hexColor.MatchString(home.Background.Color) {
 		page.HeroBackground, page.HeroCustomColor = template.CSS(home.Background.Color), true
-	case page.HeroDark:
-		page.HeroBackground = "var(--background)"
-	default:
-		page.HeroBackground = "#0B1220"
+		page.HeroOverlay = template.CSS(fmt.Sprintf("rgb(0 0 0 / %d%%)", home.OverlayPercent))
 	}
-	page.HeroOverlay = template.CSS(fmt.Sprintf("rgb(0 0 0 / %d%%)", home.OverlayPercent))
 	// 首页下方：顶层文档各一张卡片，列出前几篇子文档。
 	children := map[string][]string{}
 	for _, node := range nodes {
@@ -232,7 +230,7 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 	}
 	for _, node := range nodes {
 		if node.ParentID == nil {
-			page.Sections = append(page.Sections, homeSection{Title: node.Title, URL: node.CanonicalPath, Children: children[node.DocumentID]})
+			page.Sections = append(page.Sections, homeSection{Title: node.Title, URL: node.CanonicalPath, Description: node.SEODescription, Children: children[node.DocumentID]})
 		}
 	}
 	rendered, err := render("home", page)

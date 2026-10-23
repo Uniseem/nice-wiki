@@ -39,24 +39,43 @@ function headingAnchors() {
   });
 }
 
-// 本页目录：按滚动位置高亮当前小节，玻璃高亮块滑到当前项；目录比屏幕长时，目录自己滚动让当前项保持在中间附近
-// （只滚目录这一栏，不动页面）。返回清理函数，站内跳转换页时先清掉上一页的监听。
+// 本页目录：只常显最高一级标题（通常是 ##），下级标题只在所属一级小节是当前小节时展开，读到哪节自动展开哪节；
+// 当前项由玻璃高亮块滑过去。当前小节的判定参照 Docusaurus 等文档站：跳转后标题停在页头下方那条线上
+// （页面的 scroll-padding-top），线以下第一个标题进入视口上部三分之一就算读到它，否则仍是线以上的最后一个标题；
+// 滚到页面底部时取最后一节。点目录时立即高亮被点的项，平滑滚动停下前不按滚动位置改判。
+// 目录比屏幕长时，目录自己滚动让当前项保持在中间附近（只滚目录这一栏，不动页面）。返回清理函数，站内换页时先清掉上一页的监听。
 function tocSpy(): () => void {
   const nav = document.querySelector<HTMLElement>('[data-toc]');
   const links = nav ? Array.from(nav.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) : [];
   if (!nav || !links.length) return () => {};
   const pill = nav.querySelector<HTMLElement>('.nw-toc-pill');
-  const pairs = links.map((link) => ({ link, target: document.getElementById(decodeURIComponent(link.hash.slice(1))) })).filter((pair): pair is { link: HTMLAnchorElement; target: HTMLElement } => !!pair.target);
+  const level = (link: HTMLAnchorElement) => Number(link.dataset.level) || 2;
+  const top = Math.min(...links.map(level));
+  // 每个下级项归属它前面最近的一级标题；排在第一个一级标题之前的下级项没有归属，始终显示。
+  type Item = { link: HTMLAnchorElement; group?: HTMLAnchorElement; target: HTMLElement };
+  let group: HTMLAnchorElement | undefined;
+  const items: Item[] = [];
+  for (const link of links) {
+    const head = level(link) === top;
+    if (head) group = link;
+    const target = document.getElementById(decodeURIComponent(link.hash.slice(1)));
+    if (target) items.push({ link, group: head ? undefined : group, target });
+  }
+  if (!items.length) return () => {};
   let current: HTMLAnchorElement | undefined;
-  let frame = 0;
-  const update = (force = false) => {
-    frame = 0;
-    // 当前小节：标题已经滚到页头下方的最后一节；滚到页面底部时取最后一节。
-    const atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
-    let active = atEnd ? pairs[pairs.length - 1] : pairs[0];
-    if (!atEnd) for (const pair of pairs) { if (pair.target.getBoundingClientRect().top <= 96) active = pair; else break; }
-    if (!active || (active.link === current && !force)) return;
-    current = active.link;
+  let open: HTMLAnchorElement | undefined;
+  const show = (item: Item, instant: boolean) => {
+    if (item.link === current && !instant) return;
+    current = item.link;
+    const expand = item.group ?? item.link;
+    if (expand !== open || instant) {
+      open = expand;
+      for (const other of items) {
+        const visible = !other.group || other.group === open;
+        if (visible && other.link.hidden && !instant) other.link.classList.add('nw-toc-in');
+        other.link.hidden = !visible;
+      }
+    }
     links.forEach((link) => link.toggleAttribute('data-active', link === current));
     if (pill) {
       pill.style.transform = `translateY(${current.offsetTop}px)`;
@@ -64,23 +83,57 @@ function tocSpy(): () => void {
       pill.style.insetInlineStart = getComputedStyle(current).marginInlineStart;
       pill.style.opacity = '1';
     }
-    const top = current.offsetTop;
-    const bottom = top + current.offsetHeight;
-    if (top < nav.scrollTop + 32 || bottom > nav.scrollTop + nav.clientHeight - 32) {
-      nav.scrollTo({ top: top - (nav.clientHeight - current.offsetHeight) / 2, behavior: force ? 'instant' : 'smooth' });
+    const start = current.offsetTop;
+    const end = start + current.offsetHeight;
+    if (start < nav.scrollTop + 32 || end > nav.scrollTop + nav.clientHeight - 32) {
+      nav.scrollTo({ top: start - (nav.clientHeight - current.offsetHeight) / 2, behavior: instant ? 'instant' : 'smooth' });
     }
   };
-  const schedule = () => { if (!frame) frame = requestAnimationFrame(() => update()); };
+  let frame = 0;
+  const update = (instant = false) => {
+    frame = 0;
+    const line = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+    const reach = line + (window.innerHeight - line) / 3;
+    let active = items[0];
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) active = items[items.length - 1];
+    else for (const item of items) {
+      const y = item.target.getBoundingClientRect().top;
+      // 留 8 像素余量：跳转停下的位置可能有一两像素误差。
+      if (y < line - 8) { active = item; continue; }
+      if (y <= reach) active = item;
+      break;
+    }
+    show(active, instant);
+  };
+  // 点目录：立即高亮；滚动持续时一直锁定，停下 150 毫秒后解锁（没有触发滚动时 1 秒后解锁），之后再按滚动位置判定。
+  let locked = false;
+  let settle = 0;
+  const unlock = (delay: number) => { window.clearTimeout(settle); settle = window.setTimeout(() => { locked = false; }, delay); };
+  const click = (event: MouseEvent) => {
+    const link = (event.target as Element | null)?.closest('a');
+    const item = items.find((candidate) => candidate.link === link);
+    if (!item) return;
+    locked = true;
+    unlock(1000);
+    show(item, false);
+  };
+  const scroll = () => {
+    if (locked) unlock(150);
+    else if (!frame) frame = requestAnimationFrame(() => update());
+  };
   const resize = () => update(true);
   // 第一次定位不要动画，高亮块直接出现在当前项上。
   if (pill) pill.style.transition = 'none';
   update(true);
   requestAnimationFrame(() => { if (pill) pill.style.transition = ''; });
-  window.addEventListener('scroll', schedule, { passive: true });
+  nav.addEventListener('click', click);
+  window.addEventListener('scroll', scroll, { passive: true });
   window.addEventListener('resize', resize);
   return () => {
     cancelAnimationFrame(frame);
-    window.removeEventListener('scroll', schedule);
+    window.clearTimeout(settle);
+    nav.removeEventListener('click', click);
+    window.removeEventListener('scroll', scroll);
     window.removeEventListener('resize', resize);
   };
 }
