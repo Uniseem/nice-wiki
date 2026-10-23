@@ -3,20 +3,17 @@
 @layer components {
   .nw-prose {
     @apply text-lg leading-[1.75] text-muted;
-    font-family: var(--nw-font-serif);
+    font-family: var(--font-sans);
     overflow-wrap: anywhere;
   }
 
   .nw-prose > :first-child { margin-top: 0; }
   .nw-prose > :last-child { margin-bottom: 0; }
-  /* 表格、图注和附件属于数据或操作界面，沿用无衬线字体，不跟正文切换成衬线。 */
-  .nw-prose :is(table, figcaption, .attachment, .media-unavailable) { font-family: var(--font-sans); }
-
   .nw-prose h1 { @apply mt-10 mb-4 text-3xl font-semibold tracking-tight; }
   .nw-prose h2 { @apply mt-14 mb-5 text-[28px] font-semibold leading-9 tracking-tight; }
   .nw-prose h3 { @apply mt-10 mb-4 text-[23px] font-semibold leading-8 tracking-tight; }
   .nw-prose h4 { @apply mt-7 mb-2 text-lg font-semibold; }
-  .nw-prose :is(h1, h2, h3, h4) { @apply text-foreground; scroll-margin-top: 5.5rem; }
+  .nw-prose :is(h1, h2, h3, h4) { @apply text-foreground; font-family: var(--nw-font-serif); scroll-margin-top: 5.5rem; }
   .nw-prose p { @apply my-6; }
   .nw-prose a { @apply font-medium text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:decoration-accent; }
   .nw-prose strong { @apply font-semibold text-foreground; }
