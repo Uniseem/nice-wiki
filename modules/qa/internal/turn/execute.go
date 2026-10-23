@@ -21,7 +21,7 @@ import (
 	"nice-wiki/modules/qa/internal/stream"
 )
 
-// ExecuteTurn 在本进程里跑完一轮回答：读当前页 → 理解问题 → 复用已有回答 → 混合检索 → 流式生成 → 校验引用并落终态；
+// ExecuteTurn 在本进程里跑完一轮回答：读当前页 → 理解问题 → Jev 判断类型与复用 → 按需混合检索 → 流式生成 → 校验引用并落终态；
 // 任何失败都落 failed 终态并释放准入。currentDocument 是访客提问时所在页面（可为空）。
 func ExecuteTurn(ctx context.Context, op OperationContext, turnID, currentDocument string) {
 	work, cancel := context.WithDeadline(ctx, mustDeadline(op))
@@ -155,27 +155,47 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 		query = canonical.Normalized
 	}
 	step(gen.Understand, gen.Done, "理解问题", query, nil)
-	// 复用已有回答：可共享的问题（完整、不依赖访客私人上下文，“这页”已写明成具体文档）先查缓存，精确匹配不到再由 Jev 判断，文档页也一样。
+	// 全站概括（每天由层级摘要合成）：回答模型用基准语言版，Jev 用英文版判断问题是否属于本站；读不到不影响本轮。
+	overview, _ := qaruntime.ReadSiteOverview(ctx, op)
+	// 判断与复用：可共享的问题（完整、不依赖访客私人上下文，“这页”已写明成具体文档）先按完整问题精确匹配缓存；
+	// 没命中时由 Jev 一次判断问题类型，并从缓存问答里挑能原样复用的一条（文档页也一样）。
 	cacheable := planned != nil && planned.cacheable && resolved.Policy.CacheEnabled
+	var reused *gen.CacheEntry
+	reuseKind := "exact"
 	if cacheable {
-		if hit, err := reuseAnswer(ctx, op, turnID, lease, record, resolved, planned, conversation.Summary == "" && len(conversation.Messages) == 0, step); err != nil || hit {
-			return err
+		step(gen.Cache, gen.Running, "查找已有回答", "", nil)
+		reused = exactCached(ctx, op, record, resolved, planned, conversation.Summary == "" && len(conversation.Messages) == 0)
+	}
+	assessment := turnAssessment{intent: "docs"}
+	if reused == nil {
+		assessment = assessTurn(ctx, op, record, resolved, planned, cacheable, currentDocument, overview)
+		reused, reuseKind = assessment.reuse, "semantic"
+	}
+	if cacheable {
+		if reused != nil {
+			step(gen.Cache, gen.Done, "命中缓存", "", []string{clip(reused.Question, 200)})
+			return serveCached(ctx, op, turnID, lease, reused, reuseKind)
 		}
+		step(gen.Cache, gen.Skipped, "查找已有回答", "", nil)
 	}
 	// 检索：混合检索（关键词 BM25 + 向量，按排名融合后重排），找全站相关片段。
-	step(gen.Search, gen.Running, "检索文档", query, nil)
-	evidence, err := answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language})
-	if err != nil {
-		return err
+	// 只问当前页（且读到了这一页）、寒暄、与本站无关的问题不做全站检索，更快也更省。
+	evidence := answer.RetrieveEvidenceResult{Citations: []gen.Citation{}, EvidenceText: "[]"}
+	if assessment.searches() || (assessment.intent == "page" && pageTitle == "") {
+		step(gen.Search, gen.Running, "检索文档", query, nil)
+		evidence, err = answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language})
+		if err != nil {
+			return err
+		}
+		step(gen.Search, gen.Done, fmt.Sprintf("找到 %d 段相关内容", len(evidence.Citations)), query, citedTitles(evidence.Citations))
+	} else {
+		step(gen.Search, gen.Skipped, "检索文档", "", nil)
 	}
-	step(gen.Search, gen.Done, fmt.Sprintf("找到 %d 段相关内容", len(evidence.Citations)), query, citedTitles(evidence.Citations))
-	// 全站概括（每天由层级摘要合成）让模型知道整个网站讲什么；读不到不影响本轮。
-	overview, _ := qaruntime.ReadSiteOverview(ctx, op)
 	if _, err := takeState(ctx, op, turnID, lease, "generating"); err != nil {
 		return err
 	}
 	step(gen.Answer, gen.Running, "生成回答", "", nil)
-	prompt, err := answerPrompt(ctx, op, record, resolved, answer.Materials{Overview: overview, Page: page.EvidenceText, Evidence: evidence.EvidenceText}, conversation, task)
+	prompt, err := answerPrompt(ctx, op, record, resolved, answer.Materials{Overview: overview.Text, Page: page.EvidenceText, Evidence: evidence.EvidenceText, Intent: assessment.intent}, conversation, task)
 	if err != nil {
 		return err
 	}
@@ -207,7 +227,7 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 		return err
 	}
 	if cacheable && kind == "answered" {
-		writeCache(ctx, op, turnID, planned, text, resolved.Memory.VersionHash)
+		writeCache(ctx, op, turnID, planned, text, resolved.Memory.VersionHash, currentDocument)
 	}
 	return nil
 }

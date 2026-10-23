@@ -680,25 +680,32 @@ func ReadDocumentIndex(ctx context.Context, op OperationContext, root string) ([
 }
 
 // ReadSiteOverview 读知识服务每天由层级摘要合成的全站概括；还没生成时为空字符串。
-func ReadSiteOverview(ctx context.Context, op OperationContext) (string, error) {
+func ReadSiteOverview(ctx context.Context, op OperationContext) (SiteOverview, error) {
 	runtime, err := FromContext(ctx)
 	if err != nil {
-		return "", err
+		return SiteOverview{}, err
 	}
 	if runtime.Knowledge == nil {
-		return "", platform.NewError(platform.CodeDependencyUnavailable, false, "知识索引权威未装配")
+		return SiteOverview{}, platform.NewError(platform.CodeDependencyUnavailable, false, "知识索引权威未装配")
 	}
 	raw, err := runtime.Knowledge.ReadSiteOverview(ServiceReadContext(ctx, op), map[string]any{})
 	if err != nil {
-		return "", err
+		return SiteOverview{}, err
 	}
 	var result struct {
-		Overview string `json:"overview"`
+		Overview        string `json:"overview"`
+		EnglishOverview string `json:"englishOverview"`
 	}
 	if err := DecodeResponse(runtime, "KnowledgeReadSiteOverviewResult", raw, &result); err != nil {
-		return "", err
+		return SiteOverview{}, err
 	}
-	return result.Overview, nil
+	return SiteOverview{Text: result.Overview, English: result.EnglishOverview}, nil
+}
+
+// SiteOverview 是全站概括（基准语言，给回答模型）和它的英文版（给只读英文的 Jev）。
+type SiteOverview struct {
+	Text    string
+	English string
 }
 
 // citedDocuments 数近 500 轮已完成问答里各文档被引用的次数。

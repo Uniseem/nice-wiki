@@ -1427,6 +1427,8 @@ export interface components {
         ReadSiteOverviewResult: {
             /** @description 全站概括；还没生成时为空字符串 */
             overview: string;
+            /** @description 全站概括的英文版，给只读英文的决策模型（Jev）判断问题是否属于本站；还没生成时为空字符串 */
+            englishOverview?: string;
             /** @description 最近生成时间；没生成过不提供 */
             updatedAt?: components["schemas"]["Timestamp"];
         };
