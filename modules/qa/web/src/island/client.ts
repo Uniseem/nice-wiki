@@ -80,6 +80,9 @@ async function challenge(): Promise<void> {
   try { store.setItem(keys.guard, passed.passedToken); } catch { /* 隐私模式 */ }
 }
 
+// 风控在回答途中要求人机验证时由对话界面调用：做一次工作量证明，换上新的通过证明。
+export const verifyHuman = challenge;
+
 async function call<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
   try {
     return await raw<T>(method, path, body);

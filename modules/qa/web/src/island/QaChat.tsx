@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, ChevronDown, FileText, Plus, Sparkles, Stop, ThumbsDown, ThumbsUp } from '@gravity-ui/icons';
 import { Button, cn, ScrollShadow, Spinner, TextArea, Tooltip } from '@heroui/react';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, startTurn, transient, type Citation, type Step, type TurnInfo } from './client';
+import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, startTurn, transient, verifyHuman, type Citation, type Step, type TurnInfo } from './client';
 import { Markdown } from './markdown';
 
 export type Translate = (key: string) => string;
@@ -119,18 +119,26 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
     setPinned(id);
     setMessages((current) => [...current, { id: `${id}-q`, role: 'user', text, status: 'done', citations: [] }, { id, role: 'assistant', text: '', status: 'streaming', citations: [], live: true }]);
     try {
-      const started = await startTurn(text, locale, documentId);
-      setRunning({ controller, turnId: started.turn.turnId });
-      patch(id, (message) => ({ ...message, turn: started.turn }));
-      await followTurn(started, (event) => {
-        if (event.kind === 'step') patch(id, (message) => ({ ...message, steps: mergeStep(message.steps ?? [], event.step) }));
-        else if (event.kind === 'delta') patch(id, (message) => ({ ...message, text: message.text + event.text }));
-        else if (event.kind === 'reset') patch(id, (message) => ({ ...message, text: '' }));
-        else if (event.kind === 'citation') patch(id, (message) => ({ ...message, citations: [...message.citations, event.citation] }));
-        else if (event.kind === 'done') patch(id, (message) => ({ ...message, status: 'done', turn: event.turn?.turnId ? event.turn : message.turn }));
-        else if (event.kind === 'cancelled') patch(id, (message) => ({ ...message, status: 'cancelled' }));
-        else patch(id, (message) => ({ ...message, status: 'error', text: event.code === 'DEPENDENCY_UNAVAILABLE' ? busy(t) : `${t('这次没有回答成功（')}${event.code || 'error'}${t('），请稍后再试。')}` }));
-      }, controller.signal);
+      // 风控在回答途中要求人机验证（例如判断这个问题可疑）时，先做完验证，再把同一个问题重新问一次；第二次还要求就如实提示。
+      for (let attempt = 0; attempt < 2; attempt++) {
+        let challenged = false;
+        const started = await startTurn(text, locale, documentId);
+        setRunning({ controller, turnId: started.turn.turnId });
+        patch(id, (message) => ({ ...message, turn: started.turn }));
+        await followTurn(started, (event) => {
+          if (event.kind === 'step') patch(id, (message) => ({ ...message, steps: mergeStep(message.steps ?? [], event.step) }));
+          else if (event.kind === 'delta') patch(id, (message) => ({ ...message, text: message.text + event.text }));
+          else if (event.kind === 'reset') patch(id, (message) => ({ ...message, text: '' }));
+          else if (event.kind === 'citation') patch(id, (message) => ({ ...message, citations: [...message.citations, event.citation] }));
+          else if (event.kind === 'done') patch(id, (message) => ({ ...message, status: 'done', turn: event.turn?.turnId ? event.turn : message.turn }));
+          else if (event.kind === 'cancelled') patch(id, (message) => ({ ...message, status: 'cancelled' }));
+          else if (event.code === 'CHALLENGE_REQUIRED' && attempt === 0) challenged = true;
+          else patch(id, (message) => ({ ...message, status: 'error', text: event.code === 'DEPENDENCY_UNAVAILABLE' ? busy(t) : event.code === 'CHALLENGE_REQUIRED' ? t('人机验证没有完成') : `${t('这次没有回答成功（')}${event.code || 'error'}${t('），请稍后再试。')}` }));
+        }, controller.signal);
+        if (!challenged) break;
+        patch(id, (message) => ({ ...message, text: '', steps: [], citations: [] }));
+        await verifyHuman();
+      }
     } catch (problem) {
       if (!controller.signal.aborted) patch(id, (message) => ({ ...message, status: 'error', text: failure(t, problem) }));
       else patch(id, (message) => ({ ...message, status: 'cancelled' }));

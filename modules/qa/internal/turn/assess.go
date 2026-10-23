@@ -35,6 +35,7 @@ func (a turnAssessment) searches() bool {
 // Jev 只读英文：问题用前置改写给出的英文问题，当前页用知识索引里的英文文档卡片，全站情况用英文版全站概括；
 // 缓存候选带上当时提问所在的文档，“这一页讲了什么”这类在不同页面意思不同的问题不会串用答案。
 // 前置没给出英文问题、Jev 未分配或 6 秒内没结果时，按“查全站文档、不复用”处理。
+// Jev 挑中的缓存还要经等价判断复核才复用（Jev 曾把同一页上问的不同问题当成一样）。
 func assessTurn(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, cp *questionPlan, cacheable bool, currentDocument string, overview qaruntime.SiteOverview) turnAssessment {
 	result := turnAssessment{intent: "docs"}
 	if cp == nil || cp.plan.EnglishQuestion == "" {
@@ -111,8 +112,11 @@ func assessTurn(ctx context.Context, op OperationContext, record qaruntime.TurnR
 		result.intent = answer.Choice
 	}
 	if answer, ok := answers["reuse"]; ok && result.intent != "injection" && answer.Type == "choice" && answer.Choice != "none" && answer.Probabilities[answer.Choice] >= reuseConfidence && byKey[answer.Choice] != "" {
+		// Jev 挑中后再用等价判断复核一次：问题必须真的问同一件事，否则宁可重新回答。
 		if entry, err := cache.LoadReusable(ctx, op, byKey[answer.Choice]); err == nil {
-			result.reuse = entry
+			if same, err := cache.ConfirmReuse(ctx, op, cp.plan.CanonicalQuestion, *entry); err == nil && same {
+				result.reuse = entry
+			}
 		}
 	}
 	if os.Getenv("NW_DEBUG") != "" {

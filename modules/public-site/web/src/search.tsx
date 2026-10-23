@@ -130,7 +130,7 @@ export default function Search({ open, locale, t, deep: deepEnabled, onOpenChang
                         <FileText className="mt-0.5 size-4 shrink-0 text-accent" />
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium text-foreground">{row.hit.title}</span>
-                          {row.hit.excerpt && <span className="mt-0.5 line-clamp-2 block text-xs leading-5 text-muted">{row.hit.excerpt}</span>}
+                          {row.hit.excerpt && <span className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted">{row.hit.excerpt}</span>}
                         </span>
                       </a>
                     </li>,
@@ -145,7 +145,7 @@ export default function Search({ open, locale, t, deep: deepEnabled, onOpenChang
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-foreground">{hit.node.title}</span>
                         {hit.trail && <span className="block truncate text-xs text-muted">{hit.trail}</span>}
-                        {hit.node.seoDescription && <span className="mt-0.5 line-clamp-1 block text-xs text-muted">{hit.node.seoDescription}</span>}
+                        {hit.node.seoDescription && <span className="mt-0.5 line-clamp-1 text-xs text-muted">{hit.node.seoDescription}</span>}
                       </span>
                     </a>
                   </li>,
