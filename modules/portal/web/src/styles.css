@@ -50,12 +50,16 @@
 }
 
 @layer components {
-  /* 与公开站同一套样式：按钮是胶囊形、字重 500，卡片用 16px 圆角。 */
+  /* 与公开站共用克制的圆角和灰色纸面。 */
   .button {
-    @apply rounded-full font-medium;
+    @apply rounded-xl font-medium;
   }
   .card {
     @apply rounded-2xl;
+  }
+  .nw-page-title {
+    font-family: var(--nw-font-serif);
+    letter-spacing: -0.025em;
   }
 
   /* —— 编辑器（Tiptap / ProseMirror）—— */

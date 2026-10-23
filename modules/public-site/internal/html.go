@@ -88,6 +88,7 @@ type shell struct {
 	Mark                                          template.URL
 	SiteName, LogoURL, HomeURL, AskURL, SourceURL string
 	AIEnabled, HasNav                             bool
+	HeaderLinks                                   []Breadcrumb
 	Languages                                     []languageItem
 	Config                                        string
 	catalog                                       map[string]string
@@ -136,6 +137,7 @@ var languageNames = map[string]string{
 
 // 岛（React）用到的界面文字：在服务端按页面语言取好，随页面下发。
 var islandStrings = []string{
+	"进入 wiki", "链接", "你可以这样问", "这个站点有哪些内容？", "我应该从哪里开始？", "帮我梳理主要概念",
 	"AI 问答", "新对话", "发送", "关闭", "停止", "问问这个站点的文档…", "来源：", "这次没有回答成功（", "），请稍后再试。", "回答连接失败（", "请求失败（", "服务正在更新，请稍后再试。",
 	"人机验证没有完成", "人机验证无法在此浏览器运行", "思考中…", "思考过程", "理解问题", "阅读当前页面", "查找已有回答", "命中缓存", "放大", "还原", "回到最新", "检索相关文档", "整理回答", "当前页面", "有帮助", "没帮助", "感谢反馈", "回答由 AI 生成，可能有误，请以文档原文为准。",
 	"亮 / 暗", "浅色", "深色", "跟随系统", "语言", "文档树", "本页目录", "复制代码", "已复制", "复制失败，请打开 Markdown 版本", "复制为 Markdown", "视频播放器",
@@ -236,6 +238,14 @@ var codeHighlightCSS = func() string {
 	}
 	return "<style>@layer components{" + keep(light.String()) + strings.ReplaceAll(keep(dark.String()), ".chroma", ".dark .chroma") + "}</style>"
 }()
+
+// 已校验的绝对外链直接输出新标签页属性，禁用脚本时同样生效。
+func externalLinkAttributes(href string) string {
+	if strings.HasPrefix(href, "https://") || strings.HasPrefix(href, "http://") || strings.HasPrefix(href, "//") || strings.HasPrefix(href, "mailto:") {
+		return ` target="_blank" rel="noopener noreferrer"`
+	}
+	return ""
+}
 
 func render(name string, data any) (string, error) {
 	var out bytes.Buffer

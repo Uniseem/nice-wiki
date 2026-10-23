@@ -51,7 +51,7 @@ function failure(t: Translate, problem: unknown): string {
 // 滚动只发生在对话区里，从不滚动页面：提问后把这一轮滚到对话区顶部，回答逐字写出时不自动往下滚，
 // 访客可以从头读；最新内容在可视范围外时显示“回到最新”。
 // compact（首页的“问问 AI”）：还没有对话时只显示一个输入框；开始提问后和面板一样显示对话区，由外层给出高度。
-export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle, compact }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string; compact?: boolean }) {
+export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle, compact, suggestions }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string; compact?: boolean; suggestions?: string[] }) {
   const [messages, setMessages] = useState<Message[]>(() => loadLog(locale));
   const [question, setQuestion] = useState('');
   const [running, setRunning] = useState<{ turnId?: string; controller: AbortController } | null>(null);
@@ -203,14 +203,14 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
             </div>
           )}
           {/* 首页（compact 且还没提问）是一行高的输入框，和服务端输出的占位框同样大小，右侧圆形发送键。 */}
-          <div className={cn('flex items-end gap-2 border border-border bg-field focus-within:border-foreground/30', idle ? 'min-h-14 items-center rounded-2xl py-2 pe-2 ps-4' : 'rounded-3xl p-1.5 ps-2.5')}>
+          <div className={cn('flex items-end gap-2 border border-border bg-field focus-within:border-foreground/30', idle ? 'min-h-28 rounded-2xl p-4' : 'rounded-3xl p-1.5 ps-2.5')}>
             <TextArea
               ref={input}
               aria-label={t('问问这个站点的文档…')}
               className={cn('max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 shadow-none outline-none focus:ring-0', idle && 'text-[15px]')}
               maxLength={500}
               placeholder={t('问问这个站点的文档…')}
-              rows={1}
+              rows={idle ? 2 : 1}
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(); } }}
@@ -227,6 +227,10 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
           </div>
         </div>
       </form>
+      {idle && !!suggestions?.length && <div className="nw-home-suggestions" aria-label={t('你可以这样问')}>
+        <span>{t('你可以这样问')}</span>
+        {suggestions.map((text) => <button key={text} type="button" onClick={() => { setQuestion(text); input.current?.focus({ preventScroll: true }); }}>{text}</button>)}
+      </div>}
     </div>
   );
 }

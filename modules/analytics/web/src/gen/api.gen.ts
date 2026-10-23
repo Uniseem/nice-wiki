@@ -1113,6 +1113,16 @@ export interface components {
             /** @constant */
             kind: "theme";
         };
+        /** @description 主页右上角的自定义超链接 */
+        HomeHeaderLink: {
+            /** @description 显示文字 */
+            text: string;
+            /**
+             * Format: uri
+             * @description 完整 HTTP 或 HTTPS 地址，允许查询串与锚点
+             */
+            url: string;
+        };
         /** @description 仅全屏一屏hero；下方无卡片/精选/其他内容 */
         HomeConfig: {
             /** @description 默认站点名，翻译 */
@@ -1123,7 +1133,7 @@ export interface components {
             backgroundText: string;
             /** @description 默认false，后台可开翻译 */
             translateBackgroundText: boolean;
-            /** @description 0–3按钮 */
+            /** @description 兼容早期首页按钮；现站点首页仅显示进入 wiki 入口 */
             buttons: components["schemas"]["HeroButton"][];
             /** @description HeroBackground */
             background: components["schemas"]["HeroBackground"];
@@ -1136,6 +1146,8 @@ export interface components {
             textColor: "light" | "dark";
             /** @description CAS */
             revision: components["schemas"]["Revision"];
+            /** @description 主页右上角链接，按数组顺序展示；省略表示空列表，外链在新标签页打开 */
+            headerLinks?: components["schemas"]["HomeHeaderLink"][];
         };
         /** @description 页脚链接 */
         FooterLink: {

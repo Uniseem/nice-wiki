@@ -130,7 +130,7 @@
         },
         "buttons": {
           "type": "array",
-          "description": "0–3按钮",
+          "description": "兼容早期首页按钮；现站点首页仅显示进入 wiki 入口",
           "items": {
             "$ref": "#/$defs/HeroButton",
             "description": "HeroButton"
@@ -159,6 +159,14 @@
         "revision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "CAS"
+        },
+        "headerLinks": {
+          "type": "array",
+          "description": "主页右上角链接，按数组顺序展示；省略表示空列表，外链在新标签页打开",
+          "items": {
+            "$ref": "#/$defs/HomeHeaderLink"
+          },
+          "maxItems": 6
         }
       },
       "required": [
@@ -3367,7 +3375,7 @@
         },
         "buttons": {
           "type": "array",
-          "description": "0–3按钮",
+          "description": "兼容早期首页按钮；现站点首页仅显示进入 wiki 入口",
           "items": {
             "$ref": "#/$defs/PublicHeroButton"
           },
@@ -3395,6 +3403,14 @@
         "revision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "CAS"
+        },
+        "headerLinks": {
+          "type": "array",
+          "description": "主页右上角链接，按数组顺序展示；省略表示空列表，外链在新标签页打开",
+          "items": {
+            "$ref": "#/$defs/HomeHeaderLink"
+          },
+          "maxItems": 6
         }
       },
       "required": [
@@ -3512,6 +3528,30 @@
     "SnapshotArchiveReadResult": {
       "x-internal": true,
       "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
+    },
+    "HomeHeaderLink": {
+      "type": "object",
+      "description": "主页右上角的自定义超链接",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24,
+          "description": "显示文字"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "minLength": 8,
+          "maxLength": 2048,
+          "description": "完整 HTTP 或 HTTPS 地址，允许查询串与锚点"
+        }
+      },
+      "required": [
+        "text",
+        "url"
+      ]
     }
   }
 }

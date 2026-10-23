@@ -108,27 +108,15 @@ type HandleHomeResult struct {
 	Location string
 }
 
-type heroButton struct {
-	Label, URL string
-	Primary    bool
-}
-
-// homeSection 是首页的一张文档卡片：有子文档时列出前几篇，没有时显示这篇的搜索摘要。
-type homeSection struct {
-	Number, Title, URL, Description string
-	Children                        []homeLink
-}
-type homeLink struct{ Title, URL string }
 type homePage struct {
 	shell
 	HeroTitle, HeroSubtitle, HeroBackgroundText string
 	HeroBackground, HeroOverlay                 template.CSS
 	HeroDark, HeroCustomColor                   bool
-	HeroButtons                                 []heroButton
-	Sections                                    []homeSection
+	WikiURL                                     string
 }
 
-// HandleHome 用站点配置里的首页文案渲染首页主视觉，下面按导航树列出顶层文档。
+// HandleHome 渲染固定一屏的问答首页，入口指向第一篇已发布文档。
 func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHomeInput) (HandleHomeResult, error) {
 	directory, err := directoryFrom(ctx)
 	if err != nil {
@@ -159,15 +147,10 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 					Kind  string `json:"kind"`
 					Color string `json:"color"`
 				} `json:"background"`
-				Buttons []struct {
-					Text   string `json:"text"`
-					Style  string `json:"style"`
-					Target struct {
-						Kind       string `json:"kind"`
-						URL        string `json:"url"`
-						DocumentID string `json:"documentId"`
-					} `json:"target"`
-				} `json:"buttons"`
+				HeaderLinks []struct {
+					Text string `json:"text"`
+					URL  string `json:"url"`
+				} `json:"headerLinks"`
 			} `json:"home"`
 		} `json:"config"`
 	}
@@ -177,25 +160,6 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 	home := config.Config.Home
 	if home.OverlayPercent < 0 || home.OverlayPercent > 100 {
 		return HandleHomeResult{}, platform.NewError(platform.CodeValidation, false, "INVALID_HERO")
-	}
-	var buttons []heroButton
-	for _, button := range home.Buttons {
-		target := ""
-		switch button.Target.Kind {
-		case "external":
-			target = button.Target.URL
-		case "document":
-			for _, node := range nodes {
-				if node.DocumentID == button.Target.DocumentID {
-					target = node.CanonicalPath
-				}
-			}
-		case "qa":
-			target = "/" + in.Locale + "/ask"
-		}
-		if target != "" && safeLink(target) && len(buttons) < 3 {
-			buttons = append(buttons, heroButton{Label: button.Text, URL: target, Primary: button.Style != "secondary"})
-		}
 	}
 	meta := loadSiteMeta(ctx)
 	homeBase, _ := siteForSEO(ctx)
@@ -213,27 +177,16 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor, Footer: footerHTML, SourceCodeURL: sourceURL,
 		UIStrings: loadUIStrings(ctx, in.Locale), AIEnabled: qaAvailable(ctx, op), AskURL: "/" + in.Locale + "/ask",
 	}, "home"), HeroTitle: home.MainTitle, HeroSubtitle: home.Subtitle, HeroBackgroundText: home.BackgroundText, HeroDark: home.TextColor == "dark"}
-	if len(buttons) == 0 && len(nodes) > 0 {
-		buttons = []heroButton{{Label: page.T("开始阅读"), URL: nodes[0].CanonicalPath, Primary: true}}
+	if len(nodes) > 0 {
+		page.WikiURL = nodes[0].CanonicalPath
 	}
-	page.HeroButtons = buttons
-	// 背景“跟随主题”（新站点默认）时主视觉用柔和的主题色光晕，随浅色/深色切换；纯色背景才用该色、遮罩和指定的文字颜色。
+	for _, link := range home.HeaderLinks {
+		page.HeaderLinks = append(page.HeaderLinks, Breadcrumb{Label: link.Text, URL: link.URL})
+	}
+	// 默认使用随明暗主题变化的自绘 SVG；纯色背景沿用站长配置。
 	if home.Background.Kind == "color" && hexColor.MatchString(home.Background.Color) {
 		page.HeroBackground, page.HeroCustomColor = template.CSS(home.Background.Color), true
 		page.HeroOverlay = template.CSS(fmt.Sprintf("rgb(0 0 0 / %d%%)", home.OverlayPercent))
-	}
-	// 首页下方：顶层文档按顺序编号，各列出前几篇子文档的链接。
-	children := map[string][]homeLink{}
-	for _, node := range nodes {
-		if node.ParentID != nil && len(children[*node.ParentID]) < 5 {
-			children[*node.ParentID] = append(children[*node.ParentID], homeLink{node.Title, node.CanonicalPath})
-		}
-	}
-	for _, node := range nodes {
-		if node.ParentID == nil {
-			number := fmt.Sprintf("%02d", len(page.Sections)+1)
-			page.Sections = append(page.Sections, homeSection{Number: number, Title: node.Title, URL: node.CanonicalPath, Description: node.SEODescription, Children: children[node.DocumentID]})
-		}
 	}
 	rendered, err := render("home", page)
 	if err != nil {

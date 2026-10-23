@@ -47,6 +47,13 @@ func validateHomeStructure(home gen.HomeConfig) ([]homeDocumentTarget, []homeAss
 	documents := []homeDocumentTarget{}
 	assets := []homeAssetUse{}
 	ids := map[string]bool{}
+	if home.HeaderLinks != nil {
+		for _, link := range *home.HeaderLinks {
+			if err := validateConfigWebLink(link.Url, false); err != nil {
+				return nil, nil, err
+			}
+		}
+	}
 	for _, button := range home.Buttons {
 		if ids[button.ButtonId] {
 			return nil, nil, platform.NewError(platform.CodeValidation, false, "hero按钮ID重复")

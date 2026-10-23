@@ -38,7 +38,7 @@ func RenderAnnouncement(ctx context.Context, op platform.OperationContext, in Re
 		if !safeLink(in.Link) {
 			return RenderAnnouncementResult{}, platform.NewError(platform.CodeValidation, false, "INVALID_LINK")
 		}
-		text = `<a class="font-medium underline decoration-accent-foreground/50 underline-offset-4 hover:decoration-accent-foreground" href="` + html.EscapeString(in.Link) + `">` + text + ` →</a>`
+		text = `<a class="font-medium underline decoration-accent-foreground/50 underline-offset-4 hover:decoration-accent-foreground" href="` + html.EscapeString(in.Link) + `"` + externalLinkAttributes(in.Link) + `>` + text + ` →</a>`
 	}
 	// 关闭状态只存浏览器本机；紧跟一段内联脚本，在页面脚本加载前就把已关闭的横幅藏起来，避免闪一下。
 	// 用原样字符串写标记，类名两侧是普通引号，样式构建扫描 Go 源码时能识别出这些工具类。

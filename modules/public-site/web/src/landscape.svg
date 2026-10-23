@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" fill="none">
+  <!-- 自绘的山雾曲线：中性灰纸面、低处的层叠山脊与留白，不使用照片或外部素材。 -->
+  <defs>
+    <linearGradient id="mist" x1="800" y1="420" x2="800" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#e6e6e6" stop-opacity="0"/><stop offset="1" stop-color="#c6cbcc" stop-opacity=".65"/></linearGradient>
+    <linearGradient id="ridge" x1="0" y1="1000" x2="1200" y2="680" gradientUnits="userSpaceOnUse"><stop stop-color="#bbc2c3" stop-opacity=".6"/><stop offset="1" stop-color="#e0e2e2" stop-opacity=".1"/></linearGradient>
+    <linearGradient id="light" x1="1600" y1="720" x2="700" y2="950" gradientUnits="userSpaceOnUse"><stop stop-color="#fafafa" stop-opacity=".8"/><stop offset="1" stop-color="#e6e6e6" stop-opacity="0"/></linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <path d="M0 0h1600v1000H0z" fill="#e6e6e6"/>
+  <path d="M-180 930C55 852 174 551 334 633s224 238 418 193 266-218 446-168 274 178 542 104v238H-180Z" fill="url(#mist)"/>
+  <path d="M-160 983C13 901 140 717 280 712s215 198 450 190 381-203 562-195 270 144 464 128v165H-160Z" fill="url(#ridge)"/>
+  <g stroke="#bfc6c7" stroke-opacity=".4" stroke-width="1">
+    <path d="M-160 930C80 853 182 600 334 678s244 235 443 167 245-180 416-146 309 167 542 101"/>
+    <path d="M-160 950C80 873 182 620 334 698s244 235 443 167 245-180 416-146 309 167 542 101"/>
+    <path d="M-160 970C80 893 182 640 334 718s244 235 443 167 245-180 416-146 309 167 542 101"/>
+    <path d="M-160 990C80 913 182 660 334 738s244 235 443 167 245-180 416-146 309 167 542 101"/>
+  </g>
+  <path d="M0 941c279-182 412 56 742-11s513-221 858-145v215H0Z" fill="url(#light)"/>
+  <path d="M-120 831c236-70 469 82 779 61s580-120 1041-37" stroke="#f1f2f2" stroke-opacity=".8" stroke-width="58" filter="url(#soft)"/>
+  <path d="M0 1000V896c266 154 425-44 763-22s534 93 837-16v142Z" fill="#e6e6e6" fill-opacity=".28"/>
+</svg>

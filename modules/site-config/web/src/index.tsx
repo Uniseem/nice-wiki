@@ -2,20 +2,20 @@ import { Picture, Plus, TrashBin } from '@gravity-ui/icons';
 import { Button, Card, Chip, Form, Tabs } from '@heroui/react';
 import {
   api, assetURL, ColorInput, Details, ErrorBlock, FileButton, findSiteLanguage, FormGrid, LoadingBlock, NumberInput, PageHeader, Panel, RadioInput, SelectInput, SwitchInput,
-  TextInput, uploadImage, useAction, useHasGrant, useLoad, type AssetRef, t,
+  TextInput, uploadImage, useAction, useLoad, type AssetRef, t,
 } from '@ui';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 type Target = { kind: 'external'; url: string } | { kind: 'document'; documentId: string; blockId: null } | { kind: 'qa' };
 type Config = {
   name: string; logo: AssetRef | null; favicon: AssetRef | null; themeColor: string; defaultShareImage: AssetRef | null;
   publicBaseURL: string; baseLanguage: string; titleTemplate: string; description: string; indexingEnabled: boolean;
-  home: { mainTitle: string; subtitle: string; backgroundText: string; background: { kind: string; color?: string }; overlayPercent: number; textColor: string; buttons: { buttonId: string; text: string; style: 'primary' | 'secondary'; target: Target }[]; revision: number };
+  home: { headerLinks?: { text: string; url: string }[]; mainTitle: string; subtitle: string; backgroundText: string; background: { kind: string; color?: string }; overlayPercent: number; textColor: string; buttons: { buttonId: string; text: string; style: 'primary' | 'secondary'; target: Target }[]; revision: number };
   footer: { copyright: string; links: { linkId: string; text: string; target: Target }[]; icpNumber: string | null; icpLink: string | null; sourceCodeURL: string };
   banner: { announcementId: string; revisionId: string; bodyHash: string; enabled: boolean } | null;
   resourceLimits: unknown; securityPolicy: unknown; revision: number;
 };
-type Button_ = { buttonId: string; text: string; style: 'primary' | 'secondary'; kind: 'external' | 'document' | 'qa'; value: string };
+
 
 const newId = () => crypto.randomUUID().replace(/-/g, '');
 
@@ -134,102 +134,64 @@ function BrandTab({ config, onSaved }: TabProps) {
 function HomeTab({ config, onSaved }: TabProps) {
   const fromConfig = () => ({
     mainTitle: config.home.mainTitle, subtitle: config.home.subtitle, backgroundText: config.home.backgroundText,
-    // 背景：跟随主题、纯色，或者早先设的图片/视频（这里不能改成图片/视频，只能换成前两种）。
-    mode: (config.home.background?.kind === 'theme' ? 'theme' : config.home.background?.kind === 'color' ? 'color' : 'media') as 'theme' | 'color' | 'media',
-    color: config.home.background?.kind === 'color' ? config.home.background.color ?? '' : '', overlayPercent: config.home.overlayPercent, textColor: config.home.textColor as 'light' | 'dark',
-    buttons: config.home.buttons.map((b): Button_ => ({ buttonId: b.buttonId, text: b.text, style: b.style, kind: b.target.kind, value: b.target.kind === 'external' ? b.target.url : b.target.kind === 'document' ? b.target.documentId : '' })),
+    mode: config.home.background?.kind === 'color' ? 'color' as const : 'theme' as const,
+    color: config.home.background?.color ?? '#e6e6e6', overlayPercent: config.home.overlayPercent, textColor: config.home.textColor as 'light' | 'dark',
+    headerLinks: config.home.headerLinks ?? [],
   });
   const [form, setForm] = useState(fromConfig);
   useEffect(() => setForm(fromConfig()), [config]); // eslint-disable-line
   const { busy, run } = useAction();
-  const canReadDocs = useHasGrant('content.read');
-  const docs = useLoad((signal) => canReadDocs ? api<{ documents: { documentId: string; title: string; state: string; pathSegment: string | null }[] }>('/v1/tree', { signal }).then((tree) => tree.documents.filter((doc) => doc.state === 'published')) : Promise.resolve(null), [canReadDocs]);
-  // 同名文档用页面路径区分。
-  const docOptions = useMemo(() => (docs.data ?? []).map((doc) => ({ value: doc.documentId, label: doc.title, description: doc.pathSegment ? `/${doc.pathSegment}` : undefined })), [docs.data]);
-  const setButton = (index: number, patch: Partial<Button_>) => setForm((current) => ({ ...current, buttons: current.buttons.map((b, i) => i === index ? { ...b, ...patch } : b) }));
-
+  const themed = form.mode === 'theme';
   const save = () => run(async () => {
-    const target = (b: Button_): Target => b.kind === 'qa' ? { kind: 'qa' } : b.kind === 'document' ? { kind: 'document', documentId: b.value, blockId: null } : { kind: 'external', url: b.value };
-    await api('/v1/home', {
-      method: 'PUT', body: {
-        home: {
-          ...config.home, mainTitle: form.mainTitle, subtitle: form.subtitle, backgroundText: form.backgroundText,
-          overlayPercent: form.overlayPercent, textColor: form.textColor,
-          background: form.mode === 'theme' ? { kind: 'theme' } : form.color ? { kind: 'color', color: form.color } : config.home.background,
-          buttons: form.buttons.map((b) => ({ buttonId: b.buttonId, text: b.text, style: b.style, target: target(b) })),
-        },
-        expectedRevision: config.revision, expectedHomeRevision: config.home.revision,
-      },
-    });
+    await api('/v1/home', { method: 'PUT', body: {
+      home: { ...config.home, mainTitle: form.mainTitle, subtitle: form.subtitle, backgroundText: form.backgroundText,
+        overlayPercent: form.overlayPercent, textColor: form.textColor,
+        background: themed ? { kind: 'theme' } : { kind: 'color', color: form.color },
+        buttons: [], headerLinks: form.headerLinks },
+      expectedRevision: config.revision, expectedHomeRevision: config.home.revision,
+    } });
     onSaved();
   }, t('首页已保存'));
+  const setLink = (index: number, patch: Partial<{ text: string; url: string }>) => setForm((current) => ({ ...current, headerLinks: current.headerLinks.map((link, position) => position === index ? { ...link, ...patch } : link) }));
 
-  const dark = form.textColor === 'dark';
-  const themed = form.mode === 'theme';
   return (
-    <div className="grid gap-6 xl:grid-cols-5">
-      <Panel className="xl:col-span-3" title={t('首页主视觉')} description={t('访客打开站点首页时看到的一屏。')}>
-        <Form className="flex flex-col gap-5" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-          <TextInput isRequired label={t('主标题')} value={form.mainTitle} onChange={(mainTitle) => setForm({ ...form, mainTitle })} />
-          <TextInput label={t('副标题')} value={form.subtitle} onChange={(subtitle) => setForm({ ...form, subtitle })} />
-          <TextInput description={t('显示在主标题上方的小标签，可以留空。')} label={t('背景文字')} value={form.backgroundText} onChange={(backgroundText) => setForm({ ...form, backgroundText })} />
-          {/* 跟随主题时首页用主题色光晕、随访客的浅色/深色模式切换，颜色、遮罩和文字颜色都用不上；
-              选纯色时颜色必填（先填上原来的默认色）；图片/视频背景在这里留空颜色则原样保留。 */}
-          <RadioInput description={themed ? t('主题色的柔和光晕，随访客的浅色/深色模式切换。') : undefined} label={t('背景')} options={[{ value: 'theme', label: t('跟随主题') }, { value: 'color', label: t('纯色') }]} value={form.mode} onChange={(mode) => setForm({ ...form, mode, color: mode === 'color' && !form.color ? '#0F172A' : form.color })} />
-          {!themed && (
-            <>
-              <FormGrid>
-                <ColorInput description={form.mode === 'media' ? t('当前是图片或视频背景；填写颜色会改为纯色背景，留空则保持不变。') : undefined} isRequired={form.mode === 'color'} label={t('背景颜色')} placeholder="#0F172A" value={form.color} onChange={(color) => setForm({ ...form, color })} />
-                <NumberInput description={t('0 为不加遮罩，数值越大背景越暗。')} label={t('遮罩浓度（%）')} maxValue={100} minValue={0} value={form.overlayPercent} onChange={(overlayPercent) => setForm({ ...form, overlayPercent })} />
-              </FormGrid>
-              <RadioInput label={t('文字颜色')} options={[{ value: 'light', label: t('浅色（深色背景用）') }, { value: 'dark', label: t('深色（浅色背景用）') }]} value={form.textColor} onChange={(textColor) => setForm({ ...form, textColor })} />
-            </>
-          )}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">{t('按钮（最多 3 个）')}</span>
-              {form.buttons.length < 3 && <Button size="sm" variant="secondary" onPress={() => setForm({ ...form, buttons: [...form.buttons, { buttonId: newId(), text: '', style: 'primary', kind: 'document', value: '' }] })}><Plus />{t('添加按钮')}</Button>}
-            </div>
-            {!form.buttons.length && <p className="text-sm text-muted">{t('没有按钮时，首页显示“开始阅读”，指向第一篇文档。')}</p>}
-            {form.buttons.map((b, index) => (
-              <Card key={b.buttonId} className="gap-3 p-4" variant="secondary">
-                <FormGrid columns={3}>
-                  <TextInput isRequired label={t('文字')} value={b.text} onChange={(text) => setButton(index, { text })} />
-                  <SelectInput label={t('样式')} options={[{ value: 'primary', label: t('主要') }, { value: 'secondary', label: t('次要') }]} value={b.style} onChange={(style) => setButton(index, { style })} />
-                  <SelectInput label={t('指向')} options={[{ value: 'document', label: t('站内文档') }, { value: 'external', label: t('外部链接') }, { value: 'qa', label: t('AI 问答页') }]} value={b.kind} onChange={(kind) => setButton(index, { kind, value: '' })} />
-                </FormGrid>
-                {b.kind === 'external' && <TextInput isRequired label={t('链接地址')} placeholder="https://…" type="url" value={b.value} onChange={(value) => setButton(index, { value })} />}
-                {b.kind === 'document' && (docOptions.length ? (
-                  <SelectInput isRequired label={t('文档')} options={docOptions} placeholder={t('选择一篇已发布的文档')} value={b.value} onChange={(value) => setButton(index, { value })} />
-                ) : (
-                  <TextInput isRequired description={t('还没有可选的已发布文档时，可以先填文档 ID。')} label={t('文档 ID')} value={b.value} onChange={(value) => setButton(index, { value })} />
-                ))}
-                <div><Button size="sm" variant="tertiary" onPress={() => setForm({ ...form, buttons: form.buttons.filter((_, i) => i !== index) })}><TrashBin />{t('移除这个按钮')}</Button></div>
-              </Card>
-            ))}
-          </div>
-          <SaveBar busy={busy} />
-        </Form>
-      </Panel>
-      <div className="xl:col-span-2">
-        <div className="sticky top-20 flex flex-col gap-2">
-          <span className="text-sm font-medium text-muted">{t('预览')}</span>
-          <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-2xl border border-border" style={{ background: themed ? 'radial-gradient(90% 80% at 50% 0%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 75%), var(--background)' : form.color || (dark ? '#F5F7FA' : '#172033') }}>
-            {!themed && <div className="absolute inset-0" style={{ background: `rgb(0 0 0 / ${form.overlayPercent}%)` }} />}
-            <div className={`relative flex flex-col items-center px-6 text-center ${themed ? 'text-foreground' : dark ? 'text-[#172033]' : 'text-white'}`}>
-              {form.backgroundText && <div className="mb-3 rounded-full border border-current/20 px-2.5 py-0.5 text-[11px] font-medium opacity-80">{form.backgroundText}</div>}
-              <div className="text-2xl font-semibold tracking-tight">{form.mainTitle || t('主标题')}</div>
-              {form.subtitle && <div className="mt-2 text-sm opacity-80">{form.subtitle}</div>}
-              <div className="mt-5 flex flex-wrap justify-center gap-2">
-                {(form.buttons.length ? form.buttons : [{ buttonId: 'start', text: t('开始阅读'), style: 'primary' as const }]).map((b) => (
-                  <span key={b.buttonId} className={`rounded-full px-4 py-1.5 text-xs font-medium ${b.style === 'primary' ? (themed ? 'bg-accent text-accent-foreground' : dark ? 'bg-[#172033] text-white' : 'bg-white text-[#172033]') : 'border border-current'}`}>{b.text || t('按钮')}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+    <Form className="grid gap-6 xl:grid-cols-5" onSubmit={(event) => { event.preventDefault(); void save(); }}>
+      <div className="flex flex-col gap-6 xl:col-span-3">
+        <Panel title={t('首页主视觉')} description={t('首页固定一屏，问答在框内滚动，入口指向第一篇已发布文档。')}>
+          <TextInput isRequired label={t('主标题')} maxLength={160} value={form.mainTitle} onChange={(mainTitle) => setForm({ ...form, mainTitle })} />
+          <TextInput label={t('副标题')} maxLength={1000} value={form.subtitle} onChange={(subtitle) => setForm({ ...form, subtitle })} />
+          <TextInput description={t('显示在主标题上方的小标签，可以留空。')} label={t('背景文字')} maxLength={200} value={form.backgroundText} onChange={(backgroundText) => setForm({ ...form, backgroundText })} />
+          <RadioInput description={themed ? t('自绘 SVG 山雾背景，随浅色和深色模式切换。') : undefined} label={t('背景')} options={[{ value: 'theme', label: t('跟随主题') }, { value: 'color', label: t('纯色') }]} value={form.mode} onChange={(mode) => setForm({ ...form, mode, textColor: mode === 'color' && themed ? 'dark' : form.textColor })} />
+          {!themed && <>
+            <FormGrid>
+              <ColorInput isRequired label={t('背景颜色')} value={form.color} onChange={(color) => setForm({ ...form, color })} />
+              <NumberInput description={t('0 为不加遮罩，数值越大背景越暗。')} label={t('遮罩浓度（%）')} maxValue={100} minValue={0} value={form.overlayPercent} onChange={(overlayPercent) => setForm({ ...form, overlayPercent })} />
+            </FormGrid>
+            <RadioInput label={t('文字颜色')} options={[{ value: 'light', label: t('浅色（深色背景用）') }, { value: 'dark', label: t('深色（浅色背景用）') }]} value={form.textColor} onChange={(textColor) => setForm({ ...form, textColor })} />
+          </>}
+        </Panel>
+        <Panel title={t('主页右上角链接')} description={t('按添加顺序显示，外链在新标签页打开，最多 6 个。')} actions={<Button isDisabled={form.headerLinks.length >= 6} size="sm" variant="secondary" onPress={() => setForm({ ...form, headerLinks: [...form.headerLinks, { text: '', url: '' }] })}><Plus />{t('添加链接')}</Button>}>
+          {form.headerLinks.map((link, index) => <div key={index} className="flex items-end gap-3">
+            <div className="min-w-0 flex-1"><TextInput isRequired label={t('文字')} maxLength={24} value={link.text} onChange={(text) => setLink(index, { text })} /></div>
+            <div className="min-w-0 flex-[2]"><TextInput isRequired label={t('链接地址')} maxLength={2048} placeholder="https://example.com" type="url" value={link.url} onChange={(url) => setLink(index, { url })} /></div>
+            <Button isIconOnly aria-label={t('移除')} size="sm" variant="ghost" onPress={() => setForm({ ...form, headerLinks: form.headerLinks.filter((_, position) => position !== index) })}><TrashBin /></Button>
+          </div>)}
+        </Panel>
+        <SaveBar busy={busy} />
       </div>
-    </div>
+      <div className="xl:col-span-2">
+        <Panel title={t('预览')}>
+          <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl bg-background px-5 py-10 text-center">
+            <div className="mb-8 flex w-full justify-end gap-4 text-xs text-muted">{form.headerLinks.map((link, index) => <span key={index}>{link.text}</span>)}</div>
+            <p className="text-xs text-muted">{form.backgroundText}</p>
+            <p className="mt-3 font-medium text-foreground" style={{ fontFamily: 'var(--nw-font-serif)', fontSize: '1.75rem' }}>{form.mainTitle}</p>
+            <p className="mt-2 text-sm text-muted">{form.subtitle}</p>
+            <div className="my-6 w-full rounded-2xl border border-border bg-field px-4 py-6 text-start text-sm text-muted">{t('AI 问答')}</div>
+            <span className="rounded-xl bg-accent px-5 py-2.5 text-sm text-accent-foreground">{t('进入 wiki')}</span>
+          </div>
+        </Panel>
+      </div>
+    </Form>
   );
 }
 

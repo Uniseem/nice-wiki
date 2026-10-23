@@ -80,8 +80,8 @@ function BottomSheet({ open, onOpenChange, locale, t, documentId, pageTitle }: P
 // 对话在卡片里滚动。卡片高度由 :has() 按是否已有对话切换。
 export function QaHomeChat({ locale, t }: { locale: string; t: Translate }) {
   return (
-    <div className="nw-home-ask-card flex flex-col has-[ol>li]:h-[min(34rem,72dvh)] has-[ol>li]:overflow-hidden has-[ol>li]:rounded-2xl has-[ol>li]:border has-[ol>li]:border-border has-[ol>li]:bg-surface">
-      <QaChat compact locale={locale} t={t} />
+    <div className="nw-home-ask-card flex min-h-0 flex-col">
+      <QaChat compact locale={locale} suggestions={[t('这个站点有哪些内容？'), t('我应该从哪里开始？'), t('帮我梳理主要概念')]} t={t} />
     </div>
   );
 }

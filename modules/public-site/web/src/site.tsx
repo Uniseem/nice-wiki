@@ -1,4 +1,5 @@
 import { I18nProvider } from '@heroui/react';
+import { installExternalLinks } from '@ui/links';
 import { preloadQa, QaFloating, QaHome, QaInline } from '@modules/qa/web/src/island';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -103,7 +104,7 @@ function Islands({ header, ask, homeAsk }: { header: HTMLElement | null; ask: HT
       {header && createPortal(<HeaderActions config={config} t={t} onAsk={onAsk} onAskIntent={ask ? undefined : preloadQa} onSearch={() => setSearchOpen(true)} onSearchIntent={() => { void loadSearch(); }} />, header)}
       {searchUsed && <Suspense fallback={null}><Search deep={config.aiEnabled} locale={config.locale || document.documentElement.lang} open={searchOpen} t={t} onOpenChange={setSearchOpen} /></Suspense>}
       {navUsed && <Suspense fallback={null}><MobileNav open={navOpen} t={t} onOpenChange={setNavOpen} /></Suspense>}
-      {config.aiEnabled && !ask && <QaFloating documentId={config.documentId || undefined} locale={config.locale} open={askOpen} pageTitle={pageTitle(config)} t={t} onOpenChange={setAskOpen} />}
+      {config.aiEnabled && !ask && config.kind !== 'home' && <QaFloating documentId={config.documentId || undefined} locale={config.locale} open={askOpen} pageTitle={pageTitle(config)} t={t} onOpenChange={setAskOpen} />}
       {config.aiEnabled && ask && createPortal(<QaInline locale={config.locale} t={t} />, ask)}
       {config.aiEnabled && homeAsk && createPortal(<QaHome locale={config.locale} t={t} />, homeAsk)}
       {suggested && <LanguageSuggestion config={config} t={t} target={suggested} onClose={() => setSuggested(null)} />}
@@ -123,4 +124,5 @@ host.id = 'nw-qa-root';
 document.body.append(host);
 createRoot(host).render(<Islands ask={ask} header={header} homeAsk={homeAsk} />);
 enhance(t);
+installExternalLinks();
 startNavigation(t);

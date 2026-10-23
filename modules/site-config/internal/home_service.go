@@ -860,6 +860,7 @@ type PublicHome struct {
 	BackgroundText          string                  `json:"backgroundText"`
 	TranslateBackgroundText bool                    `json:"translateBackgroundText"`
 	Buttons                 []PublicHeroButton      `json:"buttons"`
+	HeaderLinks             *[]gen.HomeHeaderLink   `json:"headerLinks,omitempty"`
 	Background              gen.HeroBackground      `json:"background"`
 	OverlayPercent          int                     `json:"overlayPercent"`
 	TextColor               gen.HomeConfigTextColor `json:"textColor"`
@@ -960,6 +961,7 @@ func ReadPublicHome(ctx context.Context, op platform.OperationContext, input Rea
 	}
 	home := config.Home
 	public := PublicHome{MainTitle: home.MainTitle, Subtitle: home.Subtitle, BackgroundText: home.BackgroundText, TranslateBackgroundText: home.TranslateBackgroundText, Buttons: make([]PublicHeroButton, 0, len(home.Buttons)), Background: home.Background, OverlayPercent: home.OverlayPercent, TextColor: home.TextColor, Revision: home.Revision}
+	public.HeaderLinks = home.HeaderLinks
 	runtime := s.homeDependencies()
 	var qaAvailable bool
 	qaReason, qaRead := "dependency_unavailable", false

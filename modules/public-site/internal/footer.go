@@ -50,13 +50,13 @@ func loadFooter(ctx context.Context, op platform.OperationContext) (string, stri
 			target = link.Target.Href
 		}
 		if link.Target.Kind == "external" && strings.HasPrefix(target, "https://") && safeLink(target) {
-			parts = append(parts, "<a href=\""+html.EscapeString(target)+"\" rel=\"noopener noreferrer\">"+html.EscapeString(link.Text)+"</a>")
+			parts = append(parts, "<a href=\""+html.EscapeString(target)+"\" target=\"_blank\" rel=\"noopener noreferrer\">"+html.EscapeString(link.Text)+"</a>")
 		}
 	}
 	if footer.ICPNumber != nil && strings.TrimSpace(*footer.ICPNumber) != "" {
 		label := html.EscapeString(*footer.ICPNumber)
 		if footer.ICPLink != nil && strings.HasPrefix(*footer.ICPLink, "https://") && safeLink(*footer.ICPLink) {
-			label = "<a href=\"" + html.EscapeString(*footer.ICPLink) + "\" rel=\"noopener noreferrer\">" + label + "</a>"
+			label = "<a href=\"" + html.EscapeString(*footer.ICPLink) + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + label + "</a>"
 		}
 		parts = append(parts, label)
 	}

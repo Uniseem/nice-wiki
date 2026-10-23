@@ -109,7 +109,7 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 				case "link":
 					href := markHref(mark, in.Links)
 					if href != "" {
-						text = "<a href=\"" + html.EscapeString(href) + "\">" + text + "</a>"
+						text = "<a href=\"" + html.EscapeString(href) + "\"" + externalLinkAttributes(href) + ">" + text + "</a>"
 					} else {
 						text = "<span class=\"link-unavailable\" title=\"" + html.EscapeString(tr("目标暂不可用")) + "\">" + text + "</span>"
 					}
@@ -177,7 +177,7 @@ func RenderTiptapHTML(ctx context.Context, op platform.OperationContext, in Rend
 					href := attrString(snapshot, "canonicalURL")
 					link := ""
 					if safeLink(href) {
-						link = "<a href=\"" + html.EscapeString(href) + "\" rel=\"noopener noreferrer\">" + html.EscapeString(tr("打开视频")) + "</a>"
+						link = "<a href=\"" + html.EscapeString(href) + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + html.EscapeString(tr("打开视频")) + "</a>"
 					}
 					embed := attrString(snapshot, "embedURL")
 					if safeLink(embed) && strings.HasPrefix(embed, "https://") {

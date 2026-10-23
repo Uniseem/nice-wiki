@@ -38,6 +38,7 @@ var englishUI = strings.NewReplacer(
 	"目标暂不可用", "Target unavailable", "资源暂不可用", "Media unavailable", "打开视频", "Open video", "点击播放", "Play", "画板", "Drawing",
 	"最后更新", "Last updated", "上一篇", "Previous", "下一篇", "Next", "首页", "Home", "源代码", "Source code", "视频播放器", "Video player",
 	"文档", "Docs", "语言", "Language",
+	"进入 wiki", "Enter wiki", "链接", "Links", "你可以这样问", "Try asking", "这个站点有哪些内容？", "What can I find here?", "我应该从哪里开始？", "Where should I start?", "帮我梳理主要概念", "Explain the key concepts",
 	"新对话", "New chat", "发送", "Send", "关闭", "Close", "问问这个站点的文档…", "Ask about these docs…",
 	"来源：", "Source: ", "这次没有回答成功（", "Could not answer (", "），请稍后再试。", "). Please try again later.",
 	"回答连接失败（", "Connection failed (", "请求失败（", "Request failed (", "人机验证没有完成", "Verification failed",

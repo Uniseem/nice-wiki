@@ -16,15 +16,19 @@
 <body class="flex min-h-dvh flex-col bg-background text-foreground antialiased" data-doc="{{.DocumentID}}" data-locale="{{.Locale}}" data-page="{{.Kind}}">
 <a class="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-surface focus:px-4 focus:py-2 focus:shadow-overlay" href="#nw-main">{{.T "跳到正文"}}</a>
 {{.Announcement}}
-<header class="sticky top-0 z-40 border-b border-separator bg-background/80 backdrop-blur-md">
-  <div class="mx-auto flex h-16 w-full max-w-[1440px] items-center gap-2 px-4 sm:px-6">
+<header class="nw-site-header sticky top-0 z-40">
+  <div class="nw-header-inner mx-auto flex h-16 w-full items-center gap-2">
     {{if .HasNav}}<button type="button" class="button button--ghost button--sm button--icon-only lg:hidden" data-open-nav aria-label="{{.T "打开文档树"}}">{{template "icon-menu"}}</button>{{end}}
-    <a href="{{.HomeURL}}" class="flex min-w-0 items-center gap-2.5 rounded-xl text-base font-semibold text-foreground">
+    <a href="{{.HomeURL}}" class="nw-brand flex min-w-0 items-center gap-2.5 rounded-xl font-semibold text-foreground">
       {{if .LogoURL}}<img src="{{.LogoURL}}" alt="" class="h-8 w-auto max-w-32 object-contain">{{else}}<img src="{{.Mark}}" alt="" class="size-8 shrink-0">{{end}}
       <span class="truncate">{{.SiteName}}</span>
     </a>
-    <div class="ms-auto flex items-center gap-1" id="nw-header">
-      {{if .AIEnabled}}<a class="button button--primary button--sm" href="{{.AskURL}}"><span class="size-4 sm:hidden [&>svg]:size-full">{{template "icon-comment"}}</span><span class="hidden sm:inline">{{.T "AI 问答"}}</span></a>{{end}}
+    {{if .HeaderLinks}}
+    <nav class="nw-home-links ms-auto hidden md:flex" aria-label="{{.T "链接"}}">{{range .HeaderLinks}}<a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Label}}</a>{{end}}</nav>
+    <details class="nw-home-links-menu relative ms-auto md:hidden"><summary class="button button--ghost button--sm">{{.T "链接"}}</summary><nav aria-label="{{.T "链接"}}">{{range .HeaderLinks}}<a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Label}}</a>{{end}}</nav></details>
+    {{end}}
+    <div class="{{if not .HeaderLinks}}ms-auto {{end}}flex shrink-0 items-center gap-1" id="nw-header">
+      {{if and .AIEnabled (ne .Kind "home")}}<a class="button button--primary button--sm" href="{{.AskURL}}"><span class="size-4 sm:hidden [&>svg]:size-full">{{template "icon-comment"}}</span><span class="hidden sm:inline">{{.T "AI 问答"}}</span></a>{{end}}
       {{if gt (len .Languages) 1}}<span class="hidden sm:inline-flex items-center gap-1">{{range .Languages}}<a class="button button--ghost button--sm {{if .Current}}text-accent{{end}}" href="{{.Href}}" hreflang="{{.Tag}}">{{.Label}}</a>{{end}}</span>{{end}}
     </div>
   </div>
@@ -32,12 +36,19 @@
 {{end}}
 
 {{define "foot"}}
-<footer class="mt-auto border-t border-separator">
-  <div class="mx-auto flex w-full max-w-[1440px] flex-col items-center justify-between gap-3 px-4 pt-8 text-sm text-muted sm:flex-row sm:px-6 {{if and .AIEnabled (ne .Kind "ask")}}pb-24{{else}}pb-8{{end}}">
-    <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center sm:justify-start [&_a]:hover:text-foreground [&_a]:hover:underline">{{.Footer}}</div>
-    <a class="inline-flex items-center gap-1.5 hover:text-foreground" href="{{.SourceURL}}" rel="noopener">{{template "icon-code"}}{{.T "源代码"}}</a>
+{{if ne .Kind "home"}}<footer class="nw-site-footer mt-auto border-t border-separator">
+  <div class="nw-footer-inner mx-auto w-full">
+    <a class="nw-footer-brand" href="{{.HomeURL}}">{{.SiteName}}</a>
+    <nav class="flex flex-wrap gap-x-8 gap-y-3 text-sm text-muted" aria-label="{{.T "文档"}}">
+      <a href="{{.HomeURL}}">{{.T "首页"}}</a>
+      {{if .AIEnabled}}<a href="{{.AskURL}}">{{.T "AI 问答"}}</a>{{end}}
+    </nav>
   </div>
-</footer>
+  <div class="nw-footer-bottom mx-auto flex w-full flex-col items-center justify-between gap-3 text-sm text-muted sm:flex-row {{if and .AIEnabled (ne .Kind "ask")}}pb-24{{else}}pb-8{{end}}">
+    <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center sm:justify-start [&_a]:hover:text-foreground [&_a]:hover:underline">{{.Footer}}</div>
+    <a class="inline-flex items-center gap-1.5 hover:text-foreground" href="{{.SourceURL}}" target="_blank" rel="noopener noreferrer">{{template "icon-code"}}{{.T "源代码"}}</a>
+  </div>
+</footer>{{end}}
 <div id="nw-islands" hidden data-config="{{.Config}}"></div>
 </body>
 </html>
@@ -56,12 +67,12 @@
 </aside>{{end}}{{end}}
 
 {{define "doc"}}{{template "head" .}}
-<div class="mx-auto flex w-full max-w-[1440px] flex-1 items-start gap-10 px-4 sm:px-6">
+<div class="nw-reading-layout mx-auto flex w-full flex-1 items-start gap-10 px-4 sm:px-6">
   {{template "sidebar" .}}
-  <main class="min-w-0 flex-1 py-8 lg:py-12" id="nw-main">
-    <article class="mx-auto w-full max-w-3xl">
+  <main class="nw-document min-w-0 flex-1" id="nw-main">
+    <article class="mx-auto w-full max-w-[800px]">
       {{if .Breadcrumbs}}<nav aria-label="{{.T "面包屑"}}" class="mb-5 overflow-x-auto"><ol class="breadcrumbs">{{range $i, $c := .Breadcrumbs}}<li class="breadcrumbs__item">{{if $i}}<span class="breadcrumbs__separator" aria-hidden="true">{{template "icon-chevron"}}</span>{{end}}<a class="breadcrumbs__link" href="{{$c.URL}}"{{if $c.Current}} data-current="true" aria-current="page"{{end}}>{{$c.Label}}</a></li>{{end}}</ol></nav>{{end}}
-      <h1 class="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{{.Title}}</h1>
+      <h1 class="nw-document-title">{{.Title}}</h1>
       {{if .Untranslated}}<div class="alert alert--warning mt-6" role="status"><div class="alert__content"><p class="alert__title">{{.T "当前语言的译文尚未完成，部分内容显示旧译文或原文。"}}</p></div></div>{{end}}
       {{if .TOC}}<details class="nw-toc-mobile mt-6 rounded-3xl border border-border bg-surface xl:hidden">
         <summary class="flex cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-medium">{{.T "本页目录"}}<span class="nw-tree-caret" aria-hidden="true">{{template "icon-chevron"}}</span></summary>
@@ -73,7 +84,7 @@
         <button class="button button--ghost button--sm" type="button" data-copy-markdown>{{template "icon-copy"}}<span>{{.T "复制为 Markdown"}}</span></button>
         {{if .Updated}}<span class="ms-auto text-xs text-muted">{{.T "最后更新"}} <time datetime="{{.UpdatedISO}}">{{.Updated}}</time></span>{{end}}
       </div>{{end}}
-      {{if or .Previous .Next}}<nav class="mt-8 grid gap-4 sm:grid-cols-2" aria-label="{{.T "相邻文档"}}">
+      {{if or .Previous .Next}}<nav class="nw-adjacent mt-12 grid gap-6 sm:grid-cols-2" aria-label="{{.T "相邻文档"}}">
         {{with .Previous}}<a class="card card--default group/nb gap-1 p-4 transition-colors hover:bg-surface-secondary" data-prefetch href="{{.URL}}"><span class="text-xs text-muted"><span class="inline-block rtl:-scale-x-100" aria-hidden="true">←</span> {{$.T "上一篇"}}</span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{else}}<span class="hidden sm:block"></span>{{end}}
         {{with .Next}}<a class="card card--default group/nb items-end gap-1 p-4 text-end transition-colors hover:bg-surface-secondary" data-prefetch href="{{.URL}}"><span class="text-xs text-muted">{{$.T "下一篇"}} <span class="inline-block rtl:-scale-x-100" aria-hidden="true">→</span></span><span class="font-medium text-foreground group-hover/nb:text-accent">{{.Label}}</span></a>{{end}}
       </nav>{{end}}
@@ -89,12 +100,12 @@
 {{template "foot" .}}{{end}}
 
 {{define "ask"}}{{template "head" .}}
-<div class="mx-auto flex w-full max-w-[1440px] flex-1 items-start gap-10 px-4 sm:px-6">
+<div class="nw-reading-layout mx-auto flex w-full flex-1 items-start gap-10 px-4 sm:px-6">
   {{template "sidebar" .}}
   <main class="flex min-w-0 flex-1 flex-col py-8 lg:py-12" id="nw-main">
     <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
       <div>
-        <h1 class="text-3xl font-semibold tracking-tight text-foreground">{{.T "AI 问答"}}</h1>
+        <h1 class="nw-document-title">{{.T "AI 问答"}}</h1>
         <p class="mt-2 text-muted">{{if .AIEnabled}}{{.T "向这个站点的文档提问，回答会附上来源。"}}{{else}}{{.T "公开问答暂未开放。"}}{{end}}</p>
       </div>
       {{if .AIEnabled}}<div class="flex min-h-[28rem] flex-1 flex-col" id="nw-ask"><noscript><p class="text-sm text-muted">{{.T "需要启用 JavaScript 才能使用 AI 问答。"}}</p></noscript></div>{{end}}
@@ -103,39 +114,25 @@
 </div>
 {{template "foot" .}}{{end}}
 
-{{/* 首页按编辑排版的文档门户来做，不用光晕、阴影和渐变：左对齐的大标题和副标题，下面一行“问问 AI”输入框
-     （提问后原地展开成多轮对话；问答没开启时是搜索框）和首页按钮。站点配置了纯色背景时这一段用该色、遮罩和指定文字颜色。
-     再往下是目录式的文档索引：一道细黑线下顶层文档按顺序编号分栏，列出前几篇子文档的链接。 */}}
+{{/* 首页固定一屏，问答在卡片内滚动；入口只指向第一篇已发布文档。 */}}
 {{define "home"}}{{template "head" .}}
-<main class="flex flex-1 flex-col" id="nw-main">
-  <section class="relative px-4 sm:px-6{{if .HeroCustomColor}} {{if .HeroDark}}text-[#172033]{{else}}text-white{{end}}{{end}}"{{if .HeroCustomColor}} style="background: {{.HeroBackground}}"{{end}}>
+<main class="flex min-h-0 flex-1 flex-col" id="nw-main">
+  <section class="nw-home-hero{{if .HeroCustomColor}} {{if .HeroDark}}text-[#172033]{{else}}text-white{{end}}{{else}} nw-home-hero--landscape{{end}}"{{if .HeroCustomColor}} style="background: {{.HeroBackground}}"{{end}}>
+    {{if not .HeroCustomColor}}<div class="nw-landscape" aria-hidden="true"><div class="nw-landscape-mountains"></div><div class="nw-landscape-clouds"></div></div>{{end}}
     {{if .HeroCustomColor}}<div class="absolute inset-0" style="background: {{.HeroOverlay}}"></div>{{end}}
-    <div class="relative mx-auto w-full max-w-[1120px] pb-16 pt-16 sm:pb-24 sm:pt-28">
-      {{if .HeroBackgroundText}}<p class="mb-4 text-[15px] font-medium {{if .HeroCustomColor}}opacity-70{{else}}text-muted{{end}}">{{.HeroBackgroundText}}</p>{{end}}
-      <h1 class="nw-home-title{{if not .HeroCustomColor}} text-foreground{{end}}">{{.HeroTitle}}</h1>
-      {{if .HeroSubtitle}}<p class="mt-6 max-w-2xl text-pretty text-lg leading-8 {{if .HeroCustomColor}}opacity-80{{else}}text-muted{{end}}">{{.HeroSubtitle}}</p>{{end}}
-      <div class="mt-10 flex max-w-2xl flex-col gap-5">
-        {{if .AIEnabled}}<div id="nw-home-ask"><a class="flex h-14 items-center justify-between gap-3 rounded-2xl border border-border bg-field pe-2 ps-5 text-[15px] text-muted" href="{{.AskURL}}">{{.T "问问这个站点的文档…"}}<span class="flex size-10 items-center justify-center rounded-full bg-foreground text-background"><span class="size-4 [&>svg]:size-full">{{template "icon-arrow-up"}}</span></span></a></div>
-        {{else}}<button class="flex h-14 w-full cursor-pointer items-center gap-3 rounded-2xl border border-border bg-field px-5 text-start text-muted transition-colors hover:border-foreground/25" data-open-search type="button">
-          <span class="size-5 shrink-0 [&>svg]:size-full">{{template "icon-search"}}</span>
-          <span class="min-w-0 flex-1 truncate">{{.T "搜索文档标题…"}}</span>
-          <kbd class="hidden rounded-md border border-border px-1.5 font-sans text-xs leading-5 sm:block" data-shortcut>⌘K</kbd>
-        </button>{{end}}
-        {{if .HeroButtons}}<nav class="flex flex-wrap items-center gap-3" aria-label="{{.T "首页"}}">{{range .HeroButtons}}<a class="button {{if .Primary}}{{if and $.HeroCustomColor (not $.HeroDark)}}nw-hero-primary{{else}}button--primary{{end}}{{else}}{{if $.HeroCustomColor}}nw-hero-secondary{{else}}button--outline{{end}}{{end}}" href="{{.URL}}">{{.Label}}</a>{{end}}</nav>{{end}}
+    <div class="nw-hero-content relative mx-auto w-full">
+      <div class="nw-home-intro">
+        {{if .HeroBackgroundText}}<p class="nw-home-eyebrow">{{.HeroBackgroundText}}</p>{{end}}
+        <h1 class="nw-home-title">{{.HeroTitle}}</h1>
+        {{if .HeroSubtitle}}<p class="nw-home-subtitle">{{.HeroSubtitle}}</p>{{end}}
       </div>
+      <div class="nw-home-actions mx-auto w-full">
+        {{if .AIEnabled}}<div id="nw-home-ask"><noscript><p>{{.T "需要启用 JavaScript 才能使用 AI 问答。"}}</p></noscript></div>
+        {{else}}<div class="nw-home-unavailable"><div class="nw-home-composer"><textarea aria-label="{{.T "问问这个站点的文档…"}}" placeholder="{{.T "公开问答暂未开放。"}}" rows="2" disabled></textarea><button class="button button--primary button--icon-only" type="button" disabled aria-label="{{.T "发送"}}">{{template "icon-arrow-up"}}</button></div><p class="mt-3 text-center text-xs text-muted">{{.T "向这个站点的文档提问，回答会附上来源。"}}</p></div>{{end}}
+      </div>
+      <div class="nw-home-entry">{{if .WikiURL}}<a class="button button--primary" href="{{.WikiURL}}">{{.T "进入 wiki"}}<span aria-hidden="true">→</span></a>{{else}}<button class="button button--primary" type="button" disabled>{{.T "进入 wiki"}}</button>{{end}}</div>
     </div>
   </section>
-  {{if .Sections}}<section class="px-4 pb-24 sm:px-6{{if .HeroCustomColor}} pt-16{{end}}"><div class="mx-auto w-full max-w-[1120px]">
-    <h2 class="border-t border-foreground pt-4 text-sm font-semibold text-foreground">{{.T "文档"}}</h2>
-    <div class="mt-10 grid grid-cols-1 gap-x-12 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">{{range .Sections}}
-      <div class="min-w-0">
-        <span class="font-mono text-xs tabular-nums text-muted">{{.Number}}</span>
-        <a class="mt-3 block text-xl font-semibold leading-7 tracking-tight text-foreground decoration-1 underline-offset-4 hover:underline" href="{{.URL}}">{{.Title}}</a>
-        {{if .Description}}<p class="mt-2 line-clamp-3 text-sm leading-6 text-muted">{{.Description}}</p>{{end}}
-        {{if .Children}}<ul class="mt-4">{{range .Children}}<li><a class="nw-home-link" href="{{.URL}}"><span class="truncate">{{.Title}}</span><span aria-hidden="true" class="rtl:-scale-x-100">→</span></a></li>{{end}}</ul>{{end}}
-      </div>{{end}}
-    </div>
-  </div></section>{{end}}
 </main>
 {{template "foot" .}}{{end}}
 
