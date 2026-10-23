@@ -1,4 +1,4 @@
-import { FileText, Magnifier, Sparkles } from '@gravity-ui/icons';
+import { FileText, Magnifier } from '@gravity-ui/icons';
 import { Modal, Spinner } from '@heroui/react';
 import { searchDocuments, transient, type SearchHit } from '@modules/qa/web/src/island/client';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -81,7 +81,7 @@ export default function Search({ open, locale, t, deep: deepEnabled, onOpenChang
   return (
     <Modal.Backdrop isOpen={open} onOpenChange={onOpenChange}>
       <Modal.Container placement="top" size="lg">
-        <Modal.Dialog aria-label={t('搜索文档')} className="mt-[10vh] gap-0 overflow-hidden p-0">
+        <Modal.Dialog aria-label={t('搜索文档')} className="mt-[10vh] gap-0 overflow-hidden rounded-3xl p-0">
           <div className="flex items-center gap-3 border-b border-separator px-4">
             <Magnifier className="size-4 shrink-0 text-muted" />
             <input
@@ -112,7 +112,7 @@ export default function Search({ open, locale, t, deep: deepEnabled, onOpenChang
                   return (
                     <li key="deep" aria-selected={selected} role="option">
                       <button className={rowClass} type="button" onClick={() => choose(row)} onMouseEnter={() => setIndex(position)}>
-                        {current?.status === 'loading' ? <Spinner className="mt-0.5 shrink-0" color="current" size="sm" /> : <Sparkles className="mt-0.5 size-4 shrink-0 text-accent" />}
+                        {current?.status === 'loading' ? <Spinner className="mt-0.5 shrink-0" color="current" size="sm" /> : <Magnifier className="mt-0.5 size-4 shrink-0" />}
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium text-foreground">{current?.status === 'loading' ? t('正在检索全文…') : `${t('检索全文')}：${trimmed}`}</span>
                           {current?.status === 'error' && <span className="block text-xs text-danger">{current.message}</span>}
@@ -127,7 +127,7 @@ export default function Search({ open, locale, t, deep: deepEnabled, onOpenChang
                     position === firstPassage && heading('passages', t('全文检索')),
                     <li key={`p${position}`} aria-selected={selected} role="option">
                       <a className={rowClass} href={row.hit.href} onClick={(event) => { event.preventDefault(); choose(row); }} onMouseEnter={() => setIndex(position)}>
-                        <FileText className="mt-0.5 size-4 shrink-0 text-accent" />
+                        <FileText className="mt-0.5 size-4 shrink-0" />
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium text-foreground">{row.hit.title}</span>
                           {row.hit.excerpt && <span className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted">{row.hit.excerpt}</span>}

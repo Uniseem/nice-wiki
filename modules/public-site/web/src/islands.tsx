@@ -1,4 +1,4 @@
-import { Display, Globe, Magnifier, Moon, Sparkles, Sun } from '@gravity-ui/icons';
+import { Comment, Display, Globe, Magnifier, Moon, Sun } from '@gravity-ui/icons';
 import { Button, Dropdown, Label, Modal, useTheme } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import { rememberLanguage } from './enhance';
@@ -18,14 +18,14 @@ export function HeaderActions({ config, t, onAsk, onAskIntent, onSearch, onSearc
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   return (
     <>
-      <Button aria-label={t('搜索文档')} className="md:min-w-44 md:justify-start" size="sm" variant="ghost" onFocus={onSearchIntent} onHoverStart={onSearchIntent} onPress={onSearch}>
+      <Button aria-label={t('搜索文档')} className="md:min-w-44 md:justify-start" size="sm" variant="outline" onFocus={onSearchIntent} onHoverStart={onSearchIntent} onPress={onSearch}>
         <Magnifier />
         <span className="hidden text-muted md:inline">{t('搜索')}</span>
         <kbd className="ms-auto hidden rounded border border-border px-1 font-sans text-[11px] leading-4 text-muted md:inline">{mac ? '⌘K' : 'Ctrl K'}</kbd>
       </Button>
       {config.aiEnabled && (
-        <Button size="sm" variant="secondary" onFocus={onAskIntent} onHoverStart={onAskIntent} onPress={onAsk}>
-          <Sparkles />
+        <Button size="sm" variant="primary" onFocus={onAskIntent} onHoverStart={onAskIntent} onPress={onAsk}>
+          <Comment className="sm:hidden" />
           <span className="hidden sm:inline">{t('AI 问答')}</span>
         </Button>
       )}

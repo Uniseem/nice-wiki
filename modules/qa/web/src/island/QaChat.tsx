@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ChevronDown, FileText, Plus, Sparkles, Stop, ThumbsDown, ThumbsUp } from '@gravity-ui/icons';
+import { ArrowDown, ArrowUp, ChevronDown, FileText, Plus, Stop, ThumbsDown, ThumbsUp } from '@gravity-ui/icons';
 import { Button, cn, ScrollShadow, Spinner, TextArea, Tooltip } from '@heroui/react';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, startTurn, transient, verifyHuman, type Citation, type Step, type TurnInfo } from './client';
@@ -174,15 +174,14 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
       {!idle && <div className="relative flex min-h-0 flex-1 flex-col">
         <ScrollShadow ref={scroller} className="min-h-0 flex-1 px-4 py-4" onScroll={check}>
           {!messages.length && (
-            <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent-soft-foreground"><Sparkles className="size-5" /></span>
-              <p className="max-w-64 text-sm text-muted">{t('问问这个站点的文档…')}</p>
+            <div className="flex h-full items-center justify-center py-10 text-center">
+              <p className="max-w-64 text-[15px] text-muted">{t('问问这个站点的文档…')}</p>
             </div>
           )}
           <ol ref={list} className="mx-auto flex w-full max-w-3xl flex-col gap-6">
             {rounds.map((round, index) => (
               <li key={round.id} className="flex flex-col gap-4" data-turn={round.id} style={round.id === pinned && view ? { minHeight: view - 32 } : undefined}>
-                {round.question && <div className="ms-10 self-end whitespace-pre-wrap break-words rounded-2xl rounded-ee-md bg-accent px-3.5 py-2 text-sm leading-6 text-accent-foreground">{round.question.text}</div>}
+                {round.question && <div className="ms-10 self-end whitespace-pre-wrap break-words rounded-3xl rounded-ee-md bg-default px-4 py-2.5 text-sm leading-6 text-foreground">{round.question.text}</div>}
                 {round.answer && <Answer last={index === rounds.length - 1} message={round.answer} t={t} end={end} onRate={rate} />}
               </li>
             ))}
@@ -203,12 +202,12 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
               <span className="truncate font-medium text-foreground/80">{pageTitle}</span>
             </div>
           )}
-          <div className={cn('flex items-end gap-2 border border-border bg-field shadow-field focus-within:border-field-border-focus', idle ? 'items-center rounded-full py-2 pe-2 ps-4' : 'rounded-2xl p-1.5')}>
-            {idle && <Sparkles className="size-5 shrink-0 text-accent" />}
+          {/* 首页（compact 且还没提问）是 Grok 式的两行大输入框：上面写问题，右下角圆形发送键。 */}
+          <div className={cn('flex items-end gap-2 border border-border bg-field focus-within:border-foreground/30', idle ? 'flex-wrap rounded-3xl p-3 ps-4' : 'rounded-3xl p-1.5 ps-2.5')}>
             <TextArea
               ref={input}
               aria-label={t('问问这个站点的文档…')}
-              className="max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-2 py-1.5 shadow-none outline-none focus:ring-0"
+              className={cn('max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 shadow-none outline-none focus:ring-0', idle && 'min-h-12 basis-full text-[15px]')}
               maxLength={500}
               placeholder={t('问问这个站点的文档…')}
               rows={1}
@@ -219,7 +218,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
             {running ? (
               <Button isIconOnly aria-label={t('停止')} size="sm" variant="secondary" onPress={stop}><Stop /></Button>
             ) : (
-              <Button isIconOnly aria-label={t('发送')} className={cn(idle && 'rounded-full')} isDisabled={!question.trim()} size={idle ? 'md' : 'sm'} type="submit"><ArrowUp /></Button>
+              <Button isIconOnly aria-label={t('发送')} className={cn(idle && 'ms-auto')} isDisabled={!question.trim()} size={idle ? 'md' : 'sm'} type="submit"><ArrowUp /></Button>
             )}
           </div>
           <div className={cn('mt-2 flex items-center justify-between gap-2 px-1', idle && 'hidden')}>
@@ -248,7 +247,8 @@ function Answer({ message, last, end, t, onRate }: { message: Message; last: boo
   return (
     <div className="me-6 flex flex-col gap-2">
       {!!message.steps?.length && <Steps active={message.status === 'streaming'} steps={message.steps} t={t} />}
-      <div className={cn('rounded-2xl rounded-es-md px-3.5 py-2.5 text-sm', message.status === 'error' ? 'bg-danger-soft text-danger-soft-foreground' : 'bg-surface-secondary text-foreground', message.status === 'streaming' && !message.text && message.steps?.length && 'hidden')}>
+      {/* 回答不放进气泡，直接是正文（Grok 的做法）；出错时才用浅红底。 */}
+      <div className={cn('text-sm', message.status === 'error' ? 'rounded-2xl bg-danger-soft px-3.5 py-2.5 text-danger-soft-foreground' : 'px-1 text-foreground', message.status === 'streaming' && !message.text && message.steps?.length && 'hidden')}>
         {message.status === 'streaming' && !message.text ? (
           <span className="flex items-center gap-2 text-muted"><Spinner color="current" size="sm" />{t('思考中…')}</span>
         ) : message.status === 'error' ? message.text : <Typed message={message} />}
@@ -343,7 +343,7 @@ function Steps({ steps, active, t }: { steps: StepView[]; active: boolean; t: Tr
   return (
     <div className="nw-qa-steps rounded-xl border border-border/70 bg-surface px-3 py-2 text-xs">
       <button aria-expanded={open} className="flex w-full items-center gap-2 text-start text-muted" type="button" onClick={() => setOpen(!open)}>
-        {active ? <Spinner color="current" size="sm" /> : <Sparkles className="size-3.5 text-accent" />}
+        {active && <Spinner color="current" size="sm" />}
         <span className="flex-1 font-medium">{active ? label(steps[steps.length - 1]) : t('思考过程')}</span>
         {!active && <span className="tabular-nums text-muted">{seconds(steps.reduce((total, step) => total + (step.ms ?? 0), 0))}</span>}
         <ChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
@@ -352,7 +352,7 @@ function Steps({ steps, active, t }: { steps: StepView[]; active: boolean; t: Tr
         <ol className="mt-2 flex flex-col gap-2 border-s border-border ps-3">
           {steps.map((step) => (
             <li key={step.key} className="nw-qa-step relative flex flex-col gap-1">
-              <span className={cn('absolute -start-[17px] top-1 size-2 rounded-full ring-2 ring-surface', step.status === 'running' ? 'animate-pulse bg-accent' : step.status === 'done' ? 'bg-success' : 'bg-default')} />
+              <span className={cn('absolute -start-[17px] top-1 size-2 rounded-full ring-2 ring-surface', step.status === 'running' ? 'animate-pulse bg-foreground' : step.status === 'done' ? 'bg-foreground/40' : 'bg-default')} />
               <span className="flex items-baseline gap-2">
                 <span className={cn('flex-1 font-medium', step.status === 'skipped' ? 'text-muted line-through' : 'text-foreground')}>{label(step)}</span>
                 <span className="tabular-nums text-muted">{seconds(step.ms)}</span>

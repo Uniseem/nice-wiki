@@ -1,4 +1,4 @@
-import { ChevronsCollapseUpRight, ChevronsExpandUpRight, Sparkles, Xmark } from '@gravity-ui/icons';
+import { ChevronsCollapseUpRight, ChevronsExpandUpRight, Xmark } from '@gravity-ui/icons';
 import { Button, Card, cn, Drawer, Tooltip, useMediaQuery } from '@heroui/react';
 import { useEffect, useState } from 'react';
 import { QaChat, type Translate } from './QaChat';
@@ -47,7 +47,6 @@ function FloatingWindow({ open, onOpenChange, locale, t, documentId, pageTitle }
           </Button>
           <Tooltip.Content>{label}</Tooltip.Content>
         </Tooltip>
-        <span className="flex size-8 items-center justify-center rounded-full bg-accent-soft text-accent-soft-foreground"><Sparkles className="size-4" /></span>
         <h2 className="flex-1 text-sm font-semibold text-foreground">{t('AI 问答')}</h2>
         <Button isIconOnly aria-label={t('关闭')} size="sm" variant="ghost" onPress={() => onOpenChange(false)}><Xmark /></Button>
       </header>
@@ -66,7 +65,7 @@ function BottomSheet({ open, onOpenChange, locale, t, documentId, pageTitle }: P
           <Drawer.Handle />
           <Drawer.CloseTrigger aria-label={t('关闭')} />
           <Drawer.Header className="border-b border-separator px-4 py-3">
-            <Drawer.Heading className="flex items-center gap-2 text-base"><Sparkles className="size-4 text-accent" />{t('AI 问答')}</Drawer.Heading>
+            <Drawer.Heading className="text-base">{t('AI 问答')}</Drawer.Heading>
           </Drawer.Header>
           <Drawer.Body className="m-0 flex flex-col overflow-hidden p-0 text-foreground">
             <QaChat documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />

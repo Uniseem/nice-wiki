@@ -1,4 +1,4 @@
-import { Sparkles } from '@gravity-ui/icons';
+import { ArrowUp, Comment } from '@gravity-ui/icons';
 import { Button, Card, Spinner } from '@heroui/react';
 import { lazy, Suspense, useState } from 'react';
 import type { Translate } from './QaChat';
@@ -24,13 +24,13 @@ export function QaFloating({ open, onOpenChange, locale, t, documentId, pageTitl
   const launcher = (pending: boolean) => (
     <Button
       aria-label={t('AI 问答')}
-      className="nw-qa-launcher fixed bottom-6 end-6 z-40 h-14 gap-2.5 rounded-full p-2 text-[15px] font-semibold sm:pe-6"
+      className="nw-qa-launcher fixed bottom-6 end-6 z-40 h-12 min-w-12 gap-2 px-3.5 text-[15px] sm:px-5"
       isPending={pending}
       onFocus={preloadQa}
       onHoverStart={preloadQa}
       onPress={() => onOpenChange(true)}
     >
-      <span className="nw-qa-launcher-icon flex size-10 items-center justify-center rounded-full">{pending ? <Spinner color="current" size="sm" /> : <Sparkles />}</span>
+      {pending ? <Spinner color="current" size="sm" /> : <Comment className="size-5" />}
       <span className="hidden sm:inline">{t('AI 问答')}</span>
     </Button>
   );
@@ -58,7 +58,7 @@ export function QaInline({ locale, t }: { locale: string; t: Translate }) {
 // 首页的“问问 AI”：面板代码下载完之前先放一个同样大小的输入框占位，下载完换成可以多轮对话的输入框。
 export function QaHome({ locale, t }: { locale: string; t: Translate }) {
   return (
-    <Suspense fallback={<div className="flex h-[3.75rem] items-center gap-3 rounded-full border border-border bg-field px-4 text-muted shadow-field"><Sparkles className="size-5 text-accent" /><span className="text-sm">{t('问问这个站点的文档…')}</span></div>}>
+    <Suspense fallback={<div className="flex min-h-[6.75rem] flex-col justify-between rounded-3xl border border-border bg-field p-4 text-[15px] text-muted">{t('问问这个站点的文档…')}<span className="ms-auto flex size-9 items-center justify-center rounded-full bg-foreground text-background"><ArrowUp className="size-4" /></span></div>}>
       <QaHomeChat locale={locale} t={t} />
     </Suspense>
   );
