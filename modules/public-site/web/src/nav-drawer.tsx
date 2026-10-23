@@ -12,7 +12,10 @@ export default function MobileNav({ open, onOpenChange, t }: { open: boolean; on
         <Drawer.Dialog aria-label={t('文档树')} className="flex h-full w-80 max-w-[85vw] flex-col p-0">
           <Drawer.CloseTrigger aria-label={t('关闭')} />
           <Drawer.Header className="px-4 py-3"><Drawer.Heading className="text-base">{t('文档树')}</Drawer.Heading></Drawer.Header>
-          <nav aria-label={t('文档树')} className="nw-tree min-h-0 flex-1 overflow-y-auto px-3 pb-6 text-sm" dangerouslySetInnerHTML={{ __html: html }} />
+          {/* 放在 Drawer.Body 里，滑动文档树才是滚动，不会被抽屉当成拖动而把面板拖偏。 */}
+          <Drawer.Body className="px-3 pb-6">
+            <nav aria-label={t('文档树')} className="nw-tree text-sm" dangerouslySetInnerHTML={{ __html: html }} />
+          </Drawer.Body>
         </Drawer.Dialog>
       </Drawer.Content>
     </Drawer.Backdrop>

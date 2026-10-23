@@ -56,17 +56,21 @@ function FloatingWindow({ open, onOpenChange, locale, t, documentId, pageTitle }
   );
 }
 
+// 窄屏的底部面板：只能从把手和标题栏下拉关闭。对话放在 Drawer.Body 里，抽屉才把这里的上下滑动当成滚动，
+// 否则滑动对话会被当成拖动、面板随之偏移。键盘弹出时面板高度收到可视区域以内，标题栏不会被顶出屏幕。
 function BottomSheet({ open, onOpenChange, locale, t, documentId, pageTitle }: PanelProps) {
   return (
     <Drawer.Backdrop isOpen={open} variant="transparent" onOpenChange={onOpenChange}>
       <Drawer.Content placement="bottom">
-        <Drawer.Dialog aria-label={t('AI 问答')} className="flex h-[88dvh] flex-col gap-0 p-0">
+        <Drawer.Dialog aria-label={t('AI 问答')} className="flex h-[min(88dvh,var(--visual-viewport-height,88dvh))] max-h-none flex-col gap-0 p-0">
           <Drawer.Handle />
           <Drawer.CloseTrigger aria-label={t('关闭')} />
           <Drawer.Header className="border-b border-separator px-4 py-3">
             <Drawer.Heading className="flex items-center gap-2 text-base"><Sparkles className="size-4 text-accent" />{t('AI 问答')}</Drawer.Heading>
           </Drawer.Header>
-          <QaChat autoFocus={open} documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />
+          <Drawer.Body className="m-0 flex flex-col overflow-hidden p-0 text-foreground">
+            <QaChat documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />
+          </Drawer.Body>
         </Drawer.Dialog>
       </Drawer.Content>
     </Drawer.Backdrop>

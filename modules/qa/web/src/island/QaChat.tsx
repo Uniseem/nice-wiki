@@ -18,6 +18,10 @@ type Message = {
   live?: boolean; // 本次打开后新提问得到的回答：逐字写出（命中缓存时整段答案一次到达，也照样逐字写）
 };
 
+// 触屏设备（手机、平板）上从不主动聚焦输入框：聚焦会直接弹出软键盘、挡住大半屏，等访客自己点输入框。
+// 发送后收起键盘，让出地方看回答。
+const touch = matchMedia('(pointer: coarse)').matches;
+
 // 对话记录和会话一样按语言分开保存。
 const logKey = (locale: string) => `nw-qa-log:${locale}`;
 
@@ -85,7 +89,8 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
     box.scrollTo({ top: box.scrollTop + turn.getBoundingClientRect().top - box.getBoundingClientRect().top - 16, behavior: 'smooth' });
   }, [pinned]);
 
-  useEffect(() => { if (autoFocus) input.current?.focus({ preventScroll: true }); }, [autoFocus]);
+  const focus = () => { if (!touch) input.current?.focus({ preventScroll: true }); };
+  useEffect(() => { if (autoFocus) focus(); }, [autoFocus]);
 
   const patch = (id: string, update: (message: Message) => Message) => setMessages((current) => current.map((message) => message.id === id ? update(message) : message));
 
@@ -101,6 +106,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
     const id = crypto.randomUUID();
     const controller = new AbortController();
     setQuestion('');
+    if (touch) input.current?.blur();
     setRunning({ controller });
     setPinned(id);
     setMessages((current) => [...current, { id: `${id}-q`, role: 'user', text, status: 'done', citations: [] }, { id, role: 'assistant', text: '', status: 'streaming', citations: [], live: true }]);
@@ -122,7 +128,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
       else patch(id, (message) => ({ ...message, status: 'cancelled' }));
     } finally {
       setRunning(null);
-      input.current?.focus({ preventScroll: true });
+      focus();
     }
   }
 
@@ -137,7 +143,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle 
     resetConversation(locale);
     setMessages([]);
     setPinned('');
-    input.current?.focus({ preventScroll: true });
+    focus();
   }
 
   async function rate(message: Message, value: 'helpful' | 'unhelpful') {
