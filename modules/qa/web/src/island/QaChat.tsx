@@ -336,14 +336,9 @@ function seconds(ms?: number): string {
   return ms && ms >= 100 ? `${(ms / 1000).toFixed(1)}s` : '';
 }
 
-// Steps 是一条回答的思考过程：理解问题、阅读当前页、检索、生成。回答进行中展开，结束后自动收起，可再点开。
+// Steps 默认展开思考过程，回答结束后保留；只在访客点击时折叠。
 function Steps({ steps, active, t }: { steps: StepView[]; active: boolean; t: Translate }) {
-  const [open, setOpen] = useState(active);
-  const [wasActive, setWasActive] = useState(active);
-  if (wasActive !== active) {
-    setWasActive(active);
-    if (!active) setOpen(false);
-  }
+  const [open, setOpen] = useState(true);
   const labels: Record<Step['key'], string> = { understand: t('理解问题'), page: t('阅读当前页面'), cache: t('查找已有回答'), search: t('检索相关文档'), answer: t('整理回答') };
   // 复用已有回答这一步命中时改叫“命中缓存”，答案直接来自之前的回答。
   const label = (step: StepView) => (step.key === 'cache' && step.status === 'done' ? t('命中缓存') : labels[step.key]);

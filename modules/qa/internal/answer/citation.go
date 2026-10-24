@@ -5,7 +5,18 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
+	"regexp"
+	"strings"
 )
+
+var citationSpelling = regexp.MustCompile(`(?i)\bcitation[.:]([0-9a-f]{8,64})\b`)
+
+// normalizeCitationSpelling 只修正分隔符与大小写；来源仍须精确匹配本轮引用白名单，不猜测或补齐ID。
+func normalizeCitationSpelling(text string) string {
+	return citationSpelling.ReplaceAllStringFunc(text, func(marker string) string {
+		return "citation." + strings.ToLower(marker[len("citation."):])
+	})
+}
 
 type ValidateCitationInput struct {
 	CitationID string         `json:"citationId"`

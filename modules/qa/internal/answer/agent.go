@@ -95,5 +95,5 @@ func GenerateAgentAnswer(ctx context.Context, op OperationContext, input AgentAn
 	}
 	// 本轮当前页预读也属于可复用的工具过程；公共系统提示和先前轮次另由上下文装配。
 	messages := result.Messages[input.Prompt.TurnMessageStart:]
-	return AgentAnswerResult{Text: *result.Output.Text, Citations: allowed, Messages: messages, Rounds: result.Rounds, ToolCalls: result.ToolCalls}, nil
+	return AgentAnswerResult{Text: normalizeCitationSpelling(*result.Output.Text), Citations: allowed, Messages: messages, Rounds: result.Rounds, ToolCalls: result.ToolCalls}, nil
 }

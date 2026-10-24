@@ -8,13 +8,21 @@ import type { Citation } from './client';
 // 引用标识：模型按约定写 [[citation.…]]，也可能写成 [1](citation.…)、<sup>…</sup> 或裸标识，统一换成 [](cite:标识) 链接，由 a 组件渲染成编号。
 const citationId = 'citation\\.[0-9a-f]{8,64}';
 function markCitations(text: string): string {
+  // 模型偶尔把点写成冒号；只统一标识写法，是否有真实来源仍由refs白名单决定。
+  text = text.replace(/\bcitation[.:]([0-9a-f]{8,64})\b/gi, (_, hash: string) => `citation.${hash.toLowerCase()}`);
+  // 逐字输出时，引用前缀也可能尚未写完，避免先露出[[citation再跳成编号。
+  const start = text.lastIndexOf('[[');
+  if (start >= 0) {
+    const pending = text.slice(start + 2).toLowerCase();
+    if ('citation.'.startsWith(pending) || 'citation:'.startsWith(pending) || /^citation[.:][0-9a-f]*$/.test(pending)) text = text.slice(0, start);
+  }
   return text
     .replace(/<\/?sup>/gi, '')
     .replace(new RegExp(`\\[\\[?[^\\]\\n]*\\]?\\]\\((${citationId})\\)`, 'g'), '⟦$1⟧')
     .replace(new RegExp(`\\[\\[?(${citationId})\\]?\\]`, 'g'), '⟦$1⟧')
     .replace(new RegExp(`[(（](${citationId})[)）]`, 'g'), '⟦$1⟧')
     // 流式输出时末尾可能是写了一半的引用（标识是 64 位十六进制，不足的就是没写完），先不显示。
-    .replace(/(\[\[?[^\]\n]*\]?\]?\(?)?citation\.[0-9a-f]{0,63}$/, '')
+    .replace(/(\[\[?[^\]\n]*\]?\]?\(?)?citation[.:][0-9a-f]{0,63}$/, '')
     .replace(new RegExp(`(?<!⟦)(${citationId})(?!⟧)`, 'g'), '⟦$1⟧')
     .replace(/⟦(citation\.[0-9a-f]+)⟧/g, '[](cite:$1)');
 }
