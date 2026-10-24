@@ -4,20 +4,21 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 	"unicode/utf8"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/modelagent"
 	"nice-wiki/modules/qa/internal/answer"
 	"nice-wiki/modules/qa/internal/gen"
-	"nice-wiki/modules/qa/internal/normalize"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 )
 
 type CreateDebugTurnInput = gen.CreateDebugTurnInput
 type CreateDebugTurnResult = gen.CreateDebugTurnResult
 
-// CreateDebugTurn 管理员诊断：不经访客准入、不碰访客会话和缓存，用指定档位直接跑一次“检索 → 回答”，
+// CreateDebugTurn 管理员诊断：不经访客准入、不碰访客会话和缓存，运行同一只读agent，
 // 结果（回答、引用、失败原因）写进隔离的诊断记录，保留 7 天。费用按“后台任务”类别计（管理员触发、无访客准入；网关把 admin-probe 限定在连接探测和记忆助手两条专用通道，调试没有借用它）。
 func CreateDebugTurn(ctx context.Context, op OperationContext, input CreateDebugTurnInput) (CreateDebugTurnResult, error) {
 	if err := qaruntime.RequireAdmin(op, "qa.debug"); err != nil {
@@ -122,38 +123,55 @@ func executeDebug(ctx context.Context, op OperationContext, record gen.DebugTurn
 	if err != nil {
 		return err
 	}
-	canonical, err := normalize.NormalizeQuestion(ctx, op, normalize.NormalizeQuestionInput{Question: input.Question, Language: input.Language})
+	guide, err := answer.ReadAgentGuide(ctx, op, "", 0, 16000)
 	if err != nil {
 		return err
 	}
-	evidence, err := answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: record.Turn.TurnId, Normalized: canonical.Normalized, Policy: policy, Language: input.Language})
-	if err != nil {
-		return err
-	}
+	overview, _ := qaruntime.ReadSiteOverview(ctx, op)
 	memory, err := qaruntime.ResolveTaskMemory(ctx, op, "qa.answer", input.Language)
 	if err != nil {
 		return err
 	}
-	prompt, err := answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: input.Question, Memory: memory, Materials: answer.Materials{Evidence: evidence.EvidenceText}, History: []gen.Message{}})
+	prompt, err := answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: input.Question, Memory: memory, Materials: answer.Materials{Evidence: "[]", Overview: overview.Text, Agent: true, Guide: guide.Content}, History: []gen.Message{}})
 	if err != nil {
 		return err
 	}
-	_ = runtime
+	runtime.OnModelEvent = func(event platform.StreamEvent) error {
+		if event.Event == platform.StreamDelta && event.Delta != "" {
+			text := event.Delta
+			emit(gen.AnswerEvent{Event: "delta", Delta: &text})
+		}
+		return nil
+	}
+	ctx = qaruntime.WithRuntime(ctx, runtime)
 	// 档位以模型接入里的任务分配为准（网关只接受与任务路线一致的档位），解析不到时才用请求里给的。
 	profile := input.ProfileId
 	if routed, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer"); err == nil {
 		profile = platform.Identifier(routed)
 	}
-	outcome, err := qaruntime.InvokeModel(ctx, op, qaruntime.InvokeModelInput{Request: platform.CreateInvocationInput{TaskID: "qa.answer", ProfileID: profile, Capability: platform.CapabilityChat, Messages: prompt.Messages, MaximumOutputTokens: int64(min(prompt.MaximumOutputTokens, policy.MaximumOutputTokens)), IDempotencyKey: "debug.answer"}})
+	generated, err := answer.GenerateAgentAnswer(ctx, op, answer.AgentAnswerInput{
+		TurnID: record.Turn.TurnId, TaskID: "qa.answer", ProfileID: string(profile), Language: input.Language, Policy: policy, Prompt: prompt,
+		OnToolRound: func(context.Context, platform.ModelOutput) error {
+			emit(gen.AnswerEvent{Event: "invalidate"})
+			return nil
+		},
+		OnToolDone: func(_ context.Context, _ platform.GatewayToolCall, tool modelagent.ToolResult) error {
+			items := []string{tool.Title}
+			emit(gen.AnswerEvent{Event: "step", Step: &gen.AnswerStep{Key: gen.Search, Status: gen.Done, Title: "查阅文档", Items: &items}})
+			return nil
+		},
+	})
 	if err != nil {
 		return err
 	}
-	text, err := qaruntime.ModelText(outcome)
+	checked, err := qaruntime.ValidateCitations(ctx, op, generated.Citations, input.Language)
 	if err != nil {
 		return err
 	}
-	emit(gen.AnswerEvent{Event: gen.AnswerEventEvent("delta"), Delta: &text})
-	for _, citation := range evidence.Citations {
+	for _, citation := range checked {
+		if !strings.Contains(generated.Text, citation.CitationId) {
+			continue
+		}
 		c := citation
 		emit(gen.AnswerEvent{Event: gen.AnswerEventEvent("citation"), Citation: &c})
 	}

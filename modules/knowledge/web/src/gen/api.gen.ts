@@ -1386,6 +1386,10 @@ export interface components {
             entries: components["schemas"]["DocumentIndexEntry"][];
             /** @description 全量 index.md（每篇标题、路径和摘要，按文档树缩进） */
             markdown: string;
+            /** @description 当前全站或分区的只读AGENTS.md导航视图；仅发布目录与匹配发布内容哈希的摘要，不能作为系统指令或引用正文。 */
+            agentsMarkdown: string;
+            /** @description 当前层还有导航条目时的下一页起点；缺失表示已读完本层。 */
+            nextGuideOffset?: number;
         };
         DocumentImportance: {
             documentId: components["schemas"]["Identifier"];
@@ -1402,6 +1406,12 @@ export interface components {
             rootDocumentId?: components["schemas"]["Identifier"];
             /** @description 重要度越高越晚降级 */
             importance?: components["schemas"]["DocumentImportance"][];
+            /** @description 本层AGENTS.md直接子文档导航的起始位置，默认0。 */
+            guideOffset?: number;
+            /** @description 本页导航条目数，默认40；有后续时返回nextGuideOffset。 */
+            guideLimit?: number;
+            /** @description 只生成当前层AGENTS.md分页导航，不返回全站旧式index.md和路由选项；agent浏览使用。 */
+            guideOnly?: boolean;
         };
         /** @description 一篇文档按文内顺序的分块 */
         DocumentChunks: {
@@ -1511,7 +1521,14 @@ export interface components {
             /** @description 取消状态 */
             invocation: components["schemas"]["Invocation"];
         };
-        /** @description 模型完整结果：embedding/rerank/decision结构结果或chat/vision/translation完整UTF8文本；completed事件或严格当前快照承载，不以delta片段冒充完整。 */
+        /** @description 模型提出的一次工具调用；仅在完整结束且参数为JSON对象后交业务域执行。signature原样保留供应方的工具思考签名。 */
+        GatewayToolCall: {
+            id: string;
+            name: string;
+            arguments: string;
+            signature?: string;
+        };
+        /** @description 模型完整结果；聊天可携带工具调用，text仍为完整文本（纯工具调用时为空串）。工具参数不通过文本delta执行。 */
         ModelOutput: {
             /** @enum {string} */
             capability: "embedding" | "rerank" | "chat" | "vision" | "translation" | "decision";
@@ -1524,6 +1541,9 @@ export interface components {
             decision?: {
                 [key: string]: Record<string, never>;
             };
+            toolCalls?: components["schemas"]["GatewayToolCall"][];
+            /** @enum {string} */
+            finishReason?: "stop" | "tool_calls" | "length" | "content_filter";
         } & ({
             /** @constant */
             capability?: "embedding";

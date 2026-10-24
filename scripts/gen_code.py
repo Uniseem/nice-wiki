@@ -20,6 +20,7 @@
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -734,7 +735,7 @@ def main():
                 out.parent.mkdir(parents=True, exist_ok=True)
                 spec_file = tmp / f"{slug}-browser.json"
                 spec_file.write_text(dump(browser_spec(module, modules, spec)), encoding="utf-8")
-                subprocess.run(["pnpm", "dlx", OPENAPI_TYPESCRIPT, str(spec_file), "-o", str(out)], check=True)
+                subprocess.run([shutil.which("pnpm.cmd") or "pnpm", "dlx", OPENAPI_TYPESCRIPT, str(spec_file), "-o", str(out)], check=True)
                 generated.append(str(out))
     generated += gen_jobs_catalog(modules)
     generated += gen_go_registries(modules)

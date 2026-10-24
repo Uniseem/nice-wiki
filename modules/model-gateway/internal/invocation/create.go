@@ -343,6 +343,17 @@ func CanonicalInvocationInput(op OperationContext, input CreateInvocationInput) 
 	}{op.CallerService, op.Actor.SiteID, op.DataEpoch, op.RootOperationID, op.CostClass, input}
 }
 func ValidateInvocationPayload(input CreateInvocationInput) error {
+	var toolRequest platform.CreateInvocationInput
+	raw, err := json.Marshal(input)
+	if err != nil || json.Unmarshal(raw, &toolRequest) != nil {
+		return platform.NewError(platform.CodeValidation, false, "模型工具请求无法解码")
+	}
+	if len(toolRequest.Tools) > 0 && input.Capability != "chat" && input.Capability != "vision" {
+		return platform.NewError(platform.CodeUnsupportedCapability, false, "工具只允许chat或vision调用")
+	}
+	if err := platform.ValidateToolConversation(toolRequest.Messages, toolRequest.Tools, toolRequest.ToolChoice); err != nil {
+		return err
+	}
 	for _, message := range input.Messages {
 		if message.Parts != nil {
 			for _, part := range *message.Parts {

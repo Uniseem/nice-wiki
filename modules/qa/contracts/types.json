@@ -150,7 +150,7 @@
         },
         "chunkId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "knowledge块"
+          "description": "证据单元ID：knowledge分块或当前发布正文的分页片段。"
         },
         "excerptHash": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
@@ -609,16 +609,16 @@
         "maximumRetrievalRounds": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 3,
-          "description": "默认3",
-          "default": 3
+          "maximum": 32,
+          "description": "agent最多查阅轮数，默认12；达到后关闭工具生成最终回答。",
+          "default": 12
         },
         "maximumToolCalls": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 5,
-          "description": "默认5",
-          "default": 5
+          "maximum": 128,
+          "description": "agent本轮最多工具调用，默认48；循环空转或达到上限后仅用已取得材料收尾。",
+          "default": 48
         },
         "semanticMode": {
           "type": "string",

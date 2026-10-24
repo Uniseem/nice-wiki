@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 	_ "time/tzdata"
 
@@ -203,8 +202,8 @@ func ValidatePrivatePath(path, kind string, allowMissing bool) error {
 			if !info.Mode().IsRegular() {
 				return platform.NewError(platform.CodeIntegrityError, false, "私有权威不是正规文件")
 			}
-			if stat, ok := info.Sys().(*syscall.Stat_t); ok && stat.Nlink != 1 {
-				return platform.NewError(platform.CodeIntegrityError, false, "私有权威文件存在硬链接")
+			if err := checkSingleFileLink(current, info); err != nil {
+				return err
 			}
 		}
 	}

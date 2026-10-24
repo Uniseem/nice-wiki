@@ -26,12 +26,12 @@
 - 执行函数：`qa.ExecuteTurn`
 - 触发：StartTurn与排队轮次出队时创建
 
-1. 读取轮次与会话，校验租约/取消；每10秒traffic-guard:renewAdmission续并发许可；NormalizeQuestion；ResolveTurnContext固定上下文版本
-2. 首轮且问题独立时先LookupExactCache；命中经ValidateCachedAnswer后直接输出（缺目标语言时TranslateCacheEntry）并跳到第5步
-3. ResolveCurrentPageHint；PlanQuestion补全/分类/风险（风险交guard）；needs_clarification直接输出澄清；EvaluateCacheEligibility；合格问题LookupExactCache→AcquireQueryEmbedding→LookupSemanticCache，命中经ValidateCachedAnswer输出
-4. 未命中：RetrieveEvidence（复用查询嵌入）→InspectEvidence（有限轮次）→BuildAnswerPrompt→GenerateAnswer流式输出→ValidateCitation
-5. CompleteTurn释放并发许可；合格答案WriteAutomaticCache；上下文接近窗口时CreateCompaction；失败或取消写终态并释放许可
-6. 本会话还有排队轮次时取最早一条，经traffic-guard:queueSessionAdmission换为活动许可后创建下一轮qa.turn任务
+1. 读取并续租原轮次和准入，固定上下文与任务路线，预读当前页面；保留前置改写、风险上报、缓存资格和意图门禁。
+2. 有效缓存经当前引用核对后复用；未命中时预载由当前公开树和匹配内容哈希的摘要维护的全站AGENTS.md。
+3. 将原问题、记忆、全站概括、当前页和经当前发布状态复核的原生工具历史交给回答模型；模型自主调用read_guide、search_documents和read_document，只能读取访客可见的当前发布内容。
+4. 平台modelagent循环只在完整工具参数和tool_calls结束证明后执行，完整回传每个调用结果；按真实窗口分页和移出旧工具正文，支持重读、取消、重复调用检测，以及maximumRetrievalRounds/maximumToolCalls收尾。
+5. off_topic、injection和smalltalk禁用工具；逐步推送实际查阅的指南和文章，工具参数和内部推理不作为答案输出。
+6. 保存本轮原生工具消息到独立agent_messages_json，避免解释访客JSON为角色；核对最终引用并完成原轮次，释放准入，合格答案按原规则缓存。
 
 #### `qa.compact`
 

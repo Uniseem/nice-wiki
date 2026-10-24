@@ -497,9 +497,26 @@ type GatewayPart struct {
 
 // GatewayMessage chat/vision消息。
 type GatewayMessage struct {
-	Role    string        `json:"role"`
-	Content string        `json:"content"`
-	Parts   []GatewayPart `json:"parts,omitempty"`
+	Role       string            `json:"role"`
+	Content    string            `json:"content"`
+	Parts      []GatewayPart     `json:"parts,omitempty"`
+	ToolCalls  []GatewayToolCall `json:"toolCalls,omitempty"`
+	ToolCallID string            `json:"toolCallId,omitempty"`
+}
+
+// GatewayTool 是业务域开放给模型的工具声明；平台和网关不执行工具。
+type GatewayTool struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Parameters  map[string]any `json:"parameters"`
+}
+
+// GatewayToolCall 保留调用身份、完整参数与供应方签名，参数片段不能提前执行。
+type GatewayToolCall struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
+	Signature string `json:"signature,omitempty"`
 }
 
 // EstimateInputTokens 是模型网关核对输入窗口用的保守文本预算：UTF-8 字节数的一半加每条消息 32，再乘 1.2。
@@ -520,6 +537,11 @@ func EstimateMessageTokens(messages []GatewayMessage) int {
 	size := 0
 	for _, message := range messages {
 		size += len(message.Content)
+		if len(message.ToolCalls) > 0 {
+			raw, _ := json.Marshal(message.ToolCalls)
+			size += len(raw)
+		}
+		size += len(message.ToolCallID)
 	}
 	return EstimateInputTokens(size, len(messages))
 }
@@ -546,6 +568,8 @@ type CreateInvocationInput struct {
 	AdmissionPermit              *AdmissionPermit        `json:"admissionPermit,omitempty"`
 	ExpectedEmbeddingSpace       *EmbeddingSpace         `json:"expectedEmbeddingSpace,omitempty"`
 	Decision                     *DecisionRequest        `json:"decision,omitempty"`
+	Tools                        []GatewayTool           `json:"tools,omitempty"`
+	ToolChoice                   string                  `json:"toolChoice,omitempty"`
 }
 
 // DecisionRequest 是 decision 能力（如 TypeSafe 的 Jev 决策模型）的输入：一段状态加若干类型化题目，一次调用一起回答。
@@ -632,6 +656,8 @@ type ModelOutput struct {
 	Vectors        [][]float64               `json:"vectors,omitempty"`
 	CandidateIDs   []Identifier              `json:"candidateIds,omitempty"`
 	Decision       map[string]DecisionAnswer `json:"decision,omitempty"`
+	ToolCalls      []GatewayToolCall         `json:"toolCalls,omitempty"`
+	FinishReason   string                    `json:"finishReason,omitempty"`
 }
 
 type StreamEvent struct {

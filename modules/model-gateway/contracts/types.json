@@ -604,15 +604,16 @@
           "enum": [
             "system",
             "user",
-            "assistant"
+            "assistant",
+            "tool"
           ],
           "description": "消息角色"
         },
         "content": {
           "type": "string",
-          "minLength": 1,
+          "minLength": 0,
           "maxLength": 65536,
-          "description": "UTF8文本不超过64KiB"
+          "description": "UTF8文本，字节另限64KiB；assistant工具调用允许空串。"
         },
         "parts": {
           "type": "array",
@@ -621,6 +622,20 @@
           },
           "maxItems": 256,
           "description": "text/image/file互斥；非文本仅vision用户消息，file仅application/pdf。"
+        },
+        "toolCalls": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/GatewayToolCall"
+          }
+        },
+        "toolCallId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "tool消息对应的assistant工具调用ID；同一批必须完整逐一回传。"
         }
       },
       "required": [
@@ -1626,6 +1641,23 @@
         "decision": {
           "$ref": "#/$defs/DecisionRequest",
           "description": "仅decision能力必需，其他能力省略；messages/texts/candidateIds为空、maximumOutputTokens为0"
+        },
+        "tools": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/GatewayTool"
+          }
+        },
+        "toolChoice": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "none",
+            "required"
+          ],
+          "description": "有tools时默认auto；none用于收尾，不开始新的工具调用。"
         }
       },
       "required": [
@@ -6183,6 +6215,34 @@
       "required": [
         "state",
         "questions"
+      ]
+    },
+    "GatewayToolCall": {
+      "$ref": "../../../contracts/common.schema.json#/$defs/GatewayToolCall"
+    },
+    "GatewayTool": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "业务域提供的工具声明；网关只转发，不执行工具。参数使用JSON Schema对象。",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "parameters"
       ]
     }
   }

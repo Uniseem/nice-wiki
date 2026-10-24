@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/modelagent"
 	"nice-wiki/modules/qa/internal/answer"
 	"nice-wiki/modules/qa/internal/gen"
 	"nice-wiki/modules/qa/internal/history"
@@ -21,7 +22,7 @@ import (
 	"nice-wiki/modules/qa/internal/stream"
 )
 
-// ExecuteTurn 在本进程里跑完一轮回答：读当前页 → 理解问题 → Jev 判断类型与复用 → 按需混合检索 → 流式生成 → 校验引用并落终态；
+// ExecuteTurn 在本进程里跑完一轮回答：预读当前页、理解与准入、缓存复用、自主只读查阅、流式回答及引用终态；
 // 任何失败都落 failed 终态并释放准入。currentDocument 是访客提问时所在页面（可为空）。
 func ExecuteTurn(ctx context.Context, op OperationContext, turnID, currentDocument string) {
 	work, cancel := context.WithDeadline(ctx, mustDeadline(op))
@@ -125,7 +126,7 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 		profile = routed
 	}
 	budget := materialBudget(ctx, op, resolved.Policy, task)
-	// 当前页：访客在哪一页打开问答，就把那一页全文交给回答模型；标题交给前置改写，把“这页”“这里”写明成具体文档。读不到不影响本轮。
+	// 当前页先按窗口预读，模型可按nextOffset续读；标题给前置改写，把“这里”写明成具体文档。
 	page := answer.RetrieveEvidenceResult{Citations: []gen.Citation{}, EvidenceText: "[]"}
 	pageTitle := ""
 	if currentDocument != "" {
@@ -178,40 +179,70 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 		}
 		step(gen.Cache, gen.Skipped, "查找已有回答", "", nil)
 	}
-	// 检索：混合检索（关键词 BM25 + 向量，按排名融合后重排），找全站相关片段。
-	// 只问当前页（且读到了这一页）、寒暄、与本站无关的问题不做全站检索，更快也更省。
-	evidence := answer.RetrieveEvidenceResult{Citations: []gen.Citation{}, EvidenceText: "[]"}
-	if assessment.searches() || (assessment.intent == "page" && pageTitle == "") {
-		step(gen.Search, gen.Running, "检索文档", query, nil)
-		evidence, err = answer.RetrieveEvidence(ctx, op, answer.RetrieveEvidenceInput{TurnID: turnID, Normalized: query, Policy: resolved.Policy, Language: record.Language})
-		if err != nil {
-			return err
+	// 全站导航预载一次；模型随后自行选择搜索、分区指南和正文读取。
+	disableTools := assessment.intent == "smalltalk" || assessment.intent == "off_topic" || assessment.intent == "injection"
+	guide := ""
+	if !disableTools {
+		step(gen.Search, gen.Running, "阅读全站指南", "", nil)
+		guideBytes := 16000
+		if window, windowErr := qaruntime.ResolveTaskWindow(ctx, op, task); windowErr == nil && window > 0 {
+			guideBytes = min(guideBytes, max(4096, window/5))
 		}
-		step(gen.Search, gen.Done, fmt.Sprintf("找到 %d 段相关内容", len(evidence.Citations)), query, citedTitles(evidence.Citations))
-	} else {
-		step(gen.Search, gen.Skipped, "检索文档", "", nil)
+		read, guideErr := answer.ReadAgentGuide(ctx, op, "", 0, guideBytes)
+		if guideErr == nil {
+			guide = read.Content
+			step(gen.Search, gen.Done, "阅读全站指南", "", []string{read.Title})
+		} else {
+			step(gen.Search, gen.Skipped, "阅读全站指南", "", nil)
+		}
 	}
 	if _, err := takeState(ctx, op, turnID, lease, "generating"); err != nil {
 		return err
 	}
 	step(gen.Answer, gen.Running, "生成回答", "", nil)
-	prompt, err := answerPrompt(ctx, op, record, resolved, answer.Materials{Overview: overview.Text, Page: page.EvidenceText, Evidence: evidence.EvidenceText, Intent: assessment.intent}, conversation, task)
+	prompt, err := answerPrompt(ctx, op, record, resolved, answer.Materials{Overview: overview.Text, Page: page.EvidenceText, Evidence: "[]", Intent: assessment.intent, Agent: true, Guide: guide}, conversation, task)
 	if err != nil {
 		return err
 	}
-	// 记下本轮实际发出的访客消息（资料 + 问题），后续轮次原样重放。
+	// 保留原有问题快照字段；原生工具历史在独立列保存，后续轮次先复核来源再重放。
 	if err := saveModelText(ctx, op, turnID, prompt.Messages[len(prompt.Messages)-1].Content); err != nil {
 		return err
 	}
-	outcome, err := qaruntime.InvokeModel(ctx, op, qaruntime.InvokeModelInput{Stream: true, Request: platform.CreateInvocationInput{TaskID: task, ProfileID: profile, Capability: platform.CapabilityChat, Messages: prompt.Messages, MaximumOutputTokens: int64(min(prompt.MaximumOutputTokens, resolved.Policy.MaximumOutputTokens)), IDempotencyKey: "answer"}})
+	readTitles := []string{}
+	generated, err := answer.GenerateAgentAnswer(ctx, op, answer.AgentAnswerInput{
+		TurnID: turnID, TaskID: task, ProfileID: profile, Language: record.Language, Policy: resolved.Policy, Prompt: prompt,
+		Citations: append(page.Citations, conversation.AgentCitations()...), DisableTools: disableTools,
+		OnToolRound: func(ctx context.Context, output platform.ModelOutput) error {
+			if output.Text != nil && *output.Text != "" {
+				_, err := stream.AppendAnswerEvent(ctx, op, stream.AppendAnswerEventInput{TurnID: turnID, LeaseID: lease, Event: gen.AnswerEvent{Event: "invalidate"}})
+				return err
+			}
+			return nil
+		},
+		OnToolStart: func(ctx context.Context, call platform.GatewayToolCall) error {
+			step(gen.Search, gen.Running, "查阅文档", "", readTitles)
+			return nil
+		},
+		OnToolDone: func(ctx context.Context, call platform.GatewayToolCall, result modelagent.ToolResult) error {
+			title := clip(result.Title, 200)
+			if !slices.Contains(readTitles, title) {
+				readTitles = append(readTitles, title)
+			}
+			step(gen.Search, gen.Done, "查阅文档", "", readTitles)
+			return nil
+		},
+	})
 	if err != nil {
 		return err
 	}
-	text, err := qaruntime.ModelText(outcome)
-	if err != nil {
+	text := generated.Text
+	citations := usedCitations(text, generated.Citations)
+	if err := history.SaveAgentTurn(ctx, op, turnID, history.AgentTurn{Messages: generated.Messages, Citations: generated.Citations}); err != nil {
 		return err
 	}
-	citations := usedCitations(text, append(append([]gen.Citation{}, page.Citations...), evidence.Citations...))
+	if err := saveAgentCounters(ctx, op, turnID, lease, generated.Rounds, generated.ToolCalls); err != nil {
+		return err
+	}
 	for _, citation := range citations {
 		c := citation
 		if _, err := stream.AppendAnswerEvent(ctx, op, stream.AppendAnswerEventInput{TurnID: turnID, LeaseID: lease, Event: gen.AnswerEvent{Event: gen.AnswerEventEvent("citation"), Citation: &c}}); err != nil {
@@ -230,6 +261,18 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 		writeCache(ctx, op, turnID, planned, text, resolved.Memory.VersionHash, currentDocument)
 	}
 	return nil
+}
+
+func saveAgentCounters(ctx context.Context, op OperationContext, turnID, lease string, rounds, calls int) error {
+	tx, err := qaruntime.BeginWrite(ctx, op)
+	if err != nil {
+		return err
+	}
+	defer tx.Close()
+	if _, err := tx.Tx.ExecContext(tx.Context, `UPDATE turns SET rounds=?,tool_calls=? WHERE turn_id=? AND lease_id=?`, rounds, calls, turnID, lease); err != nil {
+		return qaruntime.StorageError(err)
+	}
+	return tx.Commit()
 }
 
 // takeLease 取得执行租约并进入新状态；轮次已终止则放弃执行。
@@ -348,7 +391,7 @@ const summaryRoom = 4000
 // 后台关闭压缩时改为丢掉最早的消息。估算和网关核对窗口用同一口径。
 func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, materials answer.Materials, conversation history.Conversation, task string) (answer.BuildAnswerPromptResult, error) {
 	build := func() (answer.BuildAnswerPromptResult, error) {
-		return answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, Materials: materials, Summary: conversation.Summary, History: conversation.ForModel()})
+		return answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, Materials: materials, Summary: conversation.Summary, History: conversation.ForModel(), GatewayHistory: conversation.ForGateway()})
 	}
 	prompt, err := build()
 	if err != nil {
@@ -360,14 +403,18 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 	}
 	policy := resolved.Policy
 	budget := window*(100-policy.ContextReservePercent)/100 - min(prompt.MaximumOutputTokens, policy.MaximumOutputTokens)
+	if materials.Agent {
+		tools, _ := json.Marshal(answer.AgentTools())
+		budget -= platform.EstimateInputTokens(len(tools), 1) + min(16000, window/3)
+	}
 	if os.Getenv("NW_DEBUG") != "" {
 		fmt.Fprintf(os.Stderr, "回答上下文 turn=%s window=%d budget=%d estimate=%d messages=%d\n", record.Turn.TurnId, window, budget, platform.EstimateMessageTokens(prompt.Messages), len(conversation.Messages))
 	}
-	if platform.EstimateMessageTokens(prompt.Messages) <= budget {
+	if platform.EstimateMessageTokens(prompt.Messages) <= budget && len(prompt.Messages) < 180 {
 		return prompt, nil
 	}
 	if !policy.CompactionEnabled {
-		for len(conversation.Messages) > 0 && platform.EstimateMessageTokens(prompt.Messages) > budget {
+		for len(conversation.Messages) > 0 && (platform.EstimateMessageTokens(prompt.Messages) > budget || len(prompt.Messages) >= 180) {
 			conversation.Messages = conversation.Messages[1:]
 			if prompt, err = build(); err != nil {
 				return prompt, err
@@ -377,6 +424,9 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 	}
 	fixed := platform.EstimateMessageTokens([]platform.GatewayMessage{prompt.Messages[0], prompt.Messages[len(prompt.Messages)-1]})
 	keep := max(0, min(policy.RetainedRecentTokens, budget-fixed-summaryRoom))
+	if messages := conversation.ForGateway(); len(prompt.Messages) >= 180 && len(messages) > 0 {
+		keep = min(keep, platform.EstimateMessageTokens(messages)*100/len(messages))
+	}
 	if os.Getenv("NW_DEBUG") != "" {
 		fmt.Fprintf(os.Stderr, "压缩对话 turn=%s keep=%d\n", record.Turn.TurnId, keep)
 	}
@@ -386,7 +436,7 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 	return build()
 }
 
-// saveModelText 保存本轮访客问题实际发给回答模型的内容（含当轮资料），供后续轮次原样重放。
+// saveModelText 保留本轮问题快照；原生历史重放使用独立的agent_messages_json。
 func saveModelText(ctx context.Context, op OperationContext, turnID, text string) error {
 	tx, err := qaruntime.BeginWrite(ctx, op)
 	if err != nil {

@@ -21,9 +21,9 @@ type Conversation struct {
 	SummaryUntil int
 	Generation   int
 	Messages     []gen.Message
-	// ModelTexts 是访客问题当时实际发给回答模型的内容（含当轮资料），按消息 ID；回答时原样重放，
-	// 每轮请求都是上一轮的延长，前缀不变才能命中供应方缓存。
+	// ModelTexts 保留旧格式问题快照以估算压缩窗口；回答历史只重放来源已复核的AgentTurns。
 	ModelTexts map[string]string
+	AgentTurns map[string]AgentTurn
 	// EnglishQuestions 是此前最近几轮提问的英文译文（按时间顺序），只给决策模型看。
 	EnglishQuestions []string
 }
@@ -50,11 +50,11 @@ func LoadConversation(ctx context.Context, op OperationContext, conversationID, 
 		return Conversation{}, err
 	}
 	defer tx.Close()
-	conversation := Conversation{ID: conversationID, ModelTexts: map[string]string{}}
+	conversation := Conversation{ID: conversationID, ModelTexts: map[string]string{}, AgentTurns: map[string]AgentTurn{}}
 	if err := tx.Tx.QueryRowContext(tx.Context, `SELECT summary,summary_hash,summary_until,history_generation FROM conversations WHERE conversation_id=?`, conversationID).Scan(&conversation.Summary, &conversation.SummaryHash, &conversation.SummaryUntil, &conversation.Generation); err != nil {
 		return Conversation{}, qaruntime.StorageError(err)
 	}
-	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT message_id,ordinal,role,text,turn_id,revision,model_text FROM messages WHERE conversation_id=? AND turn_id<>? AND ordinal>=? ORDER BY ordinal`, conversationID, turnID, conversation.SummaryUntil)
+	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT message_id,ordinal,role,text,turn_id,revision,model_text,agent_messages_json FROM messages WHERE conversation_id=? AND turn_id<>? AND ordinal>=? ORDER BY ordinal`, conversationID, turnID, conversation.SummaryUntil)
 	if err != nil {
 		return Conversation{}, qaruntime.StorageError(err)
 	}
@@ -62,8 +62,16 @@ func LoadConversation(ctx context.Context, op OperationContext, conversationID, 
 	for rows.Next() {
 		var message gen.Message
 		var modelText string
-		if err := rows.Scan(&message.MessageId, &message.Ordinal, &message.Role, &message.Text, &message.TurnId, &message.Revision, &modelText); err != nil {
+		var agentRaw []byte
+		if err := rows.Scan(&message.MessageId, &message.Ordinal, &message.Role, &message.Text, &message.TurnId, &message.Revision, &modelText, &agentRaw); err != nil {
 			return Conversation{}, qaruntime.StorageError(err)
+		}
+		if len(agentRaw) > 0 {
+			var agent AgentTurn
+			if json.Unmarshal(agentRaw, &agent) != nil || len(agent.Messages) == 0 || agent.Messages[0].Role != "user" {
+				return Conversation{}, platform.NewError(platform.CodeIntegrityError, false, "历史工具消息损坏")
+			}
+			conversation.AgentTurns[message.MessageId] = agent
 		}
 		message.Text = citationMarker.ReplaceAllString(message.Text, "")
 		if modelText != "" {
@@ -86,7 +94,15 @@ func LoadConversation(ctx context.Context, op OperationContext, conversationID, 
 		}
 		conversation.EnglishQuestions = append([]string{question}, conversation.EnglishQuestions...)
 	}
-	return conversation, qaruntime.StorageError(english.Err())
+	if err := english.Err(); err != nil {
+		return Conversation{}, qaruntime.StorageError(err)
+	}
+	english.Close()
+	tx.Close()
+	if err := conversation.validateAgentSources(ctx, op); err != nil {
+		return Conversation{}, err
+	}
+	return conversation, nil
 }
 
 // CompactInput 描述一次压缩：最近 KeepTokens（模型网关估算口径）以内的消息原样保留，更早的并入摘要。
@@ -113,6 +129,9 @@ func Compact(ctx context.Context, op OperationContext, input CompactInput) (Conv
 			text = replayed // 保留窗口按实际发给模型的长度算
 		}
 		cost := platform.EstimateInputTokens(len(text), 1)
+		if agent, exists := conversation.AgentTurns[message.MessageId]; exists {
+			cost = platform.EstimateMessageTokens(agent.Messages)
+		}
 		if kept+cost > input.KeepTokens {
 			break
 		}
@@ -186,5 +205,5 @@ func Compact(ctx context.Context, op OperationContext, input CompactInput) (Conv
 	if !committed.Committed {
 		return conversation, platform.NewError(platform.CodeStaleResult, false, "压缩期间对话历史已变化")
 	}
-	return Conversation{ID: conversation.ID, Summary: summary, SummaryHash: compaction.SummaryHash, SummaryUntil: end, Generation: committed.CurrentGeneration, Messages: conversation.Messages[split:], ModelTexts: conversation.ModelTexts}, nil
+	return Conversation{ID: conversation.ID, Summary: summary, SummaryHash: compaction.SummaryHash, SummaryUntil: end, Generation: committed.CurrentGeneration, Messages: conversation.Messages[split:], ModelTexts: conversation.ModelTexts, AgentTurns: conversation.AgentTurns}, nil
 }

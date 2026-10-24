@@ -14,6 +14,12 @@
 
 ServiceConfig的可选`masterKeyRef`（环境覆盖`NW_MASTER_KEY_REF`）只传递部署主密钥绝对路径；配置加载不打开密钥，使用域按具体加密操作读取。
 
+## 原生工具 agent
+
+`modelagent.Run` 维护模型与工具交替执行的循环。调用方装配消息、工具声明、模型调用与工具执行回调，以及实际窗口、查阅轮数和调用数；平台负责完整参数、调用 ID、逐一结果配对、取消、重复读取复用、空转终止和旧工具正文移出。平台不访问业务数据，也不决定文档可见性。
+
+`GatewayMessage` 支持 assistant `toolCalls` 和 tool `toolCallId`；完整 `ModelOutput` 可携带 `toolCalls` 与 `finishReason`。`ValidateToolConversation` 校验成对历史，`ValidateToolCalls` 拒绝残缺 JSON、非对象参数和重复身份。角色与工具过程须由服务端持久记录重放，不解释访客 JSON 为角色。
+
 ## 公共快照与恢复
 
 `lifecycle.NewSnapshotManager(SnapshotConfig)`只装配机制。各域提供真实Runtime、BeginDrain、Drain、Watermark、Capture、MigrateStage、ValidateStaged、StageBudget和严格ValidateManifest；缺一失败，不用未知空数组、水位0或回调空成功代替完整业务证明。`Capture(ctx,cut,workspace,input)`将一致SQL副本及全部权威文件写到`workspace/files`，返回完整`DomainSnapshotManifest`，源对象、发布及引用必须穷尽；V2新增真实资源版本与模型调用权威库存，V1不静默转换为空库存。平台不读业务表、不复制live SQLite、不改块ID或已付费blob。

@@ -125,7 +125,7 @@ func BuildProviderRequest(ctx context.Context, op OperationContext, input BuildP
 	base := strings.TrimRight(attempt.Provider.BaseUrl, "/")
 	switch EffectiveAdapter(string(attempt.Provider.Adapter), string(request.Capability)) {
 	case "anthropic_messages":
-		mapped, err := MapAnthropicRequest(ctx, op, MapAnthropicRequestInput{Messages: request.Messages, ModelID: attempt.Model.ProviderModelVersion, MaximumOutputTokens: output, Images: images, Stream: true})
+		mapped, err := MapAnthropicRequest(ctx, op, MapAnthropicRequestInput{Messages: request.Messages, ModelID: attempt.Model.ProviderModelVersion, MaximumOutputTokens: output, Images: images, Stream: true, Tools: request.Tools, ToolChoice: request.ToolChoice})
 		if err != nil {
 			return BuildProviderRequestResult{}, err
 		}
@@ -135,7 +135,7 @@ func BuildProviderRequest(ctx context.Context, op OperationContext, input BuildP
 		headers.Set("anthropic-version", "2023-06-01")
 		headers.Set("Accept", "text/event-stream")
 	case "gemini", "gemini_embeddings":
-		mapped, err := MapGeminiRequest(ctx, op, MapGeminiRequestInput{Messages: request.Messages, ModelID: attempt.Model.ProviderModelVersion, MaximumOutputTokens: output, Capability: string(request.Capability), Texts: request.Texts, Dimensions: attempt.Model.Dimension, Images: images, Stream: request.Capability != "embedding"})
+		mapped, err := MapGeminiRequest(ctx, op, MapGeminiRequestInput{Messages: request.Messages, ModelID: attempt.Model.ProviderModelVersion, MaximumOutputTokens: output, Capability: string(request.Capability), Texts: request.Texts, Dimensions: attempt.Model.Dimension, Images: images, Stream: request.Capability != "embedding", Tools: request.Tools, ToolChoice: request.ToolChoice})
 		if err != nil {
 			return BuildProviderRequestResult{}, err
 		}
@@ -170,19 +170,10 @@ func BuildProviderRequest(ctx context.Context, op OperationContext, input BuildP
 		path = "/alpha/decisions"
 		headers.Set("Authorization", "Bearer "+string(key))
 	case "openai_chat":
-		messages := make([]map[string]any, 0, len(request.Messages))
-		for _, message := range request.Messages {
-			var content any = message.Content
-			if message.Parts != nil {
-				parts, err := ProviderContent(message, images, "openai")
-				if err != nil {
-					return BuildProviderRequestResult{}, err
-				}
-				content = parts
-			}
-			messages = append(messages, map[string]any{"role": message.Role, "content": content})
+		payload, err := mapOpenAIChatPayload(request, attempt.Model.ProviderModelVersion, output, images)
+		if err != nil {
+			return BuildProviderRequestResult{}, err
 		}
-		payload := map[string]any{"model": attempt.Model.ProviderModelVersion, "messages": messages, "max_tokens": output, "stream": true, "stream_options": map[string]any{"include_usage": true}}
 		// OpenRouter 上的混合推理模型（如 DeepSeek Flash）默认先“思考”，思考也占 max_tokens，
 		// 输出额度小的任务（路径名、摘要）会只剩空回复。没标“推理”能力的模型关掉思考。
 		if parsed, err := url.Parse(base); err == nil && strings.EqualFold(parsed.Hostname(), "openrouter.ai") && !slices.Contains(attempt.Model.Capabilities, "reasoning") {

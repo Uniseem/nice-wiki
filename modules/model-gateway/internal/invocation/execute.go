@@ -335,7 +335,7 @@ func PrepareInvocationAttempt(ctx context.Context, op OperationContext, record g
 			raw, _ := json.Marshal(record.Request.Decision)
 			texts = append(texts, string(raw))
 		}
-		estimated, err := tokens.EstimateTokens(ctx, op, tokens.EstimateTokensInput{ModelId: candidate.Model.ModelId, Texts: texts, Messages: record.Request.Messages})
+		estimated, err := tokens.EstimateTokens(ctx, op, tokens.EstimateTokensInput{ModelId: candidate.Model.ModelId, Texts: texts, Messages: record.Request.Messages, Tools: record.Request.Tools})
 		if err != nil {
 			return gatewayruntime.AttemptRecord{}, err
 		}

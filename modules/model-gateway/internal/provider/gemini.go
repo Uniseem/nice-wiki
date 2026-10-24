@@ -9,14 +9,16 @@ import (
 )
 
 type MapGeminiRequestInput struct {
-	Messages            []gen.GatewayMessage `json:"messages"`
-	ModelID             string               `json:"modelId"`
-	MaximumOutputTokens int                  `json:"maximumOutputTokens"`
-	Capability          string               `json:"capability"`
-	Texts               []string             `json:"texts"`
-	Dimensions          int                  `json:"dimensions"`
-	Images              map[string][]byte    `json:"images,omitempty"`
-	Stream              bool                 `json:"stream"`
+	Messages            []gen.GatewayMessage                 `json:"messages"`
+	ModelID             string                               `json:"modelId"`
+	MaximumOutputTokens int                                  `json:"maximumOutputTokens"`
+	Capability          string                               `json:"capability"`
+	Texts               []string                             `json:"texts"`
+	Dimensions          int                                  `json:"dimensions"`
+	Images              map[string][]byte                    `json:"images,omitempty"`
+	Stream              bool                                 `json:"stream"`
+	Tools               *[]gen.GatewayTool                   `json:"tools,omitempty"`
+	ToolChoice          *gen.CreateInvocationInputToolChoice `json:"toolChoice,omitempty"`
 }
 type MapGeminiRequestResult struct {
 	Body   string `json:"body"`
@@ -41,6 +43,7 @@ func MapGeminiRequest(ctx context.Context, op OperationContext, input MapGeminiR
 	} else {
 		contents := make([]map[string]any, 0)
 		systemParts := make([]map[string]any, 0)
+		callNames := map[string]string{}
 		for _, message := range input.Messages {
 			if message.Role == "system" {
 				systemParts = append(systemParts, map[string]any{"text": message.Content})
@@ -59,8 +62,46 @@ func MapGeminiRequest(ctx context.Context, op OperationContext, input MapGeminiR
 				return MapGeminiRequestResult{}, err
 			}
 			role := string(message.Role)
+			if message.Content == "" && message.Parts == nil {
+				parts = []map[string]any{}
+			}
 			if role == "assistant" {
 				role = "model"
+			}
+			if message.ToolCalls != nil {
+				for _, call := range *message.ToolCalls {
+					arguments, err := decodeToolArguments(call.Arguments)
+					if err != nil {
+						return MapGeminiRequestResult{}, err
+					}
+					function := map[string]any{"name": call.Name, "args": arguments}
+					if !strings.HasPrefix(call.Id, "gemini.call.") {
+						function["id"] = call.Id
+					}
+					part := map[string]any{"functionCall": function}
+					if call.Signature != nil {
+						part["thoughtSignature"] = *call.Signature
+					}
+					parts = append(parts, part)
+					callNames[call.Id] = call.Name
+				}
+			}
+			if message.Role == "tool" {
+				role = "user"
+				response := map[string]any{}
+				if json.Unmarshal([]byte(message.Content), &response) != nil || response == nil {
+					response = map[string]any{"content": message.Content}
+				}
+				function := map[string]any{"name": callNames[*message.ToolCallId], "response": response}
+				if !strings.HasPrefix(*message.ToolCallId, "gemini.call.") {
+					function["id"] = *message.ToolCallId
+				}
+				parts = []map[string]any{{"functionResponse": function}}
+			}
+			if len(contents) > 0 && contents[len(contents)-1]["role"] == role {
+				last := contents[len(contents)-1]
+				last["parts"] = append(last["parts"].([]map[string]any), parts...)
+				continue
 			}
 			contents = append(contents, map[string]any{"role": role, "parts": parts})
 		}
@@ -68,6 +109,7 @@ func MapGeminiRequest(ctx context.Context, op OperationContext, input MapGeminiR
 		if len(systemParts) > 0 {
 			payload["systemInstruction"] = map[string]any{"parts": systemParts}
 		}
+		addProviderTools(payload, input.Tools, input.ToolChoice, "gemini")
 		body = payload
 		if input.Stream {
 			method = "streamGenerateContent"

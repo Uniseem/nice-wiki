@@ -19,6 +19,7 @@ type EstimateTokensInput struct {
 	ModelId  string               `json:"modelId"`
 	Texts    []string             `json:"texts"`
 	Messages []gen.GatewayMessage `json:"messages"`
+	Tools    *[]gen.GatewayTool   `json:"tools,omitempty"`
 }
 type EstimateTokensResult struct {
 	InputTokens      int    `json:"inputTokens"`
@@ -37,6 +38,13 @@ func EstimateTokens(ctx context.Context, op OperationContext, input EstimateToke
 			return EstimateTokensResult{}, platform.NewError(platform.CodeValidation, false, "单条消息正文超过UTF8字节预算")
 		}
 		size += len(message.Content)
+		if message.ToolCalls != nil {
+			raw, _ := json.Marshal(message.ToolCalls)
+			size += len(raw)
+		}
+		if message.ToolCallId != nil {
+			size += len(*message.ToolCallId)
+		}
 		if message.Parts != nil {
 			for _, part := range *message.Parts {
 				if part.Kind != "text" {
@@ -49,6 +57,10 @@ func EstimateTokens(ctx context.Context, op OperationContext, input EstimateToke
 				size += len(*part.Text)
 			}
 		}
+	}
+	if input.Tools != nil {
+		raw, _ := json.Marshal(input.Tools)
+		size += len(raw)
 	}
 	if hasMedia {
 		model, err := catalog.ReadInputBudgetModel(ctx, op, input.ModelId)

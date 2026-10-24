@@ -16,10 +16,11 @@ type ReadDocumentIndexResult = gen.ReadDocumentIndexResult
 
 // treeNode 是发布树里的一篇文档（前序）。
 type treeNode struct {
-	DocumentID    string  `json:"documentId"`
-	ParentID      *string `json:"parentId"`
-	Title         string  `json:"title"`
-	CanonicalPath string  `json:"canonicalPath"`
+	DocumentID    string                   `json:"documentId"`
+	ParentID      *string                  `json:"parentId"`
+	Title         string                   `json:"title"`
+	CanonicalPath string                   `json:"canonicalPath"`
+	Reference     gen.PublishedRevisionRef `json:"reference"`
 }
 
 func publishedTree(ctx context.Context, op OperationContext, runtime indexer.Runtime) ([]treeNode, error) {
@@ -119,6 +120,11 @@ func ReadDocumentIndex(ctx context.Context, op OperationContext, input ReadDocum
 	if err != nil {
 		return ReadDocumentIndexResult{}, err
 	}
+	for _, node := range nodes {
+		if value := cards[node.DocumentID]; value != nil && value.sourceHash != node.Reference.ContentHash {
+			delete(cards, node.DocumentID)
+		}
+	}
 	depth := map[string]int{}
 	parent := map[string]string{}
 	for _, node := range nodes {
@@ -145,6 +151,7 @@ func ReadDocumentIndex(ctx context.Context, op OperationContext, input ReadDocum
 		}
 	}
 	entries := []*entry{}
+	guideOnly := input.GuideOnly != nil && *input.GuideOnly
 	version := []string{}
 	markdown := strings.Builder{}
 	markdown.WriteString("# Document index\n\n")
@@ -154,9 +161,15 @@ func ReadDocumentIndex(ctx context.Context, op OperationContext, input ReadDocum
 		if card != nil {
 			title, summary = card.Title, ": "+card.Summary
 		}
-		markdown.WriteString(strings.Repeat("  ", depth[node.DocumentID]) + "- [" + title + "](" + node.CanonicalPath + ")" + summary + "\n")
-		version = append(version, node.DocumentID+"|"+node.Title+"|"+title+summary)
-		if inScope(node.DocumentID) {
+		if !guideOnly {
+			markdown.WriteString(strings.Repeat("  ", depth[node.DocumentID]) + "- [" + title + "](" + node.CanonicalPath + ")" + summary + "\n")
+		}
+		identity, _ := platform.CanonicalJSON(struct {
+			Node treeNode
+			Card *Card
+		}{node, card})
+		version = append(version, string(identity))
+		if !guideOnly && inScope(node.DocumentID) {
 			entries = append(entries, &entry{node: node, depth: depth[node.DocumentID], order: order, weight: weights[node.DocumentID], card: card, level: 2})
 		}
 	}
@@ -219,6 +232,20 @@ func ReadDocumentIndex(ctx context.Context, op OperationContext, input ReadDocum
 		sort.SliceStable(entries, func(i, j int) bool { return entries[i].order < entries[j].order })
 	}
 	result := ReadDocumentIndexResult{VersionHash: platform.HashBytes([]byte(strings.Join(version, "\n"))), Markdown: markdown.String(), Entries: []gen.DocumentIndexEntry{}}
+	root, offset, limit := "", 0, 40
+	if input.RootDocumentId != nil {
+		root = *input.RootDocumentId
+	}
+	if input.GuideOffset != nil {
+		offset = *input.GuideOffset
+	}
+	if input.GuideLimit != nil {
+		limit = *input.GuideLimit
+	}
+	result.AgentsMarkdown, result.NextGuideOffset, err = renderAgentGuide(nodes, cards, root, offset, limit)
+	if err != nil {
+		return ReadDocumentIndexResult{}, err
+	}
 	for _, e := range entries {
 		kind := gen.DocumentIndexEntryKind("document")
 		ids := []string{e.node.DocumentID}
@@ -289,20 +316,21 @@ func foldDeepest(entries []*entry, parent map[string]string) []*entry {
 }
 
 func readCards(ctx context.Context, op OperationContext, runtime indexer.Runtime) (map[string]*Card, error) {
-	rows, err := runtime.DB.QueryContext(ctx, `SELECT document_id,card_json FROM document_cards WHERE site_id=? AND data_epoch=?`, op.Actor.SiteID, op.DataEpoch)
+	rows, err := runtime.DB.QueryContext(ctx, `SELECT document_id,source_hash,card_json FROM document_cards WHERE site_id=? AND data_epoch=?`, op.Actor.SiteID, op.DataEpoch)
 	if err != nil {
 		return nil, platform.NormalizeIOError(err, platform.CodeInternal, false, "文档卡片不可读")
 	}
 	defer rows.Close()
 	cards := map[string]*Card{}
 	for rows.Next() {
-		var id, raw string
-		if err := rows.Scan(&id, &raw); err != nil {
+		var id, hash, raw string
+		if err := rows.Scan(&id, &hash, &raw); err != nil {
 			return nil, platform.NormalizeIOError(err, platform.CodeInternal, false, "文档卡片不可读")
 		}
 		// 只用英文卡片（有英文标题）；改成英文之前写的旧卡片当作没有，下次建索引时重写。
 		var card Card
 		if json.Unmarshal([]byte(raw), &card) == nil && card.Title != "" {
+			card.sourceHash = hash
 			cards[id] = &card
 		}
 	}

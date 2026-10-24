@@ -123,6 +123,19 @@ func DispatchInvocation(ctx context.Context, op OperationContext, input Dispatch
 	if sendErr != nil {
 		code = ErrorCode(sendErr)
 	}
+	if code == "" && outcome.Output != nil && len(outcome.Output.ToolCalls) > 0 {
+		allowed := map[string]bool{}
+		if record.Request.Tools != nil {
+			for _, tool := range *record.Request.Tools {
+				allowed[tool.Name] = true
+			}
+		}
+		for _, call := range outcome.Output.ToolCalls {
+			if !allowed[call.Name] || (record.Request.ToolChoice != nil && *record.Request.ToolChoice == "none") {
+				code = platform.CodeIntegrityError
+			}
+		}
+	}
 	if code == "" && record.Request.Capability == "embedding" {
 		space, err := catalog.ModelEmbeddingSpace(attempt.Model)
 		if err != nil {

@@ -45,7 +45,7 @@ def reply_text(messages, last):
     if "分析资料边界内的问题" in system:
         try:
             q = json.loads(last)["question"]
-            return json.dumps({"canonicalQuestion": q, "complete": True, "cacheEligible": True, "resolvedReferences": True, "subqueries": [q], "classification": "simple", "risk": "normal", "currentPageDependent": False, "privateContextDependent": False}, ensure_ascii=False)
+            return json.dumps({"canonicalQuestion": q, "englishQuestion": "(EN) " + q, "complete": True, "cacheEligible": True, "resolvedReferences": True, "subqueries": [q], "classification": "simple", "risk": "normal", "currentPageDependent": False, "privateContextDependent": False}, ensure_ascii=False)
         except Exception:
             return "{}"
     if "界面用语" in system:
@@ -61,6 +61,40 @@ def reply_text(messages, last):
         except Exception:
             return "{}"
     return "（假回答）" + last[:200]
+
+def reply_agent(body):
+    """确定性的只读工具联调：浏览指南→读正文→按nextOffset续读→带引用回答。"""
+    messages = body.get("messages", [])
+    results = []
+    for message in messages:
+        if message.get("role") == "tool":
+            try:
+                results.append(json.loads(message["content"]))
+            except (ValueError, TypeError):
+                pass
+    sections = [section for result in results for section in result.get("sections", [])]
+    if body.get("tool_choice") == "none" or sections and not results[-1].get("nextOffset"):
+        if sections:
+            first = sections[0]
+            return "（假回答）" + first["text"][:160] + " [[" + first["citationId"] + "]]", []
+        return "（假回答）本次没有取得可引用的正文。", []
+    name, arguments = "read_guide", {}
+    if results:
+        last = results[-1]
+        if last.get("nextOffset") is not None:
+            name = "read_document"
+            arguments = {"documentId": last["documentId"], "offset": last["nextOffset"], "publishedRevisionId": last["publishedRevisionId"]}
+        elif "markdown" in last:
+            ids = re.findall(r"文档ID：`([^`]+)`", last["markdown"])
+            if ids:
+                name, arguments = "read_document", {"documentId": ids[0]}
+            elif last.get("nextGuideOffset") is not None:
+                arguments = {"guideOffset": last["nextGuideOffset"]}
+            else:
+                return "（假回答）公开目录中没有正文。", []
+        else:
+            return "（假回答）工具未取得资料。", []
+    return "", [{"id": "call-fake-" + uuid.uuid4().hex, "type": "function", "function": {"name": name, "arguments": json.dumps(arguments, ensure_ascii=False)}}]
 
 def decide(body):
     """假决策：单选题选在状态里出现次数最多的选项（都没出现就选保守选项或第一个）；是非题默认 0.9，状态里带 fake-no 时 0.1；打分题取第一级。"""
@@ -108,17 +142,30 @@ class H(BaseHTTPRequestHandler):
             last = messages[-1]["content"] if messages else ""
             if isinstance(last, list):
                 last = " ".join(p.get("text", "") for p in last)
-            text = reply_text(messages, last)
+            text, calls = reply_agent(body) if body.get("tools") else (reply_text(messages, last), [])
+            response_id = "fake-" + uuid.uuid4().hex
             if body.get("stream"):
                 self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.end_headers()
+                for index, call in enumerate(calls):
+                    arguments = call["function"]["arguments"]
+                    middle = max(1, len(arguments) // 2)
+                    for part, piece in enumerate((arguments[:middle], arguments[middle:])):
+                        delta = {"index": index, "function": {"arguments": piece}}
+                        if part == 0:
+                            delta.update(id=call["id"], type="function")
+                            delta["function"]["name"] = call["function"]["name"]
+                        self.wfile.write(("data: " + json.dumps({"id": response_id, "choices": [{"index": 0, "delta": {"tool_calls": [delta]}}]}) + "\n\n").encode()); self.wfile.flush()
                 for piece in [text[i:i + 8] for i in range(0, len(text), 8)]:
-                    self.wfile.write(("data: " + json.dumps({"id": "fake-" + uuid.uuid4().hex, "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"content": piece}}]}) + "\n\n").encode()); self.wfile.flush()
-                self.wfile.write(("data: " + json.dumps({"id": "fake-" + uuid.uuid4().hex, "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70}}) + "\n\ndata: [DONE]\n\n").encode()); return
-            return self.reply(200, {"id": "fake-" + uuid.uuid4().hex, "object": "chat.completion", "model": body.get("model", "fake"), "choices": [{"index": 0, "message": {"role": "assistant", "content": text}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70}})
+                    self.wfile.write(("data: " + json.dumps({"id": response_id, "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"content": piece}}]}) + "\n\n").encode()); self.wfile.flush()
+                self.wfile.write(("data: " + json.dumps({"id": response_id, "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {}, "finish_reason": "tool_calls" if calls else "stop"}], "usage": {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70}}) + "\n\ndata: [DONE]\n\n").encode()); return
+            message = {"role": "assistant", "content": text}
+            if calls: message["tool_calls"] = calls
+            return self.reply(200, {"id": response_id, "object": "chat.completion", "model": body.get("model", "fake"), "choices": [{"index": 0, "message": message, "finish_reason": "tool_calls" if calls else "stop"}], "usage": {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70}})
         if self.path.endswith("/rerank"):
             docs = body.get("documents", [])
             return self.reply(200, {"results": [{"index": i, "relevance_score": 1 - i / (len(docs) + 1)} for i in range(len(docs))]})
         self.reply(404, {"error": "not found"})
 
 import os
-ThreadingHTTPServer(("127.0.0.1", int(os.environ.get("NW_FAKE_PORT", "9911"))), H).serve_forever()
+if __name__ == "__main__":
+    ThreadingHTTPServer(("127.0.0.1", int(os.environ.get("NW_FAKE_PORT", "9911"))), H).serve_forever()

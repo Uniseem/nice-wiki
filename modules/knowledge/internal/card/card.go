@@ -19,10 +19,11 @@ type OperationContext = platform.OperationContext
 
 // Card 是一篇文档的英文概括（决策模型只读英文）：英文标题、摘要、主题、能回答的问题。
 type Card struct {
-	Title     string   `json:"title"`
-	Summary   string   `json:"summary"`
-	Topics    []string `json:"topics"`
-	Questions []string `json:"questions"`
+	Title      string   `json:"title"`
+	Summary    string   `json:"summary"`
+	Topics     []string `json:"topics"`
+	Questions  []string `json:"questions"`
+	sourceHash string
 }
 
 // keepConfidence 是沿用旧卡片需要的把握：决策模型认为旧卡片对新正文仍然准确的概率。

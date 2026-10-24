@@ -2,39 +2,22 @@ package answer
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"unicode/utf8"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/modules/qa/internal/gen"
-	qaruntime "nice-wiki/modules/qa/internal/runtime"
 )
 
-// ReadCurrentPage 把访客所在页面全文交给回答模型：已建索引时按分块给（每段可引用）；
-// 还没索引或索引读不到时直接读公开正文转成纯文本（不带引用标识），保证模型总能看到这一页。
+// ReadCurrentPage 从当前发布正文预读访客所在页面，不依赖索引；分页后仍可按nextOffset继续读。
 func ReadCurrentPage(ctx context.Context, op OperationContext, input ReadDocumentsInput) (RetrieveEvidenceResult, string, error) {
-	if indexed, err := ReadDocuments(ctx, op, input); err == nil && len(indexed.Citations) > 0 {
-		return indexed, indexed.Citations[0].Title, nil
+	if len(input.DocumentIDs) == 0 {
+		return RetrieveEvidenceResult{}, "", platform.NewError(platform.CodeValidation, false, "当前页缺少文档ID")
 	}
-	document, err := qaruntime.ReadCurrentDocument(ctx, op, input.DocumentIDs[0])
+	read, err := readAgentDocument(ctx, op, agentDocumentArguments{DocumentID: input.DocumentIDs[0]}, AgentToolInput{TurnID: input.TurnID, Language: input.Language, MaximumBytes: min(56000, max(4096, input.MaximumTokens*5/3))})
 	if err != nil {
 		return RetrieveEvidenceResult{}, "", err
 	}
-	var body pageNode
-	if err := json.Unmarshal(document.Body, &body); err != nil {
-		return RetrieveEvidenceResult{}, "", platform.NewError(platform.CodeIntegrityError, false, "公开正文不可读")
-	}
-	var text strings.Builder
-	writePageText(&text, body, "")
-	content, truncated := clipTokens(strings.TrimSpace(text.String()), input.MaximumTokens)
-	type article struct {
-		Title     string `json:"title"`
-		Truncated bool   `json:"truncated,omitempty"`
-		Text      string `json:"text"`
-	}
-	encoded, _ := json.Marshal([]article{{Title: document.Metadata.Title, Truncated: truncated, Text: content}})
-	return RetrieveEvidenceResult{Citations: []gen.Citation{}, EvidenceText: string(encoded)}, document.Metadata.Title, nil
+	return RetrieveEvidenceResult{Citations: read.Citations, EvidenceText: read.Content}, read.Title, nil
 }
 
 type pageNode struct {
@@ -42,22 +25,40 @@ type pageNode struct {
 	Text    string         `json:"text"`
 	Attrs   map[string]any `json:"attrs"`
 	Content []pageNode     `json:"content"`
+	Marks   []struct {
+		Type  string         `json:"type"`
+		Attrs map[string]any `json:"attrs"`
+	} `json:"marks"`
 }
 
 // writePageText 把正文树写成近似 Markdown 的纯文本：标题带 #，列表带 -，代码块加围栏，块之间空行。
 func writePageText(out *strings.Builder, node pageNode, indent string) {
 	switch node.Type {
 	case "text":
-		out.WriteString(node.Text)
+		text := node.Text
+		for _, mark := range node.Marks {
+			switch mark.Type {
+			case "link":
+				if href, ok := mark.Attrs["href"].(string); ok && href != "" {
+					text = "[" + text + "](" + href + ")"
+				}
+			case "strike":
+				text = "~~" + text + "~~"
+			case "code":
+				text = "`" + text + "`"
+			}
+		}
+		out.WriteString(text)
 		return
 	case "hardBreak":
 		out.WriteString("\n" + indent)
 		return
 	case "heading":
 		level, _ := node.Attrs["level"].(float64)
-		out.WriteString(strings.Repeat("#", max(int(level), 1)) + " ")
+		out.WriteString(strings.Repeat("#", min(max(int(level), 1), 6)) + " ")
 	case "codeBlock":
-		out.WriteString("```\n")
+		language, _ := node.Attrs["language"].(string)
+		out.WriteString("```" + language + "\n")
 		writeChildren(out, node, indent)
 		out.WriteString("\n```\n\n")
 		return
@@ -85,7 +86,31 @@ func writePageText(out *strings.Builder, node pageNode, indent string) {
 	case "image":
 		if alt, _ := node.Attrs["alt"].(string); alt != "" {
 			out.WriteString("[图片：" + alt + "]\n\n")
+		} else {
+			out.WriteString("[图片，未提供替代文字]\n\n")
 		}
+		if caption, _ := node.Attrs["caption"].(string); caption != "" {
+			out.WriteString(caption + "\n\n")
+		}
+		return
+	case "inlineMath", "blockMath", "mathInline", "mathBlock":
+		formula, _ := node.Attrs["latex"].(string)
+		if formula == "" {
+			formula, _ = node.Attrs["formula"].(string)
+		}
+		out.WriteString("$" + formula + "$")
+		if node.Type == "blockMath" || node.Type == "mathBlock" {
+			out.WriteString("\n\n")
+		}
+		return
+	case "video", "attachment", "file":
+		out.WriteString("[媒体/附件")
+		for _, key := range []string{"title", "fileName", "name", "caption", "url", "src"} {
+			if value, _ := node.Attrs[key].(string); value != "" {
+				out.WriteString(" " + key + "=" + value)
+			}
+		}
+		out.WriteString("]\n\n")
 		return
 	}
 	writeChildren(out, node, indent)

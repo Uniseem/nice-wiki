@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 )
 
 func snapshotIOError(err error) error {
@@ -145,7 +144,7 @@ func safeSnapshotRelative(path string) bool {
 }
 
 // CheckDiskBudget只读真实文件系统剩余块；调用方必须先有真实inventory或明确有界目标，不能拿未知零字节通过。
-// ROOT若支持其他OS，需把Statfs封装拆为平台文件；不以未支持平台返回无限容量。
+// 文件系统读取由各OS实现；不以未支持平台返回无限容量。
 func CheckSnapshotDiskBudget(ctx context.Context, root string, required int64) error {
 	if err := ctx.Err(); err != nil {
 		return snapshotIOError(err)
@@ -153,22 +152,7 @@ func CheckSnapshotDiskBudget(ctx context.Context, root string, required int64) e
 	if required < 0 {
 		return snapshotBudget("快照所需空间尚未确定")
 	}
-	var stat syscall.Statfs_t
-	if err := syscall.Statfs(root, &stat); err != nil {
-		return snapshotIOError(err)
-	}
-	block := int64(stat.Bsize)
-	if block <= 0 {
-		return integrity("文件系统空间单位未知")
-	}
-	blocks := uint64(required / block)
-	if required%block != 0 {
-		blocks++
-	}
-	if stat.Bavail < blocks {
-		return snapshotBudget("快照隔离空间不足")
-	}
-	return nil
+	return checkSnapshotDiskSpace(root, required)
 }
 func copySnapshotExact(ctx context.Context, dst io.Writer, src io.Reader, size int64, expectedHash string) error {
 	if size < 0 || size > MaxArchiveBytes || !platform.ValidHash(expectedHash) {

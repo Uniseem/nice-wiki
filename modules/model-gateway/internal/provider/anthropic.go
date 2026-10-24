@@ -10,11 +10,13 @@ import (
 )
 
 type MapAnthropicRequestInput struct {
-	Messages            []gen.GatewayMessage `json:"messages"`
-	ModelID             string               `json:"modelId"`
-	MaximumOutputTokens int                  `json:"maximumOutputTokens"`
-	Images              map[string][]byte    `json:"images,omitempty"`
-	Stream              bool                 `json:"stream"`
+	Messages            []gen.GatewayMessage                 `json:"messages"`
+	ModelID             string                               `json:"modelId"`
+	MaximumOutputTokens int                                  `json:"maximumOutputTokens"`
+	Images              map[string][]byte                    `json:"images,omitempty"`
+	Stream              bool                                 `json:"stream"`
+	Tools               *[]gen.GatewayTool                   `json:"tools,omitempty"`
+	ToolChoice          *gen.CreateInvocationInputToolChoice `json:"toolChoice,omitempty"`
 }
 type MapAnthropicRequestResult struct {
 	Body   string `json:"body"`
@@ -95,13 +97,31 @@ func MapAnthropicRequest(ctx context.Context, op OperationContext, input MapAnth
 		if err != nil {
 			return MapAnthropicRequestResult{}, err
 		}
-		messages = append(messages, map[string]any{"role": message.Role, "content": content})
+		role := string(message.Role)
+		if message.Content == "" && message.Parts == nil {
+			content = []map[string]any{}
+		}
+		if message.ToolCalls != nil {
+			for _, call := range *message.ToolCalls {
+				arguments, err := decodeToolArguments(call.Arguments)
+				if err != nil {
+					return MapAnthropicRequestResult{}, err
+				}
+				content = append(content, map[string]any{"type": "tool_use", "id": call.Id, "name": call.Name, "input": arguments})
+			}
+		}
+		if message.Role == "tool" {
+			role = "user"
+			content = []map[string]any{{"type": "tool_result", "tool_use_id": *message.ToolCallId, "content": message.Content}}
+		}
+		messages = appendProviderMessage(messages, role, content)
 	}
 	system := strings.Join(systems, "\n\n")
 	body := map[string]any{"model": input.ModelID, "messages": messages, "max_tokens": input.MaximumOutputTokens, "stream": input.Stream}
 	if system != "" {
 		body["system"] = system
 	}
+	addProviderTools(body, input.Tools, input.ToolChoice, "anthropic")
 	raw, err := json.Marshal(body)
 	if err != nil {
 		return MapAnthropicRequestResult{}, platform.NewError(platform.CodeIntegrityError, false, "Messages请求无法编码")

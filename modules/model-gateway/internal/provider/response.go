@@ -34,6 +34,9 @@ type ProviderOutcome struct {
 	Code            string                `json:"code"`
 	OutputStarted   bool                  `json:"outputStarted"`
 	ProviderMessage string                `json:"providerMessage,omitempty"`
+	toolCalls       map[int]*platform.GatewayToolCall
+	finishReason    string
+	toolPrefix      string
 }
 type providerFrame struct {
 	ID           string  `json:"id"`
@@ -44,20 +47,33 @@ type providerFrame struct {
 	StopReason   *string `json:"stop_reason"`
 	Choices      []struct {
 		Delta struct {
-			Content *string `json:"content"`
+			Content   *string            `json:"content"`
+			ToolCalls []providerToolCall `json:"tool_calls"`
 		} `json:"delta"`
 		Message struct {
-			Content string `json:"content"`
+			Content   string             `json:"content"`
+			ToolCalls []providerToolCall `json:"tool_calls"`
 		} `json:"message"`
 		FinishReason *string `json:"finish_reason"`
 	} `json:"choices"`
 	Content []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
+		Type  string          `json:"type"`
+		Text  string          `json:"text"`
+		ID    string          `json:"id"`
+		Name  string          `json:"name"`
+		Input json.RawMessage `json:"input"`
 	} `json:"content"`
+	Index        *int `json:"index"`
+	ContentBlock *struct {
+		Type  string          `json:"type"`
+		ID    string          `json:"id"`
+		Name  string          `json:"name"`
+		Input json.RawMessage `json:"input"`
+	} `json:"content_block"`
 	Delta struct {
-		Text       *string `json:"text"`
-		StopReason *string `json:"stop_reason"`
+		Text        *string `json:"text"`
+		StopReason  *string `json:"stop_reason"`
+		PartialJSON *string `json:"partial_json"`
 	} `json:"delta"`
 	Usage   *providerUsage `json:"usage"`
 	Message *struct {
@@ -74,7 +90,14 @@ type providerFrame struct {
 	Candidates []struct {
 		Content struct {
 			Parts []struct {
-				Text string `json:"text"`
+				Text             string `json:"text"`
+				Thought          bool   `json:"thought"`
+				ThoughtSignature string `json:"thoughtSignature"`
+				FunctionCall     *struct {
+					ID   string          `json:"id"`
+					Name string          `json:"name"`
+					Args json.RawMessage `json:"args"`
+				} `json:"functionCall"`
 			} `json:"parts"`
 		} `json:"content"`
 		FinishReason string `json:"finishReason"`
@@ -333,6 +356,9 @@ func ConsumeProviderFrame(raw []byte, adapter, capability, expectedModel, curren
 		outcome.Completed = true
 		return nil
 	}
+	if err := outcome.consumeNativeTools(frame, adapter); err != nil {
+		return err
+	}
 	for _, choice := range frame.Choices {
 		if choice.Delta.Content != nil {
 			if err := emit(*choice.Delta.Content); err != nil {
@@ -365,7 +391,7 @@ func ConsumeProviderFrame(raw []byte, adapter, capability, expectedModel, curren
 	}
 	for _, candidate := range frame.Candidates {
 		for _, part := range candidate.Content.Parts {
-			if part.Text != "" {
+			if part.Text != "" && !part.Thought {
 				if err := emit(part.Text); err != nil {
 					return err
 				}
@@ -531,7 +557,11 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 	}
 	if capability == "chat" || capability == "vision" || capability == "translation" {
 		complete := text.String()
-		outcome.Output = &platform.ModelOutput{Capability: capability, Text: &complete}
+		calls, err := outcome.completedTools()
+		if err != nil {
+			return outcome, err
+		}
+		outcome.Output = &platform.ModelOutput{Capability: capability, Text: &complete, ToolCalls: calls, FinishReason: outcome.finishReason}
 	}
 	return outcome, nil
 }

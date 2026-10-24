@@ -1485,7 +1485,7 @@
     "ModelOutput": {
       "type": "object",
       "additionalProperties": false,
-      "description": "模型完整结果：embedding/rerank/decision结构结果或chat/vision/translation完整UTF8文本；completed事件或严格当前快照承载，不以delta片段冒充完整。",
+      "description": "模型完整结果；聊天可携带工具调用，text仍为完整文本（纯工具调用时为空串）。工具参数不通过文本delta执行。",
       "properties": {
         "capability": {
           "type": "string",
@@ -1536,6 +1536,23 @@
             "type": "object"
           },
           "description": "decision能力的类型化答案：题目ID→该题答案（noul概率、choice选项与各选项概率、score加权分）；不含文本。"
+        },
+        "toolCalls": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/GatewayToolCall"
+          }
+        },
+        "finishReason": {
+          "type": "string",
+          "enum": [
+            "stop",
+            "tool_calls",
+            "length",
+            "content_filter"
+          ]
         }
       },
       "required": [
@@ -1567,6 +1584,16 @@
               {
                 "required": [
                   "decision"
+                ]
+              },
+              {
+                "required": [
+                  "toolCalls"
+                ]
+              },
+              {
+                "required": [
+                  "finishReason"
                 ]
               }
             ]
@@ -1601,6 +1628,16 @@
               {
                 "required": [
                   "decision"
+                ]
+              },
+              {
+                "required": [
+                  "toolCalls"
+                ]
+              },
+              {
+                "required": [
+                  "finishReason"
                 ]
               }
             ]
@@ -1673,6 +1710,16 @@
               {
                 "required": [
                   "candidateIds"
+                ]
+              },
+              {
+                "required": [
+                  "toolCalls"
+                ]
+              },
+              {
+                "required": [
+                  "finishReason"
                 ]
               }
             ]
@@ -2371,6 +2418,36 @@
         "brokerAfter"
       ],
       "description": "14域按owner排序唯一全覆盖；协调器必须先提供可被最终复用的broker稳定零基础观察（broker前后同水位且pending/lease为0）。非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，不在本域封口后等待第二次broker回执；jobs最后重新读取真实broker，确认仍等于该基础观察，并核全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。"
+    },
+    "GatewayToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "模型提出的一次工具调用；仅在完整结束且参数为JSON对象后交业务域执行。signature原样保留供应方的工具思考签名。",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "arguments": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 65536
+        },
+        "signature": {
+          "type": "string",
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "arguments"
+      ]
     }
   }
 }

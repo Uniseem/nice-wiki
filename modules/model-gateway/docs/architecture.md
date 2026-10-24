@@ -17,3 +17,13 @@ media：视觉输入资源仅经授权asset读取；不得任意URL抓取。失�
 可信执行上下文使用公共OperationContext；浏览器仅提交业务schema，入口认证后构造actor/rootOperationId/costClass/dataEpoch/cancellationId。普通业务使用active epoch；备份恢复控制操作只接受data-protection服务身份与superadmin委托，control区不随恢复替换。
 
 费用归MG；本域不推算余额，网络超时不表示未收费。
+
+## 原生工具调用
+
+chat/vision 请求可声明 `tools` 和 `toolChoice`，消息允许 assistant 工具调用及成对 tool 结果。网关校验工具声明、调用 ID、参数对象完整性和结果配对；工具由所属业务域执行。
+
+OpenAI 兼容协议使用 `tool_calls`/`tool_call_id`；Anthropic 使用 `tool_use`/`tool_result`，同一批结果合并到紧邻的 user 消息；Gemini 使用 `functionCall`/`functionResponse`，函数签名随历史原样保留。流式参数按调用索引拼接，截断或缺少正常工具结束证明时不交付可执行调用。
+
+完整调用保存在 `ModelOutput.toolCalls`，普通文本仍是独立的完整 `text`，工具参数不混入文本 delta。输入窗口估算包含工具声明和历史参数；每次 agent 模型调用沿用原任务归属、准入、费用根、幂等键及取消机制。
+
+协议参考：[OpenAI 函数调用](https://developers.openai.com/api/docs/guides/function-calling)、[Anthropic 流式消息](https://platform.claude.com/docs/en/build-with-claude/streaming)、[Gemini 函数调用](https://ai.google.dev/gemini-api/docs/function-calling)。

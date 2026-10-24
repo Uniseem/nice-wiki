@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
-	"syscall"
 	"time"
 	"unicode/utf8"
 
@@ -262,11 +261,10 @@ func loadCredentialMasterKey(ref string) ([]byte, error) {
 	if err := lifecycle.ValidatePrivatePath(ref, "regular-file", false); err != nil {
 		return nil, err
 	}
-	fd, err := syscall.Open(ref, syscall.O_RDONLY|syscall.O_CLOEXEC|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	file, err := lifecycle.OpenFileNoFollow(ref)
 	if err != nil {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "凭据主密钥不可打开")
 	}
-	file := os.NewFile(uintptr(fd), ref)
 	defer file.Close()
 	opened, err := file.Stat()
 	if err != nil || !opened.Mode().IsRegular() || !os.SameFile(before, opened) {

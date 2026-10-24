@@ -315,16 +315,19 @@ function unique(citations: Citation[]): Citation[] {
 }
 
 // StepView 在服务端步骤上加本地计时：第一次收到时记下开始时间，完成或跳过时算出耗时（毫秒）。
-type StepView = Step & { startedAt?: number; ms?: number };
+type StepView = Step & { startedAt?: number; ms?: number; order?: number };
 
 // mergeStep 按步骤类型更新：同一步从“进行中”变成“完成/跳过”，新步骤接在后面。
 function mergeStep(steps: StepView[], step: Step): StepView[] {
   const now = Date.now();
+  const order = Math.max(0, ...steps.map((item) => item.order ?? 0)) + 1;
   const index = steps.findIndex((item) => item.key === step.key);
-  if (index < 0) return [...steps, { ...step, startedAt: now, ms: step.status === 'running' ? undefined : 0 }];
+  if (index < 0) return [...steps, { ...step, startedAt: now, ms: step.status === 'running' ? undefined : 0, order }];
   const next = [...steps];
   const previous = steps[index];
-  next[index] = { ...previous, ...step, ms: step.status !== 'running' && previous.startedAt ? now - previous.startedAt : previous.ms };
+  const startedAt = step.status === 'running' && previous.status !== 'running' ? now : previous.startedAt;
+  const ms = step.status !== 'running' && previous.status === 'running' && startedAt ? (previous.ms ?? 0) + now - startedAt : previous.ms;
+  next[index] = { ...previous, ...step, startedAt, ms, order };
   return next;
 }
 
@@ -344,11 +347,12 @@ function Steps({ steps, active, t }: { steps: StepView[]; active: boolean; t: Tr
   const labels: Record<Step['key'], string> = { understand: t('理解问题'), page: t('阅读当前页面'), cache: t('查找已有回答'), search: t('检索相关文档'), answer: t('整理回答') };
   // 复用已有回答这一步命中时改叫“命中缓存”，答案直接来自之前的回答。
   const label = (step: StepView) => (step.key === 'cache' && step.status === 'done' ? t('命中缓存') : labels[step.key]);
+  const current = steps.reduce((latest, step) => ((step.order ?? 0) > (latest.order ?? 0) ? step : latest), steps[0]);
   return (
     <div className="nw-qa-steps rounded-xl border border-border/70 bg-surface px-3 py-2 text-xs">
       <button aria-expanded={open} className="flex w-full items-center gap-2 text-start text-muted" type="button" onClick={() => setOpen(!open)}>
         {active && <Spinner color="current" size="sm" />}
-        <span className="flex-1 font-medium">{active ? label(steps[steps.length - 1]) : t('思考过程')}</span>
+        <span className="flex-1 font-medium">{active ? label(current) : t('思考过程')}</span>
         {!active && <span className="tabular-nums text-muted">{seconds(steps.reduce((total, step) => total + (step.ms ?? 0), 0))}</span>}
         <ChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
       </button>

@@ -305,7 +305,7 @@ func ensureIdentity(ctx context.Context, db *sql.DB, siteID, epoch platform.Iden
 		"retrievalSpace":      map[string]any{"spaceId": platform.HashBytes([]byte("unconfigured")), "provider": "unconfigured", "modelVersion": "unconfigured", "dimensions": 1, "preprocessingVersion": "1"},
 		"maximumOutputTokens": 1500, "maximumHistoryTokens": 2048, "maximumContextTokens": 16000, "semanticThreshold": 0.94,
 		"maximumQuestionCharacters": 500, "preflightOutputTokens": 500, "inspectionOutputTokens": 800, "maximumSubqueries": 4,
-		"maximumRetrievalRounds": 3, "maximumToolCalls": 5, "semanticMode": "ai_equivalence", "cacheTtlDays": 7, "recordRetentionDays": 30,
+		"maximumRetrievalRounds": 12, "maximumToolCalls": 48, "semanticMode": "ai_equivalence", "cacheTtlDays": 7, "recordRetentionDays": 30,
 		"compactionEnabled": true, "retainedRecentTokens": 15000, "contextReservePercent": 10, "cacheEnabled": true,
 	})
 	tx, err := db.BeginTx(ctx, nil)

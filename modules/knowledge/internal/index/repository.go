@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"syscall"
 )
 
 // OpenRepository 只打开本域active；代次不匹配不重标旧库。由启动方完成恢复换目录。
@@ -192,11 +191,11 @@ func EnsureBuildDiskBudget(dataRoot string) error {
 	if !filepath.IsAbs(dataRoot) {
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "索引私有目录尚未可信装配")
 	}
-	var status syscall.Statfs_t
-	if err := syscall.Statfs(dataRoot, &status); err != nil {
+	available, total, err := lifecycle.ReadFilesystemSpace(dataRoot)
+	if err != nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "索引磁盘水位暂不可读")
 	}
-	if status.Blocks == 0 || status.Bavail <= status.Blocks/10 {
+	if total == 0 || available <= total/10 {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "索引磁盘余量低于构建安全水位，保留现有活动索引")
 	}
 	return nil

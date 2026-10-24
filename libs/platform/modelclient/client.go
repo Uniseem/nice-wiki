@@ -159,6 +159,12 @@ func validateModelOutput(output *platform.ModelOutput) error {
 			if output.Text == nil || !utf8.ValidString(*output.Text) || len(*output.Text) > 64<<10 || output.EmbeddingSpace != nil || len(output.Vectors) > 0 || len(output.CandidateIDs) > 0 {
 				return platform.NewError(platform.CodeIntegrityError, false, "文本结果缺失、超UTF8预算或混入结构化数据")
 			}
+			if err := platform.ValidateToolCalls(output.ToolCalls); err != nil {
+				return err
+			}
+			if len(output.ToolCalls) > 0 && output.FinishReason != "tool_calls" {
+				return platform.NewError(platform.CodeIntegrityError, false, "工具调用缺少完整结束证明")
+			}
 		case "embedding":
 			if output.Text != nil || output.EmbeddingSpace == nil || output.EmbeddingSpace.Dimensions < 1 || len(output.CandidateIDs) > 0 {
 				return platform.NewError(platform.CodeIntegrityError, false, "向量结果空间缺失或包含混合结果")

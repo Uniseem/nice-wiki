@@ -115,7 +115,7 @@ export interface paths {
         put?: never;
         /**
          * 接受统一AI调用
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 新调用持久accepted及不可变输入/原根/路线/原凭据refs，取得公共TaskGroup容量后提交，异步仅沿原业务deadline执行。expectedEmbeddingSpace仅embedding，主备付费前精确核五字段。localization.suggest要求background及持久管理员languageSuggestionApprovalId，每次新attempt预留/派发读localization权威，其他任务不得带此字段。完整结果与费用分离：completed可带charge_unknown attempt，保留held，不自动重算。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 新调用持久accepted及不可变输入/原根/路线/原凭据refs，取得公共TaskGroup容量后提交，异步仅沿原业务deadline执行。expectedEmbeddingSpace仅embedding，主备付费前精确核五字段。localization.suggest要求background及持久管理员languageSuggestionApprovalId，每次新attempt预留/派发读localization权威，其他任务不得带此字段。完整结果与费用分离：completed可带charge_unknown attempt，保留held，不自动重算。 支持chat/vision原生函数工具声明、assistant工具调用和成对tool结果；网关不执行工具，完整参数只在完成结果返回。
          */
         post: operations["createInference"];
         delete?: never;
@@ -1107,17 +1107,28 @@ export interface components {
             /** @constant */
             kind: "file";
         });
+        /** @description 模型提出的一次工具调用；仅在完整结束且参数为JSON对象后交业务域执行。signature原样保留供应方的工具思考签名。 */
+        "common.schema_GatewayToolCall": {
+            id: string;
+            name: string;
+            arguments: string;
+            signature?: string;
+        };
+        GatewayToolCall: components["schemas"]["common.schema_GatewayToolCall"];
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         GatewayMessage: {
             /**
              * @description 消息角色
              * @enum {string}
              */
-            role: "system" | "user" | "assistant";
-            /** @description UTF8文本不超过64KiB */
+            role: "system" | "user" | "assistant" | "tool";
+            /** @description UTF8文本，字节另限64KiB；assistant工具调用允许空串。 */
             content: string;
             /** @description text/image/file互斥；非文本仅vision用户消息，file仅application/pdf。 */
             parts?: components["schemas"]["GatewayPart"][];
+            toolCalls?: components["schemas"]["GatewayToolCall"][];
+            /** @description tool消息对应的assistant工具调用ID；同一批必须完整逐一回传。 */
+            toolCallId?: string;
         };
         /** @description guard分配元数据；token空表示未消费。仅消费后的QA许可具有nw-admission-v1签名并可提交MG。签名覆盖全部字段，MG仍核原根/代次/QA动作；免费语言提示从不签模型token。 */
         AdmissionPermit: {
@@ -1181,6 +1192,14 @@ export interface components {
                 [key: string]: components["schemas"]["DecisionQuestion"];
             };
         };
+        /** @description 业务域提供的工具声明；网关只转发，不执行工具。参数使用JSON Schema对象。 */
+        GatewayTool: {
+            name: string;
+            description: string;
+            parameters: {
+                [key: string]: unknown;
+            };
+        };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         CreateInvocationInput: {
             /** @description 根AI task catalog */
@@ -1216,8 +1235,14 @@ export interface components {
             expectedPriceSnapshots?: components["schemas"]["ExpectedPriceSnapshot"][];
             /** @description 仅decision能力必需，其他能力省略；messages/texts/candidateIds为空、maximumOutputTokens为0 */
             decision?: components["schemas"]["DecisionRequest"];
+            tools?: components["schemas"]["GatewayTool"][];
+            /**
+             * @description 有tools时默认auto；none用于收尾，不开始新的工具调用。
+             * @enum {string}
+             */
+            toolChoice?: "auto" | "none" | "required";
         };
-        /** @description 模型完整结果：embedding/rerank/decision结构结果或chat/vision/translation完整UTF8文本；completed事件或严格当前快照承载，不以delta片段冒充完整。 */
+        /** @description 模型完整结果；聊天可携带工具调用，text仍为完整文本（纯工具调用时为空串）。工具参数不通过文本delta执行。 */
         ModelOutput: {
             /** @enum {string} */
             capability: "embedding" | "rerank" | "chat" | "vision" | "translation" | "decision";
@@ -1230,6 +1255,9 @@ export interface components {
             decision?: {
                 [key: string]: Record<string, never>;
             };
+            toolCalls?: components["schemas"]["common.schema_GatewayToolCall"][];
+            /** @enum {string} */
+            finishReason?: "stop" | "tool_calls" | "length" | "content_filter";
         } & ({
             /** @constant */
             capability?: "embedding";
