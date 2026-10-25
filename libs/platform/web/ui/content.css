@@ -52,18 +52,25 @@
 
   /* 提示框：左侧按类型显示图标（SVG 蒙版，颜色跟随主题）。 */
   /* 问答回答（访客问答与后台调试台）的排版比正文紧凑一些。 */
-  .nw-prose.nw-answer { @apply font-sans text-sm leading-6 text-foreground; }
+  .nw-prose.nw-answer { @apply font-sans text-base leading-7 text-foreground; }
   .nw-prose.nw-answer :is(p, ul, ol, pre, blockquote, .overflow-x-auto) { @apply my-2; }
   .nw-prose.nw-answer > :first-child { @apply mt-0; }
   .nw-prose.nw-answer > :last-child { @apply mb-0; }
   .nw-prose.nw-answer li > :is(p, ul, ol, pre) { @apply my-1; }
-  .nw-prose.nw-answer pre { @apply p-3 text-xs; }
-  .nw-prose.nw-answer table { @apply text-xs; }
+  .nw-prose.nw-answer pre { @apply p-3 text-sm; }
+  .nw-prose.nw-answer table { @apply text-sm; }
   /* 窄窗口里表格按列最小宽度横向滚动，不把每列挤成一个字一行。 */
   .nw-prose.nw-answer :is(th, td) { @apply min-w-24; }
 
-  /* 问答回答里的引用编号（上标，点击跳到对应段落）。 */
-  .nw-prose sup .nw-cite { @apply ms-0.5 rounded px-1 font-medium text-accent no-underline hover:bg-accent-soft; }
+  /* 论文式上标与文末文献共用编号；方框只在跳转到对应条目后短暂显示。 */
+  .nw-prose sup .nw-cite { margin-inline: .12em; padding: .1em; color: inherit; font-size: .85em; font-weight: 500; text-decoration: none; white-space: nowrap; }
+  .nw-prose sup .nw-cite:hover { text-decoration: underline; text-underline-offset: .15em; }
+  .nw-prose.nw-answer ol.nw-references { counter-reset: nw-reference; list-style: none; margin-block: 1.75rem 0; padding: 1.25rem 0 0; border-top: 1px solid var(--border); font-size: 1rem; line-height: 1.75; }
+  .nw-prose.nw-answer .nw-references > li { counter-increment: nw-reference; display: grid; grid-template-columns: 2.75em minmax(0, 1fr); gap: .25rem; margin-block: .5rem; padding: .4rem .25rem; outline: 1px solid transparent; outline-offset: 4px; border-radius: 2px; }
+  .nw-prose.nw-answer .nw-references > li::before { content: '[' counter(nw-reference) ']'; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .nw-prose.nw-answer .nw-references > li > p { margin: 0; }
+  .nw-prose.nw-answer .nw-references a { color: var(--foreground); font-weight: 400; text-decoration-color: var(--border); }
+  .nw-prose.nw-answer .nw-references a:hover { text-decoration-color: currentColor; }
 
   .nw-prose .callout { @apply relative my-5 rounded-xl border border-accent/25 bg-accent-soft py-3 ps-11 pe-4; }
   .nw-prose .callout::before { content: ""; @apply pointer-events-none absolute start-4 top-[1.05rem] size-[1.125rem] bg-accent; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/svg%3E") center / contain no-repeat; }

@@ -1070,5 +1070,21 @@
   "th": "หน้าแรก",
   "id": "Halaman pertama",
   "ar": "الصفحة الأولى"
+ },
+ "参考文献": {
+  "zh-Hant": "參考文獻",
+  "en": "References",
+  "ja": "参考文献",
+  "ko": "참고 문헌",
+  "fr": "Références",
+  "de": "Literaturverzeichnis",
+  "es": "Referencias",
+  "pt": "Referências",
+  "ru": "Список литературы",
+  "it": "Riferimenti bibliografici",
+  "vi": "Tài liệu tham khảo",
+  "th": "เอกสารอ้างอิง",
+  "id": "Referensi",
+  "ar": "المراجع"
  }
 }

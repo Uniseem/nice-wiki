@@ -132,7 +132,7 @@ function TurnsTab() {
     <div className="flex justify-end gap-2">{cursor && <Button variant="tertiary" onPress={() => setCursor('')}>{t('第一页')}</Button>}{turns.data.pageInfo.hasMore && <Button variant="secondary" onPress={() => setCursor(turns.data!.pageInfo.nextCursor ?? '')}>{t('下一页')}</Button>}</div>
     {selected && <Modal.Backdrop isOpen onOpenChange={(value) => { if (!value) setSelected(null); }}><Modal.Container scroll="outside" size="lg"><Modal.Dialog>
       <Modal.CloseTrigger aria-label={t('关闭')} /><Modal.Header><Modal.Heading>{t('问答记录')}</Modal.Heading></Modal.Header>
-      <Modal.Body className="flex flex-col gap-5"><section><h3 className="mb-2 text-sm font-medium text-muted">{t('问题')}</h3><p className="whitespace-pre-wrap break-words">{selected.question}</p></section><section><h3 className="mb-2 text-sm font-medium text-muted">{t('回答')}</h3>{selected.answer ? <Markdown text={selected.answer} citations={selected.sources ?? []} /> : <p className="text-muted">{t('未完成')}</p>}</section></Modal.Body>
+      <Modal.Body className="flex flex-col gap-5"><section><h3 className="mb-2 text-sm font-medium text-muted">{t('问题')}</h3><p className="whitespace-pre-wrap break-words">{selected.question}</p></section><section><h3 className="mb-2 text-sm font-medium text-muted">{t('回答')}</h3>{selected.answer ? <Markdown text={selected.answer} citations={selected.sources ?? []} referenceLabel={t('参考文献')} /> : <p className="text-muted">{t('未完成')}</p>}</section></Modal.Body>
       <Modal.Footer><Button variant="secondary" onPress={() => setSelected(null)}>{t('关闭')}</Button></Modal.Footer>
     </Modal.Dialog></Modal.Container></Modal.Backdrop>}
   </div>;
@@ -183,7 +183,7 @@ function DebugTab() {
         {!state.status && <p className="text-sm text-muted">{t('回答、引用和失败原因会显示在这里。')}</p>}
         {state.status === 'running' && !state.answer && <div className="flex items-center gap-2 text-sm text-muted"><Spinner size="sm" />{t('正在检索并生成回答…')}</div>}
         {/* 与访客看到的一样渲染：Markdown 与上标引用编号。 */}
-        {state.answer && <div className="rounded-xl bg-surface-secondary p-4 text-foreground"><Markdown citations={state.citations} text={state.answer} /></div>}
+        {state.answer && <div className="rounded-xl bg-surface-secondary p-4 text-foreground"><Markdown citations={state.citations} text={state.answer} referenceLabel={t('参考文献')} /></div>}
         {state.citations.length > 0 && (
           <div className="flex flex-col gap-1.5">
             <span className="text-xs font-medium text-muted">{t('引用来源')}</span>

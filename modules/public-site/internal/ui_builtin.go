@@ -131,6 +131,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            "：",
 		"（":            "（",
 		"）":            "）",
+		"参考文献":         "參考文獻",
 	},
 	"ja": {
 		"欢迎来到":             "ようこそ",
@@ -260,6 +261,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            "：",
 		"（":            "（",
 		"）":            "）",
+		"参考文献":         "参考文献",
 	},
 	"ko": {
 		"欢迎来到":             "환영합니다",
@@ -389,6 +391,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            ": ",
 		"（":            "(",
 		"）":            ")",
+		"参考文献":         "참고 문헌",
 	},
 	"fr": {
 		"欢迎来到":             "Bienvenue sur",
@@ -518,6 +521,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            " : ",
 		"（":            " (",
 		"）":            ")",
+		"参考文献":         "Références",
 	},
 	"de": {
 		"欢迎来到":             "Willkommen bei",
@@ -647,6 +651,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            ": ",
 		"（":            " (",
 		"）":            ")",
+		"参考文献":         "Literaturverzeichnis",
 	},
 	"es": {
 		"欢迎来到":             "Bienvenido a",
@@ -776,6 +781,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            ": ",
 		"（":            " (",
 		"）":            ")",
+		"参考文献":         "Referencias",
 	},
 	"pt": {
 		"欢迎来到":             "Boas-vindas a",
@@ -905,6 +911,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            ": ",
 		"（":            " (",
 		"）":            ")",
+		"参考文献":         "Referências",
 	},
 	"ru": {
 		"欢迎来到":             "Добро пожаловать",
@@ -1034,6 +1041,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            ": ",
 		"（":            " (",
 		"）":            ")",
+		"参考文献":         "Список литературы",
 	},
 	"it": {
 		"欢迎来到":             "Benvenuti su",
@@ -1163,6 +1171,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            ": ",
 		"（":            " (",
 		"）":            ")",
+		"参考文献":         "Riferimenti bibliografici",
 	},
 	"vi": {
 		"欢迎来到":             "Chào mừng đến với",
@@ -1292,6 +1301,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            ": ",
 		"（":            " (",
 		"）":            ")",
+		"参考文献":         "Tài liệu tham khảo",
 	},
 	"th": {
 		"欢迎来到":             "ยินดีต้อนรับสู่",
@@ -1421,6 +1431,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            ": ",
 		"（":            " (",
 		"）":            ")",
+		"参考文献":         "เอกสารอ้างอิง",
 	},
 	"id": {
 		"欢迎来到":             "Selamat datang di",
@@ -1550,6 +1561,7 @@ var builtinUI = map[string]map[string]string{
 		"：":            ": ",
 		"（":            " (",
 		"）":            ")",
+		"参考文献":         "Referensi",
 	},
 	"ar": {
 		"欢迎来到":             "مرحبًا بك في",
@@ -1679,5 +1691,6 @@ var builtinUI = map[string]map[string]string{
 		"：":            ": ",
 		"（":            " (",
 		"）":            ")",
+		"参考文献":         "المراجع",
 	},
 }

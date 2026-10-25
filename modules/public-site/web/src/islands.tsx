@@ -18,45 +18,51 @@ export function HeaderActions({ config, t, onAsk, onAskIntent, onSearch, onSearc
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   return (
     <>
-      {config.kind !== 'home' && <Button aria-label={t('搜索文档')} className="md:min-w-44 md:justify-start" size="sm" variant="outline" onFocus={onSearchIntent} onHoverStart={onSearchIntent} onPress={onSearch}>
-        <Magnifier />
-        <span className="hidden text-muted md:inline">{t('搜索')}</span>
-        <kbd className="ms-auto hidden rounded border border-border px-1 font-sans text-[11px] leading-4 text-muted md:inline">{mac ? '⌘K' : 'Ctrl K'}</kbd>
-      </Button>}
-      {config.aiEnabled && config.kind !== 'home' && config.kind !== 'ask' && (
-        <Button size="sm" variant="primary" onFocus={onAskIntent} onHoverStart={onAskIntent} onPress={onAsk}>
-          <Comment className="sm:hidden" />
-          <span className="hidden sm:inline">{t('AI 问答')}</span>
-        </Button>
-      )}
-      {languages.length > 1 && (
-        <Dropdown>
-          <Button aria-label={t('语言')} size="sm" variant="ghost">
-            <Globe />
-            <span className="hidden md:inline">{current ? nativeName(current) : config.locale}</span>
+      {config.kind !== 'home' && (
+        <div className="nw-header-context">
+          <Button aria-label={t('搜索文档')} className="md:min-w-44 md:justify-start" size="sm" variant="outline" onFocus={onSearchIntent} onHoverStart={onSearchIntent} onPress={onSearch}>
+            <Magnifier />
+            <span className="hidden text-muted md:inline">{t('搜索')}</span>
+            <kbd className="ms-auto hidden rounded border border-border px-1 font-sans text-[11px] leading-4 text-muted md:inline">{mac ? '⌘K' : 'Ctrl K'}</kbd>
           </Button>
-          <Dropdown.Popover placement="bottom end">
-            <Dropdown.Menu
-              selectedKeys={current ? [current.tag] : []}
-              selectionMode="single"
-              onAction={(key: Key) => {
-                const target = languages.find((language) => language.tag === key);
-                if (!target) return;
-                rememberLanguage(target.tag);
-                if (!target.current) location.href = target.href;
-              }}
-            >
-              {languages.map((language) => (
-                <Dropdown.Item key={language.tag} id={language.tag} textValue={nativeName(language)}>
-                  <Label>{nativeName(language)}</Label>
-                  <Dropdown.ItemIndicator />
-                </Dropdown.Item>
-              ))}
-            </Dropdown.Menu>
-          </Dropdown.Popover>
-        </Dropdown>
+          {config.aiEnabled && config.kind !== 'ask' && (
+            <Button aria-label={t('AI 问答')} size="sm" variant="primary" onFocus={onAskIntent} onHoverStart={onAskIntent} onPress={onAsk}>
+              <Comment className="sm:hidden" />
+              <span className="hidden sm:inline">{t('AI 问答')}</span>
+            </Button>
+          )}
+        </div>
       )}
-      <ThemeSwitch t={t} />
+      <div className="nw-header-settings">
+        {languages.length > 1 && (
+          <Dropdown>
+            <Button aria-label={t('语言')} className="nw-header-language" size="sm" variant="ghost">
+              <Globe />
+              <span className="hidden md:inline">{current ? nativeName(current) : config.locale}</span>
+            </Button>
+            <Dropdown.Popover placement="bottom end">
+              <Dropdown.Menu
+                selectedKeys={current ? [current.tag] : []}
+                selectionMode="single"
+                onAction={(key: Key) => {
+                  const target = languages.find((language) => language.tag === key);
+                  if (!target) return;
+                  rememberLanguage(target.tag);
+                  if (!target.current) location.href = target.href;
+                }}
+              >
+                {languages.map((language) => (
+                  <Dropdown.Item key={language.tag} id={language.tag} textValue={nativeName(language)}>
+                    <Label>{nativeName(language)}</Label>
+                    <Dropdown.ItemIndicator />
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown.Popover>
+          </Dropdown>
+        )}
+        <ThemeSwitch t={t} />
+      </div>
     </>
   );
 }
@@ -94,7 +100,7 @@ function ThemeSwitch({ t }: { t: Translate }) {
   const options = [['light', t('浅色'), Sun], ['dark', t('深色'), Moon], ['system', t('跟随系统'), Display]] as const;
   return (
     <Dropdown>
-      <Button isIconOnly aria-label={t('亮 / 暗')} size="sm" variant="ghost">{resolvedTheme === 'dark' ? <Moon /> : <Sun />}</Button>
+      <Button isIconOnly aria-label={t('亮 / 暗')} className="nw-header-theme" size="sm" variant="ghost">{resolvedTheme === 'dark' ? <Moon /> : <Sun />}</Button>
       <Dropdown.Popover placement="bottom end">
         <Dropdown.Menu selectedKeys={[theme]} selectionMode="single" onAction={(key: Key) => setTheme(String(key))}>
           {options.map(([id, label, Icon]) => (

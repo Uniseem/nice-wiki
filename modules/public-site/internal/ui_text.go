@@ -32,6 +32,7 @@ var englishUI = strings.NewReplacer(
 	"继续阅读", "Continuing the document",
 	"分析资料", "Reviewing the material",
 	"整理引用", "Preparing citations",
+	"参考文献", "References",
 	"未命中缓存", "No cached answer",
 	"思考与工具", "Thinking and tools",
 	"工具调用", "Tool calls",

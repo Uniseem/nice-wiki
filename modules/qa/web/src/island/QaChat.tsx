@@ -214,7 +214,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
 
   const rounds = group(messages);
   return (
-    <div className={cn('flex min-h-0 flex-1 flex-col', fullPage && 'nw-qa-page', className)} data-empty={!messages.length} style={view ? { '--nw-qa-activity-height': `${Math.max(128, view - 176)}px` } as CSSProperties : undefined}>
+    <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col', fullPage && 'nw-qa-page', className)} data-empty={!messages.length} style={view ? { '--nw-qa-activity-height': `${Math.max(128, view - 176)}px` } as CSSProperties : undefined}>
       <div className="nw-qa-thread relative flex min-h-0 flex-1 flex-col">
         <ScrollShadow ref={scroller} className="nw-qa-scroll min-h-0 flex-1 px-4 py-4" onScroll={check}>
           {!messages.length && (
@@ -229,10 +229,10 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
               </nav>}
             </div> : <div className="flex h-full items-center justify-center py-10 text-center"><p className="max-w-64 text-[15px] text-muted">{t('问问这个站点的文档…')}</p></div>
           )}
-          <ol ref={list} className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+          <ol ref={list} className="nw-qa-content mx-auto flex w-full flex-col gap-8">
             {rounds.map((round, index) => (
               <li key={round.id} className="flex flex-col gap-4" data-turn={round.id} style={round.id === pinned && view ? { minHeight: view - 32 } : undefined}>
-                {round.question && <div className="ms-10 self-end whitespace-pre-wrap break-words rounded-3xl rounded-ee-md bg-default px-4 py-2.5 text-sm leading-6 text-foreground">{round.question.text}</div>}
+                {round.question && <div className="nw-qa-question ms-10 self-end whitespace-pre-wrap break-words rounded-xl bg-default px-4 py-2.5 text-base leading-7 text-foreground">{round.question.text}</div>}
                 {round.answer && <Answer last={index === rounds.length - 1} message={round.answer} t={t} end={end} onRate={rate} />}
               </li>
             ))}
@@ -245,7 +245,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
         )}
       </div>
       <form className={cn('nw-qa-form p-3', fullPage ? 'sm:px-6 sm:pb-6' : 'border-t border-separator')} onSubmit={(event) => { event.preventDefault(); void ask(); }}>
-        <div className="mx-auto w-full max-w-3xl">
+        <div className="nw-qa-content mx-auto w-full">
           {documentId && pageTitle && (
             <div className="mb-2 flex min-w-0 items-center gap-1.5 px-1 text-xs text-muted">
               <FileText className="size-3.5 shrink-0" />
@@ -253,12 +253,12 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
               <span className="truncate font-medium text-foreground/80">{pageTitle}</span>
             </div>
           )}
-          <div className={cn('flex items-end gap-2 rounded-3xl border border-border bg-field p-2 ps-3 focus-within:border-foreground/30', fullPage && 'nw-qa-composer')}>
+          <div className="nw-qa-composer flex items-end gap-2 border border-border focus-within:border-foreground/50">
             {messages.length > 0 && <Tooltip delay={300}><Button isIconOnly aria-label={t('新对话')} size="sm" variant="ghost" onPress={restart}><Plus /></Button><Tooltip.Content>{t('新对话')}</Tooltip.Content></Tooltip>}
             <TextArea
               ref={input}
               aria-label={t('问问这个站点的文档…')}
-              className="max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 shadow-none outline-none focus:ring-0"
+              className="max-h-40 min-h-9 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 shadow-none outline-none focus:ring-0"
               maxLength={500}
               placeholder={t('问问这个站点的文档…')}
               rows={fullPage ? 2 : 1}
@@ -292,23 +292,16 @@ function group(messages: Message[]): { id: string; question?: Message; answer?: 
 // 一条回答：思考过程、正文（流式时逐字写出）、引用和反馈；最后一条回答末尾放一个标记，用来判断最新内容是否可见。
 function Answer({ message, last, end, t, onRate }: { message: Message; last: boolean; end: RefObject<HTMLDivElement | null>; t: Translate; onRate: (message: Message, value: 'helpful' | 'unhelpful') => void }) {
   return (
-    <div className="me-6 flex flex-col gap-2">
+    <div className="nw-qa-answer flex min-w-0 flex-col gap-3">
       {!!message.steps?.length && <Activity active={message.status === 'streaming'} answerText={message.text} reconnecting={message.reconnecting} steps={message.steps} t={t} />}
       {/* 回答直接呈现为正文，出错时才使用提示底色。 */}
-      <div className={cn('text-sm', message.status === 'error' && !message.error ? 'rounded-2xl bg-danger-soft px-3.5 py-2.5 text-danger-soft-foreground' : 'px-1 text-foreground', message.status === 'streaming' && !message.text && message.steps?.length && 'hidden')}>
+      <div className={cn('text-base', message.status === 'error' && !message.error ? 'rounded-xl bg-danger-soft px-3.5 py-2.5 text-danger-soft-foreground' : 'text-foreground', message.status === 'streaming' && !message.text && message.steps?.length && 'hidden')}>
         {message.status === 'streaming' && !message.text ? (
           <span className="flex items-center gap-2 text-muted"><Spinner color="current" size="sm" />{t('思考中…')}</span>
-        ) : message.status === 'error' && !message.error ? message.text : <Typed message={message} />}
+        ) : message.status === 'error' && !message.error ? message.text : <Typed message={message} t={t} />}
       </div>
       {message.error && <p role="alert" className="rounded-2xl bg-danger-soft px-3.5 py-2.5 text-sm text-danger-soft-foreground">{message.error}</p>}
       {message.status === 'cancelled' && <p className="px-1 text-xs text-muted">{t('已停止')}</p>}
-      {message.citations.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 ps-1">
-          {unique(message.citations).map((citation) => (
-            <a key={citation.href} className="chip chip--default chip--soft chip--sm max-w-full truncate no-underline hover:bg-default-hover" href={citation.href}>{citation.title || citation.href}</a>
-          ))}
-        </div>
-      )}
       {message.status === 'done' && message.turn && (
         <div className="flex items-center gap-1 ps-1 text-xs text-muted">
           {message.feedback ? <span>{t('感谢反馈')}</span> : (
@@ -332,7 +325,7 @@ function Answer({ message, last, end, t, onRate }: { message: Message; last: boo
 
 // 打字效果：流式收到的文字先进缓冲，每 32 毫秒放出一段，积压越多放得越快（大约落后 0.3 秒，最快每秒约 500 字），
 // 命中缓存时整段答案一次到达，也照样逐字写出；之前的对话记录直接整段显示。
-function Typed({ message }: { message: Message }) {
+function Typed({ message, t }: { message: Message; t: Translate }) {
   const [shown, setShown] = useState(message.live ? 0 : message.text.length);
   const length = message.text.length;
   useEffect(() => {
@@ -344,17 +337,7 @@ function Typed({ message }: { message: Message }) {
   const typing = message.status === 'streaming' || shown < length;
   return (
     <div className={cn(typing && 'nw-typing')}>
-      <Markdown citations={message.citations} text={message.text.slice(0, shown)} />
+      <Markdown citations={message.citations} referenceLabel={t('参考文献')} text={message.text.slice(0, shown)} />
     </div>
   );
-}
-
-function unique(citations: Citation[]): Citation[] {
-  const seen = new Set<string>();
-  return citations.filter((citation) => {
-    const key = (citation.href ?? '').split('#')[0];
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }
