@@ -39,7 +39,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
-          node-version: "24"
+          node-version: "22"
           cache: pnpm
       # 前端构建、Go 交叉编译和安装 crane 互不依赖，同时进行。
       - name: 前端产物、编译全部服务、安装 crane
