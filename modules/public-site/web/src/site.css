@@ -385,7 +385,7 @@ body[data-page="doc"] .nw-document { animation: nw-enter .45s cubic-bezier(.2,.8
 .nw-qa-page .nw-answer :is(pre, table) { font-size: 1rem; }
 .nw-qa-page .nw-qa-form { padding-inline: clamp(1.25rem, 5.5vw, 5rem); }
 .nw-qa-page .nw-qa-form { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
-.nw-qa-page[data-empty="true"] { justify-content: center; padding-bottom: min(8dvh, 5rem); }
+.nw-qa-page[data-empty="true"] { justify-content: center; }
 .nw-qa-page[data-empty="true"] .nw-qa-thread { flex: 0 1 auto; }
 .nw-qa-page[data-empty="true"] .nw-qa-scroll { padding-block: 1.5rem; }
 .nw-qa-empty { max-width: var(--nw-qa-width); margin: 0 auto; padding: 1rem 0; text-align: center; }
