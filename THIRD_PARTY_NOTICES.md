@@ -54,3 +54,9 @@ ADR0005已批准的版本镜像依赖，固定github.com/go-git/go-git/v5 v5.16.
 ## Excalidraw 与 React（后台编辑器画板）
 
 后台内容编辑器的画板块使用 @excalidraw/excalidraw 0.18.1（MIT，Copyright (c) 2020 Excalidraw），与后台共用 react / react-dom 19.3.1。来源 https://github.com/excalidraw/excalidraw/tree/v0.18.1 ；仅作为 npm 依赖打包进后台应用，由根目录 pnpm-lock.yaml 固定，不复制其源码；画板代码只在用户打开画板时懒加载。画板用到的字体（Excalifont、Virgil、Cascadia Code、Comic Shanns、Liberation Sans、Lilita One、Nunito、小赖字体等，均随 @excalidraw/excalidraw 包分发，各自按 SIL OFL 或同类宽松许可发布）在构建时原样复制到后台静态目录（/_admin/excalidraw/），不改动、不单独再分发。
+
+## ZCode 工具活动界面与 Lucide 图标
+
+用户要求沿用 [ZCode 官方开源仓库](https://github.com/zai-org/ZCode) 的工具加载链与图标。参考版本为仓库 `package.json` 标示的 3.16.2（main 源码，无同名 tag）。问答工具摘要改编自 `packages/ui/src/ToolCallBlocks/ToolSummaryRow.tsx`、`ToolLayout.tsx` 及 read/search/explore 渲染器：保留静态搜索图标、运行文字扫光、悬停展开箭头及行内摘要；接入本站 SSE 与 HeroUI 主题，参数、分页和耗时在详情中展开。Copyright 2026 Z.AI Co., Ltd，Apache-2.0；原许可见 [ZCode Apache-2.0](docs/licenses/ZCode-Apache-2.0.txt)，适用声明见 [ZCode NOTICE 摘录](docs/licenses/ZCode-NOTICE.txt)。修改说明保留在组件文件头。
+
+图标通过 `lucide-react` 1.17.0 依赖使用，与上述 ZCode 源码声明的版本一致；使用其 Search、Wrench、ChevronRight 及对话操作图标。Copyright (c) 2026 Lucide Icons and Contributors，ISC；源自 Feather 的图标另受 MIT 许可约束，Copyright (c) 2013-present Cole Bemis。来源 [Lucide 官方仓库](https://github.com/lucide-icons/lucide)，完整许可见 [Lucide / Feather 许可](docs/licenses/lucide-react-1.17.0-LICENSE.txt)。上述许可与声明随公开站静态资源分发。

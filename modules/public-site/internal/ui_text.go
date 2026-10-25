@@ -12,6 +12,12 @@ import (
 // 页面自带的界面文字以简体中文为原文；其他语言先用 builtinUI 的内置译文，没有的退回英文。
 // 只替换固定文案，正文和用户填写的内容不经过这里。整句在前、片段在后（替换按参数顺序匹配）。
 var englishUI = strings.NewReplacer(
+	"欢迎来到", "Welcome to",
+	"拥抱未来", "Embrace the future",
+	"坚守传统", "Keep the tradition",
+	"使用 Agent 阅读 wiki", "Read the wiki with an Agent",
+	"自己阅读 wiki", "Read the wiki yourself",
+	"阅读方式", "Reading mode",
 	"上报滥用信号", "Report abuse signal",
 	"进入文档", "Browse documents",
 	"篇文档", "documents",

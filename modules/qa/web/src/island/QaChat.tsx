@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, FileText, Plus, Stop, ThumbsDown, ThumbsUp } from '@gravity-ui/icons';
+import { ArrowDownIcon as ArrowDown, ArrowUpIcon as ArrowUp, FileTextIcon as FileText, PlusIcon as Plus, SquareIcon as Stop, ThumbsDownIcon as ThumbsDown, ThumbsUpIcon as ThumbsUp } from 'lucide-react';
 import { Button, cn, ScrollShadow, Spinner, TextArea, Tooltip } from '@heroui/react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, startTurn, transient, verifyHuman, type Citation, type StreamEvent, type TurnInfo } from './client';
@@ -6,7 +6,6 @@ import { Activity, finishSteps, mergeStep, type StepView } from './Activity';
 import { Markdown } from './markdown';
 
 export type Translate = (key: string) => string;
-export type HomeWelcome = { name: string; description: string; topics: { title: string; description: string }[]; documentCount: number };
 
 type Message = {
   id: string;
@@ -59,8 +58,8 @@ function failure(t: Translate, problem: unknown): string {
 // documentId 是访客所在页面：每次提问都带上，AI 会先读这一页全文再回答。
 // 滚动只发生在对话区里，从不滚动页面：提问后把这一轮滚到对话区顶部，回答逐字写出时不自动往下滚，
 // 访客可以从头读；最新内容在可视范围外时显示“回到最新”。
-// compact（首页的“问问 AI”）：还没有对话时只显示一个输入框；开始提问后和面板一样显示对话区，由外层给出高度。
-export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle, compact, suggestions, welcome }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string; compact?: boolean; suggestions?: string[]; welcome?: HomeWelcome }) {
+// 独立页直接使用整页空间；文档中的浮窗沿用同一套会话。
+export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle, fullPage }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string; fullPage?: boolean }) {
   const [messages, setMessages] = useState<Message[]>(() => loadLog(locale));
   const [question, setQuestion] = useState('');
   const [running, setRunning] = useState<{ turnId?: string; controller: AbortController } | null>(null);
@@ -85,10 +84,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
     setBehind(!!box && !!mark && mark.getBoundingClientRect().top > box.getBoundingClientRect().bottom + 1);
   };
 
-  const idle = !!compact && !messages.length;
-
   // 打开时停在对话末尾；之后跟踪对话区高度（新一轮的最小高度）和内容变化（逐字输出时更新“回到最新”）。
-  // compact 形态的对话区在第一次提问后才出现，那时再挂上。
   useLayoutEffect(() => {
     const box = scroller.current;
     if (!box) return;
@@ -97,7 +93,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
     observer.observe(box);
     if (list.current) observer.observe(list.current);
     return () => observer.disconnect();
-  }, [idle, !messages.length]);
+  }, [!messages.length]);
 
   // 提问后把这一轮平滑滚到对话区顶部。
   useLayoutEffect(() => {
@@ -216,15 +212,11 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
 
   const rounds = group(messages);
   return (
-    <div className={cn('flex min-h-0 flex-1 flex-col', className)} style={view ? { '--nw-qa-activity-height': `${Math.max(128, view - 176)}px` } as CSSProperties : undefined}>
-      {!idle && <div className="relative flex min-h-0 flex-1 flex-col">
-        <ScrollShadow ref={scroller} className="min-h-0 flex-1 px-4 py-4" onScroll={check}>
+    <div className={cn('flex min-h-0 flex-1 flex-col', fullPage && 'nw-qa-page', className)} data-empty={!messages.length} style={view ? { '--nw-qa-activity-height': `${Math.max(128, view - 176)}px` } as CSSProperties : undefined}>
+      <div className="nw-qa-thread relative flex min-h-0 flex-1 flex-col">
+        <ScrollShadow ref={scroller} className="nw-qa-scroll min-h-0 flex-1 px-4 py-4" onScroll={check}>
           {!messages.length && (
-            welcome ? <div className="mx-auto flex w-full max-w-3xl flex-col justify-center gap-6 px-2 py-6 sm:px-6 sm:py-10">
-              <div><span className="mb-4 inline-flex items-center gap-2 rounded-full bg-default px-3 py-1 text-xs text-muted"><span className="size-1.5 rounded-full bg-success" />{t('AI 问答')} · {welcome.documentCount} {t('篇文档')}</span><h1 className="text-2xl font-semibold tracking-tight sm:text-4xl">{t('从一个问题开始')}</h1>{welcome.description && <p className="mt-4 text-sm leading-7 text-foreground/80">{welcome.description}</p>}<p className="mt-3 text-sm leading-7 text-muted">{t('直接告诉我你想了解什么，我会查阅文档、整理答案并附上来源。')}</p></div>
-              {!!welcome.topics.length && <div className="grid gap-2 sm:grid-cols-2">{welcome.topics.map((topic) => <button type="button" key={topic.title} className="group min-w-0 rounded-xl border border-border bg-surface px-4 py-3 text-start transition-colors hover:border-foreground/30 hover:bg-default/40 focus-visible:outline-2 focus-visible:outline-accent" onClick={() => { setQuestion(t('介绍一下《{0}》').replace('{0}', topic.title)); input.current?.focus({ preventScroll: true }); }}><span className="flex items-center justify-between gap-2 text-sm font-medium"><span className="truncate">{topic.title}</span><ArrowUp className="size-3 -rotate-45 text-muted group-hover:text-foreground rtl:rotate-45" /></span>{topic.description && <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-muted">{topic.description}</p>}</button>)}</div>}
-              <div className="flex flex-wrap gap-2">{suggestions?.map((text) => <button type="button" className="rounded-full bg-default/70 px-3 py-2 text-xs text-muted hover:text-foreground" key={text} onClick={() => { setQuestion(text); input.current?.focus({ preventScroll: true }); }}>{text}</button>)}</div>
-            </div> : <div className="flex h-full items-center justify-center py-10 text-center"><p className="max-w-64 text-[15px] text-muted">{t('问问这个站点的文档…')}</p></div>
+            fullPage ? <div className="nw-qa-empty"><h1>{t('从一个问题开始')}</h1></div> : <div className="flex h-full items-center justify-center py-10 text-center"><p className="max-w-64 text-[15px] text-muted">{t('问问这个站点的文档…')}</p></div>
           )}
           <ol ref={list} className="mx-auto flex w-full max-w-3xl flex-col gap-6">
             {rounds.map((round, index) => (
@@ -240,8 +232,8 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
             <ArrowDown />{t('回到最新')}
           </Button>
         )}
-      </div>}
-      <form className={idle ? '' : welcome ? 'p-3 sm:px-6 sm:pb-5' : 'border-t border-separator p-3'} onSubmit={(event) => { event.preventDefault(); void ask(); }}>
+      </div>
+      <form className={cn('nw-qa-form p-3', fullPage ? 'sm:px-6 sm:pb-6' : 'border-t border-separator')} onSubmit={(event) => { event.preventDefault(); void ask(); }}>
         <div className="mx-auto w-full max-w-3xl">
           {documentId && pageTitle && (
             <div className="mb-2 flex min-w-0 items-center gap-1.5 px-1 text-xs text-muted">
@@ -250,15 +242,15 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
               <span className="truncate font-medium text-foreground/80">{pageTitle}</span>
             </div>
           )}
-          {/* 首页（compact 且还没提问）是一行高的输入框，和服务端输出的占位框同样大小，右侧圆形发送键。 */}
-          <div className={cn('flex items-end gap-2 border border-border bg-field focus-within:border-foreground/30', idle ? 'min-h-28 rounded-2xl p-4' : 'rounded-3xl p-1.5 ps-2.5')}>
+          <div className={cn('flex items-end gap-2 rounded-3xl border border-border bg-field p-2 ps-3 focus-within:border-foreground/30', fullPage && 'nw-qa-composer')}>
+            {messages.length > 0 && <Tooltip delay={300}><Button isIconOnly aria-label={t('新对话')} size="sm" variant="ghost" onPress={restart}><Plus /></Button><Tooltip.Content>{t('新对话')}</Tooltip.Content></Tooltip>}
             <TextArea
               ref={input}
               aria-label={t('问问这个站点的文档…')}
-              className={cn('max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 shadow-none outline-none focus:ring-0', idle && 'text-[15px]')}
+              className="max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 shadow-none outline-none focus:ring-0"
               maxLength={500}
               placeholder={t('问问这个站点的文档…')}
-              rows={idle || welcome ? 2 : 1}
+              rows={fullPage ? 2 : 1}
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(); } }}
@@ -266,19 +258,11 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
             {running ? (
               <Button isIconOnly aria-label={t('停止')} size="sm" variant="secondary" onPress={stop}><Stop /></Button>
             ) : (
-              <Button isIconOnly aria-label={t('发送')} isDisabled={!question.trim()} size={idle ? 'md' : 'sm'} type="submit"><ArrowUp /></Button>
+              <Button isIconOnly aria-label={t('发送')} isDisabled={!question.trim()} size="sm" type="submit"><ArrowUp /></Button>
             )}
-          </div>
-          <div className={cn('mt-2 flex items-center justify-between gap-2 px-1', idle && 'hidden')}>
-            <span className="text-[11px] leading-4 text-muted">{t('回答由 AI 生成，可能有误，请以文档原文为准。')}</span>
-            {messages.length > 0 && <Button className="shrink-0" size="sm" variant="ghost" onPress={restart}><Plus />{t('新对话')}</Button>}
           </div>
         </div>
       </form>
-      {idle && !!suggestions?.length && <div className="nw-home-suggestions" aria-label={t('你可以这样问')}>
-        <span>{t('你可以这样问')}</span>
-        {suggestions.map((text) => <button key={text} type="button" onClick={() => { setQuestion(text); input.current?.focus({ preventScroll: true }); }}>{text}</button>)}
-      </div>}
     </div>
   );
 }
@@ -298,8 +282,8 @@ function group(messages: Message[]): { id: string; question?: Message; answer?: 
 function Answer({ message, last, end, t, onRate }: { message: Message; last: boolean; end: RefObject<HTMLDivElement | null>; t: Translate; onRate: (message: Message, value: 'helpful' | 'unhelpful') => void }) {
   return (
     <div className="me-6 flex flex-col gap-2">
-      {!!message.steps?.length && <Activity active={message.status === 'streaming'} reconnecting={message.reconnecting} steps={message.steps} t={t} />}
-      {/* 回答不放进气泡，直接是正文（Grok 的做法）；出错时才用浅红底。 */}
+      {!!message.steps?.length && <Activity active={message.status === 'streaming'} answerText={message.text} reconnecting={message.reconnecting} steps={message.steps} t={t} />}
+      {/* 回答直接呈现为正文，出错时才使用提示底色。 */}
       <div className={cn('text-sm', message.status === 'error' && !message.error ? 'rounded-2xl bg-danger-soft px-3.5 py-2.5 text-danger-soft-foreground' : 'px-1 text-foreground', message.status === 'streaming' && !message.text && message.steps?.length && 'hidden')}>
         {message.status === 'streaming' && !message.text ? (
           <span className="flex items-center gap-2 text-muted"><Spinner color="current" size="sm" />{t('思考中…')}</span>

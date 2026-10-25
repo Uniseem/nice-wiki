@@ -310,17 +310,4 @@ export function enhancePage(t: Translate, from?: { referrer: string; elapsedMs: 
 export function enhance(t: Translate) {
   announcement();
   enhancePage(t);
-  // 山景只随精确指针轻移，触屏和减少动态效果的访客保持静态。
-  const hero = document.querySelector<HTMLElement>('.nw-home-hero--landscape');
-  if (hero && matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)').matches) {
-    hero.addEventListener('pointermove', (event) => {
-      const bounds = hero.getBoundingClientRect();
-      hero.style.setProperty('--nw-landscape-x', `${(event.clientX - bounds.left - bounds.width / 2) * -0.012}px`);
-      hero.style.setProperty('--nw-landscape-y', `${(event.clientY - bounds.top - bounds.height / 2) * -0.01}px`);
-    });
-    hero.addEventListener('pointerleave', () => {
-      hero.style.removeProperty('--nw-landscape-x');
-      hero.style.removeProperty('--nw-landscape-y');
-    });
-  }
 }

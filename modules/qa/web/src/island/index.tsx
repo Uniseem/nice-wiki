@@ -1,6 +1,5 @@
-import type { HomeWelcome } from './QaChat';
-import { ArrowUp, Comment } from '@gravity-ui/icons';
-import { Button, Card, Spinner } from '@heroui/react';
+import { MessageCircleIcon as Comment } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import { lazy, Suspense, useState } from 'react';
 import type { Translate } from './QaChat';
 
@@ -11,12 +10,10 @@ export type { Translate };
 const loadPanel = () => import('./panel');
 const QaPanel = lazy(() => loadPanel().then((module) => ({ default: module.QaPanel })));
 const QaInlineChat = lazy(() => loadPanel().then((module) => ({ default: module.QaInlineChat })));
-const QaHomeChat = lazy(() => loadPanel().then((module) => ({ default: module.QaHomeChat })));
 
 export function preloadQa() {
   void loadPanel();
 }
-
 // 文档页右下角的问答入口：品牌色渐变的胶囊按钮，带柔光和呼吸光圈（样式在 public-site 的 site.css）；
 // 面板代码还在下载时，按钮原地显示加载状态。documentId 是当前页面，AI 会先读它。
 export function QaFloating({ open, onOpenChange, locale, t, documentId, pageTitle }: { open: boolean; onOpenChange: (open: boolean) => void; locale: string; t: Translate; documentId?: string; pageTitle?: string }) {
@@ -47,20 +44,11 @@ export function QaFloating({ open, onOpenChange, locale, t, documentId, pageTitl
   );
 }
 
-// 独立问答页：同一套对话，嵌在页面正文里。
+// 独立问答页按整页布局，加载过程也不引入卡片外壳。
 export function QaInline({ locale, t }: { locale: string; t: Translate }) {
   return (
-    <Suspense fallback={<Card className="flex min-h-[32rem] flex-1 items-center justify-center"><Spinner /></Card>}>
+    <Suspense fallback={<div className="flex min-h-0 flex-1 items-center justify-center"><Spinner /></div>}>
       <QaInlineChat locale={locale} t={t} />
-    </Suspense>
-  );
-}
-
-// 首页的“问问 AI”：面板代码下载完之前先放一个同样大小的输入框占位，下载完换成可以多轮对话的输入框。
-export function QaHome({ locale, t, welcome }: { locale: string; t: Translate; welcome?: HomeWelcome }) {
-  return (
-    <Suspense fallback={<div className="flex min-h-[6.75rem] flex-col justify-between rounded-3xl border border-border bg-field p-4 text-[15px] text-muted">{t('问问这个站点的文档…')}<span className="ms-auto flex size-9 items-center justify-center rounded-full bg-foreground text-background"><ArrowUp className="size-4" /></span></div>}>
-      <QaHomeChat locale={locale} t={t} welcome={welcome} />
     </Suspense>
   );
 }

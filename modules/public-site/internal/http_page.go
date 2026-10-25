@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"html"
-	"html/template"
 	"net/url"
 	"strings"
 
@@ -110,25 +108,10 @@ type HandleHomeResult struct {
 
 type homePage struct {
 	shell
-	HeroTitle, HeroSubtitle, HeroBackgroundText string
-	HeroBackground, HeroOverlay                 template.CSS
-	HeroDark, HeroCustomColor                   bool
-	WikiURL                                     string
-	Welcome                                     homeWelcome
+	WikiURL string
 }
 
-type homeTopic struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-}
-type homeWelcome struct {
-	Name          string      `json:"name"`
-	Description   string      `json:"description"`
-	Topics        []homeTopic `json:"topics"`
-	DocumentCount int         `json:"documentCount"`
-}
-
-// HandleHome 渲染固定一屏的问答首页，入口指向第一篇已发布文档。
+// HandleHome 渲染固定一屏的欢迎页，提供 Agent 与第一篇已发布文档的入口。
 func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHomeInput) (HandleHomeResult, error) {
 	directory, err := directoryFrom(ctx)
 	if err != nil {
@@ -150,15 +133,6 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 		Config struct {
 			Name string `json:"name"`
 			Home struct {
-				MainTitle      string `json:"mainTitle"`
-				Subtitle       string `json:"subtitle"`
-				BackgroundText string `json:"backgroundText"`
-				OverlayPercent int64  `json:"overlayPercent"`
-				TextColor      string `json:"textColor"`
-				Background     struct {
-					Kind  string `json:"kind"`
-					Color string `json:"color"`
-				} `json:"background"`
 				HeaderLinks []struct {
 					Text string `json:"text"`
 					URL  string `json:"url"`
@@ -170,9 +144,6 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 		return HandleHomeResult{}, dependency("站点首页配置不可读")
 	}
 	home := config.Config.Home
-	if home.OverlayPercent < 0 || home.OverlayPercent > 100 {
-		return HandleHomeResult{}, platform.NewError(platform.CodeValidation, false, "INVALID_HERO")
-	}
 	meta := loadSiteMeta(ctx)
 	homeBase, _ := siteForSEO(ctx)
 	head := "<title>" + html.EscapeString(config.Config.Name) + "</title>"
@@ -188,33 +159,12 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 		Metadata: head, Locale: in.Locale, Announcement: loadAnnouncement(ctx, op), Languages: languageLinks(ctx, "/"+in.Locale+"/", in.Locale),
 		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor, Footer: footerHTML, SourceCodeURL: sourceURL,
 		UIStrings: loadUIStrings(ctx, in.Locale), AIEnabled: qaAvailable(ctx, op), AskURL: "/" + in.Locale + "/ask",
-	}, "home"), HeroTitle: home.MainTitle, HeroSubtitle: home.Subtitle, HeroBackgroundText: home.BackgroundText, HeroDark: home.TextColor == "dark"}
+	}, "home")}
 	if len(nodes) > 0 {
 		page.WikiURL = nodes[0].CanonicalPath
 	}
-	// 开场只介绍当前语言可见的公开目录和既有摘要，打开首页不调用模型。
-	page.Welcome = homeWelcome{Name: page.SiteName, Description: meta.Description, Topics: []homeTopic{}, DocumentCount: len(nodes)}
-	for _, node := range nodes {
-		if node.ParentID != nil || len(page.Welcome.Topics) >= 6 {
-			continue
-		}
-		title, description := []rune(node.Title), []rune(node.SEODescription)
-		page.Welcome.Topics = append(page.Welcome.Topics, homeTopic{string(title[:min(80, len(title))]), string(description[:min(160, len(description))])})
-	}
-	var islandConfig map[string]any
-	if err := json.Unmarshal([]byte(page.Config), &islandConfig); err != nil {
-		return HandleHomeResult{}, dependency("首页引导配置不可读")
-	}
-	islandConfig["welcome"] = page.Welcome
-	encoded, _ := json.Marshal(islandConfig)
-	page.Config = string(encoded)
 	for _, link := range home.HeaderLinks {
 		page.HeaderLinks = append(page.HeaderLinks, Breadcrumb{Label: link.Text, URL: link.URL})
-	}
-	// 默认使用随明暗主题变化的自绘 SVG；纯色背景沿用站长配置。
-	if home.Background.Kind == "color" && hexColor.MatchString(home.Background.Color) {
-		page.HeroBackground, page.HeroCustomColor = template.CSS(home.Background.Color), true
-		page.HeroOverlay = template.CSS(fmt.Sprintf("rgb(0 0 0 / %d%%)", home.OverlayPercent))
 	}
 	rendered, err := render("home", page)
 	if err != nil {

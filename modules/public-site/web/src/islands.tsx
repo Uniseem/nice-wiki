@@ -4,7 +4,7 @@ import type { Key } from '@heroui/react';
 import { rememberLanguage } from './enhance';
 
 export type Language = { tag: string; href: string; label: string; current: boolean; prompt?: Record<string, string> };
-export type Config = { welcome?: { name: string; description: string; topics: { title: string; description: string }[]; documentCount: number }; kind: string; locale: string; documentId: string; aiEnabled: boolean; askUrl: string; languages: Language[] | null; ui: Record<string, string> };
+export type Config = { kind: string; locale: string; documentId: string; aiEnabled: boolean; askUrl: string; languages: Language[] | null; ui: Record<string, string> };
 export type Translate = (key: string) => string;
 
 // 语言名用该语言自己的写法（English、日本語…），浏览器不支持时退回服务端给的名字。
@@ -23,7 +23,7 @@ export function HeaderActions({ config, t, onAsk, onAskIntent, onSearch, onSearc
         <span className="hidden text-muted md:inline">{t('搜索')}</span>
         <kbd className="ms-auto hidden rounded border border-border px-1 font-sans text-[11px] leading-4 text-muted md:inline">{mac ? '⌘K' : 'Ctrl K'}</kbd>
       </Button>}
-      {config.aiEnabled && config.kind !== 'home' && (
+      {config.aiEnabled && config.kind !== 'home' && config.kind !== 'ask' && (
         <Button size="sm" variant="primary" onFocus={onAskIntent} onHoverStart={onAskIntent} onPress={onAsk}>
           <Comment className="sm:hidden" />
           <span className="hidden sm:inline">{t('AI 问答')}</span>

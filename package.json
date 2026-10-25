@@ -28,6 +28,7 @@
     "@tiptap/react": "3.32.0",
     "@tiptap/starter-kit": "3.32.0",
     "katex": "0.16.22",
+    "lucide-react": "1.17.0",
     "react": "19.3.1",
     "react-aria": "3.52.1",
     "react-aria-components": "1.21.1",

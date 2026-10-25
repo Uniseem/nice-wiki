@@ -1,12 +1,13 @@
 import { I18nProvider } from '@heroui/react';
 import { installExternalLinks } from '@ui/links';
-import { preloadQa, QaFloating, QaHome, QaInline } from '@modules/qa/web/src/island';
+import { preloadQa, QaFloating, QaInline } from '@modules/qa/web/src/island';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { enhance, languageHint, suggestLanguage } from './enhance';
 import { HeaderActions, LanguageSuggestion, type Config, type Language } from './islands';
 import { startNavigation } from './navigate';
+import { enhanceWelcome } from './welcome';
 import './site.css';
 
 // 公开页的交互岛：页面由 Go 完整输出，这里用一个 React 根，通过 portal 接管页头操作区与问答区，
@@ -26,7 +27,7 @@ const MobileNav = lazy(loadNav);
 const loadSearch = () => import('./search');
 const Search = lazy(loadSearch);
 
-function Islands({ header, ask, homeAsk }: { header: HTMLElement | null; ask: HTMLElement | null; homeAsk: HTMLElement | null }) {
+function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement | null }) {
   const [config, setConfig] = useState(initialConfig);
   const [askOpen, setAskOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -106,7 +107,6 @@ function Islands({ header, ask, homeAsk }: { header: HTMLElement | null; ask: HT
       {navUsed && <Suspense fallback={null}><MobileNav open={navOpen} t={t} onOpenChange={setNavOpen} /></Suspense>}
       {config.aiEnabled && !ask && config.kind !== 'home' && <QaFloating documentId={config.documentId || undefined} locale={config.locale} open={askOpen} pageTitle={pageTitle(config)} t={t} onOpenChange={setAskOpen} />}
       {config.aiEnabled && ask && createPortal(<QaInline locale={config.locale} t={t} />, ask)}
-      {config.aiEnabled && homeAsk && createPortal(<QaHome locale={config.locale} t={t} welcome={config.welcome} />, homeAsk)}
       {suggested && <LanguageSuggestion config={config} t={t} target={suggested} onClose={() => setSuggested(null)} />}
     </I18nProvider>
   );
@@ -114,15 +114,14 @@ function Islands({ header, ask, homeAsk }: { header: HTMLElement | null; ask: HT
 
 const header = document.getElementById('nw-header');
 const ask = document.getElementById('nw-ask');
-const homeAsk = document.getElementById('nw-home-ask');
 // 服务端放在这几处的是无脚本时的退路内容，由 React 接管后清掉。
 header?.replaceChildren();
 ask?.replaceChildren();
-homeAsk?.replaceChildren();
 const host = document.createElement('div');
 host.id = 'nw-qa-root';
 document.body.append(host);
-createRoot(host).render(<Islands ask={ask} header={header} homeAsk={homeAsk} />);
+createRoot(host).render(<Islands ask={ask} header={header} />);
 enhance(t);
+enhanceWelcome();
 installExternalLinks();
 startNavigation(t);

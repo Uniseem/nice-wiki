@@ -21,14 +21,14 @@
     {{if .HasNav}}<button type="button" class="button button--ghost button--sm button--icon-only lg:hidden" data-open-nav aria-label="{{.T "打开文档树"}}">{{template "icon-menu"}}</button>{{end}}
     <a href="{{.HomeURL}}" class="nw-brand flex min-w-0 items-center gap-2.5 rounded-xl font-semibold text-foreground">
       {{if .LogoURL}}<img src="{{.LogoURL}}" alt="" class="h-8 w-auto max-w-32 object-contain">{{else}}<img src="{{.Mark}}" alt="" class="size-8 shrink-0">{{end}}
-      <span class="truncate">{{.SiteName}}</span>
+      <span class="{{if eq .Kind "home"}}sr-only{{else}}truncate{{end}}">{{.SiteName}}</span>
     </a>
     {{if .HeaderLinks}}
     <nav class="nw-home-links ms-auto hidden md:flex" aria-label="{{.T "链接"}}">{{range .HeaderLinks}}<a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Label}}</a>{{end}}</nav>
     <details class="nw-home-links-menu relative ms-auto md:hidden"><summary class="button button--ghost button--sm">{{.T "链接"}}</summary><nav aria-label="{{.T "链接"}}">{{range .HeaderLinks}}<a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Label}}</a>{{end}}</nav></details>
     {{end}}
     <div class="{{if not .HeaderLinks}}ms-auto {{end}}flex shrink-0 items-center gap-1" id="nw-header">
-      {{if and .AIEnabled (ne .Kind "home")}}<a class="button button--primary button--sm" href="{{.AskURL}}"><span class="size-4 sm:hidden [&>svg]:size-full">{{template "icon-comment"}}</span><span class="hidden sm:inline">{{.T "AI 问答"}}</span></a>{{end}}
+      {{if and .AIEnabled (ne .Kind "home") (ne .Kind "ask")}}<a class="button button--primary button--sm" href="{{.AskURL}}"><span class="size-4 sm:hidden [&>svg]:size-full">{{template "icon-comment"}}</span><span class="hidden sm:inline">{{.T "AI 问答"}}</span></a>{{end}}
       {{if gt (len .Languages) 1}}<span class="hidden sm:inline-flex items-center gap-1">{{range .Languages}}<a class="button button--ghost button--sm {{if .Current}}text-accent{{end}}" href="{{.Href}}" hreflang="{{.Tag}}">{{.Label}}</a>{{end}}</span>{{end}}
     </div>
   </div>
@@ -36,7 +36,7 @@
 {{end}}
 
 {{define "foot"}}
-{{if ne .Kind "home"}}<footer class="nw-site-footer mt-auto border-t border-separator">
+{{if and (ne .Kind "home") (ne .Kind "ask")}}<footer class="nw-site-footer mt-auto border-t border-separator">
   <div class="nw-footer-inner mx-auto w-full">
     <a class="nw-footer-brand" href="{{.HomeURL}}">{{.SiteName}}</a>
     <nav class="flex flex-wrap gap-x-8 gap-y-3 text-sm text-muted" aria-label="{{.T "文档"}}">
@@ -100,28 +100,27 @@
 {{template "foot" .}}{{end}}
 
 {{define "ask"}}{{template "head" .}}
-<div class="nw-reading-layout mx-auto flex w-full flex-1 items-start gap-10 px-4 sm:px-6">
-  {{template "sidebar" .}}
-  <main class="flex min-w-0 flex-1 flex-col py-8 lg:py-12" id="nw-main">
-    <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6">
-      <div>
-        <h1 class="nw-document-title">{{.T "AI 问答"}}</h1>
-        <p class="mt-2 text-muted">{{if .AIEnabled}}{{.T "向这个站点的文档提问，回答会附上来源。"}}{{else}}{{.T "公开问答暂未开放。"}}{{end}}</p>
-      </div>
-      {{if .AIEnabled}}<div class="flex min-h-[28rem] flex-1 flex-col" id="nw-ask"><noscript><p class="text-sm text-muted">{{.T "需要启用 JavaScript 才能使用 AI 问答。"}}</p></noscript></div>{{end}}
-    </div>
-  </main>
-</div>
+<main class="nw-agent-main" id="nw-main" aria-label="{{.T "AI 问答"}}">
+  {{if .AIEnabled}}<div id="nw-ask" class="flex min-h-0 flex-1 flex-col"><noscript><p>{{.T "需要启用 JavaScript 才能使用 AI 问答。"}}</p></noscript></div>
+  {{else}}<p class="m-auto text-muted">{{.T "公开问答暂未开放。"}}</p>{{end}}
+</main>
 {{template "foot" .}}{{end}}
 
-{{/* 首页以完整AI对话为主，公开目录提供无模型调用的开场引导。 */}}
+{{/* 首页只呈现欢迎与两种阅读入口；打开页面不调用模型。 */}}
 {{define "home"}}{{template "head" .}}
-<main class="nw-home-agent-main" id="nw-main">
-  <section class="nw-home-conversation" aria-label="{{.T "AI 问答"}}">
-    <header class="nw-home-conversation-header"><div class="flex min-w-0 items-center gap-2.5"><span class="nw-home-assistant-mark" aria-hidden="true">{{template "icon-comment"}}</span><span class="truncate text-sm font-semibold">{{.SiteName}} · {{.T "AI 问答"}}</span></div>{{if .WikiURL}}<a class="button button--secondary button--sm" href="{{.WikiURL}}">{{.T "进入文档"}}<span aria-hidden="true">↗</span></a>{{end}}</header>
-    {{if .AIEnabled}}<div id="nw-home-ask" class="flex min-h-0 flex-1 flex-col"><div class="nw-home-welcome-fallback"><p class="mb-3 text-xs text-muted">{{.T "你可以这样问"}}</p><h1>{{.T "从一个问题开始"}}</h1>{{if .Welcome.Description}}<p>{{.Welcome.Description}}</p>{{end}}<p>{{.T "直接告诉我你想了解什么，我会查阅文档、整理答案并附上来源。"}}</p><div class="nw-home-topic-grid">{{range .Welcome.Topics}}<div><strong>{{.Title}}</strong>{{if .Description}}<p>{{.Description}}</p>{{end}}</div>{{end}}</div><noscript><p>{{.T "需要启用 JavaScript 才能使用 AI 问答。"}}</p></noscript></div></div>
-    {{else}}<div class="nw-home-welcome-fallback"><h1>{{.T "从一个问题开始"}}</h1>{{if .Welcome.Description}}<p>{{.Welcome.Description}}</p>{{end}}<div class="nw-home-topic-grid">{{range .Welcome.Topics}}<div><strong>{{.Title}}</strong><p>{{.Description}}</p></div>{{end}}</div><p>{{.T "公开问答暂未开放。"}}</p></div>{{end}}
-  </section>
+<main class="nw-welcome" id="nw-main">
+  <div class="nw-welcome-outline" aria-hidden="true"><span>{{.T "欢迎来到"}}</span></div>
+  <h1 class="nw-welcome-name">{{.SiteName}}</h1>
+  <nav class="nw-welcome-choices" aria-label="{{.T "阅读方式"}}">
+    <a class="nw-welcome-choice" href="{{.AskURL}}" data-home-choice="agent">
+      <span class="nw-welcome-choice-title">{{.T "拥抱未来"}}<span class="nw-welcome-arrow" aria-hidden="true">{{template "icon-chevron"}}</span></span>
+      <span class="nw-welcome-choice-description">{{.T "使用 Agent 阅读 wiki"}}</span>
+    </a>
+    <a class="nw-welcome-choice" {{if .WikiURL}}href="{{.WikiURL}}" data-home-choice="docs"{{else}}role="link" aria-disabled="true"{{end}}>
+      <span class="nw-welcome-choice-title">{{.T "坚守传统"}}<span class="nw-welcome-arrow" aria-hidden="true">{{template "icon-chevron"}}</span></span>
+      <span class="nw-welcome-choice-description">{{.T "自己阅读 wiki"}}</span>
+    </a>
+  </nav>
 </main>
 {{template "foot" .}}{{end}}
 

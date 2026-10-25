@@ -18,6 +18,9 @@ const katexAssets = () => ({
   name: 'katex-assets',
   closeBundle() {
     cpSync(resolve(root, 'docs/licenses/lora-OFL.txt'), resolve(out, 'lora-OFL.txt'));
+    for (const name of ['ZCode-Apache-2.0.txt', 'ZCode-NOTICE.txt', 'lucide-react-1.17.0-LICENSE.txt']) {
+      cpSync(resolve(root, 'docs/licenses', name), resolve(out, name));
+    }
     for (const name of ['katex.min.js', 'katex.min.css', 'fonts']) {
       cpSync(resolve(root, 'node_modules/katex/dist', name), resolve(out, 'katex', name), { recursive: true });
     }
