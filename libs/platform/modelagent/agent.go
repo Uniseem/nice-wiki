@@ -110,8 +110,9 @@ func Run(ctx context.Context, config Config) (Result, error) {
 			text = *output.Text
 		}
 		result.Messages = append(result.Messages, platform.GatewayMessage{Role: "assistant", Content: text, ToolCalls: output.ToolCalls})
-		maximum := min(60000, config.MaximumToolResultBytes)
-		maximum = max(4096, maximum/len(output.ToolCalls))
+		batchBytes := max(4096, min(60000, config.MaximumToolResultBytes))
+		batchTooLarge := len(output.ToolCalls) > max(1, batchBytes/4096)
+		maximum := max(4096, batchBytes/len(output.ToolCalls))
 		for _, call := range output.ToolCalls {
 			if err := ctx.Err(); err != nil {
 				return result, err
@@ -133,6 +134,8 @@ func Run(ctx context.Context, config Config) (Result, error) {
 			if stop || result.ToolCalls >= config.MaximumToolCalls || repeated[key] > 3 {
 				tool = ToolResult{Content: `{"error":"TOOL_LIMIT","message":"本轮已达到查阅边界，请用已有材料回答并说明未知部分。"}`, Title: "查阅结束"}
 				stop = true
+			} else if batchTooLarge {
+				tool = ToolResult{Content: `{"error":"TOOL_BATCH_WINDOW","message":"本批工具数量超过可读窗口，请拆成更小的批次重新调用。"}`, Title: "请分批查阅", IsError: true}
 			} else if !reused {
 				tool, err = config.Execute(ctx, call, maximum)
 				if err != nil {

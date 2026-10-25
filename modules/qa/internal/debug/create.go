@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -164,14 +163,16 @@ func executeDebug(ctx context.Context, op OperationContext, record gen.DebugTurn
 	if err != nil {
 		return err
 	}
-	checked, err := qaruntime.ValidateCitations(ctx, op, generated.Citations, input.Language)
+	text, citations := answer.FinalizeCitations(generated.Text, generated.Citations)
+	checked, err := qaruntime.ValidateCitations(ctx, op, citations, input.Language)
 	if err != nil {
 		return err
 	}
+	if text != generated.Text {
+		emit(gen.AnswerEvent{Event: "invalidate"})
+		emit(gen.AnswerEvent{Event: "delta", Delta: &text})
+	}
 	for _, citation := range checked {
-		if !strings.Contains(generated.Text, citation.CitationId) {
-			continue
-		}
 		c := citation
 		emit(gen.AnswerEvent{Event: gen.AnswerEventEvent("citation"), Citation: &c})
 	}

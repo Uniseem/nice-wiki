@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -156,10 +155,10 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 		query = canonical.Normalized
 	}
 	step(gen.Understand, gen.Done, "理解问题", query, nil)
-	// 全站概括（每天由层级摘要合成）：回答模型用基准语言版，Jev 用英文版判断问题是否属于本站；读不到不影响本轮。
+	// 全站概括供主模型识别本站主题；范围与注入要求由同一回答提示处理。
 	overview, _ := qaruntime.ReadSiteOverview(ctx, op)
 	// 判断与复用：可共享的问题（完整、不依赖访客私人上下文，“这页”已写明成具体文档）先按完整问题精确匹配缓存；
-	// 没命中时由 Jev 一次判断问题类型，并从缓存问答里挑能原样复用的一条（文档页也一样）。
+	// 没命中时由快速文本模型一次比较同语言的完整问题，不再调用专用决策模型。
 	cacheable := planned != nil && planned.cacheable && resolved.Policy.CacheEnabled
 	var reused *gen.CacheEntry
 	reuseKind := "exact"
@@ -167,10 +166,9 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 		step(gen.Cache, gen.Running, "查找已有回答", "", nil)
 		reused = exactCached(ctx, op, record, resolved, planned, conversation.Summary == "" && len(conversation.Messages) == 0)
 	}
-	assessment := turnAssessment{intent: "docs"}
-	if reused == nil {
-		assessment = assessTurn(ctx, op, record, resolved, planned, cacheable, currentDocument, overview)
-		reused, reuseKind = assessment.reuse, "semantic"
+	if cacheable && reused == nil {
+		reused = equivalentCached(ctx, op, record, resolved, planned)
+		reuseKind = "semantic"
 	}
 	if cacheable {
 		if reused != nil {
@@ -180,27 +178,24 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 		step(gen.Cache, gen.Skipped, "查找已有回答", "", nil)
 	}
 	// 全站导航预载一次；模型随后自行选择搜索、分区指南和正文读取。
-	disableTools := assessment.intent == "smalltalk" || assessment.intent == "off_topic" || assessment.intent == "injection"
 	guide := ""
-	if !disableTools {
-		step(gen.Search, gen.Running, "阅读全站指南", "", nil)
-		guideBytes := 16000
-		if window, windowErr := qaruntime.ResolveTaskWindow(ctx, op, task); windowErr == nil && window > 0 {
-			guideBytes = min(guideBytes, max(4096, window/5))
-		}
-		read, guideErr := answer.ReadAgentGuide(ctx, op, "", 0, guideBytes)
-		if guideErr == nil {
-			guide = read.Content
-			step(gen.Search, gen.Done, "阅读全站指南", "", []string{read.Title})
-		} else {
-			step(gen.Search, gen.Skipped, "阅读全站指南", "", nil)
-		}
+	step(gen.Search, gen.Running, "阅读全站指南", "", nil)
+	guideBytes := 16000
+	if window, windowErr := qaruntime.ResolveTaskWindow(ctx, op, task); windowErr == nil && window > 0 {
+		guideBytes = min(guideBytes, max(4096, window/5))
+	}
+	read, guideErr := answer.ReadAgentGuide(ctx, op, "", 0, guideBytes)
+	if guideErr == nil {
+		guide = read.Content
+		step(gen.Search, gen.Done, "阅读全站指南", "", []string{read.Title})
+	} else {
+		step(gen.Search, gen.Skipped, "阅读全站指南", "", nil)
 	}
 	if _, err := takeState(ctx, op, turnID, lease, "generating"); err != nil {
 		return err
 	}
 	step(gen.Answer, gen.Running, "生成回答", "", nil)
-	prompt, err := answerPrompt(ctx, op, record, resolved, answer.Materials{Overview: overview.Text, Page: page.EvidenceText, Evidence: "[]", Intent: assessment.intent, Agent: true, Guide: guide}, conversation, task)
+	prompt, err := answerPrompt(ctx, op, record, resolved, answer.Materials{Overview: overview.Text, Page: page.EvidenceText, Evidence: "[]", Agent: true, Guide: guide}, conversation, task)
 	if err != nil {
 		return err
 	}
@@ -211,7 +206,7 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	readTitles := []string{}
 	generated, err := answer.GenerateAgentAnswer(ctx, op, answer.AgentAnswerInput{
 		TurnID: turnID, TaskID: task, ProfileID: profile, Language: record.Language, Policy: resolved.Policy, Prompt: prompt,
-		Citations: append(page.Citations, conversation.AgentCitations()...), DisableTools: disableTools,
+		Citations: append(page.Citations, conversation.AgentCitations()...),
 		OnToolRound: func(ctx context.Context, output platform.ModelOutput) error {
 			if output.Text != nil && *output.Text != "" {
 				_, err := stream.AppendAnswerEvent(ctx, op, stream.AppendAnswerEventInput{TurnID: turnID, LeaseID: lease, Event: gen.AnswerEvent{Event: "invalidate"}})
@@ -235,8 +230,7 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	if err != nil {
 		return err
 	}
-	text := generated.Text
-	citations := usedCitations(text, generated.Citations)
+	text, citations := answer.FinalizeCitations(generated.Text, generated.Citations)
 	if err := history.SaveAgentTurn(ctx, op, turnID, history.AgentTurn{Messages: generated.Messages, Citations: generated.Citations}); err != nil {
 		return err
 	}
@@ -257,8 +251,8 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	if _, err = CompleteTurn(ctx, op, CompleteTurnInput{TurnID: turnID, Answer: text, Citations: citations, LeaseID: lease, AnswerKind: kind, TokenCount: len(text)/4 + 1}); err != nil {
 		return err
 	}
-	if cacheable && kind == "answered" && assessment.intent != "injection" {
-		writeCache(ctx, op, turnID, planned, text, resolved.Memory.VersionHash, currentDocument)
+	if cacheable && kind == "answered" {
+		writeCache(ctx, op, turnID, planned, text, resolved.Memory.VersionHash)
 	}
 	return nil
 }
@@ -422,7 +416,7 @@ func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.Tur
 		}
 		return prompt, nil
 	}
-	fixed := platform.EstimateMessageTokens([]platform.GatewayMessage{prompt.Messages[0], prompt.Messages[len(prompt.Messages)-1]})
+	fixed := platform.EstimateMessageTokens(prompt.Messages) - platform.EstimateMessageTokens(conversation.ForGateway())
 	keep := max(0, min(policy.RetainedRecentTokens, budget-fixed-summaryRoom))
 	if messages := conversation.ForGateway(); len(prompt.Messages) >= 180 && len(messages) > 0 {
 		keep = min(keep, platform.EstimateMessageTokens(messages)*100/len(messages))
@@ -484,19 +478,6 @@ func clip(text string, limit int) string {
 		return text
 	}
 	return string([]rune(text)[:limit])
-}
-
-// usedCitations 只留回答里真正引用到的材料。一处都没引用的回答（通常是“文档未提及”）不列来源，记为无依据，也不进缓存。
-func usedCitations(text string, all []gen.Citation) []gen.Citation {
-	used := []gen.Citation{}
-	seen := map[string]bool{} // 当前页分块和检索结果可能是同一段（引用标识相同），只留一份
-	for _, citation := range all {
-		if !seen[citation.CitationId] && strings.Contains(text, citation.CitationId) {
-			seen[citation.CitationId] = true
-			used = append(used, citation)
-		}
-	}
-	return used
 }
 
 // materialBudget 是整篇读取时本轮材料的词元上限（网关估算口径）：策略里的“上下文最大词元”，且不超过回答模型可用窗口的三分之一，给记忆、摘要和历史留位置。

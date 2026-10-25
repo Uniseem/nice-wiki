@@ -379,9 +379,6 @@ var AITierCapabilities = map[string][]string{
 	"accurate": []string{
 		"chat",
 	},
-	"decision": []string{
-		"decision",
-	},
 	"embedding": []string{
 		"embedding",
 	},
@@ -413,9 +410,6 @@ var AITaskCatalog = map[string]AITaskEntry{
 	"knowledge.context": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{
 		"chat",
 	}},
-	"knowledge.decide": {Owner: "knowledge", DefaultTier: "decision", RequiredCapabilities: []string{
-		"decision",
-	}},
 	"knowledge.describe": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{
 		"chat",
 	}},
@@ -440,8 +434,8 @@ var AITaskCatalog = map[string]AITaskEntry{
 	"localization.review": {Owner: "localization", DefaultTier: "accurate", RequiredCapabilities: []string{
 		"chat",
 	}},
-	"localization.suggest": {Owner: "localization", DefaultTier: "decision", RequiredCapabilities: []string{
-		"decision",
+	"localization.suggest": {Owner: "localization", DefaultTier: "fast", RequiredCapabilities: []string{
+		"chat",
 	}},
 	"localization.terms": {Owner: "localization", DefaultTier: "accurate", RequiredCapabilities: []string{
 		"chat",
@@ -468,12 +462,6 @@ var AITaskCatalog = map[string]AITaskEntry{
 		"chat",
 	}},
 	"qa.compact": {Owner: "qa", DefaultTier: "fast", RequiredCapabilities: []string{
-		"chat",
-	}},
-	"qa.decide": {Owner: "qa", DefaultTier: "decision", RequiredCapabilities: []string{
-		"decision",
-	}},
-	"qa.english": {Owner: "qa", DefaultTier: "fast", RequiredCapabilities: []string{
 		"chat",
 	}},
 	"qa.inspect": {Owner: "knowledge", DefaultTier: "fast", RequiredCapabilities: []string{

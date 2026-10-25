@@ -1,21 +1,20 @@
 // OpenRouter 一键配置：只填一个密钥，供应方、模型、档位、任务分配，以及知识索引、防滥用和公开问答一次配好。
-// 决策用 TypeSafe Jev，向量用 text-embedding-3-small，其余（快速、准确、视觉）都用 DeepSeek Flash。
+// 向量用 text-embedding-3-small，其余（快速、准确、视觉）都用 DeepSeek Flash。
 import { Button, Form, Modal } from '@heroui/react';
 import { api, ApiError, newKey, notify, TextInput, useAction, t } from '@ui';
 import { guardDefaults } from '@modules/traffic-guard/web/src';
 import { useState } from 'react';
 
-// 任务目录与 contracts/ai-tasks.json 一致（26 项）；新增任务时这里要同步。
+// 任务目录与 contracts/ai-tasks.json 一致（23 项）；新增任务时这里要同步。
 export const tasks: [string, string, string][] = [
   ['qa.preflight', 'fast', t('前置分类、改写、完整性与风险')], ['qa.inspect', 'fast', t('检索核查')], ['qa.answer', 'accurate', t('最终回答')],
-  ['qa.answer-fast', 'fast', t('简单问题的快速回答')], ['qa.decide', 'decision', t('每轮问答决策（意图、风险、难度）')],
-  ['qa.english', 'fast', t('访客问题译成英文（供决策模型）')],
+  ['qa.answer-fast', 'fast', t('简单问题的快速回答')],
   ['qa.cache-match', 'fast', t('缓存同义复用判断')], ['qa.cache-translate', 'fast', t('缓存回答翻译')], ['qa.compact', 'fast', t('对话增量压缩')],
-  ['knowledge.context', 'fast', t('检索单元背景上下文')], ['knowledge.summary', 'fast', t('文档卡片（摘要、主题、能回答的问题）')], ['knowledge.decide', 'decision', t('知识索引决策（旧卡片是否仍准确）')], ['knowledge.describe', 'fast', t('文字附件/视频公开元信息描述')],
+  ['knowledge.context', 'fast', t('检索单元背景上下文')], ['knowledge.summary', 'fast', t('文档卡片（摘要、主题、能回答的问题）')], ['knowledge.describe', 'fast', t('文字附件/视频公开元信息描述')],
   ['knowledge.describe-visual', 'vision', t('图片、画板、视频封面视觉描述')], ['knowledge.extract-attachment', 'vision', t('非文本附件内容提取')],
   ['knowledge.embed', 'embedding', t('生成向量')], ['knowledge.rerank', 'rerank', t('召回重排')],
   ['localization.document', 'accurate', t('块级文档翻译')], ['localization.ui', 'accurate', t('站点/界面文字翻译')], ['localization.terms', 'accurate', t('首次文档术语抽取')],
-  ['localization.review', 'accurate', t('可选反思润色')], ['localization.suggest', 'decision', t('语言切换建议')],
+  ['localization.review', 'accurate', t('可选反思润色')], ['localization.suggest', 'fast', t('语言切换建议')],
   ['memory.overview', 'fast', t('项目概述维护')], ['memory.assistant', 'accurate', t('记忆助手')],
   ['content.slug', 'fast', t('首次发布路径名')], ['content.seo', 'fast', t('首次发布 SEO 描述')],
 ];
@@ -30,10 +29,9 @@ const providerId = 'openrouter';
 const baseUrl = 'https://openrouter.ai/api/v1';
 const presetModels = [
   { modelId: 'deepseek-flash', providerModelVersion: '~deepseek/deepseek-flash-latest', capabilities: ['chat', 'vision'], dimension: 0, preprocessorVersion: 'none', maxInputTokens: 1048576, maxOutputTokens: 65536 },
-  { modelId: 'jev', providerModelVersion: 'typesafe/jev-1.14', capabilities: ['decision'], dimension: 0, preprocessorVersion: 'none', maxInputTokens: 1000000, maxOutputTokens: 0 },
   { modelId: 'text-embedding-3-small', providerModelVersion: 'openai/text-embedding-3-small', capabilities: ['embedding'], dimension: 1536, preprocessorVersion: 'none;tiktoken-go@v0.7.0;cl100k_base', maxInputTokens: 8191, maxOutputTokens: 0 },
 ];
-const tierModel: Record<string, string> = { fast: 'deepseek-flash', accurate: 'deepseek-flash', vision: 'deepseek-flash', embedding: 'text-embedding-3-small', decision: 'jev' };
+const tierModel: Record<string, string> = { fast: 'deepseek-flash', accurate: 'deepseek-flash', vision: 'deepseek-flash', embedding: 'text-embedding-3-small' };
 const costClasses = ['qa', 'background', 'admin-probe'];
 const concurrency = 32;
 const requestTimeout = 180000;
@@ -167,7 +165,7 @@ export function OpenRouterSetupDialog({ onClose, onDone }: { onClose: () => void
           <Modal.Header><Modal.Heading>{t('OpenRouter 一键配置')}</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); if (secret.trim()) void submit(); }}>
             <Modal.Body className="flex flex-col gap-4">
-              <p className="text-sm leading-6 text-muted">{t('填入 OpenRouter 的 API 密钥，一次配好全部 AI：决策用 Jev，向量用 text-embedding-3-small，其余都用 DeepSeek Flash；同时开启知识索引并为已发布文档建索引、保存防滥用默认值、打开公开问答。之后翻译和索引都会自动进行。')}</p>
+              <p className="text-sm leading-6 text-muted">{t('填入 OpenRouter 的 API 密钥，一次配好全部 AI，并开启知识索引、防滥用和公开问答。之后翻译和索引都会自动进行。')}</p>
               <TextInput isRequired autoComplete="off" description={t('只在提交时传输一次，保存后加密存放，界面不会再显示。')} label={t('OpenRouter API 密钥')} type="password" value={secret} onChange={setSecret} />
               {current && <p className="text-sm text-muted">{t('正在{0}…', current)}</p>}
               {results && (

@@ -24216,6 +24216,12 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/model-gateway/migrations/018_retire_decision_tasks.sql",
+      "kind": "handwritten",
+      "purpose": "退役专用决策任务并把语言建议迁移到快速文本档",
+      "functions": []
     }
   ],
   "jobHandlers": {

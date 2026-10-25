@@ -18,12 +18,12 @@ type CacheRecord struct {
 }
 
 // ScopeHash 是缓存答案的适用范围。版本号随回答方式（检索流程、提示词）的大改升级：
-// v2 起是混合检索 + 当前页 + 全站概括的回答，旧流程缓存的答案不再命中，按保留期自然过期。
+// v3 起由主agent提示处理资料边界、离题与注入；旧提示流程的答案不再命中，按保留期自然过期。
 func ScopeHash(op OperationContext, policy gen.TypesQaPolicy, language string) string {
 	raw, _ := platform.CanonicalJSON(struct {
 		Site, Epoch, Version, Language string
 		Space                          gen.EmbeddingSpace
-	}{op.Actor.SiteID, op.DataEpoch, "qa.answer.v2", language, policy.RetrievalSpace})
+	}{op.Actor.SiteID, op.DataEpoch, "qa.answer.v3", language, policy.RetrievalSpace})
 	return platform.HashBytes(raw)
 }
 func ReadCache(tx *qaruntime.Transaction, op OperationContext, id string) (CacheRecord, error) {

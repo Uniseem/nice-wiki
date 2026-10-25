@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 86 个：手写 71、UI 1、生成 4、配置 6、迁移 4。函数 250 个：约束 45，参考 205。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 87 个：手写 72、UI 1、生成 4、配置 6、迁移 4。函数 250 个：约束 45，参考 205。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -92,3 +92,4 @@
 | `modules/model-gateway/internal/admin/observations.go` | 手写 | 无ledger调用/独立attempt/held安全完整观察，和posted共享时间线上界 | `model-gateway.ReadUsageObservation`（参考） |
 | `modules/model-gateway/web/src/index.tsx` | UI | 模型接入：供应方与密钥、模型、档位、任务分配，一键生成档位与分配 | `model-gateway.ModelsPage` |
 | `modules/model-gateway/internal/catalog/discover.go` | 手写 | 参照 opencode 的供应方接入：内置 models.dev 目录里的供应方列表，以及按已存密钥拉取供应方当前可用模型并用目录补全。 | `model-gateway.ReadProviderCatalog`、`model-gateway.DiscoverProviderModels` |
+| `modules/model-gateway/migrations/018_retire_decision_tasks.sql` | 手写 | 退役专用决策任务并把语言建议迁移到快速文本档 | 无 |

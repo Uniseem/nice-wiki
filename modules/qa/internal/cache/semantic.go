@@ -184,20 +184,6 @@ func equivalent(ctx context.Context, op OperationContext, runtime qaruntime.Runt
 	return decision.Equivalent, nil
 }
 
-// ConfirmReuse 复核决策模型挑中的缓存答案：两个问题必须真的问同一件事才复用。
-// 决策模型挑选时只看英文问题和提问页面，可能把同一页上的不同问题当成一样（例如都在 SSH 教程页上问的）。
-func ConfirmReuse(ctx context.Context, op OperationContext, question string, entry gen.CacheEntry) (bool, error) {
-	runtime, err := qaruntime.FromContext(ctx)
-	if err != nil {
-		return false, err
-	}
-	memory, err := qaruntime.ResolveTaskMemory(ctx, op, "qa.cache-match", runtime.BaseLanguage)
-	if err != nil {
-		return false, err
-	}
-	return equivalent(ctx, op, runtime, memory, question, entry)
-}
-
 // cosineSimilarity 只比较同维有限且非零的向量；缩放后求范数避免平方溢出。
 func cosineSimilarity(a, b []float64) (float64, error) {
 	if len(a) == 0 || len(a) != len(b) {

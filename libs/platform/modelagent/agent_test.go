@@ -42,6 +42,35 @@ func TestAgentReadsAndMakesRoomForLatestResult(t *testing.T) {
 	}
 }
 
+func TestOversizedToolBatchCanBeSplitWithoutExecutingIt(t *testing.T) {
+	config := agentTestConfig()
+	executed := 0
+	config.Execute = func(context.Context, platform.GatewayToolCall, int) (ToolResult, error) {
+		executed++
+		return ToolResult{Content: "公开正文"}, nil
+	}
+	config.Invoke = func(_ context.Context, round int, messages []platform.GatewayMessage, choice string) (platform.ModelOutput, error) {
+		if round == 0 {
+			calls := []platform.GatewayToolCall{}
+			for i := 0; i < 4; i++ {
+				calls = append(calls, platform.GatewayToolCall{ID: "batch" + strconv.Itoa(i), Name: "read_document", Arguments: `{"documentId":"` + strconv.Itoa(i) + `"}`})
+			}
+			return platform.ModelOutput{FinishReason: "tool_calls", ToolCalls: calls}, nil
+		}
+		if round == 1 {
+			if executed != 0 || !strings.Contains(messages[len(messages)-1].Content, "TOOL_BATCH_WINDOW") {
+				t.Fatal("过大批次被执行或没有返回拆批提示")
+			}
+			return platform.ModelOutput{FinishReason: "tool_calls", ToolCalls: []platform.GatewayToolCall{{ID: "split", Name: "read_document", Arguments: `{"documentId":"0"}`}}}, nil
+		}
+		return agentFinal("完成"), nil
+	}
+	result, err := Run(context.Background(), config)
+	if err != nil || executed != 1 || result.ToolCalls != 5 {
+		t.Fatalf("拆批没有正常继续：executed=%d calls=%d err=%v", executed, result.ToolCalls, err)
+	}
+}
+
 func TestAgentStopsOnCancellationAndUnknownTools(t *testing.T) {
 	for _, unknown := range []bool{false, true} {
 		config := agentTestConfig()

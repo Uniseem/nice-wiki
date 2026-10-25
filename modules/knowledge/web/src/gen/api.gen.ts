@@ -1053,7 +1053,7 @@ export interface components {
             originalQuestion: string;
             /** @description 完整基准语言问题 */
             canonicalQuestion: string;
-            /** @description canonicalQuestion 的英文译文，给只读英文的决策模型（Jev）判断能否复用缓存答案；前置没给出时缺省 */
+            /** @description 旧计划兼容字段；当前前置改写和缓存匹配不再需要英文译文 */
             englishQuestion?: string;
             /** @description 回答语言 */
             visitorLanguage: string;
@@ -1439,7 +1439,7 @@ export interface components {
         ReadSiteOverviewResult: {
             /** @description 全站概括；还没生成时为空字符串 */
             overview: string;
-            /** @description 全站概括的英文版，给只读英文的决策模型（Jev）判断问题是否属于本站；还没生成时为空字符串 */
+            /** @description 旧客户端兼容字段；当前链路不再为概括额外调用模型翻译，英文基准站点使用原文 */
             englishOverview?: string;
             /** @description 最近生成时间；没生成过不提供 */
             updatedAt?: components["schemas"]["Timestamp"];

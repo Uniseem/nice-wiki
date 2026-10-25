@@ -21,8 +21,7 @@ type questionPlan struct {
 	cacheable bool
 }
 
-// planQuestion 得到本轮的独立问题并判断能否共享缓存。每轮决策判定“不看上文也能懂”且访客用基准语言时，
-// 直接用规范化后的原话，不调文本模型；否则运行前置改写（fast 档位）把问题改写成基准语言的独立问题。
+// planQuestion 用快速文本模型把追问改写成基准语言的独立问题，并判断能否共享缓存。
 // 风险准入类错误（封禁/限流/需验证）照常终止本轮；其他失败（未分配档位、模型不可用、结构不合格）只是没有改写结果。
 func planQuestion(ctx context.Context, op OperationContext, turnID string, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, summary string, history []gen.Message, pageTitle string) (*questionPlan, context.Context, error) {
 	runtime, err := qaruntime.FromContext(ctx)
@@ -36,7 +35,7 @@ func planQuestion(ctx context.Context, op OperationContext, turnID string, recor
 	runtime.FastProfileID = profile
 	runtime.AnswerMemoryHash = resolved.Memory.VersionHash // 缓存条目要与当前回答记忆版本一致才能复用
 	ctx = qaruntime.WithRuntime(ctx, runtime)
-	planned, err := questioncontext.PlanQuestion(ctx, op, questioncontext.PlanQuestionInput{Question: record.Question, VisitorLanguage: record.Language, History: history, PreviousSummary: summary, CurrentPageTitle: pageTitle, GuardSignals: []string{}, SkipRiskReport: false})
+	planned, err := questioncontext.PlanQuestion(ctx, op, questioncontext.PlanQuestionInput{Question: record.Question, VisitorLanguage: record.Language, History: history, PreviousSummary: summary, CurrentPageTitle: pageTitle, GuardSignals: []string{}})
 	if err != nil {
 		if failure, ok := err.(*platform.Error); ok && (failure.Code == platform.CodeForbidden || failure.Code == platform.CodeRateLimited || failure.Code == platform.CodeChallengeRequired) {
 			return nil, ctx, err
@@ -103,8 +102,18 @@ func exactCached(ctx context.Context, op OperationContext, record qaruntime.Turn
 	return hit.Entry
 }
 
-// writeCache 在一轮正常回答完成后把可共享的答案写入自动缓存，并记下英文问题和提问所在的文档供 Jev 判断复用；失败不影响本轮结果。
-func writeCache(ctx context.Context, op OperationContext, turnID string, cp *questionPlan, answer, memoryHash, currentDocument string) {
+// equivalentCached 只比较已补全的独立问题；候选及来源核对由缓存域完成，失败就正常查阅文档。
+func equivalentCached(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, cp *questionPlan) *gen.CacheEntry {
+	runtime, err := qaruntime.FromContext(ctx)
+	if err != nil {
+		return nil
+	}
+	entry, _ := cache.MatchReusable(ctx, op, cp.plan.CanonicalQuestion, cache.ScopeHash(op, resolved.Policy, runtime.BaseLanguage), record.Language)
+	return entry
+}
+
+// writeCache 在一轮正常回答完成后把可共享的答案写入自动缓存；失败不影响本轮结果。
+func writeCache(ctx context.Context, op OperationContext, turnID string, cp *questionPlan, answer, memoryHash string) {
 	read, err := qaruntime.BeginRead(ctx, op)
 	if err != nil {
 		return
@@ -115,9 +124,6 @@ func writeCache(ctx context.Context, op OperationContext, turnID string, cp *que
 		return
 	}
 	result, err := cache.WriteAutomaticCache(ctx, op, cache.WriteAutomaticCacheInput{TurnID: turnID, Plan: cp.plan, Answer: answer, Citations: record.Citations, MemoryVersionHash: memoryHash})
-	if err == nil && result.Written && result.Entry != nil && cp.plan.EnglishQuestion != "" {
-		err = cache.SaveReuseInfo(ctx, op, result.Entry.CacheId, cp.plan.EnglishQuestion, currentDocument)
-	}
 	if os.Getenv("NW_DEBUG") != "" {
 		fmt.Fprintf(os.Stderr, "写入自动缓存 turn=%s written=%v err=%v\n", turnID, result.Written, err)
 	}

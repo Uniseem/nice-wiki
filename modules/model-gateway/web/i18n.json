@@ -607,22 +607,6 @@
   "id": "Tutup",
   "ar": "إغلاق"
  },
- "决策": {
-  "zh-Hant": "決策",
-  "en": "Decision",
-  "ja": "判定",
-  "ko": "판단",
-  "fr": "Décision",
-  "de": "Entscheidung",
-  "es": "Decisión",
-  "pt": "Decisão",
-  "ru": "Решения",
-  "it": "Decisione",
-  "vi": "Quyết định",
-  "th": "การตัดสินใจ",
-  "id": "Keputusan",
-  "ar": "القرار"
- },
  "准确": {
   "zh-Hant": "準確",
   "en": "Accurate",
@@ -734,22 +718,6 @@
   "th": "ดูเฉพาะที่บัญชีใช้ได้",
   "id": "Hanya yang bisa dipakai akun",
   "ar": "المتاحة للحساب فقط"
- },
- "只返回带概率的选择结果，不生成文字（如 OpenRouter 上的 typesafe/jev-1.14）": {
-  "zh-Hant": "只回傳帶機率的選擇結果，不產生文字（如 OpenRouter 上的 typesafe/jev-1.14）",
-  "en": "Returns only choices with probabilities, no text (e.g. typesafe/jev-1.14 on OpenRouter)",
-  "ja": "確率付きの選択結果だけを返し、文章は生成しません（OpenRouter の typesafe/jev-1.14 など）",
-  "ko": "확률이 붙은 선택 결과만 반환하고 글은 생성하지 않습니다(예: OpenRouter의 typesafe/jev-1.14)",
-  "fr": "Ne renvoie que des choix avec probabilités, sans texte (ex. typesafe/jev-1.14 sur OpenRouter)",
-  "de": "Liefert nur Auswahlergebnisse mit Wahrscheinlichkeiten, keinen Text (z. B. typesafe/jev-1.14 bei OpenRouter)",
-  "es": "Solo devuelve elecciones con probabilidades, sin texto (p. ej., typesafe/jev-1.14 en OpenRouter)",
-  "pt": "Só retorna escolhas com probabilidades, sem texto (ex.: typesafe/jev-1.14 no OpenRouter)",
-  "ru": "Возвращает только выбор с вероятностями, без текста (например, typesafe/jev-1.14 на OpenRouter)",
-  "it": "Restituisce solo scelte con probabilità, senza testo (ad es. typesafe/jev-1.14 su OpenRouter)",
-  "vi": "Chỉ trả về lựa chọn kèm xác suất, không sinh văn bản (ví dụ typesafe/jev-1.14 trên OpenRouter)",
-  "th": "ส่งกลับเฉพาะตัวเลือกพร้อมความน่าจะเป็น ไม่สร้างข้อความ (เช่น typesafe/jev-1.14 บน OpenRouter)",
-  "id": "Hanya mengembalikan pilihan beserta probabilitas, tanpa teks (mis. typesafe/jev-1.14 di OpenRouter)",
-  "ar": "يُرجع اختيارات مع احتمالاتها فقط دون نص (مثل typesafe/jev-1.14 على OpenRouter)"
  },
  "召回重排": {
   "zh-Hant": "召回重排",
@@ -1903,22 +1871,6 @@
   "id": "Setiap tugas AI memakai profil tingkatnya secara bawaan. Jika perlu, tetapkan model tertentu untuk satu tugas.",
   "ar": "تستخدم كل مهمة ذكاء اصطناعي افتراضيًا ملفًا من مستواها، ويمكنك تحديد نموذج لمهمة واحدة عند الحاجة."
  },
- "每轮问答决策（意图、风险、难度）": {
-  "zh-Hant": "每輪問答決策（意圖、風險、難度）",
-  "en": "Per-turn Q&A decision (intent, risk, difficulty)",
-  "ja": "各ターンの Q&A 判定（意図、リスク、難易度）",
-  "ko": "질문마다 Q&A 판단(의도, 위험, 난이도)",
-  "fr": "Décision à chaque question (intention, risque, difficulté)",
-  "de": "Entscheidung pro Frage (Absicht, Risiko, Schwierigkeit)",
-  "es": "Decisión por pregunta (intención, riesgo, dificultad)",
-  "pt": "Decisão por pergunta (intenção, risco, dificuldade)",
-  "ru": "Решение по каждому вопросу (намерение, риск, сложность)",
-  "it": "Decisione per ogni domanda (intento, rischio, difficoltà)",
-  "vi": "Quyết định mỗi lượt hỏi đáp (ý định, rủi ro, độ khó)",
-  "th": "การตัดสินใจถามตอบแต่ละรอบ (เจตนา ความเสี่ยง ความยาก)",
-  "id": "Keputusan per giliran (niat, risiko, kesulitan)",
-  "ar": "قرار كل جولة أسئلة (النية والمخاطر والصعوبة)"
- },
  "没拿到供应方的模型列表": {
   "zh-Hant": "沒有取得供應商的模型列表",
   "en": "Couldn't get the provider's model list",
@@ -2142,22 +2094,6 @@
   "th": "คลังความรู้ใช้ประมาณโทเคนของชิ้น",
   "id": "Basis pengetahuan memakainya untuk memperkirakan token potongan.",
   "ar": "تستخدمه قاعدة المعرفة لتقدير رموز المقاطع."
- },
- "知识索引决策（旧卡片是否仍准确）": {
-  "zh-Hant": "知識索引決策（舊卡片是否仍準確）",
-  "en": "Knowledge index decision (is the old card still accurate)",
-  "ja": "ナレッジインデックスの判定（古いカードはまだ正確か）",
-  "ko": "지식 색인 판단(이전 카드가 여전히 정확한지)",
-  "fr": "Décision de l'index (l'ancienne fiche est-elle exacte ?)",
-  "de": "Index-Entscheidung (ist die alte Karte noch korrekt?)",
-  "es": "Decisión del índice (¿sigue siendo correcta la ficha anterior?)",
-  "pt": "Decisão do índice (a ficha antiga ainda está correta?)",
-  "ru": "Решение индекса (верна ли старая карточка)",
-  "it": "Decisione dell'indice (la vecchia scheda è ancora corretta?)",
-  "vi": "Quyết định chỉ mục tri thức (thẻ cũ còn chính xác không)",
-  "th": "การตัดสินใจของดัชนีความรู้ (การ์ดเดิมยังถูกต้องหรือไม่)",
-  "id": "Keputusan indeks (apakah kartu lama masih akurat)",
-  "ar": "قرار فهرس المعرفة (هل البطاقة القديمة ما زالت دقيقة)"
  },
  "硅基流动": {
   "zh-Hant": "矽基流動",
@@ -2494,22 +2430,6 @@
   "th": "ถามตอบของผู้เยี่ยมชม",
   "id": "Tanya Jawab pengunjung",
   "ar": "أسئلة الزوار"
- },
- "访客问题译成英文（供决策模型）": {
-  "zh-Hant": "訪客問題譯成英文（供決策模型）",
-  "en": "Translate visitor questions into English (for the decision model)",
-  "ja": "訪問者の質問を英訳（判定モデル用）",
-  "ko": "방문자 질문 영어 번역(판단 모델용)",
-  "fr": "Traduire les questions en anglais (pour le modèle de décision)",
-  "de": "Besucherfragen ins Englische übersetzen (für das Entscheidungsmodell)",
-  "es": "Traducir preguntas al inglés (para el modelo de decisión)",
-  "pt": "Traduzir perguntas para o inglês (para o modelo de decisão)",
-  "ru": "Перевод вопросов на английский (для модели решений)",
-  "it": "Traduci le domande in inglese (per il modello decisionale)",
-  "vi": "Dịch câu hỏi của khách sang tiếng Anh (cho mô hình quyết định)",
-  "th": "แปลคำถามผู้เยี่ยมชมเป็นภาษาอังกฤษ (สำหรับโมเดลตัดสินใจ)",
-  "id": "Terjemahkan pertanyaan ke bahasa Inggris (untuk model keputusan)",
-  "ar": "ترجمة أسئلة الزوار إلى الإنجليزية (لنموذج القرار)"
  },
  "语言切换建议": {
   "zh-Hant": "語言切換建議",
@@ -2991,22 +2911,6 @@
   "id": "Masukkan kunci OpenRouter untuk menyiapkan semua AI sekali klik, atau hubungkan penyedia dan model secara manual di bawah.",
   "ar": "أدخل مفتاح OpenRouter لإعداد كل ميزات الذكاء الاصطناعي بنقرة واحدة، أو اربط المزوّدين والنماذج يدويًا أدناه."
  },
- "填入 OpenRouter 的 API 密钥，一次配好全部 AI：决策用 Jev，向量用 text-embedding-3-small，其余都用 DeepSeek Flash；同时开启知识索引并为已发布文档建索引、保存防滥用默认值、打开公开问答。之后翻译和索引都会自动进行。": {
-  "zh-Hant": "填入 OpenRouter 的 API 金鑰，一次設定好全部 AI：決策用 Jev，向量用 text-embedding-3-small，其餘都用 DeepSeek Flash；同時開啟知識索引並為已發布文件建立索引、儲存防濫用預設值、開啟公開問答。之後翻譯和索引都會自動進行。",
-  "en": "Enter your OpenRouter API key to set up all AI at once: Jev for decisions, text-embedding-3-small for embeddings, DeepSeek Flash for everything else. This also turns on the knowledge index and indexes published documents, saves the default abuse protection, and opens public Q&A. Translation and indexing then run automatically.",
-  "ja": "OpenRouter の API キーを入力すると AI をまとめて設定します。判定は Jev、ベクトルは text-embedding-3-small、それ以外はすべて DeepSeek Flash。あわせてナレッジインデックスを有効にして公開済みドキュメントを索引化し、不正利用対策の既定値を保存し、公開 Q&A を開きます。以後、翻訳とインデックス作成は自動で行われます。",
-  "ko": "OpenRouter API 키를 입력하면 AI 전체를 한 번에 설정합니다. 결정은 Jev, 벡터는 text-embedding-3-small, 나머지는 모두 DeepSeek Flash를 씁니다. 동시에 지식 색인을 켜고 게시된 문서를 색인하며, 남용 방지 기본값을 저장하고 공개 Q&A를 엽니다. 이후 번역과 색인은 자동으로 진행됩니다.",
-  "fr": "Saisissez votre clé API OpenRouter pour tout configurer d'un coup : Jev pour les décisions, text-embedding-3-small pour les vecteurs, DeepSeek Flash pour le reste. L'index de connaissances est aussi activé et les documents publiés indexés, la protection anti-abus par défaut enregistrée et les questions-réponses publiques ouvertes. Traduction et indexation se font ensuite automatiquement.",
-  "de": "Geben Sie Ihren OpenRouter-API-Schlüssel ein, um alle KI-Funktionen auf einmal einzurichten: Jev für Entscheidungen, text-embedding-3-small für Vektoren, DeepSeek Flash für alles andere. Zugleich wird der Wissensindex aktiviert und veröffentlichte Dokumente indexiert, der Standard-Missbrauchsschutz gespeichert und die öffentliche Fragefunktion geöffnet. Übersetzung und Indexierung laufen danach automatisch.",
-  "es": "Introduce tu clave de API de OpenRouter para configurar toda la IA de una vez: Jev para decisiones, text-embedding-3-small para vectores y DeepSeek Flash para todo lo demás. También activa el índice de conocimiento e indexa los documentos publicados, guarda la protección antiabuso por defecto y abre las preguntas públicas. Después, la traducción y la indexación son automáticas.",
-  "pt": "Informe sua chave de API do OpenRouter para configurar toda a IA de uma vez: Jev para decisões, text-embedding-3-small para vetores e DeepSeek Flash para o resto. Também ativa o índice de conhecimento e indexa os documentos publicados, salva a proteção contra abuso padrão e abre as perguntas públicas. Depois, tradução e indexação acontecem automaticamente.",
-  "ru": "Введите API-ключ OpenRouter, чтобы настроить весь ИИ сразу: Jev для решений, text-embedding-3-small для векторов, DeepSeek Flash для всего остального. Заодно включается индекс знаний и индексируются опубликованные документы, сохраняется защита от злоупотреблений по умолчанию и открываются публичные вопросы. Дальше перевод и индексация идут автоматически.",
-  "it": "Inserisci la tua chiave API OpenRouter per configurare tutta l'IA in una volta: Jev per le decisioni, text-embedding-3-small per i vettori, DeepSeek Flash per tutto il resto. Inoltre attiva l'indice della conoscenza e indicizza i documenti pubblicati, salva la protezione anti-abuso predefinita e apre le domande pubbliche. Poi traduzione e indicizzazione procedono da sole.",
-  "vi": "Nhập khóa API OpenRouter để cấu hình toàn bộ AI một lần: quyết định dùng Jev, vector dùng text-embedding-3-small, còn lại đều dùng DeepSeek Flash; đồng thời bật chỉ mục tri thức và lập chỉ mục cho tài liệu đã xuất bản, lưu mặc định chống lạm dụng và mở hỏi đáp công khai. Sau đó việc dịch và lập chỉ mục diễn ra tự động.",
-  "th": "กรอกคีย์ API ของ OpenRouter เพื่อตั้งค่า AI ทั้งหมดในครั้งเดียว: การตัดสินใจใช้ Jev เวกเตอร์ใช้ text-embedding-3-small ที่เหลือใช้ DeepSeek Flash ทั้งหมด พร้อมเปิดดัชนีความรู้และสร้างดัชนีให้เอกสารที่เผยแพร่ บันทึกค่าเริ่มต้นการป้องกันการใช้งานผิด และเปิดถามตอบสาธารณะ หลังจากนั้นการแปลและการสร้างดัชนีจะทำงานเองอัตโนมัติ",
-  "id": "Masukkan kunci API OpenRouter untuk menyiapkan semua AI sekaligus: Jev untuk keputusan, text-embedding-3-small untuk vektor, DeepSeek Flash untuk sisanya. Sekaligus mengaktifkan indeks pengetahuan dan mengindeks dokumen terbit, menyimpan perlindungan penyalahgunaan bawaan, dan membuka tanya jawab publik. Setelah itu penerjemahan dan pengindeksan berjalan otomatis.",
-  "ar": "أدخل مفتاح OpenRouter API لإعداد كل ميزات الذكاء الاصطناعي دفعة واحدة: Jev للقرارات، وtext-embedding-3-small للمتجهات، وDeepSeek Flash لكل ما عدا ذلك. ويُفعَّل أيضًا فهرس المعرفة وتُفهرس المستندات المنشورة، وتُحفظ إعدادات الحماية من الإساءة الافتراضية، ويُفتح السؤال والجواب العام. بعد ذلك تجري الترجمة والفهرسة تلقائيًا."
- },
  "开启知识索引": {
   "zh-Hant": "開啟知識索引",
   "en": "turn on the knowledge index",
@@ -3166,5 +3070,21 @@
   "th": "เชื่อมต่อ OpenRouter ไม่ได้: เซิร์ฟเวอร์ออกอินเทอร์เน็ตไม่ได้ หรือถูกไฟร์วอลล์บล็อก {0}",
   "id": "Tidak bisa menjangkau OpenRouter: server tidak punya akses internet keluar, atau diblokir firewall. {0}",
   "ar": "تعذّر الوصول إلى OpenRouter: لا يملك الخادم وصولًا صادرًا إلى الإنترنت أو يحجبه جدار حماية. {0}"
+ },
+ "填入 OpenRouter 的 API 密钥，一次配好全部 AI，并开启知识索引、防滥用和公开问答。之后翻译和索引都会自动进行。": {
+  "zh-Hant": "填入 OpenRouter 的 API 金鑰，一次設定全部 AI，並開啟知識索引、防濫用與公開問答。之後翻譯和索引都會自動進行。",
+  "en": "Enter your OpenRouter API key to configure all AI features and enable knowledge indexing, abuse protection, and public Q&A. Translation and indexing then run automatically.",
+  "ja": "OpenRouter の API キーを入力すると、すべての AI 機能を設定し、ナレッジインデックス、不正利用対策、公開 Q&A を有効にします。その後の翻訳とインデックス作成は自動で行われます。",
+  "ko": "OpenRouter API 키를 입력하면 모든 AI를 설정하고 지식 색인, 남용 방지, 공개 Q&A를 켭니다. 이후 번역과 색인은 자동으로 진행됩니다.",
+  "fr": "Saisissez votre clé API OpenRouter pour configurer toutes les fonctions IA et activer l’indexation, la protection contre les abus et les questions-réponses publiques. La traduction et l’indexation se font ensuite automatiquement.",
+  "de": "Geben Sie Ihren OpenRouter-API-Schlüssel ein, um alle KI-Funktionen einzurichten und Wissensindex, Missbrauchsschutz und öffentliche Fragen zu aktivieren. Übersetzung und Indexierung laufen danach automatisch.",
+  "es": "Introduce tu clave de API de OpenRouter para configurar toda la IA y activar el índice de conocimiento, la protección antiabuso y las preguntas públicas. Después, la traducción y la indexación son automáticas.",
+  "pt": "Informe sua chave de API do OpenRouter para configurar toda a IA e ativar o índice de conhecimento, a proteção contra abuso e as perguntas públicas. Depois, tradução e indexação acontecem automaticamente.",
+  "ru": "Введите API-ключ OpenRouter, чтобы настроить все функции ИИ и включить индекс знаний, защиту от злоупотреблений и публичные вопросы. Затем перевод и индексация выполняются автоматически.",
+  "it": "Inserisci la tua chiave API OpenRouter per configurare tutte le funzioni IA e attivare l’indice della conoscenza, la protezione dagli abusi e le domande pubbliche. Traduzione e indicizzazione procederanno automaticamente.",
+  "vi": "Nhập khóa API OpenRouter để cấu hình toàn bộ AI và bật chỉ mục tri thức, chống lạm dụng và hỏi đáp công khai. Sau đó việc dịch và lập chỉ mục diễn ra tự động.",
+  "th": "กรอกคีย์ API ของ OpenRouter เพื่อตั้งค่า AI ทั้งหมดและเปิดดัชนีความรู้ การป้องกันการใช้งานผิด และถามตอบสาธารณะ จากนั้นการแปลและการสร้างดัชนีจะทำงานอัตโนมัติ",
+  "id": "Masukkan kunci API OpenRouter untuk menyiapkan semua AI dan mengaktifkan indeks pengetahuan, perlindungan penyalahgunaan, dan tanya jawab publik. Setelah itu penerjemahan dan pengindeksan berjalan otomatis.",
+  "ar": "أدخل مفتاح OpenRouter API لإعداد جميع ميزات الذكاء الاصطناعي وتفعيل فهرس المعرفة والحماية من إساءة الاستخدام والأسئلة والأجوبة العامة. بعد ذلك تجري الترجمة والفهرسة تلقائيًا."
  }
 }

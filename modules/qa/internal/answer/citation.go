@@ -10,12 +10,36 @@ import (
 )
 
 var citationSpelling = regexp.MustCompile(`(?i)\bcitation[.:]([0-9a-f]{8,64})\b`)
+var citationMarker = regexp.MustCompile(`\[\[(citation\.[0-9a-f]{8,64})\]\]`)
 
 // normalizeCitationSpelling 只修正分隔符与大小写；来源仍须精确匹配本轮引用白名单，不猜测或补齐ID。
 func normalizeCitationSpelling(text string) string {
 	return citationSpelling.ReplaceAllStringFunc(text, func(marker string) string {
 		return "citation." + strings.ToLower(marker[len("citation."):])
 	})
+}
+
+// FinalizeCitations 只保留完整且精确命中来源白名单的引用；裸ID和虚构标识不会使答案进入有依据缓存。
+func FinalizeCitations(text string, allowed []gen.Citation) (string, []gen.Citation) {
+	byID := map[string]gen.Citation{}
+	for _, citation := range allowed {
+		byID[citation.CitationId] = citation
+	}
+	used := []gen.Citation{}
+	seen := map[string]bool{}
+	text = citationMarker.ReplaceAllStringFunc(normalizeCitationSpelling(text), func(marker string) string {
+		id := marker[2 : len(marker)-2]
+		citation, ok := byID[id]
+		if !ok {
+			return ""
+		}
+		if !seen[id] {
+			seen[id] = true
+			used = append(used, citation)
+		}
+		return marker
+	})
+	return text, used
 }
 
 type ValidateCitationInput struct {

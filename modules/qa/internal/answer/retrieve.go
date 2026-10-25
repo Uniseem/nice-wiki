@@ -32,6 +32,7 @@ type RetrieveEvidenceResult struct {
 	Citations        []gen.Citation `json:"citations"`
 	EvidenceText     string         `json:"evidenceText"`
 	IndexVersionHash string         `json:"indexVersionHash"`
+	Truncated        bool           `json:"truncated"`
 }
 type evidenceChunk struct {
 	Ordinal       int                      `json:"ordinal"`
@@ -137,7 +138,7 @@ func RetrieveEvidence(ctx context.Context, op OperationContext, input RetrieveEv
 		ids = append(ids, chunk.ChunkID)
 		refs = append(refs, chunk.Document)
 	}
-	result := RetrieveEvidenceResult{Citations: make([]gen.Citation, 0), EvidenceText: "[]", IndexVersionHash: indexVersion}
+	result := RetrieveEvidenceResult{Citations: make([]gen.Citation, 0), EvidenceText: "[]", IndexVersionHash: indexVersion, Truncated: truncated || len(ids) < len(candidates)}
 	if len(ids) == 0 {
 		if truncated && input.Select == nil {
 			return RetrieveEvidenceResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "材料预算不足，不能把未召回材料当作无来源答案")

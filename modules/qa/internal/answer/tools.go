@@ -87,14 +87,7 @@ func ExecuteAgentTool(ctx context.Context, op OperationContext, call platform.Ga
 		if err != nil {
 			return AgentToolResult{}, err
 		}
-		content, _ := json.Marshal(struct {
-			Materials json.RawMessage `json:"materials"`
-			Citations []gen.Citation  `json:"citations"`
-		}{json.RawMessage(found.EvidenceText), found.Citations})
-		if len(content) > input.MaximumBytes {
-			return AgentToolResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "搜索片段超出本次可读窗口，请缩小查询范围")
-		}
-		return AgentToolResult{Content: string(content), Citations: found.Citations, Title: "搜索文档"}, nil
+		return packAgentSearch(arguments.Query, found, input.MaximumBytes)
 	case "read_document":
 		var arguments agentDocumentArguments
 		if err := decodeAgentArguments(call.Arguments, &arguments); err != nil {
@@ -104,6 +97,49 @@ func ExecuteAgentTool(ctx context.Context, op OperationContext, call platform.Ga
 	default:
 		return AgentToolResult{}, platform.NewError(platform.CodeForbidden, false, "本问答只允许浏览指南、搜索和阅读已发布文档")
 	}
+}
+
+// packAgentSearch 按完整片段及其引用一起裁剪，避免大批检索结果反复超窗且不给模型任何可用入口。
+func packAgentSearch(query string, found RetrieveEvidenceResult, maximumBytes int) (AgentToolResult, error) {
+	var materials []json.RawMessage
+	if json.Unmarshal([]byte(found.EvidenceText), &materials) != nil || len(materials) != len(found.Citations) {
+		return AgentToolResult{}, platform.NewError(platform.CodeIntegrityError, false, "搜索片段与引用数量不一致")
+	}
+	total := len(materials)
+	for count := total; count >= 0; count-- {
+		content, _ := json.Marshal(struct {
+			Query     string            `json:"query"`
+			Materials []json.RawMessage `json:"materials"`
+			Citations []gen.Citation    `json:"citations"`
+			Truncated bool              `json:"truncated"`
+			Message   string            `json:"message"`
+		}{query, materials[:count], found.Citations[:count], found.Truncated || count < total,
+			"片段仅供定位；需要完整步骤、适用条件或被省略部分时，根据citations里的document.documentId调用read_document。搜索为空不能证明本站没有相关内容。"})
+		if len(content) <= maximumBytes && (count > 0 || total == 0) {
+			return AgentToolResult{Content: string(content), Citations: found.Citations[:count], Title: "搜索文档"}, nil
+		}
+	}
+	// 连一段完整片段也放不下时，仅返回文档入口；入口不是正文证据，模型需read_document后才能引用。
+	type match struct {
+		DocumentID string `json:"documentId"`
+		Title      string `json:"title"`
+	}
+	matches := []match{}
+	seen := map[string]bool{}
+	for _, citation := range found.Citations {
+		if !seen[citation.Document.DocumentId] {
+			seen[citation.Document.DocumentId] = true
+			matches = append(matches, match{citation.Document.DocumentId, clipAgentText(citation.Title, 120)})
+		}
+	}
+	for len(matches) > 0 {
+		content, _ := json.Marshal(map[string]any{"query": query, "matches": matches, "truncated": true, "message": "命中片段超过当前窗口，以下仅是文档入口，不是可引用正文。请用documentId调用read_document并按nextOffset续读。"})
+		if len(content) <= maximumBytes {
+			return AgentToolResult{Content: string(content), Citations: []gen.Citation{}, Title: "搜索到文档入口"}, nil
+		}
+		matches = matches[:len(matches)-1]
+	}
+	return AgentToolResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "文档入口超过本次窗口，请减少同批工具数量")
 }
 
 func ReadAgentGuide(ctx context.Context, op OperationContext, root string, offset, maximumBytes int) (AgentToolResult, error) {
@@ -347,6 +383,17 @@ func AgentToolError(err error) AgentToolResult {
 	if failure, ok := err.(*platform.Error); ok {
 		code = failure.Code
 	}
-	raw, _ := json.Marshal(map[string]any{"error": code, "message": "本次只读工具没有取得材料。可修正参数或换其他只读入口；不能据此认定站点文档没有相关内容。"})
+	message := "本次只读工具没有取得材料，可换其他只读入口；不能据此认定站点文档没有相关内容。"
+	switch code {
+	case platform.CodeValidation:
+		message = "参数不符合工具声明：只传声明字段，使用指南中的文档ID；offset和limit必须在声明范围内，搜索词为1到500字。修正后再读。"
+	case platform.CodeStaleResult:
+		message = "资料版本已经变化。read_document从offset=0重新读取，省略旧publishedRevisionId；不要引用旧版本。"
+	case platform.CodeBudgetExceeded:
+		message = "本批资料超过窗口。减少同批工具调用数，read_document降低limit并用nextOffset续读，指南用guideOffset分页。"
+	case platform.CodeNotFound, platform.CodeGone, platform.CodeForbidden:
+		message = "该资料当前不可公开读取，不要猜测或引用其内容；从read_guide重新定位可见文档。"
+	}
+	raw, _ := json.Marshal(map[string]any{"error": code, "message": message})
 	return AgentToolResult{Content: string(bytes.TrimSpace(raw)), Title: "查阅未完成"}
 }

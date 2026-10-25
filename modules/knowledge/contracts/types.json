@@ -4310,7 +4310,7 @@
         "englishOverview": {
           "type": "string",
           "maxLength": 20000,
-          "description": "全站概括的英文版，给只读英文的决策模型（Jev）判断问题是否属于本站；还没生成时为空字符串"
+          "description": "旧客户端兼容字段；当前链路不再为概括额外调用模型翻译，英文基准站点使用原文"
         },
         "updatedAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",

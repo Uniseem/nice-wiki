@@ -21,10 +21,10 @@ for pid, adapter in (("fakechat", "openai_chat"), ("fakeemb", "openai_embeddings
     call("PUT", f"/v1/admin/providers/{pid}", {"expectedVersion": 0, "idempotencyKey": k, "provider": {"providerId": pid, "version": 1, "adapter": adapter, "baseUrl": "http://127.0.0.1:9911/v1", "enabled": True, "credentialVersion": 0, "connectTimeoutMs": 5000, "requestTimeoutMs": 60000, "displayName": pid, "extraHeaderNames": [], "extraHeaderSecretRefs": [], "concurrencyLimit": 4, "streamIdleTimeoutMs": 30000}}, show=False)
     call("POST", f"/v1/admin/providers/{pid}/credentials", {"providerId": pid, "secret": "test-secret", "expectedVersion": 0, "idempotencyKey": key()}, show=False)
 price = {"inputPerMillionCost": M(100000), "outputPerMillionCost": M(200000), "fixedCost": M(0)}
-for mid, pid, caps, dim, pre, version in (("chatm", "fakechat", ["chat", "structured", "vision"], 0, "none", "fake-chatm"), ("embm", "fakeemb", ["embedding"], 8, "none;tiktoken-go@v0.7.0;cl100k_base", "fake-embm"), ("decm", "fakechat", ["decision"], 0, "none", "typesafe/jev-1.14")):
+for mid, pid, caps, dim, pre, version in (("chatm", "fakechat", ["chat", "structured", "vision"], 0, "none", "fake-chatm"), ("embm", "fakeemb", ["embedding"], 8, "none;tiktoken-go@v0.7.0;cl100k_base", "fake-embm")):
     call("PUT", f"/v1/admin/models/{mid}", {"expectedVersion": 0, "idempotencyKey": key(), "manualPrice": price, "model": {"modelId": mid, "version": 1, "providerId": pid, "providerModelVersion": version, "capabilities": caps, "dimension": dim, "preprocessorVersion": pre, "maxInputTokens": 8000, "maxOutputTokens": 2000 if caps[0] == "chat" else 0, "catalogOrigin": "manual", "manualOverride": True, "enabled": True}}, show=False)
 for cc in ("background", "qa"):
-    for tier, m in (("fast", "chatm"), ("accurate", "chatm"), ("vision", "chatm"), ("embedding", "embm"), ("decision", "decm")):
+    for tier, m in (("fast", "chatm"), ("accurate", "chatm"), ("vision", "chatm"), ("embedding", "embm")):
         prof = f"{cc[:2]}-{tier}"
         call("PUT", f"/v1/admin/profiles/{prof}", {"expectedVersion": 0, "idempotencyKey": key(), "profile": {"profileId": prof, "version": 1, "costClass": cc, "tier": tier, "orderedModelIds": [m], "maximumCost": M(0), "concurrency": 4, "dailyLimitCost": M(0)}}, show=False)
 for t in j.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'contracts', 'ai-tasks.json')))['tasks']:

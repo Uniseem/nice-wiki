@@ -749,7 +749,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 4096,
-          "description": "canonicalQuestion 的英文译文，给只读英文的决策模型（Jev）判断能否复用缓存答案；前置没给出时缺省"
+          "description": "旧计划兼容字段；当前前置改写和缓存匹配不再需要英文译文"
         },
         "visitorLanguage": {
           "type": "string",
@@ -2944,6 +2944,11 @@
         },
         "verifiedPage": {
           "$ref": "#/$defs/VerifiedPageContext"
+        },
+        "currentPageTitle": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "已核实的当前公开页面标题，用来补全指代"
         }
       },
       "required": [
@@ -4264,7 +4269,7 @@
           "type": "string",
           "minLength": 0,
           "maxLength": 4096,
-          "description": "canonicalQuestion 的英文译文，给只读英文的决策模型（Jev）判断能否复用缓存答案；为空时本轮不做复用判断"
+          "description": "旧计划兼容字段；当前前置改写和缓存匹配不再需要英文译文"
         },
         "complete": {
           "type": "boolean",
@@ -4536,6 +4541,20 @@
         "results"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
+    },
+    "CacheReuseDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "maxLength": 16
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "description": "快速文本模型选择完全同义的缓存问题；空字符串表示不复用"
     }
   }
 }

@@ -587,6 +587,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 11. 当前设备撤销只用ResolveAuthContext的权威sessionId传入响应适配；非当前设备不删除cookie
 12. 匿名traffic-guard调用只从真实连接/部署信任链生成站点隔离30日预算范围；当前/前期预算key最多两把，未配置站点/key失败关闭，不用HTTP签名key默默替代预算pepper
 13. 仅analytics:ingestBeacon匿名公开路由：以启动装配的严格公开schema校验实际正文，2048字节上限；用唯一可信代理解析与真实HTTP User-Agent覆写来源，写当前epoch并重算签名正文hash。转固定/v1/internal/beacons，仅本机portal纯服务身份，禁止转浏览器身份或原IP日志。
+14. 匿名问答和风控接口含读取及SSE统一no-store/Cross-Origin-Resource-Policy:same-origin；存在Sec-Fetch-Site时只接受same-origin，存在Origin时核对配置来源和入口Host。原会话、挑战、签名准入及网络限额继续校验。
 
 **错误**
 

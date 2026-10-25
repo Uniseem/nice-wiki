@@ -17,7 +17,7 @@ type Profile = { profileId: string; version: number; costClass: string; tier: st
 type Assignment = { taskId: string; tier: string; version: number; overrideModelId?: string };
 type Catalog = { providers: Provider[]; models: Model[]; profiles: Profile[]; taskAssignments: Assignment[] };
 
-const tiers: Record<string, string> = { fast: t('快速'), accurate: t('准确'), vision: t('视觉'), embedding: t('向量'), rerank: t('重排'), decision: t('决策') };
+const tiers: Record<string, string> = { fast: t('快速'), accurate: t('准确'), vision: t('视觉'), embedding: t('向量'), rerank: t('重排') };
 // 计费暂停：费用类别在界面上只当“用途”展示，不再有价格和费用上限。
 const costClasses: Record<string, string> = { qa: t('访客问答'), background: t('后台任务'), 'admin-probe': t('连接测试') };
 const capabilities = [
@@ -25,7 +25,6 @@ const capabilities = [
   { value: 'vision', label: t('视觉'), description: t('读图、描述画板和封面') },
   { value: 'embedding', label: t('向量'), description: t('知识库检索用的嵌入') },
   { value: 'rerank', label: t('重排'), description: t('检索结果重排序') },
-  { value: 'decision', label: t('决策'), description: t('只返回带概率的选择结果，不生成文字（如 OpenRouter 上的 typesafe/jev-1.14）') },
 ];
 // 目录里可能出现、但添加时不需要手选的能力，只用于显示。
 const extraCapabilityLabels: Record<string, string> = { structured: t('结构化输出'), reasoning: t('推理'), translation: t('翻译'), file: t('文件') };
@@ -34,7 +33,7 @@ const tokenizers = [
   { value: 'none;tiktoken-go@v0.7.0;cl100k_base', label: 'cl100k_base', description: t('多数向量模型可用的近似计数') },
   { value: 'none;tiktoken-go@v0.7.0;o200k_base', label: 'o200k_base', description: t('OpenAI 新一代模型的分词') },
 ];
-const tierCapability: Record<string, string> = { fast: 'chat', accurate: 'chat', vision: 'vision', embedding: 'embedding', rerank: 'rerank', decision: 'decision' };
+const tierCapability: Record<string, string> = { fast: 'chat', accurate: 'chat', vision: 'vision', embedding: 'embedding', rerank: 'rerank' };
 const idPattern = '[A-Za-z0-9._:-]+';
 
 export default function ModelsPage() {

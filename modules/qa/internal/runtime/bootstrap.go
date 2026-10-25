@@ -72,7 +72,7 @@ type runtimeKey struct{}
 // NewRuntime 固定所有使用的生产方响应校验器；未知响应不当作成功。
 func NewRuntime(runtime Runtime) (Runtime, error) {
 	runtime.Validators = make(map[string]func(json.RawMessage) error)
-	for _, name := range []string{"KnowledgeReadDocumentChunksResult", "LocalizationReadTranslationResult", "QaEquivalenceDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "GuardRenewPermitResult", "SiteConfigReadSiteConfigResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "KnowledgeReadDocumentIndexResult", "KnowledgeReadSiteOverviewResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
+	for _, name := range []string{"KnowledgeReadDocumentChunksResult", "LocalizationReadTranslationResult", "QaEquivalenceDecision", "QaCacheReuseDecision", "ContentPublicationChanged", "ContentPublicationWithdrawn", "KnowledgeIndexRetired", "MemoryContextChanged", "JobsRequestCancelResult", "GuardQueueSessionAdmissionResult", "QaDebugTurn", "QaCompaction", "QaQuestionPlan", "QaPlannerDecision", "GuardReportQuestionSignalsResult", "PublicResolvePublishedLinkResult", "QaPolicy", "QaCacheEntry", "QaTurn", "QaCitations", "GuardValidatePermitResult", "GuardConsumeAdmissionResult", "GuardReleasePermitResult", "GuardRenewPermitResult", "SiteConfigReadSiteConfigResult", "ContentValidatePublicationsResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "KnowledgeCreateQueryEmbeddingResult", "KnowledgeSearchResult", "KnowledgeReadSectionsResult", "KnowledgeReadDocumentIndexResult", "KnowledgeReadSiteOverviewResult", "MemoryResolveContextResult", "ModelTaskAvailabilityResult", "CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "LocalizationCachedAnswerTranslationResult"} {
 		validator, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if err != nil {
 			return Runtime{}, err
@@ -702,7 +702,7 @@ func ReadSiteOverview(ctx context.Context, op OperationContext) (SiteOverview, e
 	return SiteOverview{Text: result.Overview, English: result.EnglishOverview}, nil
 }
 
-// SiteOverview 是全站概括（基准语言，给回答模型）和它的英文版（给只读英文的 Jev）。
+// SiteOverview 是全站概括（基准语言及兼容的英文版）。
 type SiteOverview struct {
 	Text    string
 	English string
@@ -784,7 +784,7 @@ type QueryEmbedding struct {
 type QuestionPlan struct {
 	OriginalQuestion   string        `json:"originalQuestion"`
 	CanonicalQuestion  string        `json:"canonicalQuestion"`
-	EnglishQuestion    string        `json:"englishQuestion,omitempty"` // 给只读英文的 Jev 判断缓存复用
+	EnglishQuestion    string        `json:"englishQuestion,omitempty"` // 兼容旧计划，当前链路不再生成或使用
 	VisitorLanguage    string        `json:"visitorLanguage"`
 	Complete           bool          `json:"complete"`
 	CacheEligible      bool          `json:"cacheEligible"`

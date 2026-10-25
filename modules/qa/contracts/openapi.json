@@ -3454,6 +3454,9 @@
       },
       "KnowledgeReadSiteOverviewResult": {
         "$ref": "../../knowledge/contracts/types.json#/$defs/ReadSiteOverviewResult"
+      },
+      "QaCacheReuseDecision": {
+        "$ref": "./types.json#/$defs/CacheReuseDecision"
       }
     }
   },
@@ -3497,6 +3500,7 @@
     "KnowledgeReadDocumentIndexResult",
     "LocalizationReadTranslationResult",
     "KnowledgeReadDocumentChunksResult",
-    "KnowledgeReadSiteOverviewResult"
+    "KnowledgeReadSiteOverviewResult",
+    "QaCacheReuseDecision"
   ]
 }
